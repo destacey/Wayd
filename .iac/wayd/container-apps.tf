@@ -135,6 +135,14 @@ resource "azurerm_container_app" "wayd_backend" {
     value = var.local_jwt_secret
   }
 
+  # WARNING: data-encryption key for connector credentials at rest.
+  # Losing or rotating this value renders every stored PAT/API key unrecoverable.
+  # See variables.tf for the full caveat.
+  secret {
+    name  = "dataprotection-master-key"
+    value = var.dataprotection_master_key
+  }
+
   identity {
     type = "SystemAssigned"
   }
@@ -222,6 +230,11 @@ resource "azurerm_container_app" "wayd_backend" {
       env {
         name        = "SecuritySettings__LocalJwt__Secret"
         secret_name = "local-jwt-secret"
+      }
+
+      env {
+        name        = "SecuritySettings__DataProtection__MasterKey"
+        secret_name = "dataprotection-master-key"
       }
 
       # Issuer and Audience come from security.json baked into the image.

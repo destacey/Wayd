@@ -149,7 +149,7 @@ jobs:
 
             - name: Terraform Apply
               id: apply
-              run: terraform apply -auto-approve -var="docker_tag=sha-${{ github.sha }}" -var="sql_admin_pass=${{ secrets.SQL_ADMIN_PASSWORD }}" -var="aad_api_client_secret=${{ secrets.AAD_API_CLIENT_SECRET }}" -var="local_jwt_secret=${{ secrets.LOCAL_JWT_SECRET }}"
+              run: terraform apply -auto-approve -var="docker_tag=sha-${{ github.sha }}" -var="sql_admin_pass=${{ secrets.SQL_ADMIN_PASSWORD }}" -var="aad_api_client_secret=${{ secrets.AAD_API_CLIENT_SECRET }}" -var="local_jwt_secret=${{ secrets.LOCAL_JWT_SECRET }}" -var="dataprotection_master_key=${{ secrets.DATAPROTECTION_MASTER_KEY }}"
 
     deploy:
         name: "Deploy"

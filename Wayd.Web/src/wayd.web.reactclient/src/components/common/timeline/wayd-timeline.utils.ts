@@ -54,6 +54,16 @@ export const DefaultTimeLineColors: Record<ThemeName, TimeLineColorData> = {
       background: '#787878',
     },
   },
+  cartoon: {
+    item: {
+      background: '#f3ebd8',
+      foreground: '#225555',
+      font: '#51463B',
+    },
+    background: {
+      background: '#cbc4af',
+    },
+  },
 }
 
 export function getDefaultTemplate<

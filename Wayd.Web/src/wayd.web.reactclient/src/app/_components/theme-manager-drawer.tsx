@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, Drawer, Flex, Segmented, Tooltip, Typography } from 'antd'
+import { Button, Drawer, Flex, Segmented, Select, Tooltip, Typography } from 'antd'
 import { CheckOutlined } from '@ant-design/icons'
 import useTheme from '@/src/components/contexts/theme'
 import { ThemeName } from '@/src/components/contexts/theme/types'
@@ -20,6 +20,13 @@ const PRESET_COLORS: { label: string; value: string }[] = [
   { label: 'Lime', value: '#a0d911' },
   { label: 'Green', value: '#52c41a' },
   { label: 'Cyan', value: '#13c2c2' },
+]
+
+const THEME_OPTIONS: { label: string; value: ThemeName }[] = [
+  { label: 'Light', value: 'light' },
+  { label: 'Cartoon', value: 'cartoon' },
+  { label: 'Slate', value: 'slate' },
+  { label: 'Dark', value: 'dark' },
 ]
 
 interface ThemeManagerDrawerProps {
@@ -55,15 +62,11 @@ const ThemeManagerDrawer = ({ open, onClose }: ThemeManagerDrawerProps) => {
       <Flex vertical gap="large">
         <Flex vertical gap="small">
           <Text strong>Mode</Text>
-          <Segmented
-            block
-            value={currentThemeName as string}
-            options={[
-              { label: 'Light', value: 'light' },
-              { label: 'Slate', value: 'slate' },
-              { label: 'Dark', value: 'dark' },
-            ]}
+          <Select
+            value={currentThemeName}
+            options={THEME_OPTIONS}
             onChange={(v) => setCurrentThemeName(v as ThemeName)}
+            popupMatchSelectWidth
           />
         </Flex>
 

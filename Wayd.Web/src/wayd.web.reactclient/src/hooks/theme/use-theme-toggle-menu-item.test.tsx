@@ -2,7 +2,7 @@ import { themeBalham } from 'ag-grid-community'
 import useTheme, { ThemeContextType } from '../../components/contexts/theme'
 import useThemeToggleMenuItem from './use-theme-toggle-menu-item'
 import { Mock } from 'jest-mock'
-import { HighlightFilled, HighlightOutlined } from '@ant-design/icons'
+import { BgColorsOutlined, HighlightFilled, HighlightOutlined } from '@ant-design/icons'
 
 jest.mock('../../components/contexts/theme', () => ({
   __esModule: true,
@@ -72,10 +72,22 @@ describe('useThemeToggleMenuItem', () => {
     expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('slate')
   })
 
-  it('cycles from slate to light theme when clicked', () => {
+  it('cycles from slate to cartoon theme when clicked', () => {
     ;(useTheme as Mock).mockReturnValue({
       ...mockThemeContext,
       currentThemeName: 'slate',
+    })
+
+    const themeToggle = useThemeToggleMenuItem()
+    themeToggle.onClick()
+
+    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('cartoon')
+  })
+
+  it('cycles from cartoon to light theme when clicked', () => {
+    ;(useTheme as Mock).mockReturnValue({
+      ...mockThemeContext,
+      currentThemeName: 'cartoon',
     })
 
     const themeToggle = useThemeToggleMenuItem()
@@ -99,5 +111,16 @@ describe('useThemeToggleMenuItem', () => {
     const themeToggle = useThemeToggleMenuItem()
     const icon = themeToggle.icon as React.ReactElement
     expect(icon.type).toBe(HighlightFilled)
+  })
+
+  it('uses the correct icon for the cartoon theme', () => {
+    ;(useTheme as Mock).mockReturnValue({
+      ...mockThemeContext,
+      currentThemeName: 'cartoon',
+    })
+
+    const themeToggle = useThemeToggleMenuItem()
+    const icon = themeToggle.icon as React.ReactElement
+    expect(icon.type).toBe(BgColorsOutlined)
   })
 })

@@ -15,9 +15,11 @@ import {
 } from 'ag-grid-community'
 import { useLocalStorageState } from '@/src/hooks'
 import { ConfigProvider, theme, ThemeConfig } from 'antd'
-import lightTheme from '@/src/config/theme/light-theme'
-import darkTheme from '@/src/config/theme/dark-theme'
-import slateTheme from '@/src/config/theme/slate-theme'
+import { useLightThemePreset } from '@/src/config/theme/light-theme'
+import { useDarkThemePreset } from '@/src/config/theme/dark-theme'
+import { useSlateThemePreset } from '@/src/config/theme/slate-theme'
+import useCartoonTheme from '@/src/config/theme/cartoon-theme'
+import { ThemePreset } from '@/src/config/theme/theme-preset'
 import { ThemeContextType, ThemeName, UserThemeConfigDto } from './types'
 import { getProfileClient } from '@/src/services/clients'
 
@@ -44,7 +46,9 @@ function mergeThemeConfig(base: ThemeConfig, overrides: UserThemeConfigDto | nul
     ...(overrides.useCompactAlgorithm ? [theme.compactAlgorithm] : []),
   ].flat()
 
-  const applyHeaderColor = overrides.colorPrimary && (themeName === 'light' || themeName === 'slate')
+  const applyHeaderColor =
+    overrides.colorPrimary &&
+    (themeName === 'light' || themeName === 'slate' || themeName === 'cartoon')
 
   return {
     ...base,
@@ -118,21 +122,48 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     [saveThemeConfig],
   )
 
-  const isLightMode = currentThemeName === 'light'
+  const isLightMode = currentThemeName === 'light' || currentThemeName === 'cartoon'
   const agGridTheme =
-    currentThemeName === 'light' ? agGridLightTheme
+    currentThemeName === 'light' || currentThemeName === 'cartoon' ? agGridLightTheme
     : currentThemeName === 'slate' ? agGridGreyTheme
     : agGridDarkTheme
   const antDesignChartsTheme = isLightMode ? 'classic' : 'classicDark'
   const antvisG6ChartsTheme = isLightMode ? 'light' : 'dark'
 
-  const baseTheme =
-    currentThemeName === 'light' ? lightTheme
-    : currentThemeName === 'slate' ? slateTheme
-    : darkTheme
+  const lightPreset = useLightThemePreset()
+  const darkPreset = useDarkThemePreset()
+  const slatePreset = useSlateThemePreset()
+  const cartoonConfigProviderProps = useCartoonTheme()
+  const presetsByName: Record<ThemeName, ThemePreset> = {
+    light: lightPreset,
+    dark: darkPreset,
+    slate: slatePreset,
+    cartoon: {
+      theme: cartoonConfigProviderProps.theme ?? ({} as ThemeConfig),
+    },
+  }
+  const activePreset = presetsByName[currentThemeName]
+  const baseTheme = activePreset.theme
   const currentTheme = useMemo(
     () => mergeThemeConfig(baseTheme, userThemeConfig, currentThemeName),
     [baseTheme, userThemeConfig, currentThemeName],
+  )
+  const providerOverrides =
+    currentThemeName === 'cartoon'
+      ? {
+          modal: cartoonConfigProviderProps.modal,
+          popover: cartoonConfigProviderProps.popover,
+          progress: cartoonConfigProviderProps.progress,
+          colorPicker: cartoonConfigProviderProps.colorPicker,
+        }
+      : (activePreset.providerOverrides ?? {})
+  const modalConfig = useMemo(
+    () => ({
+      closable: true,
+      mask: { closable: false },
+      ...(providerOverrides.modal ?? {}),
+    }),
+    [providerOverrides.modal],
   )
 
   useLayoutEffect(() => {
@@ -166,7 +197,13 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   )
 
   return (
-    <ConfigProvider theme={currentTheme} modal={{ closable: true, mask: { closable: false } }}>
+    <ConfigProvider
+      theme={currentTheme}
+      modal={modalConfig}
+      popover={providerOverrides.popover}
+      progress={providerOverrides.progress}
+      colorPicker={providerOverrides.colorPicker}
+    >
       <ThemeTokenProvider
         currentThemeName={currentThemeName}
         setCurrentThemeName={setCurrentThemeName}

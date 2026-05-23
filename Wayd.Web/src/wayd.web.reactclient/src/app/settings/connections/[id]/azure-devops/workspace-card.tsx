@@ -5,9 +5,9 @@ import { AppstoreAddOutlined, ExportOutlined } from '@ant-design/icons'
 import { Button, Card, Descriptions, Typography } from 'antd'
 import Link from 'next/link'
 import { useContext, useState } from 'react'
-import InitWorkspaceIntegrationForm from '../_components/init-workspace-integration-form'
-import { AzdoConnectionContext } from './azdo-connection-context'
-import MapAzdoWorkspaceTeamsForm from '../_components/map-azdo-workspace-teams-form'
+import InitWorkspaceIntegrationForm from './init-workspace-integration-form'
+import { AzdoConnectionContext } from './connection-context'
+import MapAzdoWorkspaceTeamsForm from './map-workspace-teams-form'
 
 const { Item } = Descriptions
 const { Text } = Typography

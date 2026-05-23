@@ -7,12 +7,18 @@ internal class ApplicationDbInitializer
 {
     private readonly WaydDbContext _dbContext;
     private readonly ApplicationDbSeeder _dbSeeder;
+    private readonly ConnectionSecretBackfill _secretBackfill;
     private readonly ILogger<ApplicationDbInitializer> _logger;
 
-    public ApplicationDbInitializer(WaydDbContext dbContext, ApplicationDbSeeder dbSeeder, ILogger<ApplicationDbInitializer> logger)
+    public ApplicationDbInitializer(
+        WaydDbContext dbContext,
+        ApplicationDbSeeder dbSeeder,
+        ConnectionSecretBackfill secretBackfill,
+        ILogger<ApplicationDbInitializer> logger)
     {
         _dbContext = dbContext;
         _dbSeeder = dbSeeder;
+        _secretBackfill = secretBackfill;
         _logger = logger;
     }
 
@@ -31,6 +37,7 @@ internal class ApplicationDbInitializer
                 _logger.LogInformation("Connection to Database Succeeded.");
 
                 await _dbSeeder.SeedDatabase(_dbContext, cancellationToken);
+                await _secretBackfill.Run(cancellationToken);
             }
         }
     }

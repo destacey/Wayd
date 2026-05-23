@@ -123,6 +123,45 @@ Configure in `Wayd.Web/src/Wayd.Web.Api/Configurations/security.json` or User Se
 
 Only `Secret` needs to be set per deploy — the rest have sensible defaults and in particular `Issuer` / `Audience` are JWT claim identifiers, not environment-specific config. Don't override them per environment.
 
+### Data Protection (at-rest secret encryption)
+
+Connector credentials (Azure DevOps PATs, AI API keys, future OAuth refresh tokens) are encrypted at rest before being written to the `Connections` table. Encryption uses AES-256-GCM with a per-row random nonce; the master key lives in configuration.
+
+Configure in `Wayd.Web/src/Wayd.Web.Api/Configurations/security.json` or User Secrets:
+
+```json
+{
+    "SecuritySettings": {
+        "DataProtection": {
+            "MasterKey": "<base64-encoded 32-byte AES key>"
+        }
+    }
+}
+```
+
+Generate the key with:
+
+```bash
+openssl rand -base64 32
+```
+
+User Secrets for local dev:
+
+```bash
+cd Wayd.Web/src/Wayd.Web.Api
+dotnet user-secrets set "SecuritySettings:DataProtection:MasterKey" "$(openssl rand -base64 32)"
+```
+
+:::warning Key loss is unrecoverable
+This is a **data-encryption** key, not a signing key. If you lose or change it, every connector credential stored in the database becomes undecryptable AEAD garbage — customers must re-enter every PAT and API key. Treat it as write-once for the lifetime of the data. Keep a backup outside the deployment system (password manager, sealed vault).
+
+This is also why `MasterKey` must be **separate** from `LocalJwt:Secret` — JWT secrets are cheap to rotate (sessions die, nothing else); data keys are not. Per [NIST SP 800-57 §5.2](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-57pt1r5.pdf), "a key shall be used for only one purpose."
+:::
+
+In-product key rotation is tracked as a roadmap item ([#595](https://github.com/destacey/Wayd/issues/595)) — until that lands, the only rotation procedure is "rotate the key, force every customer to re-enter their credentials." Avoid rotating unless you're responding to a confirmed compromise.
+
+For Azure deployments, the key is wired as the `dataprotection_master_key` Terraform variable (sourced from the `DATAPROTECTION_MASTER_KEY` GitHub Actions secret) and bound to the backend Container App as the `SecuritySettings__DataProtection__MasterKey` env var.
+
 ### Auth flow (high level)
 
 Every login path produces a **Wayd JWT + Wayd refresh token** stored in `localStorage`/`sessionStorage`. The API only ever validates Wayd JWTs — OIDC tokens from upstream providers are exchanged for a Wayd JWT at login and never presented to the API directly.

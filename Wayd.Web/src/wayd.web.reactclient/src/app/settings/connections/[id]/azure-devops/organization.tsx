@@ -5,7 +5,7 @@ import {
   AzureDevOpsWorkspaceDto,
 } from '@/src/services/wayd-api'
 import { Alert, Space, Tabs, Typography } from 'antd'
-import AzdoProcess from './azdo-process'
+import AzdoProcess from './process'
 
 const { Text, Title } = Typography
 

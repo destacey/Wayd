@@ -134,3 +134,35 @@ Wayd.Work.Application/
     Dtos/
       WorkItemDto.cs
 ```
+
+## Connector framework
+
+Customer-configured integrations (Azure DevOps, Azure OpenAI, future Jira / GitHub / HR connectors) plug into a shared framework in the `Wayd.AppIntegration` service, the `Wayd.Integrations.*` projects, and a frontend registry pair. The goal is that adding a connector is *additive* — drop in new files, register them, no edits to the generic plumbing.
+
+### Backend shape
+
+| Concern | Lives in | Pattern |
+|---|---|---|
+| Aggregate | `Wayd.AppIntegration.Domain/Models/` | `Connection<TConfiguration>` base; subclass per connector. Implement `ISyncableConnection` if the connector pulls data. |
+| Configuration | `Wayd.AppIntegration.Domain/Models/.../*ConnectionConfiguration.cs` | Plain POCO stored as JSON. Mark credential fields with `[Encrypted]` (from `Wayd.Common.Domain.DataProtection`) so they're encrypted at rest by `EncryptingJsonValueConverter`. |
+| Commands / Queries | `Wayd.AppIntegration.Application/Connections/Commands/\{Connector\}/`, `.../Queries/` | One folder per connector. CQRS via MediatR, validators via FluentValidation. |
+| Polymorphic DTO | `Wayd.AppIntegration.Application/Connections/Dtos/ConnectionDetailsDto.cs` | Add a `[JsonDerivedType]` entry; controllers switch on the request/DTO type to dispatch to the right handler. |
+| External client | `Wayd.Integrations.\{SystemName\}/` | Only if the connector actually talks to a remote API. Pure AI providers can wrap an existing SDK directly inside the application layer. |
+| Persistence | `Wayd.Infrastructure/Persistence/Configuration/AppIntegrationConfiguration.cs` | TPH discriminator; one entity-config per concrete connection class. Use `HasEncryptedJsonConversion()` for the configuration column. |
+
+### Frontend shape
+
+The connector UI is registry-driven on both the create and detail surfaces:
+
+| Concern | File | What to add |
+|---|---|---|
+| Create form section | `Wayd.Web/src/wayd.web.reactclient/src/app/settings/connections/_components/connector-registry.ts` | Map the `ConnectorType` enum value to your configuration form component. |
+| Connector type metadata | `Wayd.Web/src/wayd.web.reactclient/src/types/connectors.ts` | Add to the `ConnectorType` enum + `CONNECTOR_NAMES` / `CONNECTOR_DESCRIPTIONS` maps. |
+| Detail page | `Wayd.Web/src/wayd.web.reactclient/src/app/settings/connections/[id]/_components/detail-registry.tsx` | Register a `DetailEntry` for the new connector. Provide a `Details` component (or use `GenericConnectionDetails` as a fallback). Optional: `extraTabs`, `ExtraActions` (connector-specific menu items), `Wrapper` (if your detail UI needs a context provider), `EditForm` (if the shared edit form doesn't fit). |
+| Per-connector subfolder | `Wayd.Web/src/wayd.web.reactclient/src/app/settings/connections/[id]/\{connector\}/` | All connector-specific components live here. Export the registry entry from `index.tsx`. |
+
+The generic edit / delete / list flows handle every connector automatically. Only build connector-specific UI when the connector genuinely needs it (e.g. Azure DevOps has its workspace/team mapping flow; AI providers don't).
+
+### Why a registry instead of a plugin system
+
+There are few connectors (today 3, plausibly 10-20 long-term) and the team owns them all. A static registry catches misregistration at compile time, keeps the bundle predictable, and is trivial to refactor. If Wayd ever opens connectors to third-party authors, revisit then.

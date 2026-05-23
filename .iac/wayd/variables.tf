@@ -76,6 +76,24 @@ variable "local_jwt_secret" {
   sensitive   = true
 }
 
+# IMPORTANT: data-encryption key — NOT a signing key.
+# This key encrypts connector credentials (PATs, API keys) at rest in the
+# Connections table. If you lose or rotate it, every encrypted connector secret
+# becomes unrecoverable and customers must re-enter their credentials. Treat as
+# write-once for the lifetime of the data.
+# Generate once with: openssl rand -base64 32
+variable "dataprotection_master_key" {
+  type        = string
+  description = "Base64-encoded 256-bit AES key for at-rest secret encryption (SecuritySettings:DataProtection:MasterKey). Distinct from local_jwt_secret per NIST SP 800-57 §5.2."
+  sensitive   = true
+
+  validation {
+    # Base64 encoding of 32 raw bytes is always 44 chars (including the '=' pad).
+    condition     = length(var.dataprotection_master_key) == 44
+    error_message = "dataprotection_master_key must be base64-encoded 32 bytes (44 characters including padding). Generate with: openssl rand -base64 32."
+  }
+}
+
 variable "local_jwt_token_expiration_minutes" {
   type        = number
   description = "The expiration time in minutes for local JWT tokens."

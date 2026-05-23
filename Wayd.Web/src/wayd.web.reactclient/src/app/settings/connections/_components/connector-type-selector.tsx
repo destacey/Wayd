@@ -32,7 +32,7 @@ export const ConnectorTypeSelector: React.FC<ConnectorTypeSelectorProps> = ({
                 hoverable
                 onClick={() => onSelect(type as ConnectorType)}
                 style={{ cursor: 'pointer', height: '100%' }}
-                bodyStyle={{ padding: 16 }}
+                styles={{ body: { padding: 16 } }}
               >
                 <Title level={5} style={{ marginTop: 0, marginBottom: 8 }}>
                   {CONNECTOR_NAMES[type as ConnectorType]}

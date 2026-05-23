@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Wayd.Infrastructure.DataProtection;
 using Wayd.Infrastructure.FeatureManagement;
 using Wayd.Infrastructure.Logging;
 using Wayd.Infrastructure.OpenTelemetry;
@@ -62,6 +63,10 @@ public static class ConfigureServices
         services.AddSingleton<IClock>(SystemClock.Instance);
 
         services.AddMemoryCache();
+
+        // Data protection (at-rest secret encryption) must initialize before
+        // persistence so the EF model can pick up the protector via SecretProtectorAccessor.
+        services.AddDataProtectionForSecrets(config);
 
         // INTEGRATIONS
         services.AddTransient<IAzureDevOpsService, AzureDevOpsService>();

@@ -60,7 +60,7 @@ public class AzureDevOpsBoardsConnectionConfig : IEntityTypeConfiguration<AzureD
     public void Configure(EntityTypeBuilder<AzureDevOpsBoardsConnection> builder)
     {
         builder.Property(c => c.Configuration)
-            .HasJsonConversion()
+            .HasEncryptedJsonConversion()
             .HasColumnName("Configuration");
 
         builder.OwnsOne(c => c.TeamConfiguration, ownedBuilder =>
@@ -84,7 +84,7 @@ public class AzureOpenAIConnectionConfig : IEntityTypeConfiguration<AzureOpenAIC
     public void Configure(EntityTypeBuilder<AzureOpenAIConnection> builder)
     {
         builder.Property(c => c.Configuration)
-            .HasJsonConversion()
+            .HasEncryptedJsonConversion()
             .HasColumnName("Configuration");
     }
 }
@@ -94,7 +94,7 @@ public class OpenAIConnectionConfig : IEntityTypeConfiguration<OpenAIConnection>
     public void Configure(EntityTypeBuilder<OpenAIConnection> builder)
     {
         builder.Property(c => c.Configuration)
-            .HasJsonConversion()
+            .HasEncryptedJsonConversion()
             .HasColumnName("Configuration");
     }
 }

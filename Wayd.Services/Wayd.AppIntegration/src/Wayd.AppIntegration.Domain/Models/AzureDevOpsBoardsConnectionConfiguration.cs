@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
+using Wayd.Common.Domain.DataProtection;
 
 namespace Wayd.AppIntegration.Domain.Models;
 
@@ -27,6 +28,7 @@ public sealed class AzureDevOpsBoardsConnectionConfiguration
 
     /// <summary>Gets the personal access token.</summary>
     /// <value>The personal access token that enables access to Azure DevOps data.</value>
+    [Encrypted]
     public required string PersonalAccessToken { get; set; }
 
     public string OrganizationUrl

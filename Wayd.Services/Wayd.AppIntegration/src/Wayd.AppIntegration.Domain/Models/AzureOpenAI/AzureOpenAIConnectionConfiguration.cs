@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
+using Wayd.Common.Domain.DataProtection;
 
 namespace Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 
@@ -22,6 +23,7 @@ public sealed class AzureOpenAIConnectionConfiguration
     /// <summary>
     /// Gets or sets the API key for Azure OpenAI resource via ApiKeyCredential().
     /// </summary>
+    [Encrypted]
     public required string ApiKey { get; set; }
 
     /// <summary>

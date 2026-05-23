@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
+using Wayd.Common.Domain.DataProtection;
 
 namespace Wayd.AppIntegration.Domain.Models.OpenAI;
 
@@ -22,6 +23,7 @@ public sealed class OpenAIConnectionConfiguration
     /// <summary>
     /// Gets or sets the API key for Authorization: Bearer header to OpenAI.
     /// </summary>
+    [Encrypted]
     public required string ApiKey { get; set; }
 
     /// <summary>

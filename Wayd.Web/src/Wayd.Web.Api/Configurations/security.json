@@ -22,6 +22,10 @@
             "TokenExpirationInMinutes": 60,
             "RefreshTokenExpirationInDays": 7
         },
+        "//DataProtection": "Master key for at-rest secret encryption (AES-256-GCM). Generate with: openssl rand -base64 32. MUST be replaced per environment — the value below is dev-only and is intentionally separate from LocalJwt:Secret (different key purposes per NIST SP 800-57).",
+        "DataProtection": {
+            "MasterKey": "Nu9l+Qcm+J4yh5x+DFke5qzs0NSP5rPbvCiT2s8sIG8="
+        },
         "Providers": {
             "Entra": {
                 "//Enabled": "Set to true to enable Entra ID login. Local-only deployments leave this false.",

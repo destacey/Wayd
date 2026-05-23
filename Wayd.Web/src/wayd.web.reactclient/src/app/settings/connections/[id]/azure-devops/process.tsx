@@ -8,9 +8,9 @@ import { ExportOutlined } from '@ant-design/icons'
 import { Button, Flex, List, Space, Typography } from 'antd'
 import Link from 'next/link'
 import { useContext, useState } from 'react'
-import InitWorkProcessIntegrationForm from '../_components/init-work-process-integration-form'
-import AzdoWorkspaceCard from './azdo-workspace-card'
-import { AzdoConnectionContext } from './azdo-connection-context'
+import InitWorkProcessIntegrationForm from './init-work-process-integration-form'
+import AzdoWorkspaceCard from './workspace-card'
+import { AzdoConnectionContext } from './connection-context'
 import { useGetWorkProcessQuery } from '@/src/store/features/work-management/work-process-api'
 
 const { Title, Text } = Typography

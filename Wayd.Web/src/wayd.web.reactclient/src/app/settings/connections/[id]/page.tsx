@@ -1,65 +1,48 @@
 'use client'
 
 import PageTitle from '@/src/components/common/page-title'
-import AzdoConnectionDetails from './azdo-connection-details'
-import { use, useEffect, useState } from 'react'
+import { use, useEffect, useMemo, useState } from 'react'
 import { Card } from 'antd'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { notFound, usePathname, useRouter } from 'next/navigation'
 import EditConnectionForm from '../_components/edit-connection-form'
-import AzdoOrganization from './azdo-organization'
 import { ExportOutlined } from '@ant-design/icons'
 import Link from 'next/link'
 import { useAppDispatch } from '@/src/hooks'
 import { BreadcrumbItem, setBreadcrumbRoute } from '@/src/store/breadcrumbs'
-import { AzdoConnectionContext } from './azdo-connection-context'
-import DeleteAzdoConnectionForm from '../_components/delete-azdo-connection-form'
+import DeleteConnectionForm from '../_components/delete-connection-form'
 import BasicBreadcrumb from '@/src/components/common/basic-breadcrumb'
 import { PageActions } from '@/src/components/common'
 import { ItemType } from 'antd/es/menu/interface'
-import {
-  useSyncAzdoConnectionOrganizationMutation,
-  useUpdateAzdoConnectionSyncStateMutation,
-} from '@/src/store/features/app-integration/azdo-integration-api'
 import { useGetConnectionQuery } from '@/src/store/features/app-integration/connections-api'
-import { useMessage } from '@/src/components/contexts/messaging'
-import { AzureDevOpsConnectionDetailsDto } from '@/src/services/wayd-api'
-import { isApiError, type ApiError } from '@/src/utils'
+import {
+  ConnectionActionContext,
+  getDetailEntry,
+} from './_components/detail-registry'
+import { ConnectionDetailsDto } from '@/src/services/wayd-api'
 
-enum ConnectionTabs {
-  Details = 'details',
-  OrganizationConfiguration = 'organization-configuration',
-}
+const DETAILS_TAB = 'details'
 
-const tabs = [
-  {
-    key: ConnectionTabs.Details,
-    tab: 'Details',
-  },
-  {
-    key: ConnectionTabs.OrganizationConfiguration,
-    tab: 'Organization Configuration',
-  },
-]
+const IdentityWrapper = ({ children }: { children: React.ReactNode }) => (
+  <>{children}</>
+)
 
-const ConnectionDetailsPage = (props: { params: Promise<{ id: string }> }) => {
+const ConnectionDetailsPage = (props: {
+  params: Promise<{ id: string }>
+}) => {
   const { id } = use(props.params)
-
   useDocumentTitle('Connection Details')
 
-  const [activeTab, setActiveTab] = useState(ConnectionTabs.Details)
-  const [isSyncingOrganization, setIsSyncingOrganization] = useState(false)
-  const [openEditConnectionForm, setOpenEditConnectionForm] =
-    useState<boolean>(false)
+  const [activeTab, setActiveTab] = useState<string>(DETAILS_TAB)
+  const [openEditConnectionForm, setOpenEditConnectionForm] = useState(false)
   const [openDeleteConnectionForm, setOpenDeleteConnectionForm] =
-    useState<boolean>(false)
+    useState(false)
+  const [extraActionItems, setExtraActionItems] = useState<ItemType[]>([])
 
-  const messageApi = useMessage()
   const dispatch = useAppDispatch()
   const pathname = usePathname()
-
   const router = useRouter()
   const { hasClaim } = useAuth()
   const canUpdateConnections = hasClaim(
@@ -72,125 +55,44 @@ const ConnectionDetailsPage = (props: { params: Promise<{ id: string }> }) => {
   )
 
   const {
-    data: connectionData,
+    data: connection,
     isLoading,
     refetch,
   } = useGetConnectionQuery(id)
 
-  // Type narrow to AzureDevOpsConnectionDetailsDto
-  // Note: Using connector.name instead of $type because System.Text.Json doesn't add $type for root-level objects
-  const azdoConnection =
-    connectionData?.connector?.name === 'Azure DevOps'
-      ? (connectionData as AzureDevOpsConnectionDetailsDto)
-      : null
-  const azdoOrgUrl = azdoConnection?.configuration?.organizationUrl
+  const entry = useMemo(() => getDetailEntry(connection), [connection])
+  const externalUrl = entry?.getExternalUrl?.(connection!)
 
-  const [
-    updateAzdoConnectionSyncState,
-    { error: updateAzdoConnectionSyncStateError },
-  ] = useUpdateAzdoConnectionSyncStateMutation()
-
-  const [
-    syncAzdoConnectionOrganization,
-    { error: syncAzdoConnectionOrganizationError },
-  ] = useSyncAzdoConnectionOrganizationMutation()
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case ConnectionTabs.Details:
-        return <AzdoConnectionDetails connection={azdoConnection!} />
-      case ConnectionTabs.OrganizationConfiguration:
-        return (
-          <AzdoOrganization
-            workProcesses={azdoConnection?.configuration?.workProcesses ?? []}
-            workspaces={azdoConnection?.configuration?.workspaces ?? []}
-          />
-        )
-      default:
-        return null
+  const tabs = useMemo(() => {
+    const result = [{ key: DETAILS_TAB, tab: 'Details' }]
+    for (const t of entry?.extraTabs ?? []) {
+      result.push({ key: t.key, tab: t.label })
     }
-  }
-
-  const onTabChange = (tabKey: string) => {
-    setActiveTab(tabKey as ConnectionTabs)
-  }
+    return result
+  }, [entry])
 
   useEffect(() => {
-    if (!azdoConnection) return
-
+    if (!connection) return
     const breadcrumbRoute: BreadcrumbItem[] = [
-      {
-        title: 'Settings',
-      },
-      {
-        href: `/settings/connections`,
-        title: 'Connections',
-      },
-      {
-        title: azdoConnection.name,
-      },
+      { title: 'Settings' },
+      { href: `/settings/connections`, title: 'Connections' },
+      { title: connection.name },
     ]
-    // TODO: for a split second, the breadcrumb shows the default path route, then the new one.
     dispatch(setBreadcrumbRoute({ route: breadcrumbRoute, pathname }))
-  }, [azdoConnection, dispatch, pathname])
+  }, [connection, dispatch, pathname])
 
   const onEditConnectionFormClosed = (wasSaved: boolean) => {
     setOpenEditConnectionForm(false)
-    if (wasSaved) {
-      refetch()
-    }
+    if (wasSaved) refetch()
   }
 
   const onDeleteConnectionFormClosed = (wasSaved: boolean) => {
-    setOpenEditConnectionForm(false)
-    if (wasSaved) {
-      // redirect to the connections list page
-      router.push('/settings/connections')
-    }
+    setOpenDeleteConnectionForm(false)
+    if (wasSaved) router.push('/settings/connections')
   }
 
-  const updateSyncState = async () => {
-    try {
-      const response = await updateAzdoConnectionSyncState({
-        connectionId: id,
-        isSyncEnabled: !azdoConnection?.isSyncEnabled,
-      })
-      if (response.error) {
-        throw response.error
-      }
-      messageApi.success(
-        `Sync setting has been ${
-          azdoConnection?.isSyncEnabled ? 'disabled' : 'enabled'
-        }`,
-      )
-    } catch (error) {
-      const apiError: ApiError = isApiError(error) ? error : {}
-      console.error(error)
-      messageApi.error(`Failed to change sync setting. Error: ${apiError.detail}`)
-    }
-  }
-
-  const syncOrganizationConfiguration = async () => {
-    try {
-      const response = await syncAzdoConnectionOrganization(id)
-      if (response.error) {
-        throw response.error
-      }
-      messageApi.success(
-        'Successfully imported organization processes and projects.',
-      )
-    } catch (error) {
-      const apiError: ApiError = isApiError(error) ? error : {}
-      console.error(error)
-      messageApi.error(
-        `Failed to initialize organization. Error: ${apiError.detail}`,
-      )
-    }
-    setIsSyncingOrganization(false)
-  }
-
-  const actionsMenuItems = (() => {
-    const items = [] as ItemType[]
+  const actionsMenuItems: ItemType[] = (() => {
+    const items: ItemType[] = []
     if (canUpdateConnections) {
       items.push({
         key: 'edit',
@@ -205,36 +107,41 @@ const ConnectionDetailsPage = (props: { params: Promise<{ id: string }> }) => {
         onClick: () => setOpenDeleteConnectionForm(true),
       })
     }
-    if (canUpdateConnections) {
-      items.push({
-        key: 'divider',
-        type: 'divider',
-      })
-    }
-    if (canUpdateConnections) {
-      items.push(
-        {
-          key: 'toggle-sync-setting',
-          label: azdoConnection?.isSyncEnabled ? 'Disable Sync' : 'Enable Sync',
-          disabled: !!azdoConnection && !azdoConnection.isValidConfiguration,
-          onClick: () => updateSyncState(),
-        },
-        {
-          key: 'sync-organization',
-          label: 'Sync Organization Configuration',
-          disabled: !!azdoConnection && !azdoConnection.isValidConfiguration,
-          onClick: () => {
-            setIsSyncingOrganization(true)
-            syncOrganizationConfiguration()
-          },
-        },
-      )
+    if (extraActionItems.length > 0) {
+      if (canUpdateConnections || canDeleteConnections) {
+        items.push({ key: 'divider', type: 'divider' })
+      }
+      items.push(...extraActionItems)
     }
     return items
   })()
 
-  if (!isLoading && !azdoConnection) {
+  if (!isLoading && !connection) {
     return notFound()
+  }
+
+  if (!connection || !entry) {
+    return null
+  }
+
+  const renderTabContent = () => {
+    if (activeTab === DETAILS_TAB) {
+      const DetailsView = entry.Details
+      return <DetailsView connection={connection} />
+    }
+    const extra = entry.extraTabs?.find((t) => t.key === activeTab)
+    return extra?.render(connection) ?? null
+  }
+
+  const Wrapper = entry.Wrapper ?? IdentityWrapper
+  const EditForm = entry.EditForm ?? EditConnectionForm
+  const ExtraActions = entry.ExtraActions
+
+  const actionCtx: ConnectionActionContext = {
+    connectionId: id,
+    connection: connection as ConnectionDetailsDto,
+    reload: refetch,
+    canUpdate: canUpdateConnections,
   }
 
   return (
@@ -249,12 +156,12 @@ const ConnectionDetailsPage = (props: { params: Promise<{ id: string }> }) => {
       <PageTitle
         title={
           <>
-            {azdoConnection?.name}{' '}
-            {azdoOrgUrl && (
+            {connection.name}{' '}
+            {externalUrl && (
               <Link
-                href={azdoOrgUrl}
+                href={externalUrl}
                 target="_blank"
-                title="Open in Azure DevOps"
+                title={`Open in ${connection.connector?.name}`}
               >
                 <ExportOutlined style={{ width: '12px' }} />
               </Link>
@@ -264,27 +171,29 @@ const ConnectionDetailsPage = (props: { params: Promise<{ id: string }> }) => {
         subtitle="Connection Details"
         actions={<PageActions actionItems={actionsMenuItems} />}
       />
-      <AzdoConnectionContext.Provider
-        value={{
-          connectionId: id,
-          organizationUrl: azdoOrgUrl,
-          reloadConnectionData: refetch,
-        }}
-      >
-        <Card tabList={tabs} activeTabKey={activeTab} onTabChange={onTabChange}>
+      {ExtraActions && (
+        <ExtraActions ctx={actionCtx} setItems={setExtraActionItems} />
+      )}
+      <Wrapper connection={connection} reload={refetch}>
+        <Card
+          tabList={tabs}
+          activeTabKey={activeTab}
+          onTabChange={(k) => setActiveTab(k)}
+        >
           {renderTabContent()}
         </Card>
-      </AzdoConnectionContext.Provider>
+      </Wrapper>
       {openEditConnectionForm && (
-        <EditConnectionForm
-          id={azdoConnection!.id}
+        <EditForm
+          id={connection.id}
+          connection={connection}
           onFormUpdate={() => onEditConnectionFormClosed(true)}
           onFormCancel={() => onEditConnectionFormClosed(false)}
         />
       )}
       {openDeleteConnectionForm && (
-        <DeleteAzdoConnectionForm
-          connection={azdoConnection!}
+        <DeleteConnectionForm
+          connection={connection}
           onFormSave={() => onDeleteConnectionFormClosed(true)}
           onFormCancel={() => onDeleteConnectionFormClosed(false)}
         />

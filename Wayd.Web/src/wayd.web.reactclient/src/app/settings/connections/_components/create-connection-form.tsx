@@ -113,7 +113,7 @@ const CreateConnectionForm = ({
       okText="Create"
       confirmLoading={isSaving}
       keyboard={false}
-      destroyOnClose={true}
+      destroyOnHidden={true}
       width={selectedConnector === null ? 600 : 800}
       footer={
         selectedConnector === null

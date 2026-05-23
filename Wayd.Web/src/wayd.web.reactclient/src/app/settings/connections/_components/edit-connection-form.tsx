@@ -1,28 +1,30 @@
 'use client'
 
-import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
   AzureDevOpsConnectionDetailsDto,
-  TestAzureDevOpsConnectionRequest,
+  AzureOpenAIConnectionDetailsDto,
+  ConnectionDetailsDto,
   UpdateAzureDevOpsConnectionRequest,
+  UpdateAzureOpenAIConnectionRequest,
+  UpdateConnectionRequest,
 } from '@/src/services/wayd-api'
-import { useTestAzdoConfigurationMutation } from '@/src/store/features/app-integration/azdo-integration-api'
-import {
-  useGetConnectionQuery,
-  useUpdateConnectionMutation,
-} from '@/src/store/features/app-integration/connections-api'
+import { useUpdateConnectionMutation } from '@/src/store/features/app-integration/connections-api'
+import { ConnectorType } from '@/src/types/connectors'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { Button, Divider, Form, Input, Modal, Typography } from 'antd'
-import { useEffect, useState } from 'react'
+import { Form, Modal } from 'antd'
+import { useEffect } from 'react'
 import { useModalForm } from '@/src/hooks'
-
-const { Item } = Form
-const { TextArea } = Input
-const { Text } = Typography
+import { ConnectionFormBase } from './connection-form-base'
 
 export interface EditConnectionFormProps {
   id: string
+  /**
+   * Pre-loaded connection passed by the page shell. The edit form re-uses
+   * this rather than refetching, so the registry doesn't need to wire a
+   * separate query.
+   */
+  connection: ConnectionDetailsDto
   onFormUpdate: () => void
   onFormCancel: () => void
 }
@@ -31,78 +33,129 @@ interface EditConnectionFormValues {
   id: string
   name: string
   description?: string | null
+  // Azure DevOps
   organization?: string | null
   personalAccessToken?: string | null
+  // Azure OpenAI
+  baseUrl?: string | null
+  apiKey?: string | null
+  deploymentName?: string | null
 }
 
-const mapToRequestValues = (values: EditConnectionFormValues) => {
-  return {
-    $type: 'azure-devops',
-    id: values.id,
-    name: values.name,
-    description: values.description,
-    organization: values.organization,
-    personalAccessToken: values.personalAccessToken,
-  } as UpdateAzureDevOpsConnectionRequest
+const connectorTypeFromName = (
+  name: string | undefined,
+): ConnectorType | null => {
+  switch (name) {
+    case 'Azure DevOps':
+      return ConnectorType.AzureDevOps
+    case 'Azure OpenAI':
+      return ConnectorType.AzureOpenAI
+    case 'OpenAI':
+      return ConnectorType.OpenAI
+    default:
+      return null
+  }
+}
+
+const buildRequest = (
+  connection: ConnectionDetailsDto,
+  values: EditConnectionFormValues,
+): UpdateConnectionRequest | null => {
+  switch (connection.connector?.name) {
+    case 'Azure DevOps':
+      return {
+        $type: 'azure-devops',
+        id: values.id,
+        name: values.name,
+        description: values.description ?? undefined,
+        organization: values.organization ?? '',
+        personalAccessToken: values.personalAccessToken ?? '',
+      } as UpdateAzureDevOpsConnectionRequest
+    case 'Azure OpenAI':
+      return {
+        $type: 'azure-openai',
+        id: values.id,
+        name: values.name,
+        description: values.description ?? undefined,
+        baseUrl: values.baseUrl ?? '',
+        apiKey: values.apiKey ?? '',
+        deploymentName: values.deploymentName ?? '',
+      } as UpdateAzureOpenAIConnectionRequest
+    default:
+      return null
+  }
+}
+
+const seedFormValues = (
+  connection: ConnectionDetailsDto,
+): EditConnectionFormValues => {
+  const base: EditConnectionFormValues = {
+    id: connection.id,
+    name: connection.name,
+    description: connection.description ?? '',
+  }
+  switch (connection.connector?.name) {
+    case 'Azure DevOps': {
+      const c = connection as AzureDevOpsConnectionDetailsDto
+      return {
+        ...base,
+        organization: c.configuration?.organization,
+        personalAccessToken: c.configuration?.personalAccessToken,
+      }
+    }
+    case 'Azure OpenAI': {
+      const c = connection as AzureOpenAIConnectionDetailsDto
+      return {
+        ...base,
+        baseUrl: c.configuration?.baseUrl,
+        apiKey: c.configuration?.apiKey,
+        deploymentName: c.configuration?.deploymentName,
+      }
+    }
+    default:
+      return base
+  }
 }
 
 const EditConnectionForm = ({
   id,
+  connection,
   onFormUpdate,
   onFormCancel,
 }: EditConnectionFormProps) => {
   const messageApi = useMessage()
-  const [testConfigurationResult, setTestConfigurationResult] =
-    useState<string>()
-  const [isTestingConfiguration, setTestingConfiguration] = useState(false)
+  const connectorType = connectorTypeFromName(connection.connector?.name)
 
-  const { data: connectionData } = useGetConnectionQuery(id)
-
-  // Type narrow to AzureDevOpsConnectionDetailsDto
-  const azdoConnection =
-    connectionData?.connector?.name === 'Azure DevOps'
-      ? (connectionData as AzureDevOpsConnectionDetailsDto)
-      : null
-
-  const [updateConnection] =
-    useUpdateConnectionMutation()
-
-  const [testConfig] =
-    useTestAzdoConfigurationMutation()
-
-  const testConnectionConfiguration = async (configuration: TestAzureDevOpsConnectionRequest) => {
-    const response = await testConfig(configuration)
-    console.log('response', response)
-    if (response.error) {
-      setTestConfigurationResult('Failed to test configuration.')
-    } else {
-      setTestConfigurationResult('Successfully tested configuration.')
-    }
-    setTestingConfiguration(false)
-  }
+  const [updateConnection] = useUpdateConnectionMutation()
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditConnectionFormValues>({
-      onSubmit: async (values: EditConnectionFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values)
-            const response = await updateConnection(request)
-            if (response.error) throw response.error
-            messageApi.success('Successfully updated connection.')
-            return true
-          } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error('An error occurred while editing the connection.')
-              console.error(error)
-            }
+      onSubmit: async (values, form) => {
+        try {
+          const request = buildRequest(connection, values)
+          if (!request) {
+            messageApi.error(
+              `Editing is not yet supported for ${connection.connector?.name} connections.`,
+            )
             return false
           }
-        },
+          const response = await updateConnection(request)
+          if (response.error) throw response.error
+          messageApi.success('Successfully updated connection.')
+          return true
+        } catch (error) {
+          const apiError: ApiError = isApiError(error) ? error : {}
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error('An error occurred while editing the connection.')
+            console.error(error)
+          }
+          return false
+        }
+      },
       onComplete: onFormUpdate,
       onCancel: onFormCancel,
       errorMessage: 'An error occurred while editing the connection.',
@@ -110,15 +163,24 @@ const EditConnectionForm = ({
     })
 
   useEffect(() => {
-    if (!azdoConnection) return
-    form.setFieldsValue({
-      id: azdoConnection.id,
-      name: azdoConnection.name,
-      description: azdoConnection.description || '',
-      organization: azdoConnection.configuration?.organization,
-      personalAccessToken: azdoConnection.configuration?.personalAccessToken,
-    })
-  }, [azdoConnection, form])
+    form.setFieldsValue(seedFormValues(connection))
+  }, [connection, form])
+
+  // Surface a clear message if a connector lands without a registered edit shape.
+  if (connectorType === null) {
+    return (
+      <Modal
+        title="Edit Connection"
+        open={isOpen}
+        onCancel={handleCancel}
+        onOk={handleCancel}
+        okText="Close"
+      >
+        Editing is not yet supported for {connection.connector?.name}{' '}
+        connections.
+      </Modal>
+    )
+  }
 
   return (
     <Modal
@@ -138,66 +200,11 @@ const EditConnectionForm = ({
         layout="vertical"
         name="edit-connection-form"
       >
-        <Item name="id" hidden={true}>
-          <Input />
-        </Item>
-        <Item label="Name" name="name" rules={[{ required: true }]}>
-          <TextArea
-            autoSize={{ minRows: 1, maxRows: 2 }}
-            showCount
-            maxLength={128}
-          />
-        </Item>
-        <Item name="description" label="Description" rules={[{ max: 1024 }]}>
-          <MarkdownEditor
-            value={form.getFieldValue('description')}
-            onChange={(value) => form.setFieldValue('description', value || '')}
-            maxLength={1024}
-          />
-        </Item>
-
-        {/* TODO: make the configuration section dynamic based on the connector  */}
-
-        <Divider titlePlacement="left" style={{ marginTop: '50px' }}>
-          Azure DevOps Configuration
-        </Divider>
-        <Item
-          label="Organization"
-          name="organization"
-          rules={[{ required: true }]}
-        >
-          <Input showCount maxLength={128} />
-        </Item>
-        <Item
-          label="Personal Access Token"
-          name="personalAccessToken"
-          rules={[{ required: true }]}
-        >
-          <Input showCount maxLength={128} />
-        </Item>
-
-        <Item>
-          <Button
-            type="primary"
-            disabled={
-              !form.getFieldValue('organization') ||
-              !form.getFieldValue('personalAccessToken')
-            }
-            loading={isTestingConfiguration}
-            onClick={() => {
-              setTestingConfiguration(true)
-              testConnectionConfiguration({
-                organization: form.getFieldValue('organization'),
-                personalAccessToken: form.getFieldValue('personalAccessToken'),
-              })
-            }}
-          >
-            Test Configuration
-          </Button>
-          <Text type="secondary" style={{ marginLeft: '10px' }}>
-            {testConfigurationResult}
-          </Text>
-        </Item>
+        <ConnectionFormBase
+          connector={connectorType}
+          mode="edit"
+          form={form}
+        />
       </Form>
     </Modal>
   )

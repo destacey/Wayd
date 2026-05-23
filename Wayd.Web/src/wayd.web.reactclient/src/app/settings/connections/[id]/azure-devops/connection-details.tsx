@@ -1,6 +1,6 @@
 import { AzureDevOpsConnectionDetailsDto } from '@/src/services/wayd-api'
 import { Col, Descriptions, Row, Typography } from 'antd'
-import AzdoConnectionConfiguration from './azdo-connection-configuration'
+import AzdoConnectionConfiguration from './connection-configuration'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 
 const { Item } = Descriptions

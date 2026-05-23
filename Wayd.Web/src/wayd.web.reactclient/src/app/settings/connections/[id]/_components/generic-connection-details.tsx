@@ -18,9 +18,16 @@ interface GenericConnectionDetailsProps {
   configFields?: ConfigField[]
 }
 
-const formatValue = (value: ConfigField['value']) => {
+const formatValue = (value: ConfigField['value'], sensitive: boolean) => {
   if (value === null || value === undefined || value === '') return '—'
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+  if (sensitive) {
+    // The API masks secret fields before sending them, but mark them visually
+    // here too so a future code change that forgets to mask doesn't quietly
+    // leak the value into the page. Bullets are an unambiguous "this is a
+    // credential" signal regardless of what the server returned.
+    return '••••••••'
+  }
   return String(value)
 }
 
@@ -57,7 +64,7 @@ const GenericConnectionDetails = ({
             <Descriptions column={1}>
               {configFields.map((field) => (
                 <Item key={field.label} label={field.label}>
-                  {formatValue(field.value)}
+                  {formatValue(field.value, field.sensitive ?? false)}
                 </Item>
               ))}
             </Descriptions>

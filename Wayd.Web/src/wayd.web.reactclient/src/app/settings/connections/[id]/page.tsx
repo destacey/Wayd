@@ -2,7 +2,7 @@
 
 import PageTitle from '@/src/components/common/page-title'
 import { use, useEffect, useMemo, useState } from 'react'
-import { Card } from 'antd'
+import { Alert, Card } from 'antd'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
@@ -120,8 +120,37 @@ const ConnectionDetailsPage = (props: {
     return notFound()
   }
 
-  if (!connection || !entry) {
+  if (!connection) {
+    // Still loading — render nothing for the brief window before the query resolves.
     return null
+  }
+
+  if (!entry) {
+    // The backend returned a connector that the frontend registry doesn't know
+    // about — usually because a new connector type shipped on the API before
+    // the corresponding UI registration landed. Surface the situation rather
+    // than rendering a blank page.
+    return (
+      <>
+        <BasicBreadcrumb
+          items={[
+            { title: 'Settings' },
+            { title: 'Connections', href: '/settings/connections' },
+            { title: 'Details' },
+          ]}
+        />
+        <PageTitle
+          title={connection.name}
+          subtitle="Connection Details"
+        />
+        <Alert
+          type="warning"
+          showIcon
+          message={`The "${connection.connector?.name}" connector type is not supported by this version of the UI.`}
+          description="The connection exists on the server but the frontend doesn't know how to render its details. Update the app, or ask an administrator if this is unexpected."
+        />
+      </>
+    )
   }
 
   const renderTabContent = () => {

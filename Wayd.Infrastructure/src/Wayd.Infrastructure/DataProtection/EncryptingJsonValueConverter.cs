@@ -29,8 +29,19 @@ public sealed class EncryptingJsonValueConverter<T> : ValueConverter<T, string>
 
     private static string SerializeAndEncrypt(T value, JsonSerializerOptions? options)
     {
-        WalkEncryptedStrings(value, plaintext => SecretProtectorAccessor.Current.Protect(plaintext));
-        return JsonSerializer.Serialize(value, options);
+        // Encrypt on a clone — not the tracked entity. If we walked `value`
+        // directly we'd overwrite [Encrypted] string properties in-place,
+        // leaving the in-memory object (which the application still holds
+        // and EF still tracks) holding ciphertext instead of plaintext.
+        // Round-tripping through JSON is the cheapest deep clone here since
+        // we're about to serialize anyway, and it sidesteps the
+        // ICloneable / record-copy / reflection-copy zoo.
+        var plaintextJson = JsonSerializer.Serialize(value, options);
+        var clone = JsonSerializer.Deserialize<T>(plaintextJson, options);
+        if (clone is null) return plaintextJson;
+
+        WalkEncryptedStrings(clone, plaintext => SecretProtectorAccessor.Current.Protect(plaintext));
+        return JsonSerializer.Serialize(clone, options);
     }
 
     private static T? DeserializeAndDecrypt(string json, JsonSerializerOptions? options)

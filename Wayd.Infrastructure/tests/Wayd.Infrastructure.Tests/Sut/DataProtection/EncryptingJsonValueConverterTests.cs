@@ -85,6 +85,34 @@ public class EncryptingJsonValueConverterTests
     }
 
     [Fact]
+    public void Write_path_does_not_mutate_the_input_object()
+    {
+        // Regression: an earlier version walked the input object and
+        // overwrote [Encrypted] properties in place, leaving the tracked
+        // EF entity holding ciphertext after SaveChanges. The converter
+        // must encrypt a clone instead.
+        var converter = new EncryptingJsonValueConverter<TestConfig>();
+        var original = new TestConfig
+        {
+            Organization = "acme",
+            PersonalAccessToken = "pat-untouched",
+            Items = new List<TestNested>
+            {
+                new() { Name = "a", ApiKey = "key-untouched-a" },
+                new() { Name = "b", ApiKey = "key-untouched-b" },
+            },
+        };
+
+        var stored = ((ValueConverter<TestConfig, string>)converter).ConvertToProvider(original) as string;
+        stored.Should().NotBeNull();
+        stored!.Should().NotContain("pat-untouched");
+
+        original.PersonalAccessToken.Should().Be("pat-untouched");
+        original.Items[0].ApiKey.Should().Be("key-untouched-a");
+        original.Items[1].ApiKey.Should().Be("key-untouched-b");
+    }
+
+    [Fact]
     public void Decrypts_legacy_plaintext_values_unchanged()
     {
         // Simulate a row written before encryption shipped: JSON with a plaintext PAT.

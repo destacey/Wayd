@@ -156,9 +156,9 @@ The connector UI is registry-driven on both the create and detail surfaces:
 
 | Concern | File | What to add |
 |---|---|---|
-| Create form section | [Wayd.Web/src/wayd.web.reactclient/src/app/settings/connections/_components/connector-registry.ts](../../Wayd.Web/src/wayd.web.reactclient/src/app/settings/connections/_components/connector-registry.ts) | Map the `ConnectorType` enum value to your configuration form component. |
-| Connector type metadata | [Wayd.Web/src/wayd.web.reactclient/src/types/connectors.ts](../../Wayd.Web/src/wayd.web.reactclient/src/types/connectors.ts) | Add to the `ConnectorType` enum + `CONNECTOR_NAMES` / `CONNECTOR_DESCRIPTIONS` maps. |
-| Detail page | [Wayd.Web/src/wayd.web.reactclient/src/app/settings/connections/[id]/_components/detail-registry.tsx](../../Wayd.Web/src/wayd.web.reactclient/src/app/settings/connections/[id]/_components/detail-registry.tsx) | Register a `DetailEntry` for the new connector. Provide a `Details` component (or use `GenericConnectionDetails` as a fallback). Optional: `extraTabs`, `ExtraActions` (connector-specific menu items), `Wrapper` (if your detail UI needs a context provider), `EditForm` (if the shared edit form doesn't fit). |
+| Create form section | `Wayd.Web/src/wayd.web.reactclient/src/app/settings/connections/_components/connector-registry.ts` | Map the `ConnectorType` enum value to your configuration form component. |
+| Connector type metadata | `Wayd.Web/src/wayd.web.reactclient/src/types/connectors.ts` | Add to the `ConnectorType` enum + `CONNECTOR_NAMES` / `CONNECTOR_DESCRIPTIONS` maps. |
+| Detail page | `Wayd.Web/src/wayd.web.reactclient/src/app/settings/connections/[id]/_components/detail-registry.tsx` | Register a `DetailEntry` for the new connector. Provide a `Details` component (or use `GenericConnectionDetails` as a fallback). Optional: `extraTabs`, `ExtraActions` (connector-specific menu items), `Wrapper` (if your detail UI needs a context provider), `EditForm` (if the shared edit form doesn't fit). |
 | Per-connector subfolder | `Wayd.Web/src/wayd.web.reactclient/src/app/settings/connections/[id]/\{connector\}/` | All connector-specific components live here. Export the registry entry from `index.tsx`. |
 
 The generic edit / delete / list flows handle every connector automatically. Only build connector-specific UI when the connector genuinely needs it (e.g. Azure DevOps has its workspace/team mapping flow; AI providers don't).

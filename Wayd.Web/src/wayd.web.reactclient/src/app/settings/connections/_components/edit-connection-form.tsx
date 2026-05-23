@@ -50,8 +50,9 @@ const connectorTypeFromName = (
       return ConnectorType.AzureDevOps
     case 'Azure OpenAI':
       return ConnectorType.AzureOpenAI
-    case 'OpenAI':
-      return ConnectorType.OpenAI
+    // OpenAI is deliberately omitted: the backend has no Create/Update command
+    // for it yet, so offering an edit form would only ever fail at submit.
+    // Add the case back once UpdateOpenAIConnectionCommand ships.
     default:
       return null
   }

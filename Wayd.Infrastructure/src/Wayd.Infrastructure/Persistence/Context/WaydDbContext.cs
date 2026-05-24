@@ -56,6 +56,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<Connection> Connections => Set<Connection>();
     public DbSet<AzureDevOpsBoardsConnection> AzureDevOpsBoardsConnections => Set<AzureDevOpsBoardsConnection>();
     public DbSet<AzureOpenAIConnection> AzureOpenAIConnections => Set<AzureOpenAIConnection>();
+    public DbSet<SyncRun> SyncRuns => Set<SyncRun>();
 
     #endregion IAppIntegration
 

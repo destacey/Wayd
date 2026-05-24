@@ -61,11 +61,11 @@ public class BackgroundJobsController : ControllerBase
             case BackgroundJobType.EmployeeSync:
                 _jobService.Enqueue(() => jobManager.RunSyncExternalEmployees(cancellationToken));
                 break;
-            case BackgroundJobType.AzdoBoardsFullSync:
-                _jobService.Enqueue(() => jobManager.RunSyncAzureDevOpsBoards(SyncType.Full, cancellationToken));
+            case BackgroundJobType.WorkFullSync:
+                _jobService.Enqueue(() => jobManager.RunWorkSync(SyncType.Full, cancellationToken));
                 break;
-            case BackgroundJobType.AzdoBoardsDiffSync:
-                _jobService.Enqueue(() => jobManager.RunSyncAzureDevOpsBoards(SyncType.Differential, cancellationToken));
+            case BackgroundJobType.WorkDiffSync:
+                _jobService.Enqueue(() => jobManager.RunWorkSync(SyncType.Differential, cancellationToken));
                 break;
             case BackgroundJobType.TeamGraphSync:
                 _jobService.Enqueue(() => jobManager.RunSyncTeamsWithGraphTables(cancellationToken));
@@ -105,8 +105,8 @@ public class BackgroundJobsController : ControllerBase
             return jobType switch
             {
                 BackgroundJobType.EmployeeSync => () => jobManager.RunSyncExternalEmployees(cancellationToken),
-                BackgroundJobType.AzdoBoardsFullSync => () => jobManager.RunSyncAzureDevOpsBoards(SyncType.Full, cancellationToken),
-                BackgroundJobType.AzdoBoardsDiffSync => () => jobManager.RunSyncAzureDevOpsBoards(SyncType.Differential, cancellationToken),
+                BackgroundJobType.WorkFullSync => () => jobManager.RunWorkSync(SyncType.Full, cancellationToken),
+                BackgroundJobType.WorkDiffSync => () => jobManager.RunWorkSync(SyncType.Differential, cancellationToken),
                 BackgroundJobType.TeamGraphSync => () => jobManager.RunSyncTeamsWithGraphTables(cancellationToken),
                 _ => throw new ArgumentOutOfRangeException(nameof(jobType), jobType, "Unknown job type requested")
             };

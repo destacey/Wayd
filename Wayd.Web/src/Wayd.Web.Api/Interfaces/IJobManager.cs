@@ -5,7 +5,7 @@ namespace Wayd.Web.Api.Interfaces;
 public interface IJobManager
 {
     Task RunSyncExternalEmployees(CancellationToken cancellationToken);
-    Task RunSyncAzureDevOpsBoards(SyncType syncType, CancellationToken cancellationToken);
+    Task RunWorkSync(SyncType syncType, CancellationToken cancellationToken);
     Task RunSyncTeamsWithGraphTables(CancellationToken cancellationToken);
     Task RunSyncIterations(CancellationToken cancellationToken);
     Task RunSyncStrategicThemes(CancellationToken cancellationToken);

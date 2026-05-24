@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Moq;
 
 namespace Wayd.Tests.Shared.Infrastructure;
@@ -18,23 +19,31 @@ public static class MockDbSetFactory
     /// <returns>A mocked DbSet that supports async queries</returns>
     public static DbSet<T> CreateMockDbSet<T>(List<T> data) where T : class
     {
-        var queryable = data.AsQueryable();
         var mockSet = new Mock<DbSet<T>>();
 
-        // Setup async enumeration support
+        // Re-evaluate the queryable each call so newly Added items are visible.
         mockSet.As<IAsyncEnumerable<T>>()
             .Setup(m => m.GetAsyncEnumerator(It.IsAny<CancellationToken>()))
-            .Returns(new TestAsyncEnumerator<T>(data.GetEnumerator()));
+            .Returns(() => new TestAsyncEnumerator<T>(data.GetEnumerator()));
 
-        // Setup async query provider
         mockSet.As<IQueryable<T>>()
             .Setup(m => m.Provider)
-            .Returns(new TestAsyncQueryProvider<T>(queryable.Provider));
+            .Returns(() => new TestAsyncQueryProvider<T>(data.AsQueryable().Provider));
+        mockSet.As<IQueryable<T>>().Setup(m => m.Expression).Returns(() => data.AsQueryable().Expression);
+        mockSet.As<IQueryable<T>>().Setup(m => m.ElementType).Returns(() => data.AsQueryable().ElementType);
+        mockSet.As<IQueryable<T>>().Setup(m => m.GetEnumerator()).Returns(() => data.GetEnumerator());
 
-        // Setup standard IQueryable members
-        mockSet.As<IQueryable<T>>().Setup(m => m.Expression).Returns(queryable.Expression);
-        mockSet.As<IQueryable<T>>().Setup(m => m.ElementType).Returns(queryable.ElementType);
-        mockSet.As<IQueryable<T>>().Setup(m => m.GetEnumerator()).Returns(queryable.GetEnumerator());
+        // Intercept mutating methods so handlers that call dbSet.Add(...) / AddAsync(...) / Remove(...)
+        // actually persist into the underlying list, which is what tests then inspect.
+        mockSet.Setup(m => m.Add(It.IsAny<T>())).Callback<T>(data.Add).Returns((EntityEntry<T>)null!);
+        mockSet.Setup(m => m.AddAsync(It.IsAny<T>(), It.IsAny<CancellationToken>()))
+            .Callback<T, CancellationToken>((entity, _) => data.Add(entity))
+            .Returns((T entity, CancellationToken _) => ValueTask.FromResult<EntityEntry<T>>(null!));
+        mockSet.Setup(m => m.AddRange(It.IsAny<IEnumerable<T>>())).Callback<IEnumerable<T>>(items => data.AddRange(items));
+        mockSet.Setup(m => m.AddRange(It.IsAny<T[]>())).Callback<T[]>(items => data.AddRange(items));
+        mockSet.Setup(m => m.Remove(It.IsAny<T>())).Callback<T>(e => data.Remove(e)).Returns((EntityEntry<T>)null!);
+        mockSet.Setup(m => m.RemoveRange(It.IsAny<IEnumerable<T>>()))
+            .Callback<IEnumerable<T>>(items => { foreach (var i in items.ToList()) data.Remove(i); });
 
         return mockSet.Object;
     }

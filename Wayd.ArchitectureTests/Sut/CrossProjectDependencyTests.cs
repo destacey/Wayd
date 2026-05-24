@@ -173,20 +173,25 @@ public class CrossProjectDependencyTests
     }
 
     [Fact]
-    public void ApplicationLayer_ShouldNotDependOnIntegrations()
+    public void ApplicationLayer_ShouldNotDependOnConcreteIntegrations()
     {
-        // Arrange
+        // Arrange: Application layer is allowed to depend on Wayd.Integrations.Abstractions
+        // (it defines the contracts concrete integrations implement, e.g. IWorkItemSource) but
+        // must NOT depend on any concrete integration package such as Wayd.Integrations.AzureDevOps.
         var applicationAssemblies = Types.InAssemblies(AssemblyHelper.GetApplicationAssemblies());
 
         // Act
         var result = applicationAssemblies
             .ShouldNot()
-            .HaveDependencyOn("Wayd.Integrations")
+            .HaveDependencyOnAny(
+                "Wayd.Integrations.AzureDevOps",
+                "Wayd.Integrations.AzureOpenAI",
+                "Wayd.Integrations.MicrosoftGraph")
             .GetResult();
 
         // Assert
         result.IsSuccessful.Should().BeTrue(
-            "Application layer should not depend on Integrations projects. Violating types: {0}",
+            "Application layer should not depend on concrete Integration projects. Violating types: {0}",
             string.Join(", ", result.FailingTypes ?? []));
     }
 

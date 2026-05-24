@@ -10,6 +10,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\..\..\Wayd.Common\src\Wayd.Common.Application\Wayd.Common.Application.csproj" />
         <ProjectReference Include="..\..\..\..\Wayd.Common\src\Wayd.Common\Wayd.Common.csproj" />
+        <ProjectReference Include="..\..\..\..\Wayd.Integrations\src\Wayd.Integrations.Abstractions\Wayd.Integrations.Abstractions.csproj" />
         <ProjectReference Include="..\Wayd.AppIntegration.Domain\Wayd.AppIntegration.Domain.csproj" />
     </ItemGroup>
 

@@ -20,6 +20,7 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
     private readonly List<Connection> _connections = [];
     private readonly List<AzureDevOpsBoardsConnection> _azureDevOpsBoardsConnections = [];
     private readonly List<AzureOpenAIConnection> _azureOpenAIConnections = [];
+    private readonly List<SyncRun> _syncRuns = [];
 
     // Common domain entities
     private readonly List<Employee> _employees = [];
@@ -32,6 +33,7 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
     public DbSet<Connection> Connections => _connections.AsDbSet();
     public DbSet<AzureDevOpsBoardsConnection> AzureDevOpsBoardsConnections => _azureDevOpsBoardsConnections.AsDbSet();
     public DbSet<AzureOpenAIConnection> AzureOpenAIConnections => _azureOpenAIConnections.AsDbSet();
+    public DbSet<SyncRun> SyncRuns => _syncRuns.AsDbSet();
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();
     public DbSet<OidcProvider> OidcProviders => _oidcProviders.AsDbSet();
@@ -91,6 +93,7 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
     {
         _connections.Clear();
         _azureDevOpsBoardsConnections.Clear();
+        _syncRuns.Clear();
         _employees.Clear();
         _externalEmployeeBlacklistItems.Clear();
         _personalAccessTokens.Clear();

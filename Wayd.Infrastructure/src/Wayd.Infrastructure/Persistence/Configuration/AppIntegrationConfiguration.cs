@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.OpenAI;
+using Wayd.Common.Application.Enums;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Infrastructure.Persistence.Converters;
 using Wayd.Infrastructure.Persistence.Extensions;
@@ -96,5 +98,53 @@ public class OpenAIConnectionConfig : IEntityTypeConfiguration<OpenAIConnection>
         builder.Property(c => c.Configuration)
             .HasEncryptedJsonConversion()
             .HasColumnName("Configuration");
+    }
+}
+
+public class SyncRunConfig : IEntityTypeConfiguration<SyncRun>
+{
+    public void Configure(EntityTypeBuilder<SyncRun> builder)
+    {
+        builder.ToTable("SyncRuns", SchemaNames.AppIntegration);
+
+        builder.HasKey(r => r.Id);
+        builder.Property(r => r.Id).ValueGeneratedNever();
+
+        builder.Property(r => r.ConnectionId).IsRequired();
+
+        builder.Property(r => r.ConnectorType).IsRequired()
+            .HasConversion<EnumConverter<Connector>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+
+        builder.Property(r => r.Status).IsRequired()
+            .HasConversion<EnumConverter<SyncRunStatus>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(16);
+
+        builder.Property(r => r.TriggerSource).IsRequired()
+            .HasConversion<EnumConverter<SyncTriggerSource>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(16);
+
+        builder.Property(r => r.SyncType).IsRequired()
+            .HasConversion<EnumConverter<SyncType>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(16);
+
+        builder.Property(r => r.StartedAt).IsRequired();
+        builder.Property(r => r.FinishedAt);
+        builder.Property(r => r.WorkspacesPlanned);
+        builder.Property(r => r.WorkspacesSucceeded);
+        builder.Property(r => r.WorkspacesFailed);
+        builder.Property(r => r.WorkItemsProcessed);
+        builder.Property(r => r.ErrorsCount);
+        builder.Property(r => r.ErrorMessage).HasMaxLength(2000);
+        builder.Property(r => r.DetailsJson);
+
+        // No FK to Connections — history must survive connection deletion.
+        builder.HasIndex(r => r.ConnectionId);
+        builder.HasIndex(r => new { r.ConnectionId, r.StartedAt });
+        builder.HasIndex(r => new { r.Status, r.StartedAt });
     }
 }

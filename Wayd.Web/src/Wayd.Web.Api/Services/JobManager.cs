@@ -1,5 +1,6 @@
 ﻿using Hangfire;
 using Wayd.AppIntegration.Application.Interfaces;
+using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Interfaces;
@@ -21,7 +22,7 @@ namespace Wayd.Web.Api.Services;
 public class JobManager(
     ILogger<JobManager> logger,
     IEmployeeService employeeService,
-    IAzureDevOpsSyncManager azdoBoardsSyncManager,
+    IWorkSyncRunner workSyncRunner,
     ISender sender)
     : IJobManager
 {
@@ -29,7 +30,7 @@ public class JobManager(
 
     private readonly ILogger<JobManager> _logger = logger;
     private readonly IEmployeeService _employeeService = employeeService;
-    private readonly IAzureDevOpsSyncManager _azdoBoardsSyncManager = azdoBoardsSyncManager;
+    private readonly IWorkSyncRunner _workSyncRunner = workSyncRunner;
     private readonly ISender _sender = sender;
 
     [DisableConcurrentExecution(60)]
@@ -48,16 +49,16 @@ public class JobManager(
 
     [DisableConcurrentExecution(60 * 3)]
     [AutomaticRetry(Attempts = 3, DelaysInSeconds = [30, 60, 120])]
-    public async Task RunSyncAzureDevOpsBoards(SyncType syncType, CancellationToken cancellationToken)
+    public async Task RunWorkSync(SyncType syncType, SyncTriggerSource trigger, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncAzureDevOpsBoards));
-        var result = await _azdoBoardsSyncManager.Sync(syncType, cancellationToken);
+        _logger.LogInformation("Running {BackgroundJob} job (trigger={Trigger})", nameof(RunWorkSync), trigger);
+        var result = await _workSyncRunner.Run(syncType, trigger, cancellationToken);
         if (result.IsFailure)
         {
-            _logger.LogError("Failed to sync Azure DevOps: {Error}", result.Error);
-            throw new InternalServerException($"Failed to sync Azure DevOps. Error: {result.Error}");
+            _logger.LogError("Failed to run work sync: {Error}", result.Error);
+            throw new InternalServerException($"Failed to run work sync. Error: {result.Error}");
         }
-        _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncAzureDevOpsBoards));
+        _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunWorkSync));
     }
 
     [DisableConcurrentExecution(60 * 3)]

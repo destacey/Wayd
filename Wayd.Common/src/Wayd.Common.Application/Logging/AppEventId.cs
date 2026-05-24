@@ -22,6 +22,10 @@ public enum AppEventId
     AppIntegration_AzureDevOpsBoardsSyncManager_DeletedWorkItemsRetrieved = 10109,
     AppIntegration_AzureDevOpsBoardsSyncManager_SyncSummary = 10110,
 
+    // WorkSyncRunner (generic orchestrator across all WorkSync-category connectors)
+    AppIntegration_WorkSyncRunner_RunStarted = 10200,
+    AppIntegration_WorkSyncRunner_RunSummary = 10201,
+
     // Integration Projects
     // Integrations.AzureDevOps (100000-100999)
     Integrations_AzureDevOps_ProjectService_DuplicateIterationTeamMapping = 100100,

@@ -21,6 +21,7 @@
   </Folder>
   <Folder Name="/Wayd.Integrations/" />
   <Folder Name="/Wayd.Integrations/src/">
+    <Project Path="Wayd.Integrations/src/Wayd.Integrations.Abstractions/Wayd.Integrations.Abstractions.csproj" />
     <Project Path="Wayd.Integrations/src/Wayd.Integrations.AzureDevOps/Wayd.Integrations.AzureDevOps.csproj" />
     <Project Path="Wayd.Integrations/src/Wayd.Integrations.MicrosoftGraph/Wayd.Integrations.MicrosoftGraph.csproj" />
   </Folder>

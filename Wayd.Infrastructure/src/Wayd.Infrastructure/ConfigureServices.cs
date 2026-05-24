@@ -17,6 +17,9 @@ using Wayd.Infrastructure.FeatureManagement;
 using Wayd.Infrastructure.Logging;
 using Wayd.Infrastructure.OpenTelemetry;
 using Wayd.Infrastructure.SignalR;
+using Wayd.AppIntegration.Application.Connections.Managers;
+using Wayd.Common.Domain.Enums.AppIntegrations;
+using Wayd.Integrations.Abstractions;
 using Wayd.Integrations.AzureDevOps;
 using Wayd.Integrations.MicrosoftGraph;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
@@ -71,6 +74,11 @@ public static class ConfigureServices
         // INTEGRATIONS
         services.AddTransient<IAzureDevOpsService, AzureDevOpsService>();
         services.AddScoped<IExternalEmployeeDirectoryService, MicrosoftGraphService>();
+
+        // Generic sync orchestration: one IWorkItemSource and one descriptor builder per connector.
+        // (IWorkItemSourceFactory is auto-registered via the IScopedService marker scan.)
+        services.AddKeyedTransient<IWorkItemSource, AzureDevOpsWorkItemSource>(Connector.AzureDevOps);
+        services.AddScoped<ISyncableConnectionDescriptorBuilder, AzureDevOpsConnectionDescriptorBuilder>();
 
         // SIGNALR
         var signalRBuilder = services.AddSignalR();

@@ -149,6 +149,18 @@ Customer-configured integrations (Azure DevOps, Azure OpenAI, future Jira / GitH
 | Polymorphic DTO | `Wayd.AppIntegration.Application/Connections/Dtos/ConnectionDetailsDto.cs` | Add a `[JsonDerivedType]` entry; controllers switch on the request/DTO type to dispatch to the right handler. |
 | External client | `Wayd.Integrations.\{SystemName\}/` | Only if the connector actually talks to a remote API. Pure AI providers can wrap an existing SDK directly inside the application layer. |
 | Persistence | `Wayd.Infrastructure/Persistence/Configuration/AppIntegrationConfiguration.cs` | TPH discriminator; one entity-config per concrete connection class. Use `HasEncryptedJsonConversion()` for the configuration column. |
+| Sync orchestration (work-sync connectors only) | `Wayd.Integrations.Abstractions/IWorkItemSource.cs` + `Wayd.AppIntegration.Application/Connections/Managers/\{Connector\}WorkItemSource.cs` | Implement `IWorkItemSource` for the connector. Register it keyed by `Connector` enum value (`AddKeyedTransient<IWorkItemSource, MySource>(Connector.X)`). The generic `WorkSyncRunner` calls every registered source on a single Hangfire schedule — no per-connector job. |
+
+### Sync orchestration
+
+Work-sync connectors (AzDO today, Jira/GitHub in future) plug into a single generic runner. The pieces:
+
+- **`IWorkItemSource`** ([Wayd.Integrations.Abstractions](https://github.com/destacey/Wayd/tree/main/Wayd.Integrations/src/Wayd.Integrations.Abstractions)) — connector-neutral contract: `TestConnection`, `GetSystemId`, `RefreshOrganizationConfiguration`, `GetSyncPlan` (returns a flat list of `WorkspaceSyncTarget`), `PrepareWorkspaceForItemSync`, `SyncIterations`, `SyncWorkItems`. Sources hide connector-specific hierarchy internally — AzDO's `WorkProcess → Workspace` walk happens inside `GetSyncPlan`, the runner only sees workspaces.
+- **`IWorkItemSourceFactory`** — resolves the right source per connection via keyed DI. Sources hold credentials internally after `Bind(descriptor)` so per-call signatures stay credential-free.
+- **`WorkSyncRunner`** ([Wayd.AppIntegration.Application/Connections/Managers/WorkSyncRunner.cs](https://github.com/destacey/Wayd/blob/main/Wayd.Services/Wayd.AppIntegration/src/Wayd.AppIntegration.Application/Connections/Managers/WorkSyncRunner.cs)) — loops all active syncable connections, resolves each source via the factory, walks the flat plan, runs `ProcessDependenciesCommand`, and writes a `SyncRun` row per connection per run (`AppIntegrations.SyncRuns`). Per-connection failures don't kill the run; per-workspace failures don't kill the connection.
+- **Hangfire entry point**: `JobManager.RunWorkSync(SyncType, CancellationToken)` — one job for all work-sync connectors. Triggered manually via `BackgroundJobType.WorkFullSync` / `WorkDiffSync`.
+
+One-time initialization flows (e.g. AzDO's `InitWorkProcessIntegration` / `InitWorkspaceIntegration`) stay connector-specific in the existing init manager — they're user-triggered setup wizards with connector-specific payloads, not part of the generic runner.
 
 ### Frontend shape
 

@@ -1,0 +1,60 @@
+<svg width="640" height="640" viewBox="0 0 640 640" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="640" fill="#F8F7F1"/>
+
+  <g opacity="0.85" stroke="#A9A39A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <!-- paper airplane -->
+    <path d="M74 76L154 42L112 112L74 76Z" fill="#FEFCF3"/>
+    <path d="M112 112L102 76L154 42" fill="#EAF7FF"/>
+
+    <!-- cloud -->
+    <path d="M214 92C214 79 224 69 237 69C244 69 251 72 255 78C259 73 265 70 272 70C284 70 294 80 294 92C294 105 284 115 272 115H237C224 115 214 105 214 92Z" fill="#EAF4FF"/>
+
+    <!-- notebook -->
+    <rect x="354" y="58" width="82" height="108" rx="12" fill="#FFFDF4"/>
+    <path d="M368 58V166" />
+    <path d="M382 80H420M382 96H420M382 112H420" />
+
+    <!-- tablet -->
+    <rect x="476" y="80" width="120" height="86" rx="14" fill="#EAF4FF"/>
+    <rect x="494" y="96" width="84" height="54" rx="8" fill="#F7FCFF"/>
+    <circle cx="486" cy="106" r="4" fill="#A9A39A"/>
+    <circle cx="486" cy="122" r="4" fill="#A9A39A"/>
+
+    <!-- pencil -->
+    <path d="M44 228L96 176L126 206L74 258L44 228Z" fill="#FFF5CF"/>
+    <path d="M96 176L108 164L138 194L126 206L96 176Z" fill="#F6D9DC"/>
+    <path d="M60 244L86 218" />
+
+    <!-- ruler -->
+    <rect x="174" y="218" width="124" height="26" rx="8" fill="#FFF2C9"/>
+    <path d="M190 226V238M206 226V232M222 226V238M238 226V232M254 226V238M270 226V232" />
+
+    <!-- star -->
+    <path d="M348 214L360 240L388 244L368 262L374 290L348 276L322 290L328 262L308 244L336 240L348 214Z" fill="#FFF0A8"/>
+
+    <!-- palette -->
+    <path d="M472 250C472 216 500 188 534 188C568 188 596 214 596 248C596 274 578 292 556 292H538C528 292 520 300 520 310C520 326 508 338 492 338C466 338 446 318 446 292C446 268 456 250 472 250Z" fill="#FFF7DF"/>
+    <circle cx="510" cy="222" r="8" fill="#CDE5FF"/>
+    <circle cx="536" cy="214" r="8" fill="#F9D6D6"/>
+    <circle cx="560" cy="226" r="8" fill="#DFF2D4"/>
+    <circle cx="568" cy="254" r="8" fill="#E4D8FF"/>
+    <circle cx="542" cy="266" r="8" fill="#FFF1B6"/>
+
+    <!-- little flags -->
+    <path d="M88 340V420" />
+    <path d="M88 346H142L126 366L142 386H88Z" fill="#EAF4FF"/>
+    <path d="M252 338V418" />
+    <path d="M252 344H306L290 364L306 384H252Z" fill="#FBE1E3"/>
+    <path d="M410 336V416" />
+    <path d="M410 342H464L448 362L464 382H410Z" fill="#DDF2DE"/>
+
+    <!-- gears -->
+    <path d="M40 514L52 508L62 514L68 526L62 538L52 544L40 538L34 526L40 514Z" fill="#EFF6FF"/>
+    <path d="M290 504L302 498L312 504L318 516L312 528L302 534L290 528L284 516L290 504Z" fill="#EFF6FF"/>
+    <path d="M548 500L560 494L570 500L576 512L570 524L560 530L548 524L542 512L548 500Z" fill="#EFF6FF"/>
+
+    <!-- tiny stars -->
+    <path d="M170 502L176 516L190 520L180 530L183 544L170 537L157 544L160 530L150 520L164 516L170 502Z" fill="#FFF0A8"/>
+    <path d="M372 492L378 506L392 510L382 520L385 534L372 527L359 534L362 520L352 510L366 506L372 492Z" fill="#FFF0A8"/>
+  </g>
+</svg>

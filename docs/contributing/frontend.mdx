@@ -84,7 +84,7 @@ The client app is installable as a PWA, providing a native app-like experience w
 
 ## Theming
 
-Wayd supports three built-in themes — **Light**, **Slate**, and **Dark** — and per-user customization of primary color and density. All theming is built on Ant Design's `ThemeConfig` and `ConfigProvider`.
+Wayd supports multiple built-in themes (for example: **Light**, **Dark**, **Slate**, **Cartoon**, **Shadcn**, **Glass**, **Geek**, and **Illustration**) and per-user customization of density and (for eligible themes) primary color. All theming is built on Ant Design's `ThemeConfig` and `ConfigProvider`.
 
 ### Theme files
 
@@ -93,6 +93,13 @@ Wayd supports three built-in themes — **Light**, **Slate**, and **Dark** — a
 | `src/config/theme/light-theme.tsx` | Light theme config |
 | `src/config/theme/dark-theme.tsx` | Dark theme config |
 | `src/config/theme/slate-theme.tsx` | Slate (mid-dark) theme config |
+| `src/config/theme/cartoon-theme.tsx` | Cartoon theme config |
+| `src/config/theme/shadcn-theme.tsx` | Shadcn-inspired theme config |
+| `src/config/theme/glass-theme.tsx` | Glass theme config |
+| `src/config/theme/geek-theme.tsx` | Geek theme config |
+| `src/config/theme/illustration-theme.tsx` | Illustration theme config |
+| `src/config/theme/theme-preset.ts` | Shared `AppThemeConfig` contract |
+| `src/config/theme/timeline-colors.ts` | Theme-to-timeline style mapping |
 | `src/config/theme/theme-constants.ts` | Brand color (`COLOR_PRIMARY`) — single source of truth |
 | `src/components/contexts/theme/theme-context.tsx` | `ThemeProvider`, `mergeThemeConfig`, ag-Grid theme wiring |
 | `src/components/contexts/theme/types.d.ts` | `ThemeName`, `ThemeContextType` |
@@ -100,18 +107,24 @@ Wayd supports three built-in themes — **Light**, **Slate**, and **Dark** — a
 
 ### Adding a new theme
 
-1. Create `src/config/theme/my-theme.tsx` exporting a `ThemeConfig`
+1. Create `src/config/theme/my-theme.tsx` exporting an `AppThemeConfig`
 2. Add `'my-theme'` to the `ThemeName` union in `types.d.ts`
-3. Wire it into `theme-context.tsx` — base theme selection, ag-Grid theme, `isLightMode`, and `data-theme` attribute
+3. Wire it into `theme-context.tsx` theme registry
 4. Add scrollbar CSS rules in `styles/globals.css` for `[data-theme='my-theme']`
-5. Add a `DefaultTimeLineColors` entry in `wayd-timeline.utils.ts`
-6. Add the option to the `Segmented` in `theme-manager-drawer.tsx`
+5. Add a timeline style entry in `src/config/theme/timeline-colors.ts`
+6. Add the option in `theme-manager-drawer.tsx`
+7. Set `behavior.allowsPrimaryOverride` explicitly in the theme config
 
 ### User theme overrides
 
 Per-user overrides (`colorPrimary`, `useCompactAlgorithm`) are stored as JSON in the `Preferences` column on `Identity.Users` via `UserThemeConfig`. They're loaded from `GET /api/user-management/profiles/theme` on mount and saved debounced (500ms) via `PUT` on change.
 
-`mergeThemeConfig` in `theme-context.tsx` layers these overrides on top of the base theme. The primary color also sets `Layout.headerBg` in light and slate modes (where the header is brand-colored).
+`mergeThemeConfig` in `theme-context.tsx` layers these overrides on top of the base theme.
+
+- `useCompactAlgorithm` is always eligible.
+- `colorPrimary` is only applied when the active theme sets `behavior.allowsPrimaryOverride = true`.
+
+When switching themes from the Theme Manager, any custom primary override is cleared so the newly selected theme starts from its own default primary color.
 
 ### Theme context
 

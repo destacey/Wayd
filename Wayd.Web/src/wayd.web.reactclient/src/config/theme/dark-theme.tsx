@@ -1,26 +1,69 @@
-import { ThemeConfig, theme } from 'antd'
+import { theme } from 'antd'
+import { colorSchemeDark, themeBalham } from 'ag-grid-community'
+import { useMemo } from 'react'
+import { AppThemeConfig, TimeLineStyles } from './theme-preset'
 const { darkAlgorithm } = theme
 
-const darkTheme: ThemeConfig = {
-  algorithm: darkAlgorithm,
-  token: {
-    colorPrimary: '#1f83d2',
-    borderRadius: 4,
-    wireframe: false,
+export const darkTimeLineColors: TimeLineStyles = {
+  item: {
+    background: '#303030',
+    foreground: '#17354d',
+    font: '#FFFFFF',
   },
-  components: {
-    Layout: {
-      headerBg: '#313131',
-      triggerBg: '#313131',
-      siderBg: '#1f1f1f',
-    },
-    Menu: {
-      darkItemBg: '#1f1f1f',
-      darkItemHoverBg: '#2e2e2e',
-      darkPopupBg: '#1f1f1f',
-      darkSubMenuItemBg: '#262626',
-    },
+  background: {
+    background: '#61646e',
   },
 }
 
+const agGridDarkTheme = themeBalham.withPart(colorSchemeDark).withParams({
+  borderRadius: 4,
+})
+
+export const useDarkThemePreset = (): AppThemeConfig =>
+  useMemo(
+    () => ({
+      configProvider: {
+        theme: {
+          algorithm: darkAlgorithm,
+          token: {
+            colorPrimary: '#1f83d2',
+            borderRadius: 4,
+            wireframe: false,
+          },
+          components: {
+            Layout: {
+              headerBg: '#313131',
+              triggerBg: '#313131',
+              siderBg: '#1f1f1f',
+            },
+            Menu: {
+              darkItemBg: '#1f1f1f',
+              darkItemHoverBg: '#2e2e2e',
+              darkPopupBg: '#1f1f1f',
+              darkSubMenuItemBg: '#262626',
+            },
+          },
+        },
+      },
+      behavior: {
+        allowsPrimaryOverride: true,
+      },
+      timeline: darkTimeLineColors,
+      appBar: {
+        backgroundColor: '#313131',
+        color: '#ffffff',
+        subtleColor: 'rgba(255, 255, 255, 0.88)',
+      },
+      integrations: {
+        agGridTheme: agGridDarkTheme,
+        antDesignChartsTheme: 'classicDark',
+        antvisG6ChartsTheme: 'dark',
+      },
+    }),
+    [],
+  )
+
+const darkTheme = useDarkThemePreset
+
 export default darkTheme
+

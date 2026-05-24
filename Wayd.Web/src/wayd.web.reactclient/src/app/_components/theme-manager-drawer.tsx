@@ -1,6 +1,7 @@
 'use client'
 
-import { Button, Drawer, Flex, Segmented, Tooltip, Typography } from 'antd'
+import { useMemo } from 'react'
+import { Button, Drawer, Flex, Segmented, Select, Tooltip, Typography } from 'antd'
 import { CheckOutlined } from '@ant-design/icons'
 import useTheme from '@/src/components/contexts/theme'
 import { ThemeName } from '@/src/components/contexts/theme/types'
@@ -22,6 +23,17 @@ const PRESET_COLORS: { label: string; value: string }[] = [
   { label: 'Cyan', value: '#13c2c2' },
 ]
 
+const THEME_OPTIONS: { label: string; value: ThemeName }[] = [
+  { label: 'Cartoon', value: 'cartoon' },
+  { label: 'Dark', value: 'dark' },
+  { label: 'Geek', value: 'geek' },
+  { label: 'Glass', value: 'glass' },
+  { label: 'Illustration', value: 'illustration' },
+  { label: 'Light', value: 'light' },
+  { label: 'Shadcn', value: 'shadcn' },
+  { label: 'Slate', value: 'slate' },
+]
+
 interface ThemeManagerDrawerProps {
   open: boolean
   onClose: () => void
@@ -33,10 +45,24 @@ const ThemeManagerDrawer = ({ open, onClose }: ThemeManagerDrawerProps) => {
     setCurrentThemeName,
     userThemeConfig,
     setUserThemeConfig,
+    token,
+    defaultPrimaryColor,
+    allowsPrimaryOverride,
   } = useTheme()
 
-  const colorPrimary =
-    userThemeConfig?.colorPrimary ?? ThemeConstants.COLOR_PRIMARY
+  const selectedPrimaryColor = (
+    userThemeConfig?.colorPrimary ?? defaultPrimaryColor ?? token.colorPrimary
+  ).toLowerCase()
+  const colorOptions = useMemo(() => {
+    if (!defaultPrimaryColor) return PRESET_COLORS
+
+    const hasDefault = PRESET_COLORS.some(
+      (option) => option.value.toLowerCase() === defaultPrimaryColor.toLowerCase(),
+    )
+    if (hasDefault) return PRESET_COLORS
+
+    return [{ label: 'Theme Default', value: defaultPrimaryColor }, ...PRESET_COLORS]
+  }, [defaultPrimaryColor])
   const density: 'default' | 'compact' = userThemeConfig?.useCompactAlgorithm
     ? 'compact'
     : 'default'
@@ -55,58 +81,63 @@ const ThemeManagerDrawer = ({ open, onClose }: ThemeManagerDrawerProps) => {
       <Flex vertical gap="large">
         <Flex vertical gap="small">
           <Text strong>Mode</Text>
-          <Segmented
-            block
-            value={currentThemeName as string}
-            options={[
-              { label: 'Light', value: 'light' },
-              { label: 'Slate', value: 'slate' },
-              { label: 'Dark', value: 'dark' },
-            ]}
-            onChange={(v) => setCurrentThemeName(v as ThemeName)}
+          <Select
+            value={currentThemeName}
+            options={THEME_OPTIONS}
+            onChange={(v) => {
+              setCurrentThemeName(v as ThemeName)
+              setUserThemeConfig(
+                userThemeConfig?.useCompactAlgorithm
+                  ? { useCompactAlgorithm: true }
+                  : null,
+              )
+            }}
+            popupMatchSelectWidth
           />
         </Flex>
 
-        <Flex vertical gap="small">
-          <Text strong>Primary Color</Text>
-          <Flex wrap gap="small">
-            {PRESET_COLORS.map(({ label, value }) => (
-              <Tooltip key={value} title={label}>
-                <button
-                  aria-label={`${label}${colorPrimary === value ? ' (selected)' : ''}`}
-                  aria-pressed={colorPrimary === value}
-                  onClick={() =>
-                    setUserThemeConfig({
-                      colorPrimary: value,
-                      useCompactAlgorithm:
-                        userThemeConfig?.useCompactAlgorithm ?? false,
-                    })
-                  }
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 6,
-                    backgroundColor: value,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow:
-                      colorPrimary === value
+        {allowsPrimaryOverride && (
+          <Flex vertical gap="small">
+            <Text strong>Primary Color</Text>
+            <Flex wrap gap="small">
+              {colorOptions.map(({ label, value }) => (
+                <Tooltip key={value} title={label}>
+                  <button
+                    aria-label={`${label}${selectedPrimaryColor === value.toLowerCase() ? ' (selected)' : ''}`}
+                    aria-pressed={selectedPrimaryColor === value.toLowerCase()}
+                    onClick={() =>
+                      setUserThemeConfig({
+                        colorPrimary: value,
+                        useCompactAlgorithm:
+                          userThemeConfig?.useCompactAlgorithm ?? false,
+                      })
+                    }
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 6,
+                      backgroundColor: value,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow:
+                      selectedPrimaryColor === value.toLowerCase()
                         ? `0 0 0 2px #fff, 0 0 0 4px ${value}`
                         : undefined,
-                    border: 'none',
-                    padding: 0,
-                  }}
-                >
-                  {colorPrimary === value && (
-                    <CheckOutlined style={{ color: '#fff', fontSize: 12 }} />
-                  )}
-                </button>
-              </Tooltip>
-            ))}
+                      border: 'none',
+                      padding: 0,
+                    }}
+                  >
+                    {selectedPrimaryColor === value.toLowerCase() && (
+                      <CheckOutlined style={{ color: '#fff', fontSize: 12 }} />
+                    )}
+                  </button>
+                </Tooltip>
+              ))}
+            </Flex>
           </Flex>
-        </Flex>
+        )}
 
         <Flex vertical gap="small">
           <Text strong>Density</Text>
@@ -119,7 +150,9 @@ const ThemeManagerDrawer = ({ open, onClose }: ThemeManagerDrawerProps) => {
             ]}
             onChange={(v) =>
               setUserThemeConfig({
-                colorPrimary: userThemeConfig?.colorPrimary,
+                colorPrimary: allowsPrimaryOverride
+                  ? userThemeConfig?.colorPrimary
+                  : undefined,
                 useCompactAlgorithm: v === 'compact',
               })
             }

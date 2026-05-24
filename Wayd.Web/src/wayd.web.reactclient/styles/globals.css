@@ -89,6 +89,11 @@ body {
       scrollbar-color: #656565 #2d2d2d;
     }
 
+    [data-theme='geek'] * {
+      scrollbar-width: thin;
+      scrollbar-color: #1d5a1d #0e1310;
+    }
+
     /* Ant Design Drawer Body Scrollbar - Firefox */
     .ant-drawer-body {
       scrollbar-width: thin;
@@ -135,8 +140,17 @@ body {
     border: 3px solid #2d2d2d;
   }
 
-  [data-theme='slate'] ::-webkit-scrollbar-track {
-    background-color: #2d2d2d;
+    [data-theme='slate'] ::-webkit-scrollbar-track {
+      background-color: #2d2d2d;
+    }
+
+  [data-theme='geek'] ::-webkit-scrollbar-thumb {
+    background-color: #1d5a1d;
+    border: 3px solid #0e1310;
+  }
+
+  [data-theme='geek'] ::-webkit-scrollbar-track {
+    background-color: #0e1310;
   }
 
   /* Ant Design Drawer Body Scrollbar - Width (all modes) */
@@ -174,6 +188,15 @@ body {
   html[data-theme='slate'] .ant-drawer-body::-webkit-scrollbar-track {
     background-color: #2d2d2d !important;
   }
+
+  html[data-theme='geek'] .ant-drawer-body::-webkit-scrollbar-thumb {
+    background-color: #1d5a1d !important;
+    border: 2px solid #0e1310 !important;
+  }
+
+  html[data-theme='geek'] .ant-drawer-body::-webkit-scrollbar-track {
+    background-color: #0e1310 !important;
+  }
 }
 
 /* Responsive Adjustments */
@@ -208,4 +231,82 @@ body {
 
 .site-layout .site-layout-background {
   background: #fff;
+}
+
+/* AG Grid shell should inherit theme radius for outer container corners */
+.ag-root-wrapper {
+  border-radius: var(--ag-border-radius, 4px);
+  overflow: hidden;
+}
+
+/* Cartoon Theme Overrides */
+/* App-shell background texture */
+html[data-theme='cartoon'] body {
+  background-color: #faf3e8;
+  background-image:
+    linear-gradient(rgba(250, 243, 232, 0.72), rgba(250, 243, 232, 0.72)),
+    url('/images/wayd-cartoon-bg.png');
+  background-repeat: repeat;
+  background-size: 768px auto;
+}
+
+/* Illustration Theme Overrides */
+html[data-theme='illustration'] body {
+  background-color: #fff9f0;
+  background-image:
+    linear-gradient(rgba(255, 249, 240, 0.7), rgba(255, 249, 240, 0.7)),
+    url('/images/wayd-illustration-bg.svg');
+  background-repeat: repeat;
+  background-size: 720px auto;
+}
+
+html[data-theme='illustration'] .app-theme-illustration.ant-layout,
+html[data-theme='illustration'] .app-theme-illustration .ant-layout,
+html[data-theme='illustration'] .app-theme-illustration .ant-layout-content,
+html[data-theme='illustration'] .app-theme-illustration .app-main-layout,
+html[data-theme='illustration'] .app-theme-illustration .app-main-content {
+  background: transparent;
+}
+
+/* Let textured page background show through Ant Design layout layers */
+html[data-theme='cartoon'] .app-theme-cartoon.ant-layout,
+html[data-theme='cartoon'] .app-theme-cartoon .ant-layout,
+html[data-theme='cartoon'] .app-theme-cartoon .ant-layout-content,
+html[data-theme='cartoon'] .app-theme-cartoon .app-main-layout,
+html[data-theme='cartoon'] .app-theme-cartoon .app-main-content {
+  background: transparent;
+}
+
+/* Improve link contrast inside data-dense surfaces */
+html[data-theme='cartoon'] .app-theme-cartoon .ag-root a,
+html[data-theme='cartoon'] .app-theme-cartoon .tableElement a,
+html[data-theme='cartoon'] .app-theme-cartoon .ant-table a {
+  color: #3f79a8;
+}
+
+html[data-theme='cartoon'] .app-theme-cartoon .ag-root a:hover,
+html[data-theme='cartoon'] .app-theme-cartoon .tableElement a:hover,
+html[data-theme='cartoon'] .app-theme-cartoon .ant-table a:hover {
+  color: #4b89bb;
+}
+
+/* Glass Theme Overrides */
+/* App-shell frosted background */
+html[data-theme='glass'] body {
+  background-color: #e7edf5;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 40%),
+    radial-gradient(circle at 82% 6%, rgba(178, 205, 232, 0.38) 0%, rgba(178, 205, 232, 0) 34%),
+    radial-gradient(circle at 74% 68%, rgba(212, 226, 241, 0.46) 0%, rgba(212, 226, 241, 0) 42%),
+    linear-gradient(145deg, #edf3fa 0%, #dde8f4 100%);
+  background-attachment: fixed;
+}
+
+/* Let the shell layers feel translucent in glass mode */
+html[data-theme='glass'] .app-theme-glass.ant-layout,
+html[data-theme='glass'] .app-theme-glass .ant-layout,
+html[data-theme='glass'] .app-theme-glass .ant-layout-content,
+html[data-theme='glass'] .app-theme-glass .app-main-layout,
+html[data-theme='glass'] .app-theme-glass .app-main-content {
+  background: transparent;
 }

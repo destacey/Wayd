@@ -8,35 +8,27 @@ import {
   useRef,
   useState,
 } from 'react'
-import {
-  themeBalham,
-  colorSchemeDark,
-  createPart,
-} from 'ag-grid-community'
 import { useLocalStorageState } from '@/src/hooks'
 import { ConfigProvider, theme, ThemeConfig } from 'antd'
-import lightTheme from '@/src/config/theme/light-theme'
-import darkTheme from '@/src/config/theme/dark-theme'
-import slateTheme from '@/src/config/theme/slate-theme'
+import { useLightThemePreset } from '@/src/config/theme/light-theme'
+import { useDarkThemePreset } from '@/src/config/theme/dark-theme'
+import { useSlateThemePreset } from '@/src/config/theme/slate-theme'
+import useCartoonTheme from '@/src/config/theme/cartoon-theme'
+import useShadcnTheme from '@/src/config/theme/shadcn-theme'
+import useGlassTheme from '@/src/config/theme/glass-theme'
+import useGeekTheme from '@/src/config/theme/geek-theme'
+import useIllustrationTheme from '@/src/config/theme/illustration-theme'
+import { AppThemeConfig } from '@/src/config/theme/theme-preset'
 import { ThemeContextType, ThemeName, UserThemeConfigDto } from './types'
 import { getProfileClient } from '@/src/services/clients'
 
 export const ThemeContext = createContext<ThemeContextType | null>(null)
 
-const agGridLightTheme = themeBalham
-const agGridDarkTheme = themeBalham.withPart(colorSchemeDark)
-const agGridGreyTheme = themeBalham.withPart(
-  createPart({
-    feature: 'colorScheme',
-    params: {
-      backgroundColor: '#2d2d2d',
-      foregroundColor: '#e0e0e0',
-      browserColorScheme: 'dark',
-    },
-  }),
-)
-
-function mergeThemeConfig(base: ThemeConfig, overrides: UserThemeConfigDto | null, themeName: ThemeName): ThemeConfig {
+function mergeThemeConfig(
+  base: ThemeConfig,
+  overrides: UserThemeConfigDto | null,
+  allowsPrimaryOverride: boolean,
+): ThemeConfig {
   if (!overrides) return base
 
   const algorithms = [
@@ -44,21 +36,17 @@ function mergeThemeConfig(base: ThemeConfig, overrides: UserThemeConfigDto | nul
     ...(overrides.useCompactAlgorithm ? [theme.compactAlgorithm] : []),
   ].flat()
 
-  const applyHeaderColor = overrides.colorPrimary && (themeName === 'light' || themeName === 'slate')
-
   return {
     ...base,
     algorithm: algorithms,
     token: {
       ...base.token,
-      ...(overrides.colorPrimary ? { colorPrimary: overrides.colorPrimary } : {}),
+      ...(allowsPrimaryOverride && overrides.colorPrimary
+        ? { colorPrimary: overrides.colorPrimary }
+        : {}),
     },
     components: {
       ...base.components,
-      Layout: {
-        ...base.components?.Layout,
-        ...(applyHeaderColor ? { headerBg: overrides.colorPrimary } : {}),
-      },
     },
   }
 }
@@ -118,21 +106,52 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     [saveThemeConfig],
   )
 
-  const isLightMode = currentThemeName === 'light'
-  const agGridTheme =
-    currentThemeName === 'light' ? agGridLightTheme
-    : currentThemeName === 'slate' ? agGridGreyTheme
-    : agGridDarkTheme
-  const antDesignChartsTheme = isLightMode ? 'classic' : 'classicDark'
-  const antvisG6ChartsTheme = isLightMode ? 'light' : 'dark'
-
-  const baseTheme =
-    currentThemeName === 'light' ? lightTheme
-    : currentThemeName === 'slate' ? slateTheme
-    : darkTheme
+  const lightPreset = useLightThemePreset()
+  const darkPreset = useDarkThemePreset()
+  const slatePreset = useSlateThemePreset()
+  const cartoonThemeConfig = useCartoonTheme()
+  const shadcnThemeConfig = useShadcnTheme()
+  const glassThemeConfig = useGlassTheme()
+  const geekThemeConfig = useGeekTheme()
+  const illustrationThemeConfig = useIllustrationTheme()
+  const themesByName: Record<ThemeName, AppThemeConfig> = {
+    light: lightPreset,
+    dark: darkPreset,
+    slate: slatePreset,
+    cartoon: cartoonThemeConfig,
+    shadcn: shadcnThemeConfig,
+    glass: glassThemeConfig,
+    geek: geekThemeConfig,
+    illustration: illustrationThemeConfig,
+  }
+  const activeTheme = themesByName[currentThemeName]
   const currentTheme = useMemo(
-    () => mergeThemeConfig(baseTheme, userThemeConfig, currentThemeName),
-    [baseTheme, userThemeConfig, currentThemeName],
+    () =>
+      mergeThemeConfig(
+        activeTheme.configProvider.theme ?? ({} as ThemeConfig),
+        userThemeConfig,
+        activeTheme.behavior.allowsPrimaryOverride,
+      ),
+    [activeTheme, userThemeConfig],
+  )
+  const providerOverrides = {
+    modal: activeTheme.configProvider.modal,
+    popover: activeTheme.configProvider.popover,
+    progress: activeTheme.configProvider.progress,
+    colorPicker: activeTheme.configProvider.colorPicker,
+  }
+  const {
+    theme: _unusedTheme,
+    modal: _unusedModal,
+    ...providerPassthrough
+  } = activeTheme.configProvider
+  const modalConfig = useMemo(
+    () => ({
+      closable: true,
+      mask: { closable: false },
+      ...(providerOverrides.modal ?? {}),
+    }),
+    [providerOverrides.modal],
   )
 
   useLayoutEffect(() => {
@@ -166,13 +185,23 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   )
 
   return (
-    <ConfigProvider theme={currentTheme} modal={{ closable: true, mask: { closable: false } }}>
+    <ConfigProvider
+      {...providerPassthrough}
+      theme={currentTheme}
+      modal={modalConfig}
+      popover={providerOverrides.popover}
+      progress={providerOverrides.progress}
+      colorPicker={providerOverrides.colorPicker}
+    >
       <ThemeTokenProvider
         currentThemeName={currentThemeName}
         setCurrentThemeName={setCurrentThemeName}
-        agGridTheme={agGridTheme}
-        antDesignChartsTheme={antDesignChartsTheme}
-        antvisG6ChartsTheme={antvisG6ChartsTheme}
+        appBar={activeTheme.appBar}
+        allowsPrimaryOverride={activeTheme.behavior.allowsPrimaryOverride}
+        defaultPrimaryColor={String(activeTheme.configProvider.theme?.token?.colorPrimary ?? '')}
+        agGridTheme={activeTheme.integrations.agGridTheme}
+        antDesignChartsTheme={activeTheme.integrations.antDesignChartsTheme}
+        antvisG6ChartsTheme={activeTheme.integrations.antvisG6ChartsTheme}
         userThemeConfig={userThemeConfig}
         setUserThemeConfig={setUserThemeConfig}
       >
@@ -186,7 +215,10 @@ interface ThemeTokenProviderProps {
   children: ReactNode
   currentThemeName: ThemeName
   setCurrentThemeName: (value: ThemeName) => void
-  agGridTheme: typeof agGridLightTheme
+  appBar: ThemeContextType['appBar']
+  allowsPrimaryOverride: boolean
+  defaultPrimaryColor: string
+  agGridTheme: ThemeContextType['agGridTheme']
   antDesignChartsTheme: string
   antvisG6ChartsTheme: string
   userThemeConfig: UserThemeConfigDto | null
@@ -197,6 +229,9 @@ const ThemeTokenProvider = ({
   children,
   currentThemeName,
   setCurrentThemeName,
+  appBar,
+  allowsPrimaryOverride,
+  defaultPrimaryColor,
   agGridTheme,
   antDesignChartsTheme,
   antvisG6ChartsTheme,
@@ -210,6 +245,9 @@ const ThemeTokenProvider = ({
     () => ({
       currentThemeName,
       setCurrentThemeName,
+      appBar,
+      allowsPrimaryOverride,
+      defaultPrimaryColor,
       agGridTheme,
       token,
       badgeColor,
@@ -221,6 +259,9 @@ const ThemeTokenProvider = ({
     [
       currentThemeName,
       setCurrentThemeName,
+      appBar,
+      allowsPrimaryOverride,
+      defaultPrimaryColor,
       agGridTheme,
       token,
       badgeColor,

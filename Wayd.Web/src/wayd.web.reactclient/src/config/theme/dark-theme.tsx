@@ -45,6 +45,9 @@ export const useDarkThemePreset = (): AppThemeConfig =>
           },
         },
       },
+      behavior: {
+        allowsPrimaryOverride: true,
+      },
       timeline: darkTimeLineColors,
       appBar: {
         backgroundColor: '#313131',

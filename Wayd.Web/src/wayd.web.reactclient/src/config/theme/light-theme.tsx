@@ -40,6 +40,9 @@ export const useLightThemePreset = (): AppThemeConfig =>
           },
         },
       },
+      behavior: {
+        allowsPrimaryOverride: true,
+      },
       timeline: lightTimeLineColors,
       appBar: {
         backgroundColor: 'var(--ant-color-primary)',

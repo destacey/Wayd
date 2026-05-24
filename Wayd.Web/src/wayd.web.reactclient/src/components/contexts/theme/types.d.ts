@@ -22,9 +22,11 @@ export interface ThemeContextType {
     color: string
     subtleColor?: string
   }
+  allowsPrimaryOverride: boolean
   agGridTheme: AgGridTheme
   token: GlobalToken
   badgeColor: string
+  defaultPrimaryColor: string
   antDesignChartsTheme: string
   antvisG6ChartsTheme: string
   userThemeConfig: UserThemeConfigDto | null

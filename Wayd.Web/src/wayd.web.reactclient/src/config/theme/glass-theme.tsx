@@ -241,6 +241,9 @@ const useGlassTheme = (): AppThemeConfig => {
           },
         },
       },
+      behavior: {
+        allowsPrimaryOverride: true,
+      },
       timeline: glassTimeLineStyles,
       appBar: {
         backgroundColor: 'var(--ant-color-primary)',

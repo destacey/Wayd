@@ -197,6 +197,9 @@ const useIllustrationTheme = (): AppThemeConfig => {
           },
         },
       },
+      behavior: {
+        allowsPrimaryOverride: false,
+      },
       timeline: illustrationTimeLineStyles,
       appBar: {
         backgroundColor: 'var(--ant-color-primary)',

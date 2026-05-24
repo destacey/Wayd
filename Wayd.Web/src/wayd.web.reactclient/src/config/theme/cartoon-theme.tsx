@@ -163,6 +163,9 @@ const useCartoonTheme = () => {
           },
         },
       },
+      behavior: {
+        allowsPrimaryOverride: false,
+      },
       timeline: cartoonThemeConfig.timeLineColors,
       appBar: {
         backgroundColor: 'var(--ant-color-primary)',

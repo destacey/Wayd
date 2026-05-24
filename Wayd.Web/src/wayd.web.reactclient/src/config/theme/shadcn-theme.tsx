@@ -240,6 +240,9 @@ const useShadcnTheme = (): AppThemeConfig => {
           },
         },
       },
+      behavior: {
+        allowsPrimaryOverride: true,
+      },
       timeline: shadcnTimeLineColors,
       appBar: {
         backgroundColor: '#fafafa',

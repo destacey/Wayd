@@ -24,6 +24,9 @@ export type TimeLineStyles = {
 
 export interface AppThemeConfig {
   configProvider: ConfigProviderProps
+  behavior: {
+    allowsPrimaryOverride: boolean
+  }
   timeline: TimeLineStyles
   appBar: {
     backgroundColor: string

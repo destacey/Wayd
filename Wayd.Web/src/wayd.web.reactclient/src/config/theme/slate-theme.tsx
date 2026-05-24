@@ -58,6 +58,9 @@ export const useSlateThemePreset = (): AppThemeConfig =>
           },
         },
       },
+      behavior: {
+        allowsPrimaryOverride: true,
+      },
       timeline: slateTimeLineColors,
       appBar: {
         backgroundColor: 'var(--ant-color-primary)',

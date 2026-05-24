@@ -27,6 +27,7 @@ export const ThemeContext = createContext<ThemeContextType | null>(null)
 function mergeThemeConfig(
   base: ThemeConfig,
   overrides: UserThemeConfigDto | null,
+  allowsPrimaryOverride: boolean,
 ): ThemeConfig {
   if (!overrides) return base
 
@@ -40,7 +41,9 @@ function mergeThemeConfig(
     algorithm: algorithms,
     token: {
       ...base.token,
-      ...(overrides.colorPrimary ? { colorPrimary: overrides.colorPrimary } : {}),
+      ...(allowsPrimaryOverride && overrides.colorPrimary
+        ? { colorPrimary: overrides.colorPrimary }
+        : {}),
     },
     components: {
       ...base.components,
@@ -127,6 +130,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       mergeThemeConfig(
         activeTheme.configProvider.theme ?? ({} as ThemeConfig),
         userThemeConfig,
+        activeTheme.behavior.allowsPrimaryOverride,
       ),
     [activeTheme, userThemeConfig],
   )
@@ -193,6 +197,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         currentThemeName={currentThemeName}
         setCurrentThemeName={setCurrentThemeName}
         appBar={activeTheme.appBar}
+        allowsPrimaryOverride={activeTheme.behavior.allowsPrimaryOverride}
+        defaultPrimaryColor={String(activeTheme.configProvider.theme?.token?.colorPrimary ?? '')}
         agGridTheme={activeTheme.integrations.agGridTheme}
         antDesignChartsTheme={activeTheme.integrations.antDesignChartsTheme}
         antvisG6ChartsTheme={activeTheme.integrations.antvisG6ChartsTheme}
@@ -210,6 +216,8 @@ interface ThemeTokenProviderProps {
   currentThemeName: ThemeName
   setCurrentThemeName: (value: ThemeName) => void
   appBar: ThemeContextType['appBar']
+  allowsPrimaryOverride: boolean
+  defaultPrimaryColor: string
   agGridTheme: ThemeContextType['agGridTheme']
   antDesignChartsTheme: string
   antvisG6ChartsTheme: string
@@ -222,6 +230,8 @@ const ThemeTokenProvider = ({
   currentThemeName,
   setCurrentThemeName,
   appBar,
+  allowsPrimaryOverride,
+  defaultPrimaryColor,
   agGridTheme,
   antDesignChartsTheme,
   antvisG6ChartsTheme,
@@ -236,6 +246,8 @@ const ThemeTokenProvider = ({
       currentThemeName,
       setCurrentThemeName,
       appBar,
+      allowsPrimaryOverride,
+      defaultPrimaryColor,
       agGridTheme,
       token,
       badgeColor,
@@ -248,6 +260,8 @@ const ThemeTokenProvider = ({
       currentThemeName,
       setCurrentThemeName,
       appBar,
+      allowsPrimaryOverride,
+      defaultPrimaryColor,
       agGridTheme,
       token,
       badgeColor,

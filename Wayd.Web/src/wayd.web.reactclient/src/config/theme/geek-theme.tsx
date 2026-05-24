@@ -107,6 +107,8 @@ const useGeekTheme = (): AppThemeConfig => {
             lineWidth: 2,
             colorPrimary: '#39ff14',
             colorText: '#39ff14',
+            colorTextSecondary: '#9aff86',
+            colorTextTertiary: '#76c966',
             colorInfo: '#39ff14',
             controlHeightSM: 26,
             controlHeight: 34,
@@ -119,6 +121,9 @@ const useGeekTheme = (): AppThemeConfig => {
             },
             Menu: {
               darkItemBg: '#1f1f1f',
+              darkItemColor: '#9aff86',
+              darkItemHoverColor: '#39ff14',
+              darkItemSelectedColor: '#39ff14',
               darkItemHoverBg: '#2e2e2e',
               darkPopupBg: '#1f1f1f',
               darkSubMenuItemBg: '#262626',
@@ -190,11 +195,14 @@ const useGeekTheme = (): AppThemeConfig => {
           },
         },
       },
+      behavior: {
+        allowsPrimaryOverride: false,
+      },
       timeline: geekTimeLineStyles,
       appBar: {
         backgroundColor: '#313131',
         color: '#39ff14',
-        subtleColor: '#39ff14',
+        subtleColor: '#9aff86',
       },
       integrations: {
         agGridTheme: agGridGeekTheme,

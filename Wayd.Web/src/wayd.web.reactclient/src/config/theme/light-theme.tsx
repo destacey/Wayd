@@ -4,6 +4,9 @@ import { useMemo } from 'react'
 import { ThemeConstants } from './theme-constants'
 import { AppThemeConfig, TimeLineStyles } from './theme-preset'
 const { defaultAlgorithm } = theme
+const lightAgGridTheme = themeBalham.withParams({
+  borderRadius: 4,
+})
 
 export const lightTimeLineColors: TimeLineStyles = {
   item: {
@@ -44,7 +47,7 @@ export const useLightThemePreset = (): AppThemeConfig =>
         subtleColor: 'rgba(255, 255, 255, 0.88)',
       },
       integrations: {
-        agGridTheme: themeBalham,
+        agGridTheme: lightAgGridTheme,
         antDesignChartsTheme: 'classic',
         antvisG6ChartsTheme: 'light',
       },

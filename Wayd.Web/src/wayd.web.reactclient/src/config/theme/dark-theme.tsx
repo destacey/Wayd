@@ -15,7 +15,9 @@ export const darkTimeLineColors: TimeLineStyles = {
   },
 }
 
-const agGridDarkTheme = themeBalham.withPart(colorSchemeDark)
+const agGridDarkTheme = themeBalham.withPart(colorSchemeDark).withParams({
+  borderRadius: 4,
+})
 
 export const useDarkThemePreset = (): AppThemeConfig =>
   useMemo(

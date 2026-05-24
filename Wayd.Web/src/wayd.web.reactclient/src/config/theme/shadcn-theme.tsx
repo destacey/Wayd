@@ -54,6 +54,10 @@ const useStyles = createStyles(({ css }) => ({
 const cx = (...classes: Array<string | false | null | undefined>) =>
   classes.filter(Boolean).join(' ')
 
+const shadcnAgGridTheme = themeBalham.withParams({
+  borderRadius: 10,
+})
+
 const useShadcnTheme = (): AppThemeConfig => {
   const { styles } = useStyles()
 
@@ -243,7 +247,7 @@ const useShadcnTheme = (): AppThemeConfig => {
         subtleColor: '#525252',
       },
       integrations: {
-        agGridTheme: themeBalham,
+        agGridTheme: shadcnAgGridTheme,
         antDesignChartsTheme: 'classic',
         antvisG6ChartsTheme: 'light',
       },

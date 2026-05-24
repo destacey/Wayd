@@ -18,6 +18,10 @@ export const glassTimeLineStyles: TimeLineStyles = {
 const cx = (...classes: Array<string | false | null | undefined>) =>
   classes.filter(Boolean).join(' ')
 
+const glassAgGridTheme = themeBalham.withParams({
+  borderRadius: 12,
+})
+
 const useStyles = createStyles(({ css, cssVar }) => {
   const glassBorder = {
     boxShadow: [
@@ -242,7 +246,7 @@ const useGlassTheme = (): AppThemeConfig => {
         subtleColor: 'rgba(255, 255, 255, 0.9)',
       },
       integrations: {
-        agGridTheme: themeBalham,
+        agGridTheme: glassAgGridTheme,
         antDesignChartsTheme: 'classic',
         antvisG6ChartsTheme: 'light',
       },

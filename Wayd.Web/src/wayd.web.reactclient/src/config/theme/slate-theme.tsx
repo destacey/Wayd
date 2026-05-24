@@ -24,7 +24,9 @@ const agGridGreyTheme = themeBalham.withPart(
       browserColorScheme: 'dark',
     },
   }),
-)
+).withParams({
+  borderRadius: 4,
+})
 
 export const useSlateThemePreset = (): AppThemeConfig =>
   useMemo(

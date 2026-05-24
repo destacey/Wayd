@@ -49,10 +49,14 @@ public class JobManager(
 
     [DisableConcurrentExecution(60 * 3)]
     [AutomaticRetry(Attempts = 3, DelaysInSeconds = [30, 60, 120])]
-    public async Task RunWorkSync(SyncType syncType, SyncTriggerSource trigger, CancellationToken cancellationToken)
+    public async Task RunWorkSync(SyncType syncType, SyncTriggerSource trigger, Guid? connectionId, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Running {BackgroundJob} job (trigger={Trigger})", nameof(RunWorkSync), trigger);
-        var result = await _workSyncRunner.Run(syncType, trigger, cancellationToken);
+        _logger.LogInformation("Running {BackgroundJob} job (trigger={Trigger}, connectionId={ConnectionId})", nameof(RunWorkSync), trigger, connectionId);
+
+        var result = connectionId.HasValue
+            ? await _workSyncRunner.Run(connectionId.Value, syncType, trigger, cancellationToken)
+            : await _workSyncRunner.Run(syncType, trigger, cancellationToken);
+
         if (result.IsFailure)
         {
             _logger.LogError("Failed to run work sync: {Error}", result.Error);

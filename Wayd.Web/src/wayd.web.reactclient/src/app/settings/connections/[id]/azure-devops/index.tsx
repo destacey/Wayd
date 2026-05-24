@@ -18,6 +18,7 @@ import {
 import { AzdoConnectionContext } from './connection-context'
 import AzdoConnectionDetails from './connection-details'
 import AzdoOrganization from './organization'
+import SyncHistoryTab from '../_components/sync-history-tab'
 import { ReactNode, useEffect, useMemo } from 'react'
 
 const isAzdo = (
@@ -157,6 +158,11 @@ export const azureDevOpsDetailEntry: DetailEntry = {
           />
         )
       },
+    },
+    {
+      key: 'sync-history',
+      label: 'Sync History',
+      render: (connection) => <SyncHistoryTab connectionId={connection.id} />,
     },
   ],
   ExtraActions: AzdoExtraActions,

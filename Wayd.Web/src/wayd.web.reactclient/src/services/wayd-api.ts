@@ -25870,6 +25870,186 @@ export class ConnectionsClient {
         }
         return Promise.resolve<void>(null as any);
     }
+
+    /**
+     * Trigger a sync for a connection.
+     * @param syncType (optional) 
+     */
+    runSync(id: string, syncType?: SyncType | undefined, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/app-integrations/connections/{id}/run?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (syncType === null)
+            throw new globalThis.Error("The parameter 'syncType' cannot be null.");
+        else if (syncType !== undefined)
+            url_ += "syncType=" + encodeURIComponent("" + syncType) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRunSync(_response);
+        });
+    }
+
+    protected processRunSync(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 202) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get sync run history for a connection.
+     * @param since (optional) 
+     */
+    getSyncRuns(id: string, since?: Date | null | undefined, cancelToken?: CancelToken): Promise<SyncRunListDto[]> {
+        let url_ = this.baseUrl + "/api/app-integrations/connections/{id}/sync-runs?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (since !== undefined && since !== null)
+            url_ += "since=" + encodeURIComponent(since ? "" + since.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSyncRuns(_response);
+        });
+    }
+
+    protected processGetSyncRuns(response: AxiosResponse): Promise<SyncRunListDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<SyncRunListDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SyncRunListDto[]>(null as any);
+    }
+
+    /**
+     * Get sync run details.
+     */
+    getSyncRun(syncRunId: string, cancelToken?: CancelToken): Promise<SyncRunDetailsDto> {
+        let url_ = this.baseUrl + "/api/app-integrations/connections/sync-runs/{syncRunId}";
+        if (syncRunId === undefined || syncRunId === null)
+            throw new globalThis.Error("The parameter 'syncRunId' must be defined.");
+        url_ = url_.replace("{syncRunId}", encodeURIComponent("" + syncRunId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSyncRun(_response);
+        });
+    }
+
+    protected processGetSyncRun(response: AxiosResponse): Promise<SyncRunDetailsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<SyncRunDetailsDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SyncRunDetailsDto>(null as any);
+    }
 }
 
 export class BackgroundJobsClient {
@@ -29297,6 +29477,77 @@ export interface UpdateAzureOpenAIConnectionRequest extends UpdateConnectionRequ
     apiKey: string;
     /** The OpenAI model deployment name to use for this connection (e.g. "gpt-4o") */
     deploymentName: string;
+}
+
+export enum SyncType {
+    Full = "Full",
+    Differential = "Differential",
+}
+
+export interface SyncRunListDto {
+    id: string;
+    connectionId: string;
+    connectorType: Connector;
+    startedAt: Date;
+    finishedAt?: Date | undefined;
+    status: SyncRunStatus;
+    triggerSource: SyncTriggerSource;
+    syncType: SyncType;
+    workspacesPlanned: number;
+    workspacesSucceeded: number;
+    workspacesFailed: number;
+    workItemsProcessed: number;
+    errorsCount: number;
+    errorMessage?: string | undefined;
+}
+
+export enum Connector {
+    AzureDevOps = "AzureDevOps",
+    AzureOpenAI = "AzureOpenAI",
+    OpenAI = "OpenAI",
+}
+
+export enum SyncRunStatus {
+    Running = "Running",
+    Succeeded = "Succeeded",
+    Failed = "Failed",
+    Cancelled = "Cancelled",
+}
+
+export enum SyncTriggerSource {
+    Scheduled = "Scheduled",
+    Manual = "Manual",
+    Api = "Api",
+}
+
+export interface SyncRunDetailsDto {
+    id: string;
+    connectionId: string;
+    connectorType: Connector;
+    startedAt: Date;
+    finishedAt?: Date | undefined;
+    status: SyncRunStatus;
+    triggerSource: SyncTriggerSource;
+    syncType: SyncType;
+    workspacesPlanned: number;
+    workspacesSucceeded: number;
+    workspacesFailed: number;
+    workItemsProcessed: number;
+    errorsCount: number;
+    errorMessage?: string | undefined;
+    details: WorkspaceSyncDetail[];
+}
+
+export interface WorkspaceSyncDetail {
+    internalWorkspaceId: string;
+    workspaceName: string;
+    succeeded: boolean;
+    workItemsProcessed: number;
+    parentLinkChangesProcessed: number;
+    dependencyLinkChangesProcessed: number;
+    deletedWorkItemsProcessed: number;
+    hadPartialFailure: boolean;
+    error?: string | undefined;
 }
 
 export interface BackgroundJobTypeDto {

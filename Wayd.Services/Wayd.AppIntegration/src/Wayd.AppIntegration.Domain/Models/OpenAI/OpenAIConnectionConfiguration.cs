@@ -18,6 +18,7 @@ public sealed class OpenAIConnectionConfiguration
         DefaultTemperature = defaultTemperature;
         DefaultMaxOutputTokens = defaultMaxOutputTokens;
         JsonModePreferred = jsonModePreferred;
+        ConfigVersion = 1;
     }
 
     /// <summary>
@@ -70,4 +71,6 @@ public sealed class OpenAIConnectionConfiguration
         .Where(h => !string.IsNullOrWhiteSpace(h.Name));
 
     #endregion Inferred Properties
+
+    public int ConfigVersion { get; init; }
 }

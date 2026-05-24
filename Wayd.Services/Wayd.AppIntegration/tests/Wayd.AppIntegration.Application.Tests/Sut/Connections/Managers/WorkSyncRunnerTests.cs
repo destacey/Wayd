@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.AutoMock;
 using Wayd.AppIntegration.Application.Connections.Dtos;
+using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Managers;
 using Wayd.AppIntegration.Application.Connections.Queries;
 using Wayd.AppIntegration.Application.Persistence;
@@ -470,4 +471,105 @@ public class WorkSyncRunnerTests
                 && d.SystemId == connection.SystemId)),
                 Times.Once);
     }
+
+    #region Per-connection Run(connectionId, syncType, trigger, ct)
+
+    private void SetupSingleConnectionQuery(Guid connectionId, AzureDevOpsBoardsConnection? connection)
+    {
+        AzureDevOpsConnectionDetailsDto? details = connection is null ? null : new AzureDevOpsConnectionDetailsDto
+        {
+            Id = connection.Id,
+            Name = connection.Name,
+            Connector = new SimpleNavigationDto { Id = (int)connection.Connector, Name = "Azure DevOps" },
+            IsActive = connection.IsActive,
+            IsValidConfiguration = connection.IsValidConfiguration,
+            SystemId = connection.SystemId,
+            IsSyncEnabled = connection.IsSyncEnabled,
+            Configuration = new AzureDevOpsConnectionConfigurationDto
+            {
+                Organization = "TestOrg",
+                PersonalAccessToken = "test-pat",
+                OrganizationUrl = "https://dev.azure.com/TestOrg",
+                WorkProcesses = [],
+                Workspaces = [],
+            },
+            TeamConfiguration = new AzureDevOpsTeamConfigurationDto
+            {
+                WorkspaceTeams = [],
+            },
+        };
+
+        _mocker.GetMock<ISender>()
+            .Setup(s => s.Send(It.Is<GetConnectionQuery>(q => q.Id == connectionId), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(details);
+    }
+
+    [Fact]
+    public async Task Run_PerConnection_HappyPath_PersistsSyncRunForThatConnectionOnly()
+    {
+        var connection = SeedActiveAzdoConnection();
+        SetupSingleConnectionQuery(connection.Id, connection);
+        StubHappyPathSource(workspaceCount: 1, workItemsPerWorkspace: 4);
+
+        var result = await _sut.Run(connection.Id, SyncType.Differential, SyncTriggerSource.Manual, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+
+        var runs = _db.SyncRuns.ToList();
+        runs.Should().HaveCount(1);
+        var run = runs.Single();
+        run.ConnectionId.Should().Be(connection.Id);
+        run.ConnectorType.Should().Be(Connector.AzureDevOps);
+        run.SyncType.Should().Be(SyncType.Differential);
+        run.TriggerSource.Should().Be(SyncTriggerSource.Manual);
+        run.Status.Should().Be(SyncRunStatus.Succeeded);
+        run.WorkspacesPlanned.Should().Be(1);
+        run.WorkspacesSucceeded.Should().Be(1);
+        run.WorkItemsProcessed.Should().Be(4);
+
+        // Org-wide query must not be used by the per-connection overload.
+        _mocker.GetMock<ISender>()
+            .Verify(s => s.Send(It.IsAny<GetConnectionsQuery>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Run_PerConnection_ConnectionNotFound_ReturnsFailureAndWritesNoSyncRun()
+    {
+        var connectionId = Guid.CreateVersion7();
+        SetupSingleConnectionQuery(connectionId, null);
+
+        var result = await _sut.Run(connectionId, SyncType.Differential, SyncTriggerSource.Manual, CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain(connectionId.ToString());
+        _db.SyncRuns.Should().BeEmpty();
+
+        // Source factory must not be invoked when the connection lookup failed.
+        _mocker.GetMock<IWorkItemSourceFactory>()
+            .Verify(f => f.Create(It.IsAny<SyncableConnectionDescriptor>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Run_PerConnection_Cancelled_MarksRunAsCancelledAndRethrows()
+    {
+        var connection = SeedActiveAzdoConnection();
+        SetupSingleConnectionQuery(connection.Id, connection);
+        StubHappyPathSource();
+
+        using var cts = new CancellationTokenSource();
+        // Cancel before the first ThrowIfCancellationRequested checkpoint inside RunConnection.
+        _source.Setup(s => s.RefreshOrganizationConfiguration(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Callback(() => cts.Cancel())
+            .ReturnsAsync(Result.Success());
+
+        var act = async () => await _sut.Run(connection.Id, SyncType.Full, SyncTriggerSource.Manual, cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+
+        var runs = _db.SyncRuns.ToList();
+        runs.Should().HaveCount(1);
+        runs.Single().Status.Should().Be(SyncRunStatus.Cancelled);
+    }
+
+    #endregion
 }

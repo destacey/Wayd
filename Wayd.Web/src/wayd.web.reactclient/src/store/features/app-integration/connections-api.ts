@@ -3,6 +3,9 @@ import {
   ConnectionListDto,
   ConnectorListDto,
   CreateConnectionRequest,
+  SyncRunDetailsDto,
+  SyncRunListDto,
+  SyncType,
   UpdateConnectionRequest,
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
@@ -107,6 +110,63 @@ export const connectionsApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: [{ type: QueryTags.Connection }],
     }),
+
+    getSyncRuns: builder.query<
+      SyncRunListDto[],
+      { connectionId: string; sinceIso?: string }
+    >({
+      queryFn: async ({ connectionId, sinceIso }) => {
+        try {
+          const data = await getConnectionsClient().getSyncRuns(
+            connectionId,
+            sinceIso ? new Date(sinceIso) : undefined,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, { connectionId }) => [
+        { type: QueryTags.SyncRun, id: connectionId },
+      ],
+    }),
+
+    runSync: builder.mutation<
+      void,
+      { connectionId: string; syncType?: SyncType }
+    >({
+      queryFn: async ({ connectionId, syncType }) => {
+        try {
+          const data = await getConnectionsClient().runSync(
+            connectionId,
+            syncType,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, { connectionId }) => [
+        { type: QueryTags.SyncRun, id: connectionId },
+      ],
+    }),
+
+    getSyncRun: builder.query<SyncRunDetailsDto, string>({
+      queryFn: async (syncRunId) => {
+        try {
+          const data = await getConnectionsClient().getSyncRun(syncRunId)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, syncRunId) => [
+        { type: QueryTags.SyncRunDetail, id: syncRunId },
+      ],
+    }),
   }),
 })
 
@@ -117,4 +177,7 @@ export const {
   useCreateConnectionMutation,
   useUpdateConnectionMutation,
   useDeleteConnectionMutation,
+  useGetSyncRunsQuery,
+  useGetSyncRunQuery,
+  useRunSyncMutation,
 } = connectionsApi

@@ -73,6 +73,10 @@ graph LR
         AAD["Azure AD"]
     end
     subgraph "Wayd"
+        subgraph "Sync Orchestration"
+            Runner["WorkSyncRunner"]
+            Sources["IWorkItemSource (keyed by Connector)"]
+        end
         subgraph "Integrations"
             ADOInt["AzureDevOps Integration"]
             AOAIInt["AzureOpenAI Integration"]
@@ -83,17 +87,18 @@ graph LR
             Org["Organization Domain"]
             AI["AI features"]
         end
-        HF["Hangfire Jobs"]
+        HF["Hangfire: RunWorkSync"]
     end
 
+    HF --> Runner
+    Runner --> Sources
+    Sources --> ADOInt
     ADO --> ADOInt
-    AOAIInt --> AOAI
-    AAD --> GraphInt
     ADOInt --> Work
+    AOAIInt --> AOAI
     AI --> AOAIInt
+    AAD --> GraphInt
     GraphInt --> Org
-    HF --> ADOInt
-    HF --> GraphInt
 ```
 
 ## Adding a New Connector
@@ -101,11 +106,11 @@ graph LR
 For sync-shaped or AI-provider connectors that customers configure in Settings → Connections:
 
 1. Add the connector type to `Connector` enum in `Wayd.Common.Domain.Enums.AppIntegrations`
-2. Create a domain configuration class (e.g. `JiraConnectionConfiguration`) and connection aggregate (`JiraConnection : Connection<JiraConnectionConfiguration>`). Mark credential fields with `[Encrypted]` for at-rest encryption — see [Architecture → Connector framework](../contributing/architecture.mdx#connector-framework)
+2. Create a domain configuration class (e.g. `JiraConnectionConfiguration`) and connection aggregate (`JiraConnection : Connection<JiraConnectionConfiguration>`). For sync-shaped connectors, also implement `ISyncableConnection`. Mark credential fields with `[Encrypted]` for at-rest encryption — see [Architecture → Connector framework](../contributing/architecture.mdx#connector-framework)
 3. Create command/query handlers under `Wayd.AppIntegration.Application/Connections/Commands/\{Connector\}/` following the AzDO and AOAI templates
 4. Register the EF entity configuration in `AppIntegrationConfiguration.cs` and add a migration
 5. Add a `Wayd.Integrations.\{SystemName\}` project for the low-level client (only if the connector actually talks to a remote system — pure AI providers can use an existing SDK directly)
-6. On the frontend, register the connector in `_components/connector-registry.ts` (create form) and `[id]/_components/detail-registry.tsx` (detail page) — see [Architecture → Connector framework](../contributing/architecture.mdx#connector-framework)
-7. Register Hangfire jobs for scheduled sync if applicable
+6. **For work-sync connectors only:** implement `IWorkItemSource` (in `Wayd.AppIntegration.Application/Connections/Managers/\{Connector\}WorkItemSource.cs`) and register it keyed by your `Connector` enum value: `services.AddKeyedTransient<IWorkItemSource, JiraWorkItemSource>(Connector.Jira)`. The generic `WorkSyncRunner` picks it up automatically — **do not** add a per-connector Hangfire job. See [Architecture → Sync orchestration](../contributing/architecture.mdx#sync-orchestration).
+7. On the frontend, register the connector in `_components/connector-registry.ts` (create form) and `[id]/_components/detail-registry.tsx` (detail page) — see [Architecture → Connector framework](../contributing/architecture.mdx#connector-framework)
 
-For always-on internal integrations (like Microsoft Graph) that aren't surfaced as connectors, skip steps 1–4 and 6 — those are just classes called directly from feature code.
+For always-on internal integrations (like Microsoft Graph) that aren't surfaced as connectors, skip steps 1–4, 6, and 7 — those are just classes called directly from feature code.

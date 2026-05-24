@@ -348,6 +348,33 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
         }
     }
 
+    public Result ClearWorkProcessIntegrationState(Guid workProcessExternalId, Instant timestamp)
+    {
+        try
+        {
+            Guard.Against.Null(Configuration, nameof(Configuration));
+
+            var workProcess = Configuration.WorkProcesses.FirstOrDefault(wp => wp.ExternalId == workProcessExternalId);
+            if (workProcess is null)
+                return Result.Failure($"Unable to find work process with id {workProcessExternalId} in Azure DevOps connection with id {Id}.");
+
+            if (!workProcess.HasIntegration)
+                return Result.Success();
+
+            var clearResult = workProcess.RemoveIntegrationState();
+            if (clearResult.IsFailure)
+                return clearResult;
+
+            AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
+
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure(ex.ToString());
+        }
+    }
+
     public Result UpdateWorkspaceIntegrationState(IntegrationRegistration<Guid, Guid> registration, Instant timestamp)
     {
         try

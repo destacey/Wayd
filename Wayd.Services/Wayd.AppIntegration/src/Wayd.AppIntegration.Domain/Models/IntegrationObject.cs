@@ -31,4 +31,11 @@ public abstract class IntegrationObject<TId>
 
         return Result.Success();
     }
+
+    public Result RemoveIntegrationState()
+    {
+        IntegrationState = null;
+
+        return Result.Success();
+    }
 }

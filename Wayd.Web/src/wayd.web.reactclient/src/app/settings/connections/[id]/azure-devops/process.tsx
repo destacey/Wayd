@@ -30,14 +30,19 @@ const AzdoProcess = (props: AzdoProcessProps) => {
   const azdoConnection = useContext(AzdoConnectionContext)
 
   const skip = !props?.workProcess?.integrationState?.internalId
-  const { data: workProcessData } = useGetWorkProcessQuery(
-    props.workProcess.integrationState?.internalId ?? '',
-    { skip },
-  )
+  const { data: workProcessData, isSuccess: workProcessLoaded } =
+    useGetWorkProcessQuery(
+      props.workProcess.integrationState?.internalId ?? '',
+      { skip },
+    )
 
   const integrationExists = !!props.workProcess.integrationState
   const processIntegrationIsActive =
     props.workProcess.integrationState?.isActive
+  // The connection holds an IntegrationState pointer to a Wayd.Work.WorkProcess
+  // that no longer exists. Sync Org Config will clear the dangling pointer.
+  const integrationLinkIsStale =
+    integrationExists && workProcessLoaded && !workProcessData
 
   const onInitWorkProcessIntegrationFormClosed = (wasSaved: boolean) => {
     setOpenInitWorkProcessIntegrationForm(false)
@@ -90,6 +95,14 @@ const AzdoProcess = (props: AzdoProcessProps) => {
         >
           Initialize
         </Button>
+      )
+    }
+
+    if (integrationLinkIsStale) {
+      return (
+        <Text type="warning" title="Run Sync Org Config to clear the stale link, then re-initialize.">
+          Integration link is stale
+        </Text>
       )
     }
 

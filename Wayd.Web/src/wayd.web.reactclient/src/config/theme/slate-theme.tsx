@@ -57,6 +57,11 @@ export const useSlateThemePreset = (): AppThemeConfig =>
         },
       },
       timeline: slateTimeLineColors,
+      appBar: {
+        backgroundColor: 'var(--ant-color-primary)',
+        color: '#ffffff',
+        subtleColor: 'rgba(255, 255, 255, 0.88)',
+      },
       integrations: {
         agGridTheme: agGridGreyTheme,
         antDesignChartsTheme: 'classicDark',

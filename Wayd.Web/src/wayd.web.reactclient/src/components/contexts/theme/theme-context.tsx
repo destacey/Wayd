@@ -23,17 +23,16 @@ import { getProfileClient } from '@/src/services/clients'
 
 export const ThemeContext = createContext<ThemeContextType | null>(null)
 
-function mergeThemeConfig(base: ThemeConfig, overrides: UserThemeConfigDto | null, themeName: ThemeName): ThemeConfig {
+function mergeThemeConfig(
+  base: ThemeConfig,
+  overrides: UserThemeConfigDto | null,
+): ThemeConfig {
   if (!overrides) return base
 
   const algorithms = [
     base.algorithm ?? theme.defaultAlgorithm,
     ...(overrides.useCompactAlgorithm ? [theme.compactAlgorithm] : []),
   ].flat()
-
-  const applyHeaderColor =
-    overrides.colorPrimary &&
-    (themeName === 'light' || themeName === 'cartoon')
 
   return {
     ...base,
@@ -44,10 +43,6 @@ function mergeThemeConfig(base: ThemeConfig, overrides: UserThemeConfigDto | nul
     },
     components: {
       ...base.components,
-      Layout: {
-        ...base.components?.Layout,
-        ...(applyHeaderColor ? { headerBg: overrides.colorPrimary } : {}),
-      },
     },
   }
 }
@@ -129,9 +124,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       mergeThemeConfig(
         activeTheme.configProvider.theme ?? ({} as ThemeConfig),
         userThemeConfig,
-        currentThemeName,
       ),
-    [activeTheme, userThemeConfig, currentThemeName],
+    [activeTheme, userThemeConfig],
   )
   const providerOverrides = {
     modal: activeTheme.configProvider.modal,
@@ -189,6 +183,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       <ThemeTokenProvider
         currentThemeName={currentThemeName}
         setCurrentThemeName={setCurrentThemeName}
+        appBar={activeTheme.appBar}
         agGridTheme={activeTheme.integrations.agGridTheme}
         antDesignChartsTheme={activeTheme.integrations.antDesignChartsTheme}
         antvisG6ChartsTheme={activeTheme.integrations.antvisG6ChartsTheme}
@@ -205,6 +200,7 @@ interface ThemeTokenProviderProps {
   children: ReactNode
   currentThemeName: ThemeName
   setCurrentThemeName: (value: ThemeName) => void
+  appBar: ThemeContextType['appBar']
   agGridTheme: ThemeContextType['agGridTheme']
   antDesignChartsTheme: string
   antvisG6ChartsTheme: string
@@ -216,6 +212,7 @@ const ThemeTokenProvider = ({
   children,
   currentThemeName,
   setCurrentThemeName,
+  appBar,
   agGridTheme,
   antDesignChartsTheme,
   antvisG6ChartsTheme,
@@ -229,6 +226,7 @@ const ThemeTokenProvider = ({
     () => ({
       currentThemeName,
       setCurrentThemeName,
+      appBar,
       agGridTheme,
       token,
       badgeColor,
@@ -240,6 +238,7 @@ const ThemeTokenProvider = ({
     [
       currentThemeName,
       setCurrentThemeName,
+      appBar,
       agGridTheme,
       token,
       badgeColor,

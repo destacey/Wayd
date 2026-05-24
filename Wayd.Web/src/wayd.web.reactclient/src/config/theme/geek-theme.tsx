@@ -191,6 +191,11 @@ const useGeekTheme = (): AppThemeConfig => {
         },
       },
       timeline: geekTimeLineStyles,
+      appBar: {
+        backgroundColor: '#313131',
+        color: '#39ff14',
+        subtleColor: '#39ff14',
+      },
       integrations: {
         agGridTheme: agGridGeekTheme,
         antDesignChartsTheme: 'classicDark',

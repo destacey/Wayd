@@ -28,6 +28,11 @@ const mockToken = {
 const mockThemeContext: ThemeContextType = {
   currentThemeName: 'light',
   setCurrentThemeName: jest.fn(),
+  appBar: {
+    backgroundColor: '#1890ff',
+    color: '#ffffff',
+    subtleColor: 'rgba(255,255,255,0.88)',
+  },
   agGridTheme: themeBalham,
   token: mockToken as any,
   badgeColor: '#1890ff',

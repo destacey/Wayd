@@ -9,6 +9,11 @@ export type { UserThemeConfigDto }
 export interface ThemeContextType {
   currentThemeName: ThemeName
   setCurrentThemeName: (themeName: ThemeName) => void
+  appBar: {
+    backgroundColor: string
+    color: string
+    subtleColor?: string
+  }
   agGridTheme: AgGridTheme
   token: GlobalToken
   badgeColor: string

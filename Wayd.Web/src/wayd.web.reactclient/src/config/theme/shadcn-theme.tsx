@@ -200,6 +200,19 @@ const useShadcnTheme = (): AppThemeConfig => {
             ColorPicker: {
               borderRadius: 6,
             },
+            Layout: {
+              headerBg: '#fafafa',
+              triggerBg: '#fafafa',
+              siderBg: '#ffffff',
+            },
+            Menu: {
+              itemColor: '#262626',
+              itemHoverColor: '#18181b',
+              itemSelectedColor: '#18181b',
+              itemBg: '#ffffff',
+              itemHoverBg: '#f4f4f5',
+              itemSelectedBg: '#f4f4f5',
+            },
           },
         },
         button: {
@@ -224,6 +237,11 @@ const useShadcnTheme = (): AppThemeConfig => {
         },
       },
       timeline: shadcnTimeLineColors,
+      appBar: {
+        backgroundColor: '#fafafa',
+        color: '#18181b',
+        subtleColor: '#525252',
+      },
       integrations: {
         agGridTheme: themeBalham,
         antDesignChartsTheme: 'classic',

@@ -25,6 +25,11 @@ export type TimeLineStyles = {
 export interface AppThemeConfig {
   configProvider: ConfigProviderProps
   timeline: TimeLineStyles
+  appBar: {
+    backgroundColor: string
+    color: string
+    subtleColor?: string
+  }
   integrations: {
     agGridTheme: AgGridTheme
     antDesignChartsTheme: 'classic' | 'classicDark'

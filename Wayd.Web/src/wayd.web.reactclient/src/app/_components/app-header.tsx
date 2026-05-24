@@ -27,6 +27,7 @@ import { useGlobalSearch } from './global-search/use-global-search'
 import { ItemType, MenuItemType } from 'antd/es/menu/interface'
 import { useRouter } from 'next/navigation'
 import styles from './app-header.module.css'
+import useTheme from '@/src/components/contexts/theme'
 
 const { Header } = Layout
 const { Title, Text } = Typography
@@ -73,6 +74,7 @@ const flattenMenuItems = (
 
 const AppHeader: FC = React.memo(() => {
   const { menuCollapsed, setMenuCollapsed } = useMenuToggle()
+  const { appBar } = useTheme()
   const screens = useBreakpoint()
   const isMobile = !screens.md // Mobile/tablet for md and below (< 768px)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -122,6 +124,8 @@ const AppHeader: FC = React.memo(() => {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 16px',
+        backgroundColor: appBar.backgroundColor,
+        color: appBar.color,
       }}
     >
       <Flex>
@@ -133,6 +137,7 @@ const AppHeader: FC = React.memo(() => {
               size="middle"
               onClick={() => setDrawerOpen(true)}
               aria-label="Open navigation menu"
+              style={{ color: appBar.color }}
             />
             <Drawer
               title="Menu"
@@ -161,6 +166,7 @@ const AppHeader: FC = React.memo(() => {
             aria-label={
               menuCollapsed ? 'Expand sidebar menu' : 'Collapse sidebar menu'
             }
+            style={{ color: appBar.color }}
           />
         )}
         <Title
@@ -170,6 +176,7 @@ const AppHeader: FC = React.memo(() => {
             fontSize: 24,
             fontWeight: 400,
             whiteSpace: 'nowrap',
+            color: appBar.color,
           }}
         >
           wayd
@@ -183,6 +190,7 @@ const AppHeader: FC = React.memo(() => {
               icon={<SearchOutlined />}
               onClick={openSearch}
               aria-label="Search (Ctrl+K)"
+              style={{ color: appBar.color }}
             />
           </Tooltip>
         ) : (
@@ -192,7 +200,9 @@ const AppHeader: FC = React.memo(() => {
             aria-label="Search (Ctrl+K)"
             className={styles.searchTrigger}
           >
-            <Text type="secondary">Search...</Text>
+            <Text style={{ color: appBar.subtleColor ?? appBar.color }}>
+              Search...
+            </Text>
             <Flex gap={4} className={styles.searchTriggerKbdGroup}>
               <Tooltip title="Search app data">
                 <kbd className={styles.searchTriggerKbd}>Ctrl+K</kbd>
@@ -209,6 +219,7 @@ const AppHeader: FC = React.memo(() => {
             icon={<ReadOutlined />}
             href="/docs"
             aria-label="Documentation"
+            style={{ color: appBar.color }}
           />
         </Tooltip>
         {profileComponent}

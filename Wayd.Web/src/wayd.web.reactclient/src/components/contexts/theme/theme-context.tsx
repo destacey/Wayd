@@ -16,6 +16,7 @@ import { useSlateThemePreset } from '@/src/config/theme/slate-theme'
 import useCartoonTheme from '@/src/config/theme/cartoon-theme'
 import useShadcnTheme from '@/src/config/theme/shadcn-theme'
 import useGlassTheme from '@/src/config/theme/glass-theme'
+import useGeekTheme from '@/src/config/theme/geek-theme'
 import { AppThemeConfig } from '@/src/config/theme/theme-preset'
 import { ThemeContextType, ThemeName, UserThemeConfigDto } from './types'
 import { getProfileClient } from '@/src/services/clients'
@@ -32,7 +33,7 @@ function mergeThemeConfig(base: ThemeConfig, overrides: UserThemeConfigDto | nul
 
   const applyHeaderColor =
     overrides.colorPrimary &&
-    (themeName === 'light' || themeName === 'slate' || themeName === 'cartoon' || themeName === 'shadcn' || themeName === 'glass')
+    (themeName === 'light' || themeName === 'cartoon')
 
   return {
     ...base,
@@ -112,6 +113,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const cartoonThemeConfig = useCartoonTheme()
   const shadcnThemeConfig = useShadcnTheme()
   const glassThemeConfig = useGlassTheme()
+  const geekThemeConfig = useGeekTheme()
   const themesByName: Record<ThemeName, AppThemeConfig> = {
     light: lightPreset,
     dark: darkPreset,
@@ -119,6 +121,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     cartoon: cartoonThemeConfig,
     shadcn: shadcnThemeConfig,
     glass: glassThemeConfig,
+    geek: geekThemeConfig,
   }
   const activeTheme = themesByName[currentThemeName]
   const currentTheme = useMemo(

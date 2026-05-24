@@ -4,7 +4,7 @@ import { HighlightFilled, HighlightOutlined, BgColorsOutlined } from '@ant-desig
 import useTheme from '../../components/contexts/theme'
 import { ThemeName } from '../../components/contexts/theme/types'
 
-const CYCLE: ThemeName[] = ['light', 'dark', 'slate', 'cartoon', 'shadcn', 'glass']
+const CYCLE: ThemeName[] = ['light', 'dark', 'slate', 'cartoon', 'shadcn', 'glass', 'geek']
 
 const ICONS: Record<ThemeName, React.ReactNode> = {
   light: <HighlightOutlined />,
@@ -13,6 +13,7 @@ const ICONS: Record<ThemeName, React.ReactNode> = {
   cartoon: <BgColorsOutlined />,
   shadcn: <BgColorsOutlined />,
   glass: <BgColorsOutlined />,
+  geek: <BgColorsOutlined />,
 }
 
 const LABELS: Record<ThemeName, string> = {
@@ -22,6 +23,7 @@ const LABELS: Record<ThemeName, string> = {
   cartoon: 'Theme: Cartoon',
   shadcn: 'Theme: Shadcn',
   glass: 'Theme: Glass',
+  geek: 'Theme: Geek',
 }
 
 const useThemeToggleMenuItem = () => {

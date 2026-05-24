@@ -108,10 +108,22 @@ describe('useThemeToggleMenuItem', () => {
     expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('glass')
   })
 
-  it('cycles from glass to light theme when clicked', () => {
+  it('cycles from glass to geek theme when clicked', () => {
     ;(useTheme as Mock).mockReturnValue({
       ...mockThemeContext,
       currentThemeName: 'glass',
+    })
+
+    const themeToggle = useThemeToggleMenuItem()
+    themeToggle.onClick()
+
+    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('geek')
+  })
+
+  it('cycles from geek to light theme when clicked', () => {
+    ;(useTheme as Mock).mockReturnValue({
+      ...mockThemeContext,
+      currentThemeName: 'geek',
     })
 
     const themeToggle = useThemeToggleMenuItem()
@@ -163,6 +175,17 @@ describe('useThemeToggleMenuItem', () => {
     ;(useTheme as Mock).mockReturnValue({
       ...mockThemeContext,
       currentThemeName: 'glass',
+    })
+
+    const themeToggle = useThemeToggleMenuItem()
+    const icon = themeToggle.icon as React.ReactElement
+    expect(icon.type).toBe(BgColorsOutlined)
+  })
+
+  it('uses the correct icon for the geek theme', () => {
+    ;(useTheme as Mock).mockReturnValue({
+      ...mockThemeContext,
+      currentThemeName: 'geek',
     })
 
     const themeToggle = useThemeToggleMenuItem()

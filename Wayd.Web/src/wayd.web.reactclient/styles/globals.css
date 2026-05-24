@@ -209,3 +209,36 @@ body {
 .site-layout .site-layout-background {
   background: #fff;
 }
+
+/* Cartoon Theme Overrides */
+/* App-shell background texture */
+html[data-theme='cartoon'] body {
+  background-color: #faf3e8;
+  background-image:
+    linear-gradient(rgba(250, 243, 232, 0.72), rgba(250, 243, 232, 0.72)),
+    url('/images/wayd-cartoon-bg.png');
+  background-repeat: repeat;
+  background-size: 768px auto;
+}
+
+/* Let textured page background show through Ant Design layout layers */
+html[data-theme='cartoon'] .app-theme-cartoon.ant-layout,
+html[data-theme='cartoon'] .app-theme-cartoon .ant-layout,
+html[data-theme='cartoon'] .app-theme-cartoon .ant-layout-content,
+html[data-theme='cartoon'] .app-theme-cartoon .app-main-layout,
+html[data-theme='cartoon'] .app-theme-cartoon .app-main-content {
+  background: transparent;
+}
+
+/* Improve link contrast inside data-dense surfaces */
+html[data-theme='cartoon'] .app-theme-cartoon .ag-root a,
+html[data-theme='cartoon'] .app-theme-cartoon .tableElement a,
+html[data-theme='cartoon'] .app-theme-cartoon .ant-table a {
+  color: #3f79a8;
+}
+
+html[data-theme='cartoon'] .app-theme-cartoon .ag-root a:hover,
+html[data-theme='cartoon'] .app-theme-cartoon .tableElement a:hover,
+html[data-theme='cartoon'] .app-theme-cartoon .ant-table a:hover {
+  color: #4b89bb;
+}

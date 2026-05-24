@@ -1,10 +1,10 @@
-import { ThemeName } from '@/src/components/contexts/theme/types'
 import {
   WaydDataGroup,
   WaydDataItem,
   WaydTimelineProps,
   TimelineTemplate,
 } from '@/src/components/common/timeline/types'
+import { timeLineColorsByTheme } from '@/src/config/theme/timeline-colors'
 import { DataItemEnhanced } from 'vis-timeline/standalone'
 import {
   BackgroundItemTemplate,
@@ -12,59 +12,7 @@ import {
   RangeItemTemplate,
 } from '@/src/components/common/timeline/templates'
 
-type TimeLineColorData = {
-  item: {
-    background: string
-    foreground: string
-    font: string
-  }
-  background: {
-    background: string
-  }
-}
-
-export const DefaultTimeLineColors: Record<ThemeName, TimeLineColorData> = {
-  light: {
-    item: {
-      background: '#ecf0f1',
-      foreground: '#c7edff',
-      font: '#4d4d4d',
-    },
-    background: {
-      background: '#d0d3d4',
-    },
-  },
-  dark: {
-    item: {
-      background: '#303030',
-      foreground: '#17354d',
-      font: '#FFFFFF',
-    },
-    background: {
-      background: '#61646e',
-    },
-  },
-  slate: {
-    item: {
-      background: '#c0c0c0',
-      foreground: '#17354d',
-      font: '#f0f0f0',
-    },
-    background: {
-      background: '#787878',
-    },
-  },
-  cartoon: {
-    item: {
-      background: '#f3ebd8',
-      foreground: '#225555',
-      font: '#51463B',
-    },
-    background: {
-      background: '#cbc4af',
-    },
-  },
-}
+export const DefaultTimeLineColors = timeLineColorsByTheme
 
 export function getDefaultTemplate<
   TItem extends WaydDataItem,

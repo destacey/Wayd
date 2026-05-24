@@ -8,35 +8,17 @@ import {
   useRef,
   useState,
 } from 'react'
-import {
-  themeBalham,
-  colorSchemeDark,
-  createPart,
-} from 'ag-grid-community'
 import { useLocalStorageState } from '@/src/hooks'
 import { ConfigProvider, theme, ThemeConfig } from 'antd'
 import { useLightThemePreset } from '@/src/config/theme/light-theme'
 import { useDarkThemePreset } from '@/src/config/theme/dark-theme'
 import { useSlateThemePreset } from '@/src/config/theme/slate-theme'
 import useCartoonTheme from '@/src/config/theme/cartoon-theme'
-import { ThemePreset } from '@/src/config/theme/theme-preset'
+import { AppThemeConfig } from '@/src/config/theme/theme-preset'
 import { ThemeContextType, ThemeName, UserThemeConfigDto } from './types'
 import { getProfileClient } from '@/src/services/clients'
 
 export const ThemeContext = createContext<ThemeContextType | null>(null)
-
-const agGridLightTheme = themeBalham
-const agGridDarkTheme = themeBalham.withPart(colorSchemeDark)
-const agGridGreyTheme = themeBalham.withPart(
-  createPart({
-    feature: 'colorScheme',
-    params: {
-      backgroundColor: '#2d2d2d',
-      foregroundColor: '#e0e0e0',
-      browserColorScheme: 'dark',
-    },
-  }),
-)
 
 function mergeThemeConfig(base: ThemeConfig, overrides: UserThemeConfigDto | null, themeName: ThemeName): ThemeConfig {
   if (!overrides) return base
@@ -122,41 +104,32 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     [saveThemeConfig],
   )
 
-  const isLightMode = currentThemeName === 'light' || currentThemeName === 'cartoon'
-  const agGridTheme =
-    currentThemeName === 'light' || currentThemeName === 'cartoon' ? agGridLightTheme
-    : currentThemeName === 'slate' ? agGridGreyTheme
-    : agGridDarkTheme
-  const antDesignChartsTheme = isLightMode ? 'classic' : 'classicDark'
-  const antvisG6ChartsTheme = isLightMode ? 'light' : 'dark'
-
   const lightPreset = useLightThemePreset()
   const darkPreset = useDarkThemePreset()
   const slatePreset = useSlateThemePreset()
-  const cartoonConfigProviderProps = useCartoonTheme()
-  const presetsByName: Record<ThemeName, ThemePreset> = {
+  const cartoonThemeConfig = useCartoonTheme()
+  const themesByName: Record<ThemeName, AppThemeConfig> = {
     light: lightPreset,
     dark: darkPreset,
     slate: slatePreset,
-    cartoon: {
-      theme: cartoonConfigProviderProps.theme ?? ({} as ThemeConfig),
-    },
+    cartoon: cartoonThemeConfig,
   }
-  const activePreset = presetsByName[currentThemeName]
-  const baseTheme = activePreset.theme
+  const activeTheme = themesByName[currentThemeName]
   const currentTheme = useMemo(
-    () => mergeThemeConfig(baseTheme, userThemeConfig, currentThemeName),
-    [baseTheme, userThemeConfig, currentThemeName],
+    () =>
+      mergeThemeConfig(
+        activeTheme.configProvider.theme ?? ({} as ThemeConfig),
+        userThemeConfig,
+        currentThemeName,
+      ),
+    [activeTheme, userThemeConfig, currentThemeName],
   )
-  const providerOverrides =
-    currentThemeName === 'cartoon'
-      ? {
-          modal: cartoonConfigProviderProps.modal,
-          popover: cartoonConfigProviderProps.popover,
-          progress: cartoonConfigProviderProps.progress,
-          colorPicker: cartoonConfigProviderProps.colorPicker,
-        }
-      : (activePreset.providerOverrides ?? {})
+  const providerOverrides = {
+    modal: activeTheme.configProvider.modal,
+    popover: activeTheme.configProvider.popover,
+    progress: activeTheme.configProvider.progress,
+    colorPicker: activeTheme.configProvider.colorPicker,
+  }
   const modalConfig = useMemo(
     () => ({
       closable: true,
@@ -207,9 +180,9 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       <ThemeTokenProvider
         currentThemeName={currentThemeName}
         setCurrentThemeName={setCurrentThemeName}
-        agGridTheme={agGridTheme}
-        antDesignChartsTheme={antDesignChartsTheme}
-        antvisG6ChartsTheme={antvisG6ChartsTheme}
+        agGridTheme={activeTheme.integrations.agGridTheme}
+        antDesignChartsTheme={activeTheme.integrations.antDesignChartsTheme}
+        antvisG6ChartsTheme={activeTheme.integrations.antvisG6ChartsTheme}
         userThemeConfig={userThemeConfig}
         setUserThemeConfig={setUserThemeConfig}
       >
@@ -223,7 +196,7 @@ interface ThemeTokenProviderProps {
   children: ReactNode
   currentThemeName: ThemeName
   setCurrentThemeName: (value: ThemeName) => void
-  agGridTheme: typeof agGridLightTheme
+  agGridTheme: ThemeContextType['agGridTheme']
   antDesignChartsTheme: string
   antvisG6ChartsTheme: string
   userThemeConfig: UserThemeConfigDto | null

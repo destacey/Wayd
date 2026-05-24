@@ -7,6 +7,7 @@ import { cartoonThemeConfig } from './cartoon-theme'
 import { shadcnTimeLineColors } from './shadcn-theme'
 import { glassTimeLineStyles } from './glass-theme'
 import { geekTimeLineStyles } from './geek-theme'
+import { illustrationTimeLineStyles } from './illustration-theme'
 
 export const timeLineColorsByTheme: Record<ThemeName, TimeLineStyles> = {
   light: lightTimeLineColors,
@@ -16,5 +17,6 @@ export const timeLineColorsByTheme: Record<ThemeName, TimeLineStyles> = {
   shadcn: shadcnTimeLineColors,
   glass: glassTimeLineStyles,
   geek: geekTimeLineStyles,
+  illustration: illustrationTimeLineStyles,
 }
 

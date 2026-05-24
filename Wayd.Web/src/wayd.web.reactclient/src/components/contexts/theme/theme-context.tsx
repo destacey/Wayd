@@ -136,6 +136,11 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     progress: activeTheme.configProvider.progress,
     colorPicker: activeTheme.configProvider.colorPicker,
   }
+  const {
+    theme: _unusedTheme,
+    modal: _unusedModal,
+    ...providerPassthrough
+  } = activeTheme.configProvider
   const modalConfig = useMemo(
     () => ({
       closable: true,
@@ -177,6 +182,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <ConfigProvider
+      {...providerPassthrough}
       theme={currentTheme}
       modal={modalConfig}
       popover={providerOverrides.popover}

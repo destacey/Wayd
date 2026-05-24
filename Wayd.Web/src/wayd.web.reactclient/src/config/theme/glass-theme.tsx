@@ -137,6 +137,13 @@ const useGlassTheme = (): AppThemeConfig => {
             motionDurationMid: '0.1s',
             motionDurationFast: '0.05s',
           },
+          components: {
+            Layout: {
+              headerBg: 'rgba(71, 107, 145, 0.78)',
+              triggerBg: 'rgba(71, 107, 145, 0.78)',
+              siderBg: 'rgba(234, 241, 248, 0.72)',
+            },
+          },
         },
         app: {
           className: styles.app,
@@ -217,18 +224,13 @@ const useGlassTheme = (): AppThemeConfig => {
             root: styles.radioButtonRoot,
           },
         },
-            segmented: {
-              className: styles.segmentedRoot,
-            },
-            Layout: {
-              headerBg: 'rgba(71, 107, 145, 0.78)',
-              triggerBg: 'rgba(71, 107, 145, 0.78)',
-              siderBg: 'rgba(234, 241, 248, 0.72)',
-            },
-            progress: {
-              classNames: {
-                track: styles.glassBorder,
-              },
+        segmented: {
+          className: styles.segmentedRoot,
+        },
+        progress: {
+          classNames: {
+            track: styles.glassBorder,
+          },
           styles: {
             track: {
               height: 12,

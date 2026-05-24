@@ -17,7 +17,7 @@ const AppSideNav: FC<AppSideNavProps> = memo(
     const { menuCollapsed } = useMenuToggle()
     const { token } = useTheme()
     const menuTheme = useMemo<'light' | 'dark'>(() => {
-      const hex = token.colorBgContainer?.trim()
+      const hex = token.colorBgContainer.trim()
       const match = /^#([0-9a-f]{6})$/i.exec(hex)
       if (!match) return 'light'
 

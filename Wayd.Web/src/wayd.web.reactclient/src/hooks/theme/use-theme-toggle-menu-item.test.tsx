@@ -58,14 +58,14 @@ describe('useThemeToggleMenuItem', () => {
     })
   })
 
-  it('cycles from light to dark theme when clicked', () => {
+  it('cycles from light to shadcn theme when clicked', () => {
     const themeToggle = useThemeToggleMenuItem()
     themeToggle.onClick()
 
-    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('dark')
+    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('shadcn')
   })
 
-  it('cycles from dark to slate theme when clicked', () => {
+  it('cycles from dark to geek theme when clicked', () => {
     ;(useTheme as Mock).mockReturnValue({
       ...mockThemeContext,
       currentThemeName: 'dark',
@@ -74,7 +74,7 @@ describe('useThemeToggleMenuItem', () => {
     const themeToggle = useThemeToggleMenuItem()
     themeToggle.onClick()
 
-    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('slate')
+    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('geek')
   })
 
   it('cycles from slate to cartoon theme when clicked', () => {
@@ -89,7 +89,7 @@ describe('useThemeToggleMenuItem', () => {
     expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('cartoon')
   })
 
-  it('cycles from cartoon to shadcn theme when clicked', () => {
+  it('cycles from cartoon to dark theme when clicked', () => {
     ;(useTheme as Mock).mockReturnValue({
       ...mockThemeContext,
       currentThemeName: 'cartoon',
@@ -98,10 +98,10 @@ describe('useThemeToggleMenuItem', () => {
     const themeToggle = useThemeToggleMenuItem()
     themeToggle.onClick()
 
-    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('shadcn')
+    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('dark')
   })
 
-  it('cycles from shadcn to glass theme when clicked', () => {
+  it('cycles from shadcn to slate theme when clicked', () => {
     ;(useTheme as Mock).mockReturnValue({
       ...mockThemeContext,
       currentThemeName: 'shadcn',
@@ -110,10 +110,10 @@ describe('useThemeToggleMenuItem', () => {
     const themeToggle = useThemeToggleMenuItem()
     themeToggle.onClick()
 
-    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('glass')
+    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('slate')
   })
 
-  it('cycles from glass to geek theme when clicked', () => {
+  it('cycles from glass to illustration theme when clicked', () => {
     ;(useTheme as Mock).mockReturnValue({
       ...mockThemeContext,
       currentThemeName: 'glass',
@@ -122,13 +122,25 @@ describe('useThemeToggleMenuItem', () => {
     const themeToggle = useThemeToggleMenuItem()
     themeToggle.onClick()
 
-    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('geek')
+    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('illustration')
   })
 
-  it('cycles from geek to light theme when clicked', () => {
+  it('cycles from geek to glass theme when clicked', () => {
     ;(useTheme as Mock).mockReturnValue({
       ...mockThemeContext,
       currentThemeName: 'geek',
+    })
+
+    const themeToggle = useThemeToggleMenuItem()
+    themeToggle.onClick()
+
+    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('glass')
+  })
+
+  it('cycles from illustration to light theme when clicked', () => {
+    ;(useTheme as Mock).mockReturnValue({
+      ...mockThemeContext,
+      currentThemeName: 'illustration',
     })
 
     const themeToggle = useThemeToggleMenuItem()
@@ -191,6 +203,17 @@ describe('useThemeToggleMenuItem', () => {
     ;(useTheme as Mock).mockReturnValue({
       ...mockThemeContext,
       currentThemeName: 'geek',
+    })
+
+    const themeToggle = useThemeToggleMenuItem()
+    const icon = themeToggle.icon as React.ReactElement
+    expect(icon.type).toBe(BgColorsOutlined)
+  })
+
+  it('uses the correct icon for the illustration theme', () => {
+    ;(useTheme as Mock).mockReturnValue({
+      ...mockThemeContext,
+      currentThemeName: 'illustration',
     })
 
     const themeToggle = useThemeToggleMenuItem()

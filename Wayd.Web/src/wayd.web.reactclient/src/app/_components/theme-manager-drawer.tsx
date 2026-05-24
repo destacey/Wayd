@@ -27,6 +27,7 @@ const THEME_OPTIONS: { label: string; value: ThemeName }[] = [
   { label: 'Dark', value: 'dark' },
   { label: 'Geek', value: 'geek' },
   { label: 'Glass', value: 'glass' },
+  { label: 'Illustration', value: 'illustration' },
   { label: 'Light', value: 'light' },
   { label: 'Shadcn', value: 'shadcn' },
   { label: 'Slate', value: 'slate' },

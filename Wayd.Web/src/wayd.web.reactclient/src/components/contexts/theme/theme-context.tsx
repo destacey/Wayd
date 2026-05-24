@@ -17,6 +17,7 @@ import useCartoonTheme from '@/src/config/theme/cartoon-theme'
 import useShadcnTheme from '@/src/config/theme/shadcn-theme'
 import useGlassTheme from '@/src/config/theme/glass-theme'
 import useGeekTheme from '@/src/config/theme/geek-theme'
+import useIllustrationTheme from '@/src/config/theme/illustration-theme'
 import { AppThemeConfig } from '@/src/config/theme/theme-preset'
 import { ThemeContextType, ThemeName, UserThemeConfigDto } from './types'
 import { getProfileClient } from '@/src/services/clients'
@@ -109,6 +110,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const shadcnThemeConfig = useShadcnTheme()
   const glassThemeConfig = useGlassTheme()
   const geekThemeConfig = useGeekTheme()
+  const illustrationThemeConfig = useIllustrationTheme()
   const themesByName: Record<ThemeName, AppThemeConfig> = {
     light: lightPreset,
     dark: darkPreset,
@@ -117,6 +119,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     shadcn: shadcnThemeConfig,
     glass: glassThemeConfig,
     geek: geekThemeConfig,
+    illustration: illustrationThemeConfig,
   }
   const activeTheme = themesByName[currentThemeName]
   const currentTheme = useMemo(

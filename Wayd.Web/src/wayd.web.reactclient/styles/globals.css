@@ -250,6 +250,24 @@ html[data-theme='cartoon'] body {
   background-size: 768px auto;
 }
 
+/* Illustration Theme Overrides */
+html[data-theme='illustration'] body {
+  background-color: #fff9f0;
+  background-image:
+    linear-gradient(rgba(255, 249, 240, 0.7), rgba(255, 249, 240, 0.7)),
+    url('/images/wayd-illustration-bg.svg');
+  background-repeat: repeat;
+  background-size: 720px auto;
+}
+
+html[data-theme='illustration'] .app-theme-illustration.ant-layout,
+html[data-theme='illustration'] .app-theme-illustration .ant-layout,
+html[data-theme='illustration'] .app-theme-illustration .ant-layout-content,
+html[data-theme='illustration'] .app-theme-illustration .app-main-layout,
+html[data-theme='illustration'] .app-theme-illustration .app-main-content {
+  background: transparent;
+}
+
 /* Let textured page background show through Ant Design layout layers */
 html[data-theme='cartoon'] .app-theme-cartoon.ant-layout,
 html[data-theme='cartoon'] .app-theme-cartoon .ant-layout,

@@ -23,11 +23,12 @@ const PRESET_COLORS: { label: string; value: string }[] = [
 ]
 
 const THEME_OPTIONS: { label: string; value: ThemeName }[] = [
+  { label: 'Cartoon', value: 'cartoon' },
+  { label: 'Dark', value: 'dark' },
+  { label: 'Glass', value: 'glass' },
   { label: 'Light', value: 'light' },
   { label: 'Shadcn', value: 'shadcn' },
-  { label: 'Cartoon', value: 'cartoon' },
   { label: 'Slate', value: 'slate' },
-  { label: 'Dark', value: 'dark' },
 ]
 
 interface ThemeManagerDrawerProps {

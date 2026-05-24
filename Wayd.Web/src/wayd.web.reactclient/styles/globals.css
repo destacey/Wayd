@@ -242,3 +242,24 @@ html[data-theme='cartoon'] .app-theme-cartoon .tableElement a:hover,
 html[data-theme='cartoon'] .app-theme-cartoon .ant-table a:hover {
   color: #4b89bb;
 }
+
+/* Glass Theme Overrides */
+/* App-shell frosted background */
+html[data-theme='glass'] body {
+  background-color: #e7edf5;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 40%),
+    radial-gradient(circle at 82% 6%, rgba(178, 205, 232, 0.38) 0%, rgba(178, 205, 232, 0) 34%),
+    radial-gradient(circle at 74% 68%, rgba(212, 226, 241, 0.46) 0%, rgba(212, 226, 241, 0) 42%),
+    linear-gradient(145deg, #edf3fa 0%, #dde8f4 100%);
+  background-attachment: fixed;
+}
+
+/* Let the shell layers feel translucent in glass mode */
+html[data-theme='glass'] .app-theme-glass.ant-layout,
+html[data-theme='glass'] .app-theme-glass .ant-layout,
+html[data-theme='glass'] .app-theme-glass .ant-layout-content,
+html[data-theme='glass'] .app-theme-glass .app-main-layout,
+html[data-theme='glass'] .app-theme-glass .app-main-content {
+  background: transparent;
+}

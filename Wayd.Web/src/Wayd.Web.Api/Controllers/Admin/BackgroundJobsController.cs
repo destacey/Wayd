@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Application.BackgroundJobs;
 using Wayd.Common.Application.Enums;
 using Wayd.Web.Api.Extensions;
@@ -62,10 +63,10 @@ public class BackgroundJobsController : ControllerBase
                 _jobService.Enqueue(() => jobManager.RunSyncExternalEmployees(cancellationToken));
                 break;
             case BackgroundJobType.WorkFullSync:
-                _jobService.Enqueue(() => jobManager.RunWorkSync(SyncType.Full, cancellationToken));
+                _jobService.Enqueue(() => jobManager.RunWorkSync(SyncType.Full, SyncTriggerSource.Manual, cancellationToken));
                 break;
             case BackgroundJobType.WorkDiffSync:
-                _jobService.Enqueue(() => jobManager.RunWorkSync(SyncType.Differential, cancellationToken));
+                _jobService.Enqueue(() => jobManager.RunWorkSync(SyncType.Differential, SyncTriggerSource.Manual, cancellationToken));
                 break;
             case BackgroundJobType.TeamGraphSync:
                 _jobService.Enqueue(() => jobManager.RunSyncTeamsWithGraphTables(cancellationToken));
@@ -105,8 +106,8 @@ public class BackgroundJobsController : ControllerBase
             return jobType switch
             {
                 BackgroundJobType.EmployeeSync => () => jobManager.RunSyncExternalEmployees(cancellationToken),
-                BackgroundJobType.WorkFullSync => () => jobManager.RunWorkSync(SyncType.Full, cancellationToken),
-                BackgroundJobType.WorkDiffSync => () => jobManager.RunWorkSync(SyncType.Differential, cancellationToken),
+                BackgroundJobType.WorkFullSync => () => jobManager.RunWorkSync(SyncType.Full, SyncTriggerSource.Scheduled, cancellationToken),
+                BackgroundJobType.WorkDiffSync => () => jobManager.RunWorkSync(SyncType.Differential, SyncTriggerSource.Scheduled, cancellationToken),
                 BackgroundJobType.TeamGraphSync => () => jobManager.RunSyncTeamsWithGraphTables(cancellationToken),
                 _ => throw new ArgumentOutOfRangeException(nameof(jobType), jobType, "Unknown job type requested")
             };

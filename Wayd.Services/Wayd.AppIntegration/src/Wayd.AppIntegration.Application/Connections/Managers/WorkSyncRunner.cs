@@ -1,9 +1,7 @@
 ﻿using System.Text.Json;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Wayd.AppIntegration.Application.Connections.Queries;
 using Wayd.AppIntegration.Application.Interfaces;
-using Wayd.AppIntegration.Domain.Interfaces;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Logging;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
@@ -17,21 +15,33 @@ namespace Wayd.AppIntegration.Application.Connections.Managers;
 /// appropriate <see cref="IWorkItemSource"/> for each via the factory, and walks the source's
 /// flat sync plan. Persists a <see cref="SyncRun"/> row per connection per run.
 /// </summary>
-public sealed class WorkSyncRunner(
-    ILogger<WorkSyncRunner> logger,
-    ISender sender,
-    IWorkItemSourceFactory sourceFactory,
-    IAppIntegrationDbContext db,
-    IDateTimeProvider clock) : IWorkSyncRunner
+public sealed class WorkSyncRunner : IWorkSyncRunner
 {
-    private readonly ILogger<WorkSyncRunner> _logger = logger;
-    private readonly ISender _sender = sender;
-    private readonly IWorkItemSourceFactory _sourceFactory = sourceFactory;
-    private readonly IAppIntegrationDbContext _db = db;
-    private readonly IDateTimeProvider _clock = clock;
+    private readonly ILogger<WorkSyncRunner> _logger;
+    private readonly ISender _sender;
+    private readonly IWorkItemSourceFactory _sourceFactory;
+    private readonly IAppIntegrationDbContext _db;
+    private readonly IDateTimeProvider _clock;
+    private readonly IReadOnlyDictionary<Connector, ISyncableConnectionDescriptorBuilder> _descriptorBuilders;
+
+    public WorkSyncRunner(
+        ILogger<WorkSyncRunner> logger,
+        ISender sender,
+        IWorkItemSourceFactory sourceFactory,
+        IAppIntegrationDbContext db,
+        IDateTimeProvider clock,
+        IEnumerable<ISyncableConnectionDescriptorBuilder> descriptorBuilders)
+    {
+        _logger = logger;
+        _sender = sender;
+        _sourceFactory = sourceFactory;
+        _db = db;
+        _clock = clock;
+        _descriptorBuilders = descriptorBuilders.ToDictionary(b => b.Connector);
+    }
 
     private static readonly Action<ILogger, Exception?> _runStarted = LoggerMessage.Define(LogLevel.Information,
-        AppEventId.AppIntegration_AzureDevOpsBoardsSyncManager_SyncStarted.ToEventId(),
+        AppEventId.AppIntegration_WorkSyncRunner_RunStarted.ToEventId(),
         "WorkSyncRunner starting");
 
     private static readonly Action<ILogger, Exception?> _cancellationRequested = LoggerMessage.Define(LogLevel.Information,
@@ -39,7 +49,7 @@ public sealed class WorkSyncRunner(
         "Cancellation requested. Stopping sync.");
 
     private static readonly Action<ILogger, int, int, Exception?> _runSummary = LoggerMessage.Define<int, int>(LogLevel.Information,
-        AppEventId.AppIntegration_AzureDevOpsBoardsSyncManager_SyncSummary.ToEventId(),
+        AppEventId.AppIntegration_WorkSyncRunner_RunSummary.ToEventId(),
         "WorkSyncRunner finished: {SucceededRuns}/{TotalRuns} connection runs succeeded.");
 
     public async Task<Result> Run(SyncType syncType, SyncTriggerSource trigger, CancellationToken cancellationToken)
@@ -155,9 +165,18 @@ public sealed class WorkSyncRunner(
                     workspaceDetails.Add(detail);
 
                     if (detail.Succeeded)
+                    {
                         run.RecordWorkspaceSuccess(detail.WorkItemsProcessed);
+                        // A workspace that succeeded overall but had a sub-step failure inside the
+                        // source still counts as a degraded run — bump ErrorsCount so dashboards
+                        // can flag it without parsing DetailsJson.
+                        if (detail.HadPartialFailure)
+                            run.RecordError();
+                    }
                     else
+                    {
                         run.RecordWorkspaceFailure();
+                    }
                 }
             }
 
@@ -213,26 +232,13 @@ public sealed class WorkSyncRunner(
         return WorkspaceSyncDetail.FromSuccess(target, itemsResult.Value);
     }
 
-    private async Task<Result<SyncableConnectionDescriptor>> BuildDescriptor(Guid connectionId, Connector connector, CancellationToken cancellationToken)
+    private Task<Result<SyncableConnectionDescriptor>> BuildDescriptor(Guid connectionId, Connector connector, CancellationToken cancellationToken)
     {
-        switch (connector)
-        {
-            case Connector.AzureDevOps:
-                {
-                    var entity = await _db.AzureDevOpsBoardsConnections.AsNoTracking()
-                        .FirstOrDefaultAsync(c => c.Id == connectionId, cancellationToken);
-                    if (entity is null)
-                        return Result.Failure<SyncableConnectionDescriptor>($"Azure DevOps connection {connectionId} not found.");
-                    return Result.Success(new SyncableConnectionDescriptor(
-                        ConnectionId: entity.Id,
-                        Connector: Connector.AzureDevOps,
-                        SystemId: ((ISyncableConnection)entity).SystemId,
-                        Configuration: entity.Configuration,
-                        TeamConfiguration: entity.TeamConfiguration));
-                }
-            default:
-                return Result.Failure<SyncableConnectionDescriptor>($"Connector '{connector}' is not supported by the sync runner.");
-        }
+        if (!_descriptorBuilders.TryGetValue(connector, out var builder))
+            return Task.FromResult(Result.Failure<SyncableConnectionDescriptor>(
+                $"No ISyncableConnectionDescriptorBuilder registered for connector '{connector}'."));
+
+        return builder.Build(connectionId, cancellationToken);
     }
 
     private async Task SaveRun(SyncRun run, List<WorkspaceSyncDetail> details, CancellationToken cancellationToken)

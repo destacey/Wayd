@@ -56,6 +56,14 @@ public class WorkSyncRunnerTests
             .Setup(f => f.Create(It.IsAny<SyncableConnectionDescriptor>()))
             .Returns(Result.Success(_source.Object));
 
+        // Exercise the real AzDO descriptor builder against the fake DbContext — same path
+        // production takes.
+        var descriptorBuilders = new ISyncableConnectionDescriptorBuilder[]
+        {
+            new AzureDevOpsConnectionDescriptorBuilder(_db)
+        };
+        _mocker.Use<IEnumerable<ISyncableConnectionDescriptorBuilder>>(descriptorBuilders);
+
         _sut = _mocker.CreateInstance<WorkSyncRunner>();
     }
 
@@ -386,6 +394,44 @@ public class WorkSyncRunnerTests
         run.WorkspacesSucceeded.Should().Be(1);
         run.WorkItemsProcessed.Should().Be(3);
         run.DetailsJson.Should().Contain("deps sub-step failed");
+        // Partial failure must bump ErrorsCount so dashboards can flag degraded runs without
+        // parsing DetailsJson.
+        run.ErrorsCount.Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData(SyncTriggerSource.Manual)]
+    [InlineData(SyncTriggerSource.Scheduled)]
+    [InlineData(SyncTriggerSource.Api)]
+    public async Task Run_PersistsTriggerSourceOnSyncRun(SyncTriggerSource trigger)
+    {
+        var connection = SeedActiveAzdoConnection();
+        SetupConnectionsQuery(connection);
+        StubHappyPathSource();
+
+        await _sut.Run(SyncType.Differential, trigger, CancellationToken.None);
+
+        _db.SyncRuns.Single().TriggerSource.Should().Be(trigger);
+    }
+
+    [Fact]
+    public async Task Run_NoDescriptorBuilderRegistered_SkipsConnectionAndStartsNoSyncRun()
+    {
+        // Re-create the SUT with an EMPTY descriptor-builder set, simulating a connector that
+        // has neither a builder nor an IWorkItemSource registered. The runner must skip the
+        // connection rather than throw or persist a half-baked SyncRun.
+        _mocker.Use<IEnumerable<ISyncableConnectionDescriptorBuilder>>(Array.Empty<ISyncableConnectionDescriptorBuilder>());
+        var sut = _mocker.CreateInstance<WorkSyncRunner>();
+
+        var connection = SeedActiveAzdoConnection();
+        SetupConnectionsQuery(connection);
+        StubHappyPathSource();
+
+        var result = await sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        _db.SyncRuns.Should().BeEmpty();
+        _source.Verify(s => s.RefreshOrganizationConfiguration(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

@@ -75,9 +75,10 @@ public static class ConfigureServices
         services.AddTransient<IAzureDevOpsService, AzureDevOpsService>();
         services.AddScoped<IExternalEmployeeDirectoryService, MicrosoftGraphService>();
 
-        // Generic sync orchestration: one keyed IWorkItemSource per connector.
+        // Generic sync orchestration: one IWorkItemSource and one descriptor builder per connector.
         // (IWorkItemSourceFactory is auto-registered via the IScopedService marker scan.)
         services.AddKeyedTransient<IWorkItemSource, AzureDevOpsWorkItemSource>(Connector.AzureDevOps);
+        services.AddScoped<ISyncableConnectionDescriptorBuilder, AzureDevOpsConnectionDescriptorBuilder>();
 
         // SIGNALR
         var signalRBuilder = services.AddSignalR();

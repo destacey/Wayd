@@ -24,6 +24,7 @@ const PRESET_COLORS: { label: string; value: string }[] = [
 
 const THEME_OPTIONS: { label: string; value: ThemeName }[] = [
   { label: 'Light', value: 'light' },
+  { label: 'Shadcn', value: 'shadcn' },
   { label: 'Cartoon', value: 'cartoon' },
   { label: 'Slate', value: 'slate' },
   { label: 'Dark', value: 'dark' },

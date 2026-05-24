@@ -4,20 +4,22 @@ import { HighlightFilled, HighlightOutlined, BgColorsOutlined } from '@ant-desig
 import useTheme from '../../components/contexts/theme'
 import { ThemeName } from '../../components/contexts/theme/types'
 
-const CYCLE: ThemeName[] = ['light', 'dark', 'slate', 'cartoon']
+const CYCLE: ThemeName[] = ['light', 'dark', 'slate', 'cartoon', 'shadcn']
 
 const ICONS: Record<ThemeName, React.ReactNode> = {
   light: <HighlightOutlined />,
   dark: <HighlightFilled />,
   slate: <BgColorsOutlined />,
   cartoon: <BgColorsOutlined />,
+  shadcn: <BgColorsOutlined />,
 }
 
 const LABELS: Record<ThemeName, string> = {
   light: 'Theme: Light',
   dark: 'Theme: Dark',
-  slate: 'Theme: Grey',
+  slate: 'Theme: Slate',
   cartoon: 'Theme: Cartoon',
+  shadcn: 'Theme: Shadcn',
 }
 
 const useThemeToggleMenuItem = () => {

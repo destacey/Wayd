@@ -2,7 +2,7 @@ import { type Theme as AgGridTheme } from 'ag-grid-community'
 import { GlobalToken } from 'antd'
 import { UserThemeConfigDto } from '@/src/services/wayd-api'
 
-export type ThemeName = 'light' | 'dark' | 'slate' | 'cartoon'
+export type ThemeName = 'light' | 'dark' | 'slate' | 'cartoon' | 'shadcn'
 
 export type { UserThemeConfigDto }
 

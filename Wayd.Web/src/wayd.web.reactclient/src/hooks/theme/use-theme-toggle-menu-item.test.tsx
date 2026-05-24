@@ -84,10 +84,22 @@ describe('useThemeToggleMenuItem', () => {
     expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('cartoon')
   })
 
-  it('cycles from cartoon to light theme when clicked', () => {
+  it('cycles from cartoon to shadcn theme when clicked', () => {
     ;(useTheme as Mock).mockReturnValue({
       ...mockThemeContext,
       currentThemeName: 'cartoon',
+    })
+
+    const themeToggle = useThemeToggleMenuItem()
+    themeToggle.onClick()
+
+    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('shadcn')
+  })
+
+  it('cycles from shadcn to light theme when clicked', () => {
+    ;(useTheme as Mock).mockReturnValue({
+      ...mockThemeContext,
+      currentThemeName: 'shadcn',
     })
 
     const themeToggle = useThemeToggleMenuItem()
@@ -117,6 +129,17 @@ describe('useThemeToggleMenuItem', () => {
     ;(useTheme as Mock).mockReturnValue({
       ...mockThemeContext,
       currentThemeName: 'cartoon',
+    })
+
+    const themeToggle = useThemeToggleMenuItem()
+    const icon = themeToggle.icon as React.ReactElement
+    expect(icon.type).toBe(BgColorsOutlined)
+  })
+
+  it('uses the correct icon for the shadcn theme', () => {
+    ;(useTheme as Mock).mockReturnValue({
+      ...mockThemeContext,
+      currentThemeName: 'shadcn',
     })
 
     const themeToggle = useThemeToggleMenuItem()

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <PackageReference Include="CSharpFunctionalExtensions" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+        <PackageReference Include="NodaTime" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Wayd.Common\src\Wayd.Common.Application\Wayd.Common.Application.csproj" />
+        <ProjectReference Include="..\..\..\Wayd.Common\src\Wayd.Common.Domain\Wayd.Common.Domain.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Wayd.Integrations.AzureDevOps" />
+        <InternalsVisibleTo Include="Wayd.AppIntegration.Application" />
+    </ItemGroup>
+
+</Project>

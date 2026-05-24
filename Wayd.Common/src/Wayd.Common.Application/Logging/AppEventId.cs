@@ -10,17 +10,6 @@ public enum AppEventId
     // Azure DevOps integration (10000-10999)
     AppIntegration_ExternalCallElapsed = 10000,
     AppIntegration_CancellationRequested = 10001,
-    AppIntegration_AzureDevOpsBoardsSyncManager_SyncStarted = 10100,
-    AppIntegration_AzureDevOpsBoardsSyncManager_WorkProcessSynced = 10101,
-    AppIntegration_AzureDevOpsBoardsSyncManager_WorkspaceSynced = 10102,
-    AppIntegration_AzureDevOpsBoardsSyncManager_WorkspaceWorkItemsSynced = 10103,
-    AppIntegration_AzureDevOpsBoardsSyncManager_NoActiveWorkProcesses = 10104,
-    AppIntegration_AzureDevOpsBoardsSyncManager_NoActiveWorkspaces = 10105,
-    AppIntegration_AzureDevOpsBoardsSyncManager_WorkItemsRetrieved = 10106,
-    AppIntegration_AzureDevOpsBoardsSyncManager_ParentChangesRetrieved = 10107,
-    AppIntegration_AzureDevOpsBoardsSyncManager_DependencyChangesRetrieved = 10108,
-    AppIntegration_AzureDevOpsBoardsSyncManager_DeletedWorkItemsRetrieved = 10109,
-    AppIntegration_AzureDevOpsBoardsSyncManager_SyncSummary = 10110,
 
     // WorkSyncRunner (generic orchestrator across all WorkSync-category connectors)
     AppIntegration_WorkSyncRunner_RunStarted = 10200,

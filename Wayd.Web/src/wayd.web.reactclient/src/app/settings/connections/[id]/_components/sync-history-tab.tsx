@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Button,
   Select,
@@ -66,9 +66,16 @@ const RANGE_OPTIONS = [
 
 type RangeHours = (typeof RANGE_OPTIONS)[number]['value']
 
-function formatDuration(startedAt: string, finishedAt?: string): string {
+function toDate(value: string | Date): Date {
+  return value instanceof Date ? value : new Date(value)
+}
+
+function formatDuration(
+  startedAt: string | Date,
+  finishedAt?: string | Date,
+): string {
   if (!finishedAt) return '—'
-  const ms = new Date(finishedAt).getTime() - new Date(startedAt).getTime()
+  const ms = toDate(finishedAt).getTime() - toDate(startedAt).getTime()
   const seconds = Math.floor(ms / 1000)
   if (seconds < 60) return `${seconds}s`
   const minutes = Math.floor(seconds / 60)
@@ -77,9 +84,20 @@ function formatDuration(startedAt: string, finishedAt?: string): string {
 }
 
 function ExpandedRow({ syncRunId }: { syncRunId: string }) {
-  const { data, isLoading } = useGetSyncRunQuery(syncRunId)
+  const { data, isLoading, isError } = useGetSyncRunQuery(syncRunId)
 
   if (isLoading) return <Spin size="small" />
+
+  if (isError) {
+    return (
+      <Alert
+        type="error"
+        message="Failed to load sync run details."
+        showIcon
+        style={{ margin: '0 24px 8px' }}
+      />
+    )
+  }
 
   if (!data?.details?.length) {
     return (
@@ -142,42 +160,44 @@ export default function SyncHistoryTab({ connectionId }: Props) {
   const canSync = hasClaim('Permission', 'Permissions.Connections.Update')
 
   const [rangeHours, setRangeHours] = useState<RangeHours>(24)
-
-  // Recompute the cutoff each time the range changes. We pass an ISO string so the
-  // RTK Query cache key stays serializable (Redux flags raw Date objects in state).
-  const sinceIso = useMemo(
-    () => new Date(Date.now() - rangeHours * 60 * 60 * 1000).toISOString(),
-    [rangeHours],
+  // The cutoff is computed when the user picks a range and stored as an ISO string
+  // so the RTK Query cache key stays serializable (Redux flags raw Date objects).
+  // Calling Date.now() in render would be impure; we only refresh it on change.
+  const [sinceIso, setSinceIso] = useState<string>(
+    () => new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
   )
 
-  const { data: runs, isLoading } = useGetSyncRunsQuery({ connectionId, sinceIso })
-  const isAnyRunning = runs?.some((r) => r.status === SyncRunStatus.Running) ?? false
+  const handleRangeChange = (hours: RangeHours) => {
+    setRangeHours(hours)
+    setSinceIso(new Date(Date.now() - hours * 60 * 60 * 1000).toISOString())
+  }
 
-  // After clicking Sync now, the Hangfire job may take a moment to start. Poll
-  // briefly until we actually see a Running row, then the regular polling takes over.
+  // After clicking Sync now, the Hangfire job may take a moment to start. We keep
+  // polling until either a Running row shows up (then the regular polling takes
+  // over) or the grace period expires. waitingForRun is cleared by a setTimeout
+  // scheduled inside the effect — never by a synchronous setState inside the
+  // effect body, which the lint rule (rightly) flags as a cascading-render smell.
   const [waitingForRun, setWaitingForRun] = useState(false)
-  const waitingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    if (waitingForRun && isAnyRunning) {
-      setWaitingForRun(false)
-      if (waitingTimeoutRef.current) {
-        clearTimeout(waitingTimeoutRef.current)
-        waitingTimeoutRef.current = null
-      }
-    }
-  }, [waitingForRun, isAnyRunning])
+    if (!waitingForRun) return
+    const handle = setTimeout(() => setWaitingForRun(false), 30000)
+    return () => clearTimeout(handle)
+  }, [waitingForRun])
 
-  useEffect(() => {
-    return () => {
-      if (waitingTimeoutRef.current) clearTimeout(waitingTimeoutRef.current)
-    }
-  }, [])
+  // Initial fetch — no polling here; pollingInterval is wired in the second
+  // subscription below so it can react to data this call returns. RTK Query
+  // coalesces both calls into a single underlying subscription since they share
+  // the same cache key.
+  const {
+    data: runs,
+    isLoading,
+    isError,
+  } = useGetSyncRunsQuery({ connectionId, sinceIso })
 
+  const isAnyRunning = runs?.some((r) => r.status === SyncRunStatus.Running) ?? false
   const shouldPoll = isAnyRunning || waitingForRun
 
-  // Re-fetch every 3 s while a run is in Running state or we are waiting for
-  // a freshly-triggered run to appear.
   useGetSyncRunsQuery(
     { connectionId, sinceIso },
     { pollingInterval: shouldPoll ? 3000 : 0, skip: !shouldPoll },
@@ -190,10 +210,8 @@ export default function SyncHistoryTab({ connectionId }: Props) {
       await runSync({ connectionId, syncType }).unwrap()
       const label = syncType === SyncType.Full ? 'Full sync' : 'Differential sync'
       messageApi.success(`${label} triggered — a new run will appear shortly.`)
+      // The effect on [waitingForRun] schedules the 30 s reset.
       setWaitingForRun(true)
-      if (waitingTimeoutRef.current) clearTimeout(waitingTimeoutRef.current)
-      // Safety net: stop polling after 30 s if the Running row never shows up.
-      waitingTimeoutRef.current = setTimeout(() => setWaitingForRun(false), 30000)
     } catch {
       messageApi.error('Failed to trigger sync.')
     }
@@ -204,17 +222,20 @@ export default function SyncHistoryTab({ connectionId }: Props) {
       title: 'Started',
       dataIndex: 'startedAt',
       key: 'startedAt',
-      render: (v: string) => (
-        <Tooltip title={new Date(v).toLocaleString()}>
-          <span>{new Date(v).toLocaleString()}</span>
-        </Tooltip>
-      ),
+      render: (v: string | Date) => {
+        const formatted = toDate(v).toLocaleString()
+        return (
+          <Tooltip title={formatted}>
+            <span>{formatted}</span>
+          </Tooltip>
+        )
+      },
       width: 180,
     },
     {
       title: 'Duration',
       key: 'duration',
-      render: (_, r) => formatDuration(r.startedAt as unknown as string, r.finishedAt as unknown as string | undefined),
+      render: (_, r) => formatDuration(r.startedAt, r.finishedAt),
       width: 100,
     },
     {
@@ -298,7 +319,7 @@ export default function SyncHistoryTab({ connectionId }: Props) {
       >
         <Select<RangeHours>
           value={rangeHours}
-          onChange={setRangeHours}
+          onChange={handleRangeChange}
           options={RANGE_OPTIONS.map((o) => ({ label: o.label, value: o.value }))}
           style={{ width: 160 }}
         />
@@ -328,6 +349,12 @@ export default function SyncHistoryTab({ connectionId }: Props) {
 
       {isLoading ? (
         <Spin />
+      ) : isError ? (
+        <Alert
+          type="error"
+          message="Failed to load sync run history."
+          showIcon
+        />
       ) : runs?.length === 0 ? (
         <Alert
           type="info"

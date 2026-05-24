@@ -138,8 +138,7 @@ public class ConnectionsController(ISender sender) : ControllerBase
     public async Task<ActionResult<IEnumerable<SyncRunListDto>>> GetSyncRuns(
         Guid id,
         CancellationToken cancellationToken,
-        [FromQuery] DateTime? since = null,
-        int top = 500)
+        [FromQuery] DateTime? since = null)
     {
         Instant? sinceInstant = null;
         if (since.HasValue)
@@ -149,7 +148,7 @@ public class ConnectionsController(ISender sender) : ControllerBase
             sinceInstant = Instant.FromDateTimeUtc(s);
         }
 
-        var runs = await _sender.Send(new GetSyncRunsQuery(id, sinceInstant, top), cancellationToken);
+        var runs = await _sender.Send(new GetSyncRunsQuery(id, sinceInstant), cancellationToken);
         return Ok(runs);
     }
 

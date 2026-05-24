@@ -18,6 +18,7 @@ public sealed class AzureOpenAIConnectionConfiguration
         DefaultTemperature = defaultTemperature;
         DefaultMaxOutputTokens = defaultMaxOutputTokens;
         JsonModePreferred = jsonModePreferred;
+        ConfigVersion = 1;
     }
 
     /// <summary>
@@ -46,5 +47,5 @@ public sealed class AzureOpenAIConnectionConfiguration
 
     #endregion
 
-    public int ConfigVersion { get; private init; } = 1;
+    public int ConfigVersion { get; init; }
 }

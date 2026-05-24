@@ -113,14 +113,13 @@ export const connectionsApi = apiSlice.injectEndpoints({
 
     getSyncRuns: builder.query<
       SyncRunListDto[],
-      { connectionId: string; sinceIso?: string; top?: number }
+      { connectionId: string; sinceIso?: string }
     >({
-      queryFn: async ({ connectionId, sinceIso, top }) => {
+      queryFn: async ({ connectionId, sinceIso }) => {
         try {
           const data = await getConnectionsClient().getSyncRuns(
             connectionId,
             sinceIso ? new Date(sinceIso) : undefined,
-            top,
           )
           return { data }
         } catch (error) {

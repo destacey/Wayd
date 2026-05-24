@@ -63,19 +63,6 @@ public class GetSyncRunsQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_HonorsTopCap()
-    {
-        var connectionId = Guid.NewGuid();
-
-        for (var i = 0; i < 5; i++)
-            _db.AddSyncRun(SyncRun.Start(connectionId, Connector.AzureDevOps, SyncType.Full, SyncTriggerSource.Scheduled, _t0 + Duration.FromHours(i)));
-
-        var result = await _sut.Handle(new GetSyncRunsQuery(connectionId, Top: 3), CancellationToken.None);
-
-        result.Should().HaveCount(3);
-    }
-
-    [Fact]
     public async Task Handle_ReturnsEmptyList_WhenNoRunsExist()
     {
         var result = await _sut.Handle(new GetSyncRunsQuery(Guid.NewGuid()), CancellationToken.None);

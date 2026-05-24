@@ -20,6 +20,7 @@ public sealed class AzureDevOpsBoardsConnectionConfiguration
         PersonalAccessToken = personalAccessToken.Trim();
         Workspaces = workspaces?.ToList() ?? [];
         WorkProcesses = processes?.ToList() ?? [];
+        ConfigVersion = 1;
     }
 
     /// <summary>Gets the organization.</summary>
@@ -119,5 +120,5 @@ public sealed class AzureDevOpsBoardsConnectionConfiguration
         }
     }
 
-    public int ConfigVersion { get; private init; } = 1;
+    public int ConfigVersion { get; init; }
 }

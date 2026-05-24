@@ -25936,19 +25936,14 @@ export class ConnectionsClient {
     /**
      * Get sync run history for a connection.
      * @param since (optional) 
-     * @param top (optional) 
      */
-    getSyncRuns(id: string, since?: Date | null | undefined, top?: number | undefined, cancelToken?: CancelToken): Promise<SyncRunListDto[]> {
+    getSyncRuns(id: string, since?: Date | null | undefined, cancelToken?: CancelToken): Promise<SyncRunListDto[]> {
         let url_ = this.baseUrl + "/api/app-integrations/connections/{id}/sync-runs?";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
         if (since !== undefined && since !== null)
             url_ += "since=" + encodeURIComponent(since ? "" + since.toISOString() : "") + "&";
-        if (top === null)
-            throw new globalThis.Error("The parameter 'top' cannot be null.");
-        else if (top !== undefined)
-            url_ += "top=" + encodeURIComponent("" + top) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {

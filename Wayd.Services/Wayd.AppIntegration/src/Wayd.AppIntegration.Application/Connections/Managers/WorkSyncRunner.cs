@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using MediatR;
+using Wayd.AppIntegration.Application.Connections.Dtos;
 using Wayd.AppIntegration.Application.Connections.Queries;
 using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.Common.Application.Enums;
@@ -15,31 +16,20 @@ namespace Wayd.AppIntegration.Application.Connections.Managers;
 /// appropriate <see cref="IWorkItemSource"/> for each via the factory, and walks the source's
 /// flat sync plan. Persists a <see cref="SyncRun"/> row per connection per run.
 /// </summary>
-public sealed class WorkSyncRunner : IWorkSyncRunner
+public sealed class WorkSyncRunner(
+    ILogger<WorkSyncRunner> logger,
+    ISender sender,
+    IWorkItemSourceFactory sourceFactory,
+    IAppIntegrationDbContext db,
+    IDateTimeProvider clock,
+    IEnumerable<ISyncableConnectionDescriptorBuilder> descriptorBuilders) : IWorkSyncRunner
 {
-    private readonly ILogger<WorkSyncRunner> _logger;
-    private readonly ISender _sender;
-    private readonly IWorkItemSourceFactory _sourceFactory;
-    private readonly IAppIntegrationDbContext _db;
-    private readonly IDateTimeProvider _clock;
-    private readonly IReadOnlyDictionary<Connector, ISyncableConnectionDescriptorBuilder> _descriptorBuilders;
-
-    public WorkSyncRunner(
-        ILogger<WorkSyncRunner> logger,
-        ISender sender,
-        IWorkItemSourceFactory sourceFactory,
-        IAppIntegrationDbContext db,
-        IDateTimeProvider clock,
-        IEnumerable<ISyncableConnectionDescriptorBuilder> descriptorBuilders)
-    {
-        _logger = logger;
-        _sender = sender;
-        _sourceFactory = sourceFactory;
-        _db = db;
-        _clock = clock;
-        _descriptorBuilders = descriptorBuilders.ToDictionary(b => b.Connector);
-    }
-
+    private readonly ILogger<WorkSyncRunner> _logger = logger;
+    private readonly ISender _sender = sender;
+    private readonly IWorkItemSourceFactory _sourceFactory = sourceFactory;
+    private readonly IAppIntegrationDbContext _db = db;
+    private readonly IDateTimeProvider _clock = clock;
+    private readonly IReadOnlyDictionary<Connector, ISyncableConnectionDescriptorBuilder> _descriptorBuilders = descriptorBuilders.ToDictionary(b => b.Connector);
     private static readonly Action<ILogger, Exception?> _runStarted = LoggerMessage.Define(LogLevel.Information,
         AppEventId.AppIntegration_WorkSyncRunner_RunStarted.ToEventId(),
         "WorkSyncRunner starting");
@@ -100,6 +90,20 @@ public sealed class WorkSyncRunner : IWorkSyncRunner
                 _logger.LogError(ex, "WorkSyncRunner failed unexpectedly.");
                 throw;
             }
+        }
+    }
+
+    public async Task<Result> Run(Guid connectionId, SyncType syncType, SyncTriggerSource trigger, CancellationToken cancellationToken)
+    {
+        var syncId = Guid.CreateVersion7();
+        using (_logger.BeginScope(new Dictionary<string, object> { ["SyncId"] = syncId, ["ConnectionId"] = connectionId }))
+        {
+            var connection = await _sender.Send(new GetConnectionQuery(connectionId), cancellationToken);
+            if (connection is null)
+                return Result.Failure($"Connection {connectionId} not found.");
+
+            var connectorEnum = (Connector)connection.Connector.Id;
+            return await RunConnection(connectionId, connectorEnum, syncType, trigger, syncId, cancellationToken);
         }
     }
 
@@ -265,23 +269,4 @@ public sealed class WorkSyncRunner : IWorkSyncRunner
         }
     }
 
-    private sealed record WorkspaceSyncDetail(
-        Guid InternalWorkspaceId,
-        string WorkspaceName,
-        bool Succeeded,
-        int WorkItemsProcessed,
-        int ParentLinkChangesProcessed,
-        int DependencyLinkChangesProcessed,
-        int DeletedWorkItemsProcessed,
-        bool HadPartialFailure,
-        string? Error)
-    {
-        public static WorkspaceSyncDetail FromSuccess(WorkspaceSyncTarget target, WorkspaceItemsSyncResult r) =>
-            new(target.InternalWorkspaceId, target.WorkspaceName, true,
-                r.WorkItemsProcessed, r.ParentLinkChangesProcessed, r.DependencyLinkChangesProcessed, r.DeletedWorkItemsProcessed,
-                r.HadPartialFailure, r.PartialFailureMessage);
-
-        public static WorkspaceSyncDetail FromFailure(WorkspaceSyncTarget target, string error) =>
-            new(target.InternalWorkspaceId, target.WorkspaceName, false, 0, 0, 0, 0, false, error);
-    }
 }

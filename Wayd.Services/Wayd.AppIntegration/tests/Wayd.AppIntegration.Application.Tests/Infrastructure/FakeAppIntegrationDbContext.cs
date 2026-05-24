@@ -81,6 +81,10 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
     public void AddAzureDevOpsBoardsConnection(AzureDevOpsBoardsConnection connection) => _azureDevOpsBoardsConnections.Add(connection);
     public void AddAzureDevOpsBoardsConnections(IEnumerable<AzureDevOpsBoardsConnection> connections) => _azureDevOpsBoardsConnections.AddRange(connections);
 
+    // SyncRun
+    public void AddSyncRun(SyncRun syncRun) => _syncRuns.Add(syncRun);
+    public void AddSyncRuns(IEnumerable<SyncRun> syncRuns) => _syncRuns.AddRange(syncRuns);
+
     // Employee
     public void AddEmployee(Employee employee) => _employees.Add(employee);
     public void AddEmployees(IEnumerable<Employee> employees) => _employees.AddRange(employees);

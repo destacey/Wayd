@@ -3,7 +3,11 @@ using Wayd.AppIntegration.Application.Connections.Commands.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Commands.AzureOpenAI;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureOpenAI;
+using Wayd.AppIntegration.Domain.Models;
+using Wayd.Common.Application.BackgroundJobs;
+using Wayd.Common.Application.Enums;
 using Wayd.Web.Api.Extensions;
+using Wayd.Web.Api.Interfaces;
 using Wayd.Web.Api.Models.AppIntegrations.Connections;
 
 namespace Wayd.Web.Api.Controllers.AppIntegrations;
@@ -107,6 +111,61 @@ public class ConnectionsController(ISender sender) : ControllerBase
         };
 
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("{id}/run")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
+    [OpenApiOperation("Trigger a sync for a connection.",
+        "Enqueues a background job that runs the sync pipeline for this connection only. Defaults to a differential sync; pass 'syncType=Full' for a full sync.")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public ActionResult RunSync(
+        Guid id,
+        [FromServices] IJobService jobService,
+        [FromServices] IJobManager jobManager,
+        CancellationToken cancellationToken,
+        SyncType syncType = SyncType.Differential)
+    {
+        jobService.Enqueue(() => jobManager.RunWorkSync(syncType, SyncTriggerSource.Manual, id, cancellationToken));
+        return Accepted();
+    }
+
+    [HttpGet("{id}/sync-runs")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Connections)]
+    [OpenApiOperation("Get sync run history for a connection.",
+        "Returns sync runs for the specified connection, ordered by start time descending. Filtered by 'since' (UTC, defaults to the last 24 hours when omitted).")]
+    [ProducesResponseType(typeof(IEnumerable<SyncRunListDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<SyncRunListDto>>> GetSyncRuns(
+        Guid id,
+        CancellationToken cancellationToken,
+        [FromQuery] DateTime? since = null,
+        int top = 500)
+    {
+        Instant? sinceInstant = null;
+        if (since.HasValue)
+        {
+            var s = since.Value;
+            s = s.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(s, DateTimeKind.Utc) : s.ToUniversalTime();
+            sinceInstant = Instant.FromDateTimeUtc(s);
+        }
+
+        var runs = await _sender.Send(new GetSyncRunsQuery(id, sinceInstant, top), cancellationToken);
+        return Ok(runs);
+    }
+
+    [HttpGet("sync-runs/{syncRunId}")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Connections)]
+    [OpenApiOperation("Get sync run details.", "Returns full details including per-workspace breakdown for a single sync run.")]
+    [ProducesResponseType(typeof(SyncRunDetailsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SyncRunDetailsDto>> GetSyncRun(Guid syncRunId, CancellationToken cancellationToken)
+    {
+        var run = await _sender.Send(new GetSyncRunQuery(syncRunId), cancellationToken);
+
+        if (run is null)
+            return NotFound();
+
+        return Ok(run);
     }
 
     [HttpDelete("{id}")]

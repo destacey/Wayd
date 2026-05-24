@@ -45,4 +45,6 @@ public sealed class AzureOpenAIConnectionConfiguration
     public bool JsonModePreferred { get; set; }
 
     #endregion
+
+    public int ConfigVersion { get; private init; } = 1;
 }

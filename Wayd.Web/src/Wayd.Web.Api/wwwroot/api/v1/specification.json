@@ -21515,6 +21515,178 @@
         ]
       }
     },
+    "/api/app-integrations/connections/{id}/run": {
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Trigger a sync for a connection.",
+        "description": "Enqueues a background job that runs the sync pipeline for this connection only. Defaults to a differential sync; pass 'syncType=Full' for a full sync.",
+        "operationId": "Connections_RunSync",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "syncType",
+            "in": "query",
+            "schema": {
+              "default": "Differential",
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/SyncType"
+                }
+              ]
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/app-integrations/connections/{id}/sync-runs": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Get sync run history for a connection.",
+        "description": "Returns sync runs for the specified connection, ordered by start time descending. Filtered by 'since' (UTC, defaults to the last 24 hours when omitted).",
+        "operationId": "Connections_GetSyncRuns",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "top",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 500
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SyncRunListDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/app-integrations/connections/sync-runs/{syncRunId}": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Get sync run details.",
+        "description": "Returns full details including per-workspace breakdown for a single sync run.",
+        "operationId": "Connections_GetSyncRun",
+        "parameters": [
+          {
+            "name": "syncRunId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncRunDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/admin/background-jobs/job-types": {
       "get": {
         "tags": [
@@ -34895,6 +35067,274 @@
             }
           }
         ]
+      },
+      "SyncType": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Full",
+          "Differential"
+        ],
+        "enum": [
+          "Full",
+          "Differential"
+        ]
+      },
+      "SyncRunListDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "connectionId",
+          "connectorType",
+          "startedAt",
+          "status",
+          "triggerSource",
+          "syncType",
+          "workspacesPlanned",
+          "workspacesSucceeded",
+          "workspacesFailed",
+          "workItemsProcessed",
+          "errorsCount"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "connectionId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "connectorType": {
+            "$ref": "#/components/schemas/Connector"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/SyncRunStatus"
+          },
+          "triggerSource": {
+            "$ref": "#/components/schemas/SyncTriggerSource"
+          },
+          "syncType": {
+            "$ref": "#/components/schemas/SyncType"
+          },
+          "workspacesPlanned": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "workspacesSucceeded": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "workspacesFailed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "workItemsProcessed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errorsCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "Connector": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "AzureDevOps",
+          "AzureOpenAI",
+          "OpenAI"
+        ],
+        "enum": [
+          "AzureDevOps",
+          "AzureOpenAI",
+          "OpenAI"
+        ]
+      },
+      "SyncRunStatus": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Running",
+          "Succeeded",
+          "Failed",
+          "Cancelled"
+        ],
+        "enum": [
+          "Running",
+          "Succeeded",
+          "Failed",
+          "Cancelled"
+        ]
+      },
+      "SyncTriggerSource": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Scheduled",
+          "Manual",
+          "Api"
+        ],
+        "enum": [
+          "Scheduled",
+          "Manual",
+          "Api"
+        ]
+      },
+      "SyncRunDetailsDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "connectionId",
+          "connectorType",
+          "startedAt",
+          "status",
+          "triggerSource",
+          "syncType",
+          "workspacesPlanned",
+          "workspacesSucceeded",
+          "workspacesFailed",
+          "workItemsProcessed",
+          "errorsCount",
+          "details"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "connectionId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "connectorType": {
+            "$ref": "#/components/schemas/Connector"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/SyncRunStatus"
+          },
+          "triggerSource": {
+            "$ref": "#/components/schemas/SyncTriggerSource"
+          },
+          "syncType": {
+            "$ref": "#/components/schemas/SyncType"
+          },
+          "workspacesPlanned": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "workspacesSucceeded": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "workspacesFailed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "workItemsProcessed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errorsCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceSyncDetail"
+            }
+          }
+        }
+      },
+      "WorkspaceSyncDetail": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "internalWorkspaceId",
+          "workspaceName",
+          "succeeded",
+          "workItemsProcessed",
+          "parentLinkChangesProcessed",
+          "dependencyLinkChangesProcessed",
+          "deletedWorkItemsProcessed",
+          "hadPartialFailure"
+        ],
+        "properties": {
+          "internalWorkspaceId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "workspaceName": {
+            "type": "string"
+          },
+          "succeeded": {
+            "type": "boolean"
+          },
+          "workItemsProcessed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parentLinkChangesProcessed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dependencyLinkChangesProcessed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deletedWorkItemsProcessed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hadPartialFailure": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          }
+        }
       },
       "BackgroundJobTypeDto": {
         "type": "object",

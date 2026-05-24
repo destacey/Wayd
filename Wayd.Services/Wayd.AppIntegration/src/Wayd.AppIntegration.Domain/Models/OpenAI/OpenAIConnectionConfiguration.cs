@@ -70,4 +70,6 @@ public sealed class OpenAIConnectionConfiguration
         .Where(h => !string.IsNullOrWhiteSpace(h.Name));
 
     #endregion Inferred Properties
+
+    public int ConfigVersion { get; private init; } = 1;
 }

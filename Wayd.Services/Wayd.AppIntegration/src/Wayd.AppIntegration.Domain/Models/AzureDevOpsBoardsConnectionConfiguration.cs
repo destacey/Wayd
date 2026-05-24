@@ -118,4 +118,6 @@ public sealed class AzureDevOpsBoardsConnectionConfiguration
             return Result.Failure(ex.ToString());
         }
     }
+
+    public int ConfigVersion { get; private init; } = 1;
 }

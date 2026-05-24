@@ -15,6 +15,7 @@ import AppHeader from './_components/app-header'
 import AppSideNav from './_components/menu/app-side-nav'
 import AppBreadcrumb from './_components/app-breadcrumb'
 import { ThemeProvider } from '../components/contexts/theme'
+import useTheme from '../components/contexts/theme'
 import { MenuToggleProvider } from '../components/contexts/menu-toggle'
 import { AntdRegistry } from '@ant-design/nextjs-registry'
 import { AuthProvider } from '../components/contexts/auth'
@@ -38,6 +39,7 @@ const AppContent = memo(({ children }: PropsWithChildren) => {
   const screens = useBreakpoint()
   const isMobile = !screens.md
   const router = useRouter()
+  const { currentThemeName } = useTheme()
 
   // After authentication, redirect to the originally requested URL if one was stored.
   useEffect(() => {
@@ -49,7 +51,7 @@ const AppContent = memo(({ children }: PropsWithChildren) => {
   }, [router])
 
   return (
-    <Layout>
+    <Layout className={`app-theme-${currentThemeName}`}>
       <AppHeader />
       <Layout hasSider className="app-main-layout">
         <AppSideNav isMobile={isMobile} />

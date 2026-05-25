@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wayd.Infrastructure.DataProtection;
 using Wayd.Infrastructure.Persistence.Converters;
@@ -11,7 +12,9 @@ public static class PropertyBuilderExtensions
         this PropertyBuilder<TProperty> builder,
         JsonSerializerOptions? options = null)
     {
-        return builder.HasConversion(new JsonValueConverter<TProperty>(options));
+        builder.HasConversion(new JsonValueConverter<TProperty>(options));
+        builder.Metadata.SetValueComparer(CreateJsonValueComparer<TProperty>(options));
+        return builder;
     }
 
     /// <summary>
@@ -23,6 +26,21 @@ public static class PropertyBuilderExtensions
         this PropertyBuilder<TProperty> builder,
         JsonSerializerOptions? options = null)
     {
-        return builder.HasConversion(new EncryptingJsonValueConverter<TProperty>(options));
+        builder.HasConversion(new EncryptingJsonValueConverter<TProperty>(options));
+        builder.Metadata.SetValueComparer(CreateJsonValueComparer<TProperty>(options));
+        return builder;
+    }
+
+    // EF Core's default change tracking for converted properties uses reference equality,
+    // which silently drops in-place mutations to nested fields of a JSON-mapped value object
+    // (e.g. AzureDevOpsBoardsConnectionConfiguration.WorkProcesses[i].IntegrationState = null).
+    // Compare by serialized JSON so structural changes are detected; deep-clone via JSON
+    // round-trip so the snapshot can't be aliased by later mutations.
+    private static ValueComparer<TProperty> CreateJsonValueComparer<TProperty>(JsonSerializerOptions? options)
+    {
+        return new ValueComparer<TProperty>(
+            (a, b) => JsonSerializer.Serialize(a, options) == JsonSerializer.Serialize(b, options),
+            v => v == null ? 0 : JsonSerializer.Serialize(v, options).GetHashCode(),
+            v => v == null ? default! : JsonSerializer.Deserialize<TProperty>(JsonSerializer.Serialize(v, options), options)!);
     }
 }

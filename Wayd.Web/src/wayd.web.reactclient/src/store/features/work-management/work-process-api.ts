@@ -45,12 +45,18 @@ export const workProcessApi = apiSlice.injectEndpoints({
         ...(result?.map(({ id }) => ({ type: QueryTags.WorkProcess, id })) ?? []),
       ],
     }),
-    getWorkProcess: builder.query<WorkProcessDto, string>({
+    getWorkProcess: builder.query<WorkProcessDto | null, string>({
       queryFn: async (idOrKey: string) => {
         try {
           const data = await getWorkProcessesClient().get(idOrKey)
           return { data }
-        } catch (error) {
+        } catch (error: any) {
+          // Return null for 404 so callers can render their own empty/not-found
+          // state without polluting the console. Happens when an AzDO connection
+          // still references a Wayd.Work.WorkProcess that no longer exists.
+          if (error?.status === 404) {
+            return { data: null }
+          }
           console.error('API Error:', error)
           return { error }
         }

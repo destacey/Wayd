@@ -320,15 +320,28 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
             // if already has integration, only update if the active flag changed
             if (workProcess.HasIntegration)
             {
-                if (workProcess.IntegrationState is not null && workProcess.IntegrationState.IsActive == registration.IntegrationState.IsActive)
+                // If the live registration points at a different InternalId than what we hold,
+                // the underlying Wayd.Work.WorkProcess was deleted and recreated. Rebind to
+                // the live row rather than continuing to point at a dead id.
+                if (workProcess.IntegrationState is not null
+                    && workProcess.IntegrationState.InternalId != registration.IntegrationState.InternalId)
                 {
-                    // no change
-                    return Result.Success();
+                    var replaceResult = workProcess.ReplaceIntegrationState(registration.IntegrationState);
+                    if (replaceResult.IsFailure)
+                        return replaceResult;
                 }
+                else
+                {
+                    if (workProcess.IntegrationState is not null && workProcess.IntegrationState.IsActive == registration.IntegrationState.IsActive)
+                    {
+                        // no change
+                        return Result.Success();
+                    }
 
-                var setResult = workProcess.UpdateIntegrationState(registration.IntegrationState.IsActive);
-                if (setResult.IsFailure)
-                    return setResult;
+                    var setResult = workProcess.UpdateIntegrationState(registration.IntegrationState.IsActive);
+                    if (setResult.IsFailure)
+                        return setResult;
+                }
             }
             else
             {
@@ -338,6 +351,33 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
             }
 
             // only raise domain event if something actually changed
+            AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
+
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure(ex.ToString());
+        }
+    }
+
+    public Result ClearWorkProcessIntegrationState(Guid workProcessExternalId, Instant timestamp)
+    {
+        try
+        {
+            Guard.Against.Null(Configuration, nameof(Configuration));
+
+            var workProcess = Configuration.WorkProcesses.FirstOrDefault(wp => wp.ExternalId == workProcessExternalId);
+            if (workProcess is null)
+                return Result.Failure($"Unable to find work process with id {workProcessExternalId} in Azure DevOps connection with id {Id}.");
+
+            if (!workProcess.HasIntegration)
+                return Result.Success();
+
+            var clearResult = workProcess.RemoveIntegrationState();
+            if (clearResult.IsFailure)
+                return clearResult;
+
             AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
 
             return Result.Success();

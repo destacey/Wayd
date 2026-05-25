@@ -63,15 +63,38 @@ internal sealed class SyncAzureDevOpsConnectionConfigurationCommandHandler(IAppI
             return LogAndReturnFailure(importWorkProcessesResult);
         }
 
+        var liveInternalIds = request.WorkProcessIntegrationRegistrations
+            .Select(r => r.IntegrationState.InternalId)
+            .ToHashSet();
+
         foreach (var workProcess in connection.Configuration.WorkProcesses)
         {
             var workProcessIntegrationRegistration = request.WorkProcessIntegrationRegistrations.FirstOrDefault(w => w.ExternalId == workProcess.ExternalId);
-            if (workProcessIntegrationRegistration is null) continue;
-
-            var result = connection.UpdateWorkProcessIntegrationState(workProcessIntegrationRegistration, _timestamp);
-            if (result.IsFailure)
+            if (workProcessIntegrationRegistration is not null)
             {
-                return LogAndReturnFailure(result);
+                var result = connection.UpdateWorkProcessIntegrationState(workProcessIntegrationRegistration, _timestamp);
+                if (result.IsFailure)
+                {
+                    return LogAndReturnFailure(result);
+                }
+                continue;
+            }
+
+            // No registration found for this work process. If we still hold an IntegrationState
+            // pointing at a Wayd.Work.WorkProcess that no longer exists, clear the dangling
+            // pointer so the UI stops 404ing and the user can re-initialize.
+            if (workProcess.IntegrationState is null) continue;
+
+            if (liveInternalIds.Contains(workProcess.IntegrationState.InternalId)) continue;
+
+            _logger.LogWarning(
+                "Clearing dangling IntegrationState for Azure DevOps work process {WorkProcessExternalId} on connection {ConnectionId}. The referenced Wayd.Work.WorkProcess {WorkProcessInternalId} no longer exists.",
+                workProcess.ExternalId, connection.Id, workProcess.IntegrationState.InternalId);
+
+            var clearResult = connection.ClearWorkProcessIntegrationState(workProcess.ExternalId, _timestamp);
+            if (clearResult.IsFailure)
+            {
+                return LogAndReturnFailure(clearResult);
             }
         }
 

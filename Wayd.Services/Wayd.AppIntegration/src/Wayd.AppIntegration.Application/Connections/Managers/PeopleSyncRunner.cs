@@ -5,7 +5,7 @@ using Wayd.Common.Application.Employees.Commands;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Identity.Users;
 using Wayd.Common.Domain.Enums.AppIntegrations;
-using Wayd.Integrations.MicrosoftGraph;
+using Wayd.Common.Application.Interfaces.ExternalPeople;
 
 namespace Wayd.AppIntegration.Application.Connections.Managers;
 

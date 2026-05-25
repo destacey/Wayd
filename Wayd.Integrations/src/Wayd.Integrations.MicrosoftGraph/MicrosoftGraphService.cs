@@ -1,24 +1,20 @@
-using Azure.Identity;
+﻿using Azure.Identity;
 using CSharpFunctionalExtensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Integrations.MicrosoftGraph.Model;
 
 namespace Wayd.Integrations.MicrosoftGraph;
 
-public sealed class MicrosoftGraphService : IEntraEmployeeSource
+public sealed class MicrosoftGraphService(ILogger<MicrosoftGraphService> logger) : IEntraEmployeeSource
 {
-    private static readonly string[] _selectOptions = new string[] { "id", "userPrincipalName", "userType", "accountEnabled", "givenName", "surname", "jobTitle", "department", "officeLocation", "mail", "manager", "employeeHireDate" };
-    private const int _maxPageSize = 100; // graph api max page size is 999
+    private static readonly string[] _selectOptions = ["id", "userPrincipalName", "userType", "accountEnabled", "givenName", "surname", "jobTitle", "department", "officeLocation", "mail", "manager", "employeeHireDate"];
+    private const int MaxPageSize = 100; // graph api max page size is 999
 
-    private readonly ILogger<MicrosoftGraphService> _logger;
-
-    public MicrosoftGraphService(ILogger<MicrosoftGraphService> logger)
-    {
-        _logger = logger;
-    }
+    private readonly ILogger<MicrosoftGraphService> _logger = logger;
 
     public async Task<Result<IEnumerable<IExternalEmployee>>> GetEmployees(EntraConnectionCredentials credentials, CancellationToken cancellationToken)
     {
@@ -26,18 +22,18 @@ public sealed class MicrosoftGraphService : IEntraEmployeeSource
         {
             var graphServiceClient = BuildClient(credentials);
 
-            var users = string.IsNullOrWhiteSpace(credentials.AllUsersGroupObjectId)
-                ? await GetActiveDirectoryUsers(graphServiceClient, credentials.IncludeDisabledUsers, cancellationToken)
+            var members = string.IsNullOrWhiteSpace(credentials.AllUsersGroupObjectId)
+                ? await GetEntraMembers(graphServiceClient, credentials.IncludeDisabledUsers, cancellationToken)
                 : await GetGroupMembers(graphServiceClient, credentials.AllUsersGroupObjectId!, credentials.IncludeDisabledUsers, cancellationToken);
 
-            if (users is null || users.Count == 0)
+            if (members is null || members.Count == 0)
                 return Result.Failure<IEnumerable<IExternalEmployee>>("No employees found in Entra via Microsoft Graph");
 
-            _logger.LogInformation("Found {UserCount} users in Entra tenant {TenantId} via Microsoft Graph", users.Count, credentials.TenantId);
+            _logger.LogInformation("Found {MemberCount} members in Entra tenant {TenantId} via Microsoft Graph", members.Count, credentials.TenantId);
 
-            users = [.. users.Where(u => !string.IsNullOrWhiteSpace(u.Id) && !string.IsNullOrEmpty(u.GivenName) && !string.IsNullOrEmpty(u.Surname))];
-            List<AzureAdEmployee> employees = new(users.Count);
-            foreach (var user in users)
+            members = [.. members.Where(u => !string.IsNullOrWhiteSpace(u.Id) && !string.IsNullOrEmpty(u.GivenName) && !string.IsNullOrEmpty(u.Surname))];
+            List<AzureAdEmployee> employees = new(members.Count);
+            foreach (var user in members)
             {
                 employees.Add(new AzureAdEmployee(user));
             }
@@ -69,10 +65,10 @@ public sealed class MicrosoftGraphService : IEntraEmployeeSource
             .TransitiveMembers
             .GetAsync(requestConfiguration =>
             {
-                requestConfiguration.QueryParameters.Expand = new string[] { "manager($select=id)" };
+                requestConfiguration.QueryParameters.Expand = ["manager($select=id)"];
                 requestConfiguration.QueryParameters.Select = _selectOptions;
                 requestConfiguration.QueryParameters.Filter = filter;
-                requestConfiguration.QueryParameters.Top = _maxPageSize;
+                requestConfiguration.QueryParameters.Top = MaxPageSize;
             }, cancellationToken);
 
         List<User> users = [];
@@ -97,33 +93,33 @@ public sealed class MicrosoftGraphService : IEntraEmployeeSource
         return users;
     }
 
-    private async Task<List<User>> GetActiveDirectoryUsers(GraphServiceClient graphServiceClient, bool includeDisabled, CancellationToken cancellationToken)
+    private async Task<List<User>> GetEntraMembers(GraphServiceClient graphServiceClient, bool includeDisabled, CancellationToken cancellationToken)
     {
         var filter = includeDisabled
             ? "usertype eq 'Member'"
             : "accountEnabled eq true and usertype eq 'Member'";
 
         //https://docs.microsoft.com/en-us/graph/aad-advanced-queries?tabs=csharp
-        var adUsers = await graphServiceClient.Users
+        var members = await graphServiceClient.Users
             .GetAsync(requestConfiguration =>
             {
-                requestConfiguration.QueryParameters.Expand = new string[] { "manager($select=id)" };
+                requestConfiguration.QueryParameters.Expand = ["manager($select=id)"];
                 requestConfiguration.QueryParameters.Select = _selectOptions;
                 requestConfiguration.QueryParameters.Filter = filter;
-                requestConfiguration.QueryParameters.Top = _maxPageSize;
+                requestConfiguration.QueryParameters.Top = MaxPageSize;
             }, cancellationToken);
 
         List<User> users = [];
-        if (adUsers is null || adUsers.Value is null)
+        if (members is null || members.Value is null)
         {
-            _logger.LogWarning("GetActiveDirectoryUsers:  No users found in Entra via Microsoft Graph");
+            _logger.LogWarning("GetEntraMembers:  No members found in Entra via Microsoft Graph");
             return users;
         }
 
         var pageIterator = PageIterator<User, UserCollectionResponse>
             .CreatePageIterator(
                 graphServiceClient,
-                adUsers,
+                members,
                 (u) =>
                 {
                     users.Add(u);

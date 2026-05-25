@@ -1,7 +1,4 @@
-using CSharpFunctionalExtensions;
-using Wayd.Common.Application.Interfaces;
-
-namespace Wayd.Integrations.MicrosoftGraph;
+﻿namespace Wayd.Common.Application.Interfaces.ExternalPeople;
 
 /// <summary>
 /// Fetches employees from a specific Entra (Microsoft Graph) tenant identified by the supplied

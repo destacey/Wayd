@@ -22,6 +22,7 @@ using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Integrations.Abstractions;
 using Wayd.Integrations.AzureDevOps;
 using Wayd.Integrations.MicrosoftGraph;
+using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
 using NodaTime;
 

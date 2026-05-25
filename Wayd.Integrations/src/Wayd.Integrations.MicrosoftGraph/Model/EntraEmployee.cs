@@ -6,9 +6,9 @@ using NodaTime;
 
 namespace Wayd.Integrations.MicrosoftGraph.Model;
 
-public sealed record AzureAdEmployee : IExternalEmployee
+public sealed record EntraEmployee : IExternalEmployee
 {
-    public AzureAdEmployee(User user)
+    public EntraEmployee(User user)
     {
         EmployeeNumber = Guard.Against.NullOrWhiteSpace(user.Id);
         Name = new PersonName(Guard.Against.NullOrWhiteSpace(user.GivenName), null, Guard.Against.NullOrWhiteSpace(user.Surname));

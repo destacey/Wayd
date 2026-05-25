@@ -32,10 +32,10 @@ public sealed class MicrosoftGraphService(ILogger<MicrosoftGraphService> logger)
             _logger.LogInformation("Found {MemberCount} members in Entra tenant {TenantId} via Microsoft Graph", members.Count, credentials.TenantId);
 
             members = [.. members.Where(u => !string.IsNullOrWhiteSpace(u.Id) && !string.IsNullOrEmpty(u.GivenName) && !string.IsNullOrEmpty(u.Surname))];
-            List<AzureAdEmployee> employees = new(members.Count);
+            List<EntraEmployee> employees = new(members.Count);
             foreach (var user in members)
             {
-                employees.Add(new AzureAdEmployee(user));
+                employees.Add(new EntraEmployee(user));
             }
 
             _logger.LogInformation("Returning {EmployeeCount} employees from Entra tenant {TenantId} via Microsoft Graph", employees.Count, credentials.TenantId);

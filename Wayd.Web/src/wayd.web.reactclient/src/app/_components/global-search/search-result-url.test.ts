@@ -11,8 +11,8 @@ const item = (
 describe('getSearchResultUrl', () => {
   describe('Work', () => {
     it('returns work item url', () => {
-      expect(getSearchResultUrl(item('WorkItem', 'AHTG-123', 'ws-1'))).toBe(
-        '/work/workspaces/ws-1/work-items/AHTG-123',
+      expect(getSearchResultUrl(item('WorkItem', 'WAYD-123', 'ws-1'))).toBe(
+        '/work/workspaces/ws-1/work-items/WAYD-123',
       )
     })
 

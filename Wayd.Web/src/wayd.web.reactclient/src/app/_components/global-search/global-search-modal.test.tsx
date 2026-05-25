@@ -90,13 +90,13 @@ const mockCategories = [
     items: [
       {
         title: 'Fix the login bug',
-        key: 'AHTG-100',
+        key: 'WAYD-100',
         entityType: 'WorkItem',
         auxKey: 'ws-1',
       },
       {
         title: 'Add dark mode',
-        key: 'AHTG-101',
+        key: 'WAYD-101',
         entityType: 'WorkItem',
         auxKey: 'ws-1',
         subtitle: 'My Workspace',
@@ -224,7 +224,7 @@ describe('GlobalSearchModal', () => {
     it('renders result items with key and title', async () => {
       await renderWithResults()
       expect(screen.getByText('Fix the login bug')).toBeInTheDocument()
-      expect(screen.getByText('AHTG-100')).toBeInTheDocument()
+      expect(screen.getByText('WAYD-100')).toBeInTheDocument()
     })
 
     it('renders subtitle when present', async () => {

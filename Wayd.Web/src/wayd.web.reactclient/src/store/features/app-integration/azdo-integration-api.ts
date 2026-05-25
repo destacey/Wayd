@@ -59,7 +59,11 @@ export const azdoIntegrationApi = apiSlice.injectEndpoints({
         }
       },
       invalidatesTags: (result, error, arg) => {
-        return [{ type: QueryTags.AzdoConnectionDetail, id: arg }]
+        return [
+          { type: QueryTags.AzdoConnectionDetail, id: arg },
+          { type: QueryTags.ConnectionDetail, id: arg },
+          { type: QueryTags.Connection, id: arg },
+        ]
       },
     }),
 
@@ -81,7 +85,11 @@ export const azdoIntegrationApi = apiSlice.injectEndpoints({
         }
       },
       invalidatesTags: (result, error, arg) => {
-        return [{ type: QueryTags.AzdoConnectionDetail, id: arg.id }]
+        return [
+          { type: QueryTags.AzdoConnectionDetail, id: arg.id },
+          { type: QueryTags.ConnectionDetail, id: arg.id },
+          { type: QueryTags.Connection, id: arg.id },
+        ]
       },
     }),
 
@@ -103,7 +111,11 @@ export const azdoIntegrationApi = apiSlice.injectEndpoints({
         }
       },
       invalidatesTags: (result, error, arg) => {
-        return [{ type: QueryTags.AzdoConnectionDetail, id: arg.id }]
+        return [
+          { type: QueryTags.AzdoConnectionDetail, id: arg.id },
+          { type: QueryTags.ConnectionDetail, id: arg.id },
+          { type: QueryTags.Connection, id: arg.id },
+        ]
       },
     }),
 

@@ -1,14 +1,11 @@
-using CSharpFunctionalExtensions;
-using FluentAssertions;
+﻿using FluentAssertions;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Moq;
-using NodaTime;
 using Wayd.AppIntegration.Application.Connections.Commands.AzureDevOps;
 using Wayd.AppIntegration.Application.Tests.Infrastructure;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Application.Interfaces;
-using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Domain.Models;
 using Wayd.Tests.Shared;
 

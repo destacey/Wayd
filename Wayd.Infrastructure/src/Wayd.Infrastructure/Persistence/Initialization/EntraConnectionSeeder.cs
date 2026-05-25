@@ -49,8 +49,6 @@ public class EntraConnectionSeeder(
             configurationIsValid: true,
             timestamp: timestamp);
 
-        connection.Activate(timestamp);
-
         dbContext.EntraConnections.Add(connection);
         await dbContext.SaveChangesAsync(cancellationToken);
 

@@ -31,8 +31,9 @@ public abstract class Connection : BaseSoftDeletableEntity, IActivatable
 
     /// <summary>
     /// Indicates whether the connection is active or not.  Inactive connections are not included in the synchronization process.
+    /// New connections default to active; admins toggle this via the Activate/Deactivate actions on the detail page.
     /// </summary>
-    public bool IsActive { get; protected set; } = false;
+    public bool IsActive { get; protected set; } = true;
 
     /// <summary>
     /// The value indicating whether this instance has a valid configuration.

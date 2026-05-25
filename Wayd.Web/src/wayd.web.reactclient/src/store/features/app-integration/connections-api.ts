@@ -111,6 +111,38 @@ export const connectionsApi = apiSlice.injectEndpoints({
       invalidatesTags: [{ type: QueryTags.Connection }],
     }),
 
+    activateConnection: builder.mutation<void, string>({
+      queryFn: async (id) => {
+        try {
+          const data = await getConnectionsClient().activateConnection(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, id) => [
+        { type: QueryTags.Connection, id },
+        { type: QueryTags.ConnectionDetail, id },
+      ],
+    }),
+
+    deactivateConnection: builder.mutation<void, string>({
+      queryFn: async (id) => {
+        try {
+          const data = await getConnectionsClient().deactivateConnection(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, id) => [
+        { type: QueryTags.Connection, id },
+        { type: QueryTags.ConnectionDetail, id },
+      ],
+    }),
+
     getSyncRuns: builder.query<
       SyncRunListDto[],
       { connectionId: string; sinceIso?: string }
@@ -177,6 +209,8 @@ export const {
   useCreateConnectionMutation,
   useUpdateConnectionMutation,
   useDeleteConnectionMutation,
+  useActivateConnectionMutation,
+  useDeactivateConnectionMutation,
   useGetSyncRunsQuery,
   useGetSyncRunQuery,
   useRunSyncMutation,

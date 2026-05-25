@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
+using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.AppIntegration.Domain.Models.OpenAI;
 
 namespace Wayd.Infrastructure.Persistence.Initialization;
@@ -44,6 +45,7 @@ internal sealed class ConnectionSecretBackfill
         await BackfillType<AzureDevOpsBoardsConnection>(legacyIds, cancellationToken);
         await BackfillType<AzureOpenAIConnection>(legacyIds, cancellationToken);
         await BackfillType<OpenAIConnection>(legacyIds, cancellationToken);
+        await BackfillType<EntraConnection>(legacyIds, cancellationToken);
     }
 
     private async Task<HashSet<Guid>> FindLegacyConnectionIds(CancellationToken cancellationToken)

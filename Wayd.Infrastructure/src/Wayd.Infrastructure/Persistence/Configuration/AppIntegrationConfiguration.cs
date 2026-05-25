@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
+using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.AppIntegration.Domain.Models.OpenAI;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -20,7 +20,8 @@ public class ConnectionConfig : IEntityTypeConfiguration<Connection>
         builder.HasDiscriminator(c => c.Connector)
             .HasValue<AzureDevOpsBoardsConnection>(Connector.AzureDevOps)
             .HasValue<AzureOpenAIConnection>(Connector.AzureOpenAI)
-            .HasValue<OpenAIConnection>(Connector.OpenAI);
+            .HasValue<OpenAIConnection>(Connector.OpenAI)
+            .HasValue<EntraConnection>(Connector.Entra);
 
         builder.HasIndex(c => new { c.Id, c.IsDeleted })
             .HasFilter("[IsDeleted] = 0");
@@ -94,6 +95,16 @@ public class AzureOpenAIConnectionConfig : IEntityTypeConfiguration<AzureOpenAIC
 public class OpenAIConnectionConfig : IEntityTypeConfiguration<OpenAIConnection>
 {
     public void Configure(EntityTypeBuilder<OpenAIConnection> builder)
+    {
+        builder.Property(c => c.Configuration)
+            .HasEncryptedJsonConversion()
+            .HasColumnName("Configuration");
+    }
+}
+
+public class EntraConnectionConfig : IEntityTypeConfiguration<EntraConnection>
+{
+    public void Configure(EntityTypeBuilder<EntraConnection> builder)
     {
         builder.Property(c => c.Configuration)
             .HasEncryptedJsonConversion()

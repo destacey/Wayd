@@ -2,8 +2,10 @@
 using Mapster;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureOpenAI;
+using Wayd.AppIntegration.Application.Connections.Dtos.Entra;
 using Wayd.AppIntegration.Domain.Interfaces;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
+using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.Common.Application.Dtos;
 
 namespace Wayd.AppIntegration.Application.Connections.Dtos;
@@ -12,6 +14,7 @@ namespace Wayd.AppIntegration.Application.Connections.Dtos;
 //[JsonDerivedType(typeof(ConnectionDetailsDto), typeDiscriminator: "connection")]
 [JsonDerivedType(typeof(AzureDevOpsConnectionDetailsDto), typeDiscriminator: "azure-devops")]
 [JsonDerivedType(typeof(AzureOpenAIConnectionDetailsDto), typeDiscriminator: "azure-openai")]
+[JsonDerivedType(typeof(EntraConnectionDetailsDto), typeDiscriminator: "entra")]
 // Note: OpenAI discriminator reserved for future implementation
 // [JsonDerivedType(typeof(OpenAIConnectionDetailsDto), typeDiscriminator: "openai")]
 public record ConnectionDetailsDto : IMapFrom<Connection>
@@ -58,6 +61,7 @@ public record ConnectionDetailsDto : IMapFrom<Connection>
         config.NewConfig<Connection, ConnectionDetailsDto>()
             .Include<AzureDevOpsBoardsConnection, AzureDevOpsConnectionDetailsDto>()
             .Include<AzureOpenAIConnection, AzureOpenAIConnectionDetailsDto>()
+            .Include<EntraConnection, EntraConnectionDetailsDto>()
             // OpenAI mapping reserved for future: .Include<OpenAIConnection, OpenAIConnectionDetailsDto>()
             .Map(dest => dest.Connector, src => SimpleNavigationDto.FromEnum(src.Connector))
             .Map(dest => dest.CanSync, src => (src as ISyncableConnection) != null ? ((ISyncableConnection)src).CanSync : (bool?)null);

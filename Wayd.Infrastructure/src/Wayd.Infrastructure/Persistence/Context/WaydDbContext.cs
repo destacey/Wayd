@@ -1,10 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
+using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.FeatureManagement;
-using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Models.Goals;
 using Wayd.Goals.Application.Persistence;
 using Wayd.Infrastructure.Common.Services;
@@ -56,6 +56,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<Connection> Connections => Set<Connection>();
     public DbSet<AzureDevOpsBoardsConnection> AzureDevOpsBoardsConnections => Set<AzureDevOpsBoardsConnection>();
     public DbSet<AzureOpenAIConnection> AzureOpenAIConnections => Set<AzureOpenAIConnection>();
+    public DbSet<EntraConnection> EntraConnections => Set<EntraConnection>();
     public DbSet<SyncRun> SyncRuns => Set<SyncRun>();
 
     #endregion IAppIntegration

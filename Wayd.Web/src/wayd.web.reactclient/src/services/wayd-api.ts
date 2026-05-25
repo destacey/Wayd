@@ -29360,6 +29360,9 @@ export interface AzureDevOpsConnectionListDto extends ConnectionListDto {
 export interface AzureOpenAIConnectionListDto extends ConnectionListDto {
 }
 
+export interface EntraConnectionListDto extends ConnectionListDto {
+}
+
 export interface ConnectorListDto {
     id: number;
     name: string;
@@ -29429,6 +29432,18 @@ export interface AzureOpenAIConnectionConfigurationDto {
     jsonModePreferred: boolean;
 }
 
+export interface EntraConnectionDetailsDto extends ConnectionDetailsDto {
+    configuration: EntraConnectionConfigurationDto;
+}
+
+export interface EntraConnectionConfigurationDto {
+    tenantId: string;
+    clientId: string;
+    clientSecret: string;
+    allUsersGroupObjectId?: string | undefined;
+    includeDisabledUsers: boolean;
+}
+
 export interface CreateConnectionRequest {
     /** The name of the connection. */
     name: string;
@@ -29451,6 +29466,20 @@ export interface CreateAzureOpenAIConnectionRequest extends CreateConnectionRequ
     apiKey: string;
     /** The OpenAI model deployment name to use for this connection (e.g. "gpt-4o") */
     deploymentName: string;
+}
+
+export interface CreateEntraConnectionRequest extends CreateConnectionRequest {
+    /** The Entra ID (Azure AD) tenant identifier. */
+    tenantId: string;
+    /** The application (client) identifier for the Entra app registration used to call Microsoft Graph. */
+    clientId: string;
+    /** The client secret for the Entra app registration. */
+    clientSecret: string;
+    /** Optional Entra group object ID to scope the user query to. When null, all member users in
+the tenant are queried. */
+    allUsersGroupObjectId?: string | undefined;
+    /** When true, users with disabled accounts are also included in the sync. */
+    includeDisabledUsers?: boolean;
 }
 
 export interface UpdateConnectionRequest {
@@ -29479,6 +29508,20 @@ export interface UpdateAzureOpenAIConnectionRequest extends UpdateConnectionRequ
     deploymentName: string;
 }
 
+export interface UpdateEntraConnectionRequest extends UpdateConnectionRequest {
+    /** The Entra ID (Azure AD) tenant identifier. */
+    tenantId: string;
+    /** The application (client) identifier for the Entra app registration used to call Microsoft Graph. */
+    clientId: string;
+    /** The client secret for the Entra app registration. */
+    clientSecret: string;
+    /** Optional Entra group object ID to scope the user query to. When null, all member users in
+the tenant are queried. */
+    allUsersGroupObjectId?: string | undefined;
+    /** When true, users with disabled accounts are also included in the sync. */
+    includeDisabledUsers?: boolean;
+}
+
 export enum SyncType {
     Full = "Full",
     Differential = "Differential",
@@ -29505,6 +29548,7 @@ export enum Connector {
     AzureDevOps = "AzureDevOps",
     AzureOpenAI = "AzureOpenAI",
     OpenAI = "OpenAI",
+    Entra = "Entra",
 }
 
 export enum SyncRunStatus {

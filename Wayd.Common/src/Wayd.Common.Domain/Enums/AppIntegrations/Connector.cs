@@ -12,5 +12,8 @@ public enum Connector
     AzureOpenAI = 1,
 
     [Display(Name = "OpenAI", Description = "The OpenAI connector enables Wayd to connect to OpenAI API for LLM capabilities.")]
-    OpenAI = 2
+    OpenAI = 2,
+
+    [Display(Name = "Entra", Description = "The Entra connector enables Wayd to synchronize people (employees and contingent workers) from Microsoft Entra ID via Microsoft Graph.")]
+    Entra = 3
 }

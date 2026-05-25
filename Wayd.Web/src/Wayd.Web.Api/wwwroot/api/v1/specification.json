@@ -21521,7 +21521,7 @@
           "Connections"
         ],
         "summary": "Trigger a sync for a connection.",
-        "description": "Enqueues a background job that runs the sync pipeline for this connection only. Defaults to a differential sync; pass 'syncType=Full' for a full sync.",
+        "description": "Enqueues a background job that runs the sync pipeline for this connection only. Routes by connector category — work-sync connectors run a work sync (defaults to differential; pass 'syncType=Full' for full), people-sync connectors run a people sync.",
         "operationId": "Connections_RunSync",
         "parameters": [
           {
@@ -34508,7 +34508,8 @@
           "propertyName": "$type",
           "mapping": {
             "azure-devops": "#/components/schemas/AzureDevOpsConnectionListDto",
-            "azure-openai": "#/components/schemas/AzureOpenAIConnectionListDto"
+            "azure-openai": "#/components/schemas/AzureOpenAIConnectionListDto",
+            "entra": "#/components/schemas/EntraConnectionListDto"
           }
         },
         "additionalProperties": false,
@@ -34578,6 +34579,17 @@
           }
         ]
       },
+      "EntraConnectionListDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConnectionListDto"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false
+          }
+        ]
+      },
       "ConnectorListDto": {
         "type": "object",
         "additionalProperties": false,
@@ -34605,7 +34617,8 @@
           "propertyName": "$type",
           "mapping": {
             "azure-devops": "#/components/schemas/AzureDevOpsConnectionDetailsDto",
-            "azure-openai": "#/components/schemas/AzureOpenAIConnectionDetailsDto"
+            "azure-openai": "#/components/schemas/AzureOpenAIConnectionDetailsDto",
+            "entra": "#/components/schemas/EntraConnectionDetailsDto"
           }
         },
         "additionalProperties": false,
@@ -34869,13 +34882,61 @@
           }
         }
       },
+      "EntraConnectionDetailsDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConnectionDetailsDto"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "configuration"
+            ],
+            "properties": {
+              "configuration": {
+                "$ref": "#/components/schemas/EntraConnectionConfigurationDto"
+              }
+            }
+          }
+        ]
+      },
+      "EntraConnectionConfigurationDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenantId",
+          "clientId",
+          "clientSecret",
+          "includeDisabledUsers"
+        ],
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecret": {
+            "type": "string"
+          },
+          "allUsersGroupObjectId": {
+            "type": "string",
+            "nullable": true
+          },
+          "includeDisabledUsers": {
+            "type": "boolean"
+          }
+        }
+      },
       "CreateConnectionRequest": {
         "type": "object",
         "discriminator": {
           "propertyName": "$type",
           "mapping": {
             "azure-devops": "#/components/schemas/CreateAzureDevOpsConnectionRequest",
-            "azure-openai": "#/components/schemas/CreateAzureOpenAIConnectionRequest"
+            "azure-openai": "#/components/schemas/CreateAzureOpenAIConnectionRequest",
+            "entra": "#/components/schemas/CreateEntraConnectionRequest"
           }
         },
         "x-abstract": true,
@@ -34959,13 +35020,53 @@
           }
         ]
       },
+      "CreateEntraConnectionRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CreateConnectionRequest"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "tenantId",
+              "clientId",
+              "clientSecret"
+            ],
+            "properties": {
+              "tenantId": {
+                "type": "string",
+                "description": "The Entra ID (Azure AD) tenant identifier."
+              },
+              "clientId": {
+                "type": "string",
+                "description": "The application (client) identifier for the Entra app registration used to call Microsoft Graph."
+              },
+              "clientSecret": {
+                "type": "string",
+                "description": "The client secret for the Entra app registration."
+              },
+              "allUsersGroupObjectId": {
+                "type": "string",
+                "description": "Optional Entra group object ID to scope the user query to. When null, all member users in\nthe tenant are queried.",
+                "nullable": true
+              },
+              "includeDisabledUsers": {
+                "type": "boolean",
+                "description": "When true, users with disabled accounts are also included in the sync."
+              }
+            }
+          }
+        ]
+      },
       "UpdateConnectionRequest": {
         "type": "object",
         "discriminator": {
           "propertyName": "$type",
           "mapping": {
             "azure-devops": "#/components/schemas/UpdateAzureDevOpsConnectionRequest",
-            "azure-openai": "#/components/schemas/UpdateAzureOpenAIConnectionRequest"
+            "azure-openai": "#/components/schemas/UpdateAzureOpenAIConnectionRequest",
+            "entra": "#/components/schemas/UpdateEntraConnectionRequest"
           }
         },
         "x-abstract": true,
@@ -35053,6 +35154,45 @@
               "deploymentName": {
                 "type": "string",
                 "description": "The OpenAI model deployment name to use for this connection (e.g. \"gpt-4o\")"
+              }
+            }
+          }
+        ]
+      },
+      "UpdateEntraConnectionRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UpdateConnectionRequest"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "tenantId",
+              "clientId",
+              "clientSecret"
+            ],
+            "properties": {
+              "tenantId": {
+                "type": "string",
+                "description": "The Entra ID (Azure AD) tenant identifier."
+              },
+              "clientId": {
+                "type": "string",
+                "description": "The application (client) identifier for the Entra app registration used to call Microsoft Graph."
+              },
+              "clientSecret": {
+                "type": "string",
+                "description": "The client secret for the Entra app registration."
+              },
+              "allUsersGroupObjectId": {
+                "type": "string",
+                "description": "Optional Entra group object ID to scope the user query to. When null, all member users in\nthe tenant are queried.",
+                "nullable": true
+              },
+              "includeDisabledUsers": {
+                "type": "boolean",
+                "description": "When true, users with disabled accounts are also included in the sync."
               }
             }
           }
@@ -35153,12 +35293,14 @@
         "x-enumNames": [
           "AzureDevOps",
           "AzureOpenAI",
-          "OpenAI"
+          "OpenAI",
+          "Entra"
         ],
         "enum": [
           "AzureDevOps",
           "AzureOpenAI",
-          "OpenAI"
+          "OpenAI",
+          "Entra"
         ]
       },
       "SyncRunStatus": {

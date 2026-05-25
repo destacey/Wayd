@@ -4,7 +4,6 @@ using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Graph;
 using Wayd.Common.Application.Identity;
 using Wayd.Common.Application.Identity.OidcProviders;
 
@@ -17,7 +16,6 @@ internal partial class UserService(
     RoleManager<ApplicationRole> roleManager,
     WaydDbContext db,
     IEventPublisher events,
-    GraphServiceClient graphServiceClient,
     ISender sender,
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser,
@@ -30,7 +28,6 @@ internal partial class UserService(
     private readonly RoleManager<ApplicationRole> _roleManager = roleManager;
     private readonly WaydDbContext _db = db;
     private readonly IEventPublisher _events = events;
-    private readonly GraphServiceClient _graphServiceClient = graphServiceClient;
     private readonly ISender _sender = sender;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;

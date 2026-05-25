@@ -9,12 +9,6 @@
             "Scopes": "access_as_user",
             "RootIssuer": "https://sts.windows.net/<Your AzureAd TenantId>/"
         },
-        "GraphApi": {
-            "Enabled": true,
-            "BaseUrl": "https://graph.microsoft.com/beta",
-            "Scopes": ".default",
-            "AllEmployeesGroupObjectId": null
-        },
         "LocalJwt": {
             "Secret": "DEV-ONLY-SECRET-REPLACE-IN-PRODUCTION!!",
             "Issuer": "https://wayd.dev",

@@ -1,9 +1,7 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Identity.Web;
-using Wayd.Infrastructure.GraphApi;
-using Wayd.Integrations.MicrosoftGraph;
 using Serilog;
 
 namespace Wayd.Infrastructure.Auth.AzureAd;
@@ -31,15 +29,6 @@ internal static class ConfigureServices
                  msIdentityOptions => config.GetSection(AzureAdSettings.SectionName).Bind(msIdentityOptions))
             .EnableTokenAcquisitionToCallDownstreamApi(clientAppOptions => config.GetSection(AzureAdSettings.SectionName).Bind(clientAppOptions))
             .AddInMemoryTokenCaches();
-
-        services.AddScoped(provider =>
-        {
-            var azureAdSettings = AzureAdSettings.GetConfig(config);
-            GraphHelper.InitializeGraphForAppOnlyAuth(azureAdSettings);
-            return GraphHelper.GetAppOnlyClient();
-        });
-
-        services.AddScoped<MicrosoftGraphService>();
 
         return services;
     }

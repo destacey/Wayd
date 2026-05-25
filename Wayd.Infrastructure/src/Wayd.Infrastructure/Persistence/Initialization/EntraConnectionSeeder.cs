@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Wayd.AppIntegration.Domain.Models.Entra;
@@ -15,18 +15,12 @@ namespace Wayd.Infrastructure.Persistence.Initialization;
 /// Insert-only: never updates an existing row. Once seeded, the database is the source of truth —
 /// re-syncing from config on every startup would silently undo admin edits made through the UI.
 /// </remarks>
-public class EntraConnectionSeeder : ICustomSeeder
+public class EntraConnectionSeeder(
+    IOptions<AzureAdSettings> azureAdSettings,
+    ILogger<EntraConnectionSeeder> logger) : ICustomSeeder
 {
-    private readonly AzureAdSettings _azureAdSettings;
-    private readonly ILogger<EntraConnectionSeeder> _logger;
-
-    public EntraConnectionSeeder(
-        IOptions<AzureAdSettings> azureAdSettings,
-        ILogger<EntraConnectionSeeder> logger)
-    {
-        _azureAdSettings = azureAdSettings.Value;
-        _logger = logger;
-    }
+    private readonly AzureAdSettings _azureAdSettings = azureAdSettings.Value;
+    private readonly ILogger<EntraConnectionSeeder> _logger = logger;
 
     public async Task Initialize(WaydDbContext dbContext, IDateTimeProvider dateTimeProvider, CancellationToken cancellationToken)
     {

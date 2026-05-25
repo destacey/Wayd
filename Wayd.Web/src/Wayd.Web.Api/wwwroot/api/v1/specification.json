@@ -34516,6 +34516,7 @@
         "required": [
           "name",
           "connector",
+          "category",
           "$type",
           "id",
           "isActive",
@@ -34536,6 +34537,9 @@
             "nullable": true
           },
           "connector": {
+            "$ref": "#/components/schemas/SimpleNavigationDto"
+          },
+          "category": {
             "$ref": "#/components/schemas/SimpleNavigationDto"
           },
           "isActive": {
@@ -34625,6 +34629,7 @@
         "required": [
           "name",
           "connector",
+          "category",
           "$type",
           "id",
           "isActive",
@@ -34645,6 +34650,9 @@
             "nullable": true
           },
           "connector": {
+            "$ref": "#/components/schemas/SimpleNavigationDto"
+          },
+          "category": {
             "$ref": "#/components/schemas/SimpleNavigationDto"
           },
           "isActive": {

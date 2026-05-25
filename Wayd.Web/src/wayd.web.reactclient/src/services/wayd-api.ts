@@ -29347,6 +29347,7 @@ export interface ConnectionListDto {
     name: string;
     systemId?: string | undefined;
     connector: SimpleNavigationDto;
+    category: SimpleNavigationDto;
     isActive: boolean;
     isValidConfiguration: boolean;
     isSyncEnabled?: boolean | undefined;
@@ -29374,6 +29375,7 @@ export interface ConnectionDetailsDto {
     name: string;
     description?: string | undefined;
     connector: SimpleNavigationDto;
+    category: SimpleNavigationDto;
     isActive: boolean;
     isValidConfiguration: boolean;
     canSync?: boolean | undefined;

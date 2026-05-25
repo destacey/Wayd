@@ -111,6 +111,40 @@ public class SyncAzureDevOpsConnectionConfigurationCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WhenLiveRegistrationHasDifferentInternalId_RebindsToLiveRegistration()
+    {
+        // Arrange — the underlying Wayd.Work.WorkProcess was deleted and recreated
+        // (same ExternalId, new InternalId). The handler should rebind the connection
+        // to the live registration rather than leave the stale InternalId in place.
+        var externalId = Guid.CreateVersion7();
+        var staleInternalId = Guid.CreateVersion7();
+        var connection = CreateConnectionWithProcess(externalId, staleInternalId);
+
+        var azdoProcess = AzureDevOpsBoardsWorkProcess.Create(externalId, "Agile", "test");
+
+        var liveInternalId = Guid.CreateVersion7();
+        var liveRegistration = new IntegrationRegistration<Guid, Guid>(
+            externalId,
+            IntegrationState<Guid>.Create(liveInternalId, true));
+
+        var command = new SyncAzureDevOpsConnectionConfigurationCommand(
+            connection.Id,
+            [azdoProcess],
+            [],
+            [liveRegistration],
+            []);
+
+        // Act
+        var result = await _sut.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var process = connection.Configuration.WorkProcesses.Single();
+        process.IntegrationState.Should().NotBeNull();
+        process.IntegrationState!.InternalId.Should().Be(liveInternalId);
+    }
+
+    [Fact]
     public async Task Handle_WhenNoIntegrationState_DoesNotInvokeHealing()
     {
         // Arrange — work process has never been integrated; healing path should be a no-op.

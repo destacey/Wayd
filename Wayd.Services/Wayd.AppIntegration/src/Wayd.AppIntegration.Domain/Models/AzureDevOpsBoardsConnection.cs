@@ -320,15 +320,28 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
             // if already has integration, only update if the active flag changed
             if (workProcess.HasIntegration)
             {
-                if (workProcess.IntegrationState is not null && workProcess.IntegrationState.IsActive == registration.IntegrationState.IsActive)
+                // If the live registration points at a different InternalId than what we hold,
+                // the underlying Wayd.Work.WorkProcess was deleted and recreated. Rebind to
+                // the live row rather than continuing to point at a dead id.
+                if (workProcess.IntegrationState is not null
+                    && workProcess.IntegrationState.InternalId != registration.IntegrationState.InternalId)
                 {
-                    // no change
-                    return Result.Success();
+                    var replaceResult = workProcess.ReplaceIntegrationState(registration.IntegrationState);
+                    if (replaceResult.IsFailure)
+                        return replaceResult;
                 }
+                else
+                {
+                    if (workProcess.IntegrationState is not null && workProcess.IntegrationState.IsActive == registration.IntegrationState.IsActive)
+                    {
+                        // no change
+                        return Result.Success();
+                    }
 
-                var setResult = workProcess.UpdateIntegrationState(registration.IntegrationState.IsActive);
-                if (setResult.IsFailure)
-                    return setResult;
+                    var setResult = workProcess.UpdateIntegrationState(registration.IntegrationState.IsActive);
+                    if (setResult.IsFailure)
+                        return setResult;
+                }
             }
             else
             {

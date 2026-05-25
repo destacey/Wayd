@@ -148,6 +148,31 @@ public class AzureDevOpsBoardsConnectionTests
     }
 
     [Fact]
+    public void UpdateWorkProcessIntegrationState_WhenInternalIdDiffers_RebindsToNewState()
+    {
+        // The underlying Wayd.Work.WorkProcess was deleted and recreated with a new InternalId.
+        // The connection should rebind to the live registration rather than keep the stale id.
+        var externalId = Guid.CreateVersion7();
+        var staleInternalId = Guid.CreateVersion7();
+        var workProcess = AzureDevOpsBoardsWorkProcess.Create(externalId, "Agile", null);
+        workProcess.AddIntegrationState(IntegrationState<Guid>.Create(staleInternalId, true));
+
+        var config = new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT", processes: [workProcess]);
+        var connection = AzureDevOpsBoardsConnection.Create(
+            "Test Connection", null, "test-system-id", config, true, null, _dateTimeProvider.Now);
+
+        var liveInternalId = Guid.CreateVersion7();
+        var registration = new IntegrationRegistration<Guid, Guid>(
+            externalId,
+            IntegrationState<Guid>.Create(liveInternalId, true));
+
+        var result = connection.UpdateWorkProcessIntegrationState(registration, _dateTimeProvider.Now);
+
+        result.IsSuccess.Should().BeTrue();
+        connection.Configuration.WorkProcesses.Single().IntegrationState!.InternalId.Should().Be(liveInternalId);
+    }
+
+    [Fact]
     public void ClearWorkProcessIntegrationState_WhenIntegrationExists_ShouldRemoveIt()
     {
         // Arrange

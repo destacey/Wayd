@@ -73,7 +73,7 @@ public static class ConfigureServices
 
         // INTEGRATIONS
         services.AddTransient<IAzureDevOpsService, AzureDevOpsService>();
-        services.AddScoped<IExternalEmployeeDirectoryService, MicrosoftGraphService>();
+        services.AddScoped<IEntraEmployeeSource, MicrosoftGraphService>();
 
         // Generic sync orchestration: one IWorkItemSource and one descriptor builder per connector.
         // (IWorkItemSourceFactory is auto-registered via the IScopedService marker scan.)

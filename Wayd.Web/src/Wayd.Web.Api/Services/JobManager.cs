@@ -3,7 +3,6 @@ using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Exceptions;
-using Wayd.Common.Application.Interfaces;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Planning.Application.Iterations.Queries;
@@ -21,30 +20,34 @@ namespace Wayd.Web.Api.Services;
 
 public class JobManager(
     ILogger<JobManager> logger,
-    IEmployeeService employeeService,
     IWorkSyncRunner workSyncRunner,
+    IPeopleSyncRunner peopleSyncRunner,
     ISender sender)
     : IJobManager
 {
     // TODO: does this belong in JobService/HangfireService?
 
     private readonly ILogger<JobManager> _logger = logger;
-    private readonly IEmployeeService _employeeService = employeeService;
     private readonly IWorkSyncRunner _workSyncRunner = workSyncRunner;
+    private readonly IPeopleSyncRunner _peopleSyncRunner = peopleSyncRunner;
     private readonly ISender _sender = sender;
 
-    [DisableConcurrentExecution(60)]
+    [DisableConcurrentExecution(60 * 3)]
     [AutomaticRetry(Attempts = 3, DelaysInSeconds = [30, 60, 120])]
-    public async Task RunSyncExternalEmployees(CancellationToken cancellationToken)
+    public async Task RunPeopleSync(SyncTriggerSource trigger, Guid? connectionId, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncExternalEmployees));
-        var result = await _employeeService.SyncExternalEmployees(cancellationToken);
+        _logger.LogInformation("Running {BackgroundJob} job (trigger={Trigger}, connectionId={ConnectionId})", nameof(RunPeopleSync), trigger, connectionId);
+
+        var result = connectionId.HasValue
+            ? await _peopleSyncRunner.Run(connectionId.Value, trigger, cancellationToken)
+            : await _peopleSyncRunner.Run(trigger, cancellationToken);
+
         if (result.IsFailure)
         {
-            _logger.LogError("Failed to sync external employees: {Error}", result.Error);
-            throw new InternalServerException($"Failed to sync external employees. Error: {result.Error}");
+            _logger.LogError("Failed to run people sync: {Error}", result.Error);
+            throw new InternalServerException($"Failed to run people sync. Error: {result.Error}");
         }
-        _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncExternalEmployees));
+        _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunPeopleSync));
     }
 
     [DisableConcurrentExecution(60 * 3)]

@@ -63,7 +63,7 @@ public class ConnectionsController(ISender sender) : ControllerBase
         }
         else if (connection is AzureOpenAIConnectionDetailsDto aoai)
         {
-            aoai.Configuration.ApiKey = "***MASKED***";
+            aoai.Configuration.MaskApiKey();
         }
         else if (connection is EntraConnectionDetailsDto entra)
         {

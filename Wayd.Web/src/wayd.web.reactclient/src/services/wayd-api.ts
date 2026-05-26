@@ -29709,19 +29709,7 @@ export interface SyncRunDetailsDto {
     workItemsProcessed: number;
     errorsCount: number;
     errorMessage?: string | undefined;
-    details: WorkspaceSyncDetail[];
-}
-
-export interface WorkspaceSyncDetail {
-    internalWorkspaceId: string;
-    workspaceName: string;
-    succeeded: boolean;
-    workItemsProcessed: number;
-    parentLinkChangesProcessed: number;
-    dependencyLinkChangesProcessed: number;
-    deletedWorkItemsProcessed: number;
-    hadPartialFailure: boolean;
-    error?: string | undefined;
+    detailsJson?: string | undefined;
 }
 
 export interface BackgroundJobTypeDto {

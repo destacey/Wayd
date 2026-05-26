@@ -196,11 +196,19 @@ public sealed class PeopleSyncRunner(
         return await _entraEmployeeSource.GetEmployees(credentials, cancellationToken);
     }
 
+    // Match the API-wide convention so frontend consumers read camelCase keys
+    // (the rest of the API uses MVC's camelCase JsonNamingPolicy; this direct
+    // Serialize call needs to be told explicitly).
+    private static readonly JsonSerializerOptions _detailsJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
     private async Task SaveRun(SyncRun run, PeopleSyncDetail details, CancellationToken cancellationToken)
     {
         try
         {
-            run.SetDetails(JsonSerializer.Serialize(details));
+            run.SetDetails(JsonSerializer.Serialize(details, _detailsJsonOptions));
         }
         catch (Exception ex)
         {

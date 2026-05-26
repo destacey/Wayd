@@ -32,10 +32,15 @@ public sealed record EntraConnectionConfigurationDto : IMapFrom<EntraConnectionC
     public bool IncludeDisabledUsers { get; set; }
 
     /// <summary>
-    /// Replaces the ClientSecret with a fixed masked placeholder.
+    /// Replaces the ClientSecret with a masked form that preserves the first 4 characters
+    /// and the original length. This matches the AzDO PAT masking pattern so the
+    /// <c>UpdateEntraConnectionCommand</c> handler can detect "user posted back the masked
+    /// value unchanged" by comparing the first 4 characters and length — without that, an
+    /// unchanged edit would overwrite the stored secret with the masked placeholder.
     /// </summary>
     public void MaskClientSecret()
     {
-        ClientSecret = "***MASKED***";
+        if (!string.IsNullOrWhiteSpace(ClientSecret) && ClientSecret.Length > 4)
+            ClientSecret = string.Concat(ClientSecret.AsSpan(0, 4), new string('*', ClientSecret.Length - 4));
     }
 }

@@ -1,0 +1,16 @@
+/* Ant Design colors the table expand button on :hover, :focus, and :active by
+   changing its `color` (which drives the chevron via currentColor) and
+   `border-color` to ant-color-link-hover (a bright blue). After a mouse click
+   the button keeps :focus until you click elsewhere, so the blue tint sticks.
+   Pin the color and border to the idle text colors on all three states so the
+   icon returns to its default after the click is released.
+   :focus-visible adds an outline ring; we drop that too. */
+.expandRoot :global(.ant-table-row-expand-icon:hover),
+.expandRoot :global(.ant-table-row-expand-icon:focus),
+.expandRoot :global(.ant-table-row-expand-icon:focus-visible),
+.expandRoot :global(.ant-table-row-expand-icon:active) {
+    color: var(--ant-color-text);
+    border-color: var(--ant-color-border);
+    outline: none;
+    box-shadow: none;
+}

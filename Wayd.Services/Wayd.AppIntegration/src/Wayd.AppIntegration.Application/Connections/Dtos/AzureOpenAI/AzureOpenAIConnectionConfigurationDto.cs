@@ -35,4 +35,16 @@ public sealed record AzureOpenAIConnectionConfigurationDto : IMapFrom<AzureOpenA
     /// Indicates whether JSON mode is preferred for AI responses
     /// </summary>
     public bool JsonModePreferred { get; set; }
+
+    /// <summary>
+    /// Replaces the ApiKey with a masked form that preserves the first 4 characters and the
+    /// original length. Matches the AzDO PAT masking pattern so the
+    /// <c>UpdateAzureOpenAIConnectionCommand</c> handler's first-4-chars+length heuristic
+    /// can detect an unchanged value when the user posts the masked form back unchanged.
+    /// </summary>
+    public void MaskApiKey()
+    {
+        if (!string.IsNullOrWhiteSpace(ApiKey) && ApiKey.Length > 4)
+            ApiKey = string.Concat(ApiKey.AsSpan(0, 4), new string('*', ApiKey.Length - 4));
+    }
 }

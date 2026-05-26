@@ -35464,8 +35464,7 @@
           "workspacesSucceeded",
           "workspacesFailed",
           "workItemsProcessed",
-          "errorsCount",
-          "details"
+          "errorsCount"
         ],
         "properties": {
           "id": {
@@ -35525,60 +35524,7 @@
             "type": "string",
             "nullable": true
           },
-          "details": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/WorkspaceSyncDetail"
-            }
-          }
-        }
-      },
-      "WorkspaceSyncDetail": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "internalWorkspaceId",
-          "workspaceName",
-          "succeeded",
-          "workItemsProcessed",
-          "parentLinkChangesProcessed",
-          "dependencyLinkChangesProcessed",
-          "deletedWorkItemsProcessed",
-          "hadPartialFailure"
-        ],
-        "properties": {
-          "internalWorkspaceId": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "workspaceName": {
-            "type": "string"
-          },
-          "succeeded": {
-            "type": "boolean"
-          },
-          "workItemsProcessed": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "parentLinkChangesProcessed": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "dependencyLinkChangesProcessed": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "deletedWorkItemsProcessed": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "hadPartialFailure": {
-            "type": "boolean"
-          },
-          "error": {
+          "detailsJson": {
             "type": "string",
             "nullable": true
           }

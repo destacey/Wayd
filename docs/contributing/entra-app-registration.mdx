@@ -101,16 +101,18 @@ The client app needs a named scope to request access to. Create one:
 
 The full scope string is `api://{api-client-id}/access_as_user`. Copy it — the frontend needs it as `API_SCOPE`.
 
-### Create a client secret (only if Graph integration is enabled)
+### Create a client secret (only if you want to bootstrap the Entra people-sync connector from config)
 
-Wayd's **token-exchange auth flow does not need a client secret** — it validates incoming user tokens against Entra's public JWKS, which is public-key-only. You can skip this step if you don't use the Microsoft Graph integration.
+Wayd's **token-exchange auth flow does not need a client secret** — it validates incoming user tokens against Entra's public JWKS, which is public-key-only. Sign-in works without a secret.
 
-A secret **is** needed if `SecuritySettings:GraphApi:Enabled` is `true` in your deployment. Graph is used for the employee-sync feature, which calls Microsoft Graph *as the API itself* (client-credentials flow) to read directory data. That flow is confidential-client and requires a secret.
+A secret is only needed if you want the `EntraConnectionSeeder` to bootstrap a people-sync connector from `SecuritySettings:AzureAd:*` config on first boot. After the seeded row exists in the database, admins manage the connection (including its client secret) via **Settings → Connections** and the config-side secret can be removed — the seeder is insert-only and won't re-read config once a row exists.
 
-To create one:
+You can also skip this step entirely and have an admin create the Entra connection from scratch via the Settings UI; in that case the secret goes straight into the database connection row and never appears in `SecuritySettings:AzureAd` at all. Most green-field deployments should take that path.
+
+To create the secret:
 
 1. Registration → **Certificates & secrets** → **Client secrets** → **New client secret**.
-2. Description: `Graph integration - {env}` (e.g., `Graph integration - prod`).
+2. Description: `Entra connector bootstrap - {env}` (e.g., `Entra connector bootstrap - prod`).
 3. Expires: pick a policy that matches your rotation cadence (Azure defaults to 180 days; 12 or 24 months is more manageable).
 4. **Add**.
 5. **Copy the secret `Value` immediately** — the portal shows it once and never again. If you lose it you'll have to delete this credential and create a new one.
@@ -120,11 +122,23 @@ Store the secret as:
 - **Local dev**: `dotnet user-secrets set "SecuritySettings:AzureAd:ClientSecret" "{the-secret}"` in `Wayd.Web/src/Wayd.Web.Api`.
 - **Prod / container**: Terraform's `aad_api_client_secret` variable (stored as a container-app secret, surfaced as the `SecuritySettings__AzureAd__ClientSecret` env var).
 
-**Rotation reminder.** Put the secret's expiry on a calendar. Graph calls start failing silently (well — with a 401 from Graph, logged at Warning level) once the secret expires; Wayd itself keeps running.
+**Rotation reminder.** Once the Entra connection exists in the database, **rotate the secret on the connection row itself** (Settings → Connections → Edit). The `SecuritySettings:AzureAd:ClientSecret` config value is only read by the one-shot seeder; rotating it after seeding has no effect.
 
-:::info Why not use the same credential for both?
-Token exchange validates public JWKS → no secret. Graph client-credentials flow authenticates the API → needs a secret. They're conceptually different: one is Wayd-as-resource accepting user tokens, the other is Wayd-as-client calling another API. Separating them would let you disable Graph without touching auth, at the cost of a second app registration. Current design uses one registration for both — a reasonable simplification as long as you remember the secret only matters for Graph.
+:::info Why two places to store this secret?
+Token exchange validates public JWKS → no secret. Graph client-credentials flow inside the Entra connector → needs a secret, stored on the connection row (encrypted at rest). They're conceptually different: one is Wayd-as-resource accepting user tokens, the other is Wayd-as-client calling Microsoft Graph on the customer's behalf. Pre-migration deployments used `SecuritySettings:AzureAd:ClientSecret` for both because there was only one tenant; the connector framework moves the Graph-side secret to the per-connection row so multiple tenants are possible.
 :::
+
+### Grant Microsoft Graph permissions (only if you want the Entra people-sync connector)
+
+The Entra connector authenticates as the API app registration (client-credentials flow) and calls Microsoft Graph to read user data. Grant it the minimum permissions needed:
+
+1. API registration → **API permissions** → **Add a permission** → **Microsoft Graph** → **Application permissions**.
+2. Add the following:
+   - `User.Read.All` — required. Without it Graph returns users with empty `givenName`/`surname`, and the sync silently filters all rows out.
+   - `GroupMember.Read.All` — only if you plan to scope the sync to an Entra group (the connection's optional `AllUsersGroupObjectId` field).
+3. Click **Grant admin consent for `{tenant name}`** → **Yes**. Application permissions only take effect after admin consent.
+
+If you skip this step, sync runs will complete "successfully" but report 0 employees fetched. The Wayd app logs will show the Graph response was received but every row was dropped by the name filter.
 
 ## Step 2 — Create the client (SPA) app registration
 

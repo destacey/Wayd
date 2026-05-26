@@ -121,7 +121,8 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Ownership** | Whether an object is Owned (Wayd-managed), Managed (external system, read-only in Wayd), or System (immutable Wayd defaults). |
 | **Link** | A cross-entity association between any Wayd object and an external URL. Simple name + URL pair. |
 | **Connection** | A configured integration with an external system via a Connector (e.g., Azure DevOps). Includes auth and endpoint config. |
-| **Connector** | An API enabling a specific external service to integrate with Wayd (e.g., AzureDevOps, MicrosoftGraph). Multiple connections per connector allowed. |
+| **Connector** | A configurable integration type that enables a specific external service to plug into Wayd (e.g., AzureDevOps, Entra, AzureOpenAI). Each connector belongs to a category (WorkSync, PeopleSync, AiProvider) that determines its orchestration. Multiple connections per connector type are allowed. |
+| **Connector Category** | The orchestration class a connector belongs to. `WorkSync` routes through `WorkSyncRunner`; `PeopleSync` routes through `PeopleSyncRunner`; `AiProvider` connectors aren't synced. The category — not the specific connector — drives which background job and Sync History view applies. |
 | **Feature Flag** | A toggle controlling feature visibility. Defined in code, stored in database, managed via Settings UI. New flags seeded as disabled on startup. |
 | **Health Check** | A status indicator (Healthy, AtRisk, Unhealthy/Critical) with expiration. Used on objectives, initiatives, and other entities. |
 | **SystemContext** | Identifies which domain references a work item (e.g., Goals, Projects). Used for work item references. |

@@ -1,6 +1,6 @@
 ---
 title: Integrations
-description: Connectors and external system integrations - Azure DevOps, Azure OpenAI, Microsoft Graph.
+description: Connectors and external system integrations - Azure DevOps, Azure OpenAI, Microsoft Entra.
 sidebar_position: 4
 audience: [developer, agent]
 ---
@@ -10,7 +10,7 @@ audience: [developer, agent]
 Wayd talks to external systems through two layers:
 
 - **Connectors** are customer-configured at runtime via **Settings → Connections**. Each connection stores its own credentials (encrypted at rest) and runs against the target system on the customer's behalf.
-- **Integration libraries** (`Wayd.Integrations.*`) are the low-level clients those connectors use, plus a handful of always-on internal integrations (Microsoft Graph for AAD sync) that aren't surfaced as configurable connectors.
+- **Integration libraries** (`Wayd.Integrations.*`) are the low-level clients those connectors use. There are no longer any always-on, configuration-driven integrations — every external system Wayd pulls data from is a connector you create in the UI.
 
 ## Connectors
 
@@ -19,14 +19,29 @@ Connectors are managed from **Settings → Connections**. The set of supported c
 | Connector | Category | Status | Purpose |
 |---|---|---|---|
 | Azure DevOps | Work sync | GA | Syncs work items, processes, workspaces, and teams from Azure DevOps into Wayd. |
+| Entra | People sync | GA | Syncs people (employees, contingent workers) from Microsoft Entra ID via Microsoft Graph into Wayd's `Employee` records. |
 | Azure OpenAI | AI provider | Preview | Outbound LLM client used by Wayd AI features. No data is synced from this connector. |
 | OpenAI | AI provider | Reserved | Backend scaffolding present; no admin UI to create one yet. |
 
+### Categories drive orchestration
+
+Each connector belongs to a `ConnectorCategory`. The category — not the specific connector type — determines which background runner picks the connection up:
+
+- **Work Sync** → `WorkSyncRunner` (Hangfire job `WorkFullSync` / `WorkDiffSync`).
+- **People Sync** → `PeopleSyncRunner` (Hangfire job `PeopleSync`).
+- **AI Provider** → not synced; consumed on demand by features that need LLM access.
+
+The detail page's **Sync Now** action and **Sync History** tab dispatch by category too, so a future Workday (or BambooHR, Okta, etc.) connector just declares `ConnectorCategory.PeopleSync` and gets the same plumbing for free.
+
 ### Credentials are encrypted at rest
 
-Every credential field on a connector (PAT, API key, future OAuth refresh tokens) is marked `[Encrypted]` and round-tripped through AES-256-GCM via the `EncryptingJsonValueConverter` before being written to the `Connections` table. The master key is configured via `SecuritySettings:DataProtection:MasterKey` — see the [Configuration guide](../contributing/configuration.mdx#data-protection-at-rest-secret-encryption) for setup and the [key rotation caveat](../contributing/configuration.mdx#data-protection-at-rest-secret-encryption).
+Every credential field on a connector (PAT, API key, client secret, future OAuth refresh tokens) is marked `[Encrypted]` and round-tripped through AES-256-GCM via the `EncryptingJsonValueConverter` before being written to the `Connections` table. The master key is configured via `SecuritySettings:DataProtection:MasterKey` — see the [Configuration guide](../contributing/configuration.mdx#data-protection-at-rest-secret-encryption) for setup and the [key rotation caveat](../contributing/configuration.mdx#data-protection-at-rest-secret-encryption).
 
-API responses additionally mask secret fields before returning them, so a leaked API response never exposes the raw credential.
+API responses additionally mask secret fields before returning them, preserving the first 4 characters and the original length so the edit form can detect "the user posted back the masked value unchanged" without ever exposing the full secret over the wire.
+
+### Activation
+
+New connections are **active by default**. Admins can deactivate one from the detail page's action menu — deactivating sets `IsActive=false` and, for syncable connections, also clears `IsSyncEnabled` so the connection is excluded from sync runs. Activating an inactive connection raises an `EntityActivatedEvent`; the deliberate state transition is captured in domain events rather than silently bundled into a config edit.
 
 ## Azure DevOps
 
@@ -47,21 +62,35 @@ API responses additionally mask secret fields before returning them, so a leaked
 4. Hangfire **recurring jobs** sync work items on a schedule once sync is enabled
 5. Synced items have **Managed** ownership and are read-only in Wayd
 
+## Entra (Microsoft Graph)
+
+`Wayd.Integrations.MicrosoftGraph` synchronizes people (employees and contingent workers) from Microsoft Entra ID into Wayd's `Employee` table. Each Entra connection talks to a single Entra tenant; multiple connections per deployment are supported (e.g. one per acquired company's tenant).
+
+### Capabilities
+
+- Pull users from a single Entra tenant via Microsoft Graph
+- Optionally scope to a single Entra group (transitive members) instead of all member users
+- Optionally include disabled accounts
+- Upsert into Wayd `Employee` records, preserving manager hierarchy
+- Deactivate Wayd employees not present in the latest payload
+
+### How It Works
+
+1. An admin creates an **Entra Connection** in Settings → Connections, supplying tenant ID, client ID, client secret (encrypted at rest), and optionally a group object ID
+2. The `PeopleSyncRunner` reads all active `ConnectorCategory.PeopleSync` connections and, for each, builds a per-connection `GraphServiceClient` from the stored credentials — there is no shared app-wide Graph client for sync
+3. The `MicrosoftGraphService` source pulls users (paginated), filters out accounts missing `givenName`/`surname`, and returns `EntraEmployee` records
+4. The existing connector-agnostic `BulkUpsertEmployeesCommand` reconciles those records against the `Employee` table; employees not in the payload are deactivated
+5. Each run is captured as a `SyncRun` row; per-run details (`employeesFetched`, `employeesUpserted`, `errors[]`) are stored as JSON and rendered in the Sync History tab
+
+### Bootstrap from existing config
+
+Existing deployments that previously ran employee sync from `SecuritySettings:GraphApi:*` config will, on first boot after the migration, seed a single `EntraConnection` row from `SecuritySettings:AzureAd:{TenantId,ClientId,ClientSecret}` via `EntraConnectionSeeder`. The seeder is insert-only — once the row exists, the database is the source of truth and admins manage the connection via the Settings UI.
+
 ## Azure OpenAI
 
 `Wayd.Integrations.AzureOpenAI` is an outbound LLM client; it does not sync data into Wayd.
 
 A connection stores the resource base URL, deployment name, and API key (encrypted at rest). Wayd features that need LLM access — currently limited; broader AI surface is roadmap — pick up the active Azure OpenAI connection at request time.
-
-## Microsoft Graph
-
-`Wayd.Integrations.MicrosoftGraph` synchronizes employee and user data from Azure Active Directory. Unlike the other integrations above, Microsoft Graph is **not** surfaced as a configurable connector — it runs automatically when Entra authentication is enabled, reusing the API app registration's credentials.
-
-### Capabilities
-
-- Import employees from Azure AD
-- Keep employee information up to date
-- Map AD users to Wayd employees
 
 ## Integration Architecture
 
@@ -69,36 +98,42 @@ A connection stores the resource base URL, deployment name, and API key (encrypt
 graph LR
     subgraph "External Systems"
         ADO["Azure DevOps"]
+        Entra["Microsoft Entra ID"]
         AOAI["Azure OpenAI"]
-        AAD["Azure AD"]
     end
     subgraph "Wayd"
         subgraph "Sync Orchestration"
-            Runner["WorkSyncRunner"]
-            Sources["IWorkItemSource (keyed by Connector)"]
+            WorkRunner["WorkSyncRunner"]
+            PeopleRunner["PeopleSyncRunner"]
+            WorkSources["IWorkItemSource (keyed by Connector)"]
+            PeopleSources["IEntraEmployeeSource"]
         end
         subgraph "Integrations"
             ADOInt["AzureDevOps Integration"]
-            AOAIInt["AzureOpenAI Integration"]
             GraphInt["MicrosoftGraph Integration"]
+            AOAIInt["AzureOpenAI Integration"]
         end
         subgraph "Core"
             Work["Work Domain"]
-            Org["Organization Domain"]
+            People["Employees / Users"]
             AI["AI features"]
         end
-        HF["Hangfire: RunWorkSync"]
+        HFWork["Hangfire: RunWorkSync"]
+        HFPeople["Hangfire: RunPeopleSync"]
     end
 
-    HF --> Runner
-    Runner --> Sources
-    Sources --> ADOInt
+    HFWork --> WorkRunner
+    HFPeople --> PeopleRunner
+    WorkRunner --> WorkSources
+    PeopleRunner --> PeopleSources
+    WorkSources --> ADOInt
+    PeopleSources --> GraphInt
     ADO --> ADOInt
+    Entra --> GraphInt
     ADOInt --> Work
+    GraphInt --> People
     AOAIInt --> AOAI
     AI --> AOAIInt
-    AAD --> GraphInt
-    GraphInt --> Org
 ```
 
 ## Adding a New Connector
@@ -106,11 +141,11 @@ graph LR
 For sync-shaped or AI-provider connectors that customers configure in Settings → Connections:
 
 1. Add the connector type to `Connector` enum in `Wayd.Common.Domain.Enums.AppIntegrations`
-2. Create a domain configuration class (e.g. `JiraConnectionConfiguration`) and connection aggregate (`JiraConnection : Connection<JiraConnectionConfiguration>`). For sync-shaped connectors, also implement `ISyncableConnection`. Mark credential fields with `[Encrypted]` for at-rest encryption — see [Architecture → Connector framework](../contributing/architecture.mdx#connector-framework)
-3. Create command/query handlers under `Wayd.AppIntegration.Application/Connections/Commands/\{Connector\}/` following the AzDO and AOAI templates
-4. Register the EF entity configuration in `AppIntegrationConfiguration.cs` and add a migration
-5. Add a `Wayd.Integrations.\{SystemName\}` project for the low-level client (only if the connector actually talks to a remote system — pure AI providers can use an existing SDK directly)
-6. **For work-sync connectors only:** implement `IWorkItemSource` (in `Wayd.AppIntegration.Application/Connections/Managers/\{Connector\}WorkItemSource.cs`) and register it keyed by your `Connector` enum value: `services.AddKeyedTransient<IWorkItemSource, JiraWorkItemSource>(Connector.Jira)`. The generic `WorkSyncRunner` picks it up automatically — **do not** add a per-connector Hangfire job. See [Architecture → Sync orchestration](../contributing/architecture.mdx#sync-orchestration).
-7. On the frontend, register the connector in `_components/connector-registry.ts` (create form) and `[id]/_components/detail-registry.tsx` (detail page) — see [Architecture → Connector framework](../contributing/architecture.mdx#connector-framework)
-
-For always-on internal integrations (like Microsoft Graph) that aren't surfaced as connectors, skip steps 1–4, 6, and 7 — those are just classes called directly from feature code.
+2. Map it to a `ConnectorCategory` in `ConnectorExtensions.GetCategory()` — the category determines which runner picks it up (work-sync, people-sync, AI-provider)
+3. Create a domain configuration class (e.g. `JiraConnectionConfiguration`) and connection aggregate (`JiraConnection : Connection<JiraConnectionConfiguration>`). For sync-shaped connectors that have per-target integration state (workspaces, projects), also implement `ISyncableConnection`. Mark credential fields with `[Encrypted]` for at-rest encryption — see [Architecture → Connector framework](../contributing/architecture.mdx#connector-framework)
+4. Create command/query handlers under `Wayd.AppIntegration.Application/Connections/Commands/\{Connector\}/` following the AzDO, Entra, and AOAI templates
+5. Register the EF entity configuration in `AppIntegrationConfiguration.cs` and add a migration (the migration is typically a no-op when the connector reuses the shared `Connections` TPH table — it just adds a discriminator value)
+6. Add a `Wayd.Integrations.\{SystemName\}` project for the low-level client (only if the connector actually talks to a remote system — pure AI providers can use an existing SDK directly)
+7. **For work-sync connectors:** implement `IWorkItemSource` (in `Wayd.AppIntegration.Application/Connections/Managers/\{Connector\}WorkItemSource.cs`) and register it keyed by your `Connector` enum value: `services.AddKeyedTransient<IWorkItemSource, JiraWorkItemSource>(Connector.Jira)`. The generic `WorkSyncRunner` picks it up automatically.
+8. **For people-sync connectors:** today the `PeopleSyncRunner` routes by `Connector` enum value inside its `FetchEmployees` switch. Add a new arm and a corresponding fetch method that loads the connection's credentials and calls your source. (A future refactor will factor people sources behind an `IPeopleSourceFactory` mirroring the work-sync factory; until then this single switch is the seam.)
+9. On the frontend, register the connector in `_components/connector-registry.ts` (create/edit form), `[id]/_components/detail-registry.tsx` (detail page), and `types/connectors.ts` (enum + display names). See [Architecture → Connector framework](../contributing/architecture.mdx#connector-framework) for the full checklist.

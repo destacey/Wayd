@@ -196,11 +196,19 @@ The ownership model applies to [workspaces](../work-management/work-items.mdx#wo
 
 A **Connection** represents a configured integration with an external application via a Wayd **Connector**. Each connection includes authentication and endpoint configuration needed to establish the link.
 
-A **Connector** is an API that allows a specific external service to integrate with Wayd. Multiple connections for the same connector can be configured — for example, when an organization has multiple Azure DevOps instances.
+A **Connector** is a configurable integration type that lets a specific external service plug into Wayd. Each connector belongs to a **Category** (Work Sync, People Sync, AI Provider) that determines how Wayd uses it. Multiple connections for the same connector type can be configured — for example, when an organization has multiple Azure DevOps instances, or multiple Entra tenants after an acquisition.
+
+**Common actions on a connection:**
+
+- **Edit** — Update name, description, or credentials. The masked secret can be left as-is to keep the existing value.
+- **Activate / Deactivate** — Toggle whether the connection participates in sync runs. Deactivating also disables sync for syncable connections.
+- **Sync Now** — Triggers a manual sync for that connection only. Available on Work Sync and People Sync connectors. Routes to the right runner based on the connector's category.
+- **Sync History** — Tab on the connection detail page showing past runs with their status, duration, and per-run details (workspaces and work items for Work Sync; employees fetched and upserted for People Sync).
+- **Delete** — Removes the connection. Past sync history rows are preserved by design.
 
 ### Azure DevOps Boards
 
-The Azure DevOps Boards connector enables one-way synchronization of work data from Azure DevOps into Wayd.
+The Azure DevOps Boards connector enables one-way synchronization of work data from Azure DevOps into Wayd. **Category:** Work Sync.
 
 **Data mapping:**
 
@@ -222,14 +230,35 @@ The Azure DevOps Boards connector enables one-way synchronization of work data f
 - Sync is controlled by workspace-level integration state (active/inactive)
 - Background jobs (Hangfire) perform synchronization on a recurring schedule
 
-### Microsoft Graph
+### Entra (Microsoft Entra ID)
 
-The Microsoft Graph integration synchronizes employee and user data from Microsoft Entra ID (Azure Active Directory) into Wayd's Organization domain.
+The Entra connector synchronizes people (employees and contingent workers) from Microsoft Entra ID into Wayd's `Employee` records via Microsoft Graph. **Category:** People Sync.
 
 **Capabilities:**
-- Import employees from Azure AD
-- Keep employee information up to date
-- Map AD users to Wayd employees
+- Pull users from a single Entra tenant
+- Optionally scope to a single Entra group (transitive members)
+- Optionally include disabled accounts
+- Upsert into Wayd `Employee` records, preserving the manager hierarchy
+- Deactivate Wayd employees no longer present in the latest payload
+
+**Configuration requirements:**
+- **Tenant ID** — The Entra tenant's directory ID
+- **Client ID** — Application (client) ID of the Entra app registration used to authenticate
+- **Client Secret** — Application client secret (encrypted at rest, masked on display)
+- **All Users Group Object ID** — *optional.* When set, only users transitively in this group are synced. Leave blank to sync all member users in the tenant.
+- **Include Disabled Users** — *optional, default off.* When on, disabled accounts are included.
+
+The Entra app registration needs the `User.Read.All` Microsoft Graph application permission (plus `GroupMember.Read.All` if you scope to a group). Both require admin consent.
+
+**Business rules:**
+- Multiple Entra connections are allowed — useful when integrating from more than one Entra tenant (for example, after an acquisition before tenant consolidation).
+- People sync is always full — every run fetches the complete user set and reconciles against `Employee`.
+- Employees not in the latest payload are automatically deactivated.
+- Manager hierarchy is built from each user's Entra `manager` reference.
+
+### AI Providers
+
+AI provider connectors (Azure OpenAI, OpenAI) are outbound LLM clients. They don't sync data into Wayd — features that need AI access pick up the active connection at request time. **Category:** AI Provider.
 
 ## Background Jobs
 
@@ -239,8 +268,8 @@ Wayd uses **Hangfire** for background job processing. The background jobs dashbo
 - Manual job triggering
 
 Background jobs are primarily used for:
-- Azure DevOps work item synchronization
-- Microsoft Graph employee synchronization
+- **Work Sync** — Synchronizes work data from all active Work Sync connectors (Azure DevOps today). Differential and Full variants are available.
+- **People Sync** — Synchronizes people data from all active People Sync connectors (Entra today).
 - Other periodic maintenance tasks
 
 ## Estimation Scales

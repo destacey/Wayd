@@ -34,32 +34,13 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
         private set => field = value?.Trim();
     }
 
-    public bool IsSyncEnabled { get; private set; } = false;
-
     public bool CanSync => IsActive
         && IsValidConfiguration
-        && IsSyncEnabled
         && HasActiveIntegrationObjects;
 
     public override bool HasActiveIntegrationObjects => IsValidConfiguration
         && (Configuration.WorkProcesses.Any(p => p.IntegrationIsActive)
         || Configuration.Workspaces.Any(p => p.IntegrationIsActive));
-
-    public Result SetSyncState(bool isEnabled, Instant timestamp)
-    {
-        if (isEnabled)
-        {
-            if (!IsValidConfiguration)
-                return Result.Failure("Unable to enable sync. Configuration is invalid.");
-
-            if (!HasActiveIntegrationObjects)
-                return Result.Failure("Unable to enable sync. No active integration objects.");
-        }
-
-        IsSyncEnabled = isEnabled;
-        AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
-        return Result.Success();
-    }
 
     public Result Update(string name, string? description, string organization, string personalAccessToken, bool configurationIsValid, Instant timestamp)
     {

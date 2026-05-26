@@ -2,9 +2,9 @@
 
 /// <summary>
 /// Deactivates a connection. Connector-agnostic — operates on the base <see cref="Connection"/>
-/// entity. For syncable connections the base class also clears <c>IsSyncEnabled</c> so a
-/// deactivated connection cannot be picked up by the sync runner.
-/// No-op if the connection is already inactive.
+/// entity. Inactive connections are excluded from all sync runs (work and people) since
+/// <c>CanSync</c> and the runners' active filters both require <c>IsActive</c>. No-op if the
+/// connection is already inactive.
 /// </summary>
 public sealed record DeactivateConnectionCommand(Guid Id) : ICommand;
 

@@ -64,7 +64,9 @@ public abstract class Connection : BaseSoftDeletableEntity, IActivatable
     }
 
     /// <summary>
-    /// The process for deactivating a connection.
+    /// The process for deactivating a connection. Inactive connections are excluded from all
+    /// sync runs — there is no separate sync-enabled toggle; <see cref="IsActive"/> is the
+    /// single switch.
     /// </summary>
     /// <param name="timestamp"></param>
     /// <returns>Result that indicates success or a list of errors</returns>
@@ -73,13 +75,6 @@ public abstract class Connection : BaseSoftDeletableEntity, IActivatable
         if (IsActive)
         {
             IsActive = false;
-
-            // Disable sync for syncable connections
-            if (this is ISyncableConnection syncable)
-            {
-                syncable.SetSyncState(false, timestamp);
-            }
-
             AddDomainEvent(EntityDeactivatedEvent.WithEntity(this, timestamp));
         }
 

@@ -94,7 +94,6 @@ public class AzureDevOpsWorkItemSourceTests
             IsActive = true,
             IsValidConfiguration = true,
             SystemId = systemId,
-            IsSyncEnabled = true,
             Configuration = new AzureDevOpsConnectionConfigurationDto
             {
                 Organization = "TestOrg",

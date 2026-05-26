@@ -5,10 +5,7 @@ import {
   ConnectionDetailsDto,
 } from '@/src/services/wayd-api'
 import { ItemType } from 'antd/es/menu/interface'
-import {
-  useUpdateAzdoConnectionSyncStateMutation,
-  useSyncAzdoConnectionOrganizationMutation,
-} from '@/src/store/features/app-integration/azdo-integration-api'
+import { useSyncAzdoConnectionOrganizationMutation } from '@/src/store/features/app-integration/azdo-integration-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { isApiError, type ApiError } from '@/src/utils'
 import {
@@ -64,35 +61,14 @@ const AzdoExtraActions = ({
   setItems: (items: ItemType[]) => void
 }) => {
   const messageApi = useMessage()
-  const [updateSyncState] = useUpdateAzdoConnectionSyncStateMutation()
   const [syncOrganization] = useSyncAzdoConnectionOrganizationMutation()
 
   const azdo = isAzdo(ctx.connection) ? ctx.connection : null
-  const isSyncEnabled = azdo?.isSyncEnabled ?? false
   const isValidConfiguration = azdo?.isValidConfiguration ?? false
   const canUpdate = ctx.canUpdate
 
   const items = useMemo<ItemType[]>(() => {
     if (!azdo || !canUpdate) return []
-
-    const toggleSync = async () => {
-      try {
-        const response = await updateSyncState({
-          connectionId: ctx.connectionId,
-          isSyncEnabled: !isSyncEnabled,
-        })
-        if (response.error) throw response.error
-        messageApi.success(
-          `Sync setting has been ${isSyncEnabled ? 'disabled' : 'enabled'}`,
-        )
-      } catch (error) {
-        const apiError: ApiError = isApiError(error) ? error : {}
-        console.error(error)
-        messageApi.error(
-          `Failed to change sync setting. Error: ${apiError.detail}`,
-        )
-      }
-    }
 
     const syncOrgConfig = async () => {
       try {
@@ -112,12 +88,6 @@ const AzdoExtraActions = ({
 
     return [
       {
-        key: 'toggle-sync-setting',
-        label: isSyncEnabled ? 'Disable Sync' : 'Enable Sync',
-        disabled: !isValidConfiguration,
-        onClick: () => toggleSync(),
-      },
-      {
         key: 'sync-organization',
         label: 'Sync Organization Configuration',
         disabled: !isValidConfiguration,
@@ -128,11 +98,9 @@ const AzdoExtraActions = ({
     azdo,
     canUpdate,
     ctx.connectionId,
-    isSyncEnabled,
     isValidConfiguration,
     messageApi,
     syncOrganization,
-    updateSyncState,
   ])
 
   useEffect(() => {

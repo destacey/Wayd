@@ -20836,57 +20836,6 @@
         ]
       }
     },
-    "/api/app-integrations/connections/azure-devops/{id}/sync-state": {
-      "post": {
-        "tags": [
-          "AzureDevOpsConnections"
-        ],
-        "summary": "Enable/disable sync for Azure DevOps connection.",
-        "operationId": "AzureDevOpsConnections_UpdateSyncState",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "guid",
-              "nullable": false,
-              "example": "00000000-0000-0000-0000-000000000000"
-            },
-            "x-position": 1
-          },
-          {
-            "name": "isSyncEnabled",
-            "in": "query",
-            "schema": {
-              "type": "boolean"
-            },
-            "x-position": 2
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKey": []
-          }
-        ]
-      }
-    },
     "/api/app-integrations/connections/azure-devops/{id}/sync-organization": {
       "post": {
         "tags": [
@@ -34656,10 +34605,6 @@
           "isValidConfiguration": {
             "type": "boolean"
           },
-          "isSyncEnabled": {
-            "type": "boolean",
-            "nullable": true
-          },
           "canSync": {
             "type": "boolean",
             "nullable": true
@@ -34794,9 +34739,6 @@
               "systemId": {
                 "type": "string",
                 "nullable": true
-              },
-              "isSyncEnabled": {
-                "type": "boolean"
               },
               "configuration": {
                 "$ref": "#/components/schemas/AzureDevOpsConnectionConfigurationDto"

@@ -50,7 +50,6 @@ public class AzureDevOpsInitManagerTests
             IsActive = isActive,
             IsValidConfiguration = isValidConfiguration,
             SystemId = systemId,
-            IsSyncEnabled = true,
             Configuration = new AzureDevOpsConnectionConfigurationDto
             {
                 Organization = "TestOrg",

@@ -54,12 +54,6 @@ public record ConnectionListDto : IMapFrom<Connection>
     public bool IsValidConfiguration { get; set; }
 
     /// <summary>
-    /// The indicator for whether the connection is enabled for synchronization.
-    /// Only applicable to syncable connections (Work Management connectors).
-    /// </summary>
-    public bool? IsSyncEnabled { get; set; }
-
-    /// <summary>
     /// Indicates whether the connection can currently sync.
     /// Only applicable to syncable connections (Work Management connectors).
     /// </summary>
@@ -75,7 +69,6 @@ public record ConnectionListDto : IMapFrom<Connection>
             .Map(dest => dest.Connector, src => SimpleNavigationDto.FromEnum(src.Connector))
             .Map(dest => dest.Category, src => SimpleNavigationDto.FromEnum(src.Connector.GetCategory()))
             .Map(dest => dest.SystemId, src => (src as ISyncableConnection) != null ? ((ISyncableConnection)src).SystemId : null)
-            .Map(dest => dest.IsSyncEnabled, src => (src as ISyncableConnection) != null ? ((ISyncableConnection)src).IsSyncEnabled : (bool?)null)
             .Map(dest => dest.CanSync, src => (src as ISyncableConnection) != null ? ((ISyncableConnection)src).CanSync : (bool?)null);
     }
 }

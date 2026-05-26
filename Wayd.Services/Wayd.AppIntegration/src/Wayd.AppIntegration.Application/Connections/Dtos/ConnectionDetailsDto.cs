@@ -57,7 +57,7 @@ public record ConnectionDetailsDto : IMapFrom<Connection>
     /// <summary>
     /// Indicates whether the connection can currently sync.
     /// Only applicable to syncable connections (Work Management connectors).
-    /// Requires: IsActive && IsValidConfiguration && IsSyncEnabled && HasActiveIntegrationObjects
+    /// Requires: IsActive and IsValidConfiguration and HasActiveIntegrationObjects
     /// </summary>
     public bool? CanSync { get; set; }
 

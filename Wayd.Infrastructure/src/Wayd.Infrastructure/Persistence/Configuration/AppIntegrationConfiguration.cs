@@ -41,12 +41,10 @@ public class ConnectionConfig : IEntityTypeConfiguration<Connection>
         builder.Property(c => c.IsActive);
         builder.Property(c => c.IsValidConfiguration);
 
-        //// SystemId and IsSyncEnabled are only for ISyncableConnection types (kept nullable for backwards compatibility)
+        //// SystemId is only for ISyncableConnection types (kept nullable for backwards compatibility)
         //builder.Property<string>("SystemId")
         //    .HasColumnType("varchar")
         //    .HasMaxLength(64)
-        //    .IsRequired(false);
-        //builder.Property<bool?>("IsSyncEnabled")
         //    .IsRequired(false);
 
         // Soft Delete
@@ -77,8 +75,6 @@ public class AzureDevOpsBoardsConnectionConfig : IEntityTypeConfiguration<AzureD
             .HasColumnType("varchar")
             .HasMaxLength(64)
             .IsRequired(false);
-
-        builder.Property(c => c.IsSyncEnabled);
     }
 }
 

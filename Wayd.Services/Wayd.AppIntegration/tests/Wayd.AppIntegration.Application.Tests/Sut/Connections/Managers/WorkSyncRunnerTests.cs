@@ -88,14 +88,12 @@ public class WorkSyncRunnerTests
             "Test Connection", "desc", systemId, config, configurationIsValid: true,
             teamConfiguration: null, timestamp: _clock.Now);
 
-        connection.Activate(_clock.Now);
         connection.UpdateWorkProcessIntegrationState(
             new IntegrationRegistration<Guid, Guid>(processExternalId, IntegrationState<Guid>.Create(processInternalId, true)),
             _clock.Now);
         connection.UpdateWorkspaceIntegrationState(
             new IntegrationRegistration<Guid, Guid>(workspaceExternalId, IntegrationState<Guid>.Create(workspaceInternalId, true)),
             _clock.Now);
-        connection.SetSyncState(true, _clock.Now);
 
         _db.AddAzureDevOpsBoardsConnection(connection);
         return connection;
@@ -112,7 +110,6 @@ public class WorkSyncRunnerTests
             Category = new SimpleNavigationDto { Id = (int)ConnectorCategory.WorkSync, Name = "Work Sync" },
             IsActive = e.IsActive,
             IsValidConfiguration = e.IsValidConfiguration,
-            IsSyncEnabled = e.IsSyncEnabled,
             CanSync = e.CanSync
         }).ToList().AsReadOnly() as IReadOnlyList<ConnectionListDto>;
 
@@ -486,7 +483,6 @@ public class WorkSyncRunnerTests
             IsActive = connection.IsActive,
             IsValidConfiguration = connection.IsValidConfiguration,
             SystemId = connection.SystemId,
-            IsSyncEnabled = connection.IsSyncEnabled,
             Configuration = new AzureDevOpsConnectionConfigurationDto
             {
                 Organization = "TestOrg",

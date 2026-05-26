@@ -25007,68 +25007,6 @@ export class AzureDevOpsConnectionsClient {
     }
 
     /**
-     * Enable/disable sync for Azure DevOps connection.
-     * @param isSyncEnabled (optional) 
-     */
-    updateSyncState(id: string, isSyncEnabled?: boolean | undefined, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/app-integrations/connections/azure-devops/{id}/sync-state?";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        if (isSyncEnabled === null)
-            throw new globalThis.Error("The parameter 'isSyncEnabled' cannot be null.");
-        else if (isSyncEnabled !== undefined)
-            url_ += "isSyncEnabled=" + encodeURIComponent("" + isSyncEnabled) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "POST",
-            url: url_,
-            headers: {
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processUpdateSyncState(_response);
-        });
-    }
-
-    protected processUpdateSyncState(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
      * Sync Azure DevOps organization processes and projects.
      */
     syncOrganizationConfiguration(id: string, cancelToken?: CancelToken): Promise<void> {
@@ -29478,7 +29416,6 @@ export interface ConnectionListDto {
     category: SimpleNavigationDto;
     isActive: boolean;
     isValidConfiguration: boolean;
-    isSyncEnabled?: boolean | undefined;
     canSync?: boolean | undefined;
     $type: string;
 }
@@ -29512,7 +29449,6 @@ export interface ConnectionDetailsDto {
 
 export interface AzureDevOpsConnectionDetailsDto extends ConnectionDetailsDto {
     systemId?: string | undefined;
-    isSyncEnabled?: boolean;
     configuration: AzureDevOpsConnectionConfigurationDto;
     teamConfiguration: AzureDevOpsTeamConfigurationDto;
 }

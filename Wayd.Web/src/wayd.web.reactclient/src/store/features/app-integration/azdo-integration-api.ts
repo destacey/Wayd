@@ -16,35 +16,6 @@ export interface GetAzdoConnectionTeamsRequest {
 
 export const azdoIntegrationApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    updateAzdoConnectionSyncState: builder.mutation<
-      void,
-      {
-        connectionId: string
-        isSyncEnabled: boolean
-      }
-    >({
-      queryFn: async (request) => {
-        try {
-          const data = await getAzureDevOpsConnectionsClient().updateSyncState(
-            request.connectionId,
-            request.isSyncEnabled,
-          )
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      invalidatesTags: (result, error, arg) => {
-        return [
-          { type: QueryTags.AzdoConnection, id: arg.connectionId },
-          { type: QueryTags.AzdoConnectionDetail, id: arg.connectionId },
-          { type: QueryTags.Connection, id: arg.connectionId },
-          { type: QueryTags.ConnectionDetail, id: arg.connectionId },
-        ]
-      },
-    }),
-
     syncAzdoConnectionOrganization: builder.mutation<void, string>({
       queryFn: async (connectionId) => {
         try {
@@ -186,7 +157,6 @@ export const azdoIntegrationApi = apiSlice.injectEndpoints({
 })
 
 export const {
-  useUpdateAzdoConnectionSyncStateMutation,
   useSyncAzdoConnectionOrganizationMutation,
   useInitAzdoConnectionWorkProcessMutation,
   useInitAzdoConnectionWorkspaceMutation,

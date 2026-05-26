@@ -11,11 +11,6 @@ public sealed record AzureDevOpsConnectionDetailsDto : ConnectionDetailsDto, IMa
     public string? SystemId { get; set; }
 
     /// <summary>
-    /// The indicator for whether the connection is enabled for synchronization.
-    /// </summary>
-    public bool IsSyncEnabled { get; set; }
-
-    /// <summary>
     /// The configuration for the connection.
     /// </summary>
     public required AzureDevOpsConnectionConfigurationDto Configuration { get; set; }

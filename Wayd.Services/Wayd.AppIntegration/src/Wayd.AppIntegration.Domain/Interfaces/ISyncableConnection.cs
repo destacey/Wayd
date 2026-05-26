@@ -1,8 +1,10 @@
-﻿namespace Wayd.AppIntegration.Domain.Interfaces;
+namespace Wayd.AppIntegration.Domain.Interfaces;
 
 /// <summary>
-/// Marker interface for connections that support bidirectional or unidirectional synchronization
-/// with external systems. Typically implemented by Work Management connectors.
+/// Marker interface for connections that synchronize per-target state with an external system
+/// (e.g. workspaces, processes). Connections without per-target state — like a People Sync
+/// connector that just fetches users — don't need to implement this; the runner falls back to
+/// <c>IsActive &amp;&amp; IsValidConfiguration</c>.
 /// </summary>
 public interface ISyncableConnection
 {
@@ -12,18 +14,8 @@ public interface ISyncableConnection
     string? SystemId { get; }
 
     /// <summary>
-    /// Indicates whether synchronization is currently enabled for this connection.
-    /// </summary>
-    bool IsSyncEnabled { get; }
-
-    /// <summary>
     /// Computed property indicating whether the connection can currently sync.
-    /// Requires: IsActive && IsValidConfiguration && IsSyncEnabled && HasActiveIntegrationObjects
+    /// Requires: IsActive &amp;&amp; IsValidConfiguration &amp;&amp; HasActiveIntegrationObjects.
     /// </summary>
     bool CanSync { get; }
-
-    /// <summary>
-    /// Enable or disable synchronization for this connection.
-    /// </summary>
-    Result SetSyncState(bool isEnabled, Instant timestamp);
 }

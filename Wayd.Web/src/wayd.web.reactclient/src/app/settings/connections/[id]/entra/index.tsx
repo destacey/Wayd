@@ -41,7 +41,11 @@ export const entraDetailEntry: DetailEntry = {
       key: 'sync-history',
       label: 'Sync History',
       render: (connection) => (
-        <SyncHistoryTab connectionId={connection.id} category="people" />
+        <SyncHistoryTab
+          connectionId={connection.id}
+          category="people"
+          isActive={connection.isActive}
+        />
       ),
     },
   ],

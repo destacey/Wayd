@@ -27,8 +27,23 @@ import {
   SyncRunStatus,
   SyncTriggerSource,
   SyncType,
-  WorkspaceSyncDetail,
 } from '@/src/services/wayd-api'
+
+// Work-sync per-workspace detail shape. The backend no longer exposes this as a typed DTO —
+// `SyncRunDetailsDto.detailsJson` is an opaque string and each connector parses it against
+// the schema it knows. This is the work-sync schema (matches `WorkspaceSyncDetail` written
+// by `WorkSyncRunner`).
+interface WorkspaceSyncDetail {
+  internalWorkspaceId: string
+  workspaceName?: string | null
+  succeeded: boolean
+  workItemsProcessed: number
+  parentLinkChangesProcessed: number
+  dependencyLinkChangesProcessed: number
+  deletedWorkItemsProcessed: number
+  hadPartialFailure: boolean
+  error?: string | null
+}
 import styles from './sync-history-tab.module.css'
 
 export type SyncHistoryCategory = 'work' | 'people'
@@ -36,6 +51,12 @@ export type SyncHistoryCategory = 'work' | 'people'
 interface Props {
   connectionId: string
   category: SyncHistoryCategory
+  /**
+   * Whether the connection is currently active. Inactive connections can't be synced —
+   * the Sync Now button is disabled and the backend rejects the request anyway. Passed
+   * in by the page shell so this tab doesn't need its own connection query.
+   */
+  isActive: boolean
 }
 
 const STATUS_COLOR: Record<SyncRunStatus, string> = {
@@ -250,10 +271,16 @@ const workCountColumns: TableColumnsType<SyncRunListDto> = [
 // rely on the expanded row for the real fetched/upserted numbers.
 const peopleCountColumns: TableColumnsType<SyncRunListDto> = []
 
-export default function SyncHistoryTab({ connectionId, category }: Props) {
+export default function SyncHistoryTab({ connectionId, category, isActive }: Props) {
   const messageApi = useMessage()
   const { hasClaim } = useAuth()
-  const canSync = hasClaim('Permission', 'Permissions.Connections.Update')
+  const hasPermission = hasClaim('Permission', 'Permissions.Connections.Update')
+  const canSync = hasPermission && isActive
+  const disabledReason = !hasPermission
+    ? 'Requires Connections: Update permission'
+    : !isActive
+      ? 'Activate the connection to enable sync'
+      : undefined
 
   const [rangeHours, setRangeHours] = useState<RangeHours>(24)
   // The cutoff is computed when the user picks a range and stored as an ISO string
@@ -461,11 +488,7 @@ export default function SyncHistoryTab({ connectionId, category }: Props) {
           options={RANGE_OPTIONS.map((o) => ({ label: o.label, value: o.value }))}
           style={{ width: 160 }}
         />
-        <Tooltip
-          title={!canSync ? 'Requires Connections: Update permission' : undefined}
-        >
-          {syncButtons}
-        </Tooltip>
+        <Tooltip title={disabledReason}>{syncButtons}</Tooltip>
       </div>
 
       {isLoading ? (

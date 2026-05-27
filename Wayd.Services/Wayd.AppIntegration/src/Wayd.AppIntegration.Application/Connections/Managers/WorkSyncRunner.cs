@@ -102,6 +102,12 @@ public sealed class WorkSyncRunner(
             if (connection is null)
                 return Result.Failure($"Connection {connectionId} not found.");
 
+            // Inactive connections must never sync. The controller blocks this at request time;
+            // this guard catches any caller that bypasses the controller (recurring Hangfire jobs
+            // scheduled with a stale connectionId, direct invocation, etc.).
+            if (!connection.IsActive)
+                return Result.Failure($"Connection {connectionId} is inactive.");
+
             var connectorEnum = (Connector)connection.Connector.Id;
             return await RunConnection(connectionId, connectorEnum, syncType, trigger, syncId, cancellationToken);
         }

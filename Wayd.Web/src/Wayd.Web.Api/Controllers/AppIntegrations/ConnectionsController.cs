@@ -153,7 +153,7 @@ public class ConnectionsController(ISender sender) : ControllerBase
     [HttpPost("{id}/run")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
     [OpenApiOperation("Trigger a sync for a connection.",
-        "Enqueues a background job that runs the sync pipeline for this connection only. Routes by connector category — work-sync connectors run a work sync (defaults to differential; pass 'syncType=Full' for full), people-sync connectors run a people sync.")]
+        "Enqueues a background job that runs the sync pipeline for this connection only. Routes by connector category — work-sync connectors run a work sync (defaults to differential; pass 'syncType=Full' for full), people-sync connectors run a people sync. The connection must be active.")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RunSync(
@@ -166,6 +166,10 @@ public class ConnectionsController(ISender sender) : ControllerBase
         var connection = await _sender.Send(new GetConnectionQuery(id), cancellationToken);
         if (connection is null)
             return NotFound();
+
+        if (!connection.IsActive)
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(
+                "Connection is inactive. Activate the connection before triggering a sync.", HttpContext));
 
         var category = ((Connector)connection.Connector.Id).GetCategory();
         switch (category)

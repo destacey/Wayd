@@ -131,7 +131,11 @@ export const azureDevOpsDetailEntry: DetailEntry = {
       key: 'sync-history',
       label: 'Sync History',
       render: (connection) => (
-        <SyncHistoryTab connectionId={connection.id} category="work" />
+        <SyncHistoryTab
+          connectionId={connection.id}
+          category="work"
+          isActive={connection.isActive}
+        />
       ),
     },
   ],

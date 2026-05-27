@@ -21578,7 +21578,7 @@
           "Connections"
         ],
         "summary": "Trigger a sync for a connection.",
-        "description": "Enqueues a background job that runs the sync pipeline for this connection only. Routes by connector category — work-sync connectors run a work sync (defaults to differential; pass 'syncType=Full' for full), people-sync connectors run a people sync.",
+        "description": "Enqueues a background job that runs the sync pipeline for this connection only. Routes by connector category — work-sync connectors run a work sync (defaults to differential; pass 'syncType=Full' for full), people-sync connectors run a people sync. The connection must be active.",
         "operationId": "Connections_RunSync",
         "parameters": [
           {

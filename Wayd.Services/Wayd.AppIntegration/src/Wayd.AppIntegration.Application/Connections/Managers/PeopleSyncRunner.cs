@@ -85,6 +85,12 @@ public sealed class PeopleSyncRunner(
         if (connection.Connector.GetCategory() != ConnectorCategory.PeopleSync)
             return Result.Failure($"Connection {connectionId} is not a people-sync connection.");
 
+        // Inactive connections must never sync. The controller blocks this at request time;
+        // this guard catches any caller that bypasses the controller (recurring Hangfire jobs
+        // scheduled with a stale connectionId, direct invocation, etc.).
+        if (!connection.IsActive)
+            return Result.Failure($"Connection {connectionId} is inactive.");
+
         return await RunConnection(connectionId, connection.Connector, trigger, cancellationToken);
     }
 

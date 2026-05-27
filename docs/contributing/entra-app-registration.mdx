@@ -254,7 +254,7 @@ If `aud` has `api://` in it but your config expects a bare GUID, the API registr
 
 **User from a new Entra tenant gets rejected.** Add their tenant ID to `AllowedTenantIds`. The tenant's admin also needs to admin-consent the `access_as_user` permission (see Step 2) — otherwise users see Microsoft's consent prompt on first sign-in, and individual users may not be allowed to consent depending on the tenant's policies.
 
-**Employee sync / Graph calls fail with 401.** The API's client secret has expired, was never set, or is wrong. Check `SecuritySettings:AzureAd:ClientSecret`. This is independent of the token-exchange flow — login still works, only Graph-backed features break. See [Create a client secret](#create-a-client-secret-only-if-graph-integration-is-enabled).
+**People sync / Graph calls fail with 401.** The Entra connection's client secret has expired, was never set, or is wrong. For a connection created via the UI, edit it in **Settings → Connections** and re-enter the secret; for a connection seeded from config on first boot, the seeder read `SecuritySettings:AzureAd:ClientSecret` (but rotate on the connection row from now on). This is independent of the token-exchange flow — login still works, only Graph-backed people sync breaks. See [Create a client secret](#create-a-client-secret-only-if-you-want-to-bootstrap-the-entra-people-sync-connector-from-config).
 
 ## References
 

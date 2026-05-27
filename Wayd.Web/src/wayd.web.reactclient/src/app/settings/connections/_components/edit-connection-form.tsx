@@ -5,9 +5,11 @@ import {
   AzureDevOpsConnectionDetailsDto,
   AzureOpenAIConnectionDetailsDto,
   ConnectionDetailsDto,
+  EntraConnectionDetailsDto,
   UpdateAzureDevOpsConnectionRequest,
   UpdateAzureOpenAIConnectionRequest,
   UpdateConnectionRequest,
+  UpdateEntraConnectionRequest,
 } from '@/src/services/wayd-api'
 import { useUpdateConnectionMutation } from '@/src/store/features/app-integration/connections-api'
 import { ConnectorType } from '@/src/types/connectors'
@@ -40,6 +42,12 @@ interface EditConnectionFormValues {
   baseUrl?: string | null
   apiKey?: string | null
   deploymentName?: string | null
+  // Entra
+  tenantId?: string | null
+  clientId?: string | null
+  clientSecret?: string | null
+  allUsersGroupObjectId?: string | null
+  includeDisabledUsers?: boolean | null
 }
 
 const connectorTypeFromName = (
@@ -50,6 +58,8 @@ const connectorTypeFromName = (
       return ConnectorType.AzureDevOps
     case 'Azure OpenAI':
       return ConnectorType.AzureOpenAI
+    case 'Entra':
+      return ConnectorType.Entra
     // OpenAI is deliberately omitted: the backend has no Create/Update command
     // for it yet, so offering an edit form would only ever fail at submit.
     // Add the case back once UpdateOpenAIConnectionCommand ships.
@@ -58,6 +68,9 @@ const connectorTypeFromName = (
   }
 }
 
+// Connection id comes from the loaded connection prop, not the form: Form.validateFields()
+// only returns values for registered Form.Items, so a hidden id seeded via setFieldsValue
+// is silently dropped on submit.
 const buildRequest = (
   connection: ConnectionDetailsDto,
   values: EditConnectionFormValues,
@@ -66,7 +79,7 @@ const buildRequest = (
     case 'Azure DevOps':
       return {
         $type: 'azure-devops',
-        id: values.id,
+        id: connection.id,
         name: values.name,
         description: values.description ?? undefined,
         organization: values.organization ?? '',
@@ -75,13 +88,25 @@ const buildRequest = (
     case 'Azure OpenAI':
       return {
         $type: 'azure-openai',
-        id: values.id,
+        id: connection.id,
         name: values.name,
         description: values.description ?? undefined,
         baseUrl: values.baseUrl ?? '',
         apiKey: values.apiKey ?? '',
         deploymentName: values.deploymentName ?? '',
       } as UpdateAzureOpenAIConnectionRequest
+    case 'Entra':
+      return {
+        $type: 'entra',
+        id: connection.id,
+        name: values.name,
+        description: values.description ?? undefined,
+        tenantId: values.tenantId ?? '',
+        clientId: values.clientId ?? '',
+        clientSecret: values.clientSecret ?? '',
+        allUsersGroupObjectId: values.allUsersGroupObjectId ?? undefined,
+        includeDisabledUsers: values.includeDisabledUsers ?? false,
+      } as UpdateEntraConnectionRequest
     default:
       return null
   }
@@ -111,6 +136,17 @@ const seedFormValues = (
         baseUrl: c.configuration?.baseUrl,
         apiKey: c.configuration?.apiKey,
         deploymentName: c.configuration?.deploymentName,
+      }
+    }
+    case 'Entra': {
+      const c = connection as EntraConnectionDetailsDto
+      return {
+        ...base,
+        tenantId: c.configuration?.tenantId,
+        clientId: c.configuration?.clientId,
+        clientSecret: c.configuration?.clientSecret,
+        allUsersGroupObjectId: c.configuration?.allUsersGroupObjectId,
+        includeDisabledUsers: c.configuration?.includeDisabledUsers ?? false,
       }
     }
     default:

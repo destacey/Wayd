@@ -13,7 +13,10 @@ import { ItemType } from 'antd/es/menu/interface'
 import { useGetConnectionsQuery } from '@/src/store/features/app-integration/connections-api'
 import { ControlItemSwitch } from '../../../components/common/control-items-menu'
 
-const ConnectionLinkCellRenderer = ({ value, data }: ICellRendererParams<ConnectionListDto>) => {
+const ConnectionLinkCellRenderer = ({
+  value,
+  data,
+}: ICellRendererParams<ConnectionListDto>) => {
   return <Link href={`/settings/connections/${data!.id}`}>{value}</Link>
 }
 
@@ -34,13 +37,17 @@ const ConnectionsPage = () => {
     'Permissions.Connections.Create',
   )
 
-  const columnDefs = useMemo<ColDef<ConnectionListDto>[]>(() => [
+  const columnDefs = useMemo<ColDef<ConnectionListDto>[]>(
+    () => [
       { field: 'id', hide: true },
       { field: 'name', cellRenderer: ConnectionLinkCellRenderer, width: 250 },
-      { field: 'connector.name', width: 150 },
+      { field: 'connector.name', headerName: 'Connector', width: 150 },
+      { field: 'category.name', headerName: 'Category', width: 150 },
       { field: 'isActive', width: 125 },
       { field: 'isValidConfiguration', width: 150 },
-    ], [])
+    ],
+    [],
+  )
 
   const actionsMenuItems = (() => {
     const items = [] as ItemType[]

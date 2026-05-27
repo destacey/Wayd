@@ -16,7 +16,12 @@ import DeleteConnectionForm from '../_components/delete-connection-form'
 import BasicBreadcrumb from '@/src/components/common/basic-breadcrumb'
 import { PageActions } from '@/src/components/common'
 import { ItemType } from 'antd/es/menu/interface'
-import { useGetConnectionQuery } from '@/src/store/features/app-integration/connections-api'
+import {
+  useActivateConnectionMutation,
+  useDeactivateConnectionMutation,
+  useGetConnectionQuery,
+} from '@/src/store/features/app-integration/connections-api'
+import { useMessage } from '@/src/components/contexts/messaging'
 import {
   ConnectionActionContext,
   getDetailEntry,
@@ -60,6 +65,30 @@ const ConnectionDetailsPage = (props: {
     refetch,
   } = useGetConnectionQuery(id)
 
+  const messageApi = useMessage()
+  const [activateConnection, { isLoading: isActivating }] =
+    useActivateConnectionMutation()
+  const [deactivateConnection, { isLoading: isDeactivating }] =
+    useDeactivateConnectionMutation()
+  const isTogglingActive = isActivating || isDeactivating
+
+  const onToggleActive = async () => {
+    if (!connection || isTogglingActive) return
+    const mutation = connection.isActive
+      ? deactivateConnection
+      : activateConnection
+    const verb = connection.isActive ? 'deactivate' : 'activate'
+    const response = await mutation(id)
+    if ('error' in response && response.error) {
+      messageApi.error(`Failed to ${verb} connection.`)
+      console.error(response.error)
+      return
+    }
+    messageApi.success(
+      `Connection ${connection.isActive ? 'deactivated' : 'activated'}.`,
+    )
+  }
+
   const entry = useMemo(() => getDetailEntry(connection), [connection])
   const externalUrl = entry?.getExternalUrl?.(connection!)
 
@@ -98,6 +127,12 @@ const ConnectionDetailsPage = (props: {
         key: 'edit',
         label: 'Edit',
         onClick: () => setOpenEditConnectionForm(true),
+      })
+      items.push({
+        key: 'toggle-active',
+        label: connection?.isActive ? 'Deactivate' : 'Activate',
+        disabled: isTogglingActive,
+        onClick: onToggleActive,
       })
     }
     if (canDeleteConnections) {

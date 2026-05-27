@@ -1,93 +1,90 @@
-﻿using CSharpFunctionalExtensions;
-using Microsoft.Extensions.Configuration;
+﻿using Azure.Identity;
+using CSharpFunctionalExtensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
-using Microsoft.Graph.Models.ODataErrors;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Integrations.MicrosoftGraph.Model;
 
 namespace Wayd.Integrations.MicrosoftGraph;
 
-public sealed class MicrosoftGraphService : IExternalEmployeeDirectoryService
+public sealed class MicrosoftGraphService(ILogger<MicrosoftGraphService> logger) : IEntraEmployeeSource
 {
-    private readonly string[] _selectOptions = new string[] { "id", "userPrincipalName", "userType", "accountEnabled", "givenName", "surname", "jobTitle", "department", "officeLocation", "mail", "manager", "employeeHireDate" };
-    private readonly int _maxPageSize = 100; // graph api max page size is 999
+    private static readonly string[] _selectOptions = ["id", "userPrincipalName", "userType", "accountEnabled", "givenName", "surname", "jobTitle", "department", "officeLocation", "mail", "manager", "employeeHireDate"];
+    private const int MaxPageSize = 100; // graph api max page size is 999
 
-    private readonly GraphServiceClient _graphServiceClient;
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<MicrosoftGraphService> _logger;
+    private readonly ILogger<MicrosoftGraphService> _logger = logger;
 
-    public MicrosoftGraphService(GraphServiceClient graphServiceClient, IConfiguration configuration, ILogger<MicrosoftGraphService> logger)
-    {
-        _graphServiceClient = graphServiceClient;
-        _configuration = configuration;
-        _logger = logger;
-    }
-
-    public async Task<Result<IEnumerable<IExternalEmployee>>> GetEmployees(CancellationToken cancellationToken)
+    public async Task<Result<IEnumerable<IExternalEmployee>>> GetEmployees(EntraConnectionCredentials credentials, CancellationToken cancellationToken)
     {
         try
         {
-            string? allEmployeesGroup = _configuration["GraphApi:AllEmployeesGroupObjectId"];
-            var users = string.IsNullOrWhiteSpace(allEmployeesGroup)
-                ? await GetActiveDirectoryUsers(true, cancellationToken)
-                : await GetGroupMembers(allEmployeesGroup, cancellationToken);
+            var graphServiceClient = BuildClient(credentials);
 
-            if (users is null || !users.Any())
-                return Result.Failure<IEnumerable<IExternalEmployee>>("No employees found in Active Directory via Microsoft Graph");
+            var members = string.IsNullOrWhiteSpace(credentials.AllUsersGroupObjectId)
+                ? await GetEntraMembers(graphServiceClient, credentials.IncludeDisabledUsers, cancellationToken)
+                : await GetGroupMembers(graphServiceClient, credentials.AllUsersGroupObjectId!, credentials.IncludeDisabledUsers, cancellationToken);
 
-            _logger.LogInformation("Found {UserCount} users in Active Directory via Microsoft Graph", users.Count);
+            if (members is null || members.Count == 0)
+                return Result.Failure<IEnumerable<IExternalEmployee>>("No employees found in Entra via Microsoft Graph");
 
-            users = users.Where(u => !string.IsNullOrWhiteSpace(u.Id) && !string.IsNullOrEmpty(u.GivenName) && !string.IsNullOrEmpty(u.Surname)).ToList();
-            List<AzureAdEmployee> employees = new(users.Count);
-            foreach (var user in users)
+            _logger.LogInformation("Found {MemberCount} members in Entra tenant {TenantId} via Microsoft Graph", members.Count, credentials.TenantId);
+
+            members = [.. members.Where(u => !string.IsNullOrWhiteSpace(u.Id) && !string.IsNullOrEmpty(u.GivenName) && !string.IsNullOrEmpty(u.Surname))];
+            List<EntraEmployee> employees = new(members.Count);
+            foreach (var user in members)
             {
-                employees.Add(new AzureAdEmployee(user));
+                employees.Add(new EntraEmployee(user));
             }
 
-            _logger.LogInformation("Returning {EmployeeCount} employees from Active Directory via Microsoft Graph", employees.Count);
+            _logger.LogInformation("Returning {EmployeeCount} employees from Entra tenant {TenantId} via Microsoft Graph", employees.Count, credentials.TenantId);
             return Result.Success((IEnumerable<IExternalEmployee>)employees);
         }
         catch (Exception ex)
         {
-            string message = "Error getting employees from Active Directory via Microsoft Graph";
-            _logger.LogError(ex, message);
+            string message = $"Error getting employees from Entra tenant {credentials.TenantId} via Microsoft Graph";
+            _logger.LogError(ex, "{Message}", message);
             return Result.Failure<IEnumerable<IExternalEmployee>>(message);
         }
     }
 
-    /// <summary>
-    /// Gets a list of users that are members (direct or indirect) of a group.
-    /// </summary>
-    /// <param name="groupId">Azure Ad Group Object Id</param>
-    /// <returns></returns>
-    private async Task<List<User>> GetGroupMembers(string groupId, CancellationToken cancellationToken)
+    private static GraphServiceClient BuildClient(EntraConnectionCredentials credentials)
     {
-        var members = await _graphServiceClient.Groups[groupId]
+        var credential = new ClientSecretCredential(credentials.TenantId, credentials.ClientId, credentials.ClientSecret);
+        return new GraphServiceClient(credential, ["https://graph.microsoft.com/.default"]);
+    }
+
+    private async Task<List<User>> GetGroupMembers(GraphServiceClient graphServiceClient, string groupId, bool includeDisabled, CancellationToken cancellationToken)
+    {
+        var filter = includeDisabled
+            ? "usertype eq 'Member'"
+            : "accountEnabled eq true and usertype eq 'Member'";
+
+        var members = await graphServiceClient.Groups[groupId]
             .TransitiveMembers
             .GetAsync(requestConfiguration =>
             {
-                requestConfiguration.QueryParameters.Expand = new string[] { "manager($select=id)" };
+                requestConfiguration.QueryParameters.Expand = ["manager($select=id)"];
                 requestConfiguration.QueryParameters.Select = _selectOptions;
-                requestConfiguration.QueryParameters.Filter = "accountEnabled eq true and usertype eq 'Member'";
-                requestConfiguration.QueryParameters.Top = _maxPageSize;
+                requestConfiguration.QueryParameters.Filter = filter;
+                requestConfiguration.QueryParameters.Top = MaxPageSize;
             }, cancellationToken);
 
         List<User> users = [];
         if (members is null || members.Value is null)
         {
-            _logger.LogWarning("GetGroupMembers:  No members found for group {GroupId} in Active Directory via Microsoft Graph", groupId);
+            _logger.LogWarning("GetGroupMembers:  No members found for group {GroupId} in Entra via Microsoft Graph", groupId);
             return users;
         }
 
         var pageIterator = PageIterator<DirectoryObject, DirectoryObjectCollectionResponse>
             .CreatePageIterator(
-                _graphServiceClient,
+                graphServiceClient,
                 members,
                 (d) =>
                 {
-                    users.Add((User)d);
+                    if (d is User user) users.Add(user);
                     return true;
                 });
 
@@ -96,33 +93,33 @@ public sealed class MicrosoftGraphService : IExternalEmployeeDirectoryService
         return users;
     }
 
-    private async Task<List<User>> GetActiveDirectoryUsers(bool includeDisabled, CancellationToken cancellationToken)
+    private async Task<List<User>> GetEntraMembers(GraphServiceClient graphServiceClient, bool includeDisabled, CancellationToken cancellationToken)
     {
         var filter = includeDisabled
             ? "usertype eq 'Member'"
             : "accountEnabled eq true and usertype eq 'Member'";
 
         //https://docs.microsoft.com/en-us/graph/aad-advanced-queries?tabs=csharp
-        var adUsers = await _graphServiceClient.Users
+        var members = await graphServiceClient.Users
             .GetAsync(requestConfiguration =>
             {
-                requestConfiguration.QueryParameters.Expand = new string[] { "manager($select=id)" };
+                requestConfiguration.QueryParameters.Expand = ["manager($select=id)"];
                 requestConfiguration.QueryParameters.Select = _selectOptions;
                 requestConfiguration.QueryParameters.Filter = filter;
-                requestConfiguration.QueryParameters.Top = _maxPageSize;
+                requestConfiguration.QueryParameters.Top = MaxPageSize;
             }, cancellationToken);
 
         List<User> users = [];
-        if (adUsers is null || adUsers.Value is null)
+        if (members is null || members.Value is null)
         {
-            _logger.LogWarning("GetActiveDirectoryUsers:  No users found in Active Directory via Microsoft Graph");
+            _logger.LogWarning("GetEntraMembers:  No members found in Entra via Microsoft Graph");
             return users;
         }
 
         var pageIterator = PageIterator<User, UserCollectionResponse>
             .CreatePageIterator(
-                _graphServiceClient,
-                adUsers,
+                graphServiceClient,
+                members,
                 (u) =>
                 {
                     users.Add(u);
@@ -132,27 +129,5 @@ public sealed class MicrosoftGraphService : IExternalEmployeeDirectoryService
         await pageIterator.IterateAsync(cancellationToken);
 
         return users;
-    }
-
-    private async Task<DirectoryObject?> GetUserManager(string userId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var directoryObject = await _graphServiceClient.Users[userId].Manager
-            .GetAsync(requestConfiguration =>
-            {
-                requestConfiguration.Headers.Add("ConsistencyLevel", "eventual");
-                requestConfiguration.QueryParameters.Select = _selectOptions;
-            }, cancellationToken);
-
-            return directoryObject;
-        }
-        catch (ODataError ex)
-        {
-            // Msft Graph throws an error rather than returning null
-            _logger.LogDebug(ex, "Micrsoft Graph ServiceException:  The resource 'manager' does not exist for userId {UserId}", userId);
-        }
-
-        return null;
     }
 }

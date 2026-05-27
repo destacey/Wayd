@@ -22,6 +22,7 @@ using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Integrations.Abstractions;
 using Wayd.Integrations.AzureDevOps;
 using Wayd.Integrations.MicrosoftGraph;
+using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
 using NodaTime;
 
@@ -73,7 +74,7 @@ public static class ConfigureServices
 
         // INTEGRATIONS
         services.AddTransient<IAzureDevOpsService, AzureDevOpsService>();
-        services.AddScoped<IExternalEmployeeDirectoryService, MicrosoftGraphService>();
+        services.AddScoped<IEntraEmployeeSource, MicrosoftGraphService>();
 
         // Generic sync orchestration: one IWorkItemSource and one descriptor builder per connector.
         // (IWorkItemSourceFactory is auto-registered via the IScopedService marker scan.)

@@ -6,6 +6,7 @@ import { ItemType } from 'antd/es/menu/interface'
 import { ComponentType, ReactNode } from 'react'
 import { azureDevOpsDetailEntry } from '../azure-devops'
 import { azureOpenAIDetailEntry } from '../azure-openai'
+import { entraDetailEntry } from '../entra'
 import { openAIDetailEntry } from '../openai'
 
 export interface ConnectionTabDefinition {
@@ -72,12 +73,14 @@ export const DETAIL_REGISTRY: Partial<Record<ConnectorType, DetailEntry>> = {
   [ConnectorType.AzureDevOps]: azureDevOpsDetailEntry,
   [ConnectorType.AzureOpenAI]: azureOpenAIDetailEntry,
   [ConnectorType.OpenAI]: openAIDetailEntry,
+  [ConnectorType.Entra]: entraDetailEntry,
 }
 
 const NAME_TO_TYPE: Record<string, ConnectorType> = {
   'Azure DevOps': ConnectorType.AzureDevOps,
   'Azure OpenAI': ConnectorType.AzureOpenAI,
   'OpenAI': ConnectorType.OpenAI,
+  'Entra': ConnectorType.Entra,
 }
 
 /**

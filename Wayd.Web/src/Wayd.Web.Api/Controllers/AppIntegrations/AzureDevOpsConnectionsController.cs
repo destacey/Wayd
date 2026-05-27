@@ -17,17 +17,6 @@ public class AzureDevOpsConnectionsController(ISender sender) : ControllerBase
 {
     private readonly ISender _sender = sender;
 
-    [HttpPost("{id}/sync-state")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
-    [OpenApiOperation("Enable/disable sync for Azure DevOps connection.", "")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> UpdateSyncState(Guid id, bool isSyncEnabled, CancellationToken cancellationToken)
-    {
-        var result = await _sender.Send(new UpdateAzureDevOpsConnectionSyncStateCommand(id, isSyncEnabled), cancellationToken);
-        return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
-    }
-
     [HttpPost("{id}/sync-organization")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
     [OpenApiOperation("Sync Azure DevOps organization processes and projects.", "")]

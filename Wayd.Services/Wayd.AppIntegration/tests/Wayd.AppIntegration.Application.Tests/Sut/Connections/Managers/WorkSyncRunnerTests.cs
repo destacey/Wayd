@@ -88,14 +88,12 @@ public class WorkSyncRunnerTests
             "Test Connection", "desc", systemId, config, configurationIsValid: true,
             teamConfiguration: null, timestamp: _clock.Now);
 
-        connection.Activate(_clock.Now);
         connection.UpdateWorkProcessIntegrationState(
             new IntegrationRegistration<Guid, Guid>(processExternalId, IntegrationState<Guid>.Create(processInternalId, true)),
             _clock.Now);
         connection.UpdateWorkspaceIntegrationState(
             new IntegrationRegistration<Guid, Guid>(workspaceExternalId, IntegrationState<Guid>.Create(workspaceInternalId, true)),
             _clock.Now);
-        connection.SetSyncState(true, _clock.Now);
 
         _db.AddAzureDevOpsBoardsConnection(connection);
         return connection;
@@ -109,9 +107,9 @@ public class WorkSyncRunnerTests
             Name = e.Name,
             SystemId = e.SystemId,
             Connector = new SimpleNavigationDto { Id = (int)e.Connector, Name = "Azure DevOps" },
+            Category = new SimpleNavigationDto { Id = (int)ConnectorCategory.WorkSync, Name = "Work Sync" },
             IsActive = e.IsActive,
             IsValidConfiguration = e.IsValidConfiguration,
-            IsSyncEnabled = e.IsSyncEnabled,
             CanSync = e.CanSync
         }).ToList().AsReadOnly() as IReadOnlyList<ConnectionListDto>;
 
@@ -150,14 +148,15 @@ public class WorkSyncRunnerTests
     #endregion
 
     [Fact]
-    public async Task Run_WithNoActiveConnections_ReturnsFailure()
+    public async Task Run_WithNoActiveConnections_ReturnsSuccess_AndWritesNoSyncRun()
     {
+        // No-op runs are success — scheduled "run all" jobs fire whether or not there's anything
+        // to do, and returning failure would trip Hangfire's AutomaticRetry for no good reason.
         SetupConnectionsQuery(); // empty
 
         var result = await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, CancellationToken.None);
 
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("No active syncable connections");
+        result.IsSuccess.Should().BeTrue();
         _db.SyncRuns.Should().BeEmpty();
     }
 
@@ -481,10 +480,10 @@ public class WorkSyncRunnerTests
             Id = connection.Id,
             Name = connection.Name,
             Connector = new SimpleNavigationDto { Id = (int)connection.Connector, Name = "Azure DevOps" },
+            Category = new SimpleNavigationDto { Id = (int)ConnectorCategory.WorkSync, Name = "Work Sync" },
             IsActive = connection.IsActive,
             IsValidConfiguration = connection.IsValidConfiguration,
             SystemId = connection.SystemId,
-            IsSyncEnabled = connection.IsSyncEnabled,
             Configuration = new AzureDevOpsConnectionConfigurationDto
             {
                 Organization = "TestOrg",

@@ -19,7 +19,7 @@ graph TB
     end
     subgraph "Infrastructure"
         Infra["Wayd.Infrastructure<br/>EF Core, Auth, Jobs"]
-        Integrations["Wayd.Integrations<br/>Azure DevOps, Graph"]
+        Integrations["Wayd.Integrations<br/>Azure DevOps, Microsoft Graph"]
     end
     subgraph "Application"
         App["Wayd.*.Application<br/>Commands, Queries, DTOs"]
@@ -137,21 +137,30 @@ Wayd.Work.Application/
 
 ## Connector framework
 
-Customer-configured integrations (Azure DevOps, Azure OpenAI, future Jira / GitHub / HR connectors) plug into a shared framework in the `Wayd.AppIntegration` service, the `Wayd.Integrations.*` projects, and a frontend registry pair. The goal is that adding a connector is *additive* — drop in new files, register them, no edits to the generic plumbing.
+Customer-configured integrations (Azure DevOps, Entra, Azure OpenAI, future Jira / GitHub / Workday connectors) plug into a shared framework in the `Wayd.AppIntegration` service, the `Wayd.Integrations.*` projects, and a frontend registry pair. The goal is that adding a connector is *additive* — drop in new files, register them, no edits to the generic plumbing.
+
+Every connector belongs to a `ConnectorCategory` (`WorkSync`, `PeopleSync`, `AiProvider`). The category — not the specific connector type — determines which background runner picks the connection up and which Sync History view the detail page shows.
 
 ### Backend shape
 
 | Concern | Lives in | Pattern |
 |---|---|---|
-| Aggregate | `Wayd.AppIntegration.Domain/Models/` | `Connection<TConfiguration>` base; subclass per connector. Implement `ISyncableConnection` if the connector pulls data. |
+| Aggregate | `Wayd.AppIntegration.Domain/Models/` | `Connection<TConfiguration>` base; subclass per connector. Any connector that participates in a sync runner (work-sync or people-sync) implements `ISyncableConnection` to expose `SystemId` (nullable — return `null` if not applicable) and `CanSync` (`IsActive && IsValidConfiguration && HasActiveIntegrationObjects`). Both runners filter on `CanSync`. AI-provider connectors don't implement the interface — they aren't sync-runner-driven. |
 | Configuration | `Wayd.AppIntegration.Domain/Models/.../*ConnectionConfiguration.cs` | Plain POCO stored as JSON. Mark credential fields with `[Encrypted]` (from `Wayd.Common.Domain.DataProtection`) so they're encrypted at rest by `EncryptingJsonValueConverter`. |
-| Commands / Queries | `Wayd.AppIntegration.Application/Connections/Commands/\{Connector\}/`, `.../Queries/` | One folder per connector. CQRS via MediatR, validators via FluentValidation. |
+| Category routing | `Wayd.Common.Domain.Enums.AppIntegrations/ConnectorExtensions.cs` | Add an arm to `Connector.GetCategory()` mapping the new connector to its category. The runners and detail-page actions dispatch by category. |
+| Commands / Queries | `Wayd.AppIntegration.Application/Connections/Commands/\{Connector\}/`, `.../Queries/` | One folder per connector. CQRS via MediatR, validators via FluentValidation. Activate / Deactivate are connector-agnostic (`ActivateConnectionCommand` / `DeactivateConnectionCommand`) — don't re-implement them per connector. |
 | Polymorphic DTO | `Wayd.AppIntegration.Application/Connections/Dtos/ConnectionDetailsDto.cs` | Add a `[JsonDerivedType]` entry; controllers switch on the request/DTO type to dispatch to the right handler. |
+| Secret masking | `Wayd.AppIntegration.Application/Connections/Dtos/.../*ConfigurationDto.cs` | Implement a `Mask*` method that preserves the first 4 characters and the original length (matching `MaskPersonalAccessToken` / `MaskClientSecret` / `MaskApiKey`). The shared update-command pattern compares first-4-chars + length to detect "user posted back the masked value unchanged" and preserve the stored secret. |
 | External client | `Wayd.Integrations.\{SystemName\}/` | Only if the connector actually talks to a remote API. Pure AI providers can wrap an existing SDK directly inside the application layer. |
 | Persistence | `Wayd.Infrastructure/Persistence/Configuration/AppIntegrationConfiguration.cs` | TPH discriminator; one entity-config per concrete connection class. Use `HasEncryptedJsonConversion()` for the configuration column. |
-| Sync orchestration (work-sync connectors only) | `Wayd.Integrations.Abstractions/IWorkItemSource.cs` + `Wayd.AppIntegration.Application/Connections/Managers/\{Connector\}WorkItemSource.cs` | Implement `IWorkItemSource` for the connector. Register it keyed by `Connector` enum value (`AddKeyedTransient<IWorkItemSource, MySource>(Connector.X)`). The generic `WorkSyncRunner` calls every registered source on a single Hangfire schedule — no per-connector job. |
+| Sync orchestration — work | `Wayd.Integrations.Abstractions/IWorkItemSource.cs` + `Wayd.AppIntegration.Application/Connections/Managers/\{Connector\}WorkItemSource.cs` | Implement `IWorkItemSource` for the connector. Register it keyed by `Connector` enum value (`AddKeyedTransient<IWorkItemSource, MySource>(Connector.X)`). The generic `WorkSyncRunner` calls every registered source on a single Hangfire schedule — no per-connector job. |
+| Sync orchestration — people | `Wayd.Common.Application/Interfaces/ExternalPeople/` source interface + `PeopleSyncRunner.FetchEmployees` switch | Implement a `Fetch...` method on the runner and add an arm to its `FetchEmployees` switch keyed by `Connector` enum. (A future refactor will introduce `IPeopleSourceFactory` to mirror the work-sync factory; until then the switch is the seam.) |
 
 ### Sync orchestration
+
+Sync-shaped connectors plug into category-specific runners. Both runners follow the same shape: load active connections for their category, loop, write a `SyncRun` row per connection per run.
+
+#### Work sync
 
 Work-sync connectors (AzDO today, Jira/GitHub in future) plug into a single generic runner. The pieces:
 
@@ -161,6 +170,20 @@ Work-sync connectors (AzDO today, Jira/GitHub in future) plug into a single gene
 - **Hangfire entry point**: `JobManager.RunWorkSync(SyncType, SyncTriggerSource, Guid? connectionId, CancellationToken)` — one job for all work-sync connectors. `connectionId = null` runs every active syncable connection (manual via `BackgroundJobType.WorkFullSync` / `WorkDiffSync`, or scheduled). Passing a `connectionId` runs that connection only (manual "Sync now" from the connection detail page). `[DisableConcurrentExecution]` is keyed on the method, so all variants serialize against each other.
 
 One-time initialization flows (e.g. AzDO's `InitWorkProcessIntegration` / `InitWorkspaceIntegration`) stay connector-specific in the existing init manager — they're user-triggered setup wizards with connector-specific payloads, not part of the generic runner.
+
+#### People sync
+
+People-sync connectors (Entra today, Workday/BambooHR/Okta in future) follow the same shape as work sync but simpler — there's no per-target sync plan, every active connection just fetches its users and feeds them into the existing connector-agnostic `BulkUpsertEmployeesCommand`. The pieces:
+
+- **Source interface** — per-system contract (e.g. `IEntraEmployeeSource` in `Wayd.Common.Application.Interfaces.ExternalPeople`) returning `Result<IEnumerable<IExternalEmployee>>`. Sources build their own per-connection client at call time — there is no shared app-wide client, so multiple connections of the same type (e.g. two Entra tenants) work without conflict.
+- **`PeopleSyncRunner`** ([Wayd.AppIntegration.Application/Connections/Managers/PeopleSyncRunner.cs](https://github.com/destacey/Wayd/blob/main/Wayd.Services/Wayd.AppIntegration/src/Wayd.AppIntegration.Application/Connections/Managers/PeopleSyncRunner.cs)) — loops all active `PeopleSync` connections, fetches employees for each via `FetchEmployees` (currently a `switch` on `Connector` enum), sends `BulkUpsertEmployeesCommand`, then calls `IUserService.UpdateMissingEmployeeIds` and `SyncUsersFromEmployeeRecords`. Writes a `SyncRun` row per connection per run; per-connection details (`employeesFetched`, `employeesUpserted`, `errors[]`) are serialized to `SyncRun.DetailsJson`.
+- **Hangfire entry point**: `JobManager.RunPeopleSync(SyncTriggerSource, Guid? connectionId, CancellationToken)`. `connectionId = null` runs every active people-sync connection (manual via `BackgroundJobType.PeopleSync` or scheduled). Passing a `connectionId` runs that connection only (manual "Sync Now" from the connection detail page).
+
+People sync is always full — the source returns the full set on every call and `BulkUpsertEmployeesCommand` is idempotent. There is no differential mode.
+
+#### Why no shared `IConnectorSource<TItem>`
+
+Work-sync and people-sync runners look superficially similar but their per-target shapes diverge: work sync walks a workspace plan with per-workspace metrics; people sync is a single fetch-then-upsert per connection. Forcing both behind one generic interface would create a `TConnectionState` / `TItem` / `TSyncTarget` mess that hurts readability without removing duplication (the duplication is ~30 lines of `SyncRun` bookkeeping, which is cheap). Keep the two runners separate; share the `SyncRun` entity and the category-routed controller actions.
 
 ### Frontend shape
 

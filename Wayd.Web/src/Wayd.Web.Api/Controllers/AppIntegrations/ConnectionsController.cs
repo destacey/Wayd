@@ -1,11 +1,14 @@
 ﻿using CSharpFunctionalExtensions;
 using Wayd.AppIntegration.Application.Connections.Commands.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Commands.AzureOpenAI;
+using Wayd.AppIntegration.Application.Connections.Commands.Entra;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureOpenAI;
+using Wayd.AppIntegration.Application.Connections.Dtos.Entra;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Application.BackgroundJobs;
 using Wayd.Common.Application.Enums;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Interfaces;
 using Wayd.Web.Api.Models.AppIntegrations.Connections;
@@ -60,7 +63,11 @@ public class ConnectionsController(ISender sender) : ControllerBase
         }
         else if (connection is AzureOpenAIConnectionDetailsDto aoai)
         {
-            aoai.Configuration.ApiKey = "***MASKED***";
+            aoai.Configuration.MaskApiKey();
+        }
+        else if (connection is EntraConnectionDetailsDto entra)
+        {
+            entra.Configuration.MaskClientSecret();
         }
 
         return this.OkPolymorphic(connection);
@@ -80,6 +87,8 @@ public class ConnectionsController(ISender sender) : ControllerBase
                 await _sender.Send(azdo.ToCommand(), cancellationToken),
             CreateAzureOpenAIConnectionRequest aoai =>
                 await _sender.Send(aoai.ToCommand(), cancellationToken),
+            CreateEntraConnectionRequest entra =>
+                await _sender.Send(entra.ToCommand(), cancellationToken),
             _ => Result.Failure<Guid>($"Connector type not supported")
         };
 
@@ -107,27 +116,86 @@ public class ConnectionsController(ISender sender) : ControllerBase
                 await _sender.Send(azdo.ToCommand(), cancellationToken),
             UpdateAzureOpenAIConnectionRequest aoai =>
                 await _sender.Send(aoai.ToCommand(), cancellationToken),
+            UpdateEntraConnectionRequest entra =>
+                await _sender.Send(entra.ToCommand(), cancellationToken),
             _ => Result.Failure($"Connector type not supported")
         };
 
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPost("{id}/activate")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
+    [OpenApiOperation("Activate a connection.",
+        "Marks the connection as active. Inactive connections are excluded from sync runs and other automated processes.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> ActivateConnection(Guid id, CancellationToken cancellationToken)
+    {
+        // Pre-check existence so a missing connection surfaces as 404 rather than 400 — matches
+        // the DeleteConnection pattern and the documented OpenAPI responses.
+        var connection = await _sender.Send(new GetConnectionQuery(id), cancellationToken);
+        if (connection is null)
+            return NotFound();
+
+        var result = await _sender.Send(new ActivateConnectionCommand(id), cancellationToken);
+        return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("{id}/deactivate")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
+    [OpenApiOperation("Deactivate a connection.",
+        "Marks the connection as inactive. Inactive connections are excluded from all sync runs and cannot be manually synced.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> DeactivateConnection(Guid id, CancellationToken cancellationToken)
+    {
+        // Pre-check existence so a missing connection surfaces as 404 rather than 400 — matches
+        // the DeleteConnection pattern and the documented OpenAPI responses.
+        var connection = await _sender.Send(new GetConnectionQuery(id), cancellationToken);
+        if (connection is null)
+            return NotFound();
+
+        var result = await _sender.Send(new DeactivateConnectionCommand(id), cancellationToken);
+        return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpPost("{id}/run")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
     [OpenApiOperation("Trigger a sync for a connection.",
-        "Enqueues a background job that runs the sync pipeline for this connection only. Defaults to a differential sync; pass 'syncType=Full' for a full sync.")]
+        "Enqueues a background job that runs the sync pipeline for this connection only. Routes by connector category — work-sync connectors run a work sync (defaults to differential; pass 'syncType=Full' for full), people-sync connectors run a people sync. The connection must be active.")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public ActionResult RunSync(
+    public async Task<ActionResult> RunSync(
         Guid id,
         [FromServices] IJobService jobService,
         [FromServices] IJobManager jobManager,
         CancellationToken cancellationToken,
         SyncType syncType = SyncType.Differential)
     {
-        jobService.Enqueue(() => jobManager.RunWorkSync(syncType, SyncTriggerSource.Manual, id, cancellationToken));
-        return Accepted();
+        var connection = await _sender.Send(new GetConnectionQuery(id), cancellationToken);
+        if (connection is null)
+            return NotFound();
+
+        if (!connection.IsActive)
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(
+                "Connection is inactive. Activate the connection before triggering a sync.", HttpContext));
+
+        var category = ((Connector)connection.Connector.Id).GetCategory();
+        switch (category)
+        {
+            case ConnectorCategory.WorkSync:
+                jobService.Enqueue(() => jobManager.RunWorkSync(syncType, SyncTriggerSource.Manual, id, cancellationToken));
+                return Accepted();
+            case ConnectorCategory.PeopleSync:
+                jobService.Enqueue(() => jobManager.RunPeopleSync(SyncTriggerSource.Manual, id, cancellationToken));
+                return Accepted();
+            default:
+                return BadRequest(ProblemDetailsExtensions.ForBadRequest(
+                    $"Connections of category '{category}' do not support manual sync.", HttpContext));
+        }
     }
 
     [HttpGet("{id}/sync-runs")]
@@ -161,10 +229,7 @@ public class ConnectionsController(ISender sender) : ControllerBase
     {
         var run = await _sender.Send(new GetSyncRunQuery(syncRunId), cancellationToken);
 
-        if (run is null)
-            return NotFound();
-
-        return Ok(run);
+        return run is not null ? Ok(run) : NotFound();
     }
 
     [HttpDelete("{id}")]
@@ -186,6 +251,8 @@ public class ConnectionsController(ISender sender) : ControllerBase
                 await _sender.Send(new DeleteAzureDevOpsConnectionCommand(id), cancellationToken),
             AzureOpenAIConnectionDetailsDto =>
                 await _sender.Send(new DeleteAzureOpenAIConnectionCommand(id), cancellationToken),
+            EntraConnectionDetailsDto =>
+                await _sender.Send(new DeleteEntraConnectionCommand(id), cancellationToken),
             _ => Result.Failure($"Connector type not supported")
         };
 

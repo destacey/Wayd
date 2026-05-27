@@ -2,7 +2,9 @@
 using Microsoft.EntityFrameworkCore;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureOpenAI;
+using Wayd.AppIntegration.Application.Connections.Dtos.Entra;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
+using Wayd.AppIntegration.Domain.Models.Entra;
 
 namespace Wayd.AppIntegration.Application.Connections.Queries;
 
@@ -27,6 +29,7 @@ internal sealed class GetConnectionQueryHandler(IAppIntegrationDbContext appInte
         {
             AzureDevOpsBoardsConnection => connection.Adapt<AzureDevOpsConnectionDetailsDto>(),
             AzureOpenAIConnection => connection.Adapt<AzureOpenAIConnectionDetailsDto>(),
+            EntraConnection => connection.Adapt<EntraConnectionDetailsDto>(),
             // case OpenAIConnection:
             _ => connection.Adapt<ConnectionDetailsDto>(),
         };

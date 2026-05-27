@@ -46,10 +46,10 @@ public class AzureDevOpsInitManagerTests
             Id = connectionId,
             Name = "Test Connection",
             Connector = new Common.Application.Dtos.SimpleNavigationDto { Id = (int)Connector.AzureDevOps, Name = "Azure DevOps" },
+            Category = new Common.Application.Dtos.SimpleNavigationDto { Id = (int)ConnectorCategory.WorkSync, Name = "Work Sync" },
             IsActive = isActive,
             IsValidConfiguration = isValidConfiguration,
             SystemId = systemId,
-            IsSyncEnabled = true,
             Configuration = new AzureDevOpsConnectionConfigurationDto
             {
                 Organization = "TestOrg",

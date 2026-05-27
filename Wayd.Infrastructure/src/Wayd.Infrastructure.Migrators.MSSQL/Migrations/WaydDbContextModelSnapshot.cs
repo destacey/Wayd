@@ -4740,9 +4740,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("Configuration");
 
-                    b.Property<bool>("IsSyncEnabled")
-                        .HasColumnType("bit");
-
                     b.Property<string>("SystemId")
                         .HasMaxLength(64)
                         .HasColumnType("varchar");
@@ -4760,6 +4757,18 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnName("Configuration");
 
                     b.HasDiscriminator().HasValue("AzureOpenAI");
+                });
+
+            modelBuilder.Entity("Wayd.AppIntegration.Domain.Models.Entra.EntraConnection", b =>
+                {
+                    b.HasBaseType("Wayd.AppIntegration.Domain.Models.Connection");
+
+                    b.Property<string>("Configuration")
+                        .ValueGeneratedOnUpdateSometimes()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("Configuration");
+
+                    b.HasDiscriminator().HasValue("Entra");
                 });
 
             modelBuilder.Entity("Wayd.AppIntegration.Domain.Models.OpenAI.OpenAIConnection", b =>

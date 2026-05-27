@@ -23,6 +23,12 @@ interface CreateConnectionFormValues {
   baseUrl?: string
   apiKey?: string
   deploymentName?: string
+  // Entra specific
+  tenantId?: string
+  clientId?: string
+  clientSecret?: string
+  allUsersGroupObjectId?: string
+  includeDisabledUsers?: boolean
 }
 
 export const getDiscriminator = (connector: ConnectorType): string => {
@@ -33,6 +39,8 @@ export const getDiscriminator = (connector: ConnectorType): string => {
       return 'azure-openai'
     case ConnectorType.OpenAI:
       return 'openai'
+    case ConnectorType.Entra:
+      return 'entra'
     default:
       return 'openai'
   }

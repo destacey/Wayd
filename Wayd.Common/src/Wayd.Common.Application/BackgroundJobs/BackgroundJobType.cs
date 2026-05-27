@@ -6,8 +6,8 @@ public enum BackgroundJobType
 {
     // Integration Jobs
 
-    [Display(Name = "Employee Sync", Description = "Synchronize employees from external directory service.", Order = 1, GroupName = "Integration Jobs")]
-    EmployeeSync = 0,
+    [Display(Name = "People Sync", Description = "Synchronize people (employees and contingent workers) from all active people-sync connections (Entra, future Workday).", Order = 1, GroupName = "Integration Jobs")]
+    PeopleSync = 0,
 
     [Display(Name = "Work Full Sync", Description = "Run a full sync across all active work-management connections (Azure DevOps and any future Jira/GitHub connectors).", Order = 2, GroupName = "Integration Jobs")]
     WorkFullSync = 1,

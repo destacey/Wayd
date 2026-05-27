@@ -25007,68 +25007,6 @@ export class AzureDevOpsConnectionsClient {
     }
 
     /**
-     * Enable/disable sync for Azure DevOps connection.
-     * @param isSyncEnabled (optional) 
-     */
-    updateSyncState(id: string, isSyncEnabled?: boolean | undefined, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/app-integrations/connections/azure-devops/{id}/sync-state?";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        if (isSyncEnabled === null)
-            throw new globalThis.Error("The parameter 'isSyncEnabled' cannot be null.");
-        else if (isSyncEnabled !== undefined)
-            url_ += "isSyncEnabled=" + encodeURIComponent("" + isSyncEnabled) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "POST",
-            url: url_,
-            headers: {
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processUpdateSyncState(_response);
-        });
-    }
-
-    protected processUpdateSyncState(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
      * Sync Azure DevOps organization processes and projects.
      */
     syncOrganizationConfiguration(id: string, cancelToken?: CancelToken): Promise<void> {
@@ -25837,6 +25775,134 @@ export class ConnectionsClient {
     }
 
     protected processDeleteConnection(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Activate a connection.
+     */
+    activateConnection(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/app-integrations/connections/{id}/activate";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processActivateConnection(_response);
+        });
+    }
+
+    protected processActivateConnection(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Deactivate a connection.
+     */
+    deactivateConnection(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/app-integrations/connections/{id}/deactivate";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeactivateConnection(_response);
+        });
+    }
+
+    protected processDeactivateConnection(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -29347,9 +29413,9 @@ export interface ConnectionListDto {
     name: string;
     systemId?: string | undefined;
     connector: SimpleNavigationDto;
+    category: SimpleNavigationDto;
     isActive: boolean;
     isValidConfiguration: boolean;
-    isSyncEnabled?: boolean | undefined;
     canSync?: boolean | undefined;
     $type: string;
 }
@@ -29358,6 +29424,9 @@ export interface AzureDevOpsConnectionListDto extends ConnectionListDto {
 }
 
 export interface AzureOpenAIConnectionListDto extends ConnectionListDto {
+}
+
+export interface EntraConnectionListDto extends ConnectionListDto {
 }
 
 export interface ConnectorListDto {
@@ -29371,6 +29440,7 @@ export interface ConnectionDetailsDto {
     name: string;
     description?: string | undefined;
     connector: SimpleNavigationDto;
+    category: SimpleNavigationDto;
     isActive: boolean;
     isValidConfiguration: boolean;
     canSync?: boolean | undefined;
@@ -29379,7 +29449,6 @@ export interface ConnectionDetailsDto {
 
 export interface AzureDevOpsConnectionDetailsDto extends ConnectionDetailsDto {
     systemId?: string | undefined;
-    isSyncEnabled?: boolean;
     configuration: AzureDevOpsConnectionConfigurationDto;
     teamConfiguration: AzureDevOpsTeamConfigurationDto;
 }
@@ -29429,6 +29498,18 @@ export interface AzureOpenAIConnectionConfigurationDto {
     jsonModePreferred: boolean;
 }
 
+export interface EntraConnectionDetailsDto extends ConnectionDetailsDto {
+    configuration: EntraConnectionConfigurationDto;
+}
+
+export interface EntraConnectionConfigurationDto {
+    tenantId: string;
+    clientId: string;
+    clientSecret: string;
+    allUsersGroupObjectId?: string | undefined;
+    includeDisabledUsers: boolean;
+}
+
 export interface CreateConnectionRequest {
     /** The name of the connection. */
     name: string;
@@ -29451,6 +29532,20 @@ export interface CreateAzureOpenAIConnectionRequest extends CreateConnectionRequ
     apiKey: string;
     /** The OpenAI model deployment name to use for this connection (e.g. "gpt-4o") */
     deploymentName: string;
+}
+
+export interface CreateEntraConnectionRequest extends CreateConnectionRequest {
+    /** The Entra ID (Azure AD) tenant identifier. */
+    tenantId: string;
+    /** The application (client) identifier for the Entra app registration used to call Microsoft Graph. */
+    clientId: string;
+    /** The client secret for the Entra app registration. */
+    clientSecret: string;
+    /** Optional Entra group object ID to scope the user query to. When null, all member users in
+the tenant are queried. */
+    allUsersGroupObjectId?: string | undefined;
+    /** When true, users with disabled accounts are also included in the sync. */
+    includeDisabledUsers?: boolean;
 }
 
 export interface UpdateConnectionRequest {
@@ -29479,6 +29574,20 @@ export interface UpdateAzureOpenAIConnectionRequest extends UpdateConnectionRequ
     deploymentName: string;
 }
 
+export interface UpdateEntraConnectionRequest extends UpdateConnectionRequest {
+    /** The Entra ID (Azure AD) tenant identifier. */
+    tenantId: string;
+    /** The application (client) identifier for the Entra app registration used to call Microsoft Graph. */
+    clientId: string;
+    /** The client secret for the Entra app registration. */
+    clientSecret: string;
+    /** Optional Entra group object ID to scope the user query to. When null, all member users in
+the tenant are queried. */
+    allUsersGroupObjectId?: string | undefined;
+    /** When true, users with disabled accounts are also included in the sync. */
+    includeDisabledUsers?: boolean;
+}
+
 export enum SyncType {
     Full = "Full",
     Differential = "Differential",
@@ -29505,6 +29614,7 @@ export enum Connector {
     AzureDevOps = "AzureDevOps",
     AzureOpenAI = "AzureOpenAI",
     OpenAI = "OpenAI",
+    Entra = "Entra",
 }
 
 export enum SyncRunStatus {
@@ -29535,19 +29645,7 @@ export interface SyncRunDetailsDto {
     workItemsProcessed: number;
     errorsCount: number;
     errorMessage?: string | undefined;
-    details: WorkspaceSyncDetail[];
-}
-
-export interface WorkspaceSyncDetail {
-    internalWorkspaceId: string;
-    workspaceName: string;
-    succeeded: boolean;
-    workItemsProcessed: number;
-    parentLinkChangesProcessed: number;
-    dependencyLinkChangesProcessed: number;
-    deletedWorkItemsProcessed: number;
-    hadPartialFailure: boolean;
-    error?: string | undefined;
+    detailsJson?: string | undefined;
 }
 
 export interface BackgroundJobTypeDto {

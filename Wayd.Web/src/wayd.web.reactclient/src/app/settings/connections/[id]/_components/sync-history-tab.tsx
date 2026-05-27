@@ -22,15 +22,41 @@ import {
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
+  SyncRunDetailsDto,
   SyncRunListDto,
   SyncRunStatus,
   SyncTriggerSource,
   SyncType,
-  WorkspaceSyncDetail,
 } from '@/src/services/wayd-api'
+import styles from './sync-history-tab.module.css'
+
+// Work-sync per-workspace detail shape. The backend no longer exposes this as a typed DTO —
+// `SyncRunDetailsDto.detailsJson` is an opaque string and each connector parses it against
+// the schema it knows. This is the work-sync schema (matches `WorkspaceSyncDetail` written
+// by `WorkSyncRunner`).
+interface WorkspaceSyncDetail {
+  internalWorkspaceId: string
+  workspaceName?: string | null
+  succeeded: boolean
+  workItemsProcessed: number
+  parentLinkChangesProcessed: number
+  dependencyLinkChangesProcessed: number
+  deletedWorkItemsProcessed: number
+  hadPartialFailure: boolean
+  error?: string | null
+}
+
+export type SyncHistoryCategory = 'work' | 'people'
 
 interface Props {
   connectionId: string
+  category: SyncHistoryCategory
+  /**
+   * Whether the connection is currently active. Inactive connections can't be synced —
+   * the Sync Now button is disabled and the backend rejects the request anyway. Passed
+   * in by the page shell so this tab doesn't need its own connection query.
+   */
+  isActive: boolean
 }
 
 const STATUS_COLOR: Record<SyncRunStatus, string> = {
@@ -83,23 +109,26 @@ function formatDuration(
   return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`
 }
 
-function ExpandedRow({ syncRunId }: { syncRunId: string }) {
-  const { data, isLoading, isError } = useGetSyncRunQuery(syncRunId)
+// --- Category-specific schemas + renderers -----------------------------------
 
-  if (isLoading) return <Spin size="small" />
+interface PeopleSyncDetail {
+  employeesFetched?: number
+  employeesUpserted?: number
+  errors?: string[]
+}
 
-  if (isError) {
-    return (
-      <Alert
-        type="error"
-        message="Failed to load sync run details."
-        showIcon
-        style={{ margin: '0 24px 8px' }}
-      />
-    )
+function parseDetailsJson<T>(json: string | null | undefined): T | undefined {
+  if (!json) return undefined
+  try {
+    return JSON.parse(json) as T
+  } catch {
+    return undefined
   }
+}
 
-  if (!data?.details?.length) {
+function WorkExpandedRow({ syncRun }: { syncRun: SyncRunDetailsDto }) {
+  const details = parseDetailsJson<WorkspaceSyncDetail[]>(syncRun.detailsJson)
+  if (!details?.length) {
     return (
       <Typography.Text type="secondary" style={{ paddingLeft: 24 }}>
         No per-workspace details available.
@@ -108,11 +137,7 @@ function ExpandedRow({ syncRunId }: { syncRunId: string }) {
   }
 
   const workspaceColumns: TableColumnsType<WorkspaceSyncDetail> = [
-    {
-      title: 'Workspace',
-      dataIndex: 'workspaceName',
-      key: 'workspaceName',
-    },
+    { title: 'Workspace', dataIndex: 'workspaceName', key: 'workspaceName' },
     {
       title: 'Status',
       key: 'status',
@@ -145,7 +170,7 @@ function ExpandedRow({ syncRunId }: { syncRunId: string }) {
   return (
     <Table<WorkspaceSyncDetail>
       columns={workspaceColumns}
-      dataSource={data.details}
+      dataSource={details}
       rowKey="internalWorkspaceId"
       pagination={false}
       size="small"
@@ -154,10 +179,107 @@ function ExpandedRow({ syncRunId }: { syncRunId: string }) {
   )
 }
 
-export default function SyncHistoryTab({ connectionId }: Props) {
+function PeopleExpandedRow({ syncRun }: { syncRun: SyncRunDetailsDto }) {
+  const detail = parseDetailsJson<PeopleSyncDetail>(syncRun.detailsJson)
+
+  if (!detail) {
+    return (
+      <Typography.Text type="secondary" style={{ paddingLeft: 24 }}>
+        No details available.
+      </Typography.Text>
+    )
+  }
+
+  return (
+    <Space orientation="vertical" style={{ paddingLeft: 24, paddingBottom: 8 }}>
+      <Typography.Text>
+        <strong>Employees fetched:</strong> {detail.employeesFetched ?? 0}
+        {'  '}
+        <strong>Employees upserted:</strong> {detail.employeesUpserted ?? 0}
+      </Typography.Text>
+      {detail.errors && detail.errors.length > 0 && (
+        <>
+          <Typography.Text type="danger">Errors:</Typography.Text>
+          <ul style={{ margin: 0 }}>
+            {detail.errors.map((e, i) => (
+              <li key={i}>
+                <Typography.Text type="danger">{e}</Typography.Text>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </Space>
+  )
+}
+
+function ExpandedRow({
+  syncRunId,
+  category,
+}: {
+  syncRunId: string
+  category: SyncHistoryCategory
+}) {
+  const { data, isLoading, isError } = useGetSyncRunQuery(syncRunId)
+
+  if (isLoading) return <Spin size="small" />
+  if (isError) {
+    return (
+      <Alert
+        type="error"
+        message="Failed to load sync run details."
+        showIcon
+        style={{ margin: '0 24px 8px' }}
+      />
+    )
+  }
+  if (!data) return null
+
+  return category === 'people' ? (
+    <PeopleExpandedRow syncRun={data} />
+  ) : (
+    <WorkExpandedRow syncRun={data} />
+  )
+}
+
+const workCountColumns: TableColumnsType<SyncRunListDto> = [
+  {
+    title: 'Workspaces',
+    key: 'workspaces',
+    render: (_, r) => {
+      const label = `${r.workspacesSucceeded}/${r.workspacesPlanned}`
+      return r.workspacesFailed > 0 ? (
+        <Typography.Text type="danger">{label}</Typography.Text>
+      ) : (
+        label
+      )
+    },
+    width: 110,
+  },
+  {
+    title: 'Items',
+    dataIndex: 'workItemsProcessed',
+    key: 'workItemsProcessed',
+    width: 80,
+  },
+]
+
+// People-sync metrics (employeesFetched, employeesUpserted) live in detailsJson, not on the
+// SyncRunListDto. Exposing them as row-level columns would require fetching each run's details
+// up front — N detail queries to populate one list. Leave the row narrow and let the expanded
+// row carry the real numbers.
+const peopleCountColumns: TableColumnsType<SyncRunListDto> = []
+
+export default function SyncHistoryTab({ connectionId, category, isActive }: Props) {
   const messageApi = useMessage()
   const { hasClaim } = useAuth()
-  const canSync = hasClaim('Permission', 'Permissions.Connections.Update')
+  const hasPermission = hasClaim('Permission', 'Permissions.Connections.Update')
+  const canSync = hasPermission && isActive
+  const disabledReason = !hasPermission
+    ? 'Requires Connections: Update permission'
+    : !isActive
+      ? 'Activate the connection to enable sync'
+      : undefined
 
   const [rangeHours, setRangeHours] = useState<RangeHours>(24)
   // The cutoff is computed when the user picks a range and stored as an ISO string
@@ -205,10 +327,15 @@ export default function SyncHistoryTab({ connectionId }: Props) {
 
   const [runSync, { isLoading: isTriggeringSync }] = useRunSyncMutation()
 
-  const handleSyncNow = async (syncType: SyncType) => {
+  const handleSyncNow = async (syncType?: SyncType) => {
     try {
       await runSync({ connectionId, syncType }).unwrap()
-      const label = syncType === SyncType.Full ? 'Full sync' : 'Differential sync'
+      const label =
+        category === 'people'
+          ? 'Sync'
+          : syncType === SyncType.Full
+            ? 'Full sync'
+            : 'Differential sync'
       messageApi.success(`${label} triggered — a new run will appear shortly.`)
       // The effect on [waitingForRun] schedules the 30 s reset.
       setWaitingForRun(true)
@@ -217,7 +344,7 @@ export default function SyncHistoryTab({ connectionId }: Props) {
     }
   }
 
-  const columns: TableColumnsType<SyncRunListDto> = [
+  const sharedColumns: TableColumnsType<SyncRunListDto> = [
     {
       title: 'Started',
       dataIndex: 'startedAt',
@@ -259,32 +386,23 @@ export default function SyncHistoryTab({ connectionId }: Props) {
       render: (t: SyncTriggerSource) => TRIGGER_LABEL[t] ?? t,
       width: 100,
     },
-    {
-      title: 'Type',
-      dataIndex: 'syncType',
-      key: 'syncType',
-      render: (t: SyncType) => SYNC_TYPE_LABEL[t] ?? t,
-      width: 110,
-    },
-    {
-      title: 'Workspaces',
-      key: 'workspaces',
-      render: (_, r) => {
-        const label = `${r.workspacesSucceeded}/${r.workspacesPlanned}`
-        return r.workspacesFailed > 0 ? (
-          <Typography.Text type="danger">{label}</Typography.Text>
-        ) : (
-          label
-        )
-      },
-      width: 110,
-    },
-    {
-      title: 'Items',
-      dataIndex: 'workItemsProcessed',
-      key: 'workItemsProcessed',
-      width: 80,
-    },
+  ]
+
+  // Type column is only meaningful when the connector supports multiple sync types.
+  const typeColumn: TableColumnsType<SyncRunListDto> =
+    category === 'people'
+      ? []
+      : [
+          {
+            title: 'Type',
+            dataIndex: 'syncType',
+            key: 'syncType',
+            render: (t: SyncType) => SYNC_TYPE_LABEL[t] ?? t,
+            width: 110,
+          },
+        ]
+
+  const errorColumn: TableColumnsType<SyncRunListDto> = [
     {
       title: 'Error',
       dataIndex: 'errorMessage',
@@ -300,15 +418,61 @@ export default function SyncHistoryTab({ connectionId }: Props) {
     },
   ]
 
+  const countColumns =
+    category === 'people' ? peopleCountColumns : workCountColumns
+
+  const columns: TableColumnsType<SyncRunListDto> = [
+    ...sharedColumns,
+    ...typeColumn,
+    ...countColumns,
+    ...errorColumn,
+  ]
+
   const expandable: TableProps<SyncRunListDto>['expandable'] = {
     expandedRowRender: (record) => (
-      <ExpandedRow syncRunId={record.id} />
+      <ExpandedRow syncRunId={record.id} category={category} />
     ),
     rowExpandable: () => true,
   }
 
+  const syncButtons =
+    category === 'people' ? (
+      <Button
+        icon={<SyncOutlined />}
+        disabled={!canSync}
+        loading={isTriggeringSync}
+        onClick={() => handleSyncNow()}
+      >
+        Sync Now
+      </Button>
+    ) : (
+      <Space>
+        <Button
+          icon={<SyncOutlined />}
+          disabled={!canSync}
+          loading={isTriggeringSync}
+          onClick={() => handleSyncNow(SyncType.Differential)}
+        >
+          Diff Sync
+        </Button>
+        <Button
+          icon={<SyncOutlined />}
+          disabled={!canSync}
+          loading={isTriggeringSync}
+          onClick={() => handleSyncNow(SyncType.Full)}
+        >
+          Full Sync
+        </Button>
+      </Space>
+    )
+
   return (
-    <Space orientation="vertical" style={{ width: '100%' }} size="middle">
+    <Space
+      orientation="vertical"
+      style={{ width: '100%' }}
+      size="middle"
+      className={styles.expandRoot}
+    >
       <div
         style={{
           display: 'flex',
@@ -323,28 +487,7 @@ export default function SyncHistoryTab({ connectionId }: Props) {
           options={RANGE_OPTIONS.map((o) => ({ label: o.label, value: o.value }))}
           style={{ width: 160 }}
         />
-        <Tooltip
-          title={!canSync ? 'Requires Connections: Update permission' : undefined}
-        >
-          <Space>
-            <Button
-              icon={<SyncOutlined />}
-              disabled={!canSync}
-              loading={isTriggeringSync}
-              onClick={() => handleSyncNow(SyncType.Differential)}
-            >
-              Diff Sync
-            </Button>
-            <Button
-              icon={<SyncOutlined />}
-              disabled={!canSync}
-              loading={isTriggeringSync}
-              onClick={() => handleSyncNow(SyncType.Full)}
-            >
-              Full Sync
-            </Button>
-          </Space>
-        </Tooltip>
+        <Tooltip title={disabledReason}>{syncButtons}</Tooltip>
       </div>
 
       {isLoading ? (

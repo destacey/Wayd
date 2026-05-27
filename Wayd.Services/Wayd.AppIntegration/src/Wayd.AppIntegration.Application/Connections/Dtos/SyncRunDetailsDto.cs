@@ -1,4 +1,4 @@
-﻿using Mapster;
+using Mapster;
 using NodaTime;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -21,5 +21,11 @@ public sealed record SyncRunDetailsDto : IMapFrom<SyncRun>
     public int WorkItemsProcessed { get; set; }
     public int ErrorsCount { get; set; }
     public string? ErrorMessage { get; set; }
-    public IReadOnlyList<WorkspaceSyncDetail> Details { get; set; } = [];
+
+    /// <summary>
+    /// Connector-specific per-run details serialized as JSON. The schema varies by connector
+    /// category and is parsed by the matching frontend detail view — work-sync runs carry an
+    /// array of workspace details, people-sync runs carry a single employees summary object.
+    /// </summary>
+    public string? DetailsJson { get; set; }
 }

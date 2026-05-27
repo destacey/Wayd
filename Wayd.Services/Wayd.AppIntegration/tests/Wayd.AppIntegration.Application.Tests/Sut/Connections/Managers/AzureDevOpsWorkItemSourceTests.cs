@@ -90,10 +90,10 @@ public class AzureDevOpsWorkItemSourceTests
             Id = connectionId,
             Name = "Test Connection",
             Connector = new SimpleNavigationDto { Id = (int)Connector.AzureDevOps, Name = "Azure DevOps" },
+            Category = new SimpleNavigationDto { Id = (int)ConnectorCategory.WorkSync, Name = "Work Sync" },
             IsActive = true,
             IsValidConfiguration = true,
             SystemId = systemId,
-            IsSyncEnabled = true,
             Configuration = new AzureDevOpsConnectionConfigurationDto
             {
                 Organization = "TestOrg",

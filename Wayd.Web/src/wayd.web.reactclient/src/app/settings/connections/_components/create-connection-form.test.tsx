@@ -15,6 +15,10 @@ describe('create-connection-form helpers', () => {
       expect(getDiscriminator(ConnectorType.OpenAI)).toBe('openai')
     })
 
+    it('should return "entra" for Entra connector', () => {
+      expect(getDiscriminator(ConnectorType.Entra)).toBe('entra')
+    })
+
     it('should handle all ConnectorType enum values', () => {
       // Verify we have tests for all enum values
       const connectorTypes = Object.values(ConnectorType).filter(
@@ -30,7 +34,7 @@ describe('create-connection-form helpers', () => {
 
     it('should return valid discriminator strings matching backend expectations', () => {
       // These discriminators must match the JsonDerivedType attributes in the backend
-      const validDiscriminators = ['azure-devops', 'azure-openai', 'openai']
+      const validDiscriminators = ['azure-devops', 'azure-openai', 'openai', 'entra']
 
       Object.values(ConnectorType)
         .filter((v) => typeof v === 'number')

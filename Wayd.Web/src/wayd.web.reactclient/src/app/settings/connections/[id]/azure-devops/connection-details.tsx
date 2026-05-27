@@ -19,12 +19,10 @@ const AzdoConnectionDetails = ({ connection }: AzdoConnectionDetailsProps) => {
           <Descriptions column={1}>
             <Item label="System Id">{connection.systemId}</Item>
             <Item label="Connector">{connection.connector.name}</Item>
+            <Item label="Category">{connection.category?.name}</Item>
             <Item label="Is Active?">{connection.isActive ? 'Yes' : 'No'}</Item>
             <Item label="Is Valid Configuration?">
               {connection.isValidConfiguration ? 'Yes' : 'No'}
-            </Item>
-            <Item label="Is Sync Enabled?">
-              {connection.isSyncEnabled ? 'Yes' : 'No'}
             </Item>
           </Descriptions>
         </Col>

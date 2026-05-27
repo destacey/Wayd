@@ -31,9 +31,9 @@ public class UserServiceTests
     private readonly Mock<IUserIdentityStore> _mockUserIdentityStore;
     private readonly Mock<IOidcProviderRegistry> _mockOidcProviderRegistry;
 
-    // UserService depends on WaydDbContext and GraphServiceClient which are hard to
-    // mock. We test methods that don't require them. UserIdentity writes go through
-    // IUserIdentityStore so they can be verified via Moq.
+    // UserService depends on WaydDbContext which is hard to mock. We test methods that
+    // don't require it. UserIdentity writes go through IUserIdentityStore so they can be
+    // verified via Moq.
 
     public UserServiceTests()
     {
@@ -76,7 +76,6 @@ public class UserServiceTests
             _mockRoleManager.Object,
             null!, // WaydDbContext - not used by these methods
             _mockEvents.Object,
-            null!, // GraphServiceClient - not used by these methods
             _mockSender.Object,
             _dateTimeProvider,
             _mockCurrentUser.Object,

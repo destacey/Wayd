@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Wayd.AppIntegration.Application.Persistence;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
+using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Identity;
 using Wayd.Tests.Shared.Infrastructure;
@@ -20,6 +21,7 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
     private readonly List<Connection> _connections = [];
     private readonly List<AzureDevOpsBoardsConnection> _azureDevOpsBoardsConnections = [];
     private readonly List<AzureOpenAIConnection> _azureOpenAIConnections = [];
+    private readonly List<EntraConnection> _entraConnections = [];
     private readonly List<SyncRun> _syncRuns = [];
 
     // Common domain entities
@@ -33,6 +35,7 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
     public DbSet<Connection> Connections => _connections.AsDbSet();
     public DbSet<AzureDevOpsBoardsConnection> AzureDevOpsBoardsConnections => _azureDevOpsBoardsConnections.AsDbSet();
     public DbSet<AzureOpenAIConnection> AzureOpenAIConnections => _azureOpenAIConnections.AsDbSet();
+    public DbSet<EntraConnection> EntraConnections => _entraConnections.AsDbSet();
     public DbSet<SyncRun> SyncRuns => _syncRuns.AsDbSet();
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();
@@ -81,6 +84,10 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
     public void AddAzureDevOpsBoardsConnection(AzureDevOpsBoardsConnection connection) => _azureDevOpsBoardsConnections.Add(connection);
     public void AddAzureDevOpsBoardsConnections(IEnumerable<AzureDevOpsBoardsConnection> connections) => _azureDevOpsBoardsConnections.AddRange(connections);
 
+    // EntraConnection
+    public void AddEntraConnection(EntraConnection connection) => _entraConnections.Add(connection);
+    public void AddEntraConnections(IEnumerable<EntraConnection> connections) => _entraConnections.AddRange(connections);
+
     // SyncRun
     public void AddSyncRun(SyncRun syncRun) => _syncRuns.Add(syncRun);
     public void AddSyncRuns(IEnumerable<SyncRun> syncRuns) => _syncRuns.AddRange(syncRuns);
@@ -97,6 +104,8 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
     {
         _connections.Clear();
         _azureDevOpsBoardsConnections.Clear();
+        _azureOpenAIConnections.Clear();
+        _entraConnections.Clear();
         _syncRuns.Clear();
         _employees.Clear();
         _externalEmployeeBlacklistItems.Clear();

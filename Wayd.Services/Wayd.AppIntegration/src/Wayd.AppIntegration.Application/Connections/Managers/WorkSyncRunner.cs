@@ -60,8 +60,12 @@ public sealed class WorkSyncRunner(
 
                 if (active.Count == 0)
                 {
+                    // No-op runs aren't failures. Scheduled "run all" jobs fire on a cadence
+                    // independent of whether any connections exist or are active; returning
+                    // Failure here would trip Hangfire's AutomaticRetry and create noise without
+                    // ever changing the outcome (still no connections to sync next time).
                     _logger.LogInformation("No active syncable connections found.");
-                    return Result.Failure("No active syncable connections found.");
+                    return Result.Success();
                 }
 
                 int successCount = 0;
@@ -101,6 +105,12 @@ public sealed class WorkSyncRunner(
             var connection = await _sender.Send(new GetConnectionQuery(connectionId), cancellationToken);
             if (connection is null)
                 return Result.Failure($"Connection {connectionId} not found.");
+
+            // Inactive connections must never sync. The controller blocks this at request time;
+            // this guard catches any caller that bypasses the controller (recurring Hangfire jobs
+            // scheduled with a stale connectionId, direct invocation, etc.).
+            if (!connection.IsActive)
+                return Result.Failure($"Connection {connectionId} is inactive.");
 
             var connectorEnum = (Connector)connection.Connector.Id;
             return await RunConnection(connectionId, connectorEnum, syncType, trigger, syncId, cancellationToken);

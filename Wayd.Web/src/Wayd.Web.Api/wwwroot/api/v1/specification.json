@@ -20836,57 +20836,6 @@
         ]
       }
     },
-    "/api/app-integrations/connections/azure-devops/{id}/sync-state": {
-      "post": {
-        "tags": [
-          "AzureDevOpsConnections"
-        ],
-        "summary": "Enable/disable sync for Azure DevOps connection.",
-        "operationId": "AzureDevOpsConnections_UpdateSyncState",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "guid",
-              "nullable": false,
-              "example": "00000000-0000-0000-0000-000000000000"
-            },
-            "x-position": 1
-          },
-          {
-            "name": "isSyncEnabled",
-            "in": "query",
-            "schema": {
-              "type": "boolean"
-            },
-            "x-position": 2
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKey": []
-          }
-        ]
-      }
-    },
     "/api/app-integrations/connections/azure-devops/{id}/sync-organization": {
       "post": {
         "tags": [
@@ -21515,13 +21464,121 @@
         ]
       }
     },
+    "/api/app-integrations/connections/{id}/activate": {
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Activate a connection.",
+        "description": "Marks the connection as active. Inactive connections are excluded from sync runs and other automated processes.",
+        "operationId": "Connections_ActivateConnection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/app-integrations/connections/{id}/deactivate": {
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Deactivate a connection.",
+        "description": "Marks the connection as inactive. Inactive connections are excluded from all sync runs and cannot be manually synced.",
+        "operationId": "Connections_DeactivateConnection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/app-integrations/connections/{id}/run": {
       "post": {
         "tags": [
           "Connections"
         ],
         "summary": "Trigger a sync for a connection.",
-        "description": "Enqueues a background job that runs the sync pipeline for this connection only. Defaults to a differential sync; pass 'syncType=Full' for a full sync.",
+        "description": "Enqueues a background job that runs the sync pipeline for this connection only. Routes by connector category — work-sync connectors run a work sync (defaults to differential; pass 'syncType=Full' for full), people-sync connectors run a people sync. The connection must be active.",
         "operationId": "Connections_RunSync",
         "parameters": [
           {
@@ -34508,13 +34565,15 @@
           "propertyName": "$type",
           "mapping": {
             "azure-devops": "#/components/schemas/AzureDevOpsConnectionListDto",
-            "azure-openai": "#/components/schemas/AzureOpenAIConnectionListDto"
+            "azure-openai": "#/components/schemas/AzureOpenAIConnectionListDto",
+            "entra": "#/components/schemas/EntraConnectionListDto"
           }
         },
         "additionalProperties": false,
         "required": [
           "name",
           "connector",
+          "category",
           "$type",
           "id",
           "isActive",
@@ -34537,15 +34596,14 @@
           "connector": {
             "$ref": "#/components/schemas/SimpleNavigationDto"
           },
+          "category": {
+            "$ref": "#/components/schemas/SimpleNavigationDto"
+          },
           "isActive": {
             "type": "boolean"
           },
           "isValidConfiguration": {
             "type": "boolean"
-          },
-          "isSyncEnabled": {
-            "type": "boolean",
-            "nullable": true
           },
           "canSync": {
             "type": "boolean",
@@ -34568,6 +34626,17 @@
         ]
       },
       "AzureOpenAIConnectionListDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConnectionListDto"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false
+          }
+        ]
+      },
+      "EntraConnectionListDto": {
         "allOf": [
           {
             "$ref": "#/components/schemas/ConnectionListDto"
@@ -34605,13 +34674,15 @@
           "propertyName": "$type",
           "mapping": {
             "azure-devops": "#/components/schemas/AzureDevOpsConnectionDetailsDto",
-            "azure-openai": "#/components/schemas/AzureOpenAIConnectionDetailsDto"
+            "azure-openai": "#/components/schemas/AzureOpenAIConnectionDetailsDto",
+            "entra": "#/components/schemas/EntraConnectionDetailsDto"
           }
         },
         "additionalProperties": false,
         "required": [
           "name",
           "connector",
+          "category",
           "$type",
           "id",
           "isActive",
@@ -34632,6 +34703,9 @@
             "nullable": true
           },
           "connector": {
+            "$ref": "#/components/schemas/SimpleNavigationDto"
+          },
+          "category": {
             "$ref": "#/components/schemas/SimpleNavigationDto"
           },
           "isActive": {
@@ -34665,9 +34739,6 @@
               "systemId": {
                 "type": "string",
                 "nullable": true
-              },
-              "isSyncEnabled": {
-                "type": "boolean"
               },
               "configuration": {
                 "$ref": "#/components/schemas/AzureDevOpsConnectionConfigurationDto"
@@ -34869,13 +34940,61 @@
           }
         }
       },
+      "EntraConnectionDetailsDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConnectionDetailsDto"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "configuration"
+            ],
+            "properties": {
+              "configuration": {
+                "$ref": "#/components/schemas/EntraConnectionConfigurationDto"
+              }
+            }
+          }
+        ]
+      },
+      "EntraConnectionConfigurationDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenantId",
+          "clientId",
+          "clientSecret",
+          "includeDisabledUsers"
+        ],
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecret": {
+            "type": "string"
+          },
+          "allUsersGroupObjectId": {
+            "type": "string",
+            "nullable": true
+          },
+          "includeDisabledUsers": {
+            "type": "boolean"
+          }
+        }
+      },
       "CreateConnectionRequest": {
         "type": "object",
         "discriminator": {
           "propertyName": "$type",
           "mapping": {
             "azure-devops": "#/components/schemas/CreateAzureDevOpsConnectionRequest",
-            "azure-openai": "#/components/schemas/CreateAzureOpenAIConnectionRequest"
+            "azure-openai": "#/components/schemas/CreateAzureOpenAIConnectionRequest",
+            "entra": "#/components/schemas/CreateEntraConnectionRequest"
           }
         },
         "x-abstract": true,
@@ -34959,13 +35078,53 @@
           }
         ]
       },
+      "CreateEntraConnectionRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CreateConnectionRequest"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "tenantId",
+              "clientId",
+              "clientSecret"
+            ],
+            "properties": {
+              "tenantId": {
+                "type": "string",
+                "description": "The Entra ID (Azure AD) tenant identifier."
+              },
+              "clientId": {
+                "type": "string",
+                "description": "The application (client) identifier for the Entra app registration used to call Microsoft Graph."
+              },
+              "clientSecret": {
+                "type": "string",
+                "description": "The client secret for the Entra app registration."
+              },
+              "allUsersGroupObjectId": {
+                "type": "string",
+                "description": "Optional Entra group object ID to scope the user query to. When null, all member users in\nthe tenant are queried.",
+                "nullable": true
+              },
+              "includeDisabledUsers": {
+                "type": "boolean",
+                "description": "When true, users with disabled accounts are also included in the sync."
+              }
+            }
+          }
+        ]
+      },
       "UpdateConnectionRequest": {
         "type": "object",
         "discriminator": {
           "propertyName": "$type",
           "mapping": {
             "azure-devops": "#/components/schemas/UpdateAzureDevOpsConnectionRequest",
-            "azure-openai": "#/components/schemas/UpdateAzureOpenAIConnectionRequest"
+            "azure-openai": "#/components/schemas/UpdateAzureOpenAIConnectionRequest",
+            "entra": "#/components/schemas/UpdateEntraConnectionRequest"
           }
         },
         "x-abstract": true,
@@ -35053,6 +35212,45 @@
               "deploymentName": {
                 "type": "string",
                 "description": "The OpenAI model deployment name to use for this connection (e.g. \"gpt-4o\")"
+              }
+            }
+          }
+        ]
+      },
+      "UpdateEntraConnectionRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UpdateConnectionRequest"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "tenantId",
+              "clientId",
+              "clientSecret"
+            ],
+            "properties": {
+              "tenantId": {
+                "type": "string",
+                "description": "The Entra ID (Azure AD) tenant identifier."
+              },
+              "clientId": {
+                "type": "string",
+                "description": "The application (client) identifier for the Entra app registration used to call Microsoft Graph."
+              },
+              "clientSecret": {
+                "type": "string",
+                "description": "The client secret for the Entra app registration."
+              },
+              "allUsersGroupObjectId": {
+                "type": "string",
+                "description": "Optional Entra group object ID to scope the user query to. When null, all member users in\nthe tenant are queried.",
+                "nullable": true
+              },
+              "includeDisabledUsers": {
+                "type": "boolean",
+                "description": "When true, users with disabled accounts are also included in the sync."
               }
             }
           }
@@ -35153,12 +35351,14 @@
         "x-enumNames": [
           "AzureDevOps",
           "AzureOpenAI",
-          "OpenAI"
+          "OpenAI",
+          "Entra"
         ],
         "enum": [
           "AzureDevOps",
           "AzureOpenAI",
-          "OpenAI"
+          "OpenAI",
+          "Entra"
         ]
       },
       "SyncRunStatus": {
@@ -35206,8 +35406,7 @@
           "workspacesSucceeded",
           "workspacesFailed",
           "workItemsProcessed",
-          "errorsCount",
-          "details"
+          "errorsCount"
         ],
         "properties": {
           "id": {
@@ -35267,60 +35466,7 @@
             "type": "string",
             "nullable": true
           },
-          "details": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/WorkspaceSyncDetail"
-            }
-          }
-        }
-      },
-      "WorkspaceSyncDetail": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "internalWorkspaceId",
-          "workspaceName",
-          "succeeded",
-          "workItemsProcessed",
-          "parentLinkChangesProcessed",
-          "dependencyLinkChangesProcessed",
-          "deletedWorkItemsProcessed",
-          "hadPartialFailure"
-        ],
-        "properties": {
-          "internalWorkspaceId": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "workspaceName": {
-            "type": "string"
-          },
-          "succeeded": {
-            "type": "boolean"
-          },
-          "workItemsProcessed": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "parentLinkChangesProcessed": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "dependencyLinkChangesProcessed": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "deletedWorkItemsProcessed": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "hadPartialFailure": {
-            "type": "boolean"
-          },
-          "error": {
+          "detailsJson": {
             "type": "string",
             "nullable": true
           }

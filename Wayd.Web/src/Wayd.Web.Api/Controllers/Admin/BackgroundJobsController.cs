@@ -59,8 +59,8 @@ public class BackgroundJobsController : ControllerBase
         // TODO: should this code be moved to the manager?
         switch (jobType)
         {
-            case BackgroundJobType.EmployeeSync:
-                _jobService.Enqueue(() => jobManager.RunSyncExternalEmployees(cancellationToken));
+            case BackgroundJobType.PeopleSync:
+                _jobService.Enqueue(() => jobManager.RunPeopleSync(SyncTriggerSource.Manual, null, cancellationToken));
                 break;
             case BackgroundJobType.WorkFullSync:
                 _jobService.Enqueue(() => jobManager.RunWorkSync(SyncType.Full, SyncTriggerSource.Manual, null, cancellationToken));
@@ -105,7 +105,7 @@ public class BackgroundJobsController : ControllerBase
         {
             return jobType switch
             {
-                BackgroundJobType.EmployeeSync => () => jobManager.RunSyncExternalEmployees(cancellationToken),
+                BackgroundJobType.PeopleSync => () => jobManager.RunPeopleSync(SyncTriggerSource.Scheduled, null, cancellationToken),
                 BackgroundJobType.WorkFullSync => () => jobManager.RunWorkSync(SyncType.Full, SyncTriggerSource.Scheduled, null, cancellationToken),
                 BackgroundJobType.WorkDiffSync => () => jobManager.RunWorkSync(SyncType.Differential, SyncTriggerSource.Scheduled, null, cancellationToken),
                 BackgroundJobType.TeamGraphSync => () => jobManager.RunSyncTeamsWithGraphTables(cancellationToken),

@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using MediatR;
 using Wayd.AppIntegration.Application.Interfaces;
+using Wayd.AppIntegration.Domain.Interfaces;
 using Wayd.Common.Application.Employees.Commands;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Identity.Users;
@@ -38,13 +39,18 @@ public sealed class PeopleSyncRunner(
         {
             _logger.LogInformation("PeopleSyncRunner starting (trigger={Trigger})", trigger);
 
-            // Load all active PeopleSync-category connections directly (avoid going through DTOs).
+            // Load all non-deleted connections and filter by category + CanSync. CanSync lives
+            // on ISyncableConnection and encodes IsActive && IsValidConfiguration &&
+            // HasActiveIntegrationObjects — the same predicate WorkSyncRunner uses, so both
+            // runners agree on what "ready to sync" means.
             var connections = await _db.Connections
-                .Where(c => c.IsActive && !c.IsDeleted)
+                .Where(c => !c.IsDeleted)
                 .ToListAsync(cancellationToken);
 
             var active = connections
-                .Where(c => c.Connector.GetCategory() == ConnectorCategory.PeopleSync && c.IsValidConfiguration)
+                .Where(c => c.Connector.GetCategory() == ConnectorCategory.PeopleSync
+                            && c is ISyncableConnection syncable
+                            && syncable.CanSync)
                 .ToList();
 
             if (active.Count == 0)

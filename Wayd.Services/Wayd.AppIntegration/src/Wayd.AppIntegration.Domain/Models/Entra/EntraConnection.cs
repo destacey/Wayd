@@ -1,8 +1,9 @@
+using Wayd.AppIntegration.Domain.Interfaces;
 using Wayd.Common.Extensions;
 
 namespace Wayd.AppIntegration.Domain.Models.Entra;
 
-public sealed class EntraConnection : Connection<EntraConnectionConfiguration>
+public sealed class EntraConnection : Connection<EntraConnectionConfiguration>, ISyncableConnection
 {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     private EntraConnection() { }
@@ -24,6 +25,14 @@ public sealed class EntraConnection : Connection<EntraConnectionConfiguration>
     public override EntraConnectionConfiguration Configuration { get; protected set; }
 
     public override bool HasActiveIntegrationObjects => IsValidConfiguration;
+
+    // ISyncableConnection
+    // Entra has no AzDO-style external system identifier (each connection is wired to a tenant
+    // but the tenant id lives in Configuration, not at the system-id level). The interface
+    // declares SystemId as nullable for exactly this case.
+    public string? SystemId => null;
+
+    public bool CanSync => IsActive && IsValidConfiguration && HasActiveIntegrationObjects;
 
     public Result Update(
         string name,

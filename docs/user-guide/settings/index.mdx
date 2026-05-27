@@ -201,7 +201,7 @@ A **Connector** is a configurable integration type that lets a specific external
 **Common actions on a connection:**
 
 - **Edit** — Update name, description, or credentials. The masked secret can be left as-is to keep the existing value.
-- **Activate / Deactivate** — Toggle whether the connection participates in sync runs. Deactivating also disables sync for syncable connections.
+- **Activate / Deactivate** — Toggle whether the connection participates in sync runs. Inactive connections are excluded from every runner (work-sync, people-sync) and from "Sync Now" — the API rejects sync attempts on an inactive connection.
 - **Sync Now** — Triggers a manual sync for that connection only. Available on Work Sync and People Sync connectors. Routes to the right runner based on the connector's category.
 - **Sync History** — Tab on the connection detail page showing past runs with their status, duration, and per-run details (workspaces and work items for Work Sync; employees fetched and upserted for People Sync).
 - **Delete** — Removes the connection. Past sync history rows are preserved by design.

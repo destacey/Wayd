@@ -133,6 +133,12 @@ public class ConnectionsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult> ActivateConnection(Guid id, CancellationToken cancellationToken)
     {
+        // Pre-check existence so a missing connection surfaces as 404 rather than 400 — matches
+        // the DeleteConnection pattern and the documented OpenAPI responses.
+        var connection = await _sender.Send(new GetConnectionQuery(id), cancellationToken);
+        if (connection is null)
+            return NotFound();
+
         var result = await _sender.Send(new ActivateConnectionCommand(id), cancellationToken);
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }
@@ -140,12 +146,18 @@ public class ConnectionsController(ISender sender) : ControllerBase
     [HttpPost("{id}/deactivate")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
     [OpenApiOperation("Deactivate a connection.",
-        "Marks the connection as inactive. For syncable connections this also disables sync.")]
+        "Marks the connection as inactive. Inactive connections are excluded from all sync runs and cannot be manually synced.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult> DeactivateConnection(Guid id, CancellationToken cancellationToken)
     {
+        // Pre-check existence so a missing connection surfaces as 404 rather than 400 — matches
+        // the DeleteConnection pattern and the documented OpenAPI responses.
+        var connection = await _sender.Send(new GetConnectionQuery(id), cancellationToken);
+        if (connection is null)
+            return NotFound();
+
         var result = await _sender.Send(new DeactivateConnectionCommand(id), cancellationToken);
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }

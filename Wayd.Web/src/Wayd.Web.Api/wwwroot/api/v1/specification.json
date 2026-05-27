@@ -21524,7 +21524,7 @@
           "Connections"
         ],
         "summary": "Deactivate a connection.",
-        "description": "Marks the connection as inactive. For syncable connections this also disables sync.",
+        "description": "Marks the connection as inactive. Inactive connections are excluded from all sync runs and cannot be manually synced.",
         "operationId": "Connections_DeactivateConnection",
         "parameters": [
           {

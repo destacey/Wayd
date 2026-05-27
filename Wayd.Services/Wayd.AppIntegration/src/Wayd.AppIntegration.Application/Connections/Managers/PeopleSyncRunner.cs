@@ -220,6 +220,20 @@ public sealed class PeopleSyncRunner(
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
+    // SaveRun is bookkeeping for the sync-history audit trail. Failures here are deliberately
+    // logged and swallowed rather than propagated:
+    //
+    //   * The sync itself has already succeeded or failed on its own merits — the runner records
+    //     that outcome via the SyncRun.MarkSucceeded/Failed call before SaveRun runs. Throwing
+    //     from SaveRun would surface a misleading error (the sync didn't fail; the history row did)
+    //     and trip Hangfire's AutomaticRetry, which would re-run the whole sync and risk
+    //     double-upserts.
+    //   * A persistent DB failure here is observable: the Error-level log fires every run and
+    //     the missing SyncRun row will be visible (or rather, conspicuously missing) in the
+    //     sync history UI.
+    //
+    // Mirrors WorkSyncRunner.SaveRun. If we ever want sync-history persistence to be load-bearing
+    // (e.g. a downstream alerting flow depends on a row existing), revisit then.
     private async Task SaveRun(SyncRun run, PeopleSyncDetail details, CancellationToken cancellationToken)
     {
         try

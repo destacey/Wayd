@@ -41,7 +41,7 @@ API responses additionally mask secret fields before returning them, preserving 
 
 ### Activation
 
-New connections are **active by default**. Admins can deactivate one from the detail page's action menu — deactivating sets `IsActive=false` and, for syncable connections, also clears `IsSyncEnabled` so the connection is excluded from sync runs. Activating an inactive connection raises an `EntityActivatedEvent`; the deliberate state transition is captured in domain events rather than silently bundled into a config edit.
+New connections are **active by default**. Admins toggle this from the detail page's action menu — `IsActive` is the single switch that controls whether a connection participates in sync runs (no separate "sync enabled" flag; the two concepts were collapsed since `IsActive=false` already excludes a connection from every runner). Activation transitions raise `EntityActivatedEvent` / `EntityDeactivatedEvent` so the deliberate state change is captured in domain events rather than silently bundled into a config edit.
 
 ## Azure DevOps
 

@@ -28,6 +28,7 @@ import {
   SyncTriggerSource,
   SyncType,
 } from '@/src/services/wayd-api'
+import styles from './sync-history-tab.module.css'
 
 // Work-sync per-workspace detail shape. The backend no longer exposes this as a typed DTO —
 // `SyncRunDetailsDto.detailsJson` is an opaque string and each connector parses it against
@@ -44,7 +45,6 @@ interface WorkspaceSyncDetail {
   hadPartialFailure: boolean
   error?: string | null
 }
-import styles from './sync-history-tab.module.css'
 
 export type SyncHistoryCategory = 'work' | 'people'
 
@@ -264,11 +264,10 @@ const workCountColumns: TableColumnsType<SyncRunListDto> = [
   },
 ]
 
-// People-sync metrics live in detailsJson, not on the SyncRunListDto columns. The list view
-// fetches each run's details lazily on demand below; that would mean N detail queries to
-// populate the list, which we don't want. For the row-level count we just show a single
-// "Processed" column derived from workItemsProcessed (always 0 for people sync today) and
-// rely on the expanded row for the real fetched/upserted numbers.
+// People-sync metrics (employeesFetched, employeesUpserted) live in detailsJson, not on the
+// SyncRunListDto. Exposing them as row-level columns would require fetching each run's details
+// up front — N detail queries to populate one list. Leave the row narrow and let the expanded
+// row carry the real numbers.
 const peopleCountColumns: TableColumnsType<SyncRunListDto> = []
 
 export default function SyncHistoryTab({ connectionId, category, isActive }: Props) {

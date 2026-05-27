@@ -55,8 +55,12 @@ public sealed class PeopleSyncRunner(
 
             if (active.Count == 0)
             {
+                // No-op runs aren't failures. Scheduled "run all" jobs fire on a cadence
+                // independent of whether any connections exist or are active; returning
+                // Failure here would trip Hangfire's AutomaticRetry and create noise without
+                // ever changing the outcome (still no connections to sync next time).
                 _logger.LogInformation("No active people-sync connections found.");
-                return Result.Failure("No active people-sync connections found.");
+                return Result.Success();
             }
 
             int successCount = 0;

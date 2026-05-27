@@ -148,14 +148,15 @@ public class WorkSyncRunnerTests
     #endregion
 
     [Fact]
-    public async Task Run_WithNoActiveConnections_ReturnsFailure()
+    public async Task Run_WithNoActiveConnections_ReturnsSuccess_AndWritesNoSyncRun()
     {
+        // No-op runs are success — scheduled "run all" jobs fire whether or not there's anything
+        // to do, and returning failure would trip Hangfire's AutomaticRetry for no good reason.
         SetupConnectionsQuery(); // empty
 
         var result = await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, CancellationToken.None);
 
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("No active syncable connections");
+        result.IsSuccess.Should().BeTrue();
         _db.SyncRuns.Should().BeEmpty();
     }
 

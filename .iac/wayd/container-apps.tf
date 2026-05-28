@@ -73,26 +73,6 @@ resource "azurerm_container_app" "wayd_frontend" {
         name  = "NEXT_PUBLIC_API_BASE_URL"
         value = "https://${azurerm_container_app.wayd_backend.ingress.0.fqdn}"
       }
-
-      env {
-        name  = "NEXT_PUBLIC_AZURE_AD_CLIENT_ID"
-        value = var.app_reg_client_id
-      }
-
-      env {
-        name  = "NEXT_PUBLIC_AZURE_AD_TENANT_ID"
-        value = var.aad_tenant_id
-      }
-
-      env {
-        name  = "NEXT_PUBLIC_MICROSOFT_LOGON_AUTHORITY"
-        value = "https://login.microsoftonline.com/${var.aad_tenant_id}"
-      }
-
-      env {
-        name  = "NEXT_PUBLIC_API_SCOPE"
-        value = var.app_reg_api_scope
-      }
     }
   }
 
@@ -118,11 +98,6 @@ resource "azurerm_container_app" "wayd_backend" {
   secret {
     name  = "sql-conn-string"
     value = local.sql_conn_string
-  }
-
-  secret {
-    name  = "aad-client-secret"
-    value = var.aad_api_client_secret
   }
 
   secret {
@@ -198,33 +173,8 @@ resource "azurerm_container_app" "wayd_backend" {
       }
 
       env {
-        name        = "SecuritySettings__AzureAd__ClientSecret"
-        secret_name = "aad-client-secret"
-      }
-
-      env {
         name        = "Azure__SignalR__ConnectionString"
         secret_name = "signalr-conn-string"
-      }
-
-      env {
-        name  = "SecuritySettings__AzureAd__ClientId"
-        value = var.api_app_reg_client_id
-      }
-
-      env {
-        name  = "SecuritySettings__AzureAd__Domain"
-        value = var.aad_domain
-      }
-
-      env {
-        name  = "SecuritySettings__AzureAd__RootIssuer"
-        value = "https://sts.windows.net/${var.aad_tenant_id}/"
-      }
-
-      env {
-        name  = "SecuritySettings__AzureAd__TenantId"
-        value = var.aad_tenant_id
       }
 
       env {
@@ -250,65 +200,6 @@ resource "azurerm_container_app" "wayd_backend" {
       env {
         name  = "SecuritySettings__LocalJwt__RefreshTokenExpirationInDays"
         value = tostring(var.local_jwt_refresh_token_expiration_days)
-      }
-
-      # Entra token-exchange config. The OidcProviderSeeder uses these values to
-      # create the first Identity.OidcProviders row on startup if none exists.
-      # Once seeded, the database row is the source of truth — subsequent changes
-      # go through Settings → Identity Providers in the admin UI.
-      # Local-only deployments leave Enabled=false and can omit the other keys.
-      env {
-        name  = "SecuritySettings__Providers__Entra__Enabled"
-        value = tostring(var.entra_enabled)
-      }
-
-      env {
-        name  = "SecuritySettings__Providers__Entra__Authority"
-        value = "https://login.microsoftonline.com/${var.aad_tenant_id}/v2.0"
-      }
-
-      # SpaClientId: the client (SPA/frontend) app registration's client ID.
-      # Used by the browser OIDC client when initiating sign-in.
-      env {
-        name  = "SecuritySettings__Providers__Entra__SpaClientId"
-        value = var.app_reg_client_id
-      }
-
-      # ApiScope: the full API scope URI. Included in scopes so Entra issues an
-      # access token with aud = api_app_reg_client_id (the Audience below).
-      env {
-        name  = "SecuritySettings__Providers__Entra__ApiScope"
-        value = var.app_reg_api_scope
-      }
-
-      # Audience: for v2.0 Entra tokens, `aud` is the bare API client ID GUID
-      # (not the App ID URI or scope). v1.0 registrations put `api://<clientId>`
-      # in `aud` instead — decode a real token at jwt.ms if in doubt.
-      env {
-        name  = "SecuritySettings__Providers__Entra__Audience"
-        value = var.api_app_reg_client_id
-      }
-
-      # Array binding via env vars uses __0, __1, etc. The dynamic block below
-      # generates one env var per tenant. When onboarding a new org (e.g., for
-      # PR 4's tenant-migration flow), just append to var.allowed_entra_tenant_ids.
-      # Defaults to the single app tenant when the variable is not set.
-      #
-      # The `{ for idx, tid in … : idx => tid }` comprehension is deliberate:
-      # passing a raw list to `for_each` coerces it to a set, and for sets
-      # `env.key == env.value` — which produced env vars like
-      # `…AllowedTenantIds__04c1bf98-…` instead of `…AllowedTenantIds__0`.
-      # The configuration binder wants numeric indices, so we build a map
-      # keyed by index and use `env.key` as the index.
-      dynamic "env" {
-        for_each = {
-          for idx, tid in coalesce(var.allowed_entra_tenant_ids, [var.aad_tenant_id]) :
-          idx => tid
-        }
-        content {
-          name  = "SecuritySettings__Providers__Entra__AllowedTenantIds__${env.key}"
-          value = env.value
-        }
       }
 
       env {

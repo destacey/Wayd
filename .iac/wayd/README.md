@@ -50,27 +50,21 @@ Docker images for the API and client must be published to a registry accessible 
 
 ## Configuration
 
-Required and optional variables are declared in [variables.tf](./variables.tf). The GitHub Actions workflow passes `sql_admin_pass`, `aad_api_client_secret`, `local_jwt_secret`, and `docker_tag` as `-var` flags on every run — you set the rest on the Terraform Cloud workspace.
+Required and optional variables are declared in [variables.tf](./variables.tf). The GitHub Actions workflow passes `sql_admin_pass`, `local_jwt_secret`, and `docker_tag` as `-var` flags on every run — you set the rest on the Terraform Cloud workspace.
 
 ### Required variables (no default — must be set)
 
 Set these as **Terraform variables** in the TFC workspace:
 
-| Variable | Example value | Notes |
-|---|---|---|
-| `aad_tenant_id` | `00000000-0000-0000-0000-000000000000` | Your AAD tenant ID |
-| `aad_domain` | `contoso.onmicrosoft.com` | AAD tenant primary domain |
-| `app_reg_client_id` | `<guid>` | Frontend SPA client ID |
-| `api_app_reg_client_id` | `<guid>` | Backend API client ID |
-| `app_reg_api_scope` | `api://<api-client-id>/access_as_user` | Full API scope URI |
-| `sql_ad_admin_object_id` | `<guid>` | AAD group object ID for SQL admin |
+| Variable                 | Example value | Notes                             |
+| ------------------------ | ------------- | --------------------------------- |
+| `sql_ad_admin_object_id` | `<guid>`      | AAD group object ID for SQL admin |
 
 Set these as **Terraform variables (sensitive)** in the TFC workspace (or pass them via `-var` flags as the workflow does):
 
 | Variable | Notes |
 |---|---|
 | `sql_admin_pass` | Azure SQL Server admin password |
-| `aad_api_client_secret` | Client secret from the backend API app registration |
 | `local_jwt_secret` | 32+ character random string used to sign local JWTs |
 
 Set these as **Environment variables** in the TFC workspace (typically via a shared variable set so multiple workspaces can inherit them):

@@ -1,5 +1,10 @@
 #!/bin/sh
 
+# Fail fast on any error — without this, `test -n` below would log a non-zero
+# exit but the script would keep going and `sed` would silently inject an empty
+# value, leaving the app misconfigured at startup.
+set -e
+
 echo "Check that we have env vars"
 test -n "$NEXT_PUBLIC_API_BASE_URL"
 

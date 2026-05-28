@@ -4,8 +4,10 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 First, create a .env.local file in the root of this project with the following variable, without quotes:
 
 ```
-NEXT_PUBLIC_API_BASE_URL='Get this from the launch settings of Wayd.Web.Api (ex: https://localhost:7021)'
+NEXT_PUBLIC_API_BASE_URL=https://localhost:7021
 ```
+
+> Replace the URL with whatever your local `Wayd.Web.Api` is bound to — check the API's `launchSettings.json` if you're unsure.
 
 Identity providers (Microsoft Entra ID, etc.) are no longer configured via env vars — the login page discovers them at runtime from the API, and admins manage them in **Settings → Identity Providers**.
 

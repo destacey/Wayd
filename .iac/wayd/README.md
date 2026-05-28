@@ -50,7 +50,7 @@ Docker images for the API and client must be published to a registry accessible 
 
 ## Configuration
 
-Required and optional variables are declared in [variables.tf](./variables.tf). The GitHub Actions workflow passes `sql_admin_pass`, `local_jwt_secret`, and `docker_tag` as `-var` flags on every run — you set the rest on the Terraform Cloud workspace.
+Required and optional variables are declared in [variables.tf](./variables.tf). The GitHub Actions workflow passes `sql_admin_pass`, `local_jwt_secret`, `dataprotection_master_key`, and `docker_tag` as `-var` flags on every run — you set the rest on the Terraform Cloud workspace.
 
 ### Required variables (no default — must be set)
 
@@ -62,10 +62,11 @@ Set these as **Terraform variables** in the TFC workspace:
 
 Set these as **Terraform variables (sensitive)** in the TFC workspace (or pass them via `-var` flags as the workflow does):
 
-| Variable | Notes |
-|---|---|
-| `sql_admin_pass` | Azure SQL Server admin password |
-| `local_jwt_secret` | 32+ character random string used to sign local JWTs |
+| Variable                    | Notes                                                                                                                                                                                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `sql_admin_pass`            | Azure SQL Server admin password                                                                                                                                                                                                                  |
+| `local_jwt_secret`          | 32+ character random string used to sign local JWTs                                                                                                                                                                                              |
+| `dataprotection_master_key` | Base64-encoded 32 bytes (44 chars) used to encrypt connector credentials at rest. **Effectively write-once** — rotating or losing it makes every stored connector secret unrecoverable. Generate with `openssl rand -base64 32`; store securely. |
 
 Set these as **Environment variables** in the TFC workspace (typically via a shared variable set so multiple workspaces can inherit them):
 

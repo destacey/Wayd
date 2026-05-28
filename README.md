@@ -100,15 +100,13 @@ API_BASE_URL='http://localhost:5000'
 
 #### Option B: Microsoft Entra ID (Azure AD)
 
-You'll need an Azure AD app registration. Create a `.env` file in the repository root:
+You'll need an Azure AD app registration. The same `.env` as Option A is all the environment needs:
 
 ```env
-AAD_CLIENT_ID='{your AAD client ID}'
-AAD_TENANT_ID='{your AAD tenant ID}'
-AAD_LOGON_AUTHORITY='https://login.microsoftonline.com/{your AAD tenant ID}'
-API_SCOPE='api://{your AAD client ID}/access_as_user'
 API_BASE_URL='http://localhost:5000'
 ```
+
+Entra ID itself is configured **in the app**, not via environment variables: sign in as an admin and add a provider under **Settings → Identity Providers** (authority, client ID, scopes, audience, allowed tenants). See the [Entra app registration guide](docs/contributing/entra-app-registration.mdx) for collecting those values and [configuration docs](docs/contributing/configuration.mdx) for the identity-provider model.
 
 ### 4. Run with .NET Aspire (Recommended)
 

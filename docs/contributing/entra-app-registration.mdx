@@ -44,11 +44,11 @@ When you pick **Multiple Entra ID tenants**, Entra offers an **Allow only certai
 
 **Why restrict at Entra.** With *Allow all tenants*, a user in any Entra tenant can successfully acquire a valid, signed Entra access token with `aud` = Wayd's API client ID. Wayd rejects it at `/api/auth/exchange` (401, `tid` not in allowlist), so they can't use it — but they *got issued a real signed credential naming your resource*. Narrow exposure, but non-zero, and easy to close: set Entra to refuse the token in the first place.
 
-**Why also keep `AllowedTenantIds`.** It's the runtime allowlist Wayd's exchange handler actually enforces, and startup fails if `Enabled: true` and the list is empty (fail-safe default). Treat the Entra-side restriction as the outer perimeter and `AllowedTenantIds` as the inner one.
+**Why also keep `AllowedTenantIds`.** It's the runtime allowlist Wayd's exchange handler actually enforces, and a `MicrosoftEntraId` provider can't be saved with an empty list (fail-safe default). Treat the Entra-side restriction as the outer perimeter and `AllowedTenantIds` as the inner one.
 
 **Trade-offs to accept.**
 
-- **Two places to update.** Onboarding a new tenant means an Azure portal trip *and* a config change. Put both in your onboarding runbook so they can't drift.
+- **Two places to update.** Onboarding a new tenant means an Azure portal trip *and* editing the provider's `AllowedTenantIds` in **Settings → Identity Providers**. Put both in your onboarding runbook so they can't drift.
 - **Preview dependency.** *Allow only certain tenants* is still marked Preview. If Microsoft changes or removes it, you fall back to `AllowedTenantIds` as the sole gate — recoverable, not catastrophic.
 :::
 
@@ -99,34 +99,23 @@ The client app needs a named scope to request access to. Create one:
    - **State**: *Enabled*
    - **Add scope**
 
-The full scope string is `api://{api-client-id}/access_as_user`. Copy it — the frontend needs it as `API_SCOPE`.
+The full scope string is `api://{api-client-id}/access_as_user`. Copy it — you'll need it as the `Scopes` value when you create the identity provider in **Settings → Identity Providers** (see [Step 3](#step-3--create-the-provider-in-wayd)).
 
-### Create a client secret (only if you want to bootstrap the Entra people-sync connector from config)
+### Create a client secret (only if you want the Entra people-sync connector)
 
 Wayd's **token-exchange auth flow does not need a client secret** — it validates incoming user tokens against Entra's public JWKS, which is public-key-only. Sign-in works without a secret.
 
-A secret is only needed if you want the `EntraConnectionSeeder` to bootstrap a people-sync connector from `SecuritySettings:AzureAd:*` config on first boot. After the seeded row exists in the database, admins manage the connection (including its client secret) via **Settings → Connections** and the config-side secret can be removed — the seeder is insert-only and won't re-read config once a row exists.
-
-You can also skip this step entirely and have an admin create the Entra connection from scratch via the Settings UI; in that case the secret goes straight into the database connection row and never appears in `SecuritySettings:AzureAd` at all. Most green-field deployments should take that path.
+A secret is only needed for the **Microsoft Graph people-sync connector** (Wayd calling Graph via the client-credentials flow). The secret lives on the Entra connection row in the database — an admin enters it when creating the connection in **Settings → Connections**. It is never read from configuration or environment variables.
 
 To create the secret:
 
 1. Registration → **Certificates & secrets** → **Client secrets** → **New client secret**.
-2. Description: `Entra connector bootstrap - {env}` (e.g., `Entra connector bootstrap - prod`).
+2. Description: `Entra connector - {env}` (e.g., `Entra connector - prod`).
 3. Expires: pick a policy that matches your rotation cadence (Azure defaults to 180 days; 12 or 24 months is more manageable).
 4. **Add**.
 5. **Copy the secret `Value` immediately** — the portal shows it once and never again. If you lose it you'll have to delete this credential and create a new one.
 
-Store the secret as:
-
-- **Local dev**: `dotnet user-secrets set "SecuritySettings:AzureAd:ClientSecret" "{the-secret}"` in `Wayd.Web/src/Wayd.Web.Api`.
-- **Prod / container**: Terraform's `aad_api_client_secret` variable (stored as a container-app secret, surfaced as the `SecuritySettings__AzureAd__ClientSecret` env var).
-
-**Rotation reminder.** Once the Entra connection exists in the database, **rotate the secret on the connection row itself** (Settings → Connections → Edit). The `SecuritySettings:AzureAd:ClientSecret` config value is only read by the one-shot seeder; rotating it after seeding has no effect.
-
-:::info Why two places to store this secret?
-Token exchange validates public JWKS → no secret. Graph client-credentials flow inside the Entra connector → needs a secret, stored on the connection row (encrypted at rest). They're conceptually different: one is Wayd-as-resource accepting user tokens, the other is Wayd-as-client calling Microsoft Graph on the customer's behalf. Pre-migration deployments used `SecuritySettings:AzureAd:ClientSecret` for both because there was only one tenant; the connector framework moves the Graph-side secret to the per-connection row so multiple tenants are possible.
-:::
+Then create the Entra connection in **Settings → Connections**, pasting the secret into the connection's credentials (it's encrypted at rest). To rotate later, edit the connection row and re-enter the new secret.
 
 ### Grant Microsoft Graph permissions (only if you want the Entra people-sync connector)
 
@@ -176,49 +165,27 @@ This is a nice-to-have that avoids separate user consent when clients outside yo
 
 Skip this if everything stays in one Entra tenant; it's only relevant if clients in other Entra tenants need to call the API.
 
-## Step 3 — Wire the values into Wayd
+## Step 3 — Create the provider in Wayd
 
-You now have two GUIDs. Here's where each goes.
+You now have two GUIDs. Identity providers are managed entirely in the database — there is no config-file or environment-variable setup. As an admin, go to **Settings → Identity Providers**, choose **Add provider → Microsoft Entra ID**, and enter the values below.
 
-| Value | Config key | Purpose |
+| UI field | Value | Purpose |
 |---|---|---|
-| `{client-id}` (SPA registration) | `SecuritySettings:Providers:Entra:SpaClientId` | Browser OIDC client uses this as `client_id` when redirecting to Entra |
-| `api://{api-client-id}/access_as_user` | `SecuritySettings:Providers:Entra:ApiScope` | Requested scope so Entra issues an access token with `aud = {api-client-id}` |
-| `{api-client-id}` (API registration) | `SecuritySettings:Providers:Entra:Audience` | Backend pins the token's `aud` claim to this value |
-
-### Backend
-
-Configure in `Wayd.Web/src/Wayd.Web.Api/Configurations/security.json` or User Secrets:
-
-```json
-{
-    "SecuritySettings": {
-        "Providers": {
-            "Entra": {
-                "Enabled": true,
-                "Authority": "https://login.microsoftonline.com/{your-tenant-id}/v2.0",
-                "SpaClientId": "{client-id}",
-                "ApiScope": "api://{api-client-id}/access_as_user",
-                "Audience": "{api-client-id}",
-                "AllowedTenantIds": [ "{your tenant ID}" ],
-                "ClockSkewSeconds": 60
-            }
-        }
-    }
-}
-```
+| `Authority` | `https://login.microsoftonline.com/{your-tenant-id}/v2.0` | OIDC discovery / signature validation endpoint |
+| `ClientId` | `{client-id}` (SPA registration) | Browser OIDC client uses this as `client_id` when redirecting to Entra |
+| `Scopes` | `openid profile email api://{api-client-id}/access_as_user` | The API scope makes Entra issue an access token with `aud = {api-client-id}` |
+| `Audience` | `{api-client-id}` (API registration) | Backend pins the token's `aud` claim to this value |
+| `AllowedTenantIds` | `{your tenant ID}` | Tenants permitted to sign in |
 
 Five things to note:
 
-- **`SpaClientId`**: the **client (SPA)** app registration's client ID — the value the browser presents to Entra at sign-in. Previously only in the frontend env var `NEXT_PUBLIC_AZURE_AD_CLIENT_ID`.
-- **`ApiScope`**: the API scope string from Step 1's "Expose an API" section. Requesting this scope causes Entra to issue an access token with `aud = {api-client-id}`, which is what Wayd's token validator expects. Without it, Entra issues a token with `aud = {client-id}` and every exchange fails with 401.
+- **`ClientId`**: the **client (SPA)** app registration's client ID — the value the browser presents to Entra at sign-in.
+- **`Scopes`**: include the API scope string from Step 1's "Expose an API" section alongside the standard `openid profile email`. Requesting the API scope causes Entra to issue an access token with `aud = {api-client-id}`, which is what Wayd's token validator expects. Without it, Entra issues a token with `aud = {client-id}` and every exchange fails with 401.
 - **`Audience`**: bare GUID of the **API** registration (not the client, not `api://...`). This is why Step 1's v2 switch matters — with v1 tokens this value would need to be `api://{api-client-id}` instead.
 - **`Authority`**: use the tenant-specific URL (`https://login.microsoftonline.com/{your-tenant-id}/v2.0`) for single-tenant deployments. Use `/common/v2.0` only for true multi-tenant deployments; the `AllowedTenantIds` allowlist still controls which tenants are accepted at runtime.
-- **`AllowedTenantIds`**: must be non-empty. Startup fails if `Enabled: true` and this list is empty — that's a deliberate fail-safe default.
+- **`AllowedTenantIds`**: must be non-empty. The provider can't be saved with an empty list — that's a deliberate fail-safe default.
 
-On first application start after these settings are in place, the seeder creates a row in `Identity.OidcProviders` and from that point the database is the source of truth. Subsequent changes (authority, scopes, allowed tenants) are made through **Settings → Identity Providers** in the admin UI.
-
-For Terraform-driven deploys, see [the IaC README](https://github.com/destacey/Wayd/tree/main/.iac/wayd) for the `allowed_entra_tenant_ids` variable and how the `dynamic "env"` block emits `AllowedTenantIds__0`, `__1`, etc.
+Use the **Test connection** button to verify the `Authority` resolves a valid `.well-known/openid-configuration` document before saving. The database is the source of truth from creation onward; to onboard additional tenants or change scopes later, edit the row in the same UI.
 
 ## Step 4 — Verify
 
@@ -238,23 +205,23 @@ Sign in to the frontend. Then:
 
 | Token field | Must equal |
 |---|---|
-| `aud` | `SecuritySettings:Providers:Entra:Audience` (bare client-ID GUID for v2) |
-| `tid` | One of `SecuritySettings:Providers:Entra:AllowedTenantIds` |
+| `aud` | The provider's `Audience` (bare client-ID GUID for v2) |
+| `tid` | One of the provider's `AllowedTenantIds` |
 | `iss` | `https://login.microsoftonline.com/{tid}/v2.0` for v2 |
 | `ver` | `"2.0"` |
 | `exp` | In the future |
 
-If `aud` has `api://` in it but your config expects a bare GUID, the API registration is still issuing v1 tokens. Redo Step 1's v2 switch. **Users will need to get a fresh token** — have them clear site data (DevTools → Application → Storage → Clear site data) and sign in again.
+If `aud` has `api://` in it but the provider's `Audience` is a bare GUID, the API registration is still issuing v1 tokens. Redo Step 1's v2 switch. **Users will need to get a fresh token** — have them clear site data (DevTools → Application → Storage → Clear site data) and sign in again.
 
-**`401 Invalid token` on `/api/auth/exchange` with no matching `OidcProvider` row.** The provider name the frontend sent doesn't match any enabled row in `Identity.OidcProviders`. Either no provider was seeded (`SecuritySettings:Providers:Entra:Enabled` was `false`, or `SpaClientId` was empty when the seeder ran) or an admin disabled the row via the Settings UI. Check the application logs around startup — the seeder logs a warning when it skips, and `OidcTokenValidator` logs the unknown-provider rejection.
+**`401 Invalid token` on `/api/auth/exchange` with no matching `OidcProvider` row.** The provider name the frontend sent doesn't match any enabled row in `Identity.OidcProviders`. Either the provider hasn't been created yet (see [Step 3](#step-3--create-the-provider-in-wayd)) or an admin disabled the row via the Settings UI. Confirm the row exists and `IsEnabled = 1`; `OidcTokenValidator` logs the unknown-provider rejection.
 
-**Microsoft Entra ID row missing `AllowedTenantIds`.** The `OidcProvider.Create` entity invariant requires at least one tenant ID for `MicrosoftEntraId` rows; the validator and admin form both enforce it. If the seed found no `AllowedTenantIds` in legacy config, the seed is skipped with a logged warning and the row needs to be created through the Settings UI with a tenant list.
+**Microsoft Entra ID row missing `AllowedTenantIds`.** The `OidcProvider.Create` entity invariant requires at least one tenant ID for `MicrosoftEntraId` rows; the validator and admin form both enforce it, so the provider can't be saved without a tenant list.
 
 **User signs in, immediately redirects back to `/login`.** Usually means the exchange succeeded but the login page's storage write raced a redirect. Check browser console for the precise error; most commonly it's a CORS failure or a mismatched `API_BASE_URL`.
 
 **User from a new Entra tenant gets rejected.** Add their tenant ID to `AllowedTenantIds`. The tenant's admin also needs to admin-consent the `access_as_user` permission (see Step 2) — otherwise users see Microsoft's consent prompt on first sign-in, and individual users may not be allowed to consent depending on the tenant's policies.
 
-**People sync / Graph calls fail with 401.** The Entra connection's client secret has expired, was never set, or is wrong. For a connection created via the UI, edit it in **Settings → Connections** and re-enter the secret; for a connection seeded from config on first boot, the seeder read `SecuritySettings:AzureAd:ClientSecret` (but rotate on the connection row from now on). This is independent of the token-exchange flow — login still works, only Graph-backed people sync breaks. See [Create a client secret](#create-a-client-secret-only-if-you-want-to-bootstrap-the-entra-people-sync-connector-from-config).
+**People sync / Graph calls fail with 401.** The Entra connection's client secret has expired, was never set, or is wrong. Edit the connection in **Settings → Connections** and re-enter the secret. This is independent of the token-exchange flow — login still works, only Graph-backed people sync breaks. See [Create a client secret](#create-a-client-secret-only-if-you-want-the-entra-people-sync-connector).
 
 ## References
 

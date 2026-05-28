@@ -293,15 +293,13 @@ See our [Contributing Guide](CONTRIBUTING.md) for detailed instructions on how t
 
 ## Deployment
 
-If you plan to use the client container, the following environment variables must be set:
+If you plan to use the client container, the following environment variable must be set:
 
 ```env
-NEXT_PUBLIC_AZURE_AD_CLIENT_ID='{your client ID}'
-NEXT_PUBLIC_AZURE_AD_TENANT_ID='{your tenant ID}'
-NEXT_PUBLIC_MICROSOFT_LOGON_AUTHORITY='{your login authority}'
-NEXT_PUBLIC_API_SCOPE='{your API scope}'
 NEXT_PUBLIC_API_BASE_URL='{Your API URL}'
 ```
+
+The client no longer needs any Entra/OIDC environment variables. The login page discovers configured identity providers at runtime from `GET /api/auth/providers`; providers are managed in the database via **Settings → Identity Providers**.
 
 The API container needs the following:
 
@@ -311,15 +309,7 @@ DatabaseSettings__ConnectionString={connection string to your database}
 HangfireSettings__Storage__ConnectionString={connection string to your database}
 ```
 
-**For Azure AD authentication:**
-
-```env
-SecuritySettings__AzureAd__ClientSecret={client secret to your API app reg}
-SecuritySettings__AzureAd__ClientId={client ID to your API app reg}
-SecuritySettings__AzureAd__Domain={your domain}
-SecuritySettings__AzureAd__RootIssuer={your root issuer/sts url for AAD}
-SecuritySettings__AzureAd__TenantId={your tenant ID}
-```
+> **Entra ID login** and the **Microsoft Graph people-sync connector** are both configured in the database, not via environment variables. Manage login providers under **Settings → Identity Providers** and the Graph connection under **Settings → Connections**. See the [identity provider configuration docs](https://wayd.dev/docs/contributing/configuration).
 
 **For local (Wayd) authentication:**
 

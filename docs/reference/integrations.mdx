@@ -82,9 +82,7 @@ New connections are **active by default**. Admins toggle this from the detail pa
 4. The existing connector-agnostic `BulkUpsertEmployeesCommand` reconciles those records against the `Employee` table; employees not in the payload are deactivated
 5. Each run is captured as a `SyncRun` row; per-run details (`employeesFetched`, `employeesUpserted`, `errors[]`) are stored as JSON and rendered in the Sync History tab
 
-### Bootstrap from existing config
-
-Existing deployments that previously ran employee sync from `SecuritySettings:GraphApi:*` config will, on first boot after the migration, seed a single `EntraConnection` row from `SecuritySettings:AzureAd:{TenantId,ClientId,ClientSecret}` via `EntraConnectionSeeder`. The seeder is insert-only — once the row exists, the database is the source of truth and admins manage the connection via the Settings UI.
+The Entra connection (tenant ID, client ID, client secret) is created and managed by admins in **Settings → Connections**; its credentials are stored on the connection row, encrypted at rest. There is no configuration-file or environment-variable path for the connector.
 
 ## Azure OpenAI
 

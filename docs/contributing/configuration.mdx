@@ -30,7 +30,7 @@ If this is a fresh deployment with no users yet, see [First-Run Setup](./first-r
 
 Each row in the `Identity.OidcProviders` table is one configured provider — its discovery `Authority`, public `ClientId`, expected token `Audience`, scopes, and (for Entra) the allowed-tenant list. The token-exchange endpoint resolves provider metadata from this table on every request, with a short cache TTL and explicit invalidation on admin writes.
 
-**Bootstrap (existing deployments).** On first start after upgrading, if `SecuritySettings:Providers:Entra:Enabled = true` and no `OidcProvider` row exists for Microsoft Entra ID yet, the application seeds one from `SecuritySettings:Providers:Entra`. After that seed, the database is the source of truth — config-file edits no longer flow through, so admins should make subsequent changes via the Settings UI.
+The database is the single source of truth for identity providers — there is no config-file or environment-variable equivalent. Providers are created and edited entirely through the admin UI.
 
 **Managing providers.** Once the `IdentityProviders` feature flag is enabled, admins with the `Permissions.OidcProviders.{View|Create|Update|Delete}` permissions can manage providers from **Settings → Identity Providers**. The "Test connection" button fetches the provider's `.well-known/openid-configuration` document so typos in `Authority` are caught at configuration time, not at the user's next login.
 
@@ -47,61 +47,28 @@ Each row in the `Identity.OidcProviders` table is one configured provider — it
 | `ClockSkewSeconds` | Tolerance for expiry/not-before checks. Defaults to 60; range `[0, 600]`. |
 | `IsEnabled` | Disabled providers are hidden from the login page; exchange attempts against them return 401. |
 
-**First-boot seed config.** Configure in `Wayd.Web/src/Wayd.Web.Api/Configurations/security.json` or User Secrets on any deployment that doesn't yet have an `OidcProviders` row. Once seeded, this config block is no longer consulted at runtime.
+**Adding a Microsoft Entra ID provider.** From **Settings → Identity Providers**, choose **Add provider → Microsoft Entra ID** and fill in:
 
-```json
-{
-    "SecuritySettings": {
-        "Providers": {
-            "Entra": {
-                "Enabled": true,
-                "Authority": "https://login.microsoftonline.com/{your-tenant-id}/v2.0",
-                "SpaClientId": "{client app registration client ID}",
-                "ApiScope": "api://{api-client-id}/access_as_user",
-                "Audience": "{API app registration client ID — bare GUID for v2 tokens}",
-                "AllowedTenantIds": [ "{your Entra tenant ID}" ],
-                "ClockSkewSeconds": 60
-            }
-        }
-    }
-}
-```
+| Field | Value |
+| --- | --- |
+| `Authority` | `https://login.microsoftonline.com/{your-tenant-id}/v2.0` for a single tenant; `https://login.microsoftonline.com/common/v2.0` only for true multi-tenant deployments where users from multiple Entra tenants sign in (`/v2.0` suffix required). |
+| `ClientId` | The **client (SPA) app registration's** client ID, presented to Entra when initiating sign-in. |
+| `Scopes` | The standard OIDC scopes plus your API scope, e.g. `openid profile email api://{api-client-id}/access_as_user` — the API scope makes Entra issue an access token with `aud = {api-client-id}`. |
+| `Audience` | The **API app registration's** client ID, pinned as the expected `aud` claim. See **Finding your Audience** below. |
+| `AllowedTenantIds` | The Entra tenant ID(s) permitted to sign in. Must be non-empty. |
 
-The seeder reads all fields from `Providers:Entra`:
-
-- `SpaClientId` — the **client (SPA) app registration's** client ID, presented to Entra when initiating sign-in
-- `ApiScope` — the API scope (e.g. `api://{api-client-id}/access_as_user`) appended to the standard OIDC scopes so Entra issues an access token with `aud = {api-client-id}`
-- `Audience` — the **API app registration's** client ID, pinned as the expected `aud` claim on incoming tokens
-- `Authority` — use the tenant-specific URL (`/v2.0` suffix required) for single-tenant deployments; use `https://login.microsoftonline.com/common/v2.0` only for true multi-tenant deployments where users from multiple Entra tenants sign in
-
-These are different values because Wayd follows Entra's standard two-registration pattern (see [Entra App Registration Setup](./entra-app-registration.mdx)).
-
-If `SpaClientId` is not set the seed is skipped with a logged warning; the operator can create the row manually via the Settings UI instead.
+The client ID and API client ID are different values because Wayd follows Entra's standard two-registration pattern (see [Entra App Registration Setup](./entra-app-registration.mdx)).
 
 :::tip Setting up a new environment
 If you don't yet have an Entra app registration for this deployment, follow [Entra App Registration Setup](./entra-app-registration.mdx) first. That walks through creating the two app registrations (API + client), choosing the right token version, and collecting the GUIDs referenced above.
 :::
 
-**Finding your Audience.** Whether you're seeding a new deployment via config or editing the row in the Settings UI, the `aud` claim shape depends on the token version your app registration issues:
+**Finding your Audience.** When entering the `Audience` in the Settings UI, the `aud` claim shape depends on the token version your app registration issues:
 
 - **v2.0 tokens** (`api.requestedAccessTokenVersion: 2` in the app manifest): `aud` is the bare `<ClientId>` GUID. This is what Wayd expects.
 - **v1.0 tokens** (the default for older registrations, or when `api.requestedAccessTokenVersion` is `null`/`1`): `aud` is `api://<ClientId>` or `api://<ClientId>/access_as_user`.
 
 Don't guess — decode a real token at [jwt.ms](https://jwt.ms) and copy the `aud` value verbatim. A mismatch here rejects every exchange attempt with a 401, which is hard to diagnose after the fact. If you're seeing `api://` in a token you expected to be v2-shaped, flip `api.requestedAccessTokenVersion: 2` per the [app registration guide](./entra-app-registration.mdx#set-the-token-version-to-v2).
-
-Setting the seed config via User Secrets (preferred for local dev — `security.json` is committed with placeholders):
-
-```bash
-cd Wayd.Web/src/Wayd.Web.Api
-dotnet user-secrets set "SecuritySettings:Providers:Entra:Enabled" "true"
-dotnet user-secrets set "SecuritySettings:Providers:Entra:Authority" "https://login.microsoftonline.com/{your-tenant-id}/v2.0"
-dotnet user-secrets set "SecuritySettings:Providers:Entra:SpaClientId" "{client app registration client ID}"
-dotnet user-secrets set "SecuritySettings:Providers:Entra:ApiScope" "api://{api-client-id}/access_as_user"
-dotnet user-secrets set "SecuritySettings:Providers:Entra:Audience" "{API app registration client ID}"
-dotnet user-secrets set "SecuritySettings:Providers:Entra:AllowedTenantIds:0" "{your Entra tenant ID}"
-```
-
-Array elements bind by index (`:0`, `:1`, ...). The seeder picks these up on the next application start. Subsequent changes go through the Settings UI.
 
 ### Local Authentication
 

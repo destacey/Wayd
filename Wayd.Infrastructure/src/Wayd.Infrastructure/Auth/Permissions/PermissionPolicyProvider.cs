@@ -36,11 +36,11 @@ internal class PermissionPolicyProvider : IAuthorizationPolicyProvider
         }
         else
         {
-            // If no PAT header, use both Azure AD JWT bearer and Local JWT schemes
+            // If no PAT header, authenticate against the Local JWT scheme. All login
+            // paths (local credentials and OIDC token exchange) mint a Wayd-issued JWT,
+            // so this single scheme covers every interactive request.
             policy = new AuthorizationPolicyBuilder()
-                .AddAuthenticationSchemes(
-                    Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme,
-                    Local.ConfigureServices.LocalJwtScheme)
+                .AddAuthenticationSchemes(Local.ConfigureServices.LocalJwtScheme)
                 .RequireAuthenticatedUser()
                 .Build();
         }

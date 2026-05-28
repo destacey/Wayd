@@ -26,6 +26,18 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
+    // SignalR's WebSocket/SSE transports can't send an Authorization header, so the
+    // client passes the Wayd JWT as the `access_token` query-string parameter on the
+    // /hubs negotiate request. That JWT carries one claim per permission, which pushes
+    // the request line past Kestrel's 8 KB default and yields HTTP 414 (URI Too Long)
+    // before auth even runs. Raise the limit to give the permission set headroom.
+    // NOTE: a reverse proxy in front of the API (e.g. Container Apps ingress) enforces
+    // its own URL-length cap — this only fixes the app-level limit.
+    builder.WebHost.ConfigureKestrel(options =>
+    {
+        options.Limits.MaxRequestLineSize = 16 * 1024;
+    });
+
     builder.Host.AddConfigurations();
 
     builder.AddServiceDefaults();

@@ -22,49 +22,6 @@ variable "sql_admin_pass" {
   sensitive   = true
 }
 
-variable "aad_api_client_secret" {
-  type        = string
-  description = "The client secret for the AAD API app registration."
-  sensitive   = true
-}
-
-variable "app_reg_client_id" {
-  type        = string
-  description = "The client ID for the AAD client-side (frontend) app registration."
-}
-
-variable "api_app_reg_client_id" {
-  type        = string
-  description = "The client ID for the AAD API (backend) app registration."
-}
-
-variable "app_reg_api_scope" {
-  type        = string
-  description = "The full API scope URI for the AAD API app registration (e.g. api://<client-id>/access_as_user)."
-}
-
-variable "aad_tenant_id" {
-  type        = string
-  description = "The Azure AD tenant ID."
-}
-
-variable "allowed_entra_tenant_ids" {
-  type        = list(string)
-  description = "Entra tenant IDs allowed to authenticate via /api/auth/exchange. Defaults to the single app tenant; add more to onboard external orgs."
-  default     = null
-}
-
-variable "entra_enabled" {
-  type        = bool
-  description = "Enable the Microsoft Entra token-exchange endpoint. Local-only deployments leave this false — the API boots without Entra config and the login page hides the Microsoft button."
-  default     = false
-}
-
-variable "aad_domain" {
-  type        = string
-  description = "The Azure AD tenant primary domain (e.g. contoso.onmicrosoft.com)."
-}
-
 variable "sql_ad_admin_object_id" {
   type        = string
   description = "The Azure AD object ID of the group or user configured as the SQL Server AD administrator."

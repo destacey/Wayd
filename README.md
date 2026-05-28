@@ -100,15 +100,13 @@ API_BASE_URL='http://localhost:5000'
 
 #### Option B: Microsoft Entra ID (Azure AD)
 
-You'll need an Azure AD app registration. Create a `.env` file in the repository root:
+You'll need an Azure AD app registration. The same `.env` as Option A is all the environment needs:
 
 ```env
-AAD_CLIENT_ID='{your AAD client ID}'
-AAD_TENANT_ID='{your AAD tenant ID}'
-AAD_LOGON_AUTHORITY='https://login.microsoftonline.com/{your AAD tenant ID}'
-API_SCOPE='api://{your AAD client ID}/access_as_user'
 API_BASE_URL='http://localhost:5000'
 ```
+
+Entra ID itself is configured **in the app**, not via environment variables: sign in as an admin and add a provider under **Settings → Identity Providers** (authority, client ID, scopes, audience, allowed tenants). See the [Entra app registration guide](docs/contributing/entra-app-registration.mdx) for collecting those values and [configuration docs](docs/contributing/configuration.mdx) for the identity-provider model.
 
 ### 4. Run with .NET Aspire (Recommended)
 
@@ -293,15 +291,13 @@ See our [Contributing Guide](CONTRIBUTING.md) for detailed instructions on how t
 
 ## Deployment
 
-If you plan to use the client container, the following environment variables must be set:
+If you plan to use the client container, the following environment variable must be set:
 
 ```env
-NEXT_PUBLIC_AZURE_AD_CLIENT_ID='{your client ID}'
-NEXT_PUBLIC_AZURE_AD_TENANT_ID='{your tenant ID}'
-NEXT_PUBLIC_MICROSOFT_LOGON_AUTHORITY='{your login authority}'
-NEXT_PUBLIC_API_SCOPE='{your API scope}'
 NEXT_PUBLIC_API_BASE_URL='{Your API URL}'
 ```
+
+The client no longer needs any Entra/OIDC environment variables. The login page discovers configured identity providers at runtime from `GET /api/auth/providers`; providers are managed in the database via **Settings → Identity Providers**.
 
 The API container needs the following:
 
@@ -311,15 +307,7 @@ DatabaseSettings__ConnectionString={connection string to your database}
 HangfireSettings__Storage__ConnectionString={connection string to your database}
 ```
 
-**For Azure AD authentication:**
-
-```env
-SecuritySettings__AzureAd__ClientSecret={client secret to your API app reg}
-SecuritySettings__AzureAd__ClientId={client ID to your API app reg}
-SecuritySettings__AzureAd__Domain={your domain}
-SecuritySettings__AzureAd__RootIssuer={your root issuer/sts url for AAD}
-SecuritySettings__AzureAd__TenantId={your tenant ID}
-```
+> **Entra ID login** and the **Microsoft Graph people-sync connector** are both configured in the database, not via environment variables. Manage login providers under **Settings → Identity Providers** and the Graph connection under **Settings → Connections**. See the [identity provider configuration docs](https://wayd.dev/docs/contributing/configuration).
 
 **For local (Wayd) authentication:**
 

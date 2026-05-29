@@ -8,6 +8,7 @@ import { azureDevOpsDetailEntry } from '../azure-devops'
 import { azureOpenAIDetailEntry } from '../azure-openai'
 import { entraDetailEntry } from '../entra'
 import { openAIDetailEntry } from '../openai'
+import { workdayDetailEntry } from '../workday'
 
 export interface ConnectionTabDefinition {
   key: string
@@ -74,6 +75,7 @@ export const DETAIL_REGISTRY: Partial<Record<ConnectorType, DetailEntry>> = {
   [ConnectorType.AzureOpenAI]: azureOpenAIDetailEntry,
   [ConnectorType.OpenAI]: openAIDetailEntry,
   [ConnectorType.Entra]: entraDetailEntry,
+  [ConnectorType.Workday]: workdayDetailEntry,
 }
 
 const NAME_TO_TYPE: Record<string, ConnectorType> = {
@@ -81,6 +83,7 @@ const NAME_TO_TYPE: Record<string, ConnectorType> = {
   'Azure OpenAI': ConnectorType.AzureOpenAI,
   'OpenAI': ConnectorType.OpenAI,
   'Entra': ConnectorType.Entra,
+  'Workday': ConnectorType.Workday,
 }
 
 /**

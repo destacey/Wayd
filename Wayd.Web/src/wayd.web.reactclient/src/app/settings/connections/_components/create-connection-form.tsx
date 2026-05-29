@@ -1,4 +1,8 @@
 import { useMessage } from '@/src/components/contexts/messaging'
+import {
+  EmployeeMatchProperty,
+  WorkdayWorkerKey,
+} from '@/src/services/wayd-api'
 import { ConnectorType, CONNECTOR_NAMES } from '@/src/types/connectors'
 import { toFormErrors } from '@/src/utils'
 import { Form, Modal } from 'antd'
@@ -29,6 +33,15 @@ interface CreateConnectionFormValues {
   clientSecret?: string
   allUsersGroupObjectId?: string
   includeDisabledUsers?: boolean
+  // Workday specific
+  wsdlUrl?: string
+  isuUsername?: string
+  isuPassword?: string
+  workerKey?: WorkdayWorkerKey
+  includeInactive?: boolean
+  incrementalSyncEnabled?: boolean
+  // PeopleSync (Entra + Workday)
+  matchBy?: EmployeeMatchProperty
 }
 
 export const getDiscriminator = (connector: ConnectorType): string => {
@@ -41,6 +54,8 @@ export const getDiscriminator = (connector: ConnectorType): string => {
       return 'openai'
     case ConnectorType.Entra:
       return 'entra'
+    case ConnectorType.Workday:
+      return 'workday'
     default:
       return 'openai'
   }

@@ -5,11 +5,15 @@ import {
   AzureDevOpsConnectionDetailsDto,
   AzureOpenAIConnectionDetailsDto,
   ConnectionDetailsDto,
+  EmployeeMatchProperty,
   EntraConnectionDetailsDto,
   UpdateAzureDevOpsConnectionRequest,
   UpdateAzureOpenAIConnectionRequest,
   UpdateConnectionRequest,
   UpdateEntraConnectionRequest,
+  UpdateWorkdayConnectionRequest,
+  WorkdayConnectionDetailsDto,
+  WorkdayWorkerKey,
 } from '@/src/services/wayd-api'
 import { useUpdateConnectionMutation } from '@/src/store/features/app-integration/connections-api'
 import { ConnectorType } from '@/src/types/connectors'
@@ -48,6 +52,15 @@ interface EditConnectionFormValues {
   clientSecret?: string | null
   allUsersGroupObjectId?: string | null
   includeDisabledUsers?: boolean | null
+  // Workday
+  wsdlUrl?: string | null
+  isuUsername?: string | null
+  isuPassword?: string | null
+  workerKey?: WorkdayWorkerKey | null
+  includeInactive?: boolean | null
+  incrementalSyncEnabled?: boolean | null
+  // PeopleSync (Entra + Workday)
+  matchBy?: EmployeeMatchProperty | null
 }
 
 const connectorTypeFromName = (
@@ -60,6 +73,8 @@ const connectorTypeFromName = (
       return ConnectorType.AzureOpenAI
     case 'Entra':
       return ConnectorType.Entra
+    case 'Workday':
+      return ConnectorType.Workday
     // OpenAI is deliberately omitted: the backend has no Create/Update command
     // for it yet, so offering an edit form would only ever fail at submit.
     // Add the case back once UpdateOpenAIConnectionCommand ships.
@@ -106,7 +121,22 @@ const buildRequest = (
         clientSecret: values.clientSecret ?? '',
         allUsersGroupObjectId: values.allUsersGroupObjectId ?? undefined,
         includeDisabledUsers: values.includeDisabledUsers ?? false,
+        matchBy: values.matchBy ?? EmployeeMatchProperty.Email,
       } as UpdateEntraConnectionRequest
+    case 'Workday':
+      return {
+        $type: 'workday',
+        id: connection.id,
+        name: values.name,
+        description: values.description ?? undefined,
+        wsdlUrl: values.wsdlUrl ?? '',
+        isuUsername: values.isuUsername ?? '',
+        isuPassword: values.isuPassword ?? '',
+        workerKey: values.workerKey ?? WorkdayWorkerKey.EmployeeId,
+        includeInactive: values.includeInactive ?? false,
+        incrementalSyncEnabled: values.incrementalSyncEnabled ?? true,
+        matchBy: values.matchBy ?? EmployeeMatchProperty.Email,
+      } as UpdateWorkdayConnectionRequest
     default:
       return null
   }
@@ -147,6 +177,20 @@ const seedFormValues = (
         clientSecret: c.configuration?.clientSecret,
         allUsersGroupObjectId: c.configuration?.allUsersGroupObjectId,
         includeDisabledUsers: c.configuration?.includeDisabledUsers ?? false,
+        matchBy: c.configuration?.matchBy ?? EmployeeMatchProperty.Email,
+      }
+    }
+    case 'Workday': {
+      const c = connection as WorkdayConnectionDetailsDto
+      return {
+        ...base,
+        wsdlUrl: c.configuration?.wsdlUrl,
+        isuUsername: c.configuration?.isuUsername,
+        isuPassword: c.configuration?.isuPassword,
+        workerKey: c.configuration?.workerKey ?? WorkdayWorkerKey.EmployeeId,
+        includeInactive: c.configuration?.includeInactive ?? false,
+        incrementalSyncEnabled: c.configuration?.incrementalSyncEnabled ?? true,
+        matchBy: c.configuration?.matchBy ?? EmployeeMatchProperty.Email,
       }
     }
     default:

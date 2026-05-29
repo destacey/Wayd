@@ -1,4 +1,5 @@
-import { Form, FormInstance, Input, Switch } from 'antd'
+import { EmployeeMatchProperty } from '@/src/services/wayd-api'
+import { Form, FormInstance, Input, Radio, Switch } from 'antd'
 
 const { Item } = Form
 
@@ -28,6 +29,22 @@ export const EntraConfigurationSection: React.FC<ConfigSectionProps> = () => {
         extra="Optional. When set, only users in this Entra group are synced. Leave blank to sync all member users in the tenant."
       >
         <Input maxLength={64} />
+      </Item>
+
+      <Item
+        label="Match Employees By"
+        name="matchBy"
+        initialValue={EmployeeMatchProperty.Email}
+        extra="Which uniquely-indexed Employee field the sync upsert matches on. Email is the cross-source-stable choice."
+      >
+        <Radio.Group>
+          <Radio.Button value={EmployeeMatchProperty.Email}>
+            Email
+          </Radio.Button>
+          <Radio.Button value={EmployeeMatchProperty.EmployeeNumber}>
+            Employee Number
+          </Radio.Button>
+        </Radio.Group>
       </Item>
 
       <Item

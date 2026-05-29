@@ -4,6 +4,7 @@ import { ConfigSectionProps } from './azdo-configuration-section'
 import { AzureDevOpsConfigurationSection } from './azdo-configuration-section'
 import { AzureOpenAIConfigurationSection } from './azure-openai-configuration-section'
 import { EntraConfigurationSection } from './entra-configuration-section'
+import { WorkdayConfigurationSection } from './workday-configuration-section'
 
 export const CONNECTOR_FORM_REGISTRY: Record<
   ConnectorType,
@@ -13,4 +14,5 @@ export const CONNECTOR_FORM_REGISTRY: Record<
   [ConnectorType.AzureOpenAI]: AzureOpenAIConfigurationSection,
   [ConnectorType.OpenAI]: AzureOpenAIConfigurationSection, // Placeholder for future implementation
   [ConnectorType.Entra]: EntraConfigurationSection,
+  [ConnectorType.Workday]: WorkdayConfigurationSection,
 }

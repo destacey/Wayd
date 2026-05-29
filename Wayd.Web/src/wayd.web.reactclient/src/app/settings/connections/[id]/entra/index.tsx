@@ -2,6 +2,7 @@
 
 import {
   ConnectionDetailsDto,
+  EmployeeMatchProperty,
   EntraConnectionDetailsDto,
 } from '@/src/services/wayd-api'
 import { DetailEntry } from '../_components/detail-registry'
@@ -24,6 +25,13 @@ const Details = ({ connection }: { connection: ConnectionDetailsDto }) => {
         {
           label: 'All Users Group Object ID',
           value: config?.allUsersGroupObjectId,
+        },
+        {
+          label: 'Match Employees By',
+          value:
+            config?.matchBy === EmployeeMatchProperty.EmployeeNumber
+              ? 'Employee Number'
+              : 'Email',
         },
         {
           label: 'Include Disabled Users',

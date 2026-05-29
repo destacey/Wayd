@@ -10,7 +10,7 @@ public sealed record EntraEmployee : IExternalEmployee
 {
     public EntraEmployee(User user)
     {
-        EmployeeNumber = Guard.Against.NullOrWhiteSpace(user.Id);
+        EmployeeNumber = Guard.Against.NullOrWhiteSpace(user.EmployeeId ?? user.Id);
         Name = new PersonName(Guard.Against.NullOrWhiteSpace(user.GivenName), null, Guard.Against.NullOrWhiteSpace(user.Surname));
         HireDate = user.HireDate is not null
             ? Instant.FromDateTimeOffset((DateTimeOffset)user.HireDate)
@@ -23,6 +23,9 @@ public sealed record EntraEmployee : IExternalEmployee
         OfficeLocation = user.OfficeLocation;
         ManagerEmployeeNumber = user.Manager?.Id;
         IsActive = user.AccountEnabled ?? false;
+        // Pass Microsoft Graph's free-form employeeType through verbatim. Customers configure it
+        // in their tenant; we don't normalize.
+        EmployeeType = string.IsNullOrWhiteSpace(user.EmployeeType) ? null : user.EmployeeType.Trim();
     }
 
     public string EmployeeNumber { get; set; }
@@ -34,4 +37,5 @@ public sealed record EntraEmployee : IExternalEmployee
     public string? OfficeLocation { get; set; }
     public string? ManagerEmployeeNumber { get; set; }
     public bool IsActive { get; set; }
+    public string? EmployeeType { get; set; }
 }

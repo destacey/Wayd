@@ -1,4 +1,5 @@
 using Wayd.AppIntegration.Domain.Models.Entra;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 
 namespace Wayd.AppIntegration.Application.Connections.Dtos.Entra;
 
@@ -30,6 +31,9 @@ public sealed record EntraConnectionConfigurationDto : IMapFrom<EntraConnectionC
     /// When true, users with disabled accounts are also included in the sync.
     /// </summary>
     public bool IncludeDisabledUsers { get; set; }
+
+    /// <summary>Which uniquely-indexed Employee field the sync upsert matches on.</summary>
+    public EmployeeMatchProperty MatchBy { get; set; }
 
     /// <summary>
     /// Replaces the ClientSecret with a masked form that preserves the first 4 characters

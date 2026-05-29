@@ -25,9 +25,12 @@ public class EmployeeConfig : IEntityTypeConfiguration<Employee>
         builder.HasIndex(e => new { e.IsActive, e.IsDeleted })
             .HasFilter("[IsDeleted] = 0");
 
-        // Index for email lookups
+        // Email is one of the candidate keys for PeopleSync upserts (the email-matching path),
+        // so it gets a unique filtered index — same shape as EmployeeNumber.
         builder.HasIndex(e => e.Email)
-            .IncludeProperties(e => new { e.Id });
+            .IsUnique()
+            .IncludeProperties(e => new { e.Id })
+            .HasFilter("[IsDeleted] = 0");
 
         builder.Property(e => e.Id).ValueGeneratedNever();
         builder.Property(e => e.Key).ValueGeneratedOnAdd();
@@ -46,6 +49,8 @@ public class EmployeeConfig : IEntityTypeConfiguration<Employee>
         builder.Property(e => e.Department).HasMaxLength(256);
         builder.Property(e => e.OfficeLocation).HasMaxLength(256);
         builder.Property(e => e.IsActive);
+
+        builder.Property(e => e.EmployeeType).HasMaxLength(128);
 
         // Value Objects
         builder.ComplexProperty(e => e.Name, options =>

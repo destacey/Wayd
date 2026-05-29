@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Wayd.AppIntegration.Domain.Models.Entra;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 
 namespace Wayd.AppIntegration.Application.Connections.Commands.Entra;
 
@@ -12,7 +13,8 @@ public sealed record UpdateEntraConnectionCommand(
     string ClientId,
     string ClientSecret,
     string? AllUsersGroupObjectId,
-    bool IncludeDisabledUsers) : ICommand<Guid>;
+    bool IncludeDisabledUsers,
+    EmployeeMatchProperty MatchBy) : ICommand<Guid>;
 
 public sealed class UpdateEntraConnectionCommandValidator : CustomValidator<UpdateEntraConnectionCommand>
 {
@@ -87,6 +89,7 @@ internal sealed class UpdateEntraConnectionCommandHandler(
                 clientSecret,
                 request.AllUsersGroupObjectId,
                 request.IncludeDisabledUsers,
+                request.MatchBy,
                 configurationIsValid,
                 _dateTimeProvider.Now);
 

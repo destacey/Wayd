@@ -2,9 +2,12 @@
 using Wayd.AppIntegration.Application.Connections.Commands.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Commands.AzureOpenAI;
 using Wayd.AppIntegration.Application.Connections.Commands.Entra;
+using Wayd.AppIntegration.Application.Connections.Commands.Workday;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureOpenAI;
 using Wayd.AppIntegration.Application.Connections.Dtos.Entra;
+using Wayd.AppIntegration.Application.Connections.Dtos.Workday;
+using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Application.BackgroundJobs;
 using Wayd.Common.Application.Enums;
@@ -69,6 +72,10 @@ public class ConnectionsController(ISender sender) : ControllerBase
         {
             entra.Configuration.MaskClientSecret();
         }
+        else if (connection is WorkdayConnectionDetailsDto workday)
+        {
+            workday.Configuration.MaskIsuPassword();
+        }
 
         return this.OkPolymorphic(connection);
     }
@@ -89,6 +96,8 @@ public class ConnectionsController(ISender sender) : ControllerBase
                 await _sender.Send(aoai.ToCommand(), cancellationToken),
             CreateEntraConnectionRequest entra =>
                 await _sender.Send(entra.ToCommand(), cancellationToken),
+            CreateWorkdayConnectionRequest workday =>
+                await _sender.Send(workday.ToCommand(), cancellationToken),
             _ => Result.Failure<Guid>($"Connector type not supported")
         };
 
@@ -118,6 +127,8 @@ public class ConnectionsController(ISender sender) : ControllerBase
                 await _sender.Send(aoai.ToCommand(), cancellationToken),
             UpdateEntraConnectionRequest entra =>
                 await _sender.Send(entra.ToCommand(), cancellationToken),
+            UpdateWorkdayConnectionRequest workday =>
+                await _sender.Send(workday.ToCommand(), cancellationToken),
             _ => Result.Failure($"Connector type not supported")
         };
 
@@ -198,6 +209,30 @@ public class ConnectionsController(ISender sender) : ControllerBase
         }
     }
 
+    [HttpPost("{id}/init")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
+    [OpenApiOperation("Validate (re-initialize) a connection.",
+        "Runs a small probe against the upstream system to confirm the configuration is usable. " +
+        "Updates IsValidConfiguration and any structured per-connector validation details. Currently supported for Workday.")]
+    [ProducesResponseType(typeof(ConnectionInitResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ConnectionInitResult>> InitConnection(Guid id, CancellationToken cancellationToken)
+    {
+        var connection = await _sender.Send(new GetConnectionQuery(id), cancellationToken);
+        if (connection is null)
+            return NotFound();
+
+        Result<ConnectionInitResult> result = connection switch
+        {
+            WorkdayConnectionDetailsDto =>
+                await _sender.Send(new InitWorkdayConnectionCommand(id), cancellationToken),
+            _ => Result.Failure<ConnectionInitResult>($"The '{connection.Connector?.Name}' connector does not support an init probe."),
+        };
+
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpGet("{id}/sync-runs")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Connections)]
     [OpenApiOperation("Get sync run history for a connection.",
@@ -253,6 +288,8 @@ public class ConnectionsController(ISender sender) : ControllerBase
                 await _sender.Send(new DeleteAzureOpenAIConnectionCommand(id), cancellationToken),
             EntraConnectionDetailsDto =>
                 await _sender.Send(new DeleteEntraConnectionCommand(id), cancellationToken),
+            WorkdayConnectionDetailsDto =>
+                await _sender.Send(new DeleteWorkdayConnectionCommand(id), cancellationToken),
             _ => Result.Failure($"Connector type not supported")
         };
 

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Options;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
+using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.FeatureManagement;
@@ -57,6 +58,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<AzureDevOpsBoardsConnection> AzureDevOpsBoardsConnections => Set<AzureDevOpsBoardsConnection>();
     public DbSet<AzureOpenAIConnection> AzureOpenAIConnections => Set<AzureOpenAIConnection>();
     public DbSet<EntraConnection> EntraConnections => Set<EntraConnection>();
+    public DbSet<WorkdayConnection> WorkdayConnections => Set<WorkdayConnection>();
     public DbSet<SyncRun> SyncRuns => Set<SyncRun>();
 
     #endregion IAppIntegration

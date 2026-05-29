@@ -26000,6 +26000,74 @@ export class ConnectionsClient {
     }
 
     /**
+     * Validate (re-initialize) a connection.
+     */
+    initConnection(id: string, cancelToken?: CancelToken): Promise<ConnectionInitResult> {
+        let url_ = this.baseUrl + "/api/app-integrations/connections/{id}/init";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processInitConnection(_response);
+        });
+    }
+
+    protected processInitConnection(response: AxiosResponse): Promise<ConnectionInitResult> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ConnectionInitResult>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ConnectionInitResult>(null as any);
+    }
+
+    /**
      * Get sync run history for a connection.
      * @param since (optional) 
      */
@@ -28978,6 +29046,7 @@ export interface EmployeeListDto {
     officeLocation?: string | undefined;
     manager?: EmployeeNavigationDto | undefined;
     isActive: boolean;
+    employeeType?: string | undefined;
 }
 
 export interface EmployeeDetailsDto {
@@ -28998,6 +29067,7 @@ export interface EmployeeDetailsDto {
     officeLocation?: string | undefined;
     manager?: EmployeeNavigationDto | undefined;
     isActive: boolean;
+    employeeType?: string | undefined;
 }
 
 export interface CreateEmployeeRequest {
@@ -29429,6 +29499,9 @@ export interface AzureOpenAIConnectionListDto extends ConnectionListDto {
 export interface EntraConnectionListDto extends ConnectionListDto {
 }
 
+export interface WorkdayConnectionListDto extends ConnectionListDto {
+}
+
 export interface ConnectorListDto {
     id: number;
     name: string;
@@ -29508,6 +29581,39 @@ export interface EntraConnectionConfigurationDto {
     clientSecret: string;
     allUsersGroupObjectId?: string | undefined;
     includeDisabledUsers: boolean;
+    matchBy: EmployeeMatchProperty;
+}
+
+export enum EmployeeMatchProperty {
+    Email = "Email",
+    EmployeeNumber = "EmployeeNumber",
+}
+
+export interface WorkdayConnectionDetailsDto extends ConnectionDetailsDto {
+    configuration: WorkdayConnectionConfigurationDto;
+}
+
+export interface WorkdayConnectionConfigurationDto {
+    wsdlUrl: string;
+    serviceHost: string;
+    tenantAlias: string;
+    wsdlVersion: string;
+    isuUsername: string;
+    isuPassword: string;
+    workerKey: WorkdayWorkerKey;
+    includeInactive: boolean;
+    incrementalSyncEnabled: boolean;
+    matchBy: EmployeeMatchProperty;
+    lastInitAt?: Date | undefined;
+    lastInitSucceeded: boolean;
+    lastInitMissingFields?: string[] | undefined;
+    lastInitWarnings?: string[] | undefined;
+    lastInitAuthError?: string | undefined;
+}
+
+export enum WorkdayWorkerKey {
+    Wid = "Wid",
+    EmployeeId = "EmployeeId",
 }
 
 export interface CreateConnectionRequest {
@@ -29546,6 +29652,25 @@ the tenant are queried. */
     allUsersGroupObjectId?: string | undefined;
     /** When true, users with disabled accounts are also included in the sync. */
     includeDisabledUsers?: boolean;
+    /** Which uniquely-indexed Employee field the sync upsert matches on. */
+    matchBy?: EmployeeMatchProperty;
+}
+
+export interface CreateWorkdayConnectionRequest extends CreateConnectionRequest {
+    /** The WSDL URL from Workday's "View API Clients" screen (with or without ?wsdl). */
+    wsdlUrl: string;
+    /** The Integration System User username. */
+    isuUsername: string;
+    /** The Integration System User password. */
+    isuPassword: string;
+    /** Which Workday worker identifier maps onto Employee.EmployeeNumber. */
+    workerKey?: WorkdayWorkerKey;
+    /** When true, terminated/inactive workers are also returned by the sync. */
+    includeInactive?: boolean;
+    /** When true, the runner uses Workday's transaction log to fetch only changed workers after the first successful sync. */
+    incrementalSyncEnabled?: boolean;
+    /** Which uniquely-indexed Employee field the sync upsert matches on. */
+    matchBy?: EmployeeMatchProperty;
 }
 
 export interface UpdateConnectionRequest {
@@ -29586,11 +29711,38 @@ the tenant are queried. */
     allUsersGroupObjectId?: string | undefined;
     /** When true, users with disabled accounts are also included in the sync. */
     includeDisabledUsers?: boolean;
+    /** Which uniquely-indexed Employee field the sync upsert matches on. */
+    matchBy?: EmployeeMatchProperty;
+}
+
+export interface UpdateWorkdayConnectionRequest extends UpdateConnectionRequest {
+    /** The WSDL URL from Workday's "View API Clients" screen. */
+    wsdlUrl: string;
+    /** The Integration System User username. */
+    isuUsername: string;
+    /** The Integration System User password. */
+    isuPassword: string;
+    /** Which Workday worker identifier maps onto Employee.EmployeeNumber. */
+    workerKey?: WorkdayWorkerKey;
+    /** When true, terminated/inactive workers are also returned by the sync. */
+    includeInactive?: boolean;
+    /** When true, the runner uses Workday's transaction log to fetch only changed workers after the first successful sync. */
+    incrementalSyncEnabled?: boolean;
+    /** Which uniquely-indexed Employee field the sync upsert matches on. */
+    matchBy?: EmployeeMatchProperty;
 }
 
 export enum SyncType {
     Full = "Full",
     Differential = "Differential",
+}
+
+export interface ConnectionInitResult {
+    isValid: boolean;
+    workersProbed: number;
+    missingRequiredFields: string[];
+    warnings: string[];
+    authError?: string | undefined;
 }
 
 export interface SyncRunListDto {
@@ -29615,6 +29767,7 @@ export enum Connector {
     AzureOpenAI = "AzureOpenAI",
     OpenAI = "OpenAI",
     Entra = "Entra",
+    Workday = "Workday",
 }
 
 export enum SyncRunStatus {

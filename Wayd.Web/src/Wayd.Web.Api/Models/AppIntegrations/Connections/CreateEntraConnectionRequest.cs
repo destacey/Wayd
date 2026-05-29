@@ -1,4 +1,5 @@
 using Wayd.AppIntegration.Application.Connections.Commands.Entra;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 
 namespace Wayd.Web.Api.Models.AppIntegrations.Connections;
 
@@ -30,8 +31,13 @@ public sealed record CreateEntraConnectionRequest : CreateConnectionRequest
     /// </summary>
     public bool IncludeDisabledUsers { get; set; }
 
+    /// <summary>
+    /// Which uniquely-indexed Employee field the sync upsert matches on.
+    /// </summary>
+    public EmployeeMatchProperty MatchBy { get; set; } = EmployeeMatchProperty.Email;
+
     public CreateEntraConnectionCommand ToCommand()
-        => new(Name, Description, TenantId, ClientId, ClientSecret, AllUsersGroupObjectId, IncludeDisabledUsers);
+        => new(Name, Description, TenantId, ClientId, ClientSecret, AllUsersGroupObjectId, IncludeDisabledUsers, MatchBy);
 }
 
 public sealed class CreateEntraConnectionRequestValidator : CustomValidator<CreateEntraConnectionRequest>

@@ -69,9 +69,12 @@ public sealed record EmployeeDetailsDto : IMapFrom<Employee>
     public EmployeeNavigationDto? Manager { get; set; }
 
     /// <summary>
-    /// Indicates whether the employee is active or not.  
+    /// Indicates whether the employee is active or not.
     /// </summary>
     public bool IsActive { get; set; }
+
+    /// <summary>Source-system classification of the working relationship (e.g. "Regular Employee", "Contingent Worker"). Free-form; preserved verbatim from the connector.</summary>
+    public string? EmployeeType { get; set; }
 
     public void ConfigureMapping(TypeAdapterConfig config)
     {

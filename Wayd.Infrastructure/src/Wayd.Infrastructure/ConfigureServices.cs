@@ -22,6 +22,7 @@ using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Integrations.Abstractions;
 using Wayd.Integrations.AzureDevOps;
 using Wayd.Integrations.MicrosoftGraph;
+using Wayd.Integrations.Workday;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
 using NodaTime;
@@ -75,6 +76,12 @@ public static class ConfigureServices
         // INTEGRATIONS
         services.AddTransient<IAzureDevOpsService, AzureDevOpsService>();
         services.AddScoped<IEntraEmployeeSource, MicrosoftGraphService>();
+
+        // Workday: shared SOAP client used by both bulk sync and the init probe. The runner
+        // resolves IWorkdayEmployeeSource; Create/Update/Init handlers resolve IWorkdayConnectionInitializer.
+        services.AddHttpClient<Wayd.Integrations.Workday.Soap.WorkdayStaffingClient>();
+        services.AddScoped<IWorkdayEmployeeSource, WorkdayStaffingService>();
+        services.AddScoped<IWorkdayConnectionInitializer, WorkdayConnectionInitializer>();
 
         // Generic sync orchestration: one IWorkItemSource and one descriptor builder per connector.
         // (IWorkItemSourceFactory is auto-registered via the IScopedService marker scan.)

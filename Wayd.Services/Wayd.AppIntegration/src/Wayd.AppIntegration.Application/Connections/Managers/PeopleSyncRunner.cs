@@ -23,6 +23,7 @@ public sealed class PeopleSyncRunner(
     IAppIntegrationDbContext db,
     IDateTimeProvider clock,
     IEntraEmployeeSource entraEmployeeSource,
+    IWorkdayEmployeeSource workdayEmployeeSource,
     IUserService userService) : IPeopleSyncRunner
 {
     private readonly ILogger<PeopleSyncRunner> _logger = logger;
@@ -30,6 +31,7 @@ public sealed class PeopleSyncRunner(
     private readonly IAppIntegrationDbContext _db = db;
     private readonly IDateTimeProvider _clock = clock;
     private readonly IEntraEmployeeSource _entraEmployeeSource = entraEmployeeSource;
+    private readonly IWorkdayEmployeeSource _workdayEmployeeSource = workdayEmployeeSource;
     private readonly IUserService _userService = userService;
 
     public async Task<Result> Run(SyncTriggerSource trigger, CancellationToken cancellationToken)
@@ -61,6 +63,17 @@ public sealed class PeopleSyncRunner(
                 // ever changing the outcome (still no connections to sync next time).
                 _logger.LogInformation("No active people-sync connections found.");
                 return Result.Success();
+            }
+
+            // Defense in depth: the Activate command enforces single-active PeopleSync at write
+            // time. If two ever slip through (concurrent activation, direct DB tampering,
+            // historical data) we'd risk one source deactivating the other's employees on every
+            // run. Refuse the whole run loudly rather than silently picking one.
+            if (active.Count > 1)
+            {
+                var names = string.Join(", ", active.Select(c => $"{c.Name} ({c.Connector})"));
+                _logger.LogError("Aborting people-sync run: {Count} active PeopleSync connections found, expected at most 1. Active: {Names}.", active.Count, names);
+                return Result.Failure($"Multiple active PeopleSync connections found ({names}). Only one may be active at a time.");
             }
 
             int successCount = 0;
@@ -100,9 +113,18 @@ public sealed class PeopleSyncRunner(
 
     private async Task<Result> RunConnection(Guid connectionId, Connector connector, SyncTriggerSource trigger, CancellationToken cancellationToken)
     {
-        // SyncType.Full is the only meaningful mode for people sync today; the upsert command is
-        // idempotent and always reconciles against the full set returned by the source.
-        var run = SyncRun.Start(connectionId, connector, SyncType.Full, trigger, _clock.Now);
+        // Last-successful-run watermark for incremental connectors. Look it up before starting
+        // the run so we can both feed it to the source AND tag the SyncRun with the right SyncType.
+        var lastSuccessfulRunAt = await _db.SyncRuns
+            .Where(r => r.ConnectionId == connectionId && r.Status == SyncRunStatus.Succeeded && r.FinishedAt != null)
+            .OrderByDescending(r => r.FinishedAt)
+            .Select(r => r.FinishedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var incremental = lastSuccessfulRunAt is not null && SourceSupportsIncremental(connector);
+        var syncType = incremental ? SyncType.Differential : SyncType.Full;
+
+        var run = SyncRun.Start(connectionId, connector, syncType, trigger, _clock.Now);
         _db.SyncRuns.Add(run);
         await _db.SaveChangesAsync(cancellationToken);
 
@@ -112,7 +134,7 @@ public sealed class PeopleSyncRunner(
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var fetchResult = await FetchEmployees(connectionId, connector, cancellationToken);
+            var fetchResult = await FetchEmployees(connectionId, connector, lastSuccessfulRunAt, cancellationToken);
             if (fetchResult.IsFailure)
             {
                 details.Errors.Add(fetchResult.Error);
@@ -123,9 +145,22 @@ public sealed class PeopleSyncRunner(
 
             var employees = fetchResult.Value.ToList();
             details.EmployeesFetched = employees.Count;
+            details.IncrementalUsed = incremental;
 
+            // Incremental syncs only return changed records, so a missing employee doesn't mean
+            // "no longer exists" — it means "no changes". Skip the deactivation pass on those runs
+            // and let the next full sync reconcile.
             if (employees.Count == 0)
             {
+                if (incremental)
+                {
+                    // Zero changes since the last sync is a normal outcome, not a failure.
+                    _logger.LogInformation("Incremental sync returned zero changed employees for connection {ConnectionId} — nothing to upsert.", connectionId);
+                    run.MarkSucceeded(_clock.Now);
+                    await SaveRun(run, details, cancellationToken);
+                    return Result.Success();
+                }
+
                 var msg = "Source returned zero employees.";
                 details.Errors.Add(msg);
                 run.MarkFailed(_clock.Now, msg);
@@ -133,7 +168,11 @@ public sealed class PeopleSyncRunner(
                 return Result.Failure(msg);
             }
 
-            var upsertResult = await _sender.Send(new BulkUpsertEmployeesCommand(employees), cancellationToken);
+            var matchBy = await ResolveMatchProperty(connectionId, connector, cancellationToken);
+
+            var upsertResult = await _sender.Send(
+                new BulkUpsertEmployeesCommand(employees, matchBy: matchBy, deactivateMissing: !incremental),
+                cancellationToken);
             if (upsertResult.IsFailure)
             {
                 details.Errors.Add($"BulkUpsertEmployees failed: {upsertResult.Error}");
@@ -180,15 +219,49 @@ public sealed class PeopleSyncRunner(
     private async Task<Result<IEnumerable<Wayd.Common.Application.Interfaces.IExternalEmployee>>> FetchEmployees(
         Guid connectionId,
         Connector connector,
+        Instant? lastSuccessfulRunAt,
         CancellationToken cancellationToken)
     {
-        // Routed by connector. Add new connectors (Workday, BambooHR, ...) by adding arms here.
+        // Routed by connector. Add new connectors (BambooHR, ...) by adding arms here.
         return connector switch
         {
             Connector.Entra => await FetchFromEntra(connectionId, cancellationToken),
+            Connector.Workday => await FetchFromWorkday(connectionId, lastSuccessfulRunAt, cancellationToken),
             _ => Result.Failure<IEnumerable<Wayd.Common.Application.Interfaces.IExternalEmployee>>(
                 $"No people source registered for connector '{connector}'.")
         };
+    }
+
+    /// <summary>
+    /// True when the source for <paramref name="connector"/> can return a delta of changed
+    /// employees since a given timestamp. Used by the runner to (a) tag the SyncRun as
+    /// Differential and (b) skip the deactivation pass on incremental runs.
+    /// </summary>
+    private static bool SourceSupportsIncremental(Connector connector) => connector switch
+    {
+        Connector.Workday => true,
+        _ => false
+    };
+
+    /// <summary>
+    /// Resolves the connection's <c>MatchBy</c> property for the BulkUpsert. Each PeopleSync
+    /// connection type stores this on its own configuration; this dispatches by connector kind.
+    /// </summary>
+    private async Task<EmployeeMatchProperty> ResolveMatchProperty(Guid connectionId, Connector connector, CancellationToken cancellationToken)
+    {
+        switch (connector)
+        {
+            case Connector.Entra:
+                var entra = await _db.EntraConnections.AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.Id == connectionId, cancellationToken);
+                return entra?.Configuration.MatchBy ?? EmployeeMatchProperty.Email;
+            case Connector.Workday:
+                var workday = await _db.WorkdayConnections.AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.Id == connectionId, cancellationToken);
+                return workday?.Configuration.MatchBy ?? EmployeeMatchProperty.Email;
+            default:
+                return EmployeeMatchProperty.Email;
+        }
     }
 
     private async Task<Result<IEnumerable<Wayd.Common.Application.Interfaces.IExternalEmployee>>> FetchFromEntra(
@@ -210,6 +283,35 @@ public sealed class PeopleSyncRunner(
             entity.Configuration.IncludeDisabledUsers);
 
         return await _entraEmployeeSource.GetEmployees(credentials, cancellationToken);
+    }
+
+    private async Task<Result<IEnumerable<Wayd.Common.Application.Interfaces.IExternalEmployee>>> FetchFromWorkday(
+        Guid connectionId,
+        Instant? lastSuccessfulRunAt,
+        CancellationToken cancellationToken)
+    {
+        var entity = await _db.WorkdayConnections
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == connectionId, cancellationToken);
+        if (entity is null)
+            return Result.Failure<IEnumerable<Wayd.Common.Application.Interfaces.IExternalEmployee>>(
+                $"Workday connection {connectionId} not found.");
+
+        // Only pass the watermark if the admin opted into incremental sync. First-run case (no
+        // prior successful run) falls back to a full snapshot regardless.
+        var updatedFrom = entity.Configuration.IncrementalSyncEnabled ? lastSuccessfulRunAt : null;
+
+        var credentials = new WorkdayConnectionCredentials(
+            entity.Configuration.SoapEndpoint,
+            entity.Configuration.TenantAlias,
+            entity.Configuration.WsdlVersion,
+            entity.Configuration.IsuUsername,
+            entity.Configuration.IsuPassword,
+            entity.Configuration.WorkerKey,
+            entity.Configuration.IncludeInactive,
+            updatedFrom);
+
+        return await _workdayEmployeeSource.GetEmployees(credentials, cancellationToken);
     }
 
     // Match the API-wide convention so frontend consumers read camelCase keys
@@ -264,6 +366,7 @@ public sealed class PeopleSyncRunner(
     {
         public int EmployeesFetched { get; set; }
         public int EmployeesUpserted { get; set; }
+        public bool IncrementalUsed { get; set; }
         public List<string> Errors { get; set; } = [];
     }
 }

@@ -5,6 +5,7 @@ namespace Wayd.Web.Api.Models.AppIntegrations.Connections;
 [JsonDerivedType(typeof(UpdateAzureDevOpsConnectionRequest), typeDiscriminator: "azure-devops")]
 [JsonDerivedType(typeof(UpdateAzureOpenAIConnectionRequest), typeDiscriminator: "azure-openai")]
 [JsonDerivedType(typeof(UpdateEntraConnectionRequest), typeDiscriminator: "entra")]
+[JsonDerivedType(typeof(UpdateWorkdayConnectionRequest), typeDiscriminator: "workday")]
 // Note: OpenAI discriminator reserved for future implementation
 // [JsonDerivedType(typeof(UpdateOpenAIConnectionRequest), typeDiscriminator: "openai")]
 public abstract record UpdateConnectionRequest

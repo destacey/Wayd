@@ -5,6 +5,7 @@ using Wayd.AppIntegration.Application.Persistence;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
+using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Identity;
 using Wayd.Tests.Shared.Infrastructure;
@@ -22,6 +23,7 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
     private readonly List<AzureDevOpsBoardsConnection> _azureDevOpsBoardsConnections = [];
     private readonly List<AzureOpenAIConnection> _azureOpenAIConnections = [];
     private readonly List<EntraConnection> _entraConnections = [];
+    private readonly List<WorkdayConnection> _workdayConnections = [];
     private readonly List<SyncRun> _syncRuns = [];
 
     // Common domain entities
@@ -36,6 +38,7 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
     public DbSet<AzureDevOpsBoardsConnection> AzureDevOpsBoardsConnections => _azureDevOpsBoardsConnections.AsDbSet();
     public DbSet<AzureOpenAIConnection> AzureOpenAIConnections => _azureOpenAIConnections.AsDbSet();
     public DbSet<EntraConnection> EntraConnections => _entraConnections.AsDbSet();
+    public DbSet<WorkdayConnection> WorkdayConnections => _workdayConnections.AsDbSet();
     public DbSet<SyncRun> SyncRuns => _syncRuns.AsDbSet();
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();
@@ -88,6 +91,10 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
     public void AddEntraConnection(EntraConnection connection) => _entraConnections.Add(connection);
     public void AddEntraConnections(IEnumerable<EntraConnection> connections) => _entraConnections.AddRange(connections);
 
+    // WorkdayConnection
+    public void AddWorkdayConnection(WorkdayConnection connection) => _workdayConnections.Add(connection);
+    public void AddWorkdayConnections(IEnumerable<WorkdayConnection> connections) => _workdayConnections.AddRange(connections);
+
     // SyncRun
     public void AddSyncRun(SyncRun syncRun) => _syncRuns.Add(syncRun);
     public void AddSyncRuns(IEnumerable<SyncRun> syncRuns) => _syncRuns.AddRange(syncRuns);
@@ -106,6 +113,7 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
         _azureDevOpsBoardsConnections.Clear();
         _azureOpenAIConnections.Clear();
         _entraConnections.Clear();
+        _workdayConnections.Clear();
         _syncRuns.Clear();
         _employees.Clear();
         _externalEmployeeBlacklistItems.Clear();

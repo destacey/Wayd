@@ -13,7 +13,17 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
 
     private Employee() { }
 
-    private Employee(PersonName personName, string employeeNumber, Instant? hireDate, EmailAddress email, string? jobTitle, string? department, string? officeLocation, Guid? managerId, bool isActive)
+    private Employee(
+        PersonName personName,
+        string employeeNumber,
+        Instant? hireDate,
+        EmailAddress email,
+        string? jobTitle,
+        string? department,
+        string? officeLocation,
+        Guid? managerId,
+        bool isActive,
+        string? employeeType)
     {
         Name = personName;
         EmployeeNumber = employeeNumber;
@@ -24,6 +34,7 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
         OfficeLocation = officeLocation;
         ManagerId = managerId;
         IsActive = isActive;
+        EmployeeType = employeeType;
     }
 
     /// <summary>Gets the key.</summary>
@@ -87,9 +98,17 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
     public IReadOnlyCollection<Employee> DirectReports => _directReports.AsReadOnly();
 
     /// <summary>
-    /// Indicates whether the employee is active or not.  
+    /// Indicates whether the employee is active or not.
     /// </summary>
     public bool IsActive { get; private set; } = true;
+
+    /// <summary>
+    /// The working relationship this person has with the organization, taken verbatim from the
+    /// upstream source (Workday Worker_Type_Reference descriptor, Entra <c>User.employeeType</c>,
+    /// etc.). Free-form because customers configure their own values — we display what the
+    /// source-of-truth says rather than coercing into a closed enum.
+    /// </summary>
+    public string? EmployeeType { get; private set => field = value.NullIfWhiteSpacePlusTrim(); }
 
     /// <summary>
     /// The process for activating an employee.
@@ -147,6 +166,7 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
         string? officeLocation,
         Guid? managerId,
         bool isActive,
+        string? employeeType,
         Instant timestamp
         )
     {
@@ -160,6 +180,7 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
             JobTitle = jobTitle;
             Department = department;
             OfficeLocation = officeLocation;
+            EmployeeType = employeeType;
 
             if (ManagerId != managerId)
             {
@@ -217,9 +238,10 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
         string? officeLocation,
         Guid? managerId,
         bool isActive,
+        string? employeeType,
         Instant timestamp)
     {
-        Employee employee = new(personName, employeeNumber, hireDate, email, jobTitle, department, officeLocation, managerId, isActive);
+        Employee employee = new(personName, employeeNumber, hireDate, email, jobTitle, department, officeLocation, managerId, isActive, employeeType);
         employee.AddDomainEvent(EntityCreatedEvent.WithEntity(employee, timestamp));
         return employee;
     }

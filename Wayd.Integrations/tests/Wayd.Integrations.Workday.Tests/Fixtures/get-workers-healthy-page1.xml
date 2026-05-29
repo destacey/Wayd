@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/" xmlns:wd="urn:com.workday/bsvc">
+  <env:Body>
+    <wd:Get_Workers_Response wd:version="v46.1">
+      <wd:Response_Filter>
+        <wd:Page>1</wd:Page>
+        <wd:Count>2</wd:Count>
+      </wd:Response_Filter>
+      <wd:Response_Group>
+        <wd:Include_Reference>1</wd:Include_Reference>
+      </wd:Response_Group>
+      <wd:Response_Results>
+        <wd:Total_Results>2</wd:Total_Results>
+        <wd:Total_Pages>1</wd:Total_Pages>
+        <wd:Page_Results>2</wd:Page_Results>
+        <wd:Page>1</wd:Page>
+      </wd:Response_Results>
+      <wd:Response_Data>
+        <wd:Worker>
+          <wd:Worker_Reference wd:Descriptor="Dannie Stacey (W-1001)">
+            <wd:ID wd:type="WID">aaaa1111-bbbb-cccc-dddd-eeeeffff0001</wd:ID>
+            <wd:ID wd:type="Employee_ID">W-1001</wd:ID>
+          </wd:Worker_Reference>
+          <wd:Worker_Data>
+            <wd:Personal_Data>
+              <wd:Name_Data>
+                <wd:Legal_Name_Data>
+                  <wd:Name_Detail_Data>
+                    <wd:First_Name>Dannie</wd:First_Name>
+                    <wd:Last_Name>Stacey</wd:Last_Name>
+                  </wd:Name_Detail_Data>
+                </wd:Legal_Name_Data>
+              </wd:Name_Data>
+              <wd:Contact_Data>
+                <wd:Email_Address_Data>
+                  <wd:Email_Address>dannie.stacey@acme.example</wd:Email_Address>
+                  <wd:Usage_Data>
+                    <wd:Type_Data>
+                      <wd:Type_Reference>
+                        <wd:ID wd:type="Communication_Usage_Type_ID">WORK</wd:ID>
+                      </wd:Type_Reference>
+                    </wd:Type_Data>
+                  </wd:Usage_Data>
+                </wd:Email_Address_Data>
+              </wd:Contact_Data>
+            </wd:Personal_Data>
+            <wd:Employment_Data>
+              <wd:Worker_Status_Data>
+                <wd:Active>1</wd:Active>
+                <wd:Hire_Date>2020-06-15</wd:Hire_Date>
+              </wd:Worker_Status_Data>
+              <wd:Worker_Job_Data>
+                <wd:Position_Data>
+                  <wd:Business_Title>Senior Engineer</wd:Business_Title>
+                  <wd:Worker_Type_Reference wd:Descriptor="Regular Employee">
+                    <wd:ID wd:type="Employee_Type_ID">Regular_Employee</wd:ID>
+                  </wd:Worker_Type_Reference>
+                </wd:Position_Data>
+              </wd:Worker_Job_Data>
+            </wd:Employment_Data>
+            <wd:Management_Chain_Data>
+              <wd:Worker_Supervisory_Management_Chain_Data>
+                <!-- Chain is ordered CEO → direct. Last entry is Dannie's direct manager (Casey). -->
+                <wd:Management_Chain_Data>
+                  <wd:Manager_Reference wd:Descriptor="CEO">
+                    <wd:ID wd:type="WID">ceo-wid-0000</wd:ID>
+                    <wd:ID wd:type="Employee_ID">W-0001</wd:ID>
+                  </wd:Manager_Reference>
+                </wd:Management_Chain_Data>
+                <wd:Management_Chain_Data>
+                  <wd:Manager_Reference wd:Descriptor="Casey Park (W-1002)">
+                    <wd:ID wd:type="WID">aaaa1111-bbbb-cccc-dddd-eeeeffff0002</wd:ID>
+                    <wd:ID wd:type="Employee_ID">W-1002</wd:ID>
+                  </wd:Manager_Reference>
+                </wd:Management_Chain_Data>
+              </wd:Worker_Supervisory_Management_Chain_Data>
+            </wd:Management_Chain_Data>
+          </wd:Worker_Data>
+        </wd:Worker>
+        <wd:Worker>
+          <wd:Worker_Reference wd:Descriptor="Casey Park (W-1002)">
+            <wd:ID wd:type="WID">aaaa1111-bbbb-cccc-dddd-eeeeffff0002</wd:ID>
+            <wd:ID wd:type="Employee_ID">W-1002</wd:ID>
+          </wd:Worker_Reference>
+          <wd:Worker_Data>
+            <wd:Personal_Data>
+              <wd:Name_Data>
+                <wd:Legal_Name_Data>
+                  <wd:Name_Detail_Data>
+                    <wd:First_Name>Casey</wd:First_Name>
+                    <wd:Last_Name>Park</wd:Last_Name>
+                  </wd:Name_Detail_Data>
+                </wd:Legal_Name_Data>
+              </wd:Name_Data>
+              <wd:Contact_Data>
+                <wd:Email_Address_Data>
+                  <wd:Email_Address>casey.park@acme.example</wd:Email_Address>
+                  <wd:Usage_Data>
+                    <wd:Type_Data>
+                      <wd:Type_Reference>
+                        <wd:ID wd:type="Communication_Usage_Type_ID">WORK</wd:ID>
+                      </wd:Type_Reference>
+                    </wd:Type_Data>
+                  </wd:Usage_Data>
+                </wd:Email_Address_Data>
+              </wd:Contact_Data>
+            </wd:Personal_Data>
+            <wd:Employment_Data>
+              <wd:Worker_Status_Data>
+                <wd:Active>1</wd:Active>
+                <wd:Hire_Date>2022-01-10</wd:Hire_Date>
+              </wd:Worker_Status_Data>
+              <wd:Worker_Job_Data>
+                <wd:Position_Data>
+                  <wd:Business_Title>Engineering Manager</wd:Business_Title>
+                  <wd:Worker_Type_Reference wd:Descriptor="Contingent Worker">
+                    <wd:ID wd:type="Employee_Type_ID">Contingent_Worker</wd:ID>
+                  </wd:Worker_Type_Reference>
+                </wd:Position_Data>
+              </wd:Worker_Job_Data>
+            </wd:Employment_Data>
+          </wd:Worker_Data>
+        </wd:Worker>
+      </wd:Response_Data>
+    </wd:Get_Workers_Response>
+  </env:Body>
+</env:Envelope>

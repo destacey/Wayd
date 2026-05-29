@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/">
+  <env:Body>
+    <env:Fault>
+      <faultcode>SOAP-ENV:Server</faultcode>
+      <faultstring>Authentication failed: invalid user or password</faultstring>
+    </env:Fault>
+  </env:Body>
+</env:Envelope>

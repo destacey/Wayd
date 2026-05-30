@@ -69,33 +69,36 @@ const WaydTimeline = <TItem extends WaydDataItem, TGroup extends WaydDataGroup>(
 
       const earliestStart = starts.reduce((min, d) => (d.isBefore(min) ? d : min))
       const latestEnd = ends.reduce((max, d) => (d.isAfter(max) ? d : max))
+      const baseItem = groupItems[0]
 
       for (let i = 0; i < BACKGROUND_TOP_PADDING_ROWS; i += 1) {
         topSpacers.push({
+          ...baseItem,
           id: `${groupId}__background_padding_top_${i}`,
           type: 'range',
           content: '',
           title: '',
           start: earliestStart.toDate(),
           end: earliestStart.add(BACKGROUND_SPACER_DAYS, 'day').toDate(),
-          group: groupId === '__ungrouped__' ? undefined : groupId,
+          group: groupId === '__ungrouped__' ? undefined : groupItems[0].group,
           className: 'timeline-background-spacer timeline-background-spacer-top',
           order: -100000 + i,
-        } as TItem)
+        })
       }
 
       for (let i = 0; i < BACKGROUND_BOTTOM_PADDING_ROWS; i += 1) {
         bottomSpacers.push({
+          ...baseItem,
           id: `${groupId}__background_padding_bottom_${i}`,
           type: 'range',
           content: '',
           title: '',
           start: latestEnd.subtract(BACKGROUND_SPACER_DAYS, 'day').toDate(),
           end: latestEnd.toDate(),
-          group: groupId === '__ungrouped__' ? undefined : groupId,
+          group: groupId === '__ungrouped__' ? undefined : groupItems[0].group,
           className: 'timeline-background-spacer timeline-background-spacer-bottom',
           order: 100000 + i,
-        } as TItem)
+        })
       }
     })
 
@@ -529,6 +532,8 @@ const WaydTimeline = <TItem extends WaydDataItem, TGroup extends WaydDataGroup>(
     reinitTrigger, // Reinit when explicitly triggered (e.g., groups removed)
     colors.item.background,
     colors.background.background,
+    token.borderRadiusSM,
+    withBackgroundGroupSpacers,
   ])
 
   // Update data when it changes (after initialization)

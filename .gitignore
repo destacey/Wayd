@@ -361,3 +361,5 @@ nul
 # Playwright MCP screenshots
 .playwright-mcp/
 *.lscache
+# Playwright ad-hoc screenshots
+playwright-*.png

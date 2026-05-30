@@ -1,7 +1,7 @@
 'use client'
 
 import { FC, ReactNode, useState } from 'react'
-import { Button, Card, Divider, Flex, Space, Switch, Typography } from 'antd'
+import { Button, Card, Divider, Flex, Slider, Space, Switch, Tooltip, Typography } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import {
   RoadmapActivityListDto,
@@ -29,6 +29,14 @@ import { useUpdateRoadmapItemDatesMutation } from '@/src/store/features/planning
 import { DateType, TimelineItem } from 'vis-timeline/standalone'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { isApiError, type ApiError } from '@/src/utils'
+import { useAppDispatch, useAppSelector } from '@/src/hooks'
+import {
+  DEFAULT_GROUP_COLUMN_WIDTH,
+  MAX_GROUP_COLUMN_WIDTH,
+  MIN_GROUP_COLUMN_WIDTH,
+  resetRoadmapGroupColumnWidth,
+  setRoadmapGroupColumnWidth,
+} from '@/src/store/features/planning/roadmap-timeline-settings-slice'
 
 const { Text } = Typography
 
@@ -192,13 +200,25 @@ function createNestedGroups(
 
   // Create the nested groups structure - include all items
   const groups: WaydDataGroup<RoadmapItemListDto>[] = groupItems.map(
-    (item) => ({
-      id: item.id,
-      content: item.objectData?.name || '',
-      nestedGroups: parentChildMap.get(item.id) || undefined,
-      treeLevel: item.treeLevel,
-      objectData: item.objectData,
-    }),
+    (item) => {
+      const isRoadmapRoot = item.objectData?.$type === RoadmapItemType.Roadmap
+
+      return {
+        id: item.id,
+        // Use NBSP so the label renders with normal height while appearing blank.
+        content: isRoadmapRoot ? '\u00A0' : item.objectData?.name || '',
+        className: isRoadmapRoot
+          ? 'roadmap-group roadmap-root-group'
+          : 'roadmap-group',
+        nestedGroups: isRoadmapRoot
+          ? undefined
+          : parentChildMap.get(item.id) || undefined,
+        // Shift levels down by one visually because the roadmap root is hidden.
+        // This keeps level-1 activities flush-left, while deeper levels still nest.
+        treeLevel: Math.max(0, item.treeLevel - 1),
+        objectData: item.objectData,
+      }
+    },
   )
 
   return groups
@@ -268,11 +288,18 @@ export const RoadmapRangeItemTemplate: TimelineTemplate<
 
 const RoadmapsTimeline = (props: RoadmapsTimelineProps) => {
   // timelineStart / timelineEnd are derived synchronously from props below
+  const dispatch = useAppDispatch()
   const [userSelectedLevel, setUserSelectedLevel] = useState<
     number | undefined
   >(undefined)
 
   const [showCurrentTime, setShowCurrentTime] = useState<boolean>(true)
+  const roadmapId = String(props.roadmap?.id ?? '')
+  const groupColumnWidth = useAppSelector(
+    (state) =>
+      state.roadmapTimelineSettings.groupColumnWidthByRoadmapId[roadmapId] ??
+      DEFAULT_GROUP_COLUMN_WIDTH,
+  )
 
   const messageApi = useMessage()
 
@@ -325,6 +352,15 @@ const RoadmapsTimeline = (props: RoadmapsTimelineProps) => {
     Math.max(maxLevel, 1),
   )
 
+  const visibleItems =
+    processedData?.items.filter(
+      (item) =>
+        item.treeLevel === currentLevel ||
+        (item.treeLevel < currentLevel &&
+          item.objectData?.$type !== RoadmapItemType.Roadmap &&
+          item.objectData?.$type !== RoadmapItemType.Activity),
+    ) ?? []
+
   const processedGroups = (() => {
     if (!processedData || currentLevel <= 1) return undefined
 
@@ -337,14 +373,7 @@ const RoadmapsTimeline = (props: RoadmapsTimelineProps) => {
     return createNestedGroups(potentialGroups, currentLevel)
   })()
 
-  const filteredItems =
-    processedData?.items.filter(
-      (item) =>
-        item.treeLevel === currentLevel ||
-        (item.treeLevel < currentLevel &&
-          item.objectData?.$type !== RoadmapItemType.Roadmap &&
-          item.objectData?.$type !== RoadmapItemType.Activity),
-    ) ?? []
+  const filteredItems = visibleItems
 
   // Compute timeline window synchronously from props so the timeline receives values on first render
   const timelineWindow = !props.roadmap
@@ -362,6 +391,7 @@ const RoadmapsTimeline = (props: RoadmapsTimelineProps) => {
     end: timelineWindow.end,
     min: timelineWindow.start,
     max: timelineWindow.end,
+    groupColumnWidth,
   }
 
   const onShowCurrentTimeChange = (checked: boolean) => {
@@ -369,6 +399,54 @@ const RoadmapsTimeline = (props: RoadmapsTimelineProps) => {
   }
 
   const controlItems: ItemType[] = [
+    {
+      key: 'group-width-control',
+      label: (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{ width: 260, padding: '4px 0' }}
+        >
+          <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+            <Tooltip title="Resize the left group-label column">
+              <Text type="secondary">Group Width</Text>
+            </Tooltip>
+            <Space align="center" size={6}>
+              <Slider
+                min={MIN_GROUP_COLUMN_WIDTH}
+                max={MAX_GROUP_COLUMN_WIDTH}
+                step={10}
+                value={groupColumnWidth}
+                onChange={(value) =>
+                  dispatch(
+                    setRoadmapGroupColumnWidth(
+                      {
+                        roadmapId,
+                        width: Array.isArray(value) ? value[0] : value,
+                      },
+                    ),
+                  )
+                }
+                tooltip={{ formatter: (value) => `${value}px` }}
+                style={{ width: 140, margin: 0 }}
+              />
+              <Text type="secondary" style={{ minWidth: 48, textAlign: 'right' }}>
+                {groupColumnWidth}px
+              </Text>
+              <Button
+                size="small"
+                type="text"
+                onClick={() =>
+                  dispatch(resetRoadmapGroupColumnWidth({ roadmapId }))
+                }
+              >
+                Reset
+              </Button>
+            </Space>
+          </Space>
+        </div>
+      ),
+    },
     {
       label: (
         <Space>

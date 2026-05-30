@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import breadcrumbReducer from './breadcrumbs/breadcrumb-slice'
 import teamReducer from './features/organizations/team-slice'
+import roadmapTimelineSettingsReducer from './features/planning/roadmap-timeline-settings-slice'
 import workProcessReducer from './features/work-management/work-process-slice'
 import workspaceReducer from './features/work-management/workspace-slice'
 import workStatusReducer from './features/work-management/work-status-slice'
@@ -10,6 +11,7 @@ import { apiSlice } from './features/apiSlice'
 export const store = configureStore({
   reducer: {
     team: teamReducer,
+    roadmapTimelineSettings: roadmapTimelineSettingsReducer,
     breadcrumb: breadcrumbReducer,
     workProcess: workProcessReducer,
     workspace: workspaceReducer,

@@ -29506,6 +29506,7 @@ export interface ConnectorListDto {
     id: number;
     name: string;
     description?: string | undefined;
+    category: SimpleNavigationDto;
 }
 
 export interface ConnectionDetailsDto {

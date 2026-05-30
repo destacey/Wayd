@@ -34733,6 +34733,7 @@
         "additionalProperties": false,
         "required": [
           "name",
+          "category",
           "id"
         ],
         "properties": {
@@ -34746,6 +34747,9 @@
           "description": {
             "type": "string",
             "nullable": true
+          },
+          "category": {
+            "$ref": "#/components/schemas/SimpleNavigationDto"
           }
         }
       },

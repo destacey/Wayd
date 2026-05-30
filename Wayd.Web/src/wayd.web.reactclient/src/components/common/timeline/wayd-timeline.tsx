@@ -389,15 +389,16 @@ const WaydTimeline = <TItem extends WaydDataItem, TGroup extends WaydDataGroup>(
     const datasetItems = new DataSet([] as TItem[])
     data.forEach((item) => {
       const backgroundColor = item.itemColor ?? colorsRef.current.item.background
+      const itemRadiusPx = `${token.borderRadiusSM}px`
       const newItem: TItem = {
         ...item,
         itemColor: backgroundColor,
         style: item.style
           ? item.style
           : item.type === 'range'
-            ? `background: ${backgroundColor}; border-color: ${backgroundColor};`
+            ? `background: ${backgroundColor}; border-color: ${backgroundColor}; border-radius: ${itemRadiusPx};`
             : item.type === 'background'
-              ? `background: ${colorsRef.current.background.background}; border-style: inset; border-width: 1px;`
+              ? `background: ${colorsRef.current.background.background}; border-style: inset; border-width: 1px; border-radius: ${itemRadiusPx};`
               : undefined,
       }
       datasetItems.add(newItem)
@@ -469,15 +470,16 @@ const WaydTimeline = <TItem extends WaydDataItem, TGroup extends WaydDataGroup>(
 
     const processedItems = props.data.map((item) => {
       const backgroundColor = item.itemColor ?? colorsRef.current.item.background
+      const itemRadiusPx = `${token.borderRadiusSM}px`
       return {
         ...item,
         itemColor: backgroundColor,
         style: item.style
           ? item.style
           : item.type === 'range'
-            ? `background: ${backgroundColor}; border-color: ${backgroundColor};`
+            ? `background: ${backgroundColor}; border-color: ${backgroundColor}; border-radius: ${itemRadiusPx};`
             : item.type === 'background'
-              ? `background: ${colorsRef.current.background.background}; border-style: inset; border-width: 1px;`
+              ? `background: ${colorsRef.current.background.background}; border-style: inset; border-width: 1px; border-radius: ${itemRadiusPx};`
               : undefined,
       } as TItem
     })
@@ -532,7 +534,7 @@ const WaydTimeline = <TItem extends WaydDataItem, TGroup extends WaydDataGroup>(
       }
       datasetItemsRef.current!.update(item as any)
     })
-  }, [props.data, colors.item.background, colors.background.background])
+  }, [props.data, colors.item.background, colors.background.background, token.borderRadiusSM])
 
   // Fully reinitialize the timeline when the theme changes so group/item templates
   // re-render with the correct font colors (they use inline styles, not CSS).
@@ -866,7 +868,12 @@ const WaydTimeline = <TItem extends WaydDataItem, TGroup extends WaydDataGroup>(
             />
           </Dropdown>
         )}
-        <div ref={timelineRef} />
+        <div
+          ref={timelineRef}
+          style={{
+            border: `1px solid ${token.colorBorderSecondary}`,
+          }}
+        />
         {!isLoading &&
           (!props.data || props.data.length === 0) &&
           (!props.groups || props.groups.length === 0) && (

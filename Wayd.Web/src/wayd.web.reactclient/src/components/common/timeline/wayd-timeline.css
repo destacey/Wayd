@@ -8,7 +8,10 @@
 
 .vis-item.vis-background .vis-item-content  {
   margin: 0;
-  padding-top: 0;
+  padding: 0;
+  position: relative;
+  z-index: 10;
+  pointer-events: none;
 }
 
 /* Group styling */
@@ -78,6 +81,18 @@
 .vis-label.roadmap-root-group.vis-nesting-group.expanded:before,
 .vis-label.roadmap-root-group.vis-nesting-group.collapsed:before {
   display: none;
+}
+
+/* Global spacer items reserve vertical room in groups with background items. */
+.vis-item.timeline-background-spacer {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+}
+
+.vis-item.timeline-background-spacer .vis-item-content {
+  display: none !important;
 }
 
 /* Fixed group-label column width (roadmap timeline slider-controlled). */

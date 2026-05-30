@@ -352,6 +352,15 @@ const RoadmapsTimeline = (props: RoadmapsTimelineProps) => {
     Math.max(maxLevel, 1),
   )
 
+  const visibleItems =
+    processedData?.items.filter(
+      (item) =>
+        item.treeLevel === currentLevel ||
+        (item.treeLevel < currentLevel &&
+          item.objectData?.$type !== RoadmapItemType.Roadmap &&
+          item.objectData?.$type !== RoadmapItemType.Activity),
+    ) ?? []
+
   const processedGroups = (() => {
     if (!processedData || currentLevel <= 1) return undefined
 
@@ -364,14 +373,7 @@ const RoadmapsTimeline = (props: RoadmapsTimelineProps) => {
     return createNestedGroups(potentialGroups, currentLevel)
   })()
 
-  const filteredItems =
-    processedData?.items.filter(
-      (item) =>
-        item.treeLevel === currentLevel ||
-        (item.treeLevel < currentLevel &&
-          item.objectData?.$type !== RoadmapItemType.Roadmap &&
-          item.objectData?.$type !== RoadmapItemType.Activity),
-    ) ?? []
+  const filteredItems = visibleItems
 
   // Compute timeline window synchronously from props so the timeline receives values on first render
   const timelineWindow = !props.roadmap

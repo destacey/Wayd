@@ -35,6 +35,73 @@ import dayjs from 'dayjs'
 const WaydTimeline = <TItem extends WaydDataItem, TGroup extends WaydDataGroup>(
   props: WaydTimelineProps<TItem, TGroup>,
 ) => {
+  const BACKGROUND_TOP_PADDING_ROWS = 2
+  const BACKGROUND_BOTTOM_PADDING_ROWS = 1
+  const BACKGROUND_SPACER_DAYS = 1
+
+  const withBackgroundGroupSpacers = useCallback((items: TItem[]): TItem[] => {
+    const groupKey = (group: unknown) =>
+      group === undefined || group === null ? '__ungrouped__' : String(group)
+
+    const backgroundGroups = new Set(
+      items
+        .filter((item) => item.type === 'background')
+        .map((item) => groupKey(item.group)),
+    )
+
+    if (backgroundGroups.size === 0) return items
+
+    const topSpacers: TItem[] = []
+    const bottomSpacers: TItem[] = []
+
+    backgroundGroups.forEach((groupId) => {
+      const groupItems = items.filter((item) => groupKey(item.group) === groupId)
+      if (groupItems.length === 0) return
+
+      const starts = groupItems
+        .map((item) => dayjs(item.start))
+        .filter((d) => d.isValid())
+      const ends = groupItems
+        .map((item) => dayjs(item.end ?? item.start))
+        .filter((d) => d.isValid())
+
+      if (starts.length === 0 || ends.length === 0) return
+
+      const earliestStart = starts.reduce((min, d) => (d.isBefore(min) ? d : min))
+      const latestEnd = ends.reduce((max, d) => (d.isAfter(max) ? d : max))
+
+      for (let i = 0; i < BACKGROUND_TOP_PADDING_ROWS; i += 1) {
+        topSpacers.push({
+          id: `${groupId}__background_padding_top_${i}`,
+          type: 'range',
+          content: '',
+          title: '',
+          start: earliestStart.toDate(),
+          end: earliestStart.add(BACKGROUND_SPACER_DAYS, 'day').toDate(),
+          group: groupId === '__ungrouped__' ? undefined : groupId,
+          className: 'timeline-background-spacer timeline-background-spacer-top',
+          order: -100000 + i,
+        } as TItem)
+      }
+
+      for (let i = 0; i < BACKGROUND_BOTTOM_PADDING_ROWS; i += 1) {
+        bottomSpacers.push({
+          id: `${groupId}__background_padding_bottom_${i}`,
+          type: 'range',
+          content: '',
+          title: '',
+          start: latestEnd.subtract(BACKGROUND_SPACER_DAYS, 'day').toDate(),
+          end: latestEnd.toDate(),
+          group: groupId === '__ungrouped__' ? undefined : groupId,
+          className: 'timeline-background-spacer timeline-background-spacer-bottom',
+          order: 100000 + i,
+        } as TItem)
+      }
+    })
+
+    return [...topSpacers, ...items, ...bottomSpacers]
+  }, [])
+
   const [isTimelineLoading, setIsTimelineLoading] = useState(false)
   const [isFullScreen, setIsFullScreen] = useState(false)
   const [reinitTrigger, setReinitTrigger] = useState(0)
@@ -383,7 +450,7 @@ const WaydTimeline = <TItem extends WaydDataItem, TGroup extends WaydDataGroup>(
     setIsTimelineLoading(true)
 
     // Read current data/groups from refs to avoid depending on the full arrays
-    const data = propsDataRef.current
+    const data = withBackgroundGroupSpacers(propsDataRef.current)
     const groups = propsGroupsRef.current
 
     const datasetItems = new DataSet([] as TItem[])
@@ -468,7 +535,7 @@ const WaydTimeline = <TItem extends WaydDataItem, TGroup extends WaydDataGroup>(
   useEffect(() => {
     if (!isInitializedRef.current || !datasetItemsRef.current) return
 
-    const processedItems = props.data.map((item) => {
+    const processedItems = withBackgroundGroupSpacers(props.data).map((item) => {
       const backgroundColor = item.itemColor ?? colorsRef.current.item.background
       const itemRadiusPx = `${token.borderRadiusSM}px`
       return {
@@ -534,7 +601,13 @@ const WaydTimeline = <TItem extends WaydDataItem, TGroup extends WaydDataGroup>(
       }
       datasetItemsRef.current!.update(item as any)
     })
-  }, [props.data, colors.item.background, colors.background.background, token.borderRadiusSM])
+  }, [
+    props.data,
+    colors.item.background,
+    colors.background.background,
+    token.borderRadiusSM,
+    withBackgroundGroupSpacers,
+  ])
 
   // Fully reinitialize the timeline when the theme changes so group/item templates
   // re-render with the correct font colors (they use inline styles, not CSS).
@@ -615,6 +688,7 @@ const WaydTimeline = <TItem extends WaydDataItem, TGroup extends WaydDataGroup>(
     }
 
     if (!datasetGroupsRef.current || !props.groups) return
+    const nextGroups = props.groups
 
     // When the group hierarchy is structurally unchanged, skip the destructive
     // setGroups() — it rebuilds the group DOM and leaves orphaned item containers
@@ -625,7 +699,7 @@ const WaydTimeline = <TItem extends WaydDataItem, TGroup extends WaydDataGroup>(
     // or unmount the root, since vis-timeline has already attached that DOM node
     // and won't re-invoke `groupTemplate` for an existing group id.
     const prevGroups = datasetGroupsRef.current.get() as TGroup[]
-    if (groupsStructurallyEqual(prevGroups, props.groups)) {
+    if (groupsStructurallyEqual(prevGroups, nextGroups!)) {
       const prevById = new Map<string | number, TGroup>()
       prevGroups.forEach((g) => {
         if (g.id !== undefined) prevById.set(g.id, g)
@@ -643,7 +717,7 @@ const WaydTimeline = <TItem extends WaydDataItem, TGroup extends WaydDataGroup>(
           ? propsRef.current.options.groupOrder
           : undefined) ?? 'order'
       const changedGroups: TGroup[] = []
-      props.groups.forEach((next) => {
+      nextGroups!.forEach((next) => {
         if (next.id === undefined) return
         const prev = prevById.get(next.id)
         if (
@@ -695,7 +769,7 @@ const WaydTimeline = <TItem extends WaydDataItem, TGroup extends WaydDataGroup>(
 
     // Fully replace the groups DataSet to ensure vis-timeline rebuilds its
     // internal nestedInGroup hierarchy correctly when the level structure changes.
-    const newDataset = new DataSet(props.groups)
+    const newDataset = new DataSet(nextGroups)
     datasetGroupsRef.current = newDataset
     timelineInstanceRef.current.setGroups(newDataset)
   }, [props.groups, props.isLoading])

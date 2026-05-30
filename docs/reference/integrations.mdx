@@ -1,6 +1,6 @@
 ---
 title: Integrations
-description: Connectors and external system integrations - Azure DevOps, Azure OpenAI, Microsoft Entra.
+description: Connectors and external system integrations - Azure DevOps, Azure OpenAI, Microsoft Entra, Workday.
 sidebar_position: 4
 audience: [developer, agent]
 ---
@@ -20,6 +20,7 @@ Connectors are managed from **Settings → Connections**. The set of supported c
 |---|---|---|---|
 | Azure DevOps | Work sync | GA | Syncs work items, processes, workspaces, and teams from Azure DevOps into Wayd. |
 | Entra | People sync | GA | Syncs people (employees, contingent workers) from Microsoft Entra ID via Microsoft Graph into Wayd's `Employee` records. |
+| Workday | People sync | GA | Syncs workers (employees, contingent workers) from a Workday tenant via the Staffing v46.1 SOAP web service into Wayd's `Employee` records. |
 | Azure OpenAI | AI provider | Preview | Outbound LLM client used by Wayd AI features. No data is synced from this connector. |
 | OpenAI | AI provider | Reserved | Backend scaffolding present; no admin UI to create one yet. |
 
@@ -84,6 +85,58 @@ New connections are **active by default**. Admins toggle this from the detail pa
 
 The Entra connection (tenant ID, client ID, client secret) is created and managed by admins in **Settings → Connections**; its credentials are stored on the connection row, encrypted at rest. There is no configuration-file or environment-variable path for the connector.
 
+## Workday
+
+`Wayd.Integrations.Workday` synchronizes workers (employees and contingent workers) from a Workday tenant into Wayd's `Employee` table via the [Staffing v46.1 SOAP web service](https://community.workday.com/sites/default/files/file-hosting/productionapi/Staffing/v46.1/Staffing.html). Each Workday connection talks to a single tenant; multiple connections per deployment are supported but only one People-sync connection may be **active** at a time across all PeopleSync connectors.
+
+### Capabilities
+
+- Pull workers from a Workday tenant via `Get_Workers` (Staffing v46.1)
+- Optionally include terminated/inactive workers
+- Optional incremental sync via `Transaction_Log_Criteria` after the first full sync
+- Admin-selectable upsert key: Workday `Employee_ID` (default, human-readable) or `WID` (immutable internal)
+- Admin-selectable `MatchBy` (Email or EmployeeNumber) for cross-source identity continuity
+- Init "probe" on save / "Test Connection" that detects ISU permission gaps before sync runs
+- Upsert into Wayd `Employee` records, preserving manager hierarchy from `Management_Chain_Data`
+
+### How It Works
+
+1. An admin creates a **Workday Connection** in Settings → Connections, supplying the Staffing service WSDL URL plus the Integration System User (ISU) username + password (encrypted at rest)
+2. The create handler runs an **init probe** — a small `Get_Workers` request (10 workers) — and persists a structured result on the connection (missing required fields, warnings, auth error). `IsValidConfiguration` is driven by this probe; sync is disabled until it passes
+3. The `PeopleSyncRunner` reads all active `ConnectorCategory.PeopleSync` connections and dispatches Workday connections through `IWorkdayEmployeeSource`
+4. `WorkdayStaffingService` pages through `Get_Workers` (100/page) with response groups `Include_Reference`, `Include_Personal_Information`, `Include_Employment_Information`, `Include_Organizations`, and `Include_Management_Chain_Data`. Each worker projects into a `WorkdayEmployee` record
+5. The connector-agnostic `BulkUpsertEmployeesCommand` reconciles those records against the `Employee` table using the configured `MatchBy` property; employees not in the payload are deactivated
+6. Each run is captured as a `SyncRun` row; sync history is rendered in the connection detail page's Sync History tab
+
+The connection (WSDL URL, ISU username, ISU password) is created and managed by admins in **Settings → Connections**; credentials are stored on the connection row, encrypted at rest. There is no configuration-file or environment-variable path for the connector.
+
+### ISU permissions (Integration System Security Group)
+
+The probe and the sync both rely on the ISU being a member of a Workday Integration System Security Group (ISSG) that has **Get/View** access to the data domains below. Workday returns elements selectively based on ISSG grants — a domain that's not granted causes its element to be **omitted from the response entirely**, which the probe surfaces as a missing required field. Hand this list to the customer's Workday administrator when provisioning the ISU:
+
+| Workday domain (Get/View) | What Wayd reads | Required? |
+|---|---|---|
+| **Worker Data: Public Worker Reports** | `Worker_Reference` (WID, Employee_ID), `Personal_Data/Name_Data`, `Worker_Status_Data` | Required |
+| **Worker Data: Personal Contact Information** | `Personal_Data/Contact_Data/Email_Address_Data` (work email) | Required (or enable the User_ID fallback — see below) |
+| **Worker Data: Current Staffing Information** | `Employment_Data/Worker_Job_Data/Position_Data` (job title, position, hire date, business site) | Required |
+| **Worker Data: Organization Information** | `Organization_Data` and `Position_Organizations_Data` (Department, Cost Center, Company) | Recommended — drives the Department field |
+| **Worker Data: Management Chain** | `Management_Chain_Data/Worker_Supervisory_Management_Chain_Data` | Recommended — drives manager hierarchy |
+
+Domain names vary very slightly across Workday tenants (release-trains rename them occasionally). If the probe reports "Work Email" missing, the most likely cause is **Worker Data: Personal Contact Information** not being granted to the ISU's ISSG. Have the Workday admin run **View Security for Securable Item** → search the domain → confirm the ISU's ISSG is listed under the Get/View grants. After granting, run **Activate Pending Security Policy Changes** to apply.
+
+#### Use User_ID as Email Fallback
+
+Some tenants (especially implementer sandboxes, OR customers who deliberately scope ISU grants narrowly) won't grant **Worker Data: Personal Contact Information**. For those cases, the connection has a **Use User_ID as Email Fallback** toggle:
+
+- **Off (default)**: Sync uses `Personal_Data/Contact_Data/Email_Address_Data` only. If a worker has no work email element in the response, that worker is skipped.
+- **On**: When `Contact_Data` is missing or empty, the sync uses `Worker_Data/User_ID` (the Workday account login) **only if it parses as a valid email address**. Workers whose `User_ID` is a non-email username (e.g. `EMP-1234`) are still skipped.
+
+`User_ID` is exposed by the base **Worker Data: Public Worker Reports** domain, which the ISU already needs, so enabling the fallback doesn't require additional grants. This is a pragmatic workaround for tenants where the username happens to be the user's work email; prefer granting the proper domain in production where possible.
+
+### Versioning
+
+The customer's tenant version is encoded in the WSDL URL path (e.g. `…/Staffing/v46.1`) and stored on the connection. The runtime sends a consistent request shape regardless — Workday's WWS is forward+backward compatible across versions for read operations. Field paths live in `WorkerFieldPaths.cs` and support multi-candidate XPaths, so a Workday major-version field rename can be absorbed by adding a fallback XPath without a code restructure. The sync logs a warning when a previously-populated field comes back null on more than 50% of workers in a run, as a signal that Workday changed something.
+
 ## Azure OpenAI
 
 `Wayd.Integrations.AzureOpenAI` is an outbound LLM client; it does not sync data into Wayd.
@@ -97,6 +150,7 @@ graph LR
     subgraph "External Systems"
         ADO["Azure DevOps"]
         Entra["Microsoft Entra ID"]
+        Workday["Workday"]
         AOAI["Azure OpenAI"]
     end
     subgraph "Wayd"
@@ -104,11 +158,13 @@ graph LR
             WorkRunner["WorkSyncRunner"]
             PeopleRunner["PeopleSyncRunner"]
             WorkSources["IWorkItemSource (keyed by Connector)"]
-            PeopleSources["IEntraEmployeeSource"]
+            EntraSource["IEntraEmployeeSource"]
+            WorkdaySource["IWorkdayEmployeeSource"]
         end
         subgraph "Integrations"
             ADOInt["AzureDevOps Integration"]
             GraphInt["MicrosoftGraph Integration"]
+            WorkdayInt["Workday Integration"]
             AOAIInt["AzureOpenAI Integration"]
         end
         subgraph "Core"
@@ -123,13 +179,17 @@ graph LR
     HFWork --> WorkRunner
     HFPeople --> PeopleRunner
     WorkRunner --> WorkSources
-    PeopleRunner --> PeopleSources
+    PeopleRunner --> EntraSource
+    PeopleRunner --> WorkdaySource
     WorkSources --> ADOInt
-    PeopleSources --> GraphInt
+    EntraSource --> GraphInt
+    WorkdaySource --> WorkdayInt
     ADO --> ADOInt
     Entra --> GraphInt
+    Workday --> WorkdayInt
     ADOInt --> Work
     GraphInt --> People
+    WorkdayInt --> People
     AOAIInt --> AOAI
     AI --> AOAIInt
 ```

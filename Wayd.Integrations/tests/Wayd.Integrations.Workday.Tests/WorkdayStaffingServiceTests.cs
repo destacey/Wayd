@@ -10,7 +10,9 @@ namespace Wayd.Integrations.Workday.Tests;
 
 public class WorkdayStaffingServiceTests
 {
-    private static WorkdayConnectionCredentials BuildCredentials(WorkdayWorkerKey key = WorkdayWorkerKey.Wid) => new(
+    private static WorkdayConnectionCredentials BuildCredentials(
+        WorkdayWorkerKey key = WorkdayWorkerKey.Wid,
+        bool useUserIdAsEmailFallback = false) => new(
         SoapEndpoint: "https://wd3-impl-services1.workday.com/ccx/service/acme_corp1/Staffing/v46.1",
         TenantAlias: "acme_corp1",
         WsdlVersion: "v46.1",
@@ -18,7 +20,8 @@ public class WorkdayStaffingServiceTests
         IsuPassword: "secret",
         WorkerKey: key,
         IncludeInactive: false,
-        IncrementalUpdatedFrom: null);
+        IncrementalUpdatedFrom: null,
+        UseUserIdAsEmailFallback: useUserIdAsEmailFallback);
 
     private static (WorkdayStaffingService service, FakeHttpMessageHandler handler) BuildService()
     {
@@ -93,6 +96,41 @@ public class WorkdayStaffingServiceTests
 
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("Authentication failed");
+    }
+
+    [Fact]
+    public async Task GetEmployees_userIdEmailFallback_on_projectsWorkersUsingUserIdAsEmail()
+    {
+        var (service, handler) = BuildService();
+        // Contact_Data is omitted; User_ID is email-shaped on both workers.
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-userid-email.xml"));
+
+        var result = await service.GetEmployees(
+            BuildCredentials(useUserIdAsEmailFallback: true),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var employees = result.Value.ToList();
+        employees.Should().HaveCount(2);
+        employees.Single(e => e.Name.FirstName == "Dannie").Email.Value
+            .Should().Be("dannie.stacey@triowfs.com");
+        employees.Single(e => e.Name.FirstName == "Casey").Email.Value
+            .Should().Be("casey.park@triowfs.com");
+    }
+
+    [Fact]
+    public async Task GetEmployees_userIdEmailFallback_on_skipsWorkersWhenUserIdIsNotAnEmail()
+    {
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-userid-not-email.xml"));
+
+        var result = await service.GetEmployees(
+            BuildCredentials(useUserIdAsEmailFallback: true),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeEmpty(
+            "fallback only accepts User_ID when it parses as a valid email — username-style values still skip the worker");
     }
 
     [Fact]

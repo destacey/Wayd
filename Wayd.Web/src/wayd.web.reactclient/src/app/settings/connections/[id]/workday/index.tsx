@@ -11,7 +11,7 @@ import { useInitConnectionMutation } from '@/src/store/features/app-integration/
 import { Alert, Button, Space } from 'antd'
 import dayjs from 'dayjs'
 import { ItemType } from 'antd/es/menu/interface'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ConnectionActionContext,
   DetailEntry,
@@ -123,6 +123,10 @@ const Details = ({ connection }: { connection: ConnectionDetailsDto }) => {
             value: config?.incrementalSyncEnabled,
           },
           {
+            label: 'Use User_ID as Email Fallback',
+            value: config?.useUserIdAsEmailFallback,
+          },
+          {
             label: 'Last Validated',
             value: config?.lastInitAt
               ? dayjs(config.lastInitAt).format('M/D/YYYY h:mm A')
@@ -189,17 +193,20 @@ const ExtraActions = ({
   ctx: ConnectionActionContext
   setItems: (items: ItemType[]) => void
 }) => {
-  // Render the button into a menu item using a label-only entry pointing at our TestConnectionButton.
-  // The page shell handles invocation through the menu item key, but for our case we want a button
-  // directly — so we surface as a custom-label item.
-  const items: ItemType[] = [
-    {
-      key: 'test-connection',
-      label: <TestConnectionButton ctx={ctx} />,
-      disabled: !ctx.canUpdate,
-    },
-  ]
-  setItems(items)
+  // setItems updates state on the parent page; React forbids calling it during render of a
+  // child, so we defer to an effect. The effect depends on `setItems` and ctx fields that
+  // actually drive item shape — `canUpdate` flips the disabled state, `connectionId` rebinds
+  // the test handler.
+  useEffect(() => {
+    const items: ItemType[] = [
+      {
+        key: 'test-connection',
+        label: <TestConnectionButton ctx={ctx} />,
+        disabled: !ctx.canUpdate,
+      },
+    ]
+    setItems(items)
+  }, [setItems, ctx])
   return null
 }
 

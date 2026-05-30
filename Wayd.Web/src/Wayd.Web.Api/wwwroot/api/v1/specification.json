@@ -35122,6 +35122,7 @@
           "includeInactive",
           "incrementalSyncEnabled",
           "matchBy",
+          "useUserIdAsEmailFallback",
           "lastInitSucceeded"
         ],
         "properties": {
@@ -35154,6 +35155,9 @@
           },
           "matchBy": {
             "$ref": "#/components/schemas/EmployeeMatchProperty"
+          },
+          "useUserIdAsEmailFallback": {
+            "type": "boolean"
           },
           "lastInitAt": {
             "type": "string",
@@ -35383,6 +35387,10 @@
                     "$ref": "#/components/schemas/EmployeeMatchProperty"
                   }
                 ]
+              },
+              "useUserIdAsEmailFallback": {
+                "type": "boolean",
+                "description": "When true, use Workday's User_ID as the email source when Contact_Data is\nmissing — provided the User_ID parses as a valid email. Workaround for tenants whose ISU\nISSG doesn't grant Worker Data: Personal Contact Information."
               }
             }
           }
@@ -35585,6 +35593,10 @@
                     "$ref": "#/components/schemas/EmployeeMatchProperty"
                   }
                 ]
+              },
+              "useUserIdAsEmailFallback": {
+                "type": "boolean",
+                "description": "When true, use Workday's User_ID as the email source when Contact_Data is\nmissing — provided the User_ID parses as a valid email."
               }
             }
           }

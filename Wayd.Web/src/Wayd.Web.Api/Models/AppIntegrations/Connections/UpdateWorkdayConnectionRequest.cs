@@ -26,8 +26,14 @@ public sealed record UpdateWorkdayConnectionRequest : UpdateConnectionRequest
     /// <summary>Which uniquely-indexed Employee field the sync upsert matches on.</summary>
     public EmployeeMatchProperty MatchBy { get; set; } = EmployeeMatchProperty.Email;
 
+    /// <summary>
+    /// When true, use Workday's <c>User_ID</c> as the email source when <c>Contact_Data</c> is
+    /// missing — provided the User_ID parses as a valid email.
+    /// </summary>
+    public bool UseUserIdAsEmailFallback { get; set; }
+
     public UpdateWorkdayConnectionCommand ToCommand()
-        => new(Id, Name, Description, WsdlUrl, IsuUsername, IsuPassword, WorkerKey, IncludeInactive, IncrementalSyncEnabled, MatchBy);
+        => new(Id, Name, Description, WsdlUrl, IsuUsername, IsuPassword, WorkerKey, IncludeInactive, IncrementalSyncEnabled, MatchBy, UseUserIdAsEmailFallback);
 }
 
 public sealed class UpdateWorkdayConnectionRequestValidator : CustomValidator<UpdateWorkdayConnectionRequest>

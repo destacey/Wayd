@@ -45,6 +45,14 @@ internal static class WorkerFieldPaths
         "wd:Worker_Data/wd:Personal_Data/wd:Contact_Data/wd:Email_Address_Data/wd:Email_Address",
     ];
 
+    // The Workday account login. Always exposed by the base Public Worker Reports domain. We only
+    // use this as an email source when the admin explicitly opts in via UseUserIdAsEmailFallback —
+    // and only when it parses as a real email address.
+    public static readonly string[] UserId =
+    [
+        "wd:Worker_Data/wd:User_ID",
+    ];
+
     // --- Employment status ---
     public static readonly string[] Active =
     [

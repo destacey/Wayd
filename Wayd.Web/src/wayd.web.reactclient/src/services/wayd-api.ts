@@ -29605,6 +29605,7 @@ export interface WorkdayConnectionConfigurationDto {
     includeInactive: boolean;
     incrementalSyncEnabled: boolean;
     matchBy: EmployeeMatchProperty;
+    useUserIdAsEmailFallback: boolean;
     lastInitAt?: Date | undefined;
     lastInitSucceeded: boolean;
     lastInitMissingFields?: string[] | undefined;
@@ -29672,6 +29673,10 @@ export interface CreateWorkdayConnectionRequest extends CreateConnectionRequest 
     incrementalSyncEnabled?: boolean;
     /** Which uniquely-indexed Employee field the sync upsert matches on. */
     matchBy?: EmployeeMatchProperty;
+    /** When true, use Workday's User_ID as the email source when Contact_Data is
+missing — provided the User_ID parses as a valid email. Workaround for tenants whose ISU
+ISSG doesn't grant Worker Data: Personal Contact Information. */
+    useUserIdAsEmailFallback?: boolean;
 }
 
 export interface UpdateConnectionRequest {
@@ -29731,6 +29736,9 @@ export interface UpdateWorkdayConnectionRequest extends UpdateConnectionRequest 
     incrementalSyncEnabled?: boolean;
     /** Which uniquely-indexed Employee field the sync upsert matches on. */
     matchBy?: EmployeeMatchProperty;
+    /** When true, use Workday's User_ID as the email source when Contact_Data is
+missing — provided the User_ID parses as a valid email. */
+    useUserIdAsEmailFallback?: boolean;
 }
 
 export enum SyncType {

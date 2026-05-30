@@ -48,7 +48,7 @@ public sealed class WorkdayStaffingService : IWorkdayEmployeeSource
 
                 foreach (var worker in response.Workers)
                 {
-                    var projected = TryProject(worker, credentials.WorkerKey);
+                    var projected = TryProject(worker, credentials.WorkerKey, credentials.UseUserIdAsEmailFallback);
                     if (projected is not null)
                         employees.Add(projected);
                 }
@@ -76,7 +76,7 @@ public sealed class WorkdayStaffingService : IWorkdayEmployeeSource
         }
     }
 
-    private WorkdayEmployee? TryProject(XElement worker, WorkdayWorkerKey workerKey)
+    private WorkdayEmployee? TryProject(XElement worker, WorkdayWorkerKey workerKey, bool useUserIdAsEmailFallback)
     {
         var wid = WorkerFieldReader.GetValue(worker, WorkerFieldPaths.WorkerWid);
         var employeeId = WorkerFieldReader.GetValue(worker, WorkerFieldPaths.EmployeeId);
@@ -100,6 +100,18 @@ public sealed class WorkdayStaffingService : IWorkdayEmployeeSource
         var lastName = WorkerFieldReader.GetValue(worker, WorkerFieldPaths.LastName);
         var email = WorkerFieldReader.GetValue(worker, WorkerFieldPaths.WorkEmail);
 
+        // Fall back to User_ID when Contact_Data is missing and the admin opted in. User_ID is
+        // exposed by the base Public Worker Reports domain, so this is the only way to pick up an
+        // email for tenants that don't grant Personal Contact Information to the ISU's ISSG.
+        // We still require it to *look* like an email (RFC-ish) — Workday usernames are sometimes
+        // codes like "EMP-1234", and we'd rather skip the worker than write garbage to Employee.Email.
+        if (string.IsNullOrWhiteSpace(email) && useUserIdAsEmailFallback)
+        {
+            var userId = WorkerFieldReader.GetValue(worker, WorkerFieldPaths.UserId);
+            if (WorkdayConnectionInitializer.LooksLikeEmail(userId))
+                email = userId!.Trim();
+        }
+
         // We Guard.Against.NullOrWhiteSpace inside PersonName / EmailAddress; rather than throwing
         // mid-sync, skip the worker and surface a count in the log.
         if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName) || string.IsNullOrWhiteSpace(email))
@@ -115,7 +127,12 @@ public sealed class WorkdayStaffingService : IWorkdayEmployeeSource
             _ => WorkerFieldReader.GetValue(worker, WorkerFieldPaths.ManagerWorkerWid),
         };
 
-        var isActive = WorkerFieldReader.GetValue(worker, WorkerFieldPaths.Active) is "1" or "true";
+        // Workday emits the Active flag as "1"/"0" by default but some response shapes /
+        // configurations use "true"/"false" (and casing isn't strictly defined). Normalize before
+        // comparing rather than pinning to exact lowercase tokens.
+        var activeValue = WorkerFieldReader.GetValue(worker, WorkerFieldPaths.Active);
+        var isActive = string.Equals(activeValue, "1", StringComparison.Ordinal)
+                       || string.Equals(activeValue, "true", StringComparison.OrdinalIgnoreCase);
 
         // Worker_Type_Reference: prefer the Descriptor attribute (tenant display value), fall back
         // to the Employee_Type_ID code if the descriptor is empty.

@@ -26,8 +26,15 @@ public sealed record CreateWorkdayConnectionRequest : CreateConnectionRequest
     /// <summary>Which uniquely-indexed Employee field the sync upsert matches on.</summary>
     public EmployeeMatchProperty MatchBy { get; set; } = EmployeeMatchProperty.Email;
 
+    /// <summary>
+    /// When true, use Workday's <c>User_ID</c> as the email source when <c>Contact_Data</c> is
+    /// missing — provided the User_ID parses as a valid email. Workaround for tenants whose ISU
+    /// ISSG doesn't grant Worker Data: Personal Contact Information.
+    /// </summary>
+    public bool UseUserIdAsEmailFallback { get; set; }
+
     public CreateWorkdayConnectionCommand ToCommand()
-        => new(Name, Description, WsdlUrl, IsuUsername, IsuPassword, WorkerKey, IncludeInactive, IncrementalSyncEnabled, MatchBy);
+        => new(Name, Description, WsdlUrl, IsuUsername, IsuPassword, WorkerKey, IncludeInactive, IncrementalSyncEnabled, MatchBy, UseUserIdAsEmailFallback);
 }
 
 public sealed class CreateWorkdayConnectionRequestValidator : CustomValidator<CreateWorkdayConnectionRequest>

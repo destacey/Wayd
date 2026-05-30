@@ -40,6 +40,7 @@ interface CreateConnectionFormValues {
   workerKey?: WorkdayWorkerKey
   includeInactive?: boolean
   incrementalSyncEnabled?: boolean
+  useUserIdAsEmailFallback?: boolean
   // PeopleSync (Entra + Workday)
   matchBy?: EmployeeMatchProperty
 }
@@ -77,9 +78,13 @@ const CreateConnectionForm = ({
           if (!selectedConnector) return false
 
           try {
+            // System.Text.Json polymorphism requires the discriminator to be the FIRST property
+            // in the JSON payload — otherwise it throws "must specify a type discriminator" even
+            // when the discriminator is present. Spread $type before the form values so it
+            // serializes first.
             const request = {
-              ...values,
               $type: getDiscriminator(selectedConnector),
+              ...values,
             }
 
             const response = await createConnection(request)

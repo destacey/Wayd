@@ -309,7 +309,8 @@ public sealed class PeopleSyncRunner(
             entity.Configuration.IsuPassword,
             entity.Configuration.WorkerKey,
             entity.Configuration.IncludeInactive,
-            updatedFrom);
+            updatedFrom,
+            UseUserIdAsEmailFallback: entity.Configuration.UseUserIdAsEmailFallback);
 
         return await _workdayEmployeeSource.GetEmployees(credentials, cancellationToken);
     }

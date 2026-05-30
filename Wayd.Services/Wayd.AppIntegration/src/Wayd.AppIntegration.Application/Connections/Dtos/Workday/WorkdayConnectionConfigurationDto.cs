@@ -38,6 +38,12 @@ public sealed record WorkdayConnectionConfigurationDto : IMapFrom<WorkdayConnect
     /// <summary>Which uniquely-indexed Employee field the sync upsert matches on.</summary>
     public EmployeeMatchProperty MatchBy { get; set; }
 
+    /// <summary>
+    /// When true, the probe and sync accept Workday's <c>User_ID</c> as the work email when
+    /// <c>Contact_Data</c> is missing, provided it parses as a valid email address.
+    /// </summary>
+    public bool UseUserIdAsEmailFallback { get; set; }
+
     // --- Init / probe result ---
 
     /// <summary>UTC timestamp of the most recent init probe.</summary>

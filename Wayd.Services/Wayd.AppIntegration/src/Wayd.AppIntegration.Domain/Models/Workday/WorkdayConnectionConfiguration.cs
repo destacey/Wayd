@@ -19,7 +19,8 @@ public sealed class WorkdayConnectionConfiguration
         WorkdayWorkerKey workerKey = WorkdayWorkerKey.EmployeeId,
         bool includeInactive = false,
         bool incrementalSyncEnabled = true,
-        EmployeeMatchProperty matchBy = EmployeeMatchProperty.Email)
+        EmployeeMatchProperty matchBy = EmployeeMatchProperty.Email,
+        bool useUserIdAsEmailFallback = false)
     {
         WsdlUrl = wsdlUrl.Trim();
         IsuUsername = isuUsername.Trim();
@@ -28,7 +29,8 @@ public sealed class WorkdayConnectionConfiguration
         IncludeInactive = includeInactive;
         IncrementalSyncEnabled = incrementalSyncEnabled;
         MatchBy = matchBy;
-        ConfigVersion = 3;
+        UseUserIdAsEmailFallback = useUserIdAsEmailFallback;
+        ConfigVersion = 4;
 
         // Derive endpoint parts at construction so the runtime sync path doesn't reparse on every
         // call. Failed parses surface to the command handler via TryParse — the public ctor still
@@ -94,6 +96,14 @@ public sealed class WorkdayConnectionConfiguration
     /// so that connector-switch scenarios (Entra → Workday) naturally collapse onto existing rows.
     /// </summary>
     public EmployeeMatchProperty MatchBy { get; set; }
+
+    /// <summary>
+    /// When true, the probe and sync accept <c>Worker_Data/User_ID</c> as the work email when
+    /// <c>Personal_Data/Contact_Data/Email_Address_Data</c> is missing — but only if the value
+    /// parses as a valid email address. Pragmatic workaround for tenants where the ISU's ISSG
+    /// doesn't grant <c>Worker Data: Personal Contact Information</c>. Default off.
+    /// </summary>
+    public bool UseUserIdAsEmailFallback { get; set; }
 
     public int ConfigVersion { get; init; }
 

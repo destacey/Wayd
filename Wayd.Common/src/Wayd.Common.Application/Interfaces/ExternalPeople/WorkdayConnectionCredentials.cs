@@ -14,4 +14,5 @@ public sealed record WorkdayConnectionCredentials(
     string IsuPassword,
     WorkdayWorkerKey WorkerKey,
     bool IncludeInactive,
-    Instant? IncrementalUpdatedFrom);
+    Instant? IncrementalUpdatedFrom,
+    bool UseUserIdAsEmailFallback = false);

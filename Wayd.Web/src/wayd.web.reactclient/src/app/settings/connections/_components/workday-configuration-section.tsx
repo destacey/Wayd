@@ -90,6 +90,16 @@ export const WorkdayConfigurationSection: React.FC<ConfigSectionProps> = () => {
       >
         <Switch />
       </Item>
+
+      <Item
+        label="Use User_ID as Email Fallback"
+        name="useUserIdAsEmailFallback"
+        valuePropName="checked"
+        initialValue={false}
+        extra="When enabled, sync uses Workday's User_ID (the account login) as the work email if Contact_Data is missing — but only when it parses as a valid email. Use for tenants whose ISU is not granted 'Worker Data: Personal Contact Information'."
+      >
+        <Switch />
+      </Item>
     </>
   )
 }

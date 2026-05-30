@@ -1,3 +1,5 @@
+using System.Net.Mail;
+using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -49,12 +51,22 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
             var missing = new List<string>();
             foreach (var (label, candidates) in requiredFields)
             {
-                var anyHas = workers.Any(w => WorkerFieldReader.HasElement(w, candidates));
+                bool anyHas;
+                if (label == WorkEmailLabel)
+                {
+                    // Work Email gets the User_ID fallback path when the admin opted in. Either a
+                    // proper Contact_Data email OR a valid-looking User_ID counts as "present".
+                    anyHas = workers.Any(w => HasWorkEmail(w, credentials.UseUserIdAsEmailFallback));
+                }
+                else
+                {
+                    anyHas = workers.Any(w => WorkerFieldReader.HasElement(w, candidates));
+                }
                 if (!anyHas)
                     missing.Add(label);
             }
 
-            var warnings = BuildWarnings(workers);
+            var warnings = BuildWarnings(workers, credentials.UseUserIdAsEmailFallback);
 
             var isValid = missing.Count == 0;
             return new ConnectionInitResult(
@@ -105,6 +117,12 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
         }
     }
 
+    // The probe's "Work Email" check is special-cased because the User_ID fallback may stand in
+    // for a missing Contact_Data email. We refer to it by label rather than identity so the
+    // missing-fields report also stays in sync with whatever the customer reads on the UI.
+    private const string WorkEmailLabel =
+        "Work Email (grant 'Worker Data: Personal Contact Information' to the ISU's ISSG, or enable the User_ID fallback on the connection)";
+
     private static IReadOnlyList<(string Label, string[] Candidates)> BuildRequiredFieldChecks(WorkdayWorkerKey workerKey)
     {
         var checks = new List<(string, string[])>
@@ -112,7 +130,7 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
             ("Worker WID",   WorkerFieldPaths.WorkerWid),
             ("First Name",   WorkerFieldPaths.FirstName),
             ("Last Name",    WorkerFieldPaths.LastName),
-            ("Work Email",   WorkerFieldPaths.WorkEmail),
+            (WorkEmailLabel, WorkerFieldPaths.WorkEmail),
             ("Active Flag",  WorkerFieldPaths.Active),
         };
 
@@ -123,7 +141,7 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
         return checks;
     }
 
-    private static IReadOnlyList<string> BuildWarnings(IReadOnlyList<System.Xml.Linq.XElement> workers)
+    private static IReadOnlyList<string> BuildWarnings(IReadOnlyList<XElement> workers, bool useUserIdAsEmailFallback)
     {
         var warnings = new List<string>();
 
@@ -142,6 +160,40 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
                 warnings.Add($"None of the sampled workers had a {label}. Sync will treat this field as null for all employees.");
         }
 
+        // If the fallback is on AND Contact_Data is genuinely absent on every worker, surface that
+        // the sync is leaning on User_ID rather than a real email field. Not an error — just
+        // visible so admins know what's happening.
+        if (useUserIdAsEmailFallback)
+        {
+            var anyContactEmail = workers.Any(w => WorkerFieldReader.HasElement(w, WorkerFieldPaths.WorkEmail));
+            if (!anyContactEmail)
+                warnings.Add("None of the sampled workers had a Contact_Data email; sync is using User_ID as the email source.");
+        }
+
         return warnings;
+    }
+
+    /// <summary>
+    /// True when the worker has either a Contact_Data work email OR (with fallback on) a User_ID
+    /// that parses as a valid email address.
+    /// </summary>
+    private static bool HasWorkEmail(XElement worker, bool useUserIdAsEmailFallback)
+    {
+        if (WorkerFieldReader.HasElement(worker, WorkerFieldPaths.WorkEmail))
+            return true;
+        if (!useUserIdAsEmailFallback)
+            return false;
+        var userId = WorkerFieldReader.GetValue(worker, WorkerFieldPaths.UserId);
+        return LooksLikeEmail(userId);
+    }
+
+    /// <summary>
+    /// Cheap email-shape check using MailAddress (RFC-5321-ish). Used as a guard so we never pass
+    /// a non-email User_ID (e.g. "EMP-1234") through to an EmailAddress constructor.
+    /// </summary>
+    internal static bool LooksLikeEmail(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        return MailAddress.TryCreate(value.Trim(), out _);
     }
 }

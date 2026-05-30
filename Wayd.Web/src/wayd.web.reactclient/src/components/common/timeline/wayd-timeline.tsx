@@ -698,6 +698,15 @@ const WaydTimeline = <TItem extends WaydDataItem, TGroup extends WaydDataGroup>(
     timelineInstanceRef.current.setGroups(newDataset)
   }, [props.groups, props.isLoading])
 
+  // When consumer controls group column width via CSS, force a vis-timeline
+  // redraw so axis/grid panel geometry is recomputed to match.
+  useEffect(() => {
+    if (!isInitializedRef.current || !timelineInstanceRef.current) return
+    if (!props.options.groupColumnWidth) return
+
+    timelineInstanceRef.current.redraw()
+  }, [props.options.groupColumnWidth])
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -816,7 +825,17 @@ const WaydTimeline = <TItem extends WaydDataItem, TGroup extends WaydDataGroup>(
     <Spin spinning={isLoading} description="Loading timeline..." size="large">
       <div
         ref={containerRef}
+        className={
+          props.options.groupColumnWidth
+            ? 'wayd-timeline-root wayd-timeline-fixed-group-width'
+            : 'wayd-timeline-root'
+        }
         style={{
+          ...(props.options.groupColumnWidth
+            ? {
+                ['--wayd-group-column-width' as any]: `${props.options.groupColumnWidth}px`,
+              }
+            : {}),
           position: isFullScreen ? 'fixed' : 'relative',
           top: 0,
           left: 0,

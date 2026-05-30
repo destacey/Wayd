@@ -63,3 +63,24 @@
   color: #ffffff;
   font-weight: 600;
 }
+
+/* Roadmap label text inset (applied to text, not container, so nested indentation still works). */
+.vis-label.roadmap-group .ant-typography {
+  display: inline-block;
+  padding-left: 6px;
+  padding-right: 6px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.2;
+}
+
+.vis-label.roadmap-root-group.vis-nesting-group.expanded:before,
+.vis-label.roadmap-root-group.vis-nesting-group.collapsed:before {
+  display: none;
+}
+
+/* Fixed group-label column width (roadmap timeline slider-controlled). */
+.wayd-timeline-root.wayd-timeline-fixed-group-width .vis-panel.vis-left {
+  width: var(--wayd-group-column-width) !important;
+}

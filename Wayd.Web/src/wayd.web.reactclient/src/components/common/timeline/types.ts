@@ -20,6 +20,7 @@ export type WaydTimelineOptions<T> = {
   maxHeight?: number
   minHeight?: number
   showCurrentTime?: boolean
+  groupColumnWidth?: number
   start: Date
   end: Date
   min: Date

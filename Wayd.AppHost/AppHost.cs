@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 
+#pragma warning disable ASPIREJAVASCRIPT001
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Option 1: External SQL Server (uses connection string from Wayd.Web.Api/Configurations/database.json)
@@ -27,13 +29,13 @@ var waydApi = builder.AddProject<Projects.Wayd_Web_Api>("wayd-api")
     .WithReference(waydDb)
     .WaitFor(waydDb);
 
-var waydClient = builder.AddJavaScriptApp("wayd-client", "../Wayd.Web/src/wayd.web.reactclient", "dev")
+var waydClient = builder.AddNextJsApp("wayd-client", "../Wayd.Web/src/wayd.web.reactclient", runScriptName: "dev")
     .WithReference(waydApi)
     .WaitFor(waydApi)
-    .WithHttpEndpoint(env: "PORT", port: 3000)
-    .WithExternalHttpEndpoints()
     .WithEnvironment("NEXT_PUBLIC_API_BASE_URL", waydApi.GetEndpoint("http"))
-    .WithEnvironment("NEXT_OTEL_VERBOSE", "1");
-//.WithEnvironment("NODE_TLS_REJECT_UNAUTHORIZED", "0"); // Allow self-signed certs for local development.  not needed for http.
+    .WithEnvironment("NEXT_OTEL_VERBOSE", "1")
+    //.WithEnvironment("NODE_TLS_REJECT_UNAUTHORIZED", "0"); // Allow self-signed certs for local development.  not needed for http.
+    .WithHttpEndpoint(env: "PORT", port: 3000)
+    .WithExternalHttpEndpoints();
 
 builder.Build().Run();

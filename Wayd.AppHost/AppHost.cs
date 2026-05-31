@@ -26,7 +26,7 @@ var waydDb = builder.AddConnectionString("WaydDb");
 var waydApi = builder.AddProject<Projects.Wayd_Web_Api>("wayd-api")
     .WithReference(waydDb)
     .WaitFor(waydDb)
-    .WithHttpHealthCheck("/api/health");
+    .WithHttpHealthCheck(global::Wayd.Infrastructure.ServiceEndpoints.HealthEndpointPath);
 
 #pragma warning disable ASPIREJAVASCRIPT001
 builder.AddNextJsApp("wayd-client", "../Wayd.Web/src/wayd.web.reactclient", runScriptName: "dev")

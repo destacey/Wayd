@@ -14,6 +14,8 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\Wayd.Infrastructure\src\Wayd.Infrastructure\Wayd.Infrastructure.csproj" IsAspireProjectResource="false" />
+
         <ProjectReference Include="..\Wayd.Web\src\Wayd.Web.Api\Wayd.Web.Api.csproj" />
     </ItemGroup>
 

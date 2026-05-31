@@ -8,8 +8,12 @@ import { DashboardOutlined, FormOutlined } from '@ant-design/icons'
 import { Button, Card } from 'antd'
 import { useState } from 'react'
 import ManagePlanningIntervalObjectiveWorkItemsForm from '../../../../_components/manage-planning-interval-objective-work-items-form'
-import { useGetObjectiveWorkItemsQuery } from '@/src/store/features/planning/planning-interval-api'
+import {
+  useGetObjectiveWorkItemsQuery,
+  useGetPlanningIntervalQuery,
+} from '@/src/store/features/planning/planning-interval-api'
 import { WorkProgress } from '@/src/components/common'
+import { IterationState } from '@/src/components/types'
 
 export interface PlanningIntervalObjectiveWorkItemsCardProps {
   planningIntervalKey: number
@@ -34,6 +38,9 @@ const PlanningIntervalObjectiveWorkItemsCard = (
     planningIntervalKey: props.planningIntervalKey.toString(),
     objectiveKey: props.objectiveKey.toString(),
   })
+  const { data: planningIntervalData } = useGetPlanningIntervalQuery(
+    props.planningIntervalKey,
+  )
 
   const onWorkItemsDashboardClosed = () => {
     setOpenWorkItemsDashboard(false)
@@ -46,8 +53,17 @@ const PlanningIntervalObjectiveWorkItemsCard = (
     }
   }
 
+  const planningIntervalState = planningIntervalData?.state.id as
+    | IterationState
+    | undefined
+  const hasPlanningIntervalStarted =
+    planningIntervalState !== undefined &&
+    planningIntervalState !== IterationState.Future
+
   const enableWorkItemsDashboard =
-    workItemsData && workItemsData.workItems.length > 0
+    hasPlanningIntervalStarted &&
+    !!workItemsData &&
+    workItemsData.workItems.length > 0
 
   return (
     <>

@@ -4,6 +4,7 @@ import {
   useGetObjectiveWorkItemsQuery,
   useGetPlanningIntervalQuery,
 } from '@/src/store/features/planning/planning-interval-api'
+import { IterationState } from '@/src/components/types'
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -58,15 +59,9 @@ const mockObjectiveWorkItemsQuery =
 const mockPlanningIntervalQuery =
   useGetPlanningIntervalQuery as unknown as jest.Mock
 
-const localDate = (isoDay: string) => {
-  const [y, m, d] = isoDay.split('-').map(Number)
-  return new Date(y, m - 1, d)
-}
-
 describe('PlanningIntervalObjectiveWorkItemsCard', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    jest.useRealTimers()
 
     mockObjectiveWorkItemsQuery.mockReturnValue({
       data: {
@@ -77,16 +72,10 @@ describe('PlanningIntervalObjectiveWorkItemsCard', () => {
       refetch: jest.fn(),
     })
   })
-
-  afterEach(() => {
-    jest.useRealTimers()
-  })
-
   it('shows the work items dashboard button when the PI has started', () => {
-    jest.useFakeTimers().setSystemTime(localDate('2024-06-10').getTime())
     mockPlanningIntervalQuery.mockReturnValue({
       data: {
-        start: localDate('2024-06-10'),
+        state: { id: IterationState.Active, name: 'Active' },
       },
     })
 
@@ -102,10 +91,9 @@ describe('PlanningIntervalObjectiveWorkItemsCard', () => {
   })
 
   it('hides the work items dashboard button before the PI start date', () => {
-    jest.useFakeTimers().setSystemTime(localDate('2024-06-09').getTime())
     mockPlanningIntervalQuery.mockReturnValue({
       data: {
-        start: localDate('2024-06-10'),
+        state: { id: IterationState.Future, name: 'Future' },
       },
     })
 

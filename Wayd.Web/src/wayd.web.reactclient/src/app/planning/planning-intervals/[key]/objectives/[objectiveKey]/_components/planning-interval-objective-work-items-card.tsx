@@ -13,6 +13,7 @@ import {
   useGetPlanningIntervalQuery,
 } from '@/src/store/features/planning/planning-interval-api'
 import { WorkProgress } from '@/src/components/common'
+import { IterationState } from '@/src/components/types'
 
 export interface PlanningIntervalObjectiveWorkItemsCardProps {
   planningIntervalKey: number
@@ -52,17 +53,12 @@ const PlanningIntervalObjectiveWorkItemsCard = (
     }
   }
 
-  const hasPlanningIntervalStarted = (() => {
-    if (!planningIntervalData?.start) return false
-
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    const planningIntervalStart = new Date(planningIntervalData.start)
-    planningIntervalStart.setHours(0, 0, 0, 0)
-
-    return today >= planningIntervalStart
-  })()
+  const planningIntervalState = planningIntervalData?.state.id as
+    | IterationState
+    | undefined
+  const hasPlanningIntervalStarted =
+    planningIntervalState !== undefined &&
+    planningIntervalState !== IterationState.Future
 
   const enableWorkItemsDashboard =
     hasPlanningIntervalStarted &&

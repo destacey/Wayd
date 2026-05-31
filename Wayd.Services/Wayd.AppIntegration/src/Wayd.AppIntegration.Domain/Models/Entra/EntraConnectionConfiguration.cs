@@ -17,7 +17,8 @@ public sealed class EntraConnectionConfiguration
         string clientSecret,
         string? allUsersGroupObjectId = null,
         bool includeDisabledUsers = false,
-        EmployeeMatchProperty matchBy = EmployeeMatchProperty.Email)
+        EmployeeMatchProperty matchBy = EmployeeMatchProperty.Email,
+        bool normalizeNameCasing = true)
     {
         TenantId = tenantId.Trim();
         ClientId = clientId.Trim();
@@ -25,7 +26,8 @@ public sealed class EntraConnectionConfiguration
         AllUsersGroupObjectId = string.IsNullOrWhiteSpace(allUsersGroupObjectId) ? null : allUsersGroupObjectId.Trim();
         IncludeDisabledUsers = includeDisabledUsers;
         MatchBy = matchBy;
-        ConfigVersion = 2;
+        NormalizeNameCasing = normalizeNameCasing;
+        ConfigVersion = 3;
     }
 
     /// <summary>
@@ -61,6 +63,12 @@ public sealed class EntraConnectionConfiguration
     /// employee dataset.
     /// </summary>
     public EmployeeMatchProperty MatchBy { get; set; }
+
+    /// <summary>
+    /// When true, names that come back from Entra in all-caps are title-cased before storage.
+    /// Mixed-case input is preserved. Default true.
+    /// </summary>
+    public bool NormalizeNameCasing { get; set; }
 
     public int ConfigVersion { get; init; }
 }

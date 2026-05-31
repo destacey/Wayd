@@ -12,10 +12,10 @@
         <wd:Worker>
           <wd:Worker_Reference wd:Descriptor="Bobby Smith">
             <wd:ID wd:type="WID">aaaa1111-bbbb-cccc-dddd-eeeeffff0001</wd:ID>
-            <wd:ID wd:type="Employee_ID">B0BB</wd:ID>
+            <wd:ID wd:type="Employee_ID">WX-10004</wd:ID>
           </wd:Worker_Reference>
           <wd:Worker_Data>
-            <wd:Worker_ID>B0BB</wd:Worker_ID>
+            <wd:Worker_ID>WX-10004</wd:Worker_ID>
             <wd:Personal_Data>
               <wd:Name_Data>
                 <wd:Legal_Name_Data>
@@ -56,10 +56,10 @@
         <wd:Worker>
           <wd:Worker_Reference wd:Descriptor="Casey Park">
             <wd:ID wd:type="WID">aaaa1111-bbbb-cccc-dddd-eeeeffff0002</wd:ID>
-            <wd:ID wd:type="Employee_ID">CASE</wd:ID>
+            <wd:ID wd:type="Employee_ID">WX-10005</wd:ID>
           </wd:Worker_Reference>
           <wd:Worker_Data>
-            <wd:Worker_ID>CASE</wd:Worker_ID>
+            <wd:Worker_ID>WX-10005</wd:Worker_ID>
             <wd:Personal_Data>
               <wd:Name_Data>
                 <wd:Legal_Name_Data>

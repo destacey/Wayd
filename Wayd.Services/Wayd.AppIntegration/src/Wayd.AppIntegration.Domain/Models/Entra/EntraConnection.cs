@@ -43,6 +43,7 @@ public sealed class EntraConnection : Connection<EntraConnectionConfiguration>, 
         string? allUsersGroupObjectId,
         bool includeDisabledUsers,
         Wayd.Common.Domain.Enums.AppIntegrations.EmployeeMatchProperty matchBy,
+        bool normalizeNameCasing,
         bool configurationIsValid,
         Instant timestamp)
     {
@@ -57,7 +58,7 @@ public sealed class EntraConnection : Connection<EntraConnectionConfiguration>, 
             var newClientSecret = Guard.Against.NullOrWhiteSpace(clientSecret, nameof(clientSecret)).Trim();
             var newGroupId = string.IsNullOrWhiteSpace(allUsersGroupObjectId) ? null : allUsersGroupObjectId.Trim();
 
-            if (!UpdateValuesChanged(newName, newDescription, newTenantId, newClientId, newClientSecret, newGroupId, includeDisabledUsers, matchBy, configurationIsValid))
+            if (!UpdateValuesChanged(newName, newDescription, newTenantId, newClientId, newClientSecret, newGroupId, includeDisabledUsers, matchBy, normalizeNameCasing, configurationIsValid))
                 return Result.Success();
 
             Name = newName;
@@ -70,6 +71,7 @@ public sealed class EntraConnection : Connection<EntraConnectionConfiguration>, 
             Configuration.AllUsersGroupObjectId = newGroupId;
             Configuration.IncludeDisabledUsers = includeDisabledUsers;
             Configuration.MatchBy = matchBy;
+            Configuration.NormalizeNameCasing = normalizeNameCasing;
 
             AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
 
@@ -90,6 +92,7 @@ public sealed class EntraConnection : Connection<EntraConnectionConfiguration>, 
         string? allUsersGroupObjectId,
         bool includeDisabledUsers,
         Wayd.Common.Domain.Enums.AppIntegrations.EmployeeMatchProperty matchBy,
+        bool normalizeNameCasing,
         bool configurationIsValid)
     {
         if (!string.Equals(Name, name, StringComparison.Ordinal)) return true;
@@ -100,6 +103,7 @@ public sealed class EntraConnection : Connection<EntraConnectionConfiguration>, 
         if (!string.Equals(Configuration.AllUsersGroupObjectId, allUsersGroupObjectId, StringComparison.Ordinal)) return true;
         if (Configuration.IncludeDisabledUsers != includeDisabledUsers) return true;
         if (Configuration.MatchBy != matchBy) return true;
+        if (Configuration.NormalizeNameCasing != normalizeNameCasing) return true;
         if (IsValidConfiguration != configurationIsValid) return true;
         return false;
     }

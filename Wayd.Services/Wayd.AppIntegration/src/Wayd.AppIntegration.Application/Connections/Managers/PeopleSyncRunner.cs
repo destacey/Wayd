@@ -286,7 +286,8 @@ public sealed class PeopleSyncRunner(
             entity.Configuration.ClientId,
             entity.Configuration.ClientSecret,
             entity.Configuration.AllUsersGroupObjectId,
-            entity.Configuration.IncludeDisabledUsers);
+            entity.Configuration.IncludeDisabledUsers,
+            NormalizeNameCasing: entity.Configuration.NormalizeNameCasing);
 
         return await _entraEmployeeSource.GetEmployees(credentials, cancellationToken);
     }
@@ -316,7 +317,8 @@ public sealed class PeopleSyncRunner(
             entity.Configuration.IncludeInactive,
             IncrementalUpdatedFrom: lastSuccessfulRunAt,
             UseUserIdAsEmailFallback: entity.Configuration.UseUserIdAsEmailFallback,
-            UsePreferredName: entity.Configuration.UsePreferredName);
+            UsePreferredName: entity.Configuration.UsePreferredName,
+            NormalizeNameCasing: entity.Configuration.NormalizeNameCasing);
 
         return await _workdayEmployeeSource.GetEmployees(credentials, cancellationToken);
     }

@@ -29583,6 +29583,7 @@ export interface EntraConnectionConfigurationDto {
     allUsersGroupObjectId?: string | undefined;
     includeDisabledUsers: boolean;
     matchBy: EmployeeMatchProperty;
+    normalizeNameCasing: boolean;
 }
 
 export enum EmployeeMatchProperty {
@@ -29606,6 +29607,7 @@ export interface WorkdayConnectionConfigurationDto {
     matchBy: EmployeeMatchProperty;
     useUserIdAsEmailFallback: boolean;
     usePreferredName: boolean;
+    normalizeNameCasing: boolean;
     lastInitAt?: Date | undefined;
     lastInitSucceeded: boolean;
     lastInitMissingFields?: string[] | undefined;
@@ -29656,6 +29658,9 @@ the tenant are queried. */
     includeDisabledUsers?: boolean;
     /** Which uniquely-indexed Employee field the sync upsert matches on. */
     matchBy?: EmployeeMatchProperty;
+    /** When true, names that come back from Entra in all-caps are title-cased before storage.
+Mixed-case input is preserved. Default true. */
+    normalizeNameCasing?: boolean;
 }
 
 export interface CreateWorkdayConnectionRequest extends CreateConnectionRequest {
@@ -29679,6 +29684,10 @@ ISSG doesn't grant Worker Data: Personal Contact Information. */
 Legal_Name_Data, falling back to legal per-component when a preferred component is
 missing. Default off. */
     usePreferredName?: boolean;
+    /** When true, names that come back from Workday in all-caps are title-cased before storage
+(mixed-case input is preserved). Default true — most HRIS sources emit upper-cased legal
+names that look inconsistent next to manually-entered records. */
+    normalizeNameCasing?: boolean;
 }
 
 export interface UpdateConnectionRequest {
@@ -29721,6 +29730,9 @@ the tenant are queried. */
     includeDisabledUsers?: boolean;
     /** Which uniquely-indexed Employee field the sync upsert matches on. */
     matchBy?: EmployeeMatchProperty;
+    /** When true, names that come back from Entra in all-caps are title-cased before storage.
+Mixed-case input is preserved. Default true. */
+    normalizeNameCasing?: boolean;
 }
 
 export interface UpdateWorkdayConnectionRequest extends UpdateConnectionRequest {
@@ -29742,6 +29754,9 @@ missing — provided the User_ID parses as a valid email. */
     /** When true, sync reads each worker's Preferred_Name_Data in preference to
 Legal_Name_Data, falling back to legal per-component when missing. Default off. */
     usePreferredName?: boolean;
+    /** When true, names that come back from Workday in all-caps are title-cased before storage.
+Mixed-case input is preserved. Default true. */
+    normalizeNameCasing?: boolean;
 }
 
 export enum SyncType {

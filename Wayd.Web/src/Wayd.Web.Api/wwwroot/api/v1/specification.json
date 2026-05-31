@@ -35053,7 +35053,8 @@
           "clientId",
           "clientSecret",
           "includeDisabledUsers",
-          "matchBy"
+          "matchBy",
+          "normalizeNameCasing"
         ],
         "properties": {
           "tenantId": {
@@ -35074,6 +35075,9 @@
           },
           "matchBy": {
             "$ref": "#/components/schemas/EmployeeMatchProperty"
+          },
+          "normalizeNameCasing": {
+            "type": "boolean"
           }
         }
       },
@@ -35123,6 +35127,7 @@
           "matchBy",
           "useUserIdAsEmailFallback",
           "usePreferredName",
+          "normalizeNameCasing",
           "lastInitSucceeded"
         ],
         "properties": {
@@ -35157,6 +35162,9 @@
             "type": "boolean"
           },
           "usePreferredName": {
+            "type": "boolean"
+          },
+          "normalizeNameCasing": {
             "type": "boolean"
           },
           "lastInitAt": {
@@ -35333,6 +35341,10 @@
                     "$ref": "#/components/schemas/EmployeeMatchProperty"
                   }
                 ]
+              },
+              "normalizeNameCasing": {
+                "type": "boolean",
+                "description": "When true, names that come back from Entra in all-caps are title-cased before storage.\nMixed-case input is preserved. Default true."
               }
             }
           }
@@ -35391,6 +35403,10 @@
               "usePreferredName": {
                 "type": "boolean",
                 "description": "When true, sync reads each worker's Preferred_Name_Data in preference to\nLegal_Name_Data, falling back to legal per-component when a preferred component is\nmissing. Default off."
+              },
+              "normalizeNameCasing": {
+                "type": "boolean",
+                "description": "When true, names that come back from Workday in all-caps are title-cased before storage\n(mixed-case input is preserved). Default true — most HRIS sources emit upper-cased legal\nnames that look inconsistent next to manually-entered records."
               }
             }
           }
@@ -35539,6 +35555,10 @@
                     "$ref": "#/components/schemas/EmployeeMatchProperty"
                   }
                 ]
+              },
+              "normalizeNameCasing": {
+                "type": "boolean",
+                "description": "When true, names that come back from Entra in all-caps are title-cased before storage.\nMixed-case input is preserved. Default true."
               }
             }
           }
@@ -35597,6 +35617,10 @@
               "usePreferredName": {
                 "type": "boolean",
                 "description": "When true, sync reads each worker's Preferred_Name_Data in preference to\nLegal_Name_Data, falling back to legal per-component when missing. Default off."
+              },
+              "normalizeNameCasing": {
+                "type": "boolean",
+                "description": "When true, names that come back from Workday in all-caps are title-cased before storage.\nMixed-case input is preserved. Default true."
               }
             }
           }

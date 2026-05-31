@@ -14,7 +14,8 @@ public sealed record UpdateEntraConnectionCommand(
     string ClientSecret,
     string? AllUsersGroupObjectId,
     bool IncludeDisabledUsers,
-    EmployeeMatchProperty MatchBy) : ICommand<Guid>;
+    EmployeeMatchProperty MatchBy,
+    bool NormalizeNameCasing) : ICommand<Guid>;
 
 public sealed class UpdateEntraConnectionCommandValidator : CustomValidator<UpdateEntraConnectionCommand>
 {
@@ -90,6 +91,7 @@ internal sealed class UpdateEntraConnectionCommandHandler(
                 request.AllUsersGroupObjectId,
                 request.IncludeDisabledUsers,
                 request.MatchBy,
+                request.NormalizeNameCasing,
                 configurationIsValid,
                 _dateTimeProvider.Now);
 

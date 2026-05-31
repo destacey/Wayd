@@ -35,8 +35,14 @@ public sealed record UpdateWorkdayConnectionRequest : UpdateConnectionRequest
     /// </summary>
     public bool UsePreferredName { get; set; }
 
+    /// <summary>
+    /// When true, names that come back from Workday in all-caps are title-cased before storage.
+    /// Mixed-case input is preserved. Default true.
+    /// </summary>
+    public bool NormalizeNameCasing { get; set; } = true;
+
     public UpdateWorkdayConnectionCommand ToCommand()
-        => new(Id, Name, Description, WsdlUrl, IsuUsername, IsuPassword, WorkerKey, IncludeInactive, MatchBy, UseUserIdAsEmailFallback, UsePreferredName);
+        => new(Id, Name, Description, WsdlUrl, IsuUsername, IsuPassword, WorkerKey, IncludeInactive, MatchBy, UseUserIdAsEmailFallback, UsePreferredName, NormalizeNameCasing);
 }
 
 public sealed class UpdateWorkdayConnectionRequestValidator : CustomValidator<UpdateWorkdayConnectionRequest>

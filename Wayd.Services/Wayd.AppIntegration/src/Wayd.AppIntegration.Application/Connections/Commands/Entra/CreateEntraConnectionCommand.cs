@@ -13,7 +13,8 @@ public sealed record CreateEntraConnectionCommand(
     string ClientSecret,
     string? AllUsersGroupObjectId,
     bool IncludeDisabledUsers,
-    EmployeeMatchProperty MatchBy) : ICommand<Guid>;
+    EmployeeMatchProperty MatchBy,
+    bool NormalizeNameCasing) : ICommand<Guid>;
 
 public sealed class CreateEntraConnectionCommandValidator : CustomValidator<CreateEntraConnectionCommand>
 {
@@ -69,7 +70,8 @@ internal sealed class CreateEntraConnectionCommandHandler(
                 request.ClientSecret,
                 request.AllUsersGroupObjectId,
                 request.IncludeDisabledUsers,
-                request.MatchBy);
+                request.MatchBy,
+                request.NormalizeNameCasing);
 
             // TODO: Test the connection here and set IsValidConfiguration based on the outcome.
             var isConfigurationValid = true;

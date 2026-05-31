@@ -36,8 +36,14 @@ public sealed record UpdateEntraConnectionRequest : UpdateConnectionRequest
     /// </summary>
     public EmployeeMatchProperty MatchBy { get; set; } = EmployeeMatchProperty.Email;
 
+    /// <summary>
+    /// When true, names that come back from Entra in all-caps are title-cased before storage.
+    /// Mixed-case input is preserved. Default true.
+    /// </summary>
+    public bool NormalizeNameCasing { get; set; } = true;
+
     public UpdateEntraConnectionCommand ToCommand()
-        => new(Id, Name, Description, TenantId, ClientId, ClientSecret, AllUsersGroupObjectId, IncludeDisabledUsers, MatchBy);
+        => new(Id, Name, Description, TenantId, ClientId, ClientSecret, AllUsersGroupObjectId, IncludeDisabledUsers, MatchBy, NormalizeNameCasing);
 }
 
 public sealed class UpdateEntraConnectionRequestValidator : CustomValidator<UpdateEntraConnectionRequest>

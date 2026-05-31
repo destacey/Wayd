@@ -10,7 +10,7 @@
       </wd:Response_Results>
       <wd:Response_Data>
         <wd:Worker>
-          <wd:Worker_Reference wd:Descriptor="Dannie Stacey">
+          <wd:Worker_Reference wd:Descriptor="Alex Rivera">
             <wd:ID wd:type="WID">aaaa1111-bbbb-cccc-dddd-eeeeffff0001</wd:ID>
           </wd:Worker_Reference>
           <wd:Worker_Data>
@@ -18,8 +18,8 @@
               <wd:Name_Data>
                 <wd:Legal_Name_Data>
                   <wd:Name_Detail_Data>
-                    <wd:First_Name>Dannie</wd:First_Name>
-                    <wd:Last_Name>Stacey</wd:Last_Name>
+                    <wd:First_Name>Alex</wd:First_Name>
+                    <wd:Last_Name>Rivera</wd:Last_Name>
                   </wd:Name_Detail_Data>
                 </wd:Legal_Name_Data>
               </wd:Name_Data>

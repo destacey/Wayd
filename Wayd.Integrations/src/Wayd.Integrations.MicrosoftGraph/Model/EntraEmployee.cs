@@ -8,10 +8,19 @@ namespace Wayd.Integrations.MicrosoftGraph.Model;
 
 public sealed record EntraEmployee : IExternalEmployee
 {
-    public EntraEmployee(User user)
+    public EntraEmployee(User user, bool normalizeNameCasing = false)
     {
         EmployeeNumber = Guard.Against.NullOrWhiteSpace(user.EmployeeId ?? user.Id);
-        Name = new PersonName(Guard.Against.NullOrWhiteSpace(user.GivenName), null, Guard.Against.NullOrWhiteSpace(user.Surname));
+        var firstName = Guard.Against.NullOrWhiteSpace(user.GivenName);
+        var lastName = Guard.Against.NullOrWhiteSpace(user.Surname);
+        if (normalizeNameCasing)
+        {
+            // Title-cases all-caps input (Entra tenants frequently store legal names in caps),
+            // pass-through for already-cased names. See NameCasing for the heuristic.
+            firstName = NameCasing.TitleCaseIfMostlyUpper(firstName)!;
+            lastName = NameCasing.TitleCaseIfMostlyUpper(lastName)!;
+        }
+        Name = new PersonName(firstName, null, lastName);
         HireDate = user.HireDate is not null
             ? Instant.FromDateTimeOffset((DateTimeOffset)user.HireDate)
             : user.EmployeeHireDate is not null

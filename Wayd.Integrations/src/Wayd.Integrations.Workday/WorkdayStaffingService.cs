@@ -48,7 +48,7 @@ public sealed class WorkdayStaffingService : IWorkdayEmployeeSource
 
                 foreach (var worker in response.Workers)
                 {
-                    var projected = TryProject(worker, credentials.WorkerKey, credentials.UseUserIdAsEmailFallback, credentials.UsePreferredName);
+                    var projected = TryProject(worker, credentials.WorkerKey, credentials.UseUserIdAsEmailFallback, credentials.UsePreferredName, credentials.NormalizeNameCasing);
                     if (projected is not null)
                         employees.Add(projected);
                 }
@@ -76,7 +76,7 @@ public sealed class WorkdayStaffingService : IWorkdayEmployeeSource
         }
     }
 
-    private WorkdayEmployee? TryProject(XElement worker, WorkdayWorkerKey workerKey, bool useUserIdAsEmailFallback, bool usePreferredName)
+    private WorkdayEmployee? TryProject(XElement worker, WorkdayWorkerKey workerKey, bool useUserIdAsEmailFallback, bool usePreferredName, bool normalizeNameCasing)
     {
         var wid = WorkerFieldReader.GetValue(worker, WorkerFieldPaths.WorkerWid);
         var employeeId = WorkerFieldReader.GetValue(worker, WorkerFieldPaths.EmployeeId);
@@ -154,6 +154,16 @@ public sealed class WorkdayStaffingService : IWorkdayEmployeeSource
             ? WorkerFieldReader.GetValue(worker, WorkerFieldPaths.PreferredMiddleName)
               ?? WorkerFieldReader.GetValue(worker, WorkerFieldPaths.MiddleName)
             : WorkerFieldReader.GetValue(worker, WorkerFieldPaths.MiddleName);
+
+        // Apply title-casing only to all-caps inputs — mixed-case names from the source are
+        // preserved unchanged. The helper is a pass-through for null and for already-cased strings,
+        // so it's cheap to call unconditionally; we still gate on the flag so the admin can opt out.
+        if (normalizeNameCasing)
+        {
+            firstName = NameCasing.TitleCaseIfMostlyUpper(firstName)!;
+            middleName = NameCasing.TitleCaseIfMostlyUpper(middleName);
+            lastName = NameCasing.TitleCaseIfMostlyUpper(lastName)!;
+        }
 
         return new WorkdayEmployee(
             employeeNumber: employeeNumber,

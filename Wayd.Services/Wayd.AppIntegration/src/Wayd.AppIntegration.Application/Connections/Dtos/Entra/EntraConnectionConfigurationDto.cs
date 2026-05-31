@@ -36,6 +36,11 @@ public sealed record EntraConnectionConfigurationDto : IMapFrom<EntraConnectionC
     public EmployeeMatchProperty MatchBy { get; set; }
 
     /// <summary>
+    /// When true, names that come back from Entra in all-caps are title-cased before storage.
+    /// </summary>
+    public bool NormalizeNameCasing { get; set; }
+
+    /// <summary>
     /// Replaces the ClientSecret with a masked form that preserves the first 4 characters
     /// and the original length. This matches the AzDO PAT masking pattern so the
     /// <c>UpdateEntraConnectionCommand</c> handler can detect "user posted back the masked

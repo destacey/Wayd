@@ -46,6 +46,11 @@ public sealed record WorkdayConnectionConfigurationDto : IMapFrom<WorkdayConnect
     /// </summary>
     public bool UsePreferredName { get; set; }
 
+    /// <summary>
+    /// When true, names that come back from Workday in all-caps are title-cased before storage.
+    /// </summary>
+    public bool NormalizeNameCasing { get; set; }
+
     // --- Init / probe result ---
 
     /// <summary>UTC timestamp of the most recent init probe.</summary>

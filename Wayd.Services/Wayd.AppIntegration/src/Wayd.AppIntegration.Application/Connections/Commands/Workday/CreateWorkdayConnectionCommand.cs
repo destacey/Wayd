@@ -16,7 +16,8 @@ public sealed record CreateWorkdayConnectionCommand(
     bool IncludeInactive,
     EmployeeMatchProperty MatchBy,
     bool UseUserIdAsEmailFallback,
-    bool UsePreferredName) : ICommand<Guid>;
+    bool UsePreferredName,
+    bool NormalizeNameCasing) : ICommand<Guid>;
 
 public sealed class CreateWorkdayConnectionCommandValidator : CustomValidator<CreateWorkdayConnectionCommand>
 {
@@ -65,7 +66,8 @@ internal sealed class CreateWorkdayConnectionCommandHandler(
                 request.IncludeInactive,
                 request.MatchBy,
                 request.UseUserIdAsEmailFallback,
-                request.UsePreferredName);
+                request.UsePreferredName,
+                request.NormalizeNameCasing);
 
             // Create the connection first with IsValidConfiguration = false so the row exists even
             // if the probe is slow or fails — admins shouldn't lose typed config.
@@ -98,7 +100,8 @@ internal sealed class CreateWorkdayConnectionCommandHandler(
             connection.Configuration.IncludeInactive,
             IncrementalUpdatedFrom: null,
             UseUserIdAsEmailFallback: connection.Configuration.UseUserIdAsEmailFallback,
-            UsePreferredName: connection.Configuration.UsePreferredName);
+            UsePreferredName: connection.Configuration.UsePreferredName,
+            NormalizeNameCasing: connection.Configuration.NormalizeNameCasing);
 
         var result = await _initializer.Initialize(credentials, cancellationToken);
         connection.RecordInitResult(

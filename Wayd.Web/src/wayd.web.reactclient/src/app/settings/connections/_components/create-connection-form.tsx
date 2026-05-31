@@ -41,6 +41,7 @@ interface CreateConnectionFormValues {
   includeInactive?: boolean
   useUserIdAsEmailFallback?: boolean
   usePreferredName?: boolean
+  normalizeNameCasing?: boolean
   // PeopleSync (Entra + Workday)
   matchBy?: EmployeeMatchProperty
 }

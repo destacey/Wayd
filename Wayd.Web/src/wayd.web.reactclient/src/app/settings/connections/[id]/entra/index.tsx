@@ -37,6 +37,10 @@ const Details = ({ connection }: { connection: ConnectionDetailsDto }) => {
           label: 'Include Disabled Users',
           value: config?.includeDisabledUsers,
         },
+        {
+          label: 'Normalize Name Casing',
+          value: config?.normalizeNameCasing,
+        },
       ]}
     />
   )

@@ -35,7 +35,7 @@ public sealed class MicrosoftGraphService(ILogger<MicrosoftGraphService> logger)
             List<EntraEmployee> employees = new(members.Count);
             foreach (var user in members)
             {
-                employees.Add(new EntraEmployee(user));
+                employees.Add(new EntraEmployee(user, credentials.NormalizeNameCasing));
             }
 
             _logger.LogInformation("Returning {EmployeeCount} employees from Entra tenant {TenantId} via Microsoft Graph", employees.Count, credentials.TenantId);

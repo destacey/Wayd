@@ -17,23 +17,23 @@
       </wd:Response_Results>
       <wd:Response_Data>
         <wd:Worker>
-          <wd:Worker_Reference wd:Descriptor="Dannie Stacey (W-1001)">
+          <wd:Worker_Reference wd:Descriptor="Alex Rivera (WX-10001)">
             <wd:ID wd:type="WID">aaaa1111-bbbb-cccc-dddd-eeeeffff0001</wd:ID>
-            <wd:ID wd:type="Employee_ID">W-1001</wd:ID>
+            <wd:ID wd:type="Employee_ID">WX-10001</wd:ID>
           </wd:Worker_Reference>
           <wd:Worker_Data>
             <wd:Personal_Data>
               <wd:Name_Data>
                 <wd:Legal_Name_Data>
                   <wd:Name_Detail_Data>
-                    <wd:First_Name>Dannie</wd:First_Name>
-                    <wd:Last_Name>Stacey</wd:Last_Name>
+                    <wd:First_Name>Alex</wd:First_Name>
+                    <wd:Last_Name>Rivera</wd:Last_Name>
                   </wd:Name_Detail_Data>
                 </wd:Legal_Name_Data>
               </wd:Name_Data>
               <wd:Contact_Data>
                 <wd:Email_Address_Data>
-                  <wd:Email_Address>dannie.stacey@acme.example</wd:Email_Address>
+                  <wd:Email_Address>alex.rivera@acme.example</wd:Email_Address>
                   <wd:Usage_Data>
                     <wd:Type_Data>
                       <wd:Type_Reference>
@@ -60,17 +60,17 @@
             </wd:Employment_Data>
             <wd:Management_Chain_Data>
               <wd:Worker_Supervisory_Management_Chain_Data>
-                <!-- Chain is ordered CEO → direct. Last entry is Dannie's direct manager (Casey). -->
+                <!-- Chain is ordered CEO → direct. Last entry is Alex's direct manager (Casey). -->
                 <wd:Management_Chain_Data>
                   <wd:Manager_Reference wd:Descriptor="CEO">
-                    <wd:ID wd:type="WID">ceo-wid-0000</wd:ID>
-                    <wd:ID wd:type="Employee_ID">W-0001</wd:ID>
+                    <wd:ID wd:type="WID">aaaa1111-bbbb-cccc-dddd-eeeeffff0000</wd:ID>
+                    <wd:ID wd:type="Employee_ID">WX-10000</wd:ID>
                   </wd:Manager_Reference>
                 </wd:Management_Chain_Data>
                 <wd:Management_Chain_Data>
-                  <wd:Manager_Reference wd:Descriptor="Casey Park (W-1002)">
+                  <wd:Manager_Reference wd:Descriptor="Casey Park (WX-10002)">
                     <wd:ID wd:type="WID">aaaa1111-bbbb-cccc-dddd-eeeeffff0002</wd:ID>
-                    <wd:ID wd:type="Employee_ID">W-1002</wd:ID>
+                    <wd:ID wd:type="Employee_ID">WX-10002</wd:ID>
                   </wd:Manager_Reference>
                 </wd:Management_Chain_Data>
               </wd:Worker_Supervisory_Management_Chain_Data>
@@ -78,9 +78,9 @@
           </wd:Worker_Data>
         </wd:Worker>
         <wd:Worker>
-          <wd:Worker_Reference wd:Descriptor="Casey Park (W-1002)">
+          <wd:Worker_Reference wd:Descriptor="Casey Park (WX-10002)">
             <wd:ID wd:type="WID">aaaa1111-bbbb-cccc-dddd-eeeeffff0002</wd:ID>
-            <wd:ID wd:type="Employee_ID">W-1002</wd:ID>
+            <wd:ID wd:type="Employee_ID">WX-10002</wd:ID>
           </wd:Worker_Reference>
           <wd:Worker_Data>
             <wd:Personal_Data>

@@ -20,7 +20,8 @@ public sealed class WorkdayConnectionConfiguration
         bool includeInactive = false,
         EmployeeMatchProperty matchBy = EmployeeMatchProperty.Email,
         bool useUserIdAsEmailFallback = false,
-        bool usePreferredName = false)
+        bool usePreferredName = false,
+        bool normalizeNameCasing = true)
     {
         WsdlUrl = wsdlUrl.Trim();
         IsuUsername = isuUsername.Trim();
@@ -30,7 +31,8 @@ public sealed class WorkdayConnectionConfiguration
         MatchBy = matchBy;
         UseUserIdAsEmailFallback = useUserIdAsEmailFallback;
         UsePreferredName = usePreferredName;
-        ConfigVersion = 6;
+        NormalizeNameCasing = normalizeNameCasing;
+        ConfigVersion = 7;
 
         // Derive endpoint parts at construction so the runtime sync path doesn't reparse on every
         // call. Failed parses surface to the command handler via TryParse — the public ctor still
@@ -106,6 +108,14 @@ public sealed class WorkdayConnectionConfiguration
     /// reports expect.
     /// </summary>
     public bool UsePreferredName { get; set; }
+
+    /// <summary>
+    /// When true, names that come back from Workday in all-caps (a common HRIS convention for
+    /// compliance reporting) are title-cased before being stored. Mixed-case input is preserved
+    /// untouched. Default on — Workday tenants typically emit upper-cased legal names that look
+    /// inconsistent next to manually-entered employees.
+    /// </summary>
+    public bool NormalizeNameCasing { get; set; }
 
     public int ConfigVersion { get; init; }
 

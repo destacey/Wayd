@@ -10,4 +10,5 @@ public sealed record EntraConnectionCredentials(
     string ClientId,
     string ClientSecret,
     string? AllUsersGroupObjectId,
-    bool IncludeDisabledUsers);
+    bool IncludeDisabledUsers,
+    bool NormalizeNameCasing = true);

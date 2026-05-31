@@ -29,6 +29,7 @@
   <Folder Name="/Wayd.Integrations/tests/">
     <Project Path="Wayd.Integrations/tests/Wayd.Integrations.AzureDevOps.IntegrationTests/Wayd.Integrations.AzureDevOps.IntegrationTests.csproj" />
     <Project Path="Wayd.Integrations/tests/Wayd.Integrations.AzureDevOps.Tests/Wayd.Integrations.AzureDevOps.Tests.csproj" />
+    <Project Path="Wayd.Integrations/tests/Wayd.Integrations.MicrosoftGraph.Tests/Wayd.Integrations.MicrosoftGraph.Tests.csproj" />
     <Project Path="Wayd.Integrations/tests/Wayd.Integrations.Workday.Tests/Wayd.Integrations.Workday.Tests.csproj" />
   </Folder>
   <Folder Name="/Wayd.Services/" />

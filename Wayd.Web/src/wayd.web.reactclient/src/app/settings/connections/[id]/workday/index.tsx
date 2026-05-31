@@ -127,6 +127,10 @@ const Details = ({ connection }: { connection: ConnectionDetailsDto }) => {
             value: config?.usePreferredName,
           },
           {
+            label: 'Normalize Name Casing',
+            value: config?.normalizeNameCasing,
+          },
+          {
             label: 'Last Validated',
             value: config?.lastInitAt
               ? dayjs(config.lastInitAt).format('M/D/YYYY h:mm A')

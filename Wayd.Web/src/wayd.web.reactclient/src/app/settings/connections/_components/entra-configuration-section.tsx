@@ -55,6 +55,16 @@ export const EntraConfigurationSection: React.FC<ConfigSectionProps> = () => {
       >
         <Switch />
       </Item>
+
+      <Item
+        label="Normalize Name Casing"
+        name="normalizeNameCasing"
+        valuePropName="checked"
+        initialValue={true}
+        extra="When enabled, names from Entra that come back in all-caps are title-cased before storage. Mixed-case names are preserved untouched. Handles prefixes like O', Mc, Mac, and hyphenated names correctly."
+      >
+        <Switch />
+      </Item>
     </>
   )
 }

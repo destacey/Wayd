@@ -17,7 +17,8 @@ public sealed record UpdateWorkdayConnectionCommand(
     bool IncludeInactive,
     EmployeeMatchProperty MatchBy,
     bool UseUserIdAsEmailFallback,
-    bool UsePreferredName) : ICommand<Guid>;
+    bool UsePreferredName,
+    bool NormalizeNameCasing) : ICommand<Guid>;
 
 public sealed class UpdateWorkdayConnectionCommandValidator : CustomValidator<UpdateWorkdayConnectionCommand>
 {
@@ -84,6 +85,7 @@ internal sealed class UpdateWorkdayConnectionCommandHandler(
                 request.MatchBy,
                 request.UseUserIdAsEmailFallback,
                 request.UsePreferredName,
+                request.NormalizeNameCasing,
                 configurationIsValid: false,
                 _dateTimeProvider.Now);
 
@@ -122,7 +124,8 @@ internal sealed class UpdateWorkdayConnectionCommandHandler(
             connection.Configuration.IncludeInactive,
             IncrementalUpdatedFrom: null,
             UseUserIdAsEmailFallback: connection.Configuration.UseUserIdAsEmailFallback,
-            UsePreferredName: connection.Configuration.UsePreferredName);
+            UsePreferredName: connection.Configuration.UsePreferredName,
+            NormalizeNameCasing: connection.Configuration.NormalizeNameCasing);
 
         var result = await _initializer.Initialize(credentials, cancellationToken);
         connection.RecordInitResult(

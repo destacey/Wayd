@@ -60,6 +60,7 @@ interface EditConnectionFormValues {
   includeInactive?: boolean | null
   useUserIdAsEmailFallback?: boolean | null
   usePreferredName?: boolean | null
+  normalizeNameCasing?: boolean | null
   // PeopleSync (Entra + Workday)
   matchBy?: EmployeeMatchProperty | null
 }
@@ -123,6 +124,7 @@ const buildRequest = (
         allUsersGroupObjectId: values.allUsersGroupObjectId ?? undefined,
         includeDisabledUsers: values.includeDisabledUsers ?? false,
         matchBy: values.matchBy ?? EmployeeMatchProperty.Email,
+        normalizeNameCasing: values.normalizeNameCasing ?? true,
       } as UpdateEntraConnectionRequest
     case 'Workday':
       return {
@@ -138,6 +140,7 @@ const buildRequest = (
         matchBy: values.matchBy ?? EmployeeMatchProperty.Email,
         useUserIdAsEmailFallback: values.useUserIdAsEmailFallback ?? false,
         usePreferredName: values.usePreferredName ?? false,
+        normalizeNameCasing: values.normalizeNameCasing ?? true,
       } as UpdateWorkdayConnectionRequest
     default:
       return null
@@ -180,6 +183,7 @@ const seedFormValues = (
         allUsersGroupObjectId: c.configuration?.allUsersGroupObjectId,
         includeDisabledUsers: c.configuration?.includeDisabledUsers ?? false,
         matchBy: c.configuration?.matchBy ?? EmployeeMatchProperty.Email,
+        normalizeNameCasing: c.configuration?.normalizeNameCasing ?? true,
       }
     }
     case 'Workday': {
@@ -195,6 +199,7 @@ const seedFormValues = (
         useUserIdAsEmailFallback:
           c.configuration?.useUserIdAsEmailFallback ?? false,
         usePreferredName: c.configuration?.usePreferredName ?? false,
+        normalizeNameCasing: c.configuration?.normalizeNameCasing ?? true,
       }
     }
     default:

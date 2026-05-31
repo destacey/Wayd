@@ -37,8 +37,15 @@ public sealed record CreateWorkdayConnectionRequest : CreateConnectionRequest
     /// </summary>
     public bool UsePreferredName { get; set; }
 
+    /// <summary>
+    /// When true, names that come back from Workday in all-caps are title-cased before storage
+    /// (mixed-case input is preserved). Default true — most HRIS sources emit upper-cased legal
+    /// names that look inconsistent next to manually-entered records.
+    /// </summary>
+    public bool NormalizeNameCasing { get; set; } = true;
+
     public CreateWorkdayConnectionCommand ToCommand()
-        => new(Name, Description, WsdlUrl, IsuUsername, IsuPassword, WorkerKey, IncludeInactive, MatchBy, UseUserIdAsEmailFallback, UsePreferredName);
+        => new(Name, Description, WsdlUrl, IsuUsername, IsuPassword, WorkerKey, IncludeInactive, MatchBy, UseUserIdAsEmailFallback, UsePreferredName, NormalizeNameCasing);
 }
 
 public sealed class CreateWorkdayConnectionRequestValidator : CustomValidator<CreateWorkdayConnectionRequest>

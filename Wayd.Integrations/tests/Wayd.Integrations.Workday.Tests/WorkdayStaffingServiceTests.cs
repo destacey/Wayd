@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -13,7 +13,8 @@ public class WorkdayStaffingServiceTests
     private static WorkdayConnectionCredentials BuildCredentials(
         WorkdayWorkerKey key = WorkdayWorkerKey.Wid,
         bool useUserIdAsEmailFallback = false,
-        bool usePreferredName = false) => new(
+        bool usePreferredName = false,
+        bool normalizeNameCasing = false) => new(
         SoapEndpoint: "https://wd3-impl-services1.workday.com/ccx/service/acme_corp1/Staffing/v46.1",
         TenantAlias: "acme_corp1",
         WsdlVersion: "v46.1",
@@ -23,7 +24,8 @@ public class WorkdayStaffingServiceTests
         IncludeInactive: false,
         IncrementalUpdatedFrom: null,
         UseUserIdAsEmailFallback: useUserIdAsEmailFallback,
-        UsePreferredName: usePreferredName);
+        UsePreferredName: usePreferredName,
+        NormalizeNameCasing: normalizeNameCasing);
 
     private static (WorkdayStaffingService service, FakeHttpMessageHandler handler) BuildService()
     {
@@ -46,15 +48,15 @@ public class WorkdayStaffingServiceTests
         var employees = result.Value.ToList();
         employees.Should().HaveCount(2);
 
-        var dannie = employees.Single(e => e.Name.FirstName == "Dannie");
-        dannie.EmployeeNumber.Should().Be("aaaa1111-bbbb-cccc-dddd-eeeeffff0001");
-        dannie.Email.Value.Should().Be("dannie.stacey@acme.example");
-        dannie.JobTitle.Should().Be("Senior Engineer");
-        dannie.IsActive.Should().BeTrue();
+        var alex = employees.Single(e => e.Name.FirstName == "Alex");
+        alex.EmployeeNumber.Should().Be("aaaa1111-bbbb-cccc-dddd-eeeeffff0001");
+        alex.Email.Value.Should().Be("alex.rivera@acme.example");
+        alex.JobTitle.Should().Be("Senior Engineer");
+        alex.IsActive.Should().BeTrue();
         // EmployeeType prefers the Worker_Type_Reference Descriptor attribute (display value).
-        dannie.EmployeeType.Should().Be("Regular Employee");
+        alex.EmployeeType.Should().Be("Regular Employee");
         // Manager comes from the *last* entry of Management_Chain_Data (chain is CEO → direct).
-        dannie.ManagerEmployeeNumber.Should().Be("aaaa1111-bbbb-cccc-dddd-eeeeffff0002");
+        alex.ManagerEmployeeNumber.Should().Be("aaaa1111-bbbb-cccc-dddd-eeeeffff0002");
 
         var casey = employees.Single(e => e.Name.FirstName == "Casey");
         casey.EmployeeType.Should().Be("Contingent Worker");
@@ -70,10 +72,10 @@ public class WorkdayStaffingServiceTests
 
         result.IsSuccess.Should().BeTrue();
         var employees = result.Value.ToList();
-        var dannie = employees.Single(e => e.Name.FirstName == "Dannie");
-        dannie.EmployeeNumber.Should().Be("W-1001"); // Employee_ID becomes the key
+        var alex = employees.Single(e => e.Name.FirstName == "Alex");
+        alex.EmployeeNumber.Should().Be("WX-10001"); // Employee_ID becomes the key
         // Manager_Reference is resolved against the same WorkerKey, so its Employee_ID is used.
-        dannie.ManagerEmployeeNumber.Should().Be("W-1002");
+        alex.ManagerEmployeeNumber.Should().Be("WX-10002");
     }
 
     [Fact]
@@ -114,10 +116,10 @@ public class WorkdayStaffingServiceTests
         result.IsSuccess.Should().BeTrue();
         var employees = result.Value.ToList();
         employees.Should().HaveCount(2);
-        employees.Single(e => e.Name.FirstName == "Dannie").Email.Value
-            .Should().Be("dannie.stacey@triowfs.com");
+        employees.Single(e => e.Name.FirstName == "Alex").Email.Value
+            .Should().Be("alex.rivera@acme.example");
         employees.Single(e => e.Name.FirstName == "Casey").Email.Value
-            .Should().Be("casey.park@triowfs.com");
+            .Should().Be("casey.park@acme.example");
     }
 
     [Fact]
@@ -186,6 +188,75 @@ public class WorkdayStaffingServiceTests
         casey.Name.FirstName.Should().Be("Casey");
         casey.Name.MiddleName.Should().Be("Lee");
         casey.Name.LastName.Should().Be("Park");
+    }
+
+    [Fact]
+    public async Task GetEmployees_normalizeNameCasing_off_preservesAllCaps()
+    {
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-all-caps-names.xml"));
+
+        var result = await service.GetEmployees(
+            BuildCredentials(normalizeNameCasing: false),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var employees = result.Value.ToList();
+
+        var dan = employees.Single(e => e.EmployeeNumber == "aaaa1111-bbbb-cccc-dddd-eeeeffff0001");
+        dan.Name.FirstName.Should().Be("DANIEL");
+        dan.Name.MiddleName.Should().Be("JONES");
+        dan.Name.LastName.Should().Be("MCDONALD");
+
+        // The mixed-case worker is unaffected either way — the heuristic only touches all-caps.
+        var jose = employees.Single(e => e.EmployeeNumber == "aaaa1111-bbbb-cccc-dddd-eeeeffff0003");
+        jose.Name.FirstName.Should().Be("José");
+        jose.Name.LastName.Should().Be("Smith");
+    }
+
+    [Fact]
+    public async Task GetEmployees_normalizeNameCasing_on_titleCasesAllCapsNames()
+    {
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-all-caps-names.xml"));
+
+        var result = await service.GetEmployees(
+            BuildCredentials(normalizeNameCasing: true),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var employees = result.Value.ToList();
+
+        // MCDONALD → McDonald (Mc inner-cap rule)
+        var dan = employees.Single(e => e.EmployeeNumber == "aaaa1111-bbbb-cccc-dddd-eeeeffff0001");
+        dan.Name.FirstName.Should().Be("Daniel");
+        dan.Name.MiddleName.Should().Be("Jones");
+        dan.Name.LastName.Should().Be("McDonald");
+
+        // MARY-ANNE / O'BRIEN → Mary-Anne / O'Brien (hyphen + apostrophe word boundaries)
+        var mary = employees.Single(e => e.EmployeeNumber == "aaaa1111-bbbb-cccc-dddd-eeeeffff0002");
+        mary.Name.FirstName.Should().Be("Mary-Anne");
+        mary.Name.LastName.Should().Be("O'Brien");
+    }
+
+    [Fact]
+    public async Task GetEmployees_normalizeNameCasing_on_preservesMixedCaseInput()
+    {
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-all-caps-names.xml"));
+
+        var result = await service.GetEmployees(
+            BuildCredentials(normalizeNameCasing: true),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var employees = result.Value.ToList();
+
+        // José Smith is already mixed-case — the heuristic must leave it exactly as-is, including
+        // the diacritic. Regression here would mean we're stomping user-curated casing.
+        var jose = employees.Single(e => e.EmployeeNumber == "aaaa1111-bbbb-cccc-dddd-eeeeffff0003");
+        jose.Name.FirstName.Should().Be("José");
+        jose.Name.LastName.Should().Be("Smith");
     }
 
     [Fact]

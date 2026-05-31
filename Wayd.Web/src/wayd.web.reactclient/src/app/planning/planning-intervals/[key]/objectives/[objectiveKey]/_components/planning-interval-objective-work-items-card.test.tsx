@@ -48,10 +48,12 @@ jest.mock('@/src/components/common', () => ({
 
 jest.mock(
   '../../../../_components/manage-planning-interval-objective-work-items-form',
-  () =>
-    function MockManagePlanningIntervalObjectiveWorkItemsForm() {
+  () => ({
+    __esModule: true,
+    default: function MockManagePlanningIntervalObjectiveWorkItemsForm() {
       return <div>Manage work items form</div>
     },
+  }),
 )
 
 const mockObjectiveWorkItemsQuery =

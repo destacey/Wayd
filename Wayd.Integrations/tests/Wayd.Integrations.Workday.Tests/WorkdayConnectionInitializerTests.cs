@@ -12,7 +12,8 @@ public class WorkdayConnectionInitializerTests
 {
     private static WorkdayConnectionCredentials BuildCredentials(
         WorkdayWorkerKey key = WorkdayWorkerKey.Wid,
-        bool useUserIdAsEmailFallback = false) => new(
+        bool useUserIdAsEmailFallback = false,
+        bool usePreferredName = false) => new(
         SoapEndpoint: "https://wd3-impl-services1.workday.com/ccx/service/acme_corp1/Staffing/v46.1",
         TenantAlias: "acme_corp1",
         WsdlVersion: "v46.1",
@@ -21,7 +22,8 @@ public class WorkdayConnectionInitializerTests
         WorkerKey: key,
         IncludeInactive: false,
         IncrementalUpdatedFrom: null,
-        UseUserIdAsEmailFallback: useUserIdAsEmailFallback);
+        UseUserIdAsEmailFallback: useUserIdAsEmailFallback,
+        UsePreferredName: usePreferredName);
 
     private static (WorkdayConnectionInitializer initializer, FakeHttpMessageHandler handler) BuildInitializer()
     {

@@ -48,7 +48,7 @@ public sealed class WorkdayStaffingService : IWorkdayEmployeeSource
 
                 foreach (var worker in response.Workers)
                 {
-                    var projected = TryProject(worker, credentials.WorkerKey, credentials.UseUserIdAsEmailFallback);
+                    var projected = TryProject(worker, credentials.WorkerKey, credentials.UseUserIdAsEmailFallback, credentials.UsePreferredName);
                     if (projected is not null)
                         employees.Add(projected);
                 }
@@ -76,7 +76,7 @@ public sealed class WorkdayStaffingService : IWorkdayEmployeeSource
         }
     }
 
-    private WorkdayEmployee? TryProject(XElement worker, WorkdayWorkerKey workerKey, bool useUserIdAsEmailFallback)
+    private WorkdayEmployee? TryProject(XElement worker, WorkdayWorkerKey workerKey, bool useUserIdAsEmailFallback, bool usePreferredName)
     {
         var wid = WorkerFieldReader.GetValue(worker, WorkerFieldPaths.WorkerWid);
         var employeeId = WorkerFieldReader.GetValue(worker, WorkerFieldPaths.EmployeeId);
@@ -96,8 +96,18 @@ public sealed class WorkdayStaffingService : IWorkdayEmployeeSource
             return null;
         }
 
-        var firstName = WorkerFieldReader.GetValue(worker, WorkerFieldPaths.FirstName);
-        var lastName = WorkerFieldReader.GetValue(worker, WorkerFieldPaths.LastName);
+        // Name source: when the admin opted into preferred names, read Preferred_Name_Data first
+        // and only fall back to legal when a specific name component is missing. We resolve each
+        // part independently so a worker with a preferred first name but no preferred last name
+        // gets {preferred first, legal last} — the closest thing to what the HRIS shows.
+        var firstName = usePreferredName
+            ? WorkerFieldReader.GetValue(worker, WorkerFieldPaths.PreferredFirstName)
+              ?? WorkerFieldReader.GetValue(worker, WorkerFieldPaths.FirstName)
+            : WorkerFieldReader.GetValue(worker, WorkerFieldPaths.FirstName);
+        var lastName = usePreferredName
+            ? WorkerFieldReader.GetValue(worker, WorkerFieldPaths.PreferredLastName)
+              ?? WorkerFieldReader.GetValue(worker, WorkerFieldPaths.LastName)
+            : WorkerFieldReader.GetValue(worker, WorkerFieldPaths.LastName);
         var email = WorkerFieldReader.GetValue(worker, WorkerFieldPaths.WorkEmail);
 
         // Fall back to User_ID when Contact_Data is missing and the admin opted in. User_ID is
@@ -140,9 +150,14 @@ public sealed class WorkdayStaffingService : IWorkdayEmployeeSource
             WorkerFieldReader.GetAttributeValue(worker, "Descriptor", WorkerFieldPaths.WorkerTypeReference)
             ?? WorkerFieldReader.GetValue(worker, WorkerFieldPaths.WorkerTypeId);
 
+        var middleName = usePreferredName
+            ? WorkerFieldReader.GetValue(worker, WorkerFieldPaths.PreferredMiddleName)
+              ?? WorkerFieldReader.GetValue(worker, WorkerFieldPaths.MiddleName)
+            : WorkerFieldReader.GetValue(worker, WorkerFieldPaths.MiddleName);
+
         return new WorkdayEmployee(
             employeeNumber: employeeNumber,
-            name: new PersonName(firstName, WorkerFieldReader.GetValue(worker, WorkerFieldPaths.MiddleName), lastName),
+            name: new PersonName(firstName, middleName, lastName),
             email: new EmailAddress(email),
             hireDate: ParseWorkdayDate(WorkerFieldReader.GetValue(worker, WorkerFieldPaths.HireDate)),
             jobTitle: WorkerFieldReader.GetValue(worker, WorkerFieldPaths.JobTitle),
@@ -172,6 +187,15 @@ public sealed class WorkdayStaffingService : IWorkdayEmployeeSource
         if (employees.Count == 0) return;
 
         var halfThreshold = employees.Count / 2;
+
+        // Active is the canary. If literally every projected worker is inactive, the most likely
+        // cause is an XPath mismatch against the tenant's actual envelope shape (different element
+        // name, namespace, or nesting) rather than 100% of the workforce being terminated.
+        var inactiveCount = employees.Count(e => !e.IsActive);
+        if (inactiveCount == employees.Count && employees.Count > 1)
+            _logger.LogWarning(
+                "Workday sync: {InactiveCount}/{Total} workers projected as IsActive=false — every worker came back inactive, which usually indicates the Worker_Status_Data/Active XPath isn't matching this tenant's envelope shape. Enable Debug logging on Wayd.Integrations.Workday to see the raw per-worker value.",
+                inactiveCount, employees.Count);
 
         var nullJobTitle = employees.Count(e => string.IsNullOrEmpty(e.JobTitle));
         if (nullJobTitle > halfThreshold)

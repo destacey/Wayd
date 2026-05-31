@@ -39,9 +39,9 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
         string isuPassword,
         WorkdayWorkerKey workerKey,
         bool includeInactive,
-        bool incrementalSyncEnabled,
         EmployeeMatchProperty matchBy,
         bool useUserIdAsEmailFallback,
+        bool usePreferredName,
         bool configurationIsValid,
         Instant timestamp)
     {
@@ -55,7 +55,7 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
             var newIsuUsername = Guard.Against.NullOrWhiteSpace(isuUsername, nameof(isuUsername)).Trim();
             var newIsuPassword = Guard.Against.NullOrWhiteSpace(isuPassword, nameof(isuPassword)).Trim();
 
-            if (!UpdateValuesChanged(newName, newDescription, newWsdlUrl, newIsuUsername, newIsuPassword, workerKey, includeInactive, incrementalSyncEnabled, matchBy, useUserIdAsEmailFallback, configurationIsValid))
+            if (!UpdateValuesChanged(newName, newDescription, newWsdlUrl, newIsuUsername, newIsuPassword, workerKey, includeInactive, matchBy, useUserIdAsEmailFallback, usePreferredName, configurationIsValid))
                 return Result.Success();
 
             Name = newName;
@@ -67,9 +67,9 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
             Configuration.IsuPassword = newIsuPassword;
             Configuration.WorkerKey = workerKey;
             Configuration.IncludeInactive = includeInactive;
-            Configuration.IncrementalSyncEnabled = incrementalSyncEnabled;
             Configuration.MatchBy = matchBy;
             Configuration.UseUserIdAsEmailFallback = useUserIdAsEmailFallback;
+            Configuration.UsePreferredName = usePreferredName;
 
             // Re-derive endpoint parts from the (possibly new) URL. A bad URL leaves them blank;
             // the init probe that follows the save catches that and flips IsValidConfiguration.
@@ -128,9 +128,9 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
         string isuPassword,
         WorkdayWorkerKey workerKey,
         bool includeInactive,
-        bool incrementalSyncEnabled,
         EmployeeMatchProperty matchBy,
         bool useUserIdAsEmailFallback,
+        bool usePreferredName,
         bool configurationIsValid)
     {
         if (!string.Equals(Name, name, StringComparison.Ordinal)) return true;
@@ -140,9 +140,9 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
         if (!string.Equals(Configuration.IsuPassword, isuPassword, StringComparison.Ordinal)) return true;
         if (Configuration.WorkerKey != workerKey) return true;
         if (Configuration.IncludeInactive != includeInactive) return true;
-        if (Configuration.IncrementalSyncEnabled != incrementalSyncEnabled) return true;
         if (Configuration.MatchBy != matchBy) return true;
         if (Configuration.UseUserIdAsEmailFallback != useUserIdAsEmailFallback) return true;
+        if (Configuration.UsePreferredName != usePreferredName) return true;
         if (IsValidConfiguration != configurationIsValid) return true;
         return false;
     }

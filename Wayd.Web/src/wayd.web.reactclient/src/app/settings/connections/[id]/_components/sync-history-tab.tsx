@@ -331,11 +331,11 @@ export default function SyncHistoryTab({ connectionId, category, isActive }: Pro
     try {
       await runSync({ connectionId, syncType }).unwrap()
       const label =
-        category === 'people'
-          ? 'Sync'
-          : syncType === SyncType.Full
-            ? 'Full sync'
-            : 'Differential sync'
+        syncType === SyncType.Full
+          ? 'Full sync'
+          : syncType === SyncType.Differential
+            ? 'Differential sync'
+            : 'Sync'
       messageApi.success(`${label} triggered — a new run will appear shortly.`)
       // The effect on [waitingForRun] schedules the 30 s reset.
       setWaitingForRun(true)
@@ -388,19 +388,16 @@ export default function SyncHistoryTab({ connectionId, category, isActive }: Pro
     },
   ]
 
-  // Type column is only meaningful when the connector supports multiple sync types.
-  const typeColumn: TableColumnsType<SyncRunListDto> =
-    category === 'people'
-      ? []
-      : [
-          {
-            title: 'Type',
-            dataIndex: 'syncType',
-            key: 'syncType',
-            render: (t: SyncType) => SYNC_TYPE_LABEL[t] ?? t,
-            width: 110,
-          },
-        ]
+  // Type column is meaningful for both categories now that PeopleSync exposes Full vs Differential.
+  const typeColumn: TableColumnsType<SyncRunListDto> = [
+    {
+      title: 'Type',
+      dataIndex: 'syncType',
+      key: 'syncType',
+      render: (t: SyncType) => SYNC_TYPE_LABEL[t] ?? t,
+      width: 110,
+    },
+  ]
 
   const errorColumn: TableColumnsType<SyncRunListDto> = [
     {
@@ -435,36 +432,28 @@ export default function SyncHistoryTab({ connectionId, category, isActive }: Pro
     rowExpandable: () => true,
   }
 
-  const syncButtons =
-    category === 'people' ? (
+  // Both categories now expose Diff vs Full. Differential silently degrades to Full inside the
+  // runner when there's no prior successful run, so it's safe to show even on a fresh connection.
+  const syncButtons = (
+    <Space>
       <Button
         icon={<SyncOutlined />}
         disabled={!canSync}
         loading={isTriggeringSync}
-        onClick={() => handleSyncNow()}
+        onClick={() => handleSyncNow(SyncType.Differential)}
       >
-        Sync Now
+        Diff Sync
       </Button>
-    ) : (
-      <Space>
-        <Button
-          icon={<SyncOutlined />}
-          disabled={!canSync}
-          loading={isTriggeringSync}
-          onClick={() => handleSyncNow(SyncType.Differential)}
-        >
-          Diff Sync
-        </Button>
-        <Button
-          icon={<SyncOutlined />}
-          disabled={!canSync}
-          loading={isTriggeringSync}
-          onClick={() => handleSyncNow(SyncType.Full)}
-        >
-          Full Sync
-        </Button>
-      </Space>
-    )
+      <Button
+        icon={<SyncOutlined />}
+        disabled={!canSync}
+        loading={isTriggeringSync}
+        onClick={() => handleSyncNow(SyncType.Full)}
+      >
+        Full Sync
+      </Button>
+    </Space>
+  )
 
   return (
     <Space

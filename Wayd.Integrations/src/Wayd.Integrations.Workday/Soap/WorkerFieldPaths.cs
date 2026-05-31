@@ -23,6 +23,10 @@ internal static class WorkerFieldPaths
     ];
 
     // --- Personal data ---
+    // Workday exposes two name blocks: Legal_Name_Data (always populated) and Preferred_Name_Data
+    // (populated when the worker has a preferred name; mirrors legal when they don't). The connection
+    // setting UsePreferredName decides which block the sync reads from; the projector falls back to
+    // legal if the preferred block is missing or empty for a particular worker.
     public static readonly string[] FirstName =
     [
         "wd:Worker_Data/wd:Personal_Data/wd:Name_Data/wd:Legal_Name_Data/wd:Name_Detail_Data/wd:First_Name",
@@ -36,6 +40,21 @@ internal static class WorkerFieldPaths
     public static readonly string[] LastName =
     [
         "wd:Worker_Data/wd:Personal_Data/wd:Name_Data/wd:Legal_Name_Data/wd:Name_Detail_Data/wd:Last_Name",
+    ];
+
+    public static readonly string[] PreferredFirstName =
+    [
+        "wd:Worker_Data/wd:Personal_Data/wd:Name_Data/wd:Preferred_Name_Data/wd:Name_Detail_Data/wd:First_Name",
+    ];
+
+    public static readonly string[] PreferredMiddleName =
+    [
+        "wd:Worker_Data/wd:Personal_Data/wd:Name_Data/wd:Preferred_Name_Data/wd:Name_Detail_Data/wd:Middle_Name",
+    ];
+
+    public static readonly string[] PreferredLastName =
+    [
+        "wd:Worker_Data/wd:Personal_Data/wd:Name_Data/wd:Preferred_Name_Data/wd:Name_Detail_Data/wd:Last_Name",
     ];
 
     // Workday lists multiple email addresses with usage descriptors; "WORK" is the one we want.

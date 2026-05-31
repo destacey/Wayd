@@ -29603,9 +29603,9 @@ export interface WorkdayConnectionConfigurationDto {
     isuPassword: string;
     workerKey: WorkdayWorkerKey;
     includeInactive: boolean;
-    incrementalSyncEnabled: boolean;
     matchBy: EmployeeMatchProperty;
     useUserIdAsEmailFallback: boolean;
+    usePreferredName: boolean;
     lastInitAt?: Date | undefined;
     lastInitSucceeded: boolean;
     lastInitMissingFields?: string[] | undefined;
@@ -29669,14 +29669,16 @@ export interface CreateWorkdayConnectionRequest extends CreateConnectionRequest 
     workerKey?: WorkdayWorkerKey;
     /** When true, terminated/inactive workers are also returned by the sync. */
     includeInactive?: boolean;
-    /** When true, the runner uses Workday's transaction log to fetch only changed workers after the first successful sync. */
-    incrementalSyncEnabled?: boolean;
     /** Which uniquely-indexed Employee field the sync upsert matches on. */
     matchBy?: EmployeeMatchProperty;
     /** When true, use Workday's User_ID as the email source when Contact_Data is
 missing — provided the User_ID parses as a valid email. Workaround for tenants whose ISU
 ISSG doesn't grant Worker Data: Personal Contact Information. */
     useUserIdAsEmailFallback?: boolean;
+    /** When true, sync reads each worker's Preferred_Name_Data in preference to
+Legal_Name_Data, falling back to legal per-component when a preferred component is
+missing. Default off. */
+    usePreferredName?: boolean;
 }
 
 export interface UpdateConnectionRequest {
@@ -29732,13 +29734,14 @@ export interface UpdateWorkdayConnectionRequest extends UpdateConnectionRequest 
     workerKey?: WorkdayWorkerKey;
     /** When true, terminated/inactive workers are also returned by the sync. */
     includeInactive?: boolean;
-    /** When true, the runner uses Workday's transaction log to fetch only changed workers after the first successful sync. */
-    incrementalSyncEnabled?: boolean;
     /** Which uniquely-indexed Employee field the sync upsert matches on. */
     matchBy?: EmployeeMatchProperty;
     /** When true, use Workday's User_ID as the email source when Contact_Data is
 missing — provided the User_ID parses as a valid email. */
     useUserIdAsEmailFallback?: boolean;
+    /** When true, sync reads each worker's Preferred_Name_Data in preference to
+Legal_Name_Data, falling back to legal per-component when missing. Default off. */
+    usePreferredName?: boolean;
 }
 
 export enum SyncType {

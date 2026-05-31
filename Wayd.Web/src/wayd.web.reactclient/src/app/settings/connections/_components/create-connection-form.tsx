@@ -39,8 +39,8 @@ interface CreateConnectionFormValues {
   isuPassword?: string
   workerKey?: WorkdayWorkerKey
   includeInactive?: boolean
-  incrementalSyncEnabled?: boolean
   useUserIdAsEmailFallback?: boolean
+  usePreferredName?: boolean
   // PeopleSync (Entra + Workday)
   matchBy?: EmployeeMatchProperty
 }

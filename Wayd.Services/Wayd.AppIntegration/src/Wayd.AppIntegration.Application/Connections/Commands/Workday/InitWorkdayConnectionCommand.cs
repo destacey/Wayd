@@ -38,7 +38,8 @@ internal sealed class InitWorkdayConnectionCommandHandler(
                 connection.Configuration.WorkerKey,
                 connection.Configuration.IncludeInactive,
                 IncrementalUpdatedFrom: null,
-                UseUserIdAsEmailFallback: connection.Configuration.UseUserIdAsEmailFallback);
+                UseUserIdAsEmailFallback: connection.Configuration.UseUserIdAsEmailFallback,
+                UsePreferredName: connection.Configuration.UsePreferredName);
 
             var result = await _initializer.Initialize(credentials, cancellationToken);
 

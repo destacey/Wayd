@@ -21578,7 +21578,7 @@
           "Connections"
         ],
         "summary": "Trigger a sync for a connection.",
-        "description": "Enqueues a background job that runs the sync pipeline for this connection only. Routes by connector category — work-sync connectors run a work sync (defaults to differential; pass 'syncType=Full' for full), people-sync connectors run a people sync. The connection must be active.",
+        "description": "Enqueues a background job that runs the sync pipeline for this connection only. Routes by connector category. The syncType query parameter is honored by both work-sync and people-sync connectors; the default is Differential. For PeopleSync, Differential silently degrades to Full when no prior successful run exists (or when the source doesn't support incremental). The connection must be active.",
         "operationId": "Connections_RunSync",
         "parameters": [
           {
@@ -35120,9 +35120,9 @@
           "wsdlVersion",
           "workerKey",
           "includeInactive",
-          "incrementalSyncEnabled",
           "matchBy",
           "useUserIdAsEmailFallback",
+          "usePreferredName",
           "lastInitSucceeded"
         ],
         "properties": {
@@ -35150,13 +35150,13 @@
           "includeInactive": {
             "type": "boolean"
           },
-          "incrementalSyncEnabled": {
-            "type": "boolean"
-          },
           "matchBy": {
             "$ref": "#/components/schemas/EmployeeMatchProperty"
           },
           "useUserIdAsEmailFallback": {
+            "type": "boolean"
+          },
+          "usePreferredName": {
             "type": "boolean"
           },
           "lastInitAt": {
@@ -35376,10 +35376,6 @@
                 "type": "boolean",
                 "description": "When true, terminated/inactive workers are also returned by the sync."
               },
-              "incrementalSyncEnabled": {
-                "type": "boolean",
-                "description": "When true, the runner uses Workday's transaction log to fetch only changed workers after the first successful sync."
-              },
               "matchBy": {
                 "description": "Which uniquely-indexed Employee field the sync upsert matches on.",
                 "oneOf": [
@@ -35391,6 +35387,10 @@
               "useUserIdAsEmailFallback": {
                 "type": "boolean",
                 "description": "When true, use Workday's User_ID as the email source when Contact_Data is\nmissing — provided the User_ID parses as a valid email. Workaround for tenants whose ISU\nISSG doesn't grant Worker Data: Personal Contact Information."
+              },
+              "usePreferredName": {
+                "type": "boolean",
+                "description": "When true, sync reads each worker's Preferred_Name_Data in preference to\nLegal_Name_Data, falling back to legal per-component when a preferred component is\nmissing. Default off."
               }
             }
           }
@@ -35582,10 +35582,6 @@
                 "type": "boolean",
                 "description": "When true, terminated/inactive workers are also returned by the sync."
               },
-              "incrementalSyncEnabled": {
-                "type": "boolean",
-                "description": "When true, the runner uses Workday's transaction log to fetch only changed workers after the first successful sync."
-              },
               "matchBy": {
                 "description": "Which uniquely-indexed Employee field the sync upsert matches on.",
                 "oneOf": [
@@ -35597,6 +35593,10 @@
               "useUserIdAsEmailFallback": {
                 "type": "boolean",
                 "description": "When true, use Workday's User_ID as the email source when Contact_Data is\nmissing — provided the User_ID parses as a valid email."
+              },
+              "usePreferredName": {
+                "type": "boolean",
+                "description": "When true, sync reads each worker's Preferred_Name_Data in preference to\nLegal_Name_Data, falling back to legal per-component when missing. Default off."
               }
             }
           }

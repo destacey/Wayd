@@ -60,7 +60,10 @@ public class BackgroundJobsController : ControllerBase
         switch (jobType)
         {
             case BackgroundJobType.PeopleSync:
-                _jobService.Enqueue(() => jobManager.RunPeopleSync(SyncTriggerSource.Manual, null, cancellationToken));
+                // Manual one-off runs default to Full — the admin clicked it from the background-jobs
+                // page, where they don't pick a sync type. The connection-scoped Run endpoint
+                // exposes the choice; recurring schedules below run Differential.
+                _jobService.Enqueue(() => jobManager.RunPeopleSync(SyncType.Full, SyncTriggerSource.Manual, null, cancellationToken));
                 break;
             case BackgroundJobType.WorkFullSync:
                 _jobService.Enqueue(() => jobManager.RunWorkSync(SyncType.Full, SyncTriggerSource.Manual, null, cancellationToken));
@@ -105,7 +108,10 @@ public class BackgroundJobsController : ControllerBase
         {
             return jobType switch
             {
-                BackgroundJobType.PeopleSync => () => jobManager.RunPeopleSync(SyncTriggerSource.Scheduled, null, cancellationToken),
+                // Recurring people-sync runs are Differential by default — first run with no prior
+                // success silently degrades to Full inside the runner, so this is safe even on a
+                // fresh deployment.
+                BackgroundJobType.PeopleSync => () => jobManager.RunPeopleSync(SyncType.Differential, SyncTriggerSource.Scheduled, null, cancellationToken),
                 BackgroundJobType.WorkFullSync => () => jobManager.RunWorkSync(SyncType.Full, SyncTriggerSource.Scheduled, null, cancellationToken),
                 BackgroundJobType.WorkDiffSync => () => jobManager.RunWorkSync(SyncType.Differential, SyncTriggerSource.Scheduled, null, cancellationToken),
                 BackgroundJobType.TeamGraphSync => () => jobManager.RunSyncTeamsWithGraphTables(cancellationToken),

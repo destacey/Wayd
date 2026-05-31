@@ -34,12 +34,12 @@ public sealed class PeopleSyncRunner(
     private readonly IWorkdayEmployeeSource _workdayEmployeeSource = workdayEmployeeSource;
     private readonly IUserService _userService = userService;
 
-    public async Task<Result> Run(SyncTriggerSource trigger, CancellationToken cancellationToken)
+    public async Task<Result> Run(SyncTriggerSource trigger, SyncType requestedSyncType, CancellationToken cancellationToken)
     {
         var syncId = Guid.CreateVersion7();
         using (_logger.BeginScope(new Dictionary<string, object> { ["SyncId"] = syncId }))
         {
-            _logger.LogInformation("PeopleSyncRunner starting (trigger={Trigger})", trigger);
+            _logger.LogInformation("PeopleSyncRunner starting (trigger={Trigger}, requestedSyncType={SyncType})", trigger, requestedSyncType);
 
             // Load all non-deleted connections and filter by category + CanSync. CanSync lives
             // on ISyncableConnection and encodes IsActive && IsValidConfiguration &&
@@ -82,7 +82,7 @@ public sealed class PeopleSyncRunner(
                 using (_logger.BeginScope(new Dictionary<string, object> { ["ConnectionId"] = connection.Id }))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var result = await RunConnection(connection.Id, connection.Connector, trigger, cancellationToken);
+                    var result = await RunConnection(connection.Id, connection.Connector, trigger, requestedSyncType, cancellationToken);
                     if (result.IsSuccess) successCount++;
                 }
             }
@@ -92,7 +92,7 @@ public sealed class PeopleSyncRunner(
         }
     }
 
-    public async Task<Result> Run(Guid connectionId, SyncTriggerSource trigger, CancellationToken cancellationToken)
+    public async Task<Result> Run(Guid connectionId, SyncTriggerSource trigger, SyncType requestedSyncType, CancellationToken cancellationToken)
     {
         var connection = await _db.Connections
             .FirstOrDefaultAsync(c => c.Id == connectionId && !c.IsDeleted, cancellationToken);
@@ -108,21 +108,27 @@ public sealed class PeopleSyncRunner(
         if (!connection.IsActive)
             return Result.Failure($"Connection {connectionId} is inactive.");
 
-        return await RunConnection(connectionId, connection.Connector, trigger, cancellationToken);
+        return await RunConnection(connectionId, connection.Connector, trigger, requestedSyncType, cancellationToken);
     }
 
-    private async Task<Result> RunConnection(Guid connectionId, Connector connector, SyncTriggerSource trigger, CancellationToken cancellationToken)
+    private async Task<Result> RunConnection(Guid connectionId, Connector connector, SyncTriggerSource trigger, SyncType requestedSyncType, CancellationToken cancellationToken)
     {
-        // Last-successful-run watermark for incremental connectors. Look it up before starting
-        // the run so we can both feed it to the source AND tag the SyncRun with the right SyncType.
-        var lastSuccessfulRunAt = await _db.SyncRuns
-            .Where(r => r.ConnectionId == connectionId && r.Status == SyncRunStatus.Succeeded && r.FinishedAt != null)
-            .OrderByDescending(r => r.FinishedAt)
-            .Select(r => r.FinishedAt)
-            .FirstOrDefaultAsync(cancellationToken);
+        // The caller picks the sync type. Manual/full and scheduled/full ignore any prior watermark
+        // and re-pull everything. Differential reads the most recent successful run's FinishedAt as
+        // the watermark — first run with no prior success silently degrades to a full snapshot, since
+        // "incremental from null" is meaningless.
+        Instant? lastSuccessfulRunAt = null;
+        if (requestedSyncType == SyncType.Differential && SourceSupportsIncremental(connector))
+        {
+            lastSuccessfulRunAt = await _db.SyncRuns
+                .Where(r => r.ConnectionId == connectionId && r.Status == SyncRunStatus.Succeeded && r.FinishedAt != null)
+                .OrderByDescending(r => r.FinishedAt)
+                .Select(r => r.FinishedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
 
-        var incremental = lastSuccessfulRunAt is not null && SourceSupportsIncremental(connector);
-        var syncType = incremental ? SyncType.Differential : SyncType.Full;
+        var syncType = lastSuccessfulRunAt is not null ? SyncType.Differential : SyncType.Full;
+        var incremental = syncType == SyncType.Differential;
 
         var run = SyncRun.Start(connectionId, connector, syncType, trigger, _clock.Now);
         _db.SyncRuns.Add(run);
@@ -297,10 +303,9 @@ public sealed class PeopleSyncRunner(
             return Result.Failure<IEnumerable<Wayd.Common.Application.Interfaces.IExternalEmployee>>(
                 $"Workday connection {connectionId} not found.");
 
-        // Only pass the watermark if the admin opted into incremental sync. First-run case (no
-        // prior successful run) falls back to a full snapshot regardless.
-        var updatedFrom = entity.Configuration.IncrementalSyncEnabled ? lastSuccessfulRunAt : null;
-
+        // Incremental is automatic: the runner passes the last-successful-run timestamp when there
+        // is one, and falls back to a full snapshot on first run. No admin toggle — same model as
+        // the work-sync runner.
         var credentials = new WorkdayConnectionCredentials(
             entity.Configuration.SoapEndpoint,
             entity.Configuration.TenantAlias,
@@ -309,8 +314,9 @@ public sealed class PeopleSyncRunner(
             entity.Configuration.IsuPassword,
             entity.Configuration.WorkerKey,
             entity.Configuration.IncludeInactive,
-            updatedFrom,
-            UseUserIdAsEmailFallback: entity.Configuration.UseUserIdAsEmailFallback);
+            IncrementalUpdatedFrom: lastSuccessfulRunAt,
+            UseUserIdAsEmailFallback: entity.Configuration.UseUserIdAsEmailFallback,
+            UsePreferredName: entity.Configuration.UsePreferredName);
 
         return await _workdayEmployeeSource.GetEmployees(credentials, cancellationToken);
     }

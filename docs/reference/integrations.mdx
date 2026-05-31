@@ -93,9 +93,10 @@ The Entra connection (tenant ID, client ID, client secret) is created and manage
 
 - Pull workers from a Workday tenant via `Get_Workers` (Staffing v46.1)
 - Optionally include terminated/inactive workers
-- Optional incremental sync via `Transaction_Log_Criteria` after the first full sync
+- Automatic incremental sync via `Transaction_Log_Criteria` after the first successful run (no admin toggle — the runner uses the prior successful run's timestamp as the watermark; first run is always a full snapshot)
 - Admin-selectable upsert key: Workday `Employee_ID` (default, human-readable) or `WID` (immutable internal)
 - Admin-selectable `MatchBy` (Email or EmployeeNumber) for cross-source identity continuity
+- Admin-selectable "Use Preferred Name" — reads `Preferred_Name_Data` in preference to `Legal_Name_Data`, falling back to legal per-component when a preferred component is missing. Default off
 - Init "probe" on save / "Test Connection" that detects ISU permission gaps before sync runs
 - Upsert into Wayd `Employee` records, preserving manager hierarchy from `Management_Chain_Data`
 

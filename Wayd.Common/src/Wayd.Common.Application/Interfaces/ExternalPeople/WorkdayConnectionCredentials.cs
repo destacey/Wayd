@@ -15,4 +15,5 @@ public sealed record WorkdayConnectionCredentials(
     WorkdayWorkerKey WorkerKey,
     bool IncludeInactive,
     Instant? IncrementalUpdatedFrom,
-    bool UseUserIdAsEmailFallback = false);
+    bool UseUserIdAsEmailFallback = false,
+    bool UsePreferredName = false);

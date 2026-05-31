@@ -69,14 +69,24 @@ public sealed class WorkdayStaffingClient
         var requestCriteria = new XElement(Wd + "Request_Criteria",
             new XElement(Wd + "Exclude_Inactive_Workers", credentials.IncludeInactive ? "0" : "1"));
 
-        // Transaction_Log_Criteria filters Get_Workers to workers whose data changed since a given
-        // timestamp. Only attach it when the runner asked for incremental — first runs and probes
-        // omit it to get a full snapshot.
+        // Transaction_Log_Criteria_Data filters Get_Workers to workers whose data changed since a
+        // given timestamp. Only attach it when the runner asked for incremental — first runs and
+        // probes omit it to get a full snapshot.
+        //
+        // Two Workday gotchas:
+        //   1) The element name is Transaction_Log_Criteria_DATA (with the _Data suffix) inside
+        //      Worker_Request_Criteria. The bare "Transaction_Log_Criteria" lives only under
+        //      Organization_Request_Criteria and Workday rejects it here as an invalid subelement.
+        //   2) Updated_From and Updated_Through are validated as a pair — supplying one without
+        //      the other returns "If one of Updated From or Updated Through contains a value,
+        //      both are Required!". We pair the watermark with "now" to close the range.
         if (credentials.IncrementalUpdatedFrom is { } since)
         {
-            requestCriteria.Add(new XElement(Wd + "Transaction_Log_Criteria",
+            var now = DateTime.UtcNow;
+            requestCriteria.Add(new XElement(Wd + "Transaction_Log_Criteria_Data",
                 new XElement(Wd + "Transaction_Date_Range_Data",
-                    new XElement(Wd + "Updated_From", since.ToDateTimeUtc().ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture)))));
+                    new XElement(Wd + "Updated_From", since.ToDateTimeUtc().ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture)),
+                    new XElement(Wd + "Updated_Through", now.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture)))));
         }
 
         var responseGroup = new XElement(Wd + "Response_Group",

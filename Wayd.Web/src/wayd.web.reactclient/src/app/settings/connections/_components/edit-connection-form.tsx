@@ -58,8 +58,8 @@ interface EditConnectionFormValues {
   isuPassword?: string | null
   workerKey?: WorkdayWorkerKey | null
   includeInactive?: boolean | null
-  incrementalSyncEnabled?: boolean | null
   useUserIdAsEmailFallback?: boolean | null
+  usePreferredName?: boolean | null
   // PeopleSync (Entra + Workday)
   matchBy?: EmployeeMatchProperty | null
 }
@@ -135,9 +135,9 @@ const buildRequest = (
         isuPassword: values.isuPassword ?? '',
         workerKey: values.workerKey ?? WorkdayWorkerKey.EmployeeId,
         includeInactive: values.includeInactive ?? false,
-        incrementalSyncEnabled: values.incrementalSyncEnabled ?? true,
         matchBy: values.matchBy ?? EmployeeMatchProperty.Email,
         useUserIdAsEmailFallback: values.useUserIdAsEmailFallback ?? false,
+        usePreferredName: values.usePreferredName ?? false,
       } as UpdateWorkdayConnectionRequest
     default:
       return null
@@ -191,10 +191,10 @@ const seedFormValues = (
         isuPassword: c.configuration?.isuPassword,
         workerKey: c.configuration?.workerKey ?? WorkdayWorkerKey.EmployeeId,
         includeInactive: c.configuration?.includeInactive ?? false,
-        incrementalSyncEnabled: c.configuration?.incrementalSyncEnabled ?? true,
         matchBy: c.configuration?.matchBy ?? EmployeeMatchProperty.Email,
         useUserIdAsEmailFallback:
           c.configuration?.useUserIdAsEmailFallback ?? false,
+        usePreferredName: c.configuration?.usePreferredName ?? false,
       }
     }
     default:

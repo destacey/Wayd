@@ -8,10 +8,10 @@ import {
   WorkdayWorkerKey,
 } from '@/src/services/wayd-api'
 import { useInitConnectionMutation } from '@/src/store/features/app-integration/connections-api'
-import { Alert, Button, Space } from 'antd'
+import { Alert } from 'antd'
 import dayjs from 'dayjs'
 import { ItemType } from 'antd/es/menu/interface'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import {
   ConnectionActionContext,
   DetailEntry,
@@ -48,7 +48,7 @@ const InitResultCallout = ({
         type="warning"
         showIcon
         style={{ marginBottom: 16 }}
-        message="Connection is valid, but the probe noted some observations:"
+        title="Connection is valid, but the probe noted some observations:"
         description={
           <ul style={{ marginBottom: 0 }}>
             {config.lastInitWarnings?.map((w, i) => <li key={i}>{w}</li>)}
@@ -63,7 +63,7 @@ const InitResultCallout = ({
       type="error"
       showIcon
       style={{ marginBottom: 16 }}
-      message="This connection's configuration is invalid. Sync is disabled until resolved."
+      title="This connection's configuration is invalid. Sync is disabled until resolved."
       description={
         <>
           {config.lastInitAuthError && <p>{config.lastInitAuthError}</p>}
@@ -119,12 +119,12 @@ const Details = ({ connection }: { connection: ConnectionDetailsDto }) => {
           },
           { label: 'Include Inactive Workers', value: config?.includeInactive },
           {
-            label: 'Incremental Sync',
-            value: config?.incrementalSyncEnabled,
-          },
-          {
             label: 'Use User_ID as Email Fallback',
             value: config?.useUserIdAsEmailFallback,
+          },
+          {
+            label: 'Use Preferred Name',
+            value: config?.usePreferredName,
           },
           {
             label: 'Last Validated',
@@ -138,54 +138,9 @@ const Details = ({ connection }: { connection: ConnectionDetailsDto }) => {
   )
 }
 
-const TestConnectionButton = ({ ctx }: { ctx: ConnectionActionContext }) => {
-  const messageApi = useMessage()
-  const [initConnection, { isLoading }] = useInitConnectionMutation()
-  const [isRunning, setIsRunning] = useState(false)
-
-  const onClick = async () => {
-    setIsRunning(true)
-    try {
-      const response = await initConnection(ctx.connectionId)
-      if ('error' in response) throw response.error
-      const result = response.data
-      if (result.isValid) {
-        messageApi.success(
-          `Connection validated — probed ${result.workersProbed} worker(s).`,
-        )
-      } else if (result.authError) {
-        messageApi.error(`Authentication failed: ${result.authError}`)
-      } else {
-        messageApi.error(
-          `Configuration is invalid (${result.missingRequiredFields.length} missing field(s)). See the connection details for specifics.`,
-        )
-      }
-      ctx.reload()
-    } catch (e) {
-      console.error(e)
-      messageApi.error('Failed to run the Workday connection probe.')
-    } finally {
-      setIsRunning(false)
-    }
-  }
-
-  return (
-    <Space>
-      <Button
-        size="small"
-        onClick={onClick}
-        loading={isLoading || isRunning}
-        disabled={!ctx.canUpdate}
-      >
-        Test Connection
-      </Button>
-    </Space>
-  )
-}
-
-// ExtraActions component variant — emits a menu item the page shell renders next to the
-// activate/deactivate actions. Keeps the test-connection control in the same place admins
-// already look for sync controls.
+// Adds a "Test Connection" entry to the page shell's Actions dropdown. We model it as a plain
+// menu item (text label + onClick) rather than embedding a <Button> in the label — the shell
+// renders the menu with antd's Menu, which would otherwise show a button-inside-a-menu-row.
 const ExtraActions = ({
   ctx,
   setItems,
@@ -193,20 +148,49 @@ const ExtraActions = ({
   ctx: ConnectionActionContext
   setItems: (items: ItemType[]) => void
 }) => {
-  // setItems updates state on the parent page; React forbids calling it during render of a
-  // child, so we defer to an effect. The effect depends on `setItems` and ctx fields that
-  // actually drive item shape — `canUpdate` flips the disabled state, `connectionId` rebinds
-  // the test handler.
-  useEffect(() => {
-    const items: ItemType[] = [
+  const messageApi = useMessage()
+  const [initConnection] = useInitConnectionMutation()
+
+  const items = useMemo<ItemType[]>(() => {
+    const testConnection = async () => {
+      try {
+        const response = await initConnection(ctx.connectionId)
+        if ('error' in response) throw response.error
+        const result = response.data
+        if (result.isValid) {
+          messageApi.success(
+            `Connection validated — probed ${result.workersProbed} worker(s).`,
+          )
+        } else if (result.authError) {
+          messageApi.error(`Authentication failed: ${result.authError}`)
+        } else {
+          messageApi.error(
+            `Configuration is invalid (${result.missingRequiredFields.length} missing field(s)). See the connection details for specifics.`,
+          )
+        }
+        ctx.reload()
+      } catch (e) {
+        console.error(e)
+        messageApi.error('Failed to run the Workday connection probe.')
+      }
+    }
+
+    return [
       {
         key: 'test-connection',
-        label: <TestConnectionButton ctx={ctx} />,
+        label: 'Test Connection',
         disabled: !ctx.canUpdate,
+        onClick: testConnection,
       },
     ]
+  }, [ctx, initConnection, messageApi])
+
+  // setItems updates state on the parent page; React forbids calling it during render of a
+  // child, so we defer to an effect.
+  useEffect(() => {
     setItems(items)
-  }, [setItems, ctx])
+  }, [items, setItems])
+
   return null
 }
 

@@ -32,9 +32,6 @@ public sealed record WorkdayConnectionConfigurationDto : IMapFrom<WorkdayConnect
     /// <summary>When true, terminated/inactive workers are also returned by the sync.</summary>
     public bool IncludeInactive { get; set; }
 
-    /// <summary>When true, incremental sync is enabled (only changed workers after the first run).</summary>
-    public bool IncrementalSyncEnabled { get; set; }
-
     /// <summary>Which uniquely-indexed Employee field the sync upsert matches on.</summary>
     public EmployeeMatchProperty MatchBy { get; set; }
 
@@ -43,6 +40,11 @@ public sealed record WorkdayConnectionConfigurationDto : IMapFrom<WorkdayConnect
     /// <c>Contact_Data</c> is missing, provided it parses as a valid email address.
     /// </summary>
     public bool UseUserIdAsEmailFallback { get; set; }
+
+    /// <summary>
+    /// When true, sync reads <c>Preferred_Name_Data</c> in preference to <c>Legal_Name_Data</c>.
+    /// </summary>
+    public bool UsePreferredName { get; set; }
 
     // --- Init / probe result ---
 

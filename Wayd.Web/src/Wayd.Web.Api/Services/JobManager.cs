@@ -34,13 +34,13 @@ public class JobManager(
 
     [DisableConcurrentExecution(60 * 3)]
     [AutomaticRetry(Attempts = 3, DelaysInSeconds = [30, 60, 120])]
-    public async Task RunPeopleSync(SyncTriggerSource trigger, Guid? connectionId, CancellationToken cancellationToken)
+    public async Task RunPeopleSync(SyncType syncType, SyncTriggerSource trigger, Guid? connectionId, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Running {BackgroundJob} job (trigger={Trigger}, connectionId={ConnectionId})", nameof(RunPeopleSync), trigger, connectionId);
+        _logger.LogInformation("Running {BackgroundJob} job (syncType={SyncType}, trigger={Trigger}, connectionId={ConnectionId})", nameof(RunPeopleSync), syncType, trigger, connectionId);
 
         var result = connectionId.HasValue
-            ? await _peopleSyncRunner.Run(connectionId.Value, trigger, cancellationToken)
-            : await _peopleSyncRunner.Run(trigger, cancellationToken);
+            ? await _peopleSyncRunner.Run(connectionId.Value, trigger, syncType, cancellationToken)
+            : await _peopleSyncRunner.Run(trigger, syncType, cancellationToken);
 
         if (result.IsFailure)
         {

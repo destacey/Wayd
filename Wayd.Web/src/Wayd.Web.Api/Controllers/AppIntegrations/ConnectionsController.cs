@@ -176,7 +176,7 @@ public class ConnectionsController(ISender sender) : ControllerBase
     [HttpPost("{id}/run")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
     [OpenApiOperation("Trigger a sync for a connection.",
-        "Enqueues a background job that runs the sync pipeline for this connection only. Routes by connector category — work-sync connectors run a work sync (defaults to differential; pass 'syncType=Full' for full), people-sync connectors run a people sync. The connection must be active.")]
+        "Enqueues a background job that runs the sync pipeline for this connection only. Routes by connector category. The syncType query parameter is honored by both work-sync and people-sync connectors; the default is Differential. For PeopleSync, Differential silently degrades to Full when no prior successful run exists (or when the source doesn't support incremental). The connection must be active.")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RunSync(
@@ -201,7 +201,7 @@ public class ConnectionsController(ISender sender) : ControllerBase
                 jobService.Enqueue(() => jobManager.RunWorkSync(syncType, SyncTriggerSource.Manual, id, cancellationToken));
                 return Accepted();
             case ConnectorCategory.PeopleSync:
-                jobService.Enqueue(() => jobManager.RunPeopleSync(SyncTriggerSource.Manual, id, cancellationToken));
+                jobService.Enqueue(() => jobManager.RunPeopleSync(syncType, SyncTriggerSource.Manual, id, cancellationToken));
                 return Accepted();
             default:
                 return BadRequest(ProblemDetailsExtensions.ForBadRequest(

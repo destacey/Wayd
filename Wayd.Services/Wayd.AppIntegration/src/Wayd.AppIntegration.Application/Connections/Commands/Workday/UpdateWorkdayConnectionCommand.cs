@@ -15,9 +15,9 @@ public sealed record UpdateWorkdayConnectionCommand(
     string IsuPassword,
     WorkdayWorkerKey WorkerKey,
     bool IncludeInactive,
-    bool IncrementalSyncEnabled,
     EmployeeMatchProperty MatchBy,
-    bool UseUserIdAsEmailFallback) : ICommand<Guid>;
+    bool UseUserIdAsEmailFallback,
+    bool UsePreferredName) : ICommand<Guid>;
 
 public sealed class UpdateWorkdayConnectionCommandValidator : CustomValidator<UpdateWorkdayConnectionCommand>
 {
@@ -81,9 +81,9 @@ internal sealed class UpdateWorkdayConnectionCommandHandler(
                 isuPassword,
                 request.WorkerKey,
                 request.IncludeInactive,
-                request.IncrementalSyncEnabled,
                 request.MatchBy,
                 request.UseUserIdAsEmailFallback,
+                request.UsePreferredName,
                 configurationIsValid: false,
                 _dateTimeProvider.Now);
 
@@ -121,7 +121,8 @@ internal sealed class UpdateWorkdayConnectionCommandHandler(
             connection.Configuration.WorkerKey,
             connection.Configuration.IncludeInactive,
             IncrementalUpdatedFrom: null,
-            UseUserIdAsEmailFallback: connection.Configuration.UseUserIdAsEmailFallback);
+            UseUserIdAsEmailFallback: connection.Configuration.UseUserIdAsEmailFallback,
+            UsePreferredName: connection.Configuration.UsePreferredName);
 
         var result = await _initializer.Initialize(credentials, cancellationToken);
         connection.RecordInitResult(

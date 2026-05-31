@@ -12,7 +12,8 @@ public class WorkdayStaffingServiceTests
 {
     private static WorkdayConnectionCredentials BuildCredentials(
         WorkdayWorkerKey key = WorkdayWorkerKey.Wid,
-        bool useUserIdAsEmailFallback = false) => new(
+        bool useUserIdAsEmailFallback = false,
+        bool usePreferredName = false) => new(
         SoapEndpoint: "https://wd3-impl-services1.workday.com/ccx/service/acme_corp1/Staffing/v46.1",
         TenantAlias: "acme_corp1",
         WsdlVersion: "v46.1",
@@ -21,7 +22,8 @@ public class WorkdayStaffingServiceTests
         WorkerKey: key,
         IncludeInactive: false,
         IncrementalUpdatedFrom: null,
-        UseUserIdAsEmailFallback: useUserIdAsEmailFallback);
+        UseUserIdAsEmailFallback: useUserIdAsEmailFallback,
+        UsePreferredName: usePreferredName);
 
     private static (WorkdayStaffingService service, FakeHttpMessageHandler handler) BuildService()
     {
@@ -131,6 +133,59 @@ public class WorkdayStaffingServiceTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeEmpty(
             "fallback only accepts User_ID when it parses as a valid email — username-style values still skip the worker");
+    }
+
+    [Fact]
+    public async Task GetEmployees_usePreferredName_off_readsLegalName()
+    {
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-preferred-name.xml"));
+
+        var result = await service.GetEmployees(BuildCredentials(usePreferredName: false), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var employees = result.Value.ToList();
+
+        // Default behaviour is Legal_Name_Data → Bobby's row uses "Robert" (legal first name).
+        var bobby = employees.Single(e => e.EmployeeNumber == "aaaa1111-bbbb-cccc-dddd-eeeeffff0001");
+        bobby.Name.FirstName.Should().Be("Robert");
+        bobby.Name.LastName.Should().Be("Smith");
+    }
+
+    [Fact]
+    public async Task GetEmployees_usePreferredName_on_readsPreferredName()
+    {
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-preferred-name.xml"));
+
+        var result = await service.GetEmployees(BuildCredentials(usePreferredName: true), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var employees = result.Value.ToList();
+
+        // Bobby has a fully-populated preferred block — should map across all three name parts.
+        var bobby = employees.Single(e => e.EmployeeNumber == "aaaa1111-bbbb-cccc-dddd-eeeeffff0001");
+        bobby.Name.FirstName.Should().Be("Bobby");
+        bobby.Name.MiddleName.Should().Be("James");
+        bobby.Name.LastName.Should().Be("Smith");
+    }
+
+    [Fact]
+    public async Task GetEmployees_usePreferredName_on_fallsBackToLegalPerComponent()
+    {
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-preferred-name.xml"));
+
+        var result = await service.GetEmployees(BuildCredentials(usePreferredName: true), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var employees = result.Value.ToList();
+
+        // Casey has a preferred first name but no preferred middle/last — those fall back to legal.
+        var casey = employees.Single(e => e.EmployeeNumber == "aaaa1111-bbbb-cccc-dddd-eeeeffff0002");
+        casey.Name.FirstName.Should().Be("Casey");
+        casey.Name.MiddleName.Should().Be("Lee");
+        casey.Name.LastName.Should().Be("Park");
     }
 
     [Fact]

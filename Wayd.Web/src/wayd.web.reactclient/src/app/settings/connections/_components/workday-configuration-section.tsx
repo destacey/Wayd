@@ -82,21 +82,21 @@ export const WorkdayConfigurationSection: React.FC<ConfigSectionProps> = () => {
       </Item>
 
       <Item
-        label="Incremental Sync"
-        name="incrementalSyncEnabled"
-        valuePropName="checked"
-        initialValue={true}
-        extra="After the first full sync, subsequent runs fetch only workers changed since the last successful run."
-      >
-        <Switch />
-      </Item>
-
-      <Item
         label="Use User_ID as Email Fallback"
         name="useUserIdAsEmailFallback"
         valuePropName="checked"
         initialValue={false}
         extra="When enabled, sync uses Workday's User_ID (the account login) as the work email if Contact_Data is missing — but only when it parses as a valid email. Use for tenants whose ISU is not granted 'Worker Data: Personal Contact Information'."
+      >
+        <Switch />
+      </Item>
+
+      <Item
+        label="Use Preferred Name"
+        name="usePreferredName"
+        valuePropName="checked"
+        initialValue={false}
+        extra="When enabled, sync reads each worker's Preferred Name (first/middle/last) in preference to Legal Name, falling back to legal per-component when a preferred component is missing."
       >
         <Switch />
       </Item>

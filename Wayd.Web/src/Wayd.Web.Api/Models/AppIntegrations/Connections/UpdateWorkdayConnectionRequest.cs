@@ -20,9 +20,6 @@ public sealed record UpdateWorkdayConnectionRequest : UpdateConnectionRequest
     /// <summary>When true, terminated/inactive workers are also returned by the sync.</summary>
     public bool IncludeInactive { get; set; }
 
-    /// <summary>When true, the runner uses Workday's transaction log to fetch only changed workers after the first successful sync.</summary>
-    public bool IncrementalSyncEnabled { get; set; } = true;
-
     /// <summary>Which uniquely-indexed Employee field the sync upsert matches on.</summary>
     public EmployeeMatchProperty MatchBy { get; set; } = EmployeeMatchProperty.Email;
 
@@ -32,8 +29,14 @@ public sealed record UpdateWorkdayConnectionRequest : UpdateConnectionRequest
     /// </summary>
     public bool UseUserIdAsEmailFallback { get; set; }
 
+    /// <summary>
+    /// When true, sync reads each worker's <c>Preferred_Name_Data</c> in preference to
+    /// <c>Legal_Name_Data</c>, falling back to legal per-component when missing. Default off.
+    /// </summary>
+    public bool UsePreferredName { get; set; }
+
     public UpdateWorkdayConnectionCommand ToCommand()
-        => new(Id, Name, Description, WsdlUrl, IsuUsername, IsuPassword, WorkerKey, IncludeInactive, IncrementalSyncEnabled, MatchBy, UseUserIdAsEmailFallback);
+        => new(Id, Name, Description, WsdlUrl, IsuUsername, IsuPassword, WorkerKey, IncludeInactive, MatchBy, UseUserIdAsEmailFallback, UsePreferredName);
 }
 
 public sealed class UpdateWorkdayConnectionRequestValidator : CustomValidator<UpdateWorkdayConnectionRequest>

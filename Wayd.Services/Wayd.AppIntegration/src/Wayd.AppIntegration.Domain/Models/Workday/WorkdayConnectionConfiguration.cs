@@ -18,19 +18,19 @@ public sealed class WorkdayConnectionConfiguration
         string isuPassword,
         WorkdayWorkerKey workerKey = WorkdayWorkerKey.EmployeeId,
         bool includeInactive = false,
-        bool incrementalSyncEnabled = true,
         EmployeeMatchProperty matchBy = EmployeeMatchProperty.Email,
-        bool useUserIdAsEmailFallback = false)
+        bool useUserIdAsEmailFallback = false,
+        bool usePreferredName = false)
     {
         WsdlUrl = wsdlUrl.Trim();
         IsuUsername = isuUsername.Trim();
         IsuPassword = isuPassword.Trim();
         WorkerKey = workerKey;
         IncludeInactive = includeInactive;
-        IncrementalSyncEnabled = incrementalSyncEnabled;
         MatchBy = matchBy;
         UseUserIdAsEmailFallback = useUserIdAsEmailFallback;
-        ConfigVersion = 4;
+        UsePreferredName = usePreferredName;
+        ConfigVersion = 6;
 
         // Derive endpoint parts at construction so the runtime sync path doesn't reparse on every
         // call. Failed parses surface to the command handler via TryParse — the public ctor still
@@ -86,12 +86,6 @@ public sealed class WorkdayConnectionConfiguration
     public bool IncludeInactive { get; set; }
 
     /// <summary>
-    /// When true and the connection has a prior successful sync, the runner filters
-    /// <c>Get_Workers</c> by <c>Transaction_Log_Criteria.Updated_From = lastSuccessfulRunAt</c>.
-    /// </summary>
-    public bool IncrementalSyncEnabled { get; set; }
-
-    /// <summary>
     /// Which uniquely-indexed field on <c>Employee</c> the upsert matches on. Defaults to email
     /// so that connector-switch scenarios (Entra → Workday) naturally collapse onto existing rows.
     /// </summary>
@@ -104,6 +98,14 @@ public sealed class WorkdayConnectionConfiguration
     /// doesn't grant <c>Worker Data: Personal Contact Information</c>. Default off.
     /// </summary>
     public bool UseUserIdAsEmailFallback { get; set; }
+
+    /// <summary>
+    /// When true, sync reads <c>Personal_Data/Name_Data/Preferred_Name_Data</c> in preference to
+    /// <c>Legal_Name_Data</c>. Falls back to legal when the preferred block is missing or empty.
+    /// Default off — legal name is the historical default and matches what most HRIS-driven
+    /// reports expect.
+    /// </summary>
+    public bool UsePreferredName { get; set; }
 
     public int ConfigVersion { get; init; }
 

@@ -1,15 +1,10 @@
-﻿<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk/0.5.83-alpha">
+﻿<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk">
   <PropertyGroup>
-    <StartupCommand>set BROWSER=none&amp;&amp;npm run dev</StartupCommand>
-    <!-- Command to run on project build -->
-    <BuildCommand>
-    </BuildCommand>
-    <!-- Command to create an optimized build of the project that's ready for publishing -->
-    <ProductionBuildCommand>npm run build</ProductionBuildCommand>
     <!-- Folder where production build objects will be placed -->
     <BuildOutputFolder>$(MSBuildProjectDirectory)\build</BuildOutputFolder>
     <!-- Exclude heavy folders from Visual Studio project scanning -->
     <ShouldRunNpmInstall>false</ShouldRunNpmInstall>
+    <ShouldRunBuildScript>false</ShouldRunBuildScript>
   </PropertyGroup>
   <ItemGroup>
     <Folder Remove="node_modules\**" />

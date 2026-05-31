@@ -1,0 +1,6 @@
+{
+  "msbuild-sdks": {
+    "Microsoft.VisualStudio.JavaScript.Sdk": "1.0.5581896",
+    "Aspire.AppHost.Sdk": "13.3.5"
+  }
+}

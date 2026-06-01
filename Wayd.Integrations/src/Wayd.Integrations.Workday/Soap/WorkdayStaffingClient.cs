@@ -132,6 +132,61 @@ public sealed class WorkdayStaffingClient
                     password)));
     }
 
+    /// <summary>
+    /// Calls <c>Get_Organizations</c> to enumerate every organization in the tenant and group by
+    /// <c>Organization_Type_ID</c>. Used by the init probe to populate the catalog of org-types the
+    /// admin can pick from when mapping <c>Employee.Department</c>. Single page only — we cap by
+    /// asking for a generous Count (default 999, Workday's per-call max) since the org catalog is
+    /// usually small (tens to low thousands).
+    /// </summary>
+    public async Task<GetOrganizationsResponse> GetOrganizations(
+        WorkdayConnectionCredentials credentials,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var envelope = BuildGetOrganizationsEnvelope(credentials, page, pageSize);
+        var responseXml = await PostAsync(credentials, envelope, cancellationToken);
+
+        // Each Organization element carries Reference_ID, Name, and Organization_Type_Reference.
+        var orgs = responseXml.Descendants(Wd + "Organization").ToList();
+        var pageInfo = responseXml.Descendants(Wd + "Response_Results").FirstOrDefault();
+        var totalPages = ParseIntOrDefault(pageInfo?.Element(Wd + "Total_Pages")?.Value, 1);
+        var totalResults = ParseIntOrDefault(pageInfo?.Element(Wd + "Total_Results")?.Value, orgs.Count);
+
+        return new GetOrganizationsResponse(orgs, page, totalPages, totalResults);
+    }
+
+    private static XDocument BuildGetOrganizationsEnvelope(WorkdayConnectionCredentials credentials, int page, int pageSize)
+    {
+        // No criteria filter — we want everything so we can group by type. We omit Include_Inactive
+        // (defaults to false) since the catalog is for picking a Department source, and inactive
+        // orgs are by definition not used.
+        var requestCriteria = new XElement(Wd + "Request_Criteria");
+
+        // No response-group flags — the default response returns Reference + Name + Type for each
+        // org, which is everything the catalog needs. Asking for Hierarchy/Supervisory data here
+        // would bloat the response without buying anything for the picker.
+        var responseFilter = new XElement(Wd + "Response_Filter",
+            new XElement(Wd + "Page", page.ToString(CultureInfo.InvariantCulture)),
+            new XElement(Wd + "Count", pageSize.ToString(CultureInfo.InvariantCulture)));
+
+        var getOrgs = new XElement(Wd + "Get_Organizations_Request",
+            new XAttribute(XNamespace.Xmlns + "wd", Wd.NamespaceName),
+            requestCriteria,
+            responseFilter);
+
+        var security = BuildSecurityHeader(credentials.IsuUsername, credentials.IsuPassword);
+
+        var envelope = new XElement(_soap + "Envelope",
+            new XAttribute(XNamespace.Xmlns + "soapenv", _soap.NamespaceName),
+            new XAttribute(XNamespace.Xmlns + "wd", Wd.NamespaceName),
+            new XElement(_soap + "Header", security),
+            new XElement(_soap + "Body", getOrgs));
+
+        return new XDocument(new XDeclaration("1.0", "utf-8", null), envelope);
+    }
+
     private async Task<XDocument> PostAsync(WorkdayConnectionCredentials credentials, XDocument envelope, CancellationToken cancellationToken)
     {
         var content = new StringContent(envelope.Declaration + envelope.ToString(SaveOptions.DisableFormatting), Encoding.UTF8, "text/xml");
@@ -191,6 +246,12 @@ public sealed class WorkdayStaffingClient
 
 public sealed record GetWorkersResponse(
     IReadOnlyList<XElement> Workers,
+    int Page,
+    int TotalPages,
+    int TotalResults);
+
+public sealed record GetOrganizationsResponse(
+    IReadOnlyList<XElement> Organizations,
     int Page,
     int TotalPages,
     int TotalResults);

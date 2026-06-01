@@ -29608,6 +29608,8 @@ export interface WorkdayConnectionConfigurationDto {
     useUserIdAsEmailFallback: boolean;
     usePreferredName: boolean;
     normalizeNameCasing: boolean;
+    departmentOrganizationTypeId?: string | undefined;
+    discoveredOrgTypes?: WorkdayOrgTypeDto[] | undefined;
     lastInitAt?: Date | undefined;
     lastInitSucceeded: boolean;
     lastInitMissingFields?: string[] | undefined;
@@ -29618,6 +29620,12 @@ export interface WorkdayConnectionConfigurationDto {
 export enum WorkdayWorkerKey {
     Wid = "Wid",
     EmployeeId = "EmployeeId",
+}
+
+export interface WorkdayOrgTypeDto {
+    typeId: string;
+    displayName?: string | undefined;
+    count: number;
 }
 
 export interface CreateConnectionRequest {
@@ -29688,6 +29696,11 @@ missing. Default off. */
 (mixed-case input is preserved). Default true — most HRIS sources emit upper-cased legal
 names that look inconsistent next to manually-entered records. */
     normalizeNameCasing?: boolean;
+    /** Workday Organization_Type_ID that drives Employee.Department. Defaults to
+SUPERVISORY (Workday's universal reporting-hierarchy type). After the first init
+probe, admins can pick from the discovered catalog (e.g. COST_CENTER,
+BUSINESS_UNIT, tenant-custom types). Set to null to skip Department sync. */
+    departmentOrganizationTypeId?: string | undefined;
 }
 
 export interface UpdateConnectionRequest {
@@ -29757,6 +29770,9 @@ Legal_Name_Data, falling back to legal per-component when missing. Default off. 
     /** When true, names that come back from Workday in all-caps are title-cased before storage.
 Mixed-case input is preserved. Default true. */
     normalizeNameCasing?: boolean;
+    /** Workday Organization_Type_ID that drives Employee.Department. Pick from the
+discovered catalog on the connection (populated by the init probe), or null to skip. */
+    departmentOrganizationTypeId?: string | undefined;
 }
 
 export enum SyncType {
@@ -29770,6 +29786,13 @@ export interface ConnectionInitResult {
     missingRequiredFields: string[];
     warnings: string[];
     authError?: string | undefined;
+    discoveredOrgTypes?: DiscoveredOrgType[] | undefined;
+}
+
+export interface DiscoveredOrgType {
+    typeId: string;
+    displayName?: string | undefined;
+    count: number;
 }
 
 export interface SyncRunListDto {

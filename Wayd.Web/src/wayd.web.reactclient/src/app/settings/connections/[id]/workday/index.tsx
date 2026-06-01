@@ -93,6 +93,42 @@ const InitResultCallout = ({
   )
 }
 
+/**
+ * Renders the catalog of Organization_Type_IDs discovered by the most recent init probe. Helps
+ * admins pick a non-default value for "Department Source" — they can see which types actually
+ * have data (the Count) and what each is labeled in their tenant (DisplayName).
+ */
+const DiscoveredOrgTypesPanel = ({
+  connection,
+}: {
+  connection: WorkdayConnectionDetailsDto
+}) => {
+  const types = connection.configuration?.discoveredOrgTypes
+  if (!types || types.length === 0) return null
+
+  const selected = connection.configuration?.departmentOrganizationTypeId
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <strong>Discovered Organization Types</strong>
+      <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginBottom: 8 }}>
+        Available values for the Department Source. Edit the connection to switch.
+      </div>
+      <ul style={{ marginBottom: 0, paddingInlineStart: 20 }}>
+        {types.map((t) => (
+          <li key={t.typeId}>
+            <code>{t.typeId}</code>
+            {t.displayName ? ` — ${t.displayName}` : ''}
+            {` (${t.count} org${t.count === 1 ? '' : 's'})`}
+            {selected === t.typeId && (
+              <strong style={{ marginLeft: 8 }}>← in use</strong>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 const Details = ({ connection }: { connection: ConnectionDetailsDto }) => {
   if (!isWorkday(connection)) return null
   const config = connection.configuration
@@ -100,6 +136,7 @@ const Details = ({ connection }: { connection: ConnectionDetailsDto }) => {
   return (
     <>
       <InitResultCallout connection={connection} />
+      <DiscoveredOrgTypesPanel connection={connection} />
       <GenericConnectionDetails
         connection={connection}
         configFields={[
@@ -129,6 +166,10 @@ const Details = ({ connection }: { connection: ConnectionDetailsDto }) => {
           {
             label: 'Normalize Name Casing',
             value: config?.normalizeNameCasing,
+          },
+          {
+            label: 'Department Source (Organization_Type_ID)',
+            value: config?.departmentOrganizationTypeId,
           },
           {
             label: 'Last Validated',

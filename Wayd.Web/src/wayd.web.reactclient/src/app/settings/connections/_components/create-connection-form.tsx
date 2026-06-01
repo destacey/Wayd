@@ -42,6 +42,7 @@ interface CreateConnectionFormValues {
   useUserIdAsEmailFallback?: boolean
   usePreferredName?: boolean
   normalizeNameCasing?: boolean
+  departmentOrganizationTypeId?: string
   // PeopleSync (Entra + Workday)
   matchBy?: EmployeeMatchProperty
 }

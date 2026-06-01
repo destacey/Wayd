@@ -14,7 +14,8 @@ public class WorkdayStaffingServiceTests
         WorkdayWorkerKey key = WorkdayWorkerKey.Wid,
         bool useUserIdAsEmailFallback = false,
         bool usePreferredName = false,
-        bool normalizeNameCasing = false) => new(
+        bool normalizeNameCasing = false,
+        string? departmentOrganizationTypeId = null) => new(
         SoapEndpoint: "https://wd3-impl-services1.workday.com/ccx/service/acme_corp1/Staffing/v46.1",
         TenantAlias: "acme_corp1",
         WsdlVersion: "v46.1",
@@ -25,7 +26,8 @@ public class WorkdayStaffingServiceTests
         IncrementalUpdatedFrom: null,
         UseUserIdAsEmailFallback: useUserIdAsEmailFallback,
         UsePreferredName: usePreferredName,
-        NormalizeNameCasing: normalizeNameCasing);
+        NormalizeNameCasing: normalizeNameCasing,
+        DepartmentOrganizationTypeId: departmentOrganizationTypeId);
 
     private static (WorkdayStaffingService service, FakeHttpMessageHandler handler) BuildService()
     {
@@ -257,6 +259,71 @@ public class WorkdayStaffingServiceTests
         var jose = employees.Single(e => e.EmployeeNumber == "aaaa1111-bbbb-cccc-dddd-eeeeffff0003");
         jose.Name.FirstName.Should().Be("José");
         jose.Name.LastName.Should().Be("Smith");
+    }
+
+    [Fact]
+    public async Task GetEmployees_departmentOrgTypeId_null_returnsNullDepartment()
+    {
+        // When the admin opted out of Department sync, no XPath is built and the field is null.
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
+
+        var result = await service.GetEmployees(
+            BuildCredentials(departmentOrganizationTypeId: null),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Single(e => e.Name.FirstName == "Alex").Department.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetEmployees_departmentOrgTypeId_SUPERVISORY_readsSupervisoryOrgName()
+    {
+        // Default Workday-shipped type. The fixture has Alex in a Supervisory org named "Engineering".
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
+
+        var result = await service.GetEmployees(
+            BuildCredentials(departmentOrganizationTypeId: "SUPERVISORY"),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Single(e => e.Name.FirstName == "Alex").Department.Should().Be("Engineering");
+    }
+
+    [Fact]
+    public async Task GetEmployees_departmentOrgTypeId_COST_CENTER_readsCostCenterOrgName()
+    {
+        // Admin override: the same worker, looked at through the COST_CENTER lens, produces a
+        // different Department value. This is the whole point of making the type ID configurable.
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
+
+        var result = await service.GetEmployees(
+            BuildCredentials(departmentOrganizationTypeId: "COST_CENTER"),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Single(e => e.Name.FirstName == "Alex").Department.Should().Be("R&D");
+    }
+
+    [Theory]
+    [InlineData("'); DROP TABLE--")]
+    [InlineData("'] | //*")]
+    [InlineData("type with spaces")]
+    public async Task GetEmployees_departmentOrgTypeId_unsafeValue_returnsNullDepartment(string unsafeId)
+    {
+        // The IsSafeOrgTypeId whitelist rejects anything outside letters/digits/underscore/hyphen.
+        // A malformed or hostile value must not be interpolated into XPath; we return null instead.
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
+
+        var result = await service.GetEmployees(
+            BuildCredentials(departmentOrganizationTypeId: unsafeId),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Single(e => e.Name.FirstName == "Alex").Department.Should().BeNull();
     }
 
     [Fact]

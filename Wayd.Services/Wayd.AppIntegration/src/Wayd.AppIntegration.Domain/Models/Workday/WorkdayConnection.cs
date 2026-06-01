@@ -43,6 +43,7 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
         bool useUserIdAsEmailFallback,
         bool usePreferredName,
         bool normalizeNameCasing,
+        string? departmentOrganizationTypeId,
         bool configurationIsValid,
         Instant timestamp)
     {
@@ -55,8 +56,9 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
             var newWsdlUrl = Guard.Against.NullOrWhiteSpace(wsdlUrl, nameof(wsdlUrl)).Trim();
             var newIsuUsername = Guard.Against.NullOrWhiteSpace(isuUsername, nameof(isuUsername)).Trim();
             var newIsuPassword = Guard.Against.NullOrWhiteSpace(isuPassword, nameof(isuPassword)).Trim();
+            var newDepartmentOrgTypeId = string.IsNullOrWhiteSpace(departmentOrganizationTypeId) ? null : departmentOrganizationTypeId.Trim();
 
-            if (!UpdateValuesChanged(newName, newDescription, newWsdlUrl, newIsuUsername, newIsuPassword, workerKey, includeInactive, matchBy, useUserIdAsEmailFallback, usePreferredName, normalizeNameCasing, configurationIsValid))
+            if (!UpdateValuesChanged(newName, newDescription, newWsdlUrl, newIsuUsername, newIsuPassword, workerKey, includeInactive, matchBy, useUserIdAsEmailFallback, usePreferredName, normalizeNameCasing, newDepartmentOrgTypeId, configurationIsValid))
                 return Result.Success();
 
             Name = newName;
@@ -72,6 +74,7 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
             Configuration.UseUserIdAsEmailFallback = useUserIdAsEmailFallback;
             Configuration.UsePreferredName = usePreferredName;
             Configuration.NormalizeNameCasing = normalizeNameCasing;
+            Configuration.DepartmentOrganizationTypeId = newDepartmentOrgTypeId;
 
             // Re-derive endpoint parts from the (possibly new) URL. A bad URL leaves them blank;
             // the init probe that follows the save catches that and flips IsValidConfiguration.
@@ -109,6 +112,7 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
         IReadOnlyList<string>? missingFields,
         IReadOnlyList<string>? warnings,
         string? authError,
+        IReadOnlyList<WorkdayOrgType>? discoveredOrgTypes,
         DateTimeOffset now)
     {
         Guard.Against.Null(Configuration, nameof(Configuration));
@@ -118,6 +122,11 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
         Configuration.LastInitMissingFields = missingFields?.ToList();
         Configuration.LastInitWarnings = warnings?.ToList();
         Configuration.LastInitAuthError = authError;
+
+        // Only persist the catalog when the probe actually returned one (null = "probe didn't get
+        // far enough"); a successful probe with zero org-types is a real signal we keep.
+        if (discoveredOrgTypes is not null)
+            Configuration.DiscoveredOrgTypes = discoveredOrgTypes.ToList();
 
         IsValidConfiguration = succeeded;
     }
@@ -134,6 +143,7 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
         bool useUserIdAsEmailFallback,
         bool usePreferredName,
         bool normalizeNameCasing,
+        string? departmentOrganizationTypeId,
         bool configurationIsValid)
     {
         if (!string.Equals(Name, name, StringComparison.Ordinal)) return true;
@@ -147,6 +157,7 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
         if (Configuration.UseUserIdAsEmailFallback != useUserIdAsEmailFallback) return true;
         if (Configuration.UsePreferredName != usePreferredName) return true;
         if (Configuration.NormalizeNameCasing != normalizeNameCasing) return true;
+        if (!string.Equals(Configuration.DepartmentOrganizationTypeId, departmentOrganizationTypeId, StringComparison.Ordinal)) return true;
         if (IsValidConfiguration != configurationIsValid) return true;
         return false;
     }

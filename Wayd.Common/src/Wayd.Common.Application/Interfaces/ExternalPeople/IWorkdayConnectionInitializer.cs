@@ -17,4 +17,12 @@ public sealed record ConnectionInitResult(
     int WorkersProbed,
     IReadOnlyList<string> MissingRequiredFields,
     IReadOnlyList<string> Warnings,
-    string? AuthError);
+    string? AuthError,
+    IReadOnlyList<DiscoveredOrgType>? DiscoveredOrgTypes = null);
+
+/// <summary>
+/// One entry in the org-type catalog discovered by the init probe. Mirrors the domain
+/// <c>WorkdayOrgType</c> record but lives in Common.Application so the initializer interface
+/// doesn't take a dependency on AppIntegration.Domain.
+/// </summary>
+public sealed record DiscoveredOrgType(string TypeId, string? DisplayName, int Count);

@@ -17,7 +17,8 @@ public sealed record CreateWorkdayConnectionCommand(
     EmployeeMatchProperty MatchBy,
     bool UseUserIdAsEmailFallback,
     bool UsePreferredName,
-    bool NormalizeNameCasing) : ICommand<Guid>;
+    bool NormalizeNameCasing,
+    string? DepartmentOrganizationTypeId) : ICommand<Guid>;
 
 public sealed class CreateWorkdayConnectionCommandValidator : CustomValidator<CreateWorkdayConnectionCommand>
 {
@@ -67,7 +68,8 @@ internal sealed class CreateWorkdayConnectionCommandHandler(
                 request.MatchBy,
                 request.UseUserIdAsEmailFallback,
                 request.UsePreferredName,
-                request.NormalizeNameCasing);
+                request.NormalizeNameCasing,
+                request.DepartmentOrganizationTypeId);
 
             // Create the connection first with IsValidConfiguration = false so the row exists even
             // if the probe is slow or fails — admins shouldn't lose typed config.
@@ -101,7 +103,8 @@ internal sealed class CreateWorkdayConnectionCommandHandler(
             IncrementalUpdatedFrom: null,
             UseUserIdAsEmailFallback: connection.Configuration.UseUserIdAsEmailFallback,
             UsePreferredName: connection.Configuration.UsePreferredName,
-            NormalizeNameCasing: connection.Configuration.NormalizeNameCasing);
+            NormalizeNameCasing: connection.Configuration.NormalizeNameCasing,
+            DepartmentOrganizationTypeId: connection.Configuration.DepartmentOrganizationTypeId);
 
         var result = await _initializer.Initialize(credentials, cancellationToken);
         connection.RecordInitResult(
@@ -109,6 +112,7 @@ internal sealed class CreateWorkdayConnectionCommandHandler(
             result.MissingRequiredFields,
             result.Warnings,
             result.AuthError,
+            result.DiscoveredOrgTypes?.Select(d => new WorkdayOrgType(d.TypeId, d.DisplayName, d.Count)).ToList(),
             DateTimeOffset.UtcNow);
     }
 }

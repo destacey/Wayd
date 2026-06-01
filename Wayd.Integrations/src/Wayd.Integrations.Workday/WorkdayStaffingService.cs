@@ -48,7 +48,7 @@ public sealed class WorkdayStaffingService : IWorkdayEmployeeSource
 
                 foreach (var worker in response.Workers)
                 {
-                    var projected = TryProject(worker, credentials.WorkerKey, credentials.UseUserIdAsEmailFallback, credentials.UsePreferredName, credentials.NormalizeNameCasing);
+                    var projected = TryProject(worker, credentials.WorkerKey, credentials.UseUserIdAsEmailFallback, credentials.UsePreferredName, credentials.NormalizeNameCasing, credentials.DepartmentOrganizationTypeId);
                     if (projected is not null)
                         employees.Add(projected);
                 }
@@ -76,7 +76,7 @@ public sealed class WorkdayStaffingService : IWorkdayEmployeeSource
         }
     }
 
-    private WorkdayEmployee? TryProject(XElement worker, WorkdayWorkerKey workerKey, bool useUserIdAsEmailFallback, bool usePreferredName, bool normalizeNameCasing)
+    private WorkdayEmployee? TryProject(XElement worker, WorkdayWorkerKey workerKey, bool useUserIdAsEmailFallback, bool usePreferredName, bool normalizeNameCasing, string? departmentOrganizationTypeId)
     {
         var wid = WorkerFieldReader.GetValue(worker, WorkerFieldPaths.WorkerWid);
         var employeeId = WorkerFieldReader.GetValue(worker, WorkerFieldPaths.EmployeeId);
@@ -171,11 +171,49 @@ public sealed class WorkdayStaffingService : IWorkdayEmployeeSource
             email: new EmailAddress(email),
             hireDate: ParseWorkdayDate(WorkerFieldReader.GetValue(worker, WorkerFieldPaths.HireDate)),
             jobTitle: WorkerFieldReader.GetValue(worker, WorkerFieldPaths.JobTitle),
-            department: WorkerFieldReader.GetValue(worker, WorkerFieldPaths.Department),
+            department: ResolveDepartment(worker, departmentOrganizationTypeId),
             officeLocation: WorkerFieldReader.GetValue(worker, WorkerFieldPaths.OfficeLocation),
             managerEmployeeNumber: managerKey,
             isActive: isActive,
             employeeType: employeeType);
+    }
+
+    /// <summary>
+    /// Reads the worker's department from the supplied <c>Organization_Type_ID</c>. Returns null
+    /// when the admin opted out (null/whitespace type ID) or when the worker isn't in any org of
+    /// that type. The XPath filter is built from the type ID rather than hard-coded so a customer
+    /// whose dept lives under <c>COST_CENTER</c> or a tenant-custom type works the same as the
+    /// default <c>SUPERVISORY</c> path.
+    /// </summary>
+    private static string? ResolveDepartment(XElement worker, string? departmentOrganizationTypeId)
+    {
+        if (string.IsNullOrWhiteSpace(departmentOrganizationTypeId)) return null;
+
+        // Type ID safety: Workday IDs are alphanumeric + underscore + hyphen + digits per the
+        // platform's identifier rules. Reject anything else before interpolating to defuse the
+        // XPath-injection risk. If a tenant uses a value outside this character set, the admin
+        // has bigger problems than our sync — we surface null and they can pick a different type.
+        if (!IsSafeOrgTypeId(departmentOrganizationTypeId)) return null;
+
+        // Match the Microsoft Entra connector's published XPath shape — filter Worker_Organization_Data
+        // by Organization_Type_ID and read Organization_Name from the matched node.
+        var xpath = $"wd:Worker_Data/wd:Organization_Data/wd:Worker_Organization_Data[wd:Organization_Data/wd:Organization_Type_Reference/wd:ID[@wd:type='Organization_Type_ID']='{departmentOrganizationTypeId}']/wd:Organization_Data/wd:Organization_Name";
+        return WorkerFieldReader.GetValue(worker, xpath);
+    }
+
+    /// <summary>
+    /// Whitelist of characters allowed in a Workday Organization_Type_ID. Standard system types
+    /// are uppercase + underscore (SUPERVISORY, COST_CENTER, BUSINESS_UNIT). Tenant-custom types
+    /// follow patterns like ORGANIZATION_TYPE-3-55 — letters, digits, underscores, and hyphens.
+    /// </summary>
+    private static bool IsSafeOrgTypeId(string value)
+    {
+        foreach (var ch in value)
+        {
+            if (!char.IsLetterOrDigit(ch) && ch is not ('_' or '-'))
+                return false;
+        }
+        return true;
     }
 
     private static Instant? ParseWorkdayDate(string? value)

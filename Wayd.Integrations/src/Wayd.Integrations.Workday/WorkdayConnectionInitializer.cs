@@ -1,4 +1,5 @@
-using System.Net.Mail;
+﻿using System.Net.Mail;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
@@ -15,6 +16,15 @@ namespace Wayd.Integrations.Workday;
 public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
 {
     private const int ProbeSampleSize = 10;
+    // Workday caps Get_Organizations at 999/page. We use the max because a single round-trip is
+    // cheaper than paging — but we still paginate up to OrgCatalogPageCap pages because Workday
+    // returns orgs in no particular type order, so a tenant with thousands of supervisory orgs
+    // can hide Cost_Center / Company / custom types on page 2+.
+    private const int OrgCatalogPageSize = 999;
+    // Safety cap on pages walked during catalog discovery. At 999/page, 50 pages = ~50k orgs —
+    // far past any tenant we've seen. Beyond this we log and stop rather than chasing a runaway
+    // response (could happen if a tenant returns a misconfigured Total_Pages or pagination loop).
+    private const int OrgCatalogPageCap = 50;
 
     private readonly WorkdayStaffingClient _client;
     private readonly ILogger<WorkdayConnectionInitializer> _logger;
@@ -66,7 +76,14 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
                     missing.Add(label);
             }
 
-            var warnings = BuildWarnings(workers, credentials.UseUserIdAsEmailFallback);
+            var warnings = BuildWarnings(workers, credentials.UseUserIdAsEmailFallback, credentials.DepartmentOrganizationTypeId);
+
+            // Discover the tenant's org-type catalog so the admin can pick which type drives
+            // Department. Failure here is non-fatal: a customer whose ISU isn't granted
+            // Organization read can still sync workers; they just lose the Department picker.
+            var (discoveredOrgTypes, orgCatalogWarning) = await TryDiscoverOrgTypes(credentials, cancellationToken);
+            if (orgCatalogWarning is not null)
+                warnings = [.. warnings, orgCatalogWarning];
 
             var isValid = missing.Count == 0;
             return new ConnectionInitResult(
@@ -74,7 +91,8 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
                 WorkersProbed: workers.Count,
                 MissingRequiredFields: missing,
                 Warnings: warnings,
-                AuthError: null);
+                AuthError: null,
+                DiscoveredOrgTypes: discoveredOrgTypes);
         }
         catch (WorkdaySoapException ex) when (ex.IsAuthFailure)
         {
@@ -117,6 +135,84 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
         }
     }
 
+    /// <summary>
+    /// Calls <c>Get_Organizations</c> and groups every org by its <c>Organization_Type_ID</c>.
+    /// Returns the catalog plus an optional warning when the call failed (typically an ISSG gap on
+    /// the Workday domain "Organizations and Roles: View"). A failure here is intentionally soft —
+    /// it doesn't fail the probe, but the admin won't get a Department dropdown.
+    /// </summary>
+    private async Task<(IReadOnlyList<DiscoveredOrgType> catalog, string? warning)> TryDiscoverOrgTypes(
+        WorkdayConnectionCredentials credentials,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Each org carries an Organization_Type_Reference. The Descriptor attribute is the
+            // human-friendly label ("Supervisory Organization"); the inner ID[@type='Organization_Type_ID']
+            // is the stable code ("SUPERVISORY"). We collect across pages and group by the stable
+            // code, since Workday returns orgs in no particular type order — a big tenant can have
+            // 90+ supervisory orgs filling page 1, hiding Cost_Center / Company / custom types
+            // on later pages.
+            var allEntries = new List<(string TypeId, string? Descriptor)>();
+            var page = 1;
+            int totalPages;
+            do
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var response = await _client.GetOrganizations(credentials, page, OrgCatalogPageSize, cancellationToken);
+                totalPages = response.TotalPages;
+
+                foreach (var org in response.Organizations)
+                {
+                    var typeId = WorkerFieldReader.GetValue(org, OrgTypeIdXPath);
+                    if (string.IsNullOrWhiteSpace(typeId)) continue;
+                    var descriptor = WorkerFieldReader.GetAttributeValue(org, "Descriptor", OrgTypeReferenceXPath);
+                    allEntries.Add((typeId, descriptor));
+                }
+
+                page++;
+            }
+            while (page <= totalPages && page <= OrgCatalogPageCap);
+
+            if (totalPages > OrgCatalogPageCap)
+            {
+                _logger.LogWarning(
+                    "Workday Get_Organizations returned {TotalPages} pages; catalog discovery stopped at the {Cap}-page safety cap. The picker may be missing rare org types from later pages.",
+                    totalPages, OrgCatalogPageCap);
+            }
+
+            var grouped = allEntries
+                .GroupBy(x => x.TypeId, StringComparer.Ordinal)
+                .Select(g => new DiscoveredOrgType(
+                    TypeId: g.Key,
+                    DisplayName: g.Select(x => x.Descriptor).FirstOrDefault(d => !string.IsNullOrWhiteSpace(d)),
+                    Count: g.Count()))
+                .OrderBy(o => o.TypeId, StringComparer.Ordinal)
+                .ToList();
+
+            return (grouped, null);
+        }
+        catch (WorkdaySoapException ex)
+        {
+            _logger.LogWarning(ex, "Workday Get_Organizations failed; org-type catalog will not be available.");
+            return ([], $"Couldn't load the org-type catalog: {ex.Message}. The Department picker will be unavailable until this is resolved (often a grant on the Workday 'Organizations and Roles' domain).");
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Workday Get_Organizations failed; org-type catalog will not be available.");
+            return ([], $"Couldn't reach Workday to load the org-type catalog: {ex.Message}.");
+        }
+    }
+
+    // XPath catalog for Get_Organizations response parsing. Lives here rather than in
+    // WorkerFieldPaths because these target the Organization shape, not Worker.
+    private const string OrgTypeReferenceXPath = "wd:Organization_Data/wd:Organization_Type_Reference";
+    private const string OrgTypeIdXPath = OrgTypeReferenceXPath + "/wd:ID[@wd:type='Organization_Type_ID']";
+
+    // Same character whitelist enforced in WorkdayStaffingService.IsSafeOrgTypeId — used here to
+    // defuse XPath-injection in the warnings check. Letters / digits / underscore / hyphen.
+    private static readonly Regex SafeOrgTypeIdRegex = new(@"^[A-Za-z0-9_\-]+$", RegexOptions.Compiled);
+
     // The probe's "Work Email" check is special-cased because the User_ID fallback may stand in
     // for a missing Contact_Data email. We refer to it by label rather than identity so the
     // missing-fields report also stays in sync with whatever the customer reads on the UI.
@@ -141,15 +237,15 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
         return checks;
     }
 
-    private static IReadOnlyList<string> BuildWarnings(IReadOnlyList<XElement> workers, bool useUserIdAsEmailFallback)
+    private static IReadOnlyList<string> BuildWarnings(IReadOnlyList<XElement> workers, bool useUserIdAsEmailFallback, string? departmentOrganizationTypeId)
     {
         var warnings = new List<string>();
 
         // Optional fields where "no one has it across 10 workers" is suspicious enough to flag.
+        // Department is checked separately because its XPath depends on the configured type ID.
         var optional = new (string Label, string[] Candidates)[]
         {
             ("Job Title",      WorkerFieldPaths.JobTitle),
-            ("Department",     WorkerFieldPaths.Department),
             ("Manager",        WorkerFieldPaths.ManagerWorkerWid),
         };
 
@@ -158,6 +254,17 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
             var anyHas = workers.Any(w => WorkerFieldReader.HasElement(w, candidates));
             if (!anyHas)
                 warnings.Add($"None of the sampled workers had a {label}. Sync will treat this field as null for all employees.");
+        }
+
+        // Department check uses the admin's configured Organization_Type_ID. Skip the warning
+        // entirely when the admin opted out (null type ID) — there's no expectation of a value.
+        if (!string.IsNullOrWhiteSpace(departmentOrganizationTypeId)
+            && SafeOrgTypeIdRegex.IsMatch(departmentOrganizationTypeId))
+        {
+            var deptXPath = $"wd:Worker_Data/wd:Organization_Data/wd:Worker_Organization_Data[wd:Organization_Data/wd:Organization_Type_Reference/wd:ID[@wd:type='Organization_Type_ID']='{departmentOrganizationTypeId}']/wd:Organization_Data/wd:Organization_Name";
+            var anyHasDept = workers.Any(w => WorkerFieldReader.HasElement(w, deptXPath));
+            if (!anyHasDept)
+                warnings.Add($"None of the sampled workers had a Department under Organization_Type_ID='{departmentOrganizationTypeId}'. Pick a different type from the discovered catalog or leave it unset to skip Department sync.");
         }
 
         // If the fallback is on AND Contact_Data is genuinely absent on every worker, surface that

@@ -44,8 +44,16 @@ public sealed record CreateWorkdayConnectionRequest : CreateConnectionRequest
     /// </summary>
     public bool NormalizeNameCasing { get; set; } = true;
 
+    /// <summary>
+    /// Workday <c>Organization_Type_ID</c> that drives <c>Employee.Department</c>. Defaults to
+    /// <c>SUPERVISORY</c> (Workday's universal reporting-hierarchy type). After the first init
+    /// probe, admins can pick from the discovered catalog (e.g. <c>COST_CENTER</c>,
+    /// <c>BUSINESS_UNIT</c>, tenant-custom types). Set to null to skip Department sync.
+    /// </summary>
+    public string? DepartmentOrganizationTypeId { get; set; } = "SUPERVISORY";
+
     public CreateWorkdayConnectionCommand ToCommand()
-        => new(Name, Description, WsdlUrl, IsuUsername, IsuPassword, WorkerKey, IncludeInactive, MatchBy, UseUserIdAsEmailFallback, UsePreferredName, NormalizeNameCasing);
+        => new(Name, Description, WsdlUrl, IsuUsername, IsuPassword, WorkerKey, IncludeInactive, MatchBy, UseUserIdAsEmailFallback, UsePreferredName, NormalizeNameCasing, DepartmentOrganizationTypeId);
 }
 
 public sealed class CreateWorkdayConnectionRequestValidator : CustomValidator<CreateWorkdayConnectionRequest>

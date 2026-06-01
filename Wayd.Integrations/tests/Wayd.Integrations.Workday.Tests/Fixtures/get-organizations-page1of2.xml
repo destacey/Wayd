@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/" xmlns:wd="urn:com.workday/bsvc">
+  <env:Body>
+    <wd:Get_Organizations_Response wd:version="v46.1">
+      <wd:Response_Results>
+        <wd:Total_Results>3</wd:Total_Results>
+        <wd:Total_Pages>2</wd:Total_Pages>
+        <wd:Page_Results>2</wd:Page_Results>
+        <wd:Page>1</wd:Page>
+      </wd:Response_Results>
+      <wd:Response_Data>
+        <!-- Page 1: only SUPERVISORY entries. A big tenant could fill the entire page with these. -->
+        <wd:Organization>
+          <wd:Organization_Reference wd:Descriptor="Engineering">
+            <wd:ID wd:type="WID">org-aaaa-1001</wd:ID>
+          </wd:Organization_Reference>
+          <wd:Organization_Data>
+            <wd:Organization_Type_Reference wd:Descriptor="Supervisory Organization">
+              <wd:ID wd:type="Organization_Type_ID">SUPERVISORY</wd:ID>
+            </wd:Organization_Type_Reference>
+          </wd:Organization_Data>
+        </wd:Organization>
+        <wd:Organization>
+          <wd:Organization_Reference wd:Descriptor="Sales">
+            <wd:ID wd:type="WID">org-aaaa-1002</wd:ID>
+          </wd:Organization_Reference>
+          <wd:Organization_Data>
+            <wd:Organization_Type_Reference wd:Descriptor="Supervisory Organization">
+              <wd:ID wd:type="Organization_Type_ID">SUPERVISORY</wd:ID>
+            </wd:Organization_Type_Reference>
+          </wd:Organization_Data>
+        </wd:Organization>
+      </wd:Response_Data>
+    </wd:Get_Organizations_Response>
+  </env:Body>
+</env:Envelope>

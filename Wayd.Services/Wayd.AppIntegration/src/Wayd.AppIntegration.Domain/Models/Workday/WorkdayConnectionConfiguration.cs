@@ -21,7 +21,8 @@ public sealed class WorkdayConnectionConfiguration
         EmployeeMatchProperty matchBy = EmployeeMatchProperty.Email,
         bool useUserIdAsEmailFallback = false,
         bool usePreferredName = false,
-        bool normalizeNameCasing = true)
+        bool normalizeNameCasing = true,
+        string? departmentOrganizationTypeId = SupervisoryOrgTypeId)
     {
         WsdlUrl = wsdlUrl.Trim();
         IsuUsername = isuUsername.Trim();
@@ -32,7 +33,8 @@ public sealed class WorkdayConnectionConfiguration
         UseUserIdAsEmailFallback = useUserIdAsEmailFallback;
         UsePreferredName = usePreferredName;
         NormalizeNameCasing = normalizeNameCasing;
-        ConfigVersion = 7;
+        DepartmentOrganizationTypeId = string.IsNullOrWhiteSpace(departmentOrganizationTypeId) ? null : departmentOrganizationTypeId.Trim();
+        ConfigVersion = 8;
 
         // Derive endpoint parts at construction so the runtime sync path doesn't reparse on every
         // call. Failed parses surface to the command handler via TryParse — the public ctor still
@@ -52,6 +54,14 @@ public sealed class WorkdayConnectionConfiguration
             SoapEndpoint = string.Empty;
         }
     }
+
+    /// <summary>
+    /// Workday's universally-present supervisory-organization type ID. The reporting hierarchy
+    /// lives under this type in every Workday tenant. We default <see cref="DepartmentOrganizationTypeId"/>
+    /// to this so new connections immediately produce a usable Department value; admins can
+    /// override after the init probe surfaces the tenant's full catalog.
+    /// </summary>
+    public const string SupervisoryOrgTypeId = "SUPERVISORY";
 
     /// <summary>
     /// The WSDL URL the admin pasted from Workday's "View API Clients" screen — e.g.
@@ -117,6 +127,23 @@ public sealed class WorkdayConnectionConfiguration
     /// </summary>
     public bool NormalizeNameCasing { get; set; }
 
+    /// <summary>
+    /// Which Workday <c>Organization_Type_ID</c> drives <c>Employee.Department</c>. Defaults to
+    /// <see cref="SupervisoryOrgTypeId"/> ("SUPERVISORY") — Workday's universal reporting-hierarchy
+    /// type. Admins can change it to <c>COST_CENTER</c>, <c>BUSINESS_UNIT</c>, a tenant-custom
+    /// type ID, or null (don't sync Department at all). The init probe populates
+    /// <see cref="DiscoveredOrgTypes"/> with the catalog of valid values for this tenant.
+    /// </summary>
+    public string? DepartmentOrganizationTypeId { get; set; }
+
+    /// <summary>
+    /// Catalogue of organization types present in the customer's tenant, populated by the most
+    /// recent successful init probe via <c>Get_Organizations</c>. Drives the admin-facing dropdown
+    /// for <see cref="DepartmentOrganizationTypeId"/>. Counts let the admin see at a glance which
+    /// types are populated vs empty.
+    /// </summary>
+    public List<WorkdayOrgType>? DiscoveredOrgTypes { get; set; }
+
     public int ConfigVersion { get; init; }
 
     // --- Init / probe result (populated by IWorkdayConnectionInitializer, persisted with config) ---
@@ -178,3 +205,12 @@ public readonly record struct WorkdayWsdlUrlParts(
     string TenantAlias,
     string WsdlVersion,
     string SoapEndpoint);
+
+/// <summary>
+/// One entry in the org-type catalog discovered by the init probe.
+/// <see cref="TypeId"/> is the Workday <c>Organization_Type_ID</c> (e.g. "SUPERVISORY", "COST_CENTER",
+/// or a tenant-custom ID like "ORGANIZATION_TYPE-3-55"). <see cref="DisplayName"/> is the human-
+/// friendly descriptor (e.g. "Supervisory Organization"). <see cref="Count"/> is how many orgs of
+/// this type the probe saw — useful as a "this type has data" signal in the admin dropdown.
+/// </summary>
+public sealed record WorkdayOrgType(string TypeId, string? DisplayName, int Count);

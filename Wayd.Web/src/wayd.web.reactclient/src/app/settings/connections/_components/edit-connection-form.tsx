@@ -61,6 +61,7 @@ interface EditConnectionFormValues {
   useUserIdAsEmailFallback?: boolean | null
   usePreferredName?: boolean | null
   normalizeNameCasing?: boolean | null
+  departmentOrganizationTypeId?: string | null
   // PeopleSync (Entra + Workday)
   matchBy?: EmployeeMatchProperty | null
 }
@@ -141,6 +142,8 @@ const buildRequest = (
         useUserIdAsEmailFallback: values.useUserIdAsEmailFallback ?? false,
         usePreferredName: values.usePreferredName ?? false,
         normalizeNameCasing: values.normalizeNameCasing ?? true,
+        departmentOrganizationTypeId:
+          values.departmentOrganizationTypeId?.trim() || undefined,
       } as UpdateWorkdayConnectionRequest
     default:
       return null
@@ -200,6 +203,8 @@ const seedFormValues = (
           c.configuration?.useUserIdAsEmailFallback ?? false,
         usePreferredName: c.configuration?.usePreferredName ?? false,
         normalizeNameCasing: c.configuration?.normalizeNameCasing ?? true,
+        departmentOrganizationTypeId:
+          c.configuration?.departmentOrganizationTypeId ?? '',
       }
     }
     default:
@@ -294,6 +299,7 @@ const EditConnectionForm = ({
           connector={connectorType}
           mode="edit"
           form={form}
+          connection={connection}
         />
       </Form>
     </Modal>

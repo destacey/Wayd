@@ -90,11 +90,11 @@ internal static class WorkerFieldPaths
         "wd:Worker_Data/wd:Employment_Data/wd:Worker_Job_Data/wd:Position_Data/wd:Job_Title",
     ];
 
-    public static readonly string[] Department =
-    [
-        "wd:Worker_Data/wd:Organization_Data/wd:Worker_Organization_Data[wd:Organization_Data/wd:Organization_Type_Reference/wd:ID[@wd:type='Organization_Type_ID']='Department']/wd:Organization_Reference/wd:Descriptor",
-        "wd:Worker_Data/wd:Employment_Data/wd:Worker_Job_Data/wd:Position_Data/wd:Position_Organizations_Reference/wd:Descriptor",
-    ];
+    // Department is resolved dynamically in WorkdayStaffingService.ResolveDepartment using the
+    // admin-configured Organization_Type_ID. The init probe populates the catalog of valid type
+    // IDs via Get_Organizations, so admins can pick SUPERVISORY (the default), COST_CENTER,
+    // BUSINESS_UNIT, or a tenant-custom type. There's no static XPath here because the filter
+    // value is per-connection rather than a single canonical Workday element.
 
     public static readonly string[] OfficeLocation =
     [

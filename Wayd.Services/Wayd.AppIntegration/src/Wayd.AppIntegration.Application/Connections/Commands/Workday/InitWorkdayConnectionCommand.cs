@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 
 namespace Wayd.AppIntegration.Application.Connections.Commands.Workday;
@@ -40,7 +41,8 @@ internal sealed class InitWorkdayConnectionCommandHandler(
                 IncrementalUpdatedFrom: null,
                 UseUserIdAsEmailFallback: connection.Configuration.UseUserIdAsEmailFallback,
                 UsePreferredName: connection.Configuration.UsePreferredName,
-                NormalizeNameCasing: connection.Configuration.NormalizeNameCasing);
+                NormalizeNameCasing: connection.Configuration.NormalizeNameCasing,
+                DepartmentOrganizationTypeId: connection.Configuration.DepartmentOrganizationTypeId);
 
             var result = await _initializer.Initialize(credentials, cancellationToken);
 
@@ -49,6 +51,7 @@ internal sealed class InitWorkdayConnectionCommandHandler(
                 result.MissingRequiredFields,
                 result.Warnings,
                 result.AuthError,
+                result.DiscoveredOrgTypes?.Select(d => new WorkdayOrgType(d.TypeId, d.DisplayName, d.Count)).ToList(),
                 DateTimeOffset.UtcNow);
 
             await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);

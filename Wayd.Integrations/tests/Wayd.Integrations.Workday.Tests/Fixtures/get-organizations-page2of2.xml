@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/" xmlns:wd="urn:com.workday/bsvc">
+  <env:Body>
+    <wd:Get_Organizations_Response wd:version="v46.1">
+      <wd:Response_Results>
+        <wd:Total_Results>3</wd:Total_Results>
+        <wd:Total_Pages>2</wd:Total_Pages>
+        <wd:Page_Results>1</wd:Page_Results>
+        <wd:Page>2</wd:Page>
+      </wd:Response_Results>
+      <wd:Response_Data>
+        <!-- Page 2: a COST_CENTER entry that page 1 didn't have. Without pagination this would
+             be invisible to the catalog and the admin couldn't pick it as a Department source. -->
+        <wd:Organization>
+          <wd:Organization_Reference wd:Descriptor="Cost Center: Finance">
+            <wd:ID wd:type="WID">org-aaaa-1003</wd:ID>
+          </wd:Organization_Reference>
+          <wd:Organization_Data>
+            <wd:Organization_Type_Reference wd:Descriptor="Cost Center">
+              <wd:ID wd:type="Organization_Type_ID">COST_CENTER</wd:ID>
+            </wd:Organization_Type_Reference>
+          </wd:Organization_Data>
+        </wd:Organization>
+      </wd:Response_Data>
+    </wd:Get_Organizations_Response>
+  </env:Body>
+</env:Envelope>

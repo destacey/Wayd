@@ -41,8 +41,14 @@ public sealed record UpdateWorkdayConnectionRequest : UpdateConnectionRequest
     /// </summary>
     public bool NormalizeNameCasing { get; set; } = true;
 
+    /// <summary>
+    /// Workday <c>Organization_Type_ID</c> that drives <c>Employee.Department</c>. Pick from the
+    /// discovered catalog on the connection (populated by the init probe), or null to skip.
+    /// </summary>
+    public string? DepartmentOrganizationTypeId { get; set; }
+
     public UpdateWorkdayConnectionCommand ToCommand()
-        => new(Id, Name, Description, WsdlUrl, IsuUsername, IsuPassword, WorkerKey, IncludeInactive, MatchBy, UseUserIdAsEmailFallback, UsePreferredName, NormalizeNameCasing);
+        => new(Id, Name, Description, WsdlUrl, IsuUsername, IsuPassword, WorkerKey, IncludeInactive, MatchBy, UseUserIdAsEmailFallback, UsePreferredName, NormalizeNameCasing, DepartmentOrganizationTypeId);
 }
 
 public sealed class UpdateWorkdayConnectionRequestValidator : CustomValidator<UpdateWorkdayConnectionRequest>

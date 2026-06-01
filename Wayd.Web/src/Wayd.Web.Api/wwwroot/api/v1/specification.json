@@ -35167,6 +35167,17 @@
           "normalizeNameCasing": {
             "type": "boolean"
           },
+          "departmentOrganizationTypeId": {
+            "type": "string",
+            "nullable": true
+          },
+          "discoveredOrgTypes": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/WorkdayOrgTypeDto"
+            }
+          },
           "lastInitAt": {
             "type": "string",
             "format": "date-time",
@@ -35206,6 +35217,27 @@
           "Wid",
           "EmployeeId"
         ]
+      },
+      "WorkdayOrgTypeDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "typeId",
+          "count"
+        ],
+        "properties": {
+          "typeId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
       },
       "CreateConnectionRequest": {
         "type": "object",
@@ -35407,6 +35439,11 @@
               "normalizeNameCasing": {
                 "type": "boolean",
                 "description": "When true, names that come back from Workday in all-caps are title-cased before storage\n(mixed-case input is preserved). Default true — most HRIS sources emit upper-cased legal\nnames that look inconsistent next to manually-entered records."
+              },
+              "departmentOrganizationTypeId": {
+                "type": "string",
+                "description": "Workday Organization_Type_ID that drives Employee.Department. Defaults to\nSUPERVISORY (Workday's universal reporting-hierarchy type). After the first init\nprobe, admins can pick from the discovered catalog (e.g. COST_CENTER,\nBUSINESS_UNIT, tenant-custom types). Set to null to skip Department sync.",
+                "nullable": true
               }
             }
           }
@@ -35621,6 +35658,11 @@
               "normalizeNameCasing": {
                 "type": "boolean",
                 "description": "When true, names that come back from Workday in all-caps are title-cased before storage.\nMixed-case input is preserved. Default true."
+              },
+              "departmentOrganizationTypeId": {
+                "type": "string",
+                "description": "Workday Organization_Type_ID that drives Employee.Department. Pick from the\ndiscovered catalog on the connection (populated by the init probe), or null to skip.",
+                "nullable": true
               }
             }
           }
@@ -35670,6 +35712,34 @@
           "authError": {
             "type": "string",
             "nullable": true
+          },
+          "discoveredOrgTypes": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/DiscoveredOrgType"
+            }
+          }
+        }
+      },
+      "DiscoveredOrgType": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "typeId",
+          "count"
+        ],
+        "properties": {
+          "typeId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

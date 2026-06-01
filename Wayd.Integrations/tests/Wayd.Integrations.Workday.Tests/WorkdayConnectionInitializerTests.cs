@@ -36,11 +36,21 @@ public class WorkdayConnectionInitializerTests
         return (initializer, handler);
     }
 
+    /// <summary>
+    /// The probe issues Get_Workers followed by Get_Organizations. Most existing tests are only
+    /// asserting the worker-probe outcome but the second call still happens, so we always enqueue a
+    /// minimal org catalog. Tests that explicitly want to assert the catalog can use the same
+    /// helper; tests that want to assert Get_Organizations failure can enqueue a fault instead.
+    /// </summary>
+    private static void EnqueueOrgCatalog(FakeHttpMessageHandler handler)
+        => handler.EnqueueXml(File.ReadAllText("Fixtures/get-organizations-catalog.xml"));
+
     [Fact]
     public async Task Initialize_healthyTenant_returnsValid()
     {
         var (initializer, handler) = BuildInitializer();
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
+        EnqueueOrgCatalog(handler);
 
         var result = await initializer.Initialize(BuildCredentials(), CancellationToken.None);
 
@@ -55,6 +65,7 @@ public class WorkdayConnectionInitializerTests
     {
         var (initializer, handler) = BuildInitializer();
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-missing-email.xml"));
+        EnqueueOrgCatalog(handler);
 
         var result = await initializer.Initialize(BuildCredentials(), CancellationToken.None);
 
@@ -87,6 +98,7 @@ public class WorkdayConnectionInitializerTests
         // selects Employee_ID as the upsert key, the initializer should flag it as missing in
         // addition to Work Email.
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-missing-email.xml"));
+        EnqueueOrgCatalog(handler);
 
         var result = await initializer.Initialize(BuildCredentials(WorkdayWorkerKey.EmployeeId), CancellationToken.None);
 
@@ -101,6 +113,7 @@ public class WorkdayConnectionInitializerTests
         // No Contact_Data at all, but every worker has an email-shaped User_ID. With the fallback
         // toggle on, the probe should consider Work Email satisfied.
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-userid-email.xml"));
+        EnqueueOrgCatalog(handler);
 
         var result = await initializer.Initialize(
             BuildCredentials(useUserIdAsEmailFallback: true),
@@ -117,6 +130,7 @@ public class WorkdayConnectionInitializerTests
         var (initializer, handler) = BuildInitializer();
         // Same fixture, but the toggle is off, so User_ID doesn't count and Work Email is missing.
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-userid-email.xml"));
+        EnqueueOrgCatalog(handler);
 
         var result = await initializer.Initialize(
             BuildCredentials(useUserIdAsEmailFallback: false),
@@ -134,6 +148,7 @@ public class WorkdayConnectionInitializerTests
         // with the fallback on, the probe should still surface Work Email as missing because
         // the fallback only accepts values that parse as email addresses.
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-userid-not-email.xml"));
+        EnqueueOrgCatalog(handler);
 
         var result = await initializer.Initialize(
             BuildCredentials(useUserIdAsEmailFallback: true),
@@ -141,5 +156,63 @@ public class WorkdayConnectionInitializerTests
 
         result.IsValid.Should().BeFalse();
         result.MissingRequiredFields.Should().Contain(s => s.StartsWith("Work Email"));
+    }
+
+    [Fact]
+    public async Task Initialize_orgTypeCatalog_discoversAndGroupsByTypeId()
+    {
+        // The catalog fixture has 4 orgs across 3 types: two SUPERVISORY, one COST_CENTER, one
+        // BUSINESS_UNIT. The probe should group them and surface counts so the admin can pick a
+        // type that actually has data.
+        var (initializer, handler) = BuildInitializer();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
+        EnqueueOrgCatalog(handler);
+
+        var result = await initializer.Initialize(BuildCredentials(), CancellationToken.None);
+
+        result.DiscoveredOrgTypes.Should().NotBeNull();
+        result.DiscoveredOrgTypes!.Should().HaveCount(3);
+        result.DiscoveredOrgTypes!.Should().ContainSingle(o => o.TypeId == "SUPERVISORY" && o.Count == 2);
+        result.DiscoveredOrgTypes!.Should().ContainSingle(o => o.TypeId == "COST_CENTER" && o.Count == 1);
+        result.DiscoveredOrgTypes!.Should().ContainSingle(o => o.TypeId == "BUSINESS_UNIT" && o.Count == 1);
+        // DisplayName comes from the Descriptor attribute on Organization_Type_Reference.
+        result.DiscoveredOrgTypes!.Single(o => o.TypeId == "SUPERVISORY").DisplayName.Should().Be("Supervisory Organization");
+    }
+
+    [Fact]
+    public async Task Initialize_orgTypeCatalog_walksAllPagesAndMergesTypes()
+    {
+        // A big tenant can fill page 1 with hundreds of supervisory orgs, hiding less-common types
+        // like COST_CENTER on page 2+. The probe must paginate until Total_Pages so the picker
+        // surfaces every type the tenant has. This test pins that behavior with a two-page response.
+        var (initializer, handler) = BuildInitializer();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-organizations-page1of2.xml"));
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-organizations-page2of2.xml"));
+
+        var result = await initializer.Initialize(BuildCredentials(), CancellationToken.None);
+
+        result.DiscoveredOrgTypes.Should().NotBeNull();
+        result.DiscoveredOrgTypes!.Should().HaveCount(2);
+        result.DiscoveredOrgTypes!.Should().ContainSingle(o => o.TypeId == "SUPERVISORY" && o.Count == 2);
+        result.DiscoveredOrgTypes!.Should().ContainSingle(o => o.TypeId == "COST_CENTER" && o.Count == 1);
+    }
+
+    [Fact]
+    public async Task Initialize_orgCatalogFailure_doesNotFailProbeButWarns()
+    {
+        // If the ISU isn't granted the Organizations-and-Roles domain, Get_Organizations 500s.
+        // The probe should still succeed (workers are unaffected) but the catalog comes back empty
+        // and a warning surfaces so admins see why their Department picker is empty.
+        var (initializer, handler) = BuildInitializer();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
+        // Reuse the auth-fault envelope as a generic SOAP failure — the parser doesn't distinguish.
+        handler.EnqueueFault(File.ReadAllText("Fixtures/auth-fault.xml"));
+
+        var result = await initializer.Initialize(BuildCredentials(), CancellationToken.None);
+
+        result.IsValid.Should().BeTrue();
+        result.DiscoveredOrgTypes.Should().BeEmpty();
+        result.Warnings.Should().Contain(w => w.Contains("org-type catalog"));
     }
 }

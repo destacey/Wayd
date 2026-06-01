@@ -18,7 +18,8 @@ public sealed record UpdateWorkdayConnectionCommand(
     EmployeeMatchProperty MatchBy,
     bool UseUserIdAsEmailFallback,
     bool UsePreferredName,
-    bool NormalizeNameCasing) : ICommand<Guid>;
+    bool NormalizeNameCasing,
+    string? DepartmentOrganizationTypeId) : ICommand<Guid>;
 
 public sealed class UpdateWorkdayConnectionCommandValidator : CustomValidator<UpdateWorkdayConnectionCommand>
 {
@@ -86,6 +87,7 @@ internal sealed class UpdateWorkdayConnectionCommandHandler(
                 request.UseUserIdAsEmailFallback,
                 request.UsePreferredName,
                 request.NormalizeNameCasing,
+                request.DepartmentOrganizationTypeId,
                 configurationIsValid: false,
                 _dateTimeProvider.Now);
 
@@ -125,7 +127,8 @@ internal sealed class UpdateWorkdayConnectionCommandHandler(
             IncrementalUpdatedFrom: null,
             UseUserIdAsEmailFallback: connection.Configuration.UseUserIdAsEmailFallback,
             UsePreferredName: connection.Configuration.UsePreferredName,
-            NormalizeNameCasing: connection.Configuration.NormalizeNameCasing);
+            NormalizeNameCasing: connection.Configuration.NormalizeNameCasing,
+            DepartmentOrganizationTypeId: connection.Configuration.DepartmentOrganizationTypeId);
 
         var result = await _initializer.Initialize(credentials, cancellationToken);
         connection.RecordInitResult(
@@ -133,6 +136,7 @@ internal sealed class UpdateWorkdayConnectionCommandHandler(
             result.MissingRequiredFields,
             result.Warnings,
             result.AuthError,
+            result.DiscoveredOrgTypes?.Select(d => new WorkdayOrgType(d.TypeId, d.DisplayName, d.Count)).ToList(),
             DateTimeOffset.UtcNow);
     }
 }

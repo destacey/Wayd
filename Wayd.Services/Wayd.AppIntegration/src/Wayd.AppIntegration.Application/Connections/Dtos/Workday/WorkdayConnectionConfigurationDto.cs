@@ -51,6 +51,18 @@ public sealed record WorkdayConnectionConfigurationDto : IMapFrom<WorkdayConnect
     /// </summary>
     public bool NormalizeNameCasing { get; set; }
 
+    /// <summary>
+    /// Workday <c>Organization_Type_ID</c> that drives <c>Employee.Department</c>. Null means the
+    /// admin opted out of Department sync.
+    /// </summary>
+    public string? DepartmentOrganizationTypeId { get; set; }
+
+    /// <summary>
+    /// Catalogue of org-types discovered during the most recent init probe. Drives the
+    /// admin-facing dropdown for <see cref="DepartmentOrganizationTypeId"/>.
+    /// </summary>
+    public List<WorkdayOrgTypeDto>? DiscoveredOrgTypes { get; set; }
+
     // --- Init / probe result ---
 
     /// <summary>UTC timestamp of the most recent init probe.</summary>
@@ -75,3 +87,6 @@ public sealed record WorkdayConnectionConfigurationDto : IMapFrom<WorkdayConnect
             IsuPassword = string.Concat(IsuPassword.AsSpan(0, 4), new string('*', IsuPassword.Length - 4));
     }
 }
+
+/// <summary>One entry in the org-type catalog discovered by the init probe.</summary>
+public sealed record WorkdayOrgTypeDto(string TypeId, string? DisplayName, int Count) : IMapFrom<WorkdayOrgType>;

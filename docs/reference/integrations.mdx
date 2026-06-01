@@ -99,6 +99,7 @@ The Entra connection (tenant ID, client ID, client secret) is created and manage
 - Admin-selectable `MatchBy` (Email or EmployeeNumber) for cross-source identity continuity
 - Admin-selectable "Use Preferred Name" — reads `Preferred_Name_Data` in preference to `Legal_Name_Data`, falling back to legal per-component when a preferred component is missing. Default off
 - Admin-selectable "Normalize Name Casing" — title-cases names that come back from Workday in all-caps (HRIS compliance convention), handling Mc/Mac inner-capitals, apostrophes (O', D'), hyphens, and Unicode characters correctly. Mixed-case input is preserved untouched. Default on
+- Admin-selectable "Department Source (Organization_Type_ID)" — controls which Workday org-type drives `Employee.Department`. The init probe calls `Get_Organizations` and persists the discovered catalog so admins can pick `SUPERVISORY` (default — Workday's universal reporting hierarchy), `COST_CENTER`, `BUSINESS_UNIT`, a tenant-custom type, or leave blank to skip Department sync. Changing this setting takes effect on the next sync; admins can click "Full Sync" to immediately re-project existing employees with the new mapping
 - Init "probe" on save / "Test Connection" that detects ISU permission gaps before sync runs
 - Upsert into Wayd `Employee` records, preserving manager hierarchy from `Management_Chain_Data`
 

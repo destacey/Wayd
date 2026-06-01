@@ -1,13 +1,29 @@
 import {
   EmployeeMatchProperty,
+  WorkdayConnectionDetailsDto,
   WorkdayWorkerKey,
 } from '@/src/services/wayd-api'
-import { Form, Input, Radio, Switch } from 'antd'
+import { AutoComplete, Form, Input, Radio, Switch } from 'antd'
 import { ConfigSectionProps } from './azdo-configuration-section'
 
 const { Item } = Form
 
-export const WorkdayConfigurationSection: React.FC<ConfigSectionProps> = () => {
+export const WorkdayConfigurationSection: React.FC<ConfigSectionProps> = ({
+  connection,
+}) => {
+  // Pull the discovered catalog from the connection (only present on edit, only populated by a
+  // successful init probe). When empty, the AutoComplete renders with no suggestions and the
+  // admin can still type any value they know about — e.g. on Create before any probe has run.
+  const workday = connection as WorkdayConnectionDetailsDto | undefined
+  const discoveredOrgTypes = workday?.configuration?.discoveredOrgTypes ?? []
+
+  // Each option's value is the stable Workday Organization_Type_ID (what the API expects). The
+  // label shows the friendly Descriptor and the worker-count so admins can pick a type that
+  // actually has data in their tenant.
+  const orgTypeOptions = discoveredOrgTypes.map((t) => ({
+    value: t.typeId,
+    label: `${t.typeId}${t.displayName ? ` — ${t.displayName}` : ''} (${t.count} org${t.count === 1 ? '' : 's'})`,
+  }))
   return (
     <>
       <Item
@@ -109,6 +125,31 @@ export const WorkdayConfigurationSection: React.FC<ConfigSectionProps> = () => {
         extra="When enabled, names from Workday that come back in all-caps (a common HRIS convention) are title-cased before storage. Mixed-case names are preserved untouched. Handles prefixes like O', Mc, Mac, and hyphenated names correctly."
       >
         <Switch />
+      </Item>
+
+      <Item
+        label="Department Source"
+        name="departmentOrganizationTypeId"
+        initialValue="SUPERVISORY"
+        extra={
+          orgTypeOptions.length > 0
+            ? "Workday Organization_Type_ID that drives Employee.Department. Pick from the discovered catalog or type a custom type ID. Leave blank to skip Department sync."
+            : "Workday Organization_Type_ID that drives Employee.Department. Default 'SUPERVISORY' (Workday's reporting hierarchy — present in every tenant). After the first init probe runs, this field will suggest the types discovered in your tenant. Leave blank to skip Department sync."
+        }
+      >
+        <AutoComplete
+          options={orgTypeOptions}
+          placeholder="SUPERVISORY"
+          allowClear
+          // Filter the dropdown as the admin types — match on the type ID (the value).
+          // Display label includes the count for context, but search by ID keeps it predictable.
+          filterOption={(input, option) =>
+            (option?.value as string)
+              ?.toLowerCase()
+              .includes(input.toLowerCase()) ?? false
+          }
+          maxLength={128}
+        />
       </Item>
     </>
   )

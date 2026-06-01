@@ -318,7 +318,8 @@ public sealed class PeopleSyncRunner(
             IncrementalUpdatedFrom: lastSuccessfulRunAt,
             UseUserIdAsEmailFallback: entity.Configuration.UseUserIdAsEmailFallback,
             UsePreferredName: entity.Configuration.UsePreferredName,
-            NormalizeNameCasing: entity.Configuration.NormalizeNameCasing);
+            NormalizeNameCasing: entity.Configuration.NormalizeNameCasing,
+            DepartmentOrganizationTypeId: entity.Configuration.DepartmentOrganizationTypeId);
 
         return await _workdayEmployeeSource.GetEmployees(credentials, cancellationToken);
     }

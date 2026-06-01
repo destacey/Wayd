@@ -58,6 +58,35 @@
                 </wd:Position_Data>
               </wd:Worker_Job_Data>
             </wd:Employment_Data>
+            <!-- Department mapping exercises: SUPERVISORY (default) vs COST_CENTER override.
+                 Workday's Get_Workers response embeds Organization_Summary_DataType under each
+                 Worker_Organization_Data, which uses Organization_Name (not Name). -->
+            <wd:Organization_Data>
+              <wd:Worker_Organization_Data>
+                <wd:Organization_Reference wd:Descriptor="Engineering">
+                  <wd:ID wd:type="WID">org-aaaa-0001</wd:ID>
+                </wd:Organization_Reference>
+                <wd:Organization_Data>
+                  <wd:Organization_Reference_ID>SUP-ENG</wd:Organization_Reference_ID>
+                  <wd:Organization_Name>Engineering</wd:Organization_Name>
+                  <wd:Organization_Type_Reference wd:Descriptor="Supervisory Organization">
+                    <wd:ID wd:type="Organization_Type_ID">SUPERVISORY</wd:ID>
+                  </wd:Organization_Type_Reference>
+                </wd:Organization_Data>
+              </wd:Worker_Organization_Data>
+              <wd:Worker_Organization_Data>
+                <wd:Organization_Reference wd:Descriptor="Cost Center: R&amp;D">
+                  <wd:ID wd:type="WID">org-aaaa-0003</wd:ID>
+                </wd:Organization_Reference>
+                <wd:Organization_Data>
+                  <wd:Organization_Reference_ID>CC-100</wd:Organization_Reference_ID>
+                  <wd:Organization_Name>R&amp;D</wd:Organization_Name>
+                  <wd:Organization_Type_Reference wd:Descriptor="Cost Center">
+                    <wd:ID wd:type="Organization_Type_ID">COST_CENTER</wd:ID>
+                  </wd:Organization_Type_Reference>
+                </wd:Organization_Data>
+              </wd:Worker_Organization_Data>
+            </wd:Organization_Data>
             <wd:Management_Chain_Data>
               <wd:Worker_Supervisory_Management_Chain_Data>
                 <!-- Chain is ordered CEO → direct. Last entry is Alex's direct manager (Casey). -->

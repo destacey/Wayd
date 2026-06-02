@@ -1,0 +1,87 @@
+---
+title: Entra (Microsoft Graph)
+description: Sync people from Microsoft Entra ID into Wayd via Microsoft Graph.
+sidebar_position: 2
+audience: [developer, agent, admin]
+---
+
+# Entra (Microsoft Graph)
+
+`Wayd.Integrations.MicrosoftGraph` synchronizes people (employees and contingent workers) from Microsoft Entra ID into Wayd's `Employee` table. Each Entra connection talks to a single Entra tenant; multiple connections per deployment are supported (e.g. one per acquired company's tenant), but only one People Sync connection across all PeopleSync connectors may be **active** at a time — see [Cross-cutting → single-active rule](./index.mdx#only-one-people-sync-connection-may-be-active-at-a-time).
+
+- **Category:** People sync
+- **Status:** GA
+- **Auth:** Microsoft Entra App Registration (client credentials flow)
+- **Sync direction:** Entra → Wayd
+
+## Capabilities
+
+- Pull users from a single Entra tenant via Microsoft Graph
+- Optionally scope to a single Entra group (transitive members) instead of all member users
+- Optionally include disabled accounts
+- Admin-selectable "Normalize Name Casing" — title-cases names that come back from Entra in all-caps, handling Mc/Mac, apostrophes (O', D'), and hyphenated names correctly. Mixed-case input is preserved. Default on
+- Upsert into Wayd `Employee` records, preserving manager hierarchy
+- Deactivate Wayd employees not present in the latest payload. The deactivation pass treats absence from the sync result as "no longer employed"; this is safe because the [single-active People Sync rule](./index.mdx#only-one-people-sync-connection-may-be-active-at-a-time) guarantees exactly one source of truth at a time
+
+The Entra source is **full-snapshot only**; differential sync isn't supported because Microsoft Graph doesn't expose a watermark Wayd can rely on for the user collection. When the admin requests a Differential People Sync, the runner transparently falls back to a Full snapshot for Entra connections.
+
+## Setup
+
+1. In the Entra admin portal, **register an application** for Wayd. Note the **Tenant ID** and **Application (client) ID**.
+2. Under **Certificates & secrets**, create a **client secret**. Copy the value immediately — Entra only shows it once.
+3. Grant the **Application permissions** listed in [Required permissions](#required-permissions) below. Admin-consent them after granting.
+4. *(Optional)* If you want to sync only a subset of users, create or pick an Entra **group** containing those users and copy its **Object ID**.
+5. In Wayd, open **Settings → Connections** and click **Create Connection**. Pick **Entra**.
+6. Fill in:
+   - **Tenant ID** — the directory tenant ID.
+   - **Client ID** — the app registration's application ID.
+   - **Client Secret** — the value from step 2.
+   - **All Users Group Object ID** *(optional)* — the group whose transitive members to sync. Leave blank to sync every member user in the tenant.
+   - **Match Employees By** — `Email` (default; cross-source stable) or `Employee Number`.
+   - **Include Disabled Users** — default off.
+   - **Normalize Name Casing** — default on.
+7. Save. Activate the connection. The first sync runs on the next scheduled `PeopleFullSync` / `PeopleDiffSync` Hangfire job, or click **Sync Now** from the detail page.
+
+## Required permissions
+
+The Entra app registration needs the following **Application permissions** (not Delegated) on Microsoft Graph, with admin consent granted:
+
+| Permission | Why Wayd needs it |
+|---|---|
+| **User.Read.All** | Enumerate users in the tenant; read profile fields (display name, mail, manager, department, job title, etc.) |
+| **GroupMember.Read.All** | *Only required when "All Users Group Object ID" is set* — read transitive group membership to scope the sync |
+
+User.Read.All is the only mandatory grant for the default "sync everyone" mode. Adding GroupMember.Read.All is what unlocks the group-scoped filter.
+
+Wayd does not write back to Entra. There is no `User.ReadWrite` or similar elevation.
+
+## Configuration options
+
+| Option | Default | Notes |
+|---|---|---|
+| Tenant ID | — | Required. Directory tenant GUID. |
+| Client ID | — | Required. App registration's application ID. |
+| Client Secret | — | Required. Encrypted at rest. |
+| All Users Group Object ID | (blank) | Optional. Scope sync to transitive members of this group. |
+| Match Employees By | Email | Drives the `BulkUpsertEmployeesCommand` matcher. Email is cross-source stable; switch to Employee Number only if both your connectors emit the same stable identifier. |
+| Include Disabled Users | Off | When on, accounts with `accountEnabled=false` are also imported. |
+| Normalize Name Casing | On | Title-cases all-caps names; preserves mixed-case input. |
+
+## How it works
+
+1. An admin creates an **Entra Connection** in Settings → Connections, supplying tenant ID, client ID, client secret (encrypted at rest), and optionally a group object ID.
+2. The `PeopleSyncRunner` reads all active `ConnectorCategory.PeopleSync` connections and, for each, builds a per-connection `GraphServiceClient` from the stored credentials — there is no shared app-wide Graph client for sync.
+3. The `MicrosoftGraphService` source pulls users (paginated through Graph's `$skiptoken` cursor), filters out accounts missing `givenName`/`surname`, optionally applies the group-membership scope, optionally filters out disabled accounts, and returns `EntraEmployee` records.
+4. The connector-agnostic `BulkUpsertEmployeesCommand` reconciles those records against the `Employee` table. Any active employee row not matched against the payload is deactivated — safe because the [single-active People Sync rule](./index.mdx#only-one-people-sync-connection-may-be-active-at-a-time) guarantees one source of truth at a time. (The runner additionally aborts loudly if more than one active People Sync connection ever slips through, as a defense-in-depth check.)
+5. Each run is captured as a `SyncRun` row; per-run details (`employeesFetched`, `employeesUpserted`, `errors[]`) are stored as JSON and rendered in the Sync History tab.
+
+## Troubleshooting
+
+- **Sync run fails with `Authorization_RequestDenied`** — admin consent wasn't granted on User.Read.All. Have a tenant admin click **Grant admin consent** in the app registration.
+- **"No users returned"** — verify the app registration is enabled and the client secret isn't expired. If using the group filter, confirm the group has direct or transitive member users (not just service principals).
+- **Some users skipped** — Wayd skips Entra users missing `givenName` or `surname` to avoid blank `PersonName` records. Check the Sync History detail row for the count.
+- **Names look ALL CAPS in Wayd** — turn on **Normalize Name Casing** in the connection config; default is on, but if you disabled it the source casing wins.
+
+## Cross-cutting
+
+See [Integrations → Cross-cutting concerns](./index.mdx#cross-cutting-concerns) for credential encryption, activation, sync history, and the single-active People-sync rule.

@@ -394,12 +394,12 @@ internal partial class UserService
         }
         else
         {
-            var employeeId = await GetEmployeeId(principalObjectId);
+            var employeeId = await GetEmployeeIdByEmail(email);
 
             if (!employeeId.HasValue && !isFirstUser)
             {
-                _logger.LogWarning("Registration denied for user {Username} (ObjectId: {ObjectId}). No matching employee record found.",
-                    username, principalObjectId);
+                _logger.LogWarning("Registration denied for user {Username} (Email: {Email}). No matching employee record found.",
+                    username, email);
                 throw new ForbiddenException("Registration is restricted to users with an employee record in Wayd.");
             }
 
@@ -678,40 +678,35 @@ internal partial class UserService
 
     public async Task<Result> UpdateMissingEmployeeIds(CancellationToken cancellationToken)
     {
-        var users = await _userManager.Users.Where(u => !u.EmployeeId.HasValue).ToListAsync(cancellationToken);
+        var users = await _userManager.Users.Where(u => !u.EmployeeId.HasValue && !string.IsNullOrEmpty(u.Email)).ToListAsync(cancellationToken);
+        if (users.Count == 0)
+            return Result.Success();
 
-        if (users.Count != 0)
+        // Email is the cross-source-stable User↔Employee link key. The active PeopleSync
+        // connector owns Employee.Email; the user's email is set by registration and updated by
+        // SyncUsersFromEmployeeRecords. Case-insensitive match.
+        var employees = await _db.Employees
+            .Where(e => !e.IsDeleted)
+            .Select(e => new { e.Id, Email = e.Email.Value })
+            .ToListAsync(cancellationToken);
+        var employeeIdByEmail = employees
+            .GroupBy(e => e.Email, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Last().Id, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var user in users)
         {
-            var employees = await _sender.Send(new GetEmployeeNumberMapQuery(), cancellationToken);
-            // External employee records are keyed by the Entra oid, which lives in
-            // the user's active MicrosoftEntraId UserIdentity row.
-            var entraSubjectsByUserId = await _userIdentityStore.GetActiveSubjectsByProvider(LoginProviders.MicrosoftEntraId, cancellationToken);
-            // Pre-index by EmployeeNumber so per-user lookup is O(1) instead of scanning
-            // the full employees list for every user. Last-wins on duplicate numbers —
-            // matches the old FirstOrDefault behavior since duplicates would have been
-            // unreachable anyway.
-            var employeeIdByNumber = employees
-                .GroupBy(e => e.EmployeeNumber)
-                .ToDictionary(g => g.Key, g => g.Last().Id);
+            if (string.IsNullOrEmpty(user.Email)) continue;
+            if (!employeeIdByEmail.TryGetValue(user.Email, out var employeeId)) continue;
 
-            foreach (var user in users)
+            user.EmployeeId = employeeId;
+            var result = await _userManager.UpdateAsync(user);
+            if (result.Succeeded)
             {
-                if (!entraSubjectsByUserId.TryGetValue(user.Id, out var entraSubject))
-                    continue;
-
-                if (!employeeIdByNumber.TryGetValue(entraSubject, out var employeeId))
-                    continue;
-
-                user.EmployeeId = employeeId;
-                var result = await _userManager.UpdateAsync(user);
-                if (result.Succeeded)
-                {
-                    await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, _dateTimeProvider.Now));
-                }
-                else
-                {
-                    _logger.LogError("Error updating employeeId on user {UserId}: {Errors}", user.Id, result.Errors.Select(e => e.Description));
-                }
+                await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, _dateTimeProvider.Now));
+            }
+            else
+            {
+                _logger.LogError("Error updating employeeId on user {UserId}: {Errors}", user.Id, result.Errors.Select(e => e.Description));
             }
         }
 
@@ -720,46 +715,30 @@ internal partial class UserService
 
     public async Task<Result> SyncUsersFromEmployeeRecords(List<IExternalEmployee> externalEmployees, CancellationToken cancellationToken)
     {
-        // Only sync users who have an active Entra identity — that's what pairs them
-        // with an external employee record (keyed by Entra oid). Filter server-side
-        // via an EXISTS subquery against UserIdentities so we don't have to round-
-        // trip user IDs in an IN (...) list, which hits the 2100-parameter SQL
-        // Server limit past a few thousand users.
+        // Match users to the external payload by email. This works regardless of which PeopleSync
+        // connector is currently active (Entra, Workday, future). Users whose email isn't in the
+        // payload are left untouched — separate from the Employee deactivation pass.
         var users = await _userManager.Users
-            .Where(u => _db.UserIdentities.Any(ui =>
-                ui.UserId == u.Id &&
-                ui.IsActive &&
-                ui.Provider == LoginProviders.MicrosoftEntraId))
+            .Where(u => !string.IsNullOrEmpty(u.Email))
             .ToListAsync(cancellationToken);
 
-        _logger.LogDebug("{UserCount} users found with an active Entra identity.", users.Count);
+        _logger.LogDebug("{UserCount} users found.", users.Count);
         if (users.Count == 0)
             return Result.Success();
 
-        // Second query — just the subject map for the users we actually need to
-        // correlate. Still cheap because it's filtered by active + provider.
-        var entraSubjectsByUserId = await _userIdentityStore.GetActiveSubjectsByProvider(LoginProviders.MicrosoftEntraId, cancellationToken);
-
-        // Pre-index by EmployeeNumber so per-user correlation is O(1) instead of
-        // scanning the full externalEmployees list for every user.
-        var employeesByNumber = externalEmployees
-            .GroupBy(e => e.EmployeeNumber)
-            .ToDictionary(g => g.Key, g => g.Last());
+        // Pre-index by email (case-insensitive) for O(1) lookup.
+        var employeesByEmail = externalEmployees
+            .GroupBy(e => e.Email.Value, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Last(), StringComparer.OrdinalIgnoreCase);
 
         foreach (var user in users)
         {
-            if (!entraSubjectsByUserId.TryGetValue(user.Id, out var entraSubject))
-            {
-                // Edge case: user's identity was deactivated between the two queries.
-                continue;
-            }
+            if (string.IsNullOrEmpty(user.Email)) continue;
 
-            var employee = employeesByNumber.GetValueOrDefault(entraSubject);
+            var employee = employeesByEmail.GetValueOrDefault(user.Email);
             if (employee is null)
             {
-                _logger.LogWarning(
-                    "No external employee record matched Entra subject {EntraSubject} for user {UserId}.",
-                    entraSubject, user.Id);
+                // Not an error — just means this user isn't in this sync's payload.
                 continue;
             }
 
@@ -783,14 +762,16 @@ internal partial class UserService
         return Result.Success();
     }
 
-    private async Task<Guid?> GetEmployeeId(string principalObjectId)
+    private async Task<Guid?> GetEmployeeIdByEmail(string email)
     {
-        // get the Person Id and if not null verify no existing user with that Id
-        var employeeId = await _sender.Send(new GetEmployeeByEmployeeNumberQuery(principalObjectId));
+        // User-to-Employee linkage is keyed on email regardless of which PeopleSync connector
+        // is currently active. EmployeeNumber's value depends on the source's preferences
+        // (Entra User.Id, Workday Employee_ID, etc.) and isn't a stable cross-source key.
+        var employeeId = await _sender.Send(new GetEmployeeByEmailQuery(email));
         if (employeeId.IsNullEmptyOrDefault())
         {
             employeeId = null;
-            _logger.LogWarning("Employee with EmployeeNumber {EmployeeNumber} not found.", principalObjectId);
+            _logger.LogWarning("Employee with email {Email} not found.", email);
         }
 
         return employeeId;

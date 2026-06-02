@@ -1,0 +1,140 @@
+---
+title: Workday
+description: Sync workers from a Workday tenant into Wayd via the Staffing v46.1 SOAP web service.
+sidebar_position: 3
+audience: [developer, agent, admin]
+---
+
+# Workday
+
+`Wayd.Integrations.Workday` synchronizes workers (employees and contingent workers) from a Workday tenant into Wayd's `Employee` table via the [Staffing v46.1 SOAP web service](https://community.workday.com/sites/default/files/file-hosting/productionapi/Staffing/v46.1/Staffing.html). Each Workday connection talks to a single tenant; multiple connections per deployment are supported, but only one People Sync connection across all PeopleSync connectors may be **active** at a time — see [Cross-cutting → single-active rule](./index.mdx#only-one-people-sync-connection-may-be-active-at-a-time).
+
+- **Category:** People sync
+- **Status:** GA
+- **Auth:** Integration System User (ISU) + WS-Security UsernameToken
+- **Sync direction:** Workday → Wayd
+- **Incremental support:** Yes (via `Transaction_Log_Criteria_Data`)
+
+## Capabilities
+
+- Pull workers via `Get_Workers` with response groups for Reference, Personal Information, Employment Information, Organizations, and Management Chain Data
+- Automatic incremental sync via `Transaction_Log_Criteria_Data` after the first successful run (no admin toggle — the runner uses the prior successful run's timestamp as the watermark; first run is always a full snapshot)
+- Admin-selectable **Worker Key**: Workday `Employee_ID` (default, human-readable) or `WID` (immutable internal). Drives `Employee.EmployeeNumber` and the matching of `Management_Chain_Data` manager references
+- Admin-selectable **Match Employees By** (Email or Employee Number) for cross-source identity continuity in `BulkUpsertEmployeesCommand`
+- Admin-selectable **Use Preferred Name** — reads `Preferred_Name_Data` in preference to `Legal_Name_Data`, falling back to legal per-component when a preferred component is missing. Default off
+- Admin-selectable **Normalize Name Casing** — title-cases names that come back from Workday in all-caps (HRIS compliance convention), handling Mc/Mac inner-capitals, apostrophes (O', D'), hyphens, and Unicode characters correctly. Mixed-case input is preserved untouched. Default on
+- Admin-selectable **Department Source (Organization_Type_ID)** — controls which Workday org-type drives `Employee.Department`. The init probe calls `Get_Organizations` and persists the discovered catalog so admins can pick `SUPERVISORY` (default — Workday's universal reporting hierarchy), `COST_CENTER`, `BUSINESS_UNIT`, a tenant-custom type, or leave blank to skip Department sync
+- Admin-configurable **Worker Exclusions** — drop workers in specific orgs from the sync before they reach `BulkUpsertEmployeesCommand`. Each exclusion is a (Organization_Type_ID, Organization WID) pair; the connector lazy-loads orgs per type via a dedicated endpoint so picker performance scales to large tenants
+- **Init probe** on save and on-demand ("Test Connection") that detects ISU permission gaps before sync runs
+- Preserves manager hierarchy from `Management_Chain_Data` (last entry = direct manager)
+
+## Setup
+
+1. In Workday, **create an Integration System User (ISU)**:
+   - Open **Create Integration System User**; pick a username conventionally formatted `{user}@{tenant}` (e.g. `wayd_isu@acme_corp1`) and set a strong password. Set the Session Timeout to a large value so the ISU doesn't expire mid-run.
+   - Disable **Require New Password at Next Sign In**.
+2. **Create or pick an Integration System Security Group (ISSG)** for the ISU and grant it the data domains listed in [Required permissions](#required-permissions) below.
+3. **Activate the security policy changes** via **Activate Pending Security Policy Changes**.
+4. Find the **WSDL URL** for the Staffing service in Workday's **View API Clients** screen. The URL looks like `https://wd3-impl-services1.workday.com/ccx/service/{tenant}/Staffing/v46.1?wsdl` (with or without the `?wsdl` suffix; Wayd handles both).
+5. In Wayd, open **Settings → Connections** and click **Create Connection**. Pick **Workday**.
+6. Fill in:
+   - **WSDL URL** — paste the URL from step 4.
+   - **ISU Username** — the username from step 1.
+   - **ISU Password** — the password from step 1.
+   - **Worker Key** — `Employee ID` (default, human-readable) or `Workday Worker ID` (WID).
+   - **Match Employees By** — `Email` (default; cross-source stable) or `Employee Number`.
+   - **Include Inactive Workers** — default off.
+   - **Use User_ID as Email Fallback** — default off. See [User_ID fallback](#use-user_id-as-email-fallback).
+   - **Use Preferred Name** — default off.
+   - **Normalize Name Casing** — default on.
+   - **Department Source** — default `SUPERVISORY`. After the first init probe, the dropdown is populated with the discovered org-type catalog so you can switch to `COST_CENTER`, `BUSINESS_UNIT`, a tenant-custom type, or leave blank to skip Department sync.
+   - **Exclusions** *(optional, edit-only)* — see [Worker exclusions](#worker-exclusions).
+7. Save. The create handler immediately runs an **init probe** — a small `Get_Workers` request (10 workers) — and persists a structured result on the connection. The probe also calls `Get_Organizations` (paginated up to 50 pages of 999) to populate the catalog of org-types in your tenant.
+8. If the probe reports missing required fields, fix the ISSG grants in Workday and click **Test Connection** to re-run the probe.
+9. Activate the connection. The first sync runs on the next scheduled `PeopleFullSync` / `PeopleDiffSync` Hangfire job, or click **Sync Now** from the detail page.
+
+## Required permissions
+
+The probe and the sync both rely on the ISU being a member of an ISSG that has **Get/View** access to the data domains below. Workday returns elements selectively based on ISSG grants — a domain that's not granted causes its element to be **omitted from the response entirely**, which the probe surfaces as a missing required field. Hand this list to the customer's Workday administrator when provisioning the ISU:
+
+| Workday domain (Get/View) | What Wayd reads | Required? |
+|---|---|---|
+| **Worker Data: Public Worker Reports** | `Worker_Reference` (WID, Employee_ID), `Personal_Data/Name_Data` (legal + preferred), `Worker_Status_Data`, `User_ID` | Required |
+| **Worker Data: Personal Contact Information** | `Personal_Data/Contact_Data/Email_Address_Data` (work email) | Required (or enable the User_ID fallback — see below) |
+| **Worker Data: Current Staffing Information** | `Employment_Data/Worker_Job_Data/Position_Data` (job title, position, hire date, business site, worker type) | Required |
+| **Worker Data: Organization Information** | `Organization_Data` and `Position_Organizations_Data` (Department, Cost Center, Company) | Recommended — drives the Department field and the org-exclusion picker |
+| **Worker Data: Management Chain** | `Management_Chain_Data/Worker_Supervisory_Management_Chain_Data` | Recommended — drives manager hierarchy |
+| **Organizations and Roles: View** | `Get_Organizations` response (organization type discovery + lazy-load endpoint for exclusions) | Recommended — needed for the Department Source picker and Worker Exclusions UI |
+
+Domain names vary very slightly across Workday tenants (release-trains rename them occasionally). If the probe reports "Work Email" missing, the most likely cause is **Worker Data: Personal Contact Information** not being granted to the ISU's ISSG. Have the Workday admin run **View Security for Securable Item** → search the domain → confirm the ISU's ISSG is listed under the Get/View grants. After granting, run **Activate Pending Security Policy Changes** to apply.
+
+The ISU does not need any "Modify" or "Put" grants. Wayd is strictly read-only against Workday.
+
+### Use User_ID as Email Fallback
+
+Some tenants (especially implementer sandboxes, OR customers who deliberately scope ISU grants narrowly) won't grant **Worker Data: Personal Contact Information**. For those cases, the connection has a **Use User_ID as Email Fallback** toggle:
+
+- **Off (default)**: Sync uses `Personal_Data/Contact_Data/Email_Address_Data` only. If a worker has no work email element in the response, that worker is skipped.
+- **On**: When `Contact_Data` is missing or empty, the sync uses `Worker_Data/User_ID` (the Workday account login) **only if it parses as a valid email address**. Workers whose `User_ID` is a non-email username (e.g. `EMP-1234`) are still skipped.
+
+`User_ID` is exposed by the base **Worker Data: Public Worker Reports** domain, which the ISU already needs, so enabling the fallback doesn't require additional grants. This is a pragmatic workaround for tenants where the username happens to be the user's work email; prefer granting the proper domain in production where possible.
+
+## Configuration options
+
+| Option | Default | Notes |
+|---|---|---|
+| WSDL URL | — | Required. Parsed once at save time; `ServiceHost` / `TenantAlias` / `WsdlVersion` / `SoapEndpoint` are derived from it. |
+| ISU Username | — | Required. Conventionally `{user}@{tenant}`. |
+| ISU Password | — | Required. Encrypted at rest. |
+| Worker Key | Employee ID | Drives `Employee.EmployeeNumber` and how `Management_Chain_Data` manager refs are projected. |
+| Match Employees By | Email | Drives the `BulkUpsertEmployeesCommand` matcher. |
+| Include Inactive Workers | Off | When on, terminated workers are also returned. |
+| Use User_ID as Email Fallback | Off | See above. |
+| Use Preferred Name | Off | Reads `Preferred_Name_Data` first; falls back to `Legal_Name_Data` per-component. |
+| Normalize Name Casing | On | Title-cases all-caps names; preserves mixed-case input. |
+| Department Source | SUPERVISORY | The `Organization_Type_ID` whose `Organization_Name` populates `Employee.Department`. After the init probe runs, the dropdown surfaces the discovered tenant catalog. |
+| Worker Exclusions | (empty) | List of (type, org) pairs to filter out before upsert. Lazy-loaded per type. |
+
+## Worker exclusions
+
+Some tenants have orgs whose members shouldn't appear in Wayd — sandbox holding orgs, contractor cost centers, etc. The connector supports a list of exclusion rules. Each rule names an **Organization_Type_ID** and a **specific Organization WID** of that type.
+
+How the picker works:
+
+1. The dropdown of org-types is populated from the **discovered org-type catalog** stored on the connection (the init probe persists it). You can switch types without re-probing.
+2. When you pick a type, the connector lazy-loads the orgs of that type from Workday via `GET /api/app-integrations/connections/{id}/workday/orgs?typeId={typeId}` — a server-side `Get_Organizations` call with the `Organization_Type_Reference` filter so a tenant with thousands of supervisory orgs doesn't ship them all just to populate one row's dropdown.
+3. Pick the specific org; the rule is saved with the org's WID (the stable match key) plus the cached display name (for the sync log).
+
+At sync time, `WorkdayStaffingService` post-filters: each worker's `Worker_Organization_Data` references are checked against the exclusion WIDs, and matches are dropped before projection. The Sync History tab shows a per-run **Excluded** count plus a per-rule breakdown (e.g. `Cost_Center: Contractors → 32`).
+
+The post-filter happens locally because `Get_Workers` doesn't expose a server-side exclude parameter. The trade-off: workers are still fetched from Workday and then dropped, but exclusion logic stays trivial and is easy to extend (combine types, add date filters, etc.) without re-engineering the SOAP request shape.
+
+## How it works
+
+1. An admin creates a **Workday Connection** in Settings → Connections, supplying the Staffing service WSDL URL plus the ISU username + password (encrypted at rest).
+2. The create handler runs an **init probe** — a small `Get_Workers` request (10 workers) followed by `Get_Organizations` to discover the org-type catalog — and persists a structured result on the connection (missing required fields, warnings, auth error, discovered org types). `IsValidConfiguration` is driven by this probe; sync is disabled until it passes.
+3. The `PeopleSyncRunner` reads all active `ConnectorCategory.PeopleSync` connections and dispatches Workday connections through `IWorkdayEmployeeSource`.
+4. `WorkdayStaffingService` pages through `Get_Workers` (100/page) with response groups `Include_Reference`, `Include_Personal_Information`, `Include_Employment_Information`, `Include_Organizations`, and `Include_Management_Chain_Data`. For incremental runs, it adds `Transaction_Log_Criteria_Data` with `Updated_From` = prior successful `SyncRun.FinishedAt` and `Updated_Through` = now.
+5. Each worker is projected into a `WorkdayEmployee` record. Worker exclusion rules are evaluated against `Worker_Organization_Data` references and matches are dropped *before* the (potentially expensive) name normalization and date parsing.
+6. The connector-agnostic `BulkUpsertEmployeesCommand` reconciles those records against the `Employee` table using the configured `MatchBy` property. Any active employee row not matched against the payload is deactivated — safe because the [single-active People Sync rule](./index.mdx#only-one-people-sync-connection-may-be-active-at-a-time) guarantees one source of truth at a time. Incremental runs skip the deactivation pass — missing from the payload means "no changes," not "no longer exists."
+7. Each run is captured as a `SyncRun` row; per-run details (`employeesFetched`, `employeesUpserted`, `employeesExcluded`, `exclusionBreakdown`, `incrementalUsed`, `errors[]`) are stored as JSON and rendered in the Sync History tab.
+
+## Versioning
+
+The customer's tenant version is encoded in the WSDL URL path (e.g. `…/Staffing/v46.1`) and stored on the connection. The runtime sends a consistent request shape regardless — Workday's WWS is forward+backward compatible across versions for read operations.
+
+Field paths live in `WorkerFieldPaths.cs` and support multi-candidate XPaths, so a Workday major-version field rename can be absorbed by adding a fallback XPath without a code restructure. The sync logs a warning when a previously-populated field comes back null on more than 50% of workers in a run, as a signal that Workday changed something. The Active-flag check has a stricter alarm — if 100% of workers come back inactive, that's almost always a tenant envelope shape mismatch, not a terminated workforce.
+
+## Troubleshooting
+
+- **Probe reports "Work Email" missing** — most likely **Worker Data: Personal Contact Information** is not granted to the ISU's ISSG. Either grant it, or enable **Use User_ID as Email Fallback** if the tenant's User_IDs are email-shaped.
+- **Probe reports "Employee ID" missing** — set **Worker Key** to `Workday Worker ID` instead, or grant the right domain.
+- **Department comes back blank** — pick a different value for **Department Source** from the discovered catalog dropdown. The default `SUPERVISORY` works for most tenants; if your tenant's department semantics are on `COST_CENTER` instead, switch it.
+- **"Excluded N workers" but the breakdown shows rules that didn't fire** — only rules that actually matched at least one worker appear in the breakdown. Rules listed in the connection config but absent from the run detail simply found no workers to drop.
+- **First sync was huge; second is tiny** — that's incremental working. The first run is always Full (no prior watermark); subsequent Differential runs only pull workers changed since the last successful run.
+- **Org-type catalog seems incomplete** — Workday returns orgs in no particular type order, and the discovery loop walks up to 50 pages of 999. If your tenant has more than ~50,000 orgs total, less-common types may not appear; expand the page cap in `WorkdayConnectionInitializer.OrgCatalogPageCap`.
+- **Authentication fails immediately on save** — verify the ISU password and that the user is not locked out. The probe distinguishes `IsAuthFailure` (401/403 or fault containing "authentication") from other SOAP errors and surfaces it as `AuthError` on the connection.
+
+## Cross-cutting
+
+See [Integrations → Cross-cutting concerns](./index.mdx#cross-cutting-concerns) for credential encryption, activation, sync history, and the single-active People-sync rule.

@@ -1,5 +1,6 @@
 import {
   ConnectionDetailsDto,
+  ConnectionInitResult,
   ConnectionListDto,
   ConnectorListDto,
   CreateConnectionRequest,
@@ -185,6 +186,22 @@ export const connectionsApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    initConnection: builder.mutation<ConnectionInitResult, string>({
+      queryFn: async (id) => {
+        try {
+          const data = await getConnectionsClient().initConnection(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, id) => [
+        { type: QueryTags.Connection, id },
+        { type: QueryTags.ConnectionDetail, id },
+      ],
+    }),
+
     getSyncRun: builder.query<SyncRunDetailsDto, string>({
       queryFn: async (syncRunId) => {
         try {
@@ -214,4 +231,5 @@ export const {
   useGetSyncRunsQuery,
   useGetSyncRunQuery,
   useRunSyncMutation,
+  useInitConnectionMutation,
 } = connectionsApi

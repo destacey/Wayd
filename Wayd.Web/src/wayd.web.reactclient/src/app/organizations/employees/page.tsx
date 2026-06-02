@@ -13,13 +13,21 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { EmployeeListDto } from '@/src/services/wayd-api'
 import { ICellRendererParams } from 'ag-grid-community'
 
-const EmployeeLinkCellRenderer = ({ value, data }: ICellRendererParams<EmployeeListDto>) => {
+const EmployeeLinkCellRenderer = ({
+  value,
+  data,
+}: ICellRendererParams<EmployeeListDto>) => {
   return <Link href={`/organizations/employees/${data!.key}`}>{value}</Link>
 }
 
-const ManagerLinkCellRenderer = ({ value, data }: ICellRendererParams<EmployeeListDto>) => {
+const ManagerLinkCellRenderer = ({
+  value,
+  data,
+}: ICellRendererParams<EmployeeListDto>) => {
   if (!data?.manager?.key) return value ?? null
-  return <Link href={`/organizations/employees/${data.manager.key}`}>{value}</Link>
+  return (
+    <Link href={`/organizations/employees/${data.manager.key}`}>{value}</Link>
+  )
 }
 
 const EmployeeListPage = () => {
@@ -50,6 +58,9 @@ const EmployeeListPage = () => {
         headerName: 'Name',
         cellRenderer: EmployeeLinkCellRenderer,
       },
+      { field: 'email' },
+      { field: 'employeeNumber', headerName: 'Employee Number' },
+      { field: 'employeeType', headerName: 'Employee Type' },
       { field: 'jobTitle' },
       { field: 'department' },
       {
@@ -58,7 +69,6 @@ const EmployeeListPage = () => {
         cellRenderer: ManagerLinkCellRenderer,
       },
       { field: 'officeLocation' },
-      { field: 'email' },
       { field: 'isActive' }, // TODO: convert to yes/no
     ],
     [],

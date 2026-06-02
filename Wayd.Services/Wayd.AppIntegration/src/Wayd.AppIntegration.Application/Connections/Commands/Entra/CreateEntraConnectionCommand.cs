@@ -1,5 +1,6 @@
 using FluentValidation;
 using Wayd.AppIntegration.Domain.Models.Entra;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 using NodaTime;
 
 namespace Wayd.AppIntegration.Application.Connections.Commands.Entra;
@@ -11,7 +12,9 @@ public sealed record CreateEntraConnectionCommand(
     string ClientId,
     string ClientSecret,
     string? AllUsersGroupObjectId,
-    bool IncludeDisabledUsers) : ICommand<Guid>;
+    bool IncludeDisabledUsers,
+    EmployeeMatchProperty MatchBy,
+    bool NormalizeNameCasing) : ICommand<Guid>;
 
 public sealed class CreateEntraConnectionCommandValidator : CustomValidator<CreateEntraConnectionCommand>
 {
@@ -66,7 +69,9 @@ internal sealed class CreateEntraConnectionCommandHandler(
                 request.ClientId,
                 request.ClientSecret,
                 request.AllUsersGroupObjectId,
-                request.IncludeDisabledUsers);
+                request.IncludeDisabledUsers,
+                request.MatchBy,
+                request.NormalizeNameCasing);
 
             // TODO: Test the connection here and set IsValidConfiguration based on the outcome.
             var isConfigurationValid = true;

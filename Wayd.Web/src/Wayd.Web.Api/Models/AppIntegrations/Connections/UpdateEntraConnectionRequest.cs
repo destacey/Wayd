@@ -1,4 +1,5 @@
 using Wayd.AppIntegration.Application.Connections.Commands.Entra;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 
 namespace Wayd.Web.Api.Models.AppIntegrations.Connections;
 
@@ -30,8 +31,19 @@ public sealed record UpdateEntraConnectionRequest : UpdateConnectionRequest
     /// </summary>
     public bool IncludeDisabledUsers { get; set; }
 
+    /// <summary>
+    /// Which uniquely-indexed Employee field the sync upsert matches on.
+    /// </summary>
+    public EmployeeMatchProperty MatchBy { get; set; } = EmployeeMatchProperty.Email;
+
+    /// <summary>
+    /// When true, names that come back from Entra in all-caps are title-cased before storage.
+    /// Mixed-case input is preserved. Default true.
+    /// </summary>
+    public bool NormalizeNameCasing { get; set; } = true;
+
     public UpdateEntraConnectionCommand ToCommand()
-        => new(Id, Name, Description, TenantId, ClientId, ClientSecret, AllUsersGroupObjectId, IncludeDisabledUsers);
+        => new(Id, Name, Description, TenantId, ClientId, ClientSecret, AllUsersGroupObjectId, IncludeDisabledUsers, MatchBy, NormalizeNameCasing);
 }
 
 public sealed class UpdateEntraConnectionRequestValidator : CustomValidator<UpdateEntraConnectionRequest>

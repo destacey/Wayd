@@ -138,7 +138,8 @@ internal sealed class UpdateEmployeeCommandHandler : ICommandHandler<UpdateEmplo
                 request.Department,
                 request.OfficeLocation,
                 request.ManagerId,
-                employee.IsActive,  // this command should not change IsActive
+                employee.IsActive,        // this command should not change IsActive
+                employee.EmployeeType,    // manual edits don't change classification
                 _dateTimeProvider.Now
                 );
 

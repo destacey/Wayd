@@ -43,7 +43,7 @@ Wayd supports:
 - [API Development](docs/contributing/api.mdx): Controller patterns, authentication, OpenAPI
 - [API Reference](docs/reference/api.mdx): REST API areas and endpoints
 - [Feature Flags](docs/reference/feature-flags.mdx): Feature management system
-- [Integrations](docs/reference/integrations.mdx): Azure DevOps, Microsoft Graph
+- [Integrations](docs/reference/integrations/index.mdx): Hub page (Azure DevOps, Entra, Workday, Azure OpenAI); each connector has its own setup/permissions/configuration doc under [reference/integrations/](docs/reference/integrations/)
 - [Technology Stack](docs/reference/technology-stack.mdx): All libraries and frameworks
 - [Domain Glossary](docs/ai/domain-glossary.mdx): Comprehensive glossary of all domain terms
 

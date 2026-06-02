@@ -21578,7 +21578,7 @@
           "Connections"
         ],
         "summary": "Trigger a sync for a connection.",
-        "description": "Enqueues a background job that runs the sync pipeline for this connection only. Routes by connector category — work-sync connectors run a work sync (defaults to differential; pass 'syncType=Full' for full), people-sync connectors run a people sync. The connection must be active.",
+        "description": "Enqueues a background job that runs the sync pipeline for this connection only. Routes by connector category. The syncType query parameter is honored by both work-sync and people-sync connectors; the default is Differential. For PeopleSync, Differential silently degrades to Full when no prior successful run exists (or when the source doesn't support incremental). The connection must be active.",
         "operationId": "Connections_RunSync",
         "parameters": [
           {
@@ -21612,6 +21612,139 @@
             "description": ""
           },
           "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/app-integrations/connections/{id}/init": {
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Validate (re-initialize) a connection.",
+        "description": "Runs a small probe against the upstream system to confirm the configuration is usable. Updates IsValidConfiguration and any structured per-connector validation details. Currently supported for Workday.",
+        "operationId": "Connections_InitConnection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionInitResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/app-integrations/connections/{id}/workday/orgs": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "List Workday organizations of a given type.",
+        "description": "Lazy-loads the orgs of one Organization_Type_ID from the connection's Workday tenant for the admin's exclusion picker. Backed by Workday's Get_Organizations with a server-side type filter. Returns up to 500 orgs. Requires the connection to be a Workday connection.",
+        "operationId": "Connections_GetWorkdayOrgsByType",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "typeId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiscoveredOrg"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
             "description": "",
             "content": {
               "application/json": {
@@ -32829,6 +32962,10 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "employeeType": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -32914,6 +33051,10 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "employeeType": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -34566,7 +34707,8 @@
           "mapping": {
             "azure-devops": "#/components/schemas/AzureDevOpsConnectionListDto",
             "azure-openai": "#/components/schemas/AzureOpenAIConnectionListDto",
-            "entra": "#/components/schemas/EntraConnectionListDto"
+            "entra": "#/components/schemas/EntraConnectionListDto",
+            "workday": "#/components/schemas/WorkdayConnectionListDto"
           }
         },
         "additionalProperties": false,
@@ -34647,11 +34789,23 @@
           }
         ]
       },
+      "WorkdayConnectionListDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConnectionListDto"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false
+          }
+        ]
+      },
       "ConnectorListDto": {
         "type": "object",
         "additionalProperties": false,
         "required": [
           "name",
+          "category",
           "id"
         ],
         "properties": {
@@ -34665,6 +34819,9 @@
           "description": {
             "type": "string",
             "nullable": true
+          },
+          "category": {
+            "$ref": "#/components/schemas/SimpleNavigationDto"
           }
         }
       },
@@ -34675,7 +34832,8 @@
           "mapping": {
             "azure-devops": "#/components/schemas/AzureDevOpsConnectionDetailsDto",
             "azure-openai": "#/components/schemas/AzureOpenAIConnectionDetailsDto",
-            "entra": "#/components/schemas/EntraConnectionDetailsDto"
+            "entra": "#/components/schemas/EntraConnectionDetailsDto",
+            "workday": "#/components/schemas/WorkdayConnectionDetailsDto"
           }
         },
         "additionalProperties": false,
@@ -34966,7 +35124,9 @@
           "tenantId",
           "clientId",
           "clientSecret",
-          "includeDisabledUsers"
+          "includeDisabledUsers",
+          "matchBy",
+          "normalizeNameCasing"
         ],
         "properties": {
           "tenantId": {
@@ -34984,6 +35144,197 @@
           },
           "includeDisabledUsers": {
             "type": "boolean"
+          },
+          "matchBy": {
+            "$ref": "#/components/schemas/EmployeeMatchProperty"
+          },
+          "normalizeNameCasing": {
+            "type": "boolean"
+          }
+        }
+      },
+      "EmployeeMatchProperty": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Email",
+          "EmployeeNumber"
+        ],
+        "enum": [
+          "Email",
+          "EmployeeNumber"
+        ]
+      },
+      "WorkdayConnectionDetailsDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConnectionDetailsDto"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "configuration"
+            ],
+            "properties": {
+              "configuration": {
+                "$ref": "#/components/schemas/WorkdayConnectionConfigurationDto"
+              }
+            }
+          }
+        ]
+      },
+      "WorkdayConnectionConfigurationDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "wsdlUrl",
+          "serviceHost",
+          "tenantAlias",
+          "wsdlVersion",
+          "isuUsername",
+          "isuPassword",
+          "workerKey",
+          "includeInactive",
+          "matchBy",
+          "useUserIdAsEmailFallback",
+          "usePreferredName",
+          "normalizeNameCasing",
+          "orgExclusions",
+          "lastInitSucceeded"
+        ],
+        "properties": {
+          "wsdlUrl": {
+            "type": "string"
+          },
+          "serviceHost": {
+            "type": "string"
+          },
+          "tenantAlias": {
+            "type": "string"
+          },
+          "wsdlVersion": {
+            "type": "string"
+          },
+          "isuUsername": {
+            "type": "string"
+          },
+          "isuPassword": {
+            "type": "string"
+          },
+          "workerKey": {
+            "$ref": "#/components/schemas/WorkdayWorkerKey"
+          },
+          "includeInactive": {
+            "type": "boolean"
+          },
+          "matchBy": {
+            "$ref": "#/components/schemas/EmployeeMatchProperty"
+          },
+          "useUserIdAsEmailFallback": {
+            "type": "boolean"
+          },
+          "usePreferredName": {
+            "type": "boolean"
+          },
+          "normalizeNameCasing": {
+            "type": "boolean"
+          },
+          "departmentOrganizationTypeId": {
+            "type": "string",
+            "nullable": true
+          },
+          "discoveredOrgTypes": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/WorkdayOrgTypeDto"
+            }
+          },
+          "orgExclusions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkdayOrgExclusionDto"
+            }
+          },
+          "lastInitAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastInitSucceeded": {
+            "type": "boolean"
+          },
+          "lastInitMissingFields": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "lastInitWarnings": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "lastInitAuthError": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "WorkdayWorkerKey": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Wid",
+          "EmployeeId"
+        ],
+        "enum": [
+          "Wid",
+          "EmployeeId"
+        ]
+      },
+      "WorkdayOrgTypeDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "typeId",
+          "count"
+        ],
+        "properties": {
+          "typeId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "WorkdayOrgExclusionDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "organizationTypeId",
+          "organizationReference"
+        ],
+        "properties": {
+          "organizationTypeId": {
+            "type": "string"
+          },
+          "organizationReference": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -34994,7 +35345,8 @@
           "mapping": {
             "azure-devops": "#/components/schemas/CreateAzureDevOpsConnectionRequest",
             "azure-openai": "#/components/schemas/CreateAzureOpenAIConnectionRequest",
-            "entra": "#/components/schemas/CreateEntraConnectionRequest"
+            "entra": "#/components/schemas/CreateEntraConnectionRequest",
+            "workday": "#/components/schemas/CreateWorkdayConnectionRequest"
           }
         },
         "x-abstract": true,
@@ -35112,10 +35464,118 @@
               "includeDisabledUsers": {
                 "type": "boolean",
                 "description": "When true, users with disabled accounts are also included in the sync."
+              },
+              "matchBy": {
+                "description": "Which uniquely-indexed Employee field the sync upsert matches on.",
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/EmployeeMatchProperty"
+                  }
+                ]
+              },
+              "normalizeNameCasing": {
+                "type": "boolean",
+                "description": "When true, names that come back from Entra in all-caps are title-cased before storage.\nMixed-case input is preserved. Default true."
               }
             }
           }
         ]
+      },
+      "CreateWorkdayConnectionRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CreateConnectionRequest"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "wsdlUrl",
+              "isuUsername",
+              "isuPassword"
+            ],
+            "properties": {
+              "wsdlUrl": {
+                "type": "string",
+                "description": "The WSDL URL from Workday's \"View API Clients\" screen (with or without ?wsdl)."
+              },
+              "isuUsername": {
+                "type": "string",
+                "description": "The Integration System User username."
+              },
+              "isuPassword": {
+                "type": "string",
+                "description": "The Integration System User password."
+              },
+              "workerKey": {
+                "description": "Which Workday worker identifier maps onto Employee.EmployeeNumber.",
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/WorkdayWorkerKey"
+                  }
+                ]
+              },
+              "includeInactive": {
+                "type": "boolean",
+                "description": "When true, terminated/inactive workers are also returned by the sync."
+              },
+              "matchBy": {
+                "description": "Which uniquely-indexed Employee field the sync upsert matches on.",
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/EmployeeMatchProperty"
+                  }
+                ]
+              },
+              "useUserIdAsEmailFallback": {
+                "type": "boolean",
+                "description": "When true, use Workday's User_ID as the email source when Contact_Data is\nmissing — provided the User_ID parses as a valid email. Workaround for tenants whose ISU\nISSG doesn't grant Worker Data: Personal Contact Information."
+              },
+              "usePreferredName": {
+                "type": "boolean",
+                "description": "When true, sync reads each worker's Preferred_Name_Data in preference to\nLegal_Name_Data, falling back to legal per-component when a preferred component is\nmissing. Default off."
+              },
+              "normalizeNameCasing": {
+                "type": "boolean",
+                "description": "When true, names that come back from Workday in all-caps are title-cased before storage\n(mixed-case input is preserved). Default true — most HRIS sources emit upper-cased legal\nnames that look inconsistent next to manually-entered records."
+              },
+              "departmentOrganizationTypeId": {
+                "type": "string",
+                "description": "Workday Organization_Type_ID that drives Employee.Department. Defaults to\nSUPERVISORY (Workday's universal reporting-hierarchy type). After the first init\nprobe, admins can pick from the discovered catalog (e.g. COST_CENTER,\nBUSINESS_UNIT, tenant-custom types). Set to null to skip Department sync.",
+                "nullable": true
+              },
+              "orgExclusions": {
+                "type": "array",
+                "description": "Optional admin-configured rules that filter workers out of the sync. Each rule names an\nOrganization_Type_ID plus the WID of an org of that type; workers in that org are dropped\nbefore upsert. Empty by default.",
+                "nullable": true,
+                "items": {
+                  "$ref": "#/components/schemas/WorkdayOrgExclusionRequest"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "WorkdayOrgExclusionRequest": {
+        "type": "object",
+        "description": "API-shaped exclusion rule. Maps 1:1 to WorkdayOrgExclusionInput on the command layer.",
+        "additionalProperties": false,
+        "required": [
+          "organizationTypeId",
+          "organizationReference"
+        ],
+        "properties": {
+          "organizationTypeId": {
+            "type": "string"
+          },
+          "organizationReference": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          }
+        }
       },
       "UpdateConnectionRequest": {
         "type": "object",
@@ -35124,7 +35584,8 @@
           "mapping": {
             "azure-devops": "#/components/schemas/UpdateAzureDevOpsConnectionRequest",
             "azure-openai": "#/components/schemas/UpdateAzureOpenAIConnectionRequest",
-            "entra": "#/components/schemas/UpdateEntraConnectionRequest"
+            "entra": "#/components/schemas/UpdateEntraConnectionRequest",
+            "workday": "#/components/schemas/UpdateWorkdayConnectionRequest"
           }
         },
         "x-abstract": true,
@@ -35251,6 +35712,93 @@
               "includeDisabledUsers": {
                 "type": "boolean",
                 "description": "When true, users with disabled accounts are also included in the sync."
+              },
+              "matchBy": {
+                "description": "Which uniquely-indexed Employee field the sync upsert matches on.",
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/EmployeeMatchProperty"
+                  }
+                ]
+              },
+              "normalizeNameCasing": {
+                "type": "boolean",
+                "description": "When true, names that come back from Entra in all-caps are title-cased before storage.\nMixed-case input is preserved. Default true."
+              }
+            }
+          }
+        ]
+      },
+      "UpdateWorkdayConnectionRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UpdateConnectionRequest"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "wsdlUrl",
+              "isuUsername",
+              "isuPassword"
+            ],
+            "properties": {
+              "wsdlUrl": {
+                "type": "string",
+                "description": "The WSDL URL from Workday's \"View API Clients\" screen."
+              },
+              "isuUsername": {
+                "type": "string",
+                "description": "The Integration System User username."
+              },
+              "isuPassword": {
+                "type": "string",
+                "description": "The Integration System User password."
+              },
+              "workerKey": {
+                "description": "Which Workday worker identifier maps onto Employee.EmployeeNumber.",
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/WorkdayWorkerKey"
+                  }
+                ]
+              },
+              "includeInactive": {
+                "type": "boolean",
+                "description": "When true, terminated/inactive workers are also returned by the sync."
+              },
+              "matchBy": {
+                "description": "Which uniquely-indexed Employee field the sync upsert matches on.",
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/EmployeeMatchProperty"
+                  }
+                ]
+              },
+              "useUserIdAsEmailFallback": {
+                "type": "boolean",
+                "description": "When true, use Workday's User_ID as the email source when Contact_Data is\nmissing — provided the User_ID parses as a valid email."
+              },
+              "usePreferredName": {
+                "type": "boolean",
+                "description": "When true, sync reads each worker's Preferred_Name_Data in preference to\nLegal_Name_Data, falling back to legal per-component when missing. Default off."
+              },
+              "normalizeNameCasing": {
+                "type": "boolean",
+                "description": "When true, names that come back from Workday in all-caps are title-cased before storage.\nMixed-case input is preserved. Default true."
+              },
+              "departmentOrganizationTypeId": {
+                "type": "string",
+                "description": "Workday Organization_Type_ID that drives Employee.Department. Pick from the\ndiscovered catalog on the connection (populated by the init probe), or null to skip.",
+                "nullable": true
+              },
+              "orgExclusions": {
+                "type": "array",
+                "description": "Admin-configured rules that filter workers out of the sync. Replace-the-list semantics: the\nsupplied collection becomes the new full set (omitted or empty => no exclusions).",
+                "nullable": true,
+                "items": {
+                  "$ref": "#/components/schemas/WorkdayOrgExclusionRequest"
+                }
               }
             }
           }
@@ -35267,6 +35815,89 @@
           "Full",
           "Differential"
         ]
+      },
+      "ConnectionInitResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "isValid",
+          "workersProbed",
+          "missingRequiredFields",
+          "warnings"
+        ],
+        "properties": {
+          "isValid": {
+            "type": "boolean"
+          },
+          "workersProbed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "missingRequiredFields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "authError": {
+            "type": "string",
+            "nullable": true
+          },
+          "discoveredOrgTypes": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/DiscoveredOrgType"
+            }
+          }
+        }
+      },
+      "DiscoveredOrgType": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "typeId",
+          "count"
+        ],
+        "properties": {
+          "typeId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "DiscoveredOrg": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reference"
+        ],
+        "properties": {
+          "reference": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "referenceId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
       },
       "SyncRunListDto": {
         "type": "object",
@@ -35352,13 +35983,15 @@
           "AzureDevOps",
           "AzureOpenAI",
           "OpenAI",
-          "Entra"
+          "Entra",
+          "Workday"
         ],
         "enum": [
           "AzureDevOps",
           "AzureOpenAI",
           "OpenAI",
-          "Entra"
+          "Entra",
+          "Workday"
         ]
       },
       "SyncRunStatus": {

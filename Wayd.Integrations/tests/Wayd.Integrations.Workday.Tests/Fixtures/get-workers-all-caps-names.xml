@@ -1,0 +1,121 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/" xmlns:wd="urn:com.workday/bsvc">
+  <env:Body>
+    <wd:Get_Workers_Response wd:version="v46.1">
+      <wd:Response_Results>
+        <wd:Total_Results>3</wd:Total_Results>
+        <wd:Total_Pages>1</wd:Total_Pages>
+        <wd:Page_Results>3</wd:Page_Results>
+        <wd:Page>1</wd:Page>
+      </wd:Response_Results>
+      <wd:Response_Data>
+        <!-- All-caps legal name with a Mc surname — exercises Mc inner-capital rule. -->
+        <wd:Worker>
+          <wd:Worker_Reference wd:Descriptor="Daniel McDonald">
+            <wd:ID wd:type="WID">aaaa1111-bbbb-cccc-dddd-eeeeffff0001</wd:ID>
+            <wd:ID wd:type="Employee_ID">WX-10001</wd:ID>
+          </wd:Worker_Reference>
+          <wd:Worker_Data>
+            <wd:Worker_ID>WX-10001</wd:Worker_ID>
+            <wd:Personal_Data>
+              <wd:Name_Data>
+                <wd:Legal_Name_Data>
+                  <wd:Name_Detail_Data>
+                    <wd:First_Name>DANIEL</wd:First_Name>
+                    <wd:Middle_Name>JONES</wd:Middle_Name>
+                    <wd:Last_Name>MCDONALD</wd:Last_Name>
+                  </wd:Name_Detail_Data>
+                </wd:Legal_Name_Data>
+              </wd:Name_Data>
+              <wd:Contact_Data>
+                <wd:Email_Address_Data>
+                  <wd:Email_Address>daniel.mcdonald@acme.example</wd:Email_Address>
+                  <wd:Usage_Data>
+                    <wd:Type_Data>
+                      <wd:Type_Reference>
+                        <wd:ID wd:type="Communication_Usage_Type_ID">WORK</wd:ID>
+                      </wd:Type_Reference>
+                    </wd:Type_Data>
+                  </wd:Usage_Data>
+                </wd:Email_Address_Data>
+              </wd:Contact_Data>
+            </wd:Personal_Data>
+            <wd:Employment_Data>
+              <wd:Worker_Status_Data><wd:Active>1</wd:Active></wd:Worker_Status_Data>
+            </wd:Employment_Data>
+          </wd:Worker_Data>
+        </wd:Worker>
+        <!-- All-caps last name with apostrophe — exercises O' rule. -->
+        <wd:Worker>
+          <wd:Worker_Reference wd:Descriptor="Mary-Anne O'Brien">
+            <wd:ID wd:type="WID">aaaa1111-bbbb-cccc-dddd-eeeeffff0002</wd:ID>
+            <wd:ID wd:type="Employee_ID">WX-10002</wd:ID>
+          </wd:Worker_Reference>
+          <wd:Worker_Data>
+            <wd:Worker_ID>WX-10002</wd:Worker_ID>
+            <wd:Personal_Data>
+              <wd:Name_Data>
+                <wd:Legal_Name_Data>
+                  <wd:Name_Detail_Data>
+                    <wd:First_Name>MARY-ANNE</wd:First_Name>
+                    <wd:Last_Name>O'BRIEN</wd:Last_Name>
+                  </wd:Name_Detail_Data>
+                </wd:Legal_Name_Data>
+              </wd:Name_Data>
+              <wd:Contact_Data>
+                <wd:Email_Address_Data>
+                  <wd:Email_Address>mary.obrien@acme.example</wd:Email_Address>
+                  <wd:Usage_Data>
+                    <wd:Type_Data>
+                      <wd:Type_Reference>
+                        <wd:ID wd:type="Communication_Usage_Type_ID">WORK</wd:ID>
+                      </wd:Type_Reference>
+                    </wd:Type_Data>
+                  </wd:Usage_Data>
+                </wd:Email_Address_Data>
+              </wd:Contact_Data>
+            </wd:Personal_Data>
+            <wd:Employment_Data>
+              <wd:Worker_Status_Data><wd:Active>1</wd:Active></wd:Worker_Status_Data>
+            </wd:Employment_Data>
+          </wd:Worker_Data>
+        </wd:Worker>
+        <!-- Mixed-case name — must pass through unchanged regardless of toggle. -->
+        <wd:Worker>
+          <wd:Worker_Reference wd:Descriptor="José Smith">
+            <wd:ID wd:type="WID">aaaa1111-bbbb-cccc-dddd-eeeeffff0003</wd:ID>
+            <wd:ID wd:type="Employee_ID">WX-10003</wd:ID>
+          </wd:Worker_Reference>
+          <wd:Worker_Data>
+            <wd:Worker_ID>WX-10003</wd:Worker_ID>
+            <wd:Personal_Data>
+              <wd:Name_Data>
+                <wd:Legal_Name_Data>
+                  <wd:Name_Detail_Data>
+                    <wd:First_Name>José</wd:First_Name>
+                    <wd:Last_Name>Smith</wd:Last_Name>
+                  </wd:Name_Detail_Data>
+                </wd:Legal_Name_Data>
+              </wd:Name_Data>
+              <wd:Contact_Data>
+                <wd:Email_Address_Data>
+                  <wd:Email_Address>jose.smith@acme.example</wd:Email_Address>
+                  <wd:Usage_Data>
+                    <wd:Type_Data>
+                      <wd:Type_Reference>
+                        <wd:ID wd:type="Communication_Usage_Type_ID">WORK</wd:ID>
+                      </wd:Type_Reference>
+                    </wd:Type_Data>
+                  </wd:Usage_Data>
+                </wd:Email_Address_Data>
+              </wd:Contact_Data>
+            </wd:Personal_Data>
+            <wd:Employment_Data>
+              <wd:Worker_Status_Data><wd:Active>1</wd:Active></wd:Worker_Status_Data>
+            </wd:Employment_Data>
+          </wd:Worker_Data>
+        </wd:Worker>
+      </wd:Response_Data>
+    </wd:Get_Workers_Response>
+  </env:Body>
+</env:Envelope>

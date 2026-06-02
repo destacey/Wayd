@@ -1,4 +1,5 @@
 import { MarkdownEditor } from '@/src/components/common/markdown'
+import { ConnectionDetailsDto } from '@/src/services/wayd-api'
 import {
   ConnectorType,
   CONNECTOR_NAMES,
@@ -13,12 +14,15 @@ export interface ConnectionFormBaseProps {
   connector: ConnectorType
   mode: 'create' | 'edit'
   form: FormInstance
+  /** The existing connection being edited; undefined on create. Forwarded to ConfigurationSection. */
+  connection?: ConnectionDetailsDto
 }
 
 export const ConnectionFormBase: React.FC<ConnectionFormBaseProps> = ({
   connector,
   mode,
   form,
+  connection,
 }) => {
   const ConfigurationSection = CONNECTOR_FORM_REGISTRY[connector]
 
@@ -51,7 +55,7 @@ export const ConnectionFormBase: React.FC<ConnectionFormBaseProps> = ({
       </Divider>
 
       {/* Dynamic connector-specific configuration */}
-      <ConfigurationSection form={form} mode={mode} />
+      <ConfigurationSection form={form} mode={mode} connection={connection} />
     </>
   )
 }

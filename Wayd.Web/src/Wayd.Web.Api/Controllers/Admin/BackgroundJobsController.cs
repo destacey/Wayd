@@ -11,18 +11,11 @@ namespace Wayd.Web.Api.Controllers.Admin;
 [Route("api/admin/background-jobs")]
 [ApiVersionNeutral]
 [ApiController]
-public class BackgroundJobsController : ControllerBase
+public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, IJobService jobService, ISender sender) : ControllerBase
 {
-    private readonly ILogger<BackgroundJobsController> _logger;
-    private readonly IJobService _jobService;
-    private readonly ISender _sender;
-
-    public BackgroundJobsController(ILogger<BackgroundJobsController> logger, IJobService jobService, ISender sender)
-    {
-        _logger = logger;
-        _jobService = jobService;
-        _sender = sender;
-    }
+    private readonly ILogger<BackgroundJobsController> _logger = logger;
+    private readonly IJobService _jobService = jobService;
+    private readonly ISender _sender = sender;
 
     [HttpGet("job-types")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.BackgroundJobs)]
@@ -59,8 +52,14 @@ public class BackgroundJobsController : ControllerBase
         // TODO: should this code be moved to the manager?
         switch (jobType)
         {
-            case BackgroundJobType.PeopleSync:
-                _jobService.Enqueue(() => jobManager.RunPeopleSync(SyncTriggerSource.Manual, null, cancellationToken));
+            case BackgroundJobType.PeopleFullSync:
+                _jobService.Enqueue(() => jobManager.RunPeopleSync(SyncType.Full, SyncTriggerSource.Manual, null, cancellationToken));
+                break;
+            case BackgroundJobType.PeopleDiffSync:
+                // Connectors that don't support incremental fall back to Full inside the runner
+                // (PeopleSyncRunner.SourceSupportsIncremental gates the watermark lookup), so this
+                // is safe to expose even when the only active connection is Entra (Full-only).
+                _jobService.Enqueue(() => jobManager.RunPeopleSync(SyncType.Differential, SyncTriggerSource.Manual, null, cancellationToken));
                 break;
             case BackgroundJobType.WorkFullSync:
                 _jobService.Enqueue(() => jobManager.RunWorkSync(SyncType.Full, SyncTriggerSource.Manual, null, cancellationToken));
@@ -105,7 +104,10 @@ public class BackgroundJobsController : ControllerBase
         {
             return jobType switch
             {
-                BackgroundJobType.PeopleSync => () => jobManager.RunPeopleSync(SyncTriggerSource.Scheduled, null, cancellationToken),
+                BackgroundJobType.PeopleFullSync => () => jobManager.RunPeopleSync(SyncType.Full, SyncTriggerSource.Scheduled, null, cancellationToken),
+                // Connectors that don't support incremental fall back to Full inside the runner —
+                // safe to schedule even when the only active connection is Entra (Full-only).
+                BackgroundJobType.PeopleDiffSync => () => jobManager.RunPeopleSync(SyncType.Differential, SyncTriggerSource.Scheduled, null, cancellationToken),
                 BackgroundJobType.WorkFullSync => () => jobManager.RunWorkSync(SyncType.Full, SyncTriggerSource.Scheduled, null, cancellationToken),
                 BackgroundJobType.WorkDiffSync => () => jobManager.RunWorkSync(SyncType.Differential, SyncTriggerSource.Scheduled, null, cancellationToken),
                 BackgroundJobType.TeamGraphSync => () => jobManager.RunSyncTeamsWithGraphTables(cancellationToken),

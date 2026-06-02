@@ -2,9 +2,12 @@
 using Wayd.AppIntegration.Application.Connections.Commands.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Commands.AzureOpenAI;
 using Wayd.AppIntegration.Application.Connections.Commands.Entra;
+using Wayd.AppIntegration.Application.Connections.Commands.Workday;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureOpenAI;
 using Wayd.AppIntegration.Application.Connections.Dtos.Entra;
+using Wayd.AppIntegration.Application.Connections.Dtos.Workday;
+using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Application.BackgroundJobs;
 using Wayd.Common.Application.Enums;
@@ -69,6 +72,10 @@ public class ConnectionsController(ISender sender) : ControllerBase
         {
             entra.Configuration.MaskClientSecret();
         }
+        else if (connection is WorkdayConnectionDetailsDto workday)
+        {
+            workday.Configuration.MaskIsuPassword();
+        }
 
         return this.OkPolymorphic(connection);
     }
@@ -89,6 +96,8 @@ public class ConnectionsController(ISender sender) : ControllerBase
                 await _sender.Send(aoai.ToCommand(), cancellationToken),
             CreateEntraConnectionRequest entra =>
                 await _sender.Send(entra.ToCommand(), cancellationToken),
+            CreateWorkdayConnectionRequest workday =>
+                await _sender.Send(workday.ToCommand(), cancellationToken),
             _ => Result.Failure<Guid>($"Connector type not supported")
         };
 
@@ -118,6 +127,8 @@ public class ConnectionsController(ISender sender) : ControllerBase
                 await _sender.Send(aoai.ToCommand(), cancellationToken),
             UpdateEntraConnectionRequest entra =>
                 await _sender.Send(entra.ToCommand(), cancellationToken),
+            UpdateWorkdayConnectionRequest workday =>
+                await _sender.Send(workday.ToCommand(), cancellationToken),
             _ => Result.Failure($"Connector type not supported")
         };
 
@@ -165,7 +176,7 @@ public class ConnectionsController(ISender sender) : ControllerBase
     [HttpPost("{id}/run")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
     [OpenApiOperation("Trigger a sync for a connection.",
-        "Enqueues a background job that runs the sync pipeline for this connection only. Routes by connector category — work-sync connectors run a work sync (defaults to differential; pass 'syncType=Full' for full), people-sync connectors run a people sync. The connection must be active.")]
+        "Enqueues a background job that runs the sync pipeline for this connection only. Routes by connector category. The syncType query parameter is honored by both work-sync and people-sync connectors; the default is Differential. For PeopleSync, Differential silently degrades to Full when no prior successful run exists (or when the source doesn't support incremental). The connection must be active.")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RunSync(
@@ -190,12 +201,64 @@ public class ConnectionsController(ISender sender) : ControllerBase
                 jobService.Enqueue(() => jobManager.RunWorkSync(syncType, SyncTriggerSource.Manual, id, cancellationToken));
                 return Accepted();
             case ConnectorCategory.PeopleSync:
-                jobService.Enqueue(() => jobManager.RunPeopleSync(SyncTriggerSource.Manual, id, cancellationToken));
+                jobService.Enqueue(() => jobManager.RunPeopleSync(syncType, SyncTriggerSource.Manual, id, cancellationToken));
                 return Accepted();
             default:
                 return BadRequest(ProblemDetailsExtensions.ForBadRequest(
                     $"Connections of category '{category}' do not support manual sync.", HttpContext));
         }
+    }
+
+    [HttpPost("{id}/init")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
+    [OpenApiOperation("Validate (re-initialize) a connection.",
+        "Runs a small probe against the upstream system to confirm the configuration is usable. " +
+        "Updates IsValidConfiguration and any structured per-connector validation details. Currently supported for Workday.")]
+    [ProducesResponseType(typeof(ConnectionInitResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ConnectionInitResult>> InitConnection(Guid id, CancellationToken cancellationToken)
+    {
+        var connection = await _sender.Send(new GetConnectionQuery(id), cancellationToken);
+        if (connection is null)
+            return NotFound();
+
+        Result<ConnectionInitResult> result = connection switch
+        {
+            WorkdayConnectionDetailsDto =>
+                await _sender.Send(new InitWorkdayConnectionCommand(id), cancellationToken),
+            _ => Result.Failure<ConnectionInitResult>($"The '{connection.Connector?.Name}' connector does not support an init probe."),
+        };
+
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpGet("{id}/workday/orgs")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
+    [OpenApiOperation("List Workday organizations of a given type.",
+        "Lazy-loads the orgs of one Organization_Type_ID from the connection's Workday tenant for the admin's " +
+        "exclusion picker. Backed by Workday's Get_Organizations with a server-side type filter. Returns up to " +
+        "500 orgs. Requires the connection to be a Workday connection.")]
+    [ProducesResponseType(typeof(IReadOnlyList<DiscoveredOrg>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<DiscoveredOrg>>> GetWorkdayOrgsByType(
+        Guid id,
+        [FromQuery] string typeId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(typeId))
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest("typeId is required.", HttpContext));
+
+        var connection = await _sender.Send(new GetConnectionQuery(id), cancellationToken);
+        if (connection is null)
+            return NotFound();
+        if (connection is not WorkdayConnectionDetailsDto)
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(
+                "This endpoint is only available for Workday connections.", HttpContext));
+
+        var result = await _sender.Send(new GetWorkdayOrgsByTypeCommand(id, typeId), cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
     [HttpGet("{id}/sync-runs")]
@@ -253,6 +316,8 @@ public class ConnectionsController(ISender sender) : ControllerBase
                 await _sender.Send(new DeleteAzureOpenAIConnectionCommand(id), cancellationToken),
             EntraConnectionDetailsDto =>
                 await _sender.Send(new DeleteEntraConnectionCommand(id), cancellationToken),
+            WorkdayConnectionDetailsDto =>
+                await _sender.Send(new DeleteWorkdayConnectionCommand(id), cancellationToken),
             _ => Result.Failure($"Connector type not supported")
         };
 

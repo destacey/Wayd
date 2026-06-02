@@ -15,5 +15,8 @@ public enum Connector
     OpenAI = 2,
 
     [Display(Name = "Entra", Description = "The Entra connector enables Wayd to synchronize people (employees and contingent workers) from Microsoft Entra ID via Microsoft Graph.")]
-    Entra = 3
+    Entra = 3,
+
+    [Display(Name = "Workday", Description = "The Workday connector enables Wayd to synchronize workers from a Workday tenant via the Staffing SOAP web service. This synchronization is one-way.")]
+    Workday = 4
 }

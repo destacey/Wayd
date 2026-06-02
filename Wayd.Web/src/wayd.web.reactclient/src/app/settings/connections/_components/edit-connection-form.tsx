@@ -5,11 +5,16 @@ import {
   AzureDevOpsConnectionDetailsDto,
   AzureOpenAIConnectionDetailsDto,
   ConnectionDetailsDto,
+  EmployeeMatchProperty,
   EntraConnectionDetailsDto,
   UpdateAzureDevOpsConnectionRequest,
   UpdateAzureOpenAIConnectionRequest,
   UpdateConnectionRequest,
   UpdateEntraConnectionRequest,
+  UpdateWorkdayConnectionRequest,
+  WorkdayConnectionDetailsDto,
+  WorkdayOrgExclusionRequest,
+  WorkdayWorkerKey,
 } from '@/src/services/wayd-api'
 import { useUpdateConnectionMutation } from '@/src/store/features/app-integration/connections-api'
 import { ConnectorType } from '@/src/types/connectors'
@@ -48,6 +53,19 @@ interface EditConnectionFormValues {
   clientSecret?: string | null
   allUsersGroupObjectId?: string | null
   includeDisabledUsers?: boolean | null
+  // Workday
+  wsdlUrl?: string | null
+  isuUsername?: string | null
+  isuPassword?: string | null
+  workerKey?: WorkdayWorkerKey | null
+  includeInactive?: boolean | null
+  useUserIdAsEmailFallback?: boolean | null
+  usePreferredName?: boolean | null
+  normalizeNameCasing?: boolean | null
+  departmentOrganizationTypeId?: string | null
+  orgExclusions?: WorkdayOrgExclusionRequest[] | null
+  // PeopleSync (Entra + Workday)
+  matchBy?: EmployeeMatchProperty | null
 }
 
 const connectorTypeFromName = (
@@ -60,6 +78,8 @@ const connectorTypeFromName = (
       return ConnectorType.AzureOpenAI
     case 'Entra':
       return ConnectorType.Entra
+    case 'Workday':
+      return ConnectorType.Workday
     // OpenAI is deliberately omitted: the backend has no Create/Update command
     // for it yet, so offering an edit form would only ever fail at submit.
     // Add the case back once UpdateOpenAIConnectionCommand ships.
@@ -106,7 +126,33 @@ const buildRequest = (
         clientSecret: values.clientSecret ?? '',
         allUsersGroupObjectId: values.allUsersGroupObjectId ?? undefined,
         includeDisabledUsers: values.includeDisabledUsers ?? false,
+        matchBy: values.matchBy ?? EmployeeMatchProperty.Email,
+        normalizeNameCasing: values.normalizeNameCasing ?? true,
       } as UpdateEntraConnectionRequest
+    case 'Workday':
+      return {
+        $type: 'workday',
+        id: connection.id,
+        name: values.name,
+        description: values.description ?? undefined,
+        wsdlUrl: values.wsdlUrl ?? '',
+        isuUsername: values.isuUsername ?? '',
+        isuPassword: values.isuPassword ?? '',
+        workerKey: values.workerKey ?? WorkdayWorkerKey.EmployeeId,
+        includeInactive: values.includeInactive ?? false,
+        matchBy: values.matchBy ?? EmployeeMatchProperty.Email,
+        useUserIdAsEmailFallback: values.useUserIdAsEmailFallback ?? false,
+        usePreferredName: values.usePreferredName ?? false,
+        normalizeNameCasing: values.normalizeNameCasing ?? true,
+        departmentOrganizationTypeId:
+          values.departmentOrganizationTypeId?.trim() || undefined,
+        // Form.List can return undefined when nothing has been added — collapse to []. We also
+        // drop rows where the admin opened a slot but didn't pick anything (empty reference).
+        orgExclusions: (values.orgExclusions ?? []).filter(
+          (e) =>
+            !!e?.organizationTypeId?.trim() && !!e?.organizationReference?.trim(),
+        ),
+      } as UpdateWorkdayConnectionRequest
     default:
       return null
   }
@@ -147,6 +193,32 @@ const seedFormValues = (
         clientSecret: c.configuration?.clientSecret,
         allUsersGroupObjectId: c.configuration?.allUsersGroupObjectId,
         includeDisabledUsers: c.configuration?.includeDisabledUsers ?? false,
+        matchBy: c.configuration?.matchBy ?? EmployeeMatchProperty.Email,
+        normalizeNameCasing: c.configuration?.normalizeNameCasing ?? true,
+      }
+    }
+    case 'Workday': {
+      const c = connection as WorkdayConnectionDetailsDto
+      return {
+        ...base,
+        wsdlUrl: c.configuration?.wsdlUrl,
+        isuUsername: c.configuration?.isuUsername,
+        isuPassword: c.configuration?.isuPassword,
+        workerKey: c.configuration?.workerKey ?? WorkdayWorkerKey.EmployeeId,
+        includeInactive: c.configuration?.includeInactive ?? false,
+        matchBy: c.configuration?.matchBy ?? EmployeeMatchProperty.Email,
+        useUserIdAsEmailFallback:
+          c.configuration?.useUserIdAsEmailFallback ?? false,
+        usePreferredName: c.configuration?.usePreferredName ?? false,
+        normalizeNameCasing: c.configuration?.normalizeNameCasing ?? true,
+        departmentOrganizationTypeId:
+          c.configuration?.departmentOrganizationTypeId ?? '',
+        orgExclusions:
+          c.configuration?.orgExclusions?.map((e) => ({
+            organizationTypeId: e.organizationTypeId,
+            organizationReference: e.organizationReference,
+            displayName: e.displayName ?? undefined,
+          })) ?? [],
       }
     }
     default:
@@ -230,10 +302,14 @@ const EditConnectionForm = ({
       onCancel={handleCancel}
       keyboard={false}
       destroyOnHidden
+      // Viewport-bounded width: fill the screen on mobile (95vw), cap at 800px on desktop. A
+      // hard-pixel width would overflow on phones (~360-430px wide) and cause horizontal scroll.
+      width="95vw"
+      style={{ maxWidth: 800 }}
     >
       <Form
         form={form}
-        size="small"
+        size="middle"
         layout="vertical"
         name="edit-connection-form"
       >
@@ -241,6 +317,7 @@ const EditConnectionForm = ({
           connector={connectorType}
           mode="edit"
           form={form}
+          connection={connection}
         />
       </Form>
     </Modal>

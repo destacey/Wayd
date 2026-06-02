@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/" xmlns:wd="urn:com.workday/bsvc">
+  <env:Body>
+    <wd:Get_Organizations_Response wd:version="v46.1">
+      <wd:Response_Results>
+        <wd:Total_Results>4</wd:Total_Results>
+        <wd:Total_Pages>1</wd:Total_Pages>
+        <wd:Page_Results>4</wd:Page_Results>
+        <wd:Page>1</wd:Page>
+      </wd:Response_Results>
+      <wd:Response_Data>
+        <!-- Two supervisory orgs to exercise grouping + Count. -->
+        <wd:Organization>
+          <wd:Organization_Reference wd:Descriptor="Engineering">
+            <wd:ID wd:type="WID">org-aaaa-0001</wd:ID>
+          </wd:Organization_Reference>
+          <wd:Organization_Data>
+            <wd:Reference_ID>SUP-ENG</wd:Reference_ID>
+            <wd:Name>Engineering</wd:Name>
+            <wd:Organization_Type_Reference wd:Descriptor="Supervisory Organization">
+              <wd:ID wd:type="Organization_Type_ID">SUPERVISORY</wd:ID>
+            </wd:Organization_Type_Reference>
+            <wd:Inactive>0</wd:Inactive>
+          </wd:Organization_Data>
+        </wd:Organization>
+        <wd:Organization>
+          <wd:Organization_Reference wd:Descriptor="Sales">
+            <wd:ID wd:type="WID">org-aaaa-0002</wd:ID>
+          </wd:Organization_Reference>
+          <wd:Organization_Data>
+            <wd:Reference_ID>SUP-SAL</wd:Reference_ID>
+            <wd:Name>Sales</wd:Name>
+            <wd:Organization_Type_Reference wd:Descriptor="Supervisory Organization">
+              <wd:ID wd:type="Organization_Type_ID">SUPERVISORY</wd:ID>
+            </wd:Organization_Type_Reference>
+            <wd:Inactive>0</wd:Inactive>
+          </wd:Organization_Data>
+        </wd:Organization>
+        <!-- One cost center org. -->
+        <wd:Organization>
+          <wd:Organization_Reference wd:Descriptor="Cost Center: R&amp;D">
+            <wd:ID wd:type="WID">org-aaaa-0003</wd:ID>
+          </wd:Organization_Reference>
+          <wd:Organization_Data>
+            <wd:Reference_ID>CC-100</wd:Reference_ID>
+            <wd:Name>R&amp;D</wd:Name>
+            <wd:Organization_Type_Reference wd:Descriptor="Cost Center">
+              <wd:ID wd:type="Organization_Type_ID">COST_CENTER</wd:ID>
+            </wd:Organization_Type_Reference>
+            <wd:Inactive>0</wd:Inactive>
+          </wd:Organization_Data>
+        </wd:Organization>
+        <!-- One business unit. -->
+        <wd:Organization>
+          <wd:Organization_Reference wd:Descriptor="Business Unit: Platform">
+            <wd:ID wd:type="WID">org-aaaa-0004</wd:ID>
+          </wd:Organization_Reference>
+          <wd:Organization_Data>
+            <wd:Reference_ID>BU-PLT</wd:Reference_ID>
+            <wd:Name>Platform</wd:Name>
+            <wd:Organization_Type_Reference wd:Descriptor="Business Unit">
+              <wd:ID wd:type="Organization_Type_ID">BUSINESS_UNIT</wd:ID>
+            </wd:Organization_Type_Reference>
+            <wd:Inactive>0</wd:Inactive>
+          </wd:Organization_Data>
+        </wd:Organization>
+      </wd:Response_Data>
+    </wd:Get_Organizations_Response>
+  </env:Body>
+</env:Envelope>

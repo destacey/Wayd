@@ -114,7 +114,16 @@ function formatDuration(
 interface PeopleSyncDetail {
   employeesFetched?: number
   employeesUpserted?: number
+  employeesExcluded?: number
+  exclusionBreakdown?: ExclusionBreakdownEntry[]
   errors?: string[]
+}
+
+interface ExclusionBreakdownEntry {
+  orgTypeId: string
+  orgReference: string
+  displayName?: string | null
+  count: number
 }
 
 function parseDetailsJson<T>(json: string | null | undefined): T | undefined {
@@ -196,7 +205,32 @@ function PeopleExpandedRow({ syncRun }: { syncRun: SyncRunDetailsDto }) {
         <strong>Employees fetched:</strong> {detail.employeesFetched ?? 0}
         {'  '}
         <strong>Employees upserted:</strong> {detail.employeesUpserted ?? 0}
+        {(detail.employeesExcluded ?? 0) > 0 && (
+          <>
+            {'  '}
+            <strong>Excluded:</strong> {detail.employeesExcluded}
+          </>
+        )}
       </Typography.Text>
+      {(detail.exclusionBreakdown?.length ?? 0) > 0 && (
+        <>
+          <Typography.Text type="secondary">
+            Excluded by rule:
+          </Typography.Text>
+          <ul style={{ margin: 0 }}>
+            {detail.exclusionBreakdown!.map((b) => (
+              <li key={`${b.orgTypeId}:${b.orgReference}`}>
+                <Typography.Text>
+                  <code>{b.orgTypeId}</code>
+                  {b.displayName ? `: ${b.displayName}` : ` (${b.orgReference})`}
+                  {' → '}
+                  {b.count} worker{b.count === 1 ? '' : 's'}
+                </Typography.Text>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
       {detail.errors && detail.errors.length > 0 && (
         <>
           <Typography.Text type="danger">Errors:</Typography.Text>
@@ -227,7 +261,7 @@ function ExpandedRow({
     return (
       <Alert
         type="error"
-        message="Failed to load sync run details."
+        title="Failed to load sync run details."
         showIcon
         style={{ margin: '0 24px 8px' }}
       />
@@ -331,11 +365,11 @@ export default function SyncHistoryTab({ connectionId, category, isActive }: Pro
     try {
       await runSync({ connectionId, syncType }).unwrap()
       const label =
-        category === 'people'
-          ? 'Sync'
-          : syncType === SyncType.Full
-            ? 'Full sync'
-            : 'Differential sync'
+        syncType === SyncType.Full
+          ? 'Full sync'
+          : syncType === SyncType.Differential
+            ? 'Differential sync'
+            : 'Sync'
       messageApi.success(`${label} triggered — a new run will appear shortly.`)
       // The effect on [waitingForRun] schedules the 30 s reset.
       setWaitingForRun(true)
@@ -388,19 +422,16 @@ export default function SyncHistoryTab({ connectionId, category, isActive }: Pro
     },
   ]
 
-  // Type column is only meaningful when the connector supports multiple sync types.
-  const typeColumn: TableColumnsType<SyncRunListDto> =
-    category === 'people'
-      ? []
-      : [
-          {
-            title: 'Type',
-            dataIndex: 'syncType',
-            key: 'syncType',
-            render: (t: SyncType) => SYNC_TYPE_LABEL[t] ?? t,
-            width: 110,
-          },
-        ]
+  // Type column is meaningful for both categories now that PeopleSync exposes Full vs Differential.
+  const typeColumn: TableColumnsType<SyncRunListDto> = [
+    {
+      title: 'Type',
+      dataIndex: 'syncType',
+      key: 'syncType',
+      render: (t: SyncType) => SYNC_TYPE_LABEL[t] ?? t,
+      width: 110,
+    },
+  ]
 
   const errorColumn: TableColumnsType<SyncRunListDto> = [
     {
@@ -435,36 +466,28 @@ export default function SyncHistoryTab({ connectionId, category, isActive }: Pro
     rowExpandable: () => true,
   }
 
-  const syncButtons =
-    category === 'people' ? (
+  // Both categories now expose Diff vs Full. Differential silently degrades to Full inside the
+  // runner when there's no prior successful run, so it's safe to show even on a fresh connection.
+  const syncButtons = (
+    <Space>
       <Button
         icon={<SyncOutlined />}
         disabled={!canSync}
         loading={isTriggeringSync}
-        onClick={() => handleSyncNow()}
+        onClick={() => handleSyncNow(SyncType.Differential)}
       >
-        Sync Now
+        Diff Sync
       </Button>
-    ) : (
-      <Space>
-        <Button
-          icon={<SyncOutlined />}
-          disabled={!canSync}
-          loading={isTriggeringSync}
-          onClick={() => handleSyncNow(SyncType.Differential)}
-        >
-          Diff Sync
-        </Button>
-        <Button
-          icon={<SyncOutlined />}
-          disabled={!canSync}
-          loading={isTriggeringSync}
-          onClick={() => handleSyncNow(SyncType.Full)}
-        >
-          Full Sync
-        </Button>
-      </Space>
-    )
+      <Button
+        icon={<SyncOutlined />}
+        disabled={!canSync}
+        loading={isTriggeringSync}
+        onClick={() => handleSyncNow(SyncType.Full)}
+      >
+        Full Sync
+      </Button>
+    </Space>
+  )
 
   return (
     <Space
@@ -495,13 +518,13 @@ export default function SyncHistoryTab({ connectionId, category, isActive }: Pro
       ) : isError ? (
         <Alert
           type="error"
-          message="Failed to load sync run history."
+          title="Failed to load sync run history."
           showIcon
         />
       ) : runs?.length === 0 ? (
         <Alert
           type="info"
-          message="No sync runs in the selected window."
+          title="No sync runs in the selected window."
           showIcon
         />
       ) : (

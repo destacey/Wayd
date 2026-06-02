@@ -16,6 +16,8 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
     <>
       <Descriptions>
         <Item label="Email">{employee.email}</Item>
+        <Item label="Employee Number">{employee.employeeNumber}</Item>
+        <Item label="Employee Type">{employee.employeeType || '—'}</Item>
         <Item label="Job Title">{employee.jobTitle}</Item>
         <Item label="Department">{employee.department}</Item>
         <Item label="Manager">

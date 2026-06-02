@@ -1,18 +1,39 @@
 ﻿using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.Validators;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 
 namespace Wayd.Common.Application.Employees.Commands;
 
 public sealed record BulkUpsertEmployeesCommand : ICommand, ILongRunningRequest
 {
-    public BulkUpsertEmployeesCommand(IEnumerable<IExternalEmployee> employees)
+    public BulkUpsertEmployeesCommand(
+        IEnumerable<IExternalEmployee> employees,
+        EmployeeMatchProperty matchBy = EmployeeMatchProperty.EmployeeNumber,
+        bool deactivateMissing = true)
     {
         // ignore records with no employee number
         Employees = employees.Where(e => !string.IsNullOrWhiteSpace(e.EmployeeNumber));
+        MatchBy = matchBy;
+        DeactivateMissing = deactivateMissing;
     }
 
     public IEnumerable<IExternalEmployee> Employees { get; }
+
+    /// <summary>
+    /// Which unique field on <c>Employee</c> the upsert uses to find an existing row. Driven by
+    /// the active PeopleSync connection's <c>MatchBy</c> setting — admins choose whether identity
+    /// is keyed on email (the cross-source-stable choice) or on the source's <c>EmployeeNumber</c>.
+    /// Both candidate fields are DB-uniquely indexed.
+    /// </summary>
+    public EmployeeMatchProperty MatchBy { get; }
+
+    /// <summary>
+    /// When false, the deactivation pass is skipped entirely. Incremental syncs only see changed
+    /// records, so "not in payload" doesn't mean "no longer exists" — set this to false to avoid
+    /// deactivating unchanged employees.
+    /// </summary>
+    public bool DeactivateMissing { get; }
 }
 
 public sealed class BulkUpsertEmployeesCommandValidator : CustomValidator<BulkUpsertEmployeesCommand>
@@ -47,12 +68,23 @@ internal sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbCon
         List<Employee> employees = await _waydDbContext.Employees.ToListAsync(cancellationToken) ?? [];
         var blacklist = await _waydDbContext.ExternalEmployeeBlacklistItems.Select(b => b.ObjectId).ToListAsync(cancellationToken);
 
-        // Build a case-insensitive lookup for manager ids from the initially loaded employees
+        // Lookup indexes for the active match property. Both candidate fields are uniquely indexed
+        // in the DB; case-insensitive is the right comparison for both (emails are not case-sensitive
+        // in any HRIS we'd plausibly sync from, and EmployeeNumber is also commonly mixed-case).
+        var employeesByEmail = employees
+            .GroupBy(e => e.Email.Value, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        var employeesByNumber = employees
+            .GroupBy(e => e.EmployeeNumber, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+        // Manager resolution always keys off the source's EmployeeNumber (that's what ManagerEmployeeNumber carries).
         var employeeNumberToId = employees.ToDictionary(e => e.EmployeeNumber, e => e.Id, StringComparer.OrdinalIgnoreCase);
-        var requestedEmployeeNumbers = request.Employees
-            .Where(e => !blacklist.Contains(e.EmployeeNumber))
-            .Select(e => e.EmployeeNumber)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Track which existing rows the payload "claimed" — drives the deactivation pass at the end.
+        // We collect Employee.Id rather than EmployeeNumber because match-by-email may rewrite
+        // EmployeeNumber, so the post-upsert "what's in the payload" set has to be identity-stable.
+        var matchedExistingIds = new HashSet<Guid>();
 
         foreach (var externalEmployee in request.Employees.Where(e => !blacklist.Contains(e.EmployeeNumber)))
         {
@@ -60,9 +92,13 @@ internal sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbCon
             {
                 var managerId = GetManagerId(externalEmployee.ManagerEmployeeNumber, employeeNumberToId);
 
-                if (employees.FirstOrDefault(e => e.EmployeeNumber == externalEmployee.EmployeeNumber) is Employee employee)
+                var existing = FindMatchingEmployee(externalEmployee, request.MatchBy, employeesByEmail, employeesByNumber);
+
+                if (existing is not null)
                 { // update
-                    var updateResult = employee.Update(
+                    matchedExistingIds.Add(existing.Id);
+
+                    var updateResult = existing.Update(
                         externalEmployee.Name,
                         externalEmployee.EmployeeNumber,
                         externalEmployee.HireDate,
@@ -72,14 +108,15 @@ internal sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbCon
                         externalEmployee.OfficeLocation,
                         managerId,
                         externalEmployee.IsActive,
+                        externalEmployee.EmployeeType,
                         _dateTimeProvider.Now
                         );
 
                     if (updateResult.IsFailure)
                     {
                         // Reset the entity
-                        await _waydDbContext.Entry(employee).ReloadAsync(cancellationToken);
-                        employee.ClearDomainEvents();
+                        await _waydDbContext.Entry(existing).ReloadAsync(cancellationToken);
+                        existing.ClearDomainEvents();
 
                         _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", requestName, updateResult.Error);
                         errors.Add(externalEmployee.EmployeeNumber, updateResult.Error);
@@ -99,6 +136,7 @@ internal sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbCon
                         externalEmployee.OfficeLocation,
                         managerId,
                         externalEmployee.IsActive,
+                        externalEmployee.EmployeeType,
                         _dateTimeProvider.Now
                         );
 
@@ -123,7 +161,8 @@ internal sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbCon
 
             await ProcessMissingManagers(missingManagers, cancellationToken);
 
-            await DeactivateEmployeesNotInPayload(requestedEmployeeNumbers, cancellationToken);
+            if (request.DeactivateMissing)
+                await DeactivateEmployeesNotInPayload(matchedExistingIds, cancellationToken);
 
             return Result.Success();
         }
@@ -133,6 +172,20 @@ internal sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbCon
 
             return Result.Failure<int>($"Wayd Request: Exception for Request {requestName} {request}");
         }
+    }
+
+    private static Employee? FindMatchingEmployee(
+        IExternalEmployee externalEmployee,
+        EmployeeMatchProperty matchBy,
+        IReadOnlyDictionary<string, Employee> byEmail,
+        IReadOnlyDictionary<string, Employee> byNumber)
+    {
+        return matchBy switch
+        {
+            EmployeeMatchProperty.Email => byEmail.TryGetValue(externalEmployee.Email.Value, out var byE) ? byE : null,
+            EmployeeMatchProperty.EmployeeNumber => byNumber.TryGetValue(externalEmployee.EmployeeNumber, out var byN) ? byN : null,
+            _ => null,
+        };
     }
 
     private async Task ProcessMissingManagers(Dictionary<string, string> missingManagers, CancellationToken cancellationToken)
@@ -172,11 +225,14 @@ internal sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbCon
         await _waydDbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task DeactivateEmployeesNotInPayload(HashSet<string> requestedEmployeeNumbers, CancellationToken cancellationToken)
+    private async Task DeactivateEmployeesNotInPayload(HashSet<Guid> matchedExistingIds, CancellationToken cancellationToken)
     {
-        // Find active employees not included in the request payload and deactivate them
+        // Any active employee whose row this sync did not claim — i.e. it was not matched against
+        // anything in the payload — is treated as no-longer-employed and deactivated. This is safe
+        // because PeopleSync is single-active by design: there's exactly one source of truth for
+        // who works here at any given time.
         var toDeactivate = await _waydDbContext.Employees
-            .Where(e => e.IsActive && !requestedEmployeeNumbers.Contains(e.EmployeeNumber))
+            .Where(e => e.IsActive && !matchedExistingIds.Contains(e.Id))
             .ToListAsync(cancellationToken);
 
         if (toDeactivate.Count == 0)

@@ -26000,6 +26000,147 @@ export class ConnectionsClient {
     }
 
     /**
+     * Validate (re-initialize) a connection.
+     */
+    initConnection(id: string, cancelToken?: CancelToken): Promise<ConnectionInitResult> {
+        let url_ = this.baseUrl + "/api/app-integrations/connections/{id}/init";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processInitConnection(_response);
+        });
+    }
+
+    protected processInitConnection(response: AxiosResponse): Promise<ConnectionInitResult> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ConnectionInitResult>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ConnectionInitResult>(null as any);
+    }
+
+    /**
+     * List Workday organizations of a given type.
+     * @param typeId (optional) 
+     */
+    getWorkdayOrgsByType(id: string, typeId?: string | undefined, cancelToken?: CancelToken): Promise<DiscoveredOrg[]> {
+        let url_ = this.baseUrl + "/api/app-integrations/connections/{id}/workday/orgs?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (typeId === null)
+            throw new globalThis.Error("The parameter 'typeId' cannot be null.");
+        else if (typeId !== undefined)
+            url_ += "typeId=" + encodeURIComponent("" + typeId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkdayOrgsByType(_response);
+        });
+    }
+
+    protected processGetWorkdayOrgsByType(response: AxiosResponse): Promise<DiscoveredOrg[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DiscoveredOrg[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DiscoveredOrg[]>(null as any);
+    }
+
+    /**
      * Get sync run history for a connection.
      * @param since (optional) 
      */
@@ -28978,6 +29119,7 @@ export interface EmployeeListDto {
     officeLocation?: string | undefined;
     manager?: EmployeeNavigationDto | undefined;
     isActive: boolean;
+    employeeType?: string | undefined;
 }
 
 export interface EmployeeDetailsDto {
@@ -28998,6 +29140,7 @@ export interface EmployeeDetailsDto {
     officeLocation?: string | undefined;
     manager?: EmployeeNavigationDto | undefined;
     isActive: boolean;
+    employeeType?: string | undefined;
 }
 
 export interface CreateEmployeeRequest {
@@ -29429,10 +29572,14 @@ export interface AzureOpenAIConnectionListDto extends ConnectionListDto {
 export interface EntraConnectionListDto extends ConnectionListDto {
 }
 
+export interface WorkdayConnectionListDto extends ConnectionListDto {
+}
+
 export interface ConnectorListDto {
     id: number;
     name: string;
     description?: string | undefined;
+    category: SimpleNavigationDto;
 }
 
 export interface ConnectionDetailsDto {
@@ -29508,6 +29655,57 @@ export interface EntraConnectionConfigurationDto {
     clientSecret: string;
     allUsersGroupObjectId?: string | undefined;
     includeDisabledUsers: boolean;
+    matchBy: EmployeeMatchProperty;
+    normalizeNameCasing: boolean;
+}
+
+export enum EmployeeMatchProperty {
+    Email = "Email",
+    EmployeeNumber = "EmployeeNumber",
+}
+
+export interface WorkdayConnectionDetailsDto extends ConnectionDetailsDto {
+    configuration: WorkdayConnectionConfigurationDto;
+}
+
+export interface WorkdayConnectionConfigurationDto {
+    wsdlUrl: string;
+    serviceHost: string;
+    tenantAlias: string;
+    wsdlVersion: string;
+    isuUsername: string;
+    isuPassword: string;
+    workerKey: WorkdayWorkerKey;
+    includeInactive: boolean;
+    matchBy: EmployeeMatchProperty;
+    useUserIdAsEmailFallback: boolean;
+    usePreferredName: boolean;
+    normalizeNameCasing: boolean;
+    departmentOrganizationTypeId?: string | undefined;
+    discoveredOrgTypes?: WorkdayOrgTypeDto[] | undefined;
+    orgExclusions: WorkdayOrgExclusionDto[];
+    lastInitAt?: Date | undefined;
+    lastInitSucceeded: boolean;
+    lastInitMissingFields?: string[] | undefined;
+    lastInitWarnings?: string[] | undefined;
+    lastInitAuthError?: string | undefined;
+}
+
+export enum WorkdayWorkerKey {
+    Wid = "Wid",
+    EmployeeId = "EmployeeId",
+}
+
+export interface WorkdayOrgTypeDto {
+    typeId: string;
+    displayName?: string | undefined;
+    count: number;
+}
+
+export interface WorkdayOrgExclusionDto {
+    organizationTypeId: string;
+    organizationReference: string;
+    displayName?: string | undefined;
 }
 
 export interface CreateConnectionRequest {
@@ -29546,6 +29744,54 @@ the tenant are queried. */
     allUsersGroupObjectId?: string | undefined;
     /** When true, users with disabled accounts are also included in the sync. */
     includeDisabledUsers?: boolean;
+    /** Which uniquely-indexed Employee field the sync upsert matches on. */
+    matchBy?: EmployeeMatchProperty;
+    /** When true, names that come back from Entra in all-caps are title-cased before storage.
+Mixed-case input is preserved. Default true. */
+    normalizeNameCasing?: boolean;
+}
+
+export interface CreateWorkdayConnectionRequest extends CreateConnectionRequest {
+    /** The WSDL URL from Workday's "View API Clients" screen (with or without ?wsdl). */
+    wsdlUrl: string;
+    /** The Integration System User username. */
+    isuUsername: string;
+    /** The Integration System User password. */
+    isuPassword: string;
+    /** Which Workday worker identifier maps onto Employee.EmployeeNumber. */
+    workerKey?: WorkdayWorkerKey;
+    /** When true, terminated/inactive workers are also returned by the sync. */
+    includeInactive?: boolean;
+    /** Which uniquely-indexed Employee field the sync upsert matches on. */
+    matchBy?: EmployeeMatchProperty;
+    /** When true, use Workday's User_ID as the email source when Contact_Data is
+missing — provided the User_ID parses as a valid email. Workaround for tenants whose ISU
+ISSG doesn't grant Worker Data: Personal Contact Information. */
+    useUserIdAsEmailFallback?: boolean;
+    /** When true, sync reads each worker's Preferred_Name_Data in preference to
+Legal_Name_Data, falling back to legal per-component when a preferred component is
+missing. Default off. */
+    usePreferredName?: boolean;
+    /** When true, names that come back from Workday in all-caps are title-cased before storage
+(mixed-case input is preserved). Default true — most HRIS sources emit upper-cased legal
+names that look inconsistent next to manually-entered records. */
+    normalizeNameCasing?: boolean;
+    /** Workday Organization_Type_ID that drives Employee.Department. Defaults to
+SUPERVISORY (Workday's universal reporting-hierarchy type). After the first init
+probe, admins can pick from the discovered catalog (e.g. COST_CENTER,
+BUSINESS_UNIT, tenant-custom types). Set to null to skip Department sync. */
+    departmentOrganizationTypeId?: string | undefined;
+    /** Optional admin-configured rules that filter workers out of the sync. Each rule names an
+Organization_Type_ID plus the WID of an org of that type; workers in that org are dropped
+before upsert. Empty by default. */
+    orgExclusions?: WorkdayOrgExclusionRequest[] | undefined;
+}
+
+/** API-shaped exclusion rule. Maps 1:1 to WorkdayOrgExclusionInput on the command layer. */
+export interface WorkdayOrgExclusionRequest {
+    organizationTypeId: string;
+    organizationReference: string;
+    displayName?: string | undefined;
 }
 
 export interface UpdateConnectionRequest {
@@ -29586,11 +29832,67 @@ the tenant are queried. */
     allUsersGroupObjectId?: string | undefined;
     /** When true, users with disabled accounts are also included in the sync. */
     includeDisabledUsers?: boolean;
+    /** Which uniquely-indexed Employee field the sync upsert matches on. */
+    matchBy?: EmployeeMatchProperty;
+    /** When true, names that come back from Entra in all-caps are title-cased before storage.
+Mixed-case input is preserved. Default true. */
+    normalizeNameCasing?: boolean;
+}
+
+export interface UpdateWorkdayConnectionRequest extends UpdateConnectionRequest {
+    /** The WSDL URL from Workday's "View API Clients" screen. */
+    wsdlUrl: string;
+    /** The Integration System User username. */
+    isuUsername: string;
+    /** The Integration System User password. */
+    isuPassword: string;
+    /** Which Workday worker identifier maps onto Employee.EmployeeNumber. */
+    workerKey?: WorkdayWorkerKey;
+    /** When true, terminated/inactive workers are also returned by the sync. */
+    includeInactive?: boolean;
+    /** Which uniquely-indexed Employee field the sync upsert matches on. */
+    matchBy?: EmployeeMatchProperty;
+    /** When true, use Workday's User_ID as the email source when Contact_Data is
+missing — provided the User_ID parses as a valid email. */
+    useUserIdAsEmailFallback?: boolean;
+    /** When true, sync reads each worker's Preferred_Name_Data in preference to
+Legal_Name_Data, falling back to legal per-component when missing. Default off. */
+    usePreferredName?: boolean;
+    /** When true, names that come back from Workday in all-caps are title-cased before storage.
+Mixed-case input is preserved. Default true. */
+    normalizeNameCasing?: boolean;
+    /** Workday Organization_Type_ID that drives Employee.Department. Pick from the
+discovered catalog on the connection (populated by the init probe), or null to skip. */
+    departmentOrganizationTypeId?: string | undefined;
+    /** Admin-configured rules that filter workers out of the sync. Replace-the-list semantics: the
+supplied collection becomes the new full set (omitted or empty => no exclusions). */
+    orgExclusions?: WorkdayOrgExclusionRequest[] | undefined;
 }
 
 export enum SyncType {
     Full = "Full",
     Differential = "Differential",
+}
+
+export interface ConnectionInitResult {
+    isValid: boolean;
+    workersProbed: number;
+    missingRequiredFields: string[];
+    warnings: string[];
+    authError?: string | undefined;
+    discoveredOrgTypes?: DiscoveredOrgType[] | undefined;
+}
+
+export interface DiscoveredOrgType {
+    typeId: string;
+    displayName?: string | undefined;
+    count: number;
+}
+
+export interface DiscoveredOrg {
+    reference: string;
+    displayName?: string | undefined;
+    referenceId?: string | undefined;
 }
 
 export interface SyncRunListDto {
@@ -29615,6 +29917,7 @@ export enum Connector {
     AzureOpenAI = "AzureOpenAI",
     OpenAI = "OpenAI",
     Entra = "Entra",
+    Workday = "Workday",
 }
 
 export enum SyncRunStatus {

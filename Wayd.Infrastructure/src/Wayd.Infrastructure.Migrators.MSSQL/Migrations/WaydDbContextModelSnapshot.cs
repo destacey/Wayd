@@ -254,6 +254,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
+                    b.Property<string>("EmployeeType")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
                     b.Property<DateTime?>("HireDate")
                         .HasColumnType("datetime2");
 
@@ -330,7 +334,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasAlternateKey("Key");
 
-                    b.HasIndex("Email");
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Email"), new[] { "Id" });
 
@@ -4781,6 +4787,18 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnName("Configuration");
 
                     b.HasDiscriminator().HasValue("OpenAI");
+                });
+
+            modelBuilder.Entity("Wayd.AppIntegration.Domain.Models.Workday.WorkdayConnection", b =>
+                {
+                    b.HasBaseType("Wayd.AppIntegration.Domain.Models.Connection");
+
+                    b.Property<string>("Configuration")
+                        .ValueGeneratedOnUpdateSometimes()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("Configuration");
+
+                    b.HasDiscriminator().HasValue("Workday");
                 });
 
             modelBuilder.Entity("Wayd.Organization.Domain.Models.Team", b =>

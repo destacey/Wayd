@@ -3,9 +3,11 @@ using Mapster;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureOpenAI;
 using Wayd.AppIntegration.Application.Connections.Dtos.Entra;
+using Wayd.AppIntegration.Application.Connections.Dtos.Workday;
 using Wayd.AppIntegration.Domain.Interfaces;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
+using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 
@@ -15,6 +17,7 @@ namespace Wayd.AppIntegration.Application.Connections.Dtos;
 [JsonDerivedType(typeof(AzureDevOpsConnectionListDto), typeDiscriminator: "azure-devops")]
 [JsonDerivedType(typeof(AzureOpenAIConnectionListDto), typeDiscriminator: "azure-openai")]
 [JsonDerivedType(typeof(EntraConnectionListDto), typeDiscriminator: "entra")]
+[JsonDerivedType(typeof(WorkdayConnectionListDto), typeDiscriminator: "workday")]
 public record ConnectionListDto : IMapFrom<Connection>
 {
     /// <summary>
@@ -66,6 +69,7 @@ public record ConnectionListDto : IMapFrom<Connection>
             .Include<AzureDevOpsBoardsConnection, AzureDevOpsConnectionListDto>()
             .Include<AzureOpenAIConnection, AzureOpenAIConnectionListDto>()
             .Include<EntraConnection, EntraConnectionListDto>()
+            .Include<WorkdayConnection, WorkdayConnectionListDto>()
             .Map(dest => dest.Connector, src => SimpleNavigationDto.FromEnum(src.Connector))
             .Map(dest => dest.Category, src => SimpleNavigationDto.FromEnum(src.Connector.GetCategory()))
             .Map(dest => dest.SystemId, src => (src as ISyncableConnection) != null ? ((ISyncableConnection)src).SystemId : null)

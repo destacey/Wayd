@@ -1,5 +1,4 @@
-﻿
-
+﻿using Wayd.Common.Application.Dtos;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 
 namespace Wayd.AppIntegration.Application.Connectors.Queries;
@@ -14,7 +13,8 @@ internal sealed class GetConnectorsQueryHandler : IQueryHandler<GetConnectorsQue
         {
             Id = (int)c,
             Name = c.GetDisplayName(),
-            Description = c.GetDisplayDescription()
+            Description = c.GetDisplayDescription(),
+            Category = SimpleNavigationDto.FromEnum(c.GetCategory()),
         })];
 
         return Task.FromResult(values);

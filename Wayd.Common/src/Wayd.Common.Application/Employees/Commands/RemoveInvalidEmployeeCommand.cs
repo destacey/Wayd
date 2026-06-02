@@ -40,6 +40,7 @@ internal sealed class RemoveInvalidEmployeeCommandHandler : ICommandHandler<Remo
                 employee.OfficeLocation,
                 null,
                 false,  // this command should not change IsActive
+                employee.EmployeeType,
                 _dateTimeProvider.Now
                 );
 

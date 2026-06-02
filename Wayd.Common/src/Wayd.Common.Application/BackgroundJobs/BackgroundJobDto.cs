@@ -2,11 +2,11 @@
 
 public record BackgroundJobDto
 {
-    public string Id { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
-    public string Namespace { get; set; } = string.Empty;
-    public string Type { get; set; } = string.Empty;
-    public string Action { get; set; } = string.Empty;
+    public required string Id { get; set; }
+    public required string Status { get; set; }
+    public required string Namespace { get; set; }
+    public required string Type { get; set; }
+    public required string Action { get; set; } 
     public bool InProcessingState { get; set; }
     public Instant? StartedAt { get; set; }
 }

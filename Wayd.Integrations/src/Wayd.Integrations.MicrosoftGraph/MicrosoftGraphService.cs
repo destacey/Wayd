@@ -11,7 +11,7 @@ namespace Wayd.Integrations.MicrosoftGraph;
 
 public sealed class MicrosoftGraphService(ILogger<MicrosoftGraphService> logger) : IEntraEmployeeSource
 {
-    private static readonly string[] _selectOptions = ["id", "userPrincipalName", "userType", "accountEnabled", "givenName", "surname", "jobTitle", "department", "officeLocation", "mail", "manager", "employeeHireDate"];
+    private static readonly string[] _selectOptions = ["id", "userPrincipalName", "userType", "accountEnabled", "givenName", "surname", "jobTitle", "department", "officeLocation", "mail", "manager", "employeeHireDate", "employeeId", "employeeType"];
     private const int MaxPageSize = 100; // graph api max page size is 999
 
     private readonly ILogger<MicrosoftGraphService> _logger = logger;
@@ -35,7 +35,7 @@ public sealed class MicrosoftGraphService(ILogger<MicrosoftGraphService> logger)
             List<EntraEmployee> employees = new(members.Count);
             foreach (var user in members)
             {
-                employees.Add(new EntraEmployee(user));
+                employees.Add(new EntraEmployee(user, credentials.NormalizeNameCasing));
             }
 
             _logger.LogInformation("Returning {EmployeeCount} employees from Entra tenant {TenantId} via Microsoft Graph", employees.Count, credentials.TenantId);

@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureOpenAI;
 using Wayd.AppIntegration.Application.Connections.Dtos.Entra;
+using Wayd.AppIntegration.Application.Connections.Dtos.Workday;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
+using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 
 namespace Wayd.AppIntegration.Application.Connections.Queries;
@@ -42,6 +44,7 @@ internal sealed class GetConnectionsQueryHandler(IAppIntegrationDbContext appInt
             AzureDevOpsBoardsConnection azdo => (ConnectionListDto)azdo.Adapt<AzureDevOpsConnectionListDto>(),
             AzureOpenAIConnection aoai => aoai.Adapt<AzureOpenAIConnectionListDto>(),
             EntraConnection entra => entra.Adapt<EntraConnectionListDto>(),
+            WorkdayConnection workday => workday.Adapt<WorkdayConnectionListDto>(),
             _ => connection.Adapt<ConnectionListDto>()
         })];
     }

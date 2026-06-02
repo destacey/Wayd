@@ -122,7 +122,17 @@ const sidebars: SidebarsConfig = {
       items: [
         'reference/api',
         'reference/feature-flags',
-        'reference/integrations',
+        {
+          type: 'category',
+          label: 'Integrations',
+          link: {type: 'doc', id: 'reference/integrations/index'},
+          items: [
+            'reference/integrations/azure-devops',
+            'reference/integrations/entra',
+            'reference/integrations/workday',
+            'reference/integrations/azure-openai',
+          ],
+        },
         'reference/technology-stack',
         'reference/attribution',
       ],

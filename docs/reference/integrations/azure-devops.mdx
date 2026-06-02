@@ -1,0 +1,68 @@
+---
+title: Azure DevOps
+description: One-way work item synchronization from Azure DevOps into Wayd.
+sidebar_position: 1
+audience: [developer, agent, admin]
+---
+
+# Azure DevOps
+
+`Wayd.Integrations.AzureDevOps` provides one-way work item synchronization from Azure DevOps into Wayd.
+
+- **Category:** Work sync
+- **Status:** GA
+- **Auth:** Personal Access Token (PAT)
+- **Sync direction:** AzDO → Wayd (read-only on the Wayd side; synced items have `Managed` ownership)
+
+## Capabilities
+
+- Sync work items from Azure DevOps projects into Wayd workspaces
+- Map Azure DevOps work item types to Wayd work types
+- Maintain ownership tracking — Managed items cannot be edited from the Wayd UI
+- Background synchronization via Hangfire jobs (`WorkFullSync` / `WorkDiffSync`)
+
+## Setup
+
+1. In Azure DevOps, create a **Personal Access Token** with the scopes listed in [Required permissions](#required-permissions) below. Pick an expiry that matches your operational policy; you'll need to rotate the PAT before it expires.
+2. In Wayd, open **Settings → Connections** and click **Create Connection**. Pick **Azure DevOps**.
+3. Fill in:
+   - **Organization** — the AzDO organization slug (the value between `dev.azure.com/` and the next `/` in your AzDO URL, e.g. `contoso` for `https://dev.azure.com/contoso`).
+   - **Personal Access Token** — paste the PAT.
+4. Click **Test Configuration** to verify Wayd can authenticate against AzDO before saving. Save.
+5. From the connection detail page, initialize each AzDO project as a Wayd **Workspace** and each work process as a Wayd **Work Process**.
+6. Trigger a manual sync from the detail page, or let the recurring Hangfire job pick it up on schedule.
+
+## Required permissions
+
+The PAT must have the following Azure DevOps scopes:
+
+| Scope | Why Wayd needs it |
+|---|---|
+| **Work Items (read)** | List, query, and read work items from each synced project |
+| **Project and Team (read)** | Enumerate projects + teams to initialize workspaces; read process templates |
+
+Both scopes are read-only. Wayd never writes back to Azure DevOps in v1.
+
+If the PAT is later rotated or revoked in AzDO, sync runs will fail with `401 Unauthorized`; edit the connection in Wayd and paste the new PAT.
+
+## Configuration options
+
+| Option | Default | Notes |
+|---|---|---|
+| Organization | — | Required. AzDO organization slug. |
+| Personal Access Token | — | Required. Encrypted at rest. |
+
+There are no admin toggles for filtering, projection, or sync cadence beyond the standard Hangfire job schedule.
+
+## How it works
+
+1. An admin creates an **Azure DevOps Connection** in Settings → Connections, supplying organization name and a PAT.
+2. Wayd validates the PAT against the AzDO REST API, persists the connection (PAT encrypted at rest), and fetches the org's work processes and projects.
+3. Each Azure DevOps project is initialized into a Wayd **Workspace**; each work process into a Wayd **Work Process**.
+4. The `WorkSyncRunner` (Hangfire job `WorkFullSync` or `WorkDiffSync`) iterates all active AzDO connections and dispatches work item fetches through the keyed `IWorkItemSource` registered for `Connector.AzureDevOps`.
+5. Synced items have **Managed** ownership and are read-only in Wayd. Differential syncs only re-fetch items changed since the last successful run; full syncs re-pull everything and reconcile deletions.
+6. Each run is captured as a `SyncRun` row; per-run details are stored as JSON and rendered in the Sync History tab on the connection detail page.
+
+## Cross-cutting
+
+See [Integrations → Cross-cutting concerns](./index.mdx#cross-cutting-concerns) for credential encryption, activation, sync history, and the single-active People-sync rule (does not apply to Work sync).

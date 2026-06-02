@@ -1,0 +1,59 @@
+---
+title: Azure OpenAI
+description: Outbound LLM client for Wayd AI features.
+sidebar_position: 4
+audience: [developer, agent, admin]
+---
+
+# Azure OpenAI
+
+`Wayd.Integrations.AzureOpenAI` is an outbound LLM client. It does **not** sync data into Wayd — Wayd features that need LLM access call out to the active Azure OpenAI connection on demand.
+
+- **Category:** AI provider
+- **Status:** Preview
+- **Auth:** API key
+- **Sync direction:** None (request/response from Wayd → Azure OpenAI)
+
+## Capabilities
+
+- Provide an authenticated, deployment-scoped LLM endpoint to Wayd features that need it
+- Encrypted at-rest storage of API key
+- Per-connection configuration (resource base URL, deployment name, API key) — no shared/global state
+
+There is no background sync, no `SyncRun` history, and no per-connection schedule. The connection just sits there until something asks for an LLM completion.
+
+## Setup
+
+1. In the Azure portal, deploy an **Azure OpenAI resource** and create a **deployment** for the model you want to expose to Wayd (e.g. a `gpt-4` deployment).
+2. Note the resource's **endpoint URL** (e.g. `https://contoso-aoai.openai.azure.com/`) and the **deployment name** you chose.
+3. Under **Keys and Endpoint**, copy one of the two **API keys**.
+4. In Wayd, open **Settings → Connections** and click **Create Connection**. Pick **Azure OpenAI**.
+5. Fill in:
+   - **Base URL** — the resource endpoint URL from step 2.
+   - **API Key** — the key from step 3.
+   - **Deployment Name** — the deployment name from step 2.
+6. Save. Activate the connection. Wayd AI features will pick it up automatically.
+
+## Required permissions
+
+The API key carries its own scope — no separate role-assignment step is required on the Azure side.
+
+If you'd rather not store an API key, the standard alternatives are Azure AD authentication via Managed Identity or a Service Principal. Wayd's Azure OpenAI connector does not currently support either; API key is the only auth mode at present. Reach out if you need this.
+
+## Configuration options
+
+| Option | Default | Notes |
+|---|---|---|
+| Base URL | — | Required. Resource endpoint (e.g. `https://contoso-aoai.openai.azure.com/`). |
+| API Key | — | Required. Encrypted at rest. |
+| Deployment Name | — | Required. Identifies which model deployment to call. |
+
+## How it works
+
+1. An admin creates an **Azure OpenAI Connection** in Settings → Connections, supplying the resource base URL, deployment name, and API key (encrypted at rest).
+2. Wayd features that need LLM access resolve the **active** Azure OpenAI connection at request time and build a client from its credentials.
+3. There is no background job, no sync history, and no scheduled work — calls are made synchronously from feature code when an LLM completion is needed.
+
+## Cross-cutting
+
+See [Integrations → Cross-cutting concerns](./index.mdx#cross-cutting-concerns) for credential encryption and activation. Sync-history and single-active rules don't apply (no background sync; multiple active AI providers are allowed and resolved by feature-specific logic).

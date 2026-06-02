@@ -1,0 +1,129 @@
+---
+title: Cycle Time Report
+description: Analyzing cycle time for team-owned or employee-assigned work items in Wayd.
+sidebar_position: 3
+audience: [user, agent]
+---
+
+# Cycle Time Report
+
+The **Cycle Time Report** analyzes how long it takes work items to complete. It helps teams and individuals understand delivery cadence, identify bottlenecks, compare estimates against actual delivery time, and forecast future work.
+
+The report is available from the **Reports** menu on:
+
+- **Team detail pages** — analyzes work items owned by the team
+- **Employee detail pages** — analyzes work items assigned to the employee
+
+## What Is Cycle Time?
+
+**Cycle Time** measures the number of days between when work starts and when it finishes:
+
+```
+Cycle Time = Done Timestamp - Activated Timestamp (in days)
+```
+
+Only **Requirement-tier** work items, such as User Stories and Bugs, are included. Portfolio-tier items, such as Epics and Features, are excluded because they are containers rather than team-delivered units of work.
+
+To contribute to the report, a work item must:
+
+- Be a Requirement-tier work item
+- Have a Done status category
+- Have both an Activated timestamp and a Done timestamp
+- Have a Done timestamp after the Activated timestamp
+- Fall within the selected Done date range
+
+Items that moved directly to Done without being activated, or items that were Removed instead of completed, are excluded.
+
+Related metrics shown on work item detail pages:
+
+- **Time to Start** — Days from creation to activation
+- **Lead Time** — Days from creation to completion
+
+## Report Scope
+
+The same report behaves differently based on where it is opened:
+
+| Location | Scope |
+|----------|-------|
+| Team detail page | Requirement-tier work items owned by the team |
+| Employee detail page | Requirement-tier work items assigned to the employee |
+
+The calculation rules, filters, chart, and grid behavior are the same for both scopes.
+
+## Configuring the Report
+
+The report has three controls.
+
+### Done From
+
+Filters work items completed on or after the selected date.
+
+- Default: 90 days ago
+- Presets: 30, 60, 90, 120, or 180 days
+- Dates are interpreted from the beginning of the day in UTC
+
+### Percentile
+
+Controls what percentage of work items to include after removing outliers.
+
+- `100%` includes all eligible items
+- Lower values remove extreme cycle times that can skew averages
+- `0%` excludes all items
+
+### Outlier Method
+
+Determines how outliers are removed when percentile is below `100%`.
+
+| Method | How It Works | Best For |
+|--------|--------------|----------|
+| **Balanced** | Trims equally from the fastest and slowest items. At 80th percentile, removes the top 10% and bottom 10%. | Understanding typical cycle time while excluding unusually fast and slow items |
+| **Forecasting** | Removes only the slowest items. At 80th percentile, keeps the fastest 80% of items. | Predicting delivery dates by excluding slow outliers that would make forecasts unreliable |
+
+Example: with 10 items sorted by cycle time as `1, 2, 3, 4, 5, 6, 7, 8, 9, 15` days at the 80th percentile:
+
+- **Balanced** keeps items 2-9
+- **Forecasting** keeps items 1-8
+
+## Chart
+
+The **Cycle Time Analysis Chart** groups completed work items by story points and shows average cycle time for each group.
+
+- **X-axis** — Story point categories, plus "No Story Points" and "Overall"
+- **Y-axis** — Average cycle time in days
+- **Overall** — Average cycle time across all included work items
+
+Use the chart to answer questions like:
+
+- Do similarly sized items have similar cycle times?
+- Are large estimates taking meaningfully longer than smaller estimates?
+- What is the average cycle time across the selected work?
+
+## Work Items Grid
+
+Below the chart, a sortable and filterable grid shows the included work items with columns for Key, Title, Type, Status, Story Points, Team, Sprint, Assigned To, Activated date, Done date, and Cycle Time.
+
+Applying grid filters dynamically updates the chart. This lets you drill into cycle time by work type, sprint, assignee, team, or other dimensions.
+
+## Using Cycle Time
+
+Use the report to:
+
+- **Track trends** — Run the report regularly to see whether cycle time is improving
+- **Compare estimates** — Check whether items with similar story points complete in similar time
+- **Identify bottlenecks** — Investigate items with unusually long cycle times
+- **Forecast delivery** — Use the Forecasting method at a percentile such as 85% to estimate likely completion ranges
+- **Tune WIP limits** — High cycle times can indicate too much work in progress
+
+## How To Open The Report
+
+### Team Cycle Time
+
+1. Navigate to the team's detail page
+2. Open **Reports > Cycle Time Report**
+3. Configure the date range and filters
+
+### Employee Cycle Time
+
+1. Navigate to the employee's detail page
+2. Open **Reports > Cycle Time Report**
+3. Configure the date range and filters

@@ -21001,6 +21001,76 @@ export class EmployeesClient {
         }
         return Promise.resolve<TeamMemberDto[]>(null as any);
     }
+
+    /**
+     * Get the work items assigned to an employee.
+     * @param statusCategories (optional) 
+     * @param doneFrom (optional) 
+     * @param doneTo (optional) 
+     */
+    getEmployeeWorkItems(id: string, statusCategories?: WorkStatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+        let url_ = this.baseUrl + "/api/organization/employees/{id}/work-items?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (statusCategories !== undefined && statusCategories !== null)
+            statusCategories && statusCategories.forEach(item => { url_ += "statusCategories=" + encodeURIComponent("" + item) + "&"; });
+        if (doneFrom !== undefined && doneFrom !== null)
+            url_ += "doneFrom=" + encodeURIComponent(doneFrom ? "" + doneFrom.toISOString() : "") + "&";
+        if (doneTo !== undefined && doneTo !== null)
+            url_ += "doneTo=" + encodeURIComponent(doneTo ? "" + doneTo.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetEmployeeWorkItems(_response);
+        });
+    }
+
+    protected processGetEmployeeWorkItems(response: AxiosResponse): Promise<WorkItemListDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkItemListDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkItemListDto[]>(null as any);
+    }
 }
 
 export class TeamMemberRolesClient {
@@ -29213,6 +29283,13 @@ export interface TeamMemberEmployeeDto {
     jobTitle?: string | undefined;
 }
 
+export enum WorkStatusCategory {
+    Proposed = "Proposed",
+    Active = "Active",
+    Done = "Done",
+    Removed = "Removed",
+}
+
 export interface TeamMemberRoleDto {
     id: string;
     key: number;
@@ -29341,13 +29418,6 @@ export interface WorkItemBacklogItemDto {
     stackRank: number;
     storyPoints?: number | undefined;
     tags: string[];
-}
-
-export enum WorkStatusCategory {
-    Proposed = "Proposed",
-    Active = "Active",
-    Done = "Done",
-    Removed = "Removed",
 }
 
 export interface DependencyDto {

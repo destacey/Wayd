@@ -6,6 +6,9 @@ using Wayd.Organization.Application.Teams.Dtos;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.Organizations.Employees;
+using Wayd.Common.Domain.Enums.Work;
+using Wayd.Work.Application.WorkItems.Dtos;
+using Wayd.Work.Application.WorkItems.Queries;
 
 namespace Wayd.Web.Api.Controllers.Organizations;
 
@@ -120,5 +123,37 @@ public class EmployeesController(ILogger<EmployeesController> logger, ISender se
     public async Task<ActionResult<IEnumerable<TeamMemberDto>>> GetTeamMemberships(Guid id, CancellationToken cancellationToken)
     {
         return Ok(await _sender.Send(new GetEmployeeTeamMembershipsQuery(id), cancellationToken));
+    }
+
+    [HttpGet("{id}/work-items")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
+    [OpenApiOperation("Get the work items assigned to an employee.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IEnumerable<WorkItemListDto>>> GetEmployeeWorkItems(
+        Guid id,
+        [FromQuery] WorkStatusCategory[]? statusCategories,
+        [FromQuery] DateTime? doneFrom,
+        [FromQuery] DateTime? doneTo,
+        CancellationToken cancellationToken)
+    {
+        Instant? doneFromInstant = null;
+        Instant? doneToInstant = null;
+
+        if (doneFrom.HasValue)
+        {
+            var df = doneFrom.Value;
+            df = df.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(df, DateTimeKind.Utc) : df.ToUniversalTime();
+            doneFromInstant = Instant.FromDateTimeUtc(df);
+        }
+
+        if (doneTo.HasValue)
+        {
+            var dt = doneTo.Value;
+            dt = dt.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(dt, DateTimeKind.Utc) : dt.ToUniversalTime();
+            doneToInstant = Instant.FromDateTimeUtc(dt);
+        }
+
+        return Ok(await _sender.Send(new GetEmployeeWorkItemsQuery(id, statusCategories, doneFromInstant, doneToInstant), cancellationToken));
     }
 }

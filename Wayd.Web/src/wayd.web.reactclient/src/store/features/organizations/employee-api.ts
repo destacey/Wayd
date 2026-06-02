@@ -2,7 +2,12 @@ import { BaseOptionType } from 'antd/es/select'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import { getEmployeesClient } from '@/src/services/clients'
-import { EmployeeDetailsDto, EmployeeListDto } from '@/src/services/wayd-api'
+import {
+  EmployeeDetailsDto,
+  EmployeeListDto,
+  WorkItemListDto,
+  WorkStatusCategory,
+} from '@/src/services/wayd-api'
 
 export const employeeApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -36,6 +41,39 @@ export const employeeApi = apiSlice.injectEndpoints({
       },
       providesTags: (result, error, arg) => [
         { type: QueryTags.Employee, id: arg },
+      ],
+    }),
+    getEmployeeWorkItems: builder.query<
+      WorkItemListDto[],
+      {
+        employeeId: string
+        statusCategories?: WorkStatusCategory[] | null
+        /** ISO 8601 date string (e.g., "2025-08-25T00:00:00.000Z") */
+        doneFrom?: string | null
+        /** ISO 8601 date string (e.g., "2025-08-25T00:00:00.000Z") */
+        doneTo?: string | null
+      }
+    >({
+      queryFn: async ({ employeeId, statusCategories, doneFrom, doneTo }) => {
+        try {
+          const data = await getEmployeesClient().getEmployeeWorkItems(
+            employeeId,
+            statusCategories,
+            doneFrom ? new Date(doneFrom) : null,
+            doneTo ? new Date(doneTo) : null,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, arg) => [
+        QueryTags.EmployeeWorkItems,
+        {
+          type: QueryTags.EmployeeWorkItems,
+          id: `${arg.employeeId}-${arg.statusCategories?.join(',') ?? ''}-${arg.doneFrom ?? ''}-${arg.doneTo ?? ''}`,
+        },
       ],
     }),
     getEmployeeOptions: builder.query<BaseOptionType[], boolean | undefined>({
@@ -76,6 +114,7 @@ export const employeeApi = apiSlice.injectEndpoints({
 export const {
   useGetEmployeesQuery,
   useGetEmployeeQuery,
+  useGetEmployeeWorkItemsQuery,
   useGetEmployeeOptionsQuery,
   useDeleteEmployeeMutation,
 } = employeeApi

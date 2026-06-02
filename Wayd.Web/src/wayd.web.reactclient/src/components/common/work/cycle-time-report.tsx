@@ -13,6 +13,7 @@ import {
 import dayjs, { Dayjs } from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import { useGetTeamWorkItemsQuery } from '@/src/store/features/organizations/team-api'
+import { useGetEmployeeWorkItemsQuery } from '@/src/store/features/organizations/employee-api'
 import { WorkStatusCategory, WorkItemListDto } from '@/src/services/wayd-api'
 import { useDebounce } from '@/src/hooks'
 import { CycleTimeAnalysisChart, WorkItemsGrid } from '.'
@@ -36,16 +37,31 @@ export interface CycleTimeReportProps {
   teamCode: string
 }
 
-export const CycleTimeReport: FC<CycleTimeReportProps> = ({ teamCode }) => {
+export interface EmployeeCycleTimeReportProps {
+  employeeId: string
+}
+
+interface CycleTimeReportContentProps {
+  source:
+    | { type: 'team'; teamCode: string }
+    | { type: 'employee'; employeeId: string }
+  workItemsScope: string
+}
+
+const CycleTimeReportContent: FC<CycleTimeReportContentProps> = ({
+  source,
+  workItemsScope,
+}) => {
   const gridRef = useRef<AgGridReact<WorkItemListDto>>(null)
   const filterAnimationFrameRef = useRef<number | null>(null)
-  const defaultDoneFrom = dayjs().utc().subtract(90, 'days').startOf('day')
   const doneFromPresets = [30, 60, 90, 120, 180].map((days) => ({
     label: `${days} Days`,
     value: dayjs().utc().subtract(days, 'days').startOf('day'),
   }))
 
-  const [selectedDate, setSelectedDate] = useState<Dayjs>(defaultDoneFrom)
+  const [selectedDate, setSelectedDate] = useState<Dayjs>(() =>
+    dayjs().utc().subtract(90, 'days').startOf('day'),
+  )
   const [chartWorkItems, setChartWorkItems] = useState<WorkItemListDto[]>([])
   const [percentileInputValue, setPercentileInputValue] = useState<number>(100)
   const [method, setMethod] = useState<CycleTimeOutlierMethod>('Balanced')
@@ -53,17 +69,28 @@ export const CycleTimeReport: FC<CycleTimeReportProps> = ({ teamCode }) => {
 
   const doneFrom = selectedDate.toISOString()
 
-  const {
-    data: workItemsData,
-    isLoading,
-    error,
-    refetch,
-  } = useGetTeamWorkItemsQuery({
-    idOrCode: teamCode,
-    statusCategories: [WorkStatusCategory.Done],
-    doneFrom,
-    doneTo: null,
-  })
+  const teamQuery = useGetTeamWorkItemsQuery(
+    {
+      idOrCode: source.type === 'team' ? source.teamCode : '',
+      statusCategories: [WorkStatusCategory.Done],
+      doneFrom,
+      doneTo: null,
+    },
+    { skip: source.type !== 'team' },
+  )
+
+  const employeeQuery = useGetEmployeeWorkItemsQuery(
+    {
+      employeeId: source.type === 'employee' ? source.employeeId : '',
+      statusCategories: [WorkStatusCategory.Done],
+      doneFrom,
+      doneTo: null,
+    },
+    { skip: source.type !== 'employee' },
+  )
+
+  const activeQuery = source.type === 'team' ? teamQuery : employeeQuery
+  const { data: workItemsData, isLoading, error, refetch } = activeQuery
 
   const cycleTimeItems = getCycleTimeWorkItems(workItemsData)
 
@@ -145,9 +172,10 @@ export const CycleTimeReport: FC<CycleTimeReportProps> = ({ teamCode }) => {
           <Tooltip
             title={
               <>
-                Shows cycle time analysis for team work items completed since
-                the selected date. Work items that were never activated and that
-                went straight to Done are excluded.
+                Shows cycle time analysis for work items completed since
+                the selected date.
+                {` ${workItemsScope}`} Work items that were never activated and
+                that went straight to Done are excluded.
                 <br />
                 <br />
                 The chart updates dynamically based on grid filters.
@@ -230,5 +258,25 @@ export const CycleTimeReport: FC<CycleTimeReportProps> = ({ teamCode }) => {
         onFilterChanged={onFilterChanged}
       />
     </Flex>
+  )
+}
+
+export const CycleTimeReport: FC<CycleTimeReportProps> = ({ teamCode }) => {
+  return (
+    <CycleTimeReportContent
+      source={{ type: 'team', teamCode }}
+      workItemsScope="Shows work items owned by the selected team."
+    />
+  )
+}
+
+export const EmployeeCycleTimeReport: FC<EmployeeCycleTimeReportProps> = ({
+  employeeId,
+}) => {
+  return (
+    <CycleTimeReportContent
+      source={{ type: 'employee', employeeId }}
+      workItemsScope="Shows work items assigned to this employee."
+    />
   )
 }

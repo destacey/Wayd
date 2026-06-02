@@ -28,6 +28,7 @@ export enum QueryTags {
   // ORGANIZATIONS
   ActiveSprint = 'Organizations.ActiveSprint',
   Employee = 'Organizations.Employee',
+  EmployeeWorkItems = 'Organizations.EmployeeWorkItems',
   EmployeeOption = 'Organizations.EmployeeOption',
   Team = 'Organizations.Team',
   TeamOptions = 'Organizations.TeamOptions',

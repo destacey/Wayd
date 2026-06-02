@@ -23,6 +23,7 @@ using Wayd.Integrations.Abstractions;
 using Wayd.Integrations.AzureDevOps;
 using Wayd.Integrations.MicrosoftGraph;
 using Wayd.Integrations.Workday;
+using Wayd.Integrations.Workday.Soap;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
 using NodaTime;
@@ -43,8 +44,18 @@ public static class ConfigureServices
 
         builder.Services.ConfigureHttpClientDefaults(http =>
         {
-            // Turn on resilience by default
-            http.AddStandardResilienceHandler();
+            // Turn on resilience by default. The standard handler's default per-attempt timeout
+            // is 30s, which is too tight for our integration calls — many pull large datasets
+            // (Workday Get_Workers, ADO work-item batches) and routinely run past 30s, surfacing
+            // as "The operation didn't complete within the allowed timeout of '00:00:30'". Bump
+            // the per-attempt budget to 90s. Validation requires TotalRequestTimeout >= attempt
+            // timeout and CircuitBreaker.SamplingDuration >= 2x attempt timeout, so raise those too.
+            http.AddStandardResilienceHandler(options =>
+            {
+                options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(90);
+                options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(5);
+                options.CircuitBreaker.SamplingDuration = TimeSpan.FromMinutes(3);
+            });
 
             // Turn on service discovery by default
             http.AddServiceDiscovery();
@@ -79,7 +90,34 @@ public static class ConfigureServices
 
         // Workday: shared SOAP client used by both bulk sync and the init probe. The runner
         // resolves IWorkdayEmployeeSource; Create/Update/Init handlers resolve IWorkdayConnectionInitializer.
-        services.AddHttpClient<Wayd.Integrations.Workday.Soap.WorkdayStaffingClient>();
+        //
+        // A per-client standard resilience handler REPLACES the global default for this client, so we
+        // re-apply the longer integration timeouts here (90s/attempt) and additionally suppress retries
+        // for Workday's permanent faults. Workday wraps auth/validation faults in HTTP 500 bodies, which
+        // the default transient predicate would retry 3× to no effect; IsNonRetryableFault parses the
+        // SOAP fault and short-circuits those. Reading the body in the predicate is safe — fault bodies
+        // are tiny and ReadAsStringAsync buffers, so the client's own later read still sees the content.
+        services.AddHttpClient<WorkdayStaffingClient>()
+            .AddStandardResilienceHandler(options =>
+            {
+                options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(90);
+                options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(5);
+                options.CircuitBreaker.SamplingDuration = TimeSpan.FromMinutes(3);
+
+                var defaultShouldHandle = options.Retry.ShouldHandle;
+                options.Retry.ShouldHandle = async args =>
+                {
+                    var response = args.Outcome.Result;
+                    if (response is { IsSuccessStatusCode: false } && response.Content is not null)
+                    {
+                        var body = await response.Content.ReadAsStringAsync(args.Context.CancellationToken);
+                        if (WorkdayStaffingClient.IsNonRetryableFault(body))
+                            return false;
+                    }
+
+                    return await defaultShouldHandle(args);
+                };
+            });
         services.AddScoped<IWorkdayEmployeeSource, WorkdayStaffingService>();
         services.AddScoped<IWorkdayConnectionInitializer, WorkdayConnectionInitializer>();
 

@@ -13,8 +13,9 @@ Built with Clean Architecture, Domain-Driven Design, and a modular monolith appr
 ## Quick Start for Agents
 
 1. **Read `CLAUDE.md`** for build commands, architecture, and coding conventions
-2. **Read `docs/llms-full.txt`** for comprehensive domain context (entities, relationships, business rules)
-3. **Read `docs/ai/domain-glossary.mdx`** for domain terminology
+2. **Read `docs/ai/agent-memory.md`** for compact repo-specific implementation lessons
+3. **Read `docs/llms-full.txt`** for comprehensive domain context (entities, relationships, business rules)
+4. **Read `docs/ai/domain-glossary.mdx`** for domain terminology
 
 ## Repository Structure
 

@@ -27,6 +27,7 @@ Wayd supports:
 - [Work Management Overview](docs/user-guide/work-management/index.mdx): How work items connect to teams, sprints, and projects
 - [Work Items & Workspaces](docs/user-guide/work-management/work-items.mdx): Work items, workspaces, dependencies, revisions, hierarchy
 - [Work Configuration](docs/user-guide/work-management/work-configuration.mdx): Work processes, types, tiers, levels, workflows, statuses
+- [Cycle Time Report](docs/user-guide/work-management/cycle-time-report.mdx): Cycle time analysis for team-owned and employee-assigned work items
 - [PPM Overview](docs/user-guide/ppm/index.mdx): How PPM connects strategy and execution
 - [Portfolios & Programs](docs/user-guide/ppm/portfolios-programs.mdx): Portfolio lifecycle, programs, roles
 - [Projects](docs/user-guide/ppm/projects.mdx): Project lifecycle, phases, tasks, dependencies, plan tab

@@ -47,6 +47,7 @@ const sidebars: SidebarsConfig = {
           items: [
             'user-guide/work-management/work-items',
             'user-guide/work-management/work-configuration',
+            'user-guide/work-management/cycle-time-report',
           ],
         },
         {

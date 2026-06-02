@@ -234,74 +234,9 @@ Only the current operating model can be edited or deleted (and deletion is only 
 
 ### Cycle Time Report (Report)
 
-Available from the **Reports** menu, the **Cycle Time Report** analyzes how long it takes the team to complete work items. It helps teams understand delivery cadence, identify bottlenecks, and forecast future work.
+Available from the **Reports** menu, the **Cycle Time Report** analyzes how long it takes the team's work items to complete. It uses the same report available on employee detail pages, but scoped to work items owned by the team.
 
-#### What is Cycle Time?
-
-**Cycle Time** measures the number of days between when work starts (moves to Active status) and when it finishes (moves to Done status):
-
-```
-Cycle Time = Done Timestamp − Activated Timestamp (in days)
-```
-
-Only **Requirement-tier** work items (e.g., User Stories, Bugs) with both an Activated and Done timestamp are included. Portfolio-tier items (Epics, Features) and items that were Removed without being completed are excluded.
-
-Related metrics shown on work item detail pages:
-- **Time to Start** — Days from creation to activation (how long work sits before starting)
-- **Lead Time** — Days from creation to completion (total time from request to delivery)
-
-#### Configuring the Report
-
-The report has three controls:
-
-**Done From (Date Range)**
-- Filters work items completed on or after this date
-- Presets: 30, 60, 90, 120, or 180 days (default: 90 days)
-- All dates are in UTC
-
-**Percentile (0-100%)**
-- Controls what percentage of work items to include after removing outliers
-- At 100%, all items are shown (no filtering)
-- Lower values remove extreme cycle times that skew averages
-
-**Outlier Method**
-- Determines *how* outliers are identified and removed when percentile is below 100%:
-
-| Method | How It Works | Best For |
-|--------|-------------|----------|
-| **Balanced** | Trims equally from both the fastest and slowest items. At 80th percentile, removes the top 10% and bottom 10%. | Understanding typical cycle time by excluding both unusually fast and slow items |
-| **Forecasting** | Removes only the slowest items. At 80th percentile, keeps the fastest 80% of items. | Predicting delivery dates — excludes only the outliers that would make forecasts unreliable |
-
-**Example:** With 10 items sorted by cycle time (1, 2, 3, 4, 5, 6, 7, 8, 9, 15 days) at the 80th percentile:
-- **Balanced** keeps items 2-9 (removes bottom 10% and top 10%)
-- **Forecasting** keeps items 1-8 (removes the slowest 20%)
-
-#### Chart Visualization
-
-The **Cycle Time Analysis Chart** is a column chart that groups completed work items by story points and shows the average cycle time for each group:
-
-- **X-axis** — Story point categories (1, 2, 3, 5, 8, etc.) plus "No Story Points" and "Overall"
-- **Y-axis** — Average cycle time in days
-- Color coding: primary blue for story point groups, orange for "No Story Points", green for "Overall"
-
-This helps teams answer questions like:
-- "Do our 8-point stories really take longer than 3-point stories?"
-- "Is our estimation accurate — do similarly-sized items have similar cycle times?"
-- "What's our average cycle time across all work?"
-
-#### Work Items Grid
-
-Below the chart, a sortable and filterable grid shows all included work items with columns for Key, Title, Type, Status, Story Points, Team, Sprint, Assigned To, Activated date, Done date, and Cycle Time (days).
-
-**Interactive filtering:** Applying column filters in the grid (e.g., filtering by a specific work type) dynamically updates the chart above. This lets you drill into cycle time by type, sprint, assignee, or any other dimension.
-
-#### Using Cycle Time for Improvement
-
-- **Track trends** — Run the report monthly to see if cycle time is improving
-- **Compare story point groups** — If 5-point and 8-point stories have similar cycle times, your estimation may need calibration
-- **Identify bottlenecks** — Items with unusually long cycle times may indicate process issues
-- **Forecast delivery** — Use the Forecasting method at the 85th percentile to estimate "most items will complete within X days"
-- **Set WIP limits** — High cycle times often indicate too much work in progress
+See [Cycle Time Report](../work-management/cycle-time-report.mdx) for calculation rules, report controls, chart behavior, and usage guidance.
 
 ## Functional Organization Chart
 
@@ -379,9 +314,17 @@ To update the current model without creating a new one:
 2. From the page actions menu, open **Reports > Cycle Time Report**
 3. Configure the date range and filters to analyze delivery performance
 
+### Viewing Employee Cycle Time
+
+1. Navigate to the employee's detail page
+2. From the page actions menu, open **Reports > Cycle Time Report**
+3. Configure the date range and filters to analyze completed work assigned to that employee
+
 ## Employee Detail Page
 
 Each employee's detail page includes a **Teams** tab showing all teams the employee is currently a member of, with columns for Team name, Team type, and Roles. Team names link to their respective detail pages.
+
+The employee detail page also includes a **Reports > Cycle Time Report** action. This opens the same [Cycle Time Report](../work-management/cycle-time-report.mdx) used on team pages, scoped to Requirement-tier work items assigned to the employee.
 
 ## Teams List Page
 

@@ -81,10 +81,12 @@ internal sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbCon
         // Manager resolution always keys off the source's EmployeeNumber (that's what ManagerEmployeeNumber carries).
         var employeeNumberToId = employees.ToDictionary(e => e.EmployeeNumber, e => e.Id, StringComparer.OrdinalIgnoreCase);
 
-        // Track which existing rows the payload "claimed" — drives the deactivation pass at the end.
-        // We collect Employee.Id rather than EmployeeNumber because match-by-email may rewrite
-        // EmployeeNumber, so the post-upsert "what's in the payload" set has to be identity-stable.
-        var matchedExistingIds = new HashSet<Guid>();
+        // Track which rows the payload "claimed" — both matched-existing rows and rows created during
+        // this run. Drives the deactivation pass at the end. We collect Employee.Id rather than
+        // EmployeeNumber because match-by-email may rewrite EmployeeNumber, so the post-upsert "what's
+        // in the payload" set has to be identity-stable. Newly created rows MUST be included here or
+        // the deactivation pass would immediately deactivate them (they're saved before it runs).
+        var claimedEmployeeIds = new HashSet<Guid>();
 
         foreach (var externalEmployee in request.Employees.Where(e => !blacklist.Contains(e.EmployeeNumber)))
         {
@@ -96,7 +98,7 @@ internal sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbCon
 
                 if (existing is not null)
                 { // update
-                    matchedExistingIds.Add(existing.Id);
+                    claimedEmployeeIds.Add(existing.Id);
 
                     var updateResult = existing.Update(
                         externalEmployee.Name,
@@ -140,6 +142,10 @@ internal sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbCon
                         _dateTimeProvider.Now
                         );
 
+                    // Claim the new row so the deactivation pass below doesn't deactivate it. Id is
+                    // assigned at construction, so it's stable before SaveChanges.
+                    claimedEmployeeIds.Add(newEmployee.Id);
+
                     await _waydDbContext.Employees.AddAsync(newEmployee, cancellationToken);
                 }
 
@@ -162,7 +168,7 @@ internal sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbCon
             await ProcessMissingManagers(missingManagers, cancellationToken);
 
             if (request.DeactivateMissing)
-                await DeactivateEmployeesNotInPayload(matchedExistingIds, cancellationToken);
+                await DeactivateEmployeesNotInPayload(claimedEmployeeIds, cancellationToken);
 
             return Result.Success();
         }
@@ -225,14 +231,14 @@ internal sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbCon
         await _waydDbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task DeactivateEmployeesNotInPayload(HashSet<Guid> matchedExistingIds, CancellationToken cancellationToken)
+    private async Task DeactivateEmployeesNotInPayload(HashSet<Guid> claimedEmployeeIds, CancellationToken cancellationToken)
     {
-        // Any active employee whose row this sync did not claim — i.e. it was not matched against
-        // anything in the payload — is treated as no-longer-employed and deactivated. This is safe
-        // because PeopleSync is single-active by design: there's exactly one source of truth for
-        // who works here at any given time.
+        // Any active employee whose row this sync did not claim — i.e. it was neither matched against
+        // nor created from anything in the payload — is treated as no-longer-employed and deactivated.
+        // This is safe because PeopleSync is single-active by design: there's exactly one source of
+        // truth for who works here at any given time.
         var toDeactivate = await _waydDbContext.Employees
-            .Where(e => e.IsActive && !matchedExistingIds.Contains(e.Id))
+            .Where(e => e.IsActive && !claimedEmployeeIds.Contains(e.Id))
             .ToListAsync(cancellationToken);
 
         if (toDeactivate.Count == 0)

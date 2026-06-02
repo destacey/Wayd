@@ -21690,6 +21690,78 @@
         ]
       }
     },
+    "/api/app-integrations/connections/{id}/workday/orgs": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "List Workday organizations of a given type.",
+        "description": "Lazy-loads the orgs of one Organization_Type_ID from the connection's Workday tenant for the admin's exclusion picker. Backed by Workday's Get_Organizations with a server-side type filter. Returns up to 500 orgs. Requires the connection to be a Workday connection.",
+        "operationId": "Connections_GetWorkdayOrgsByType",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "typeId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiscoveredOrg"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/app-integrations/connections/{id}/sync-runs": {
       "get": {
         "tags": [
@@ -35117,17 +35189,18 @@
         "additionalProperties": false,
         "required": [
           "wsdlUrl",
-          "isuUsername",
-          "isuPassword",
           "serviceHost",
           "tenantAlias",
           "wsdlVersion",
+          "isuUsername",
+          "isuPassword",
           "workerKey",
           "includeInactive",
           "matchBy",
           "useUserIdAsEmailFallback",
           "usePreferredName",
           "normalizeNameCasing",
+          "orgExclusions",
           "lastInitSucceeded"
         ],
         "properties": {
@@ -35176,6 +35249,12 @@
             "nullable": true,
             "items": {
               "$ref": "#/components/schemas/WorkdayOrgTypeDto"
+            }
+          },
+          "orgExclusions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkdayOrgExclusionDto"
             }
           },
           "lastInitAt": {
@@ -35236,6 +35315,26 @@
           "count": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "WorkdayOrgExclusionDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "organizationTypeId",
+          "organizationReference"
+        ],
+        "properties": {
+          "organizationTypeId": {
+            "type": "string"
+          },
+          "organizationReference": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -35444,10 +35543,39 @@
                 "type": "string",
                 "description": "Workday Organization_Type_ID that drives Employee.Department. Defaults to\nSUPERVISORY (Workday's universal reporting-hierarchy type). After the first init\nprobe, admins can pick from the discovered catalog (e.g. COST_CENTER,\nBUSINESS_UNIT, tenant-custom types). Set to null to skip Department sync.",
                 "nullable": true
+              },
+              "orgExclusions": {
+                "type": "array",
+                "description": "Optional admin-configured rules that filter workers out of the sync. Each rule names an\nOrganization_Type_ID plus the WID of an org of that type; workers in that org are dropped\nbefore upsert. Empty by default.",
+                "nullable": true,
+                "items": {
+                  "$ref": "#/components/schemas/WorkdayOrgExclusionRequest"
+                }
               }
             }
           }
         ]
+      },
+      "WorkdayOrgExclusionRequest": {
+        "type": "object",
+        "description": "API-shaped exclusion rule. Maps 1:1 to WorkdayOrgExclusionInput on the command layer.",
+        "additionalProperties": false,
+        "required": [
+          "organizationTypeId",
+          "organizationReference"
+        ],
+        "properties": {
+          "organizationTypeId": {
+            "type": "string"
+          },
+          "organizationReference": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          }
+        }
       },
       "UpdateConnectionRequest": {
         "type": "object",
@@ -35663,6 +35791,14 @@
                 "type": "string",
                 "description": "Workday Organization_Type_ID that drives Employee.Department. Pick from the\ndiscovered catalog on the connection (populated by the init probe), or null to skip.",
                 "nullable": true
+              },
+              "orgExclusions": {
+                "type": "array",
+                "description": "Admin-configured rules that filter workers out of the sync. Replace-the-list semantics: the\nsupplied collection becomes the new full set (omitted or empty => no exclusions).",
+                "nullable": true,
+                "items": {
+                  "$ref": "#/components/schemas/WorkdayOrgExclusionRequest"
+                }
               }
             }
           }
@@ -35740,6 +35876,26 @@
           "count": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "DiscoveredOrg": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reference"
+        ],
+        "properties": {
+          "reference": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "referenceId": {
+            "type": "string",
+            "nullable": true
           }
         }
       },

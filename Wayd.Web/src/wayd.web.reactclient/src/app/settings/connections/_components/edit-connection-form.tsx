@@ -13,6 +13,7 @@ import {
   UpdateEntraConnectionRequest,
   UpdateWorkdayConnectionRequest,
   WorkdayConnectionDetailsDto,
+  WorkdayOrgExclusionRequest,
   WorkdayWorkerKey,
 } from '@/src/services/wayd-api'
 import { useUpdateConnectionMutation } from '@/src/store/features/app-integration/connections-api'
@@ -62,6 +63,7 @@ interface EditConnectionFormValues {
   usePreferredName?: boolean | null
   normalizeNameCasing?: boolean | null
   departmentOrganizationTypeId?: string | null
+  orgExclusions?: WorkdayOrgExclusionRequest[] | null
   // PeopleSync (Entra + Workday)
   matchBy?: EmployeeMatchProperty | null
 }
@@ -144,6 +146,12 @@ const buildRequest = (
         normalizeNameCasing: values.normalizeNameCasing ?? true,
         departmentOrganizationTypeId:
           values.departmentOrganizationTypeId?.trim() || undefined,
+        // Form.List can return undefined when nothing has been added — collapse to []. We also
+        // drop rows where the admin opened a slot but didn't pick anything (empty reference).
+        orgExclusions: (values.orgExclusions ?? []).filter(
+          (e) =>
+            !!e?.organizationTypeId?.trim() && !!e?.organizationReference?.trim(),
+        ),
       } as UpdateWorkdayConnectionRequest
     default:
       return null
@@ -205,6 +213,12 @@ const seedFormValues = (
         normalizeNameCasing: c.configuration?.normalizeNameCasing ?? true,
         departmentOrganizationTypeId:
           c.configuration?.departmentOrganizationTypeId ?? '',
+        orgExclusions:
+          c.configuration?.orgExclusions?.map((e) => ({
+            organizationTypeId: e.organizationTypeId,
+            organizationReference: e.organizationReference,
+            displayName: e.displayName ?? undefined,
+          })) ?? [],
       }
     }
     default:
@@ -288,10 +302,14 @@ const EditConnectionForm = ({
       onCancel={handleCancel}
       keyboard={false}
       destroyOnHidden
+      // Viewport-bounded width: fill the screen on mobile (95vw), cap at 800px on desktop. A
+      // hard-pixel width would overflow on phones (~360-430px wide) and cause horizontal scroll.
+      width="95vw"
+      style={{ maxWidth: 800 }}
     >
       <Form
         form={form}
-        size="small"
+        size="middle"
         layout="vertical"
         name="edit-connection-form"
       >

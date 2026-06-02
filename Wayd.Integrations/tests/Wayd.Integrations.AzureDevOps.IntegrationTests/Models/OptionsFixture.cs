@@ -14,6 +14,6 @@ public class OptionsFixture : IDisposable
 
     void IDisposable.Dispose()
     {
-
+        GC.SuppressFinalize(this);
     }
 }

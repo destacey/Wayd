@@ -10,7 +10,7 @@ namespace Wayd.Integrations.Workday.Tests;
 
 public class WorkdayConnectionInitializerTests
 {
-    private static WorkdayConnectionCredentials BuildCredentials(
+    private static WorkdayRequestContext BuildContext(
         WorkdayWorkerKey key = WorkdayWorkerKey.Wid,
         bool useUserIdAsEmailFallback = false,
         bool usePreferredName = false,
@@ -18,8 +18,7 @@ public class WorkdayConnectionInitializerTests
         SoapEndpoint: "https://wd3-impl-services1.workday.com/ccx/service/acme_corp1/Staffing/v46.1",
         TenantAlias: "acme_corp1",
         WsdlVersion: "v46.1",
-        IsuUsername: "wayd_isu@acme_corp1",
-        IsuPassword: "secret",
+        Credentials: new WorkdayCredentials("wayd_isu@acme_corp1", "secret"),
         WorkerKey: key,
         IncludeInactive: false,
         IncrementalUpdatedFrom: null,
@@ -52,7 +51,7 @@ public class WorkdayConnectionInitializerTests
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
         EnqueueOrgCatalog(handler);
 
-        var result = await initializer.Initialize(BuildCredentials(), CancellationToken.None);
+        var result = await initializer.Initialize(BuildContext(), CancellationToken.None);
 
         result.IsValid.Should().BeTrue();
         result.WorkersProbed.Should().Be(2);
@@ -67,7 +66,7 @@ public class WorkdayConnectionInitializerTests
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-missing-email.xml"));
         EnqueueOrgCatalog(handler);
 
-        var result = await initializer.Initialize(BuildCredentials(), CancellationToken.None);
+        var result = await initializer.Initialize(BuildContext(), CancellationToken.None);
 
         result.IsValid.Should().BeFalse();
         result.WorkersProbed.Should().Be(2);
@@ -83,7 +82,7 @@ public class WorkdayConnectionInitializerTests
         var (initializer, handler) = BuildInitializer();
         handler.EnqueueFault(File.ReadAllText("Fixtures/auth-fault.xml"));
 
-        var result = await initializer.Initialize(BuildCredentials(), CancellationToken.None);
+        var result = await initializer.Initialize(BuildContext(), CancellationToken.None);
 
         result.IsValid.Should().BeFalse();
         result.AuthError.Should().NotBeNull();
@@ -100,7 +99,7 @@ public class WorkdayConnectionInitializerTests
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-missing-email.xml"));
         EnqueueOrgCatalog(handler);
 
-        var result = await initializer.Initialize(BuildCredentials(WorkdayWorkerKey.EmployeeId), CancellationToken.None);
+        var result = await initializer.Initialize(BuildContext(WorkdayWorkerKey.EmployeeId), CancellationToken.None);
 
         result.IsValid.Should().BeFalse();
         result.MissingRequiredFields.Should().Contain("Employee ID");
@@ -116,7 +115,7 @@ public class WorkdayConnectionInitializerTests
         EnqueueOrgCatalog(handler);
 
         var result = await initializer.Initialize(
-            BuildCredentials(useUserIdAsEmailFallback: true),
+            BuildContext(useUserIdAsEmailFallback: true),
             CancellationToken.None);
 
         result.IsValid.Should().BeTrue();
@@ -133,7 +132,7 @@ public class WorkdayConnectionInitializerTests
         EnqueueOrgCatalog(handler);
 
         var result = await initializer.Initialize(
-            BuildCredentials(useUserIdAsEmailFallback: false),
+            BuildContext(useUserIdAsEmailFallback: false),
             CancellationToken.None);
 
         result.IsValid.Should().BeFalse();
@@ -151,7 +150,7 @@ public class WorkdayConnectionInitializerTests
         EnqueueOrgCatalog(handler);
 
         var result = await initializer.Initialize(
-            BuildCredentials(useUserIdAsEmailFallback: true),
+            BuildContext(useUserIdAsEmailFallback: true),
             CancellationToken.None);
 
         result.IsValid.Should().BeFalse();
@@ -168,7 +167,7 @@ public class WorkdayConnectionInitializerTests
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
         EnqueueOrgCatalog(handler);
 
-        var result = await initializer.Initialize(BuildCredentials(), CancellationToken.None);
+        var result = await initializer.Initialize(BuildContext(), CancellationToken.None);
 
         result.DiscoveredOrgTypes.Should().NotBeNull();
         result.DiscoveredOrgTypes!.Should().HaveCount(3);
@@ -190,12 +189,45 @@ public class WorkdayConnectionInitializerTests
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-organizations-page1of2.xml"));
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-organizations-page2of2.xml"));
 
-        var result = await initializer.Initialize(BuildCredentials(), CancellationToken.None);
+        var result = await initializer.Initialize(BuildContext(), CancellationToken.None);
 
         result.DiscoveredOrgTypes.Should().NotBeNull();
         result.DiscoveredOrgTypes!.Should().HaveCount(2);
         result.DiscoveredOrgTypes!.Should().ContainSingle(o => o.TypeId == "SUPERVISORY" && o.Count == 2);
         result.DiscoveredOrgTypes!.Should().ContainSingle(o => o.TypeId == "COST_CENTER" && o.Count == 1);
+    }
+
+    [Fact]
+    public async Task GetOrganizationsByType_returnsOrgsForTheTypeWithWidAndName()
+    {
+        // The lazy-load endpoint for the exclusions picker. The catalog fixture isn't filtered
+        // server-side (FakeHttpMessageHandler doesn't introspect the request), but the parser
+        // still walks every Organization element and projects (WID, Name) — exercising the bit
+        // we own. A real Workday tenant would have already filtered by type via Request_Criteria.
+        var (initializer, handler) = BuildInitializer();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-organizations-catalog.xml"));
+
+        var result = await initializer.GetOrganizationsByType(BuildContext(), "SUPERVISORY", CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().HaveCount(4, "the fake handler returns whatever was enqueued; the parser projects every Organization element");
+        result.Value.Select(o => o.Reference).Should().Contain("org-aaaa-0001");
+        result.Value.Single(o => o.Reference == "org-aaaa-0001").DisplayName.Should().Be("Engineering");
+    }
+
+    [Theory]
+    [InlineData("'); DROP TABLE--")]
+    [InlineData("type with spaces")]
+    public async Task GetOrganizationsByType_unsafeTypeId_returnsFailure(string unsafeId)
+    {
+        // The character whitelist runs before any SOAP call. A hostile or malformed type ID must
+        // fail fast — never sent to Workday and never interpolated into XPath.
+        var (initializer, _) = BuildInitializer();
+
+        var result = await initializer.GetOrganizationsByType(BuildContext(), unsafeId, CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("invalid");
     }
 
     [Fact]
@@ -209,7 +241,7 @@ public class WorkdayConnectionInitializerTests
         // Reuse the auth-fault envelope as a generic SOAP failure — the parser doesn't distinguish.
         handler.EnqueueFault(File.ReadAllText("Fixtures/auth-fault.xml"));
 
-        var result = await initializer.Initialize(BuildCredentials(), CancellationToken.None);
+        var result = await initializer.Initialize(BuildContext(), CancellationToken.None);
 
         result.IsValid.Should().BeTrue();
         result.DiscoveredOrgTypes.Should().BeEmpty();

@@ -149,9 +149,20 @@ public sealed class PeopleSyncRunner(
                 return Result.Failure(fetchResult.Error);
             }
 
-            var employees = fetchResult.Value.ToList();
+            var (employeesEnumerable, exclusionCounts) = fetchResult.Value;
+            var employees = employeesEnumerable.ToList();
             details.EmployeesFetched = employees.Count;
             details.IncrementalUsed = incremental;
+            if (exclusionCounts.Count > 0)
+            {
+                details.EmployeesExcluded = exclusionCounts.Sum(c => c.Count);
+                details.ExclusionBreakdown = [.. exclusionCounts
+                    .Select(c => new ExclusionBreakdownEntry(
+                        OrgTypeId: c.OrganizationTypeId,
+                        OrgReference: c.OrganizationReference,
+                        DisplayName: c.DisplayName,
+                        Count: c.Count))];
+            }
 
             // Incremental syncs only return changed records, so a missing employee doesn't mean
             // "no longer exists" — it means "no changes". Skip the deactivation pass on those runs
@@ -222,7 +233,7 @@ public sealed class PeopleSyncRunner(
         }
     }
 
-    private async Task<Result<IEnumerable<Wayd.Common.Application.Interfaces.IExternalEmployee>>> FetchEmployees(
+    private async Task<Result<FetchEmployeesResult>> FetchEmployees(
         Guid connectionId,
         Connector connector,
         Instant? lastSuccessfulRunAt,
@@ -233,10 +244,18 @@ public sealed class PeopleSyncRunner(
         {
             Connector.Entra => await FetchFromEntra(connectionId, cancellationToken),
             Connector.Workday => await FetchFromWorkday(connectionId, lastSuccessfulRunAt, cancellationToken),
-            _ => Result.Failure<IEnumerable<Wayd.Common.Application.Interfaces.IExternalEmployee>>(
+            _ => Result.Failure<FetchEmployeesResult>(
                 $"No people source registered for connector '{connector}'.")
         };
     }
+
+    /// <summary>
+    /// Common return shape from <see cref="FetchEmployees"/>. Entra always returns an empty
+    /// exclusion list; Workday populates it when admin-configured org-exclusion rules fired.
+    /// </summary>
+    private sealed record FetchEmployeesResult(
+        IEnumerable<Wayd.Common.Application.Interfaces.IExternalEmployee> Employees,
+        IReadOnlyList<WorkdayExclusionCount> ExclusionCounts);
 
     /// <summary>
     /// True when the source for <paramref name="connector"/> can return a delta of changed
@@ -270,7 +289,7 @@ public sealed class PeopleSyncRunner(
         }
     }
 
-    private async Task<Result<IEnumerable<Wayd.Common.Application.Interfaces.IExternalEmployee>>> FetchFromEntra(
+    private async Task<Result<FetchEmployeesResult>> FetchFromEntra(
         Guid connectionId,
         CancellationToken cancellationToken)
     {
@@ -278,7 +297,7 @@ public sealed class PeopleSyncRunner(
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == connectionId, cancellationToken);
         if (entity is null)
-            return Result.Failure<IEnumerable<Wayd.Common.Application.Interfaces.IExternalEmployee>>(
+            return Result.Failure<FetchEmployeesResult>(
                 $"Entra connection {connectionId} not found.");
 
         var credentials = new EntraConnectionCredentials(
@@ -289,10 +308,13 @@ public sealed class PeopleSyncRunner(
             entity.Configuration.IncludeDisabledUsers,
             NormalizeNameCasing: entity.Configuration.NormalizeNameCasing);
 
-        return await _entraEmployeeSource.GetEmployees(credentials, cancellationToken);
+        var result = await _entraEmployeeSource.GetEmployees(credentials, cancellationToken);
+        return result.IsSuccess
+            ? Result.Success(new FetchEmployeesResult(result.Value, []))
+            : Result.Failure<FetchEmployeesResult>(result.Error);
     }
 
-    private async Task<Result<IEnumerable<Wayd.Common.Application.Interfaces.IExternalEmployee>>> FetchFromWorkday(
+    private async Task<Result<FetchEmployeesResult>> FetchFromWorkday(
         Guid connectionId,
         Instant? lastSuccessfulRunAt,
         CancellationToken cancellationToken)
@@ -301,27 +323,37 @@ public sealed class PeopleSyncRunner(
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == connectionId, cancellationToken);
         if (entity is null)
-            return Result.Failure<IEnumerable<Wayd.Common.Application.Interfaces.IExternalEmployee>>(
+            return Result.Failure<FetchEmployeesResult>(
                 $"Workday connection {connectionId} not found.");
 
         // Incremental is automatic: the runner passes the last-successful-run timestamp when there
         // is one, and falls back to a full snapshot on first run. No admin toggle — same model as
         // the work-sync runner.
-        var credentials = new WorkdayConnectionCredentials(
+        // Project domain WorkdayOrgExclusion records into the application-layer record. They're
+        // the same shape; the layer split exists because Common.Application can't depend on
+        // AppIntegration.Domain.
+        var exclusions = entity.Configuration.OrgExclusions
+            .Select(e => new WorkdayOrgExclusion(e.OrganizationTypeId, e.OrganizationReference, e.DisplayName))
+            .ToList();
+
+        var context = new WorkdayRequestContext(
             entity.Configuration.SoapEndpoint,
             entity.Configuration.TenantAlias,
             entity.Configuration.WsdlVersion,
-            entity.Configuration.IsuUsername,
-            entity.Configuration.IsuPassword,
+            new WorkdayCredentials(entity.Configuration.IsuUsername, entity.Configuration.IsuPassword),
             entity.Configuration.WorkerKey,
             entity.Configuration.IncludeInactive,
             IncrementalUpdatedFrom: lastSuccessfulRunAt,
             UseUserIdAsEmailFallback: entity.Configuration.UseUserIdAsEmailFallback,
             UsePreferredName: entity.Configuration.UsePreferredName,
             NormalizeNameCasing: entity.Configuration.NormalizeNameCasing,
-            DepartmentOrganizationTypeId: entity.Configuration.DepartmentOrganizationTypeId);
+            DepartmentOrganizationTypeId: entity.Configuration.DepartmentOrganizationTypeId,
+            OrgExclusions: exclusions);
 
-        return await _workdayEmployeeSource.GetEmployees(credentials, cancellationToken);
+        var result = await _workdayEmployeeSource.GetEmployees(context, cancellationToken);
+        return result.IsSuccess
+            ? Result.Success(new FetchEmployeesResult(result.Value.Employees, result.Value.ExclusionCounts))
+            : Result.Failure<FetchEmployeesResult>(result.Error);
     }
 
     // Match the API-wide convention so frontend consumers read camelCase keys
@@ -376,7 +408,25 @@ public sealed class PeopleSyncRunner(
     {
         public int EmployeesFetched { get; set; }
         public int EmployeesUpserted { get; set; }
+
+        /// <summary>
+        /// Total workers dropped by admin-configured org exclusions, summed across all rules.
+        /// Distinct from <see cref="EmployeesFetched"/> — these workers came back from Workday and
+        /// were filtered locally, so they don't end up in the upsert.
+        /// </summary>
+        public int EmployeesExcluded { get; set; }
+
+        /// <summary>Per-rule breakdown of exclusions (only present when at least one rule fired).</summary>
+        public List<ExclusionBreakdownEntry>? ExclusionBreakdown { get; set; }
+
         public bool IncrementalUsed { get; set; }
         public List<string> Errors { get; set; } = [];
     }
+
+    /// <summary>One entry in the sync run's exclusion breakdown.</summary>
+    private sealed record ExclusionBreakdownEntry(
+        string OrgTypeId,
+        string OrgReference,
+        string? DisplayName,
+        int Count);
 }

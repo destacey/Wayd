@@ -1,6 +1,7 @@
 ﻿using System.Net.Mail;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using CSharpFunctionalExtensions;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -13,7 +14,7 @@ namespace Wayd.Integrations.Workday;
 /// element presence to detect ISSG permission gaps, and reports a structured result. Does not
 /// write to the Employees table.
 /// </summary>
-public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
+public sealed class WorkdayConnectionInitializer(WorkdayStaffingClient client, ILogger<WorkdayConnectionInitializer> logger) : IWorkdayConnectionInitializer
 {
     private const int ProbeSampleSize = 10;
     // Workday caps Get_Organizations at 999/page. We use the max because a single round-trip is
@@ -26,22 +27,16 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
     // response (could happen if a tenant returns a misconfigured Total_Pages or pagination loop).
     private const int OrgCatalogPageCap = 50;
 
-    private readonly WorkdayStaffingClient _client;
-    private readonly ILogger<WorkdayConnectionInitializer> _logger;
+    private readonly WorkdayStaffingClient _client = client;
+    private readonly ILogger<WorkdayConnectionInitializer> _logger = logger;
 
-    public WorkdayConnectionInitializer(WorkdayStaffingClient client, ILogger<WorkdayConnectionInitializer> logger)
-    {
-        _client = client;
-        _logger = logger;
-    }
-
-    public async Task<ConnectionInitResult> Initialize(WorkdayConnectionCredentials credentials, CancellationToken cancellationToken)
+    public async Task<ConnectionInitResult> Initialize(WorkdayRequestContext context, CancellationToken cancellationToken)
     {
         try
         {
             // Probe is always a full-snapshot fetch — we want a representative slice, not a delta.
-            var probeCredentials = credentials with { IncrementalUpdatedFrom = null };
-            var response = await _client.GetWorkers(probeCredentials, page: 1, pageSize: ProbeSampleSize, cancellationToken);
+            var probeContext = context with { IncrementalUpdatedFrom = null };
+            var response = await _client.GetWorkers(probeContext, page: 1, pageSize: ProbeSampleSize, cancellationToken);
 
             var workers = response.Workers;
             if (workers.Count == 0)
@@ -54,7 +49,7 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
                     AuthError: null);
             }
 
-            var requiredFields = BuildRequiredFieldChecks(credentials.WorkerKey);
+            var requiredFields = BuildRequiredFieldChecks(context.WorkerKey);
 
             // A field is "missing" only when its element is absent from EVERY sampled worker.
             // Present-but-empty or present-on-some is data variance, not a permission gap.
@@ -66,7 +61,7 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
                 {
                     // Work Email gets the User_ID fallback path when the admin opted in. Either a
                     // proper Contact_Data email OR a valid-looking User_ID counts as "present".
-                    anyHas = workers.Any(w => HasWorkEmail(w, credentials.UseUserIdAsEmailFallback));
+                    anyHas = workers.Any(w => HasWorkEmail(w, context.UseUserIdAsEmailFallback));
                 }
                 else
                 {
@@ -76,12 +71,12 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
                     missing.Add(label);
             }
 
-            var warnings = BuildWarnings(workers, credentials.UseUserIdAsEmailFallback, credentials.DepartmentOrganizationTypeId);
+            var warnings = BuildWarnings(workers, context.UseUserIdAsEmailFallback, context.DepartmentOrganizationTypeId);
 
             // Discover the tenant's org-type catalog so the admin can pick which type drives
             // Department. Failure here is non-fatal: a customer whose ISU isn't granted
             // Organization read can still sync workers; they just lose the Department picker.
-            var (discoveredOrgTypes, orgCatalogWarning) = await TryDiscoverOrgTypes(credentials, cancellationToken);
+            var (discoveredOrgTypes, orgCatalogWarning) = await TryDiscoverOrgTypes(context, cancellationToken);
             if (orgCatalogWarning is not null)
                 warnings = [.. warnings, orgCatalogWarning];
 
@@ -96,7 +91,7 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
         }
         catch (WorkdaySoapException ex) when (ex.IsAuthFailure)
         {
-            _logger.LogWarning(ex, "Workday init probe failed authentication for endpoint {Endpoint}.", credentials.SoapEndpoint);
+            _logger.LogWarning(ex, "Workday init probe failed authentication for endpoint {Endpoint}.", context.SoapEndpoint);
             return new ConnectionInitResult(
                 IsValid: false,
                 WorkersProbed: 0,
@@ -106,7 +101,7 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
         }
         catch (WorkdaySoapException ex)
         {
-            _logger.LogWarning(ex, "Workday init probe returned an error for endpoint {Endpoint}.", credentials.SoapEndpoint);
+            _logger.LogWarning(ex, "Workday init probe returned an error for endpoint {Endpoint}.", context.SoapEndpoint);
             return new ConnectionInitResult(
                 IsValid: false,
                 WorkersProbed: 0,
@@ -116,12 +111,12 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogWarning(ex, "Workday init probe could not reach endpoint {Endpoint}.", credentials.SoapEndpoint);
+            _logger.LogWarning(ex, "Workday init probe could not reach endpoint {Endpoint}.", context.SoapEndpoint);
             return new ConnectionInitResult(
                 IsValid: false,
                 WorkersProbed: 0,
                 MissingRequiredFields: [],
-                Warnings: [$"Unable to reach Workday at {credentials.SoapEndpoint}: {ex.Message}"],
+                Warnings: [$"Unable to reach Workday at {context.SoapEndpoint}: {ex.Message}"],
                 AuthError: null);
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -142,7 +137,7 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
     /// it doesn't fail the probe, but the admin won't get a Department dropdown.
     /// </summary>
     private async Task<(IReadOnlyList<DiscoveredOrgType> catalog, string? warning)> TryDiscoverOrgTypes(
-        WorkdayConnectionCredentials credentials,
+        WorkdayRequestContext context,
         CancellationToken cancellationToken)
     {
         try
@@ -159,7 +154,7 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
             do
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var response = await _client.GetOrganizations(credentials, page, OrgCatalogPageSize, cancellationToken);
+                var response = await _client.GetOrganizations(context, page, OrgCatalogPageSize, cancellationToken);
                 totalPages = response.TotalPages;
 
                 foreach (var org in response.Organizations)
@@ -303,4 +298,80 @@ public sealed class WorkdayConnectionInitializer : IWorkdayConnectionInitializer
         if (string.IsNullOrWhiteSpace(value)) return false;
         return MailAddress.TryCreate(value.Trim(), out _);
     }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Paginates up to <see cref="OrgCatalogPageCap"/> pages of 999 — the same bound used by the
+    /// catalog discovery loop. Returns every org of the requested type within that ceiling.
+    /// </remarks>
+    public async Task<Result<IReadOnlyList<DiscoveredOrg>>> GetOrganizationsByType(
+        WorkdayRequestContext context,
+        string organizationTypeId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(organizationTypeId))
+            return Result.Failure<IReadOnlyList<DiscoveredOrg>>("organizationTypeId is required.");
+        if (!SafeOrgTypeIdRegex.IsMatch(organizationTypeId))
+            return Result.Failure<IReadOnlyList<DiscoveredOrg>>("organizationTypeId contains invalid characters.");
+
+        try
+        {
+            var results = new List<DiscoveredOrg>();
+            var page = 1;
+            int totalPages;
+            do
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var response = await _client.GetOrganizations(context, page, OrgCatalogPageSize, cancellationToken, organizationTypeId);
+                totalPages = response.TotalPages;
+
+                foreach (var org in response.Organizations)
+                {
+                    // The Organization shape from Get_Organizations: Organization_Reference carries
+                    // the WID (used as the stable exclusion-match key); Organization_Data carries
+                    // the human-friendly Name. Both go to the picker so the admin sees "Engineering"
+                    // but the rule persists "org-aaaa-0001".
+                    var wid = WorkerFieldReader.GetValue(org, OrgReferenceWidXPath);
+                    if (string.IsNullOrWhiteSpace(wid)) continue;
+
+                    // Pick the best label for the dropdown:
+                    //   1. Organization_Data/Name — the human-friendly display name (most tenants).
+                    //   2. Organization_Reference/@Descriptor — Workday UI fallback label.
+                    //   3. Organization_Data/Reference_ID — the business code (e.g. "COMP-EMEA").
+                    // We project all three so the FE can render "Name (ReferenceId)" if both exist
+                    // and gracefully fall back to whichever pieces are present.
+                    var name = WorkerFieldReader.GetValue(org, OrgNameXPath)
+                               ?? WorkerFieldReader.GetAttributeValue(org, "Descriptor", OrgReferenceXPath);
+                    var referenceId = WorkerFieldReader.GetValue(org, OrgReferenceIdXPath);
+
+                    results.Add(new DiscoveredOrg(wid, name, referenceId));
+                }
+
+                page++;
+            }
+            while (page <= totalPages && page <= OrgCatalogPageCap);
+
+            return Result.Success<IReadOnlyList<DiscoveredOrg>>(results);
+        }
+        catch (WorkdaySoapException ex)
+        {
+            _logger.LogWarning(ex, "Workday Get_Organizations by-type lookup failed for type {TypeId}.", organizationTypeId);
+            return Result.Failure<IReadOnlyList<DiscoveredOrg>>($"Couldn't load orgs of type '{organizationTypeId}': {ex.Message}");
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Workday Get_Organizations by-type lookup could not reach the endpoint.");
+            return Result.Failure<IReadOnlyList<DiscoveredOrg>>($"Couldn't reach Workday: {ex.Message}");
+        }
+    }
+
+    // Get_Organizations response shape (Organization_WWS_DataType): each Organization carries
+    //   - Organization_Reference (WID at /wd:ID[@wd:type='WID'])
+    //   - Organization_Data/Name (the human-friendly label — NOT Organization_Name, which is the
+    //     element name on the *worker* context's Organization_Summary_DataType)
+    //   - Organization_Data/Reference_ID (the tenant-defined business code)
+    private const string OrgReferenceXPath = "wd:Organization_Reference";
+    private const string OrgReferenceWidXPath = OrgReferenceXPath + "/wd:ID[@wd:type='WID']";
+    private const string OrgNameXPath = "wd:Organization_Data/wd:Name";
+    private const string OrgReferenceIdXPath = "wd:Organization_Data/wd:Reference_ID";
 }

@@ -1,6 +1,7 @@
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
   EmployeeMatchProperty,
+  WorkdayOrgExclusionRequest,
   WorkdayWorkerKey,
 } from '@/src/services/wayd-api'
 import { ConnectorType, CONNECTOR_NAMES } from '@/src/types/connectors'
@@ -43,6 +44,7 @@ interface CreateConnectionFormValues {
   usePreferredName?: boolean
   normalizeNameCasing?: boolean
   departmentOrganizationTypeId?: string
+  orgExclusions?: WorkdayOrgExclusionRequest[]
   // PeopleSync (Entra + Workday)
   matchBy?: EmployeeMatchProperty
 }
@@ -84,9 +86,20 @@ const CreateConnectionForm = ({
             // in the JSON payload — otherwise it throws "must specify a type discriminator" even
             // when the discriminator is present. Spread $type before the form values so it
             // serializes first.
+            //
+            // Form.List leaves orgExclusions undefined when the admin never adds a row, and
+            // partially-filled rows (the admin opened a slot then canceled) come back with empty
+            // strings. Strip those before submit so they don't fail backend validation.
+            const cleanedExclusions = (values.orgExclusions ?? []).filter(
+              (e) =>
+                !!e?.organizationTypeId?.trim() &&
+                !!e?.organizationReference?.trim(),
+            )
+
             const request = {
               $type: getDiscriminator(selectedConnector),
               ...values,
+              orgExclusions: cleanedExclusions,
             }
 
             const response = await createConnection(request)
@@ -144,7 +157,11 @@ const CreateConnectionForm = ({
       confirmLoading={isSaving}
       keyboard={false}
       destroyOnHidden={true}
-      width={selectedConnector === null ? 600 : 800}
+      // Viewport-bounded width: 95vw on mobile, capped at the form-specific max on desktop. The
+      // selector step is narrower (600) since it only renders connector tiles; the config step
+      // expands to 800 to fit the exclusion picker comfortably.
+      width="95vw"
+      style={{ maxWidth: selectedConnector === null ? 600 : 800 }}
       footer={
         selectedConnector === null
           ? null
@@ -158,7 +175,7 @@ const CreateConnectionForm = ({
       ) : (
         <Form
           form={form}
-          size="small"
+          size="middle"
           layout="vertical"
           name="create-connection-form"
         >

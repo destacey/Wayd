@@ -19,7 +19,8 @@ public sealed record UpdateWorkdayConnectionCommand(
     bool UseUserIdAsEmailFallback,
     bool UsePreferredName,
     bool NormalizeNameCasing,
-    string? DepartmentOrganizationTypeId) : ICommand<Guid>;
+    string? DepartmentOrganizationTypeId,
+    IReadOnlyList<WorkdayOrgExclusionInput>? OrgExclusions) : ICommand<Guid>;
 
 public sealed class UpdateWorkdayConnectionCommandValidator : CustomValidator<UpdateWorkdayConnectionCommand>
 {
@@ -73,6 +74,13 @@ internal sealed class UpdateWorkdayConnectionCommandHandler(
                     ? connection.Configuration.IsuPassword
                     : request.IsuPassword;
 
+            // Map the API-level input list to the domain WorkdayOrgExclusion. Fully qualified
+            // because Common.Application also exports a WorkdayOrgExclusion record (the runtime
+            // shape passed to the SOAP service) — same name, parallel types across layers.
+            var exclusions = request.OrgExclusions?
+                .Select(e => new Wayd.AppIntegration.Domain.Models.Workday.WorkdayOrgExclusion(e.OrganizationTypeId, e.OrganizationReference, e.DisplayName))
+                .ToList();
+
             // Apply the change set with a placeholder configurationIsValid; the init probe right
             // after this overwrites that value with the real outcome.
             var updateResult = connection.Update(
@@ -88,6 +96,7 @@ internal sealed class UpdateWorkdayConnectionCommandHandler(
                 request.UsePreferredName,
                 request.NormalizeNameCasing,
                 request.DepartmentOrganizationTypeId,
+                exclusions,
                 configurationIsValid: false,
                 _dateTimeProvider.Now);
 
@@ -116,21 +125,22 @@ internal sealed class UpdateWorkdayConnectionCommandHandler(
 
     private async Task RunInitProbe(WorkdayConnection connection, CancellationToken cancellationToken)
     {
-        var credentials = new WorkdayConnectionCredentials(
+        var context = new WorkdayRequestContext(
             connection.Configuration.SoapEndpoint,
             connection.Configuration.TenantAlias,
             connection.Configuration.WsdlVersion,
-            connection.Configuration.IsuUsername,
-            connection.Configuration.IsuPassword,
+            new WorkdayCredentials(connection.Configuration.IsuUsername, connection.Configuration.IsuPassword),
             connection.Configuration.WorkerKey,
             connection.Configuration.IncludeInactive,
             IncrementalUpdatedFrom: null,
             UseUserIdAsEmailFallback: connection.Configuration.UseUserIdAsEmailFallback,
             UsePreferredName: connection.Configuration.UsePreferredName,
             NormalizeNameCasing: connection.Configuration.NormalizeNameCasing,
-            DepartmentOrganizationTypeId: connection.Configuration.DepartmentOrganizationTypeId);
+            DepartmentOrganizationTypeId: connection.Configuration.DepartmentOrganizationTypeId,
+            // Init probe doesn't apply exclusions — see CreateWorkdayConnectionCommand for rationale.
+            OrgExclusions: null);
 
-        var result = await _initializer.Initialize(credentials, cancellationToken);
+        var result = await _initializer.Initialize(context, cancellationToken);
         connection.RecordInitResult(
             result.IsValid,
             result.MissingRequiredFields,

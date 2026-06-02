@@ -30,21 +30,22 @@ internal sealed class InitWorkdayConnectionCommandHandler(
             if (connection is null)
                 return Result.Failure<ConnectionInitResult>($"Workday connection {request.Id} not found.");
 
-            var credentials = new WorkdayConnectionCredentials(
+            var context = new WorkdayRequestContext(
                 connection.Configuration.SoapEndpoint,
                 connection.Configuration.TenantAlias,
                 connection.Configuration.WsdlVersion,
-                connection.Configuration.IsuUsername,
-                connection.Configuration.IsuPassword,
+                new WorkdayCredentials(connection.Configuration.IsuUsername, connection.Configuration.IsuPassword),
                 connection.Configuration.WorkerKey,
                 connection.Configuration.IncludeInactive,
                 IncrementalUpdatedFrom: null,
                 UseUserIdAsEmailFallback: connection.Configuration.UseUserIdAsEmailFallback,
                 UsePreferredName: connection.Configuration.UsePreferredName,
                 NormalizeNameCasing: connection.Configuration.NormalizeNameCasing,
-                DepartmentOrganizationTypeId: connection.Configuration.DepartmentOrganizationTypeId);
+                DepartmentOrganizationTypeId: connection.Configuration.DepartmentOrganizationTypeId,
+                // Init probe doesn't apply exclusions — see CreateWorkdayConnectionCommand for rationale.
+                OrgExclusions: null);
 
-            var result = await _initializer.Initialize(credentials, cancellationToken);
+            var result = await _initializer.Initialize(context, cancellationToken);
 
             connection.RecordInitResult(
                 result.IsValid,

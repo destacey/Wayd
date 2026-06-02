@@ -18,7 +18,18 @@ public sealed record CreateWorkdayConnectionCommand(
     bool UseUserIdAsEmailFallback,
     bool UsePreferredName,
     bool NormalizeNameCasing,
-    string? DepartmentOrganizationTypeId) : ICommand<Guid>;
+    string? DepartmentOrganizationTypeId,
+    IReadOnlyList<WorkdayOrgExclusionInput>? OrgExclusions) : ICommand<Guid>;
+
+/// <summary>
+/// API-shaped exclusion rule that flows from Create/Update commands into the domain. Kept as a
+/// command-layer record so the API contract doesn't bleed the domain <c>WorkdayOrgExclusion</c>
+/// type directly into the Web layer.
+/// </summary>
+public sealed record WorkdayOrgExclusionInput(
+    string OrganizationTypeId,
+    string OrganizationReference,
+    string? DisplayName);
 
 public sealed class CreateWorkdayConnectionCommandValidator : CustomValidator<CreateWorkdayConnectionCommand>
 {
@@ -59,6 +70,13 @@ internal sealed class CreateWorkdayConnectionCommandHandler(
         {
             Instant timestamp = _dateTimeProvider.Now;
 
+            // Map the API-level input list to the domain WorkdayOrgExclusion. Fully qualified
+            // because Common.Application also exports a WorkdayOrgExclusion record (the runtime
+            // shape passed to the SOAP service) — same name, parallel types across layers.
+            var exclusions = request.OrgExclusions?
+                .Select(e => new Wayd.AppIntegration.Domain.Models.Workday.WorkdayOrgExclusion(e.OrganizationTypeId, e.OrganizationReference, e.DisplayName))
+                .ToList();
+
             var config = new WorkdayConnectionConfiguration(
                 request.WsdlUrl,
                 request.IsuUsername,
@@ -69,7 +87,8 @@ internal sealed class CreateWorkdayConnectionCommandHandler(
                 request.UseUserIdAsEmailFallback,
                 request.UsePreferredName,
                 request.NormalizeNameCasing,
-                request.DepartmentOrganizationTypeId);
+                request.DepartmentOrganizationTypeId,
+                exclusions);
 
             // Create the connection first with IsValidConfiguration = false so the row exists even
             // if the probe is slow or fails — admins shouldn't lose typed config.
@@ -92,21 +111,23 @@ internal sealed class CreateWorkdayConnectionCommandHandler(
 
     private async Task RunInitProbe(WorkdayConnection connection, CancellationToken cancellationToken)
     {
-        var credentials = new WorkdayConnectionCredentials(
+        var context = new WorkdayRequestContext(
             connection.Configuration.SoapEndpoint,
             connection.Configuration.TenantAlias,
             connection.Configuration.WsdlVersion,
-            connection.Configuration.IsuUsername,
-            connection.Configuration.IsuPassword,
+            new WorkdayCredentials(connection.Configuration.IsuUsername, connection.Configuration.IsuPassword),
             connection.Configuration.WorkerKey,
             connection.Configuration.IncludeInactive,
             IncrementalUpdatedFrom: null,
             UseUserIdAsEmailFallback: connection.Configuration.UseUserIdAsEmailFallback,
             UsePreferredName: connection.Configuration.UsePreferredName,
             NormalizeNameCasing: connection.Configuration.NormalizeNameCasing,
-            DepartmentOrganizationTypeId: connection.Configuration.DepartmentOrganizationTypeId);
+            DepartmentOrganizationTypeId: connection.Configuration.DepartmentOrganizationTypeId,
+            // Init probe doesn't apply exclusions — admins want to see the full picture of what the
+            // ISU can read, including workers they're about to filter out at sync time.
+            OrgExclusions: null);
 
-        var result = await _initializer.Initialize(credentials, cancellationToken);
+        var result = await _initializer.Initialize(context, cancellationToken);
         connection.RecordInitResult(
             result.IsValid,
             result.MissingRequiredFields,

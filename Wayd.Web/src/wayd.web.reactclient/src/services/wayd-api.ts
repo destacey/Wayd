@@ -26068,6 +26068,79 @@ export class ConnectionsClient {
     }
 
     /**
+     * List Workday organizations of a given type.
+     * @param typeId (optional) 
+     */
+    getWorkdayOrgsByType(id: string, typeId?: string | undefined, cancelToken?: CancelToken): Promise<DiscoveredOrg[]> {
+        let url_ = this.baseUrl + "/api/app-integrations/connections/{id}/workday/orgs?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (typeId === null)
+            throw new globalThis.Error("The parameter 'typeId' cannot be null.");
+        else if (typeId !== undefined)
+            url_ += "typeId=" + encodeURIComponent("" + typeId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkdayOrgsByType(_response);
+        });
+    }
+
+    protected processGetWorkdayOrgsByType(response: AxiosResponse): Promise<DiscoveredOrg[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DiscoveredOrg[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DiscoveredOrg[]>(null as any);
+    }
+
+    /**
      * Get sync run history for a connection.
      * @param since (optional) 
      */
@@ -29610,6 +29683,7 @@ export interface WorkdayConnectionConfigurationDto {
     normalizeNameCasing: boolean;
     departmentOrganizationTypeId?: string | undefined;
     discoveredOrgTypes?: WorkdayOrgTypeDto[] | undefined;
+    orgExclusions: WorkdayOrgExclusionDto[];
     lastInitAt?: Date | undefined;
     lastInitSucceeded: boolean;
     lastInitMissingFields?: string[] | undefined;
@@ -29626,6 +29700,12 @@ export interface WorkdayOrgTypeDto {
     typeId: string;
     displayName?: string | undefined;
     count: number;
+}
+
+export interface WorkdayOrgExclusionDto {
+    organizationTypeId: string;
+    organizationReference: string;
+    displayName?: string | undefined;
 }
 
 export interface CreateConnectionRequest {
@@ -29701,6 +29781,17 @@ SUPERVISORY (Workday's universal reporting-hierarchy type). After the first init
 probe, admins can pick from the discovered catalog (e.g. COST_CENTER,
 BUSINESS_UNIT, tenant-custom types). Set to null to skip Department sync. */
     departmentOrganizationTypeId?: string | undefined;
+    /** Optional admin-configured rules that filter workers out of the sync. Each rule names an
+Organization_Type_ID plus the WID of an org of that type; workers in that org are dropped
+before upsert. Empty by default. */
+    orgExclusions?: WorkdayOrgExclusionRequest[] | undefined;
+}
+
+/** API-shaped exclusion rule. Maps 1:1 to WorkdayOrgExclusionInput on the command layer. */
+export interface WorkdayOrgExclusionRequest {
+    organizationTypeId: string;
+    organizationReference: string;
+    displayName?: string | undefined;
 }
 
 export interface UpdateConnectionRequest {
@@ -29773,6 +29864,9 @@ Mixed-case input is preserved. Default true. */
     /** Workday Organization_Type_ID that drives Employee.Department. Pick from the
 discovered catalog on the connection (populated by the init probe), or null to skip. */
     departmentOrganizationTypeId?: string | undefined;
+    /** Admin-configured rules that filter workers out of the sync. Replace-the-list semantics: the
+supplied collection becomes the new full set (omitted or empty => no exclusions). */
+    orgExclusions?: WorkdayOrgExclusionRequest[] | undefined;
 }
 
 export enum SyncType {
@@ -29793,6 +29887,12 @@ export interface DiscoveredOrgType {
     typeId: string;
     displayName?: string | undefined;
     count: number;
+}
+
+export interface DiscoveredOrg {
+    reference: string;
+    displayName?: string | undefined;
+    referenceId?: string | undefined;
 }
 
 export interface SyncRunListDto {

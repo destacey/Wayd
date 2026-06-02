@@ -1,9 +1,9 @@
 ﻿using System.Globalization;
 using System.Xml.Linq;
+using System.Xml.XPath;
 using CSharpFunctionalExtensions;
 using Microsoft.Extensions.Logging;
 using NodaTime;
-using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Models;
@@ -17,63 +17,127 @@ namespace Wayd.Integrations.Workday;
 /// projects each worker into <see cref="WorkdayEmployee"/> via <see cref="WorkerFieldReader"/>,
 /// and returns the flat list to the runner.
 /// </summary>
-public sealed class WorkdayStaffingService : IWorkdayEmployeeSource
+public sealed class WorkdayStaffingService(WorkdayStaffingClient client, ILogger<WorkdayStaffingService> logger) : IWorkdayEmployeeSource
 {
     // 100 is the Workday-recommended max per page for Get_Workers; bumping further trades latency
     // for throughput and tends to bump up against per-call timeouts on large tenants.
     private const int SyncPageSize = 100;
 
-    private readonly WorkdayStaffingClient _client;
-    private readonly ILogger<WorkdayStaffingService> _logger;
+    private readonly WorkdayStaffingClient _client = client;
+    private readonly ILogger<WorkdayStaffingService> _logger = logger;
 
-    public WorkdayStaffingService(WorkdayStaffingClient client, ILogger<WorkdayStaffingService> logger)
-    {
-        _client = client;
-        _logger = logger;
-    }
-
-    public async Task<Result<IEnumerable<IExternalEmployee>>> GetEmployees(WorkdayConnectionCredentials credentials, CancellationToken cancellationToken)
+    public async Task<Result<WorkdayEmployeeFetchResult>> GetEmployees(WorkdayRequestContext context, CancellationToken cancellationToken)
     {
         try
         {
             var employees = new List<WorkdayEmployee>();
+
+            // Exclusion stats are accumulated per (TypeId, Reference) so the sync log can show a
+            // breakdown like "Cost_Center: Contractors → 32". Keyed on the WID since that's what
+            // the matcher uses, but we also remember the type + display name so the final detail
+            // record can be human-readable without a config join.
+            var exclusionRules = context.OrgExclusions ?? [];
+            var exclusionCounts = exclusionRules
+                .GroupBy(r => r.OrganizationReference, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => new ExclusionAccumulator(g.First(), 0), StringComparer.OrdinalIgnoreCase);
+
             var page = 1;
             int totalPages;
 
             do
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var response = await _client.GetWorkers(credentials, page, SyncPageSize, cancellationToken);
+                var response = await _client.GetWorkers(context, page, SyncPageSize, cancellationToken);
                 totalPages = response.TotalPages;
 
                 foreach (var worker in response.Workers)
                 {
-                    var projected = TryProject(worker, credentials.WorkerKey, credentials.UseUserIdAsEmailFallback, credentials.UsePreferredName, credentials.NormalizeNameCasing, credentials.DepartmentOrganizationTypeId);
+                    // Drop workers in any excluded org before projection — projection runs name
+                    // normalization, date parsing, etc., and there's no point doing that work for
+                    // workers we're about to discard.
+                    var matchedExclusion = FindMatchingExclusion(worker, exclusionCounts.Keys);
+                    if (matchedExclusion is not null)
+                    {
+                        exclusionCounts[matchedExclusion].Count++;
+                        continue;
+                    }
+
+                    var projected = TryProject(worker, context.WorkerKey, context.UseUserIdAsEmailFallback, context.UsePreferredName, context.NormalizeNameCasing, context.DepartmentOrganizationTypeId);
                     if (projected is not null)
                         employees.Add(projected);
                 }
 
                 _logger.LogInformation(
-                    "Workday Get_Workers page {Page}/{TotalPages} returned {Count} workers ({ProjectedCount} after projection).",
-                    page, totalPages, response.Workers.Count, employees.Count);
+                    "Workday Get_Workers page {Page}/{TotalPages} returned {Count} workers ({ProjectedCount} after projection, {ExcludedCount} excluded by rules).",
+                    page, totalPages, response.Workers.Count, employees.Count, exclusionCounts.Values.Sum(v => v.Count));
 
                 page++;
             } while (page <= totalPages);
 
             EmitNullRateWarnings(employees);
 
-            return Result.Success<IEnumerable<IExternalEmployee>>(employees);
+            // Final counts: drop rules that didn't match anything so the sync log only shows rules
+            // that actually fired. An admin can still verify their rules are doing what they expect
+            // by editing the connection and seeing them in the config UI.
+            var counts = exclusionCounts.Values
+                .Where(v => v.Count > 0)
+                .Select(v => new WorkdayExclusionCount(v.Rule.OrganizationTypeId, v.Rule.OrganizationReference, v.Rule.DisplayName, v.Count))
+                .ToList();
+
+            return Result.Success(new WorkdayEmployeeFetchResult(employees, counts));
         }
         catch (WorkdaySoapException ex)
         {
-            _logger.LogError(ex, "Workday Get_Workers failed for endpoint {Endpoint}.", credentials.SoapEndpoint);
-            return Result.Failure<IEnumerable<IExternalEmployee>>($"Workday Get_Workers failed: {ex.Message}");
+            _logger.LogError(ex, "Workday Get_Workers failed for endpoint {Endpoint}.", context.SoapEndpoint);
+            return Result.Failure<WorkdayEmployeeFetchResult>($"Workday Get_Workers failed: {ex.Message}");
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Workday Get_Workers could not reach endpoint {Endpoint}.", credentials.SoapEndpoint);
-            return Result.Failure<IEnumerable<IExternalEmployee>>($"Unable to reach Workday: {ex.Message}");
+            _logger.LogError(ex, "Workday Get_Workers could not reach endpoint {Endpoint}.", context.SoapEndpoint);
+            return Result.Failure<WorkdayEmployeeFetchResult>($"Unable to reach Workday: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Returns the first excluded org-reference WID found on the worker, or null when none of the
+    /// configured exclusions match. We use an OrdinalIgnoreCase hash lookup on the worker's
+    /// Worker_Organization_Data WIDs so the cost is O(orgs-per-worker) per worker rather than
+    /// O(rules × orgs-per-worker). Workday emits WIDs in a single canonical case but matching
+    /// case-insensitively is defensive against tenant exports / copy-paste.
+    /// </summary>
+    private static string? FindMatchingExclusion(XElement worker, ICollection<string> excludedReferences)
+    {
+        if (excludedReferences.Count == 0) return null;
+
+        var orgRefs = worker.XPathSelectElements(
+            "wd:Worker_Data/wd:Organization_Data/wd:Worker_Organization_Data/wd:Organization_Reference/wd:ID[@wd:type='WID']",
+            WorkdayNamespaceResolver.Instance);
+
+        foreach (var refEl in orgRefs)
+        {
+            var value = refEl?.Value?.Trim();
+            if (string.IsNullOrEmpty(value)) continue;
+
+            // Return the exact key that's in the dictionary so the caller indexes correctly.
+            foreach (var key in excludedReferences)
+            {
+                if (string.Equals(key, value, StringComparison.OrdinalIgnoreCase))
+                    return key;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>Mutable accumulator for exclusion counts during a single sync.</summary>
+    private sealed class ExclusionAccumulator
+    {
+        public ExclusionAccumulator(WorkdayOrgExclusion rule, int count)
+        {
+            Rule = rule;
+            Count = count;
+        }
+        public WorkdayOrgExclusion Rule { get; }
+        public int Count { get; set; }
     }
 
     private WorkdayEmployee? TryProject(XElement worker, WorkdayWorkerKey workerKey, bool useUserIdAsEmailFallback, bool usePreferredName, bool normalizeNameCasing, string? departmentOrganizationTypeId)

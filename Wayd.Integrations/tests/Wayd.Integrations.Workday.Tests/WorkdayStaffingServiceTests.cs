@@ -10,24 +10,25 @@ namespace Wayd.Integrations.Workday.Tests;
 
 public class WorkdayStaffingServiceTests
 {
-    private static WorkdayConnectionCredentials BuildCredentials(
+    private static WorkdayRequestContext BuildContext(
         WorkdayWorkerKey key = WorkdayWorkerKey.Wid,
         bool useUserIdAsEmailFallback = false,
         bool usePreferredName = false,
         bool normalizeNameCasing = false,
-        string? departmentOrganizationTypeId = null) => new(
+        string? departmentOrganizationTypeId = null,
+        IReadOnlyList<WorkdayOrgExclusion>? orgExclusions = null) => new(
         SoapEndpoint: "https://wd3-impl-services1.workday.com/ccx/service/acme_corp1/Staffing/v46.1",
         TenantAlias: "acme_corp1",
         WsdlVersion: "v46.1",
-        IsuUsername: "wayd_isu@acme_corp1",
-        IsuPassword: "secret",
+        Credentials: new WorkdayCredentials("wayd_isu@acme_corp1", "secret"),
         WorkerKey: key,
         IncludeInactive: false,
         IncrementalUpdatedFrom: null,
         UseUserIdAsEmailFallback: useUserIdAsEmailFallback,
         UsePreferredName: usePreferredName,
         NormalizeNameCasing: normalizeNameCasing,
-        DepartmentOrganizationTypeId: departmentOrganizationTypeId);
+        DepartmentOrganizationTypeId: departmentOrganizationTypeId,
+        OrgExclusions: orgExclusions);
 
     private static (WorkdayStaffingService service, FakeHttpMessageHandler handler) BuildService()
     {
@@ -44,10 +45,10 @@ public class WorkdayStaffingServiceTests
         var (service, handler) = BuildService();
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
 
-        var result = await service.GetEmployees(BuildCredentials(), CancellationToken.None);
+        var result = await service.GetEmployees(BuildContext(), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        var employees = result.Value.ToList();
+        var employees = result.Value.Employees.ToList();
         employees.Should().HaveCount(2);
 
         var alex = employees.Single(e => e.Name.FirstName == "Alex");
@@ -70,10 +71,10 @@ public class WorkdayStaffingServiceTests
         var (service, handler) = BuildService();
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
 
-        var result = await service.GetEmployees(BuildCredentials(WorkdayWorkerKey.EmployeeId), CancellationToken.None);
+        var result = await service.GetEmployees(BuildContext(WorkdayWorkerKey.EmployeeId), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        var employees = result.Value.ToList();
+        var employees = result.Value.Employees.ToList();
         var alex = employees.Single(e => e.Name.FirstName == "Alex");
         alex.EmployeeNumber.Should().Be("WX-10001"); // Employee_ID becomes the key
         // Manager_Reference is resolved against the same WorkerKey, so its Employee_ID is used.
@@ -86,10 +87,10 @@ public class WorkdayStaffingServiceTests
         var (service, handler) = BuildService();
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-missing-email.xml"));
 
-        var result = await service.GetEmployees(BuildCredentials(), CancellationToken.None);
+        var result = await service.GetEmployees(BuildContext(), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeEmpty("workers with no usable email are skipped rather than failing the run");
+        result.Value.Employees.Should().BeEmpty("workers with no usable email are skipped rather than failing the run");
     }
 
     [Fact]
@@ -98,7 +99,7 @@ public class WorkdayStaffingServiceTests
         var (service, handler) = BuildService();
         handler.EnqueueFault(File.ReadAllText("Fixtures/auth-fault.xml"));
 
-        var result = await service.GetEmployees(BuildCredentials(), CancellationToken.None);
+        var result = await service.GetEmployees(BuildContext(), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("Authentication failed");
@@ -112,11 +113,11 @@ public class WorkdayStaffingServiceTests
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-userid-email.xml"));
 
         var result = await service.GetEmployees(
-            BuildCredentials(useUserIdAsEmailFallback: true),
+            BuildContext(useUserIdAsEmailFallback: true),
             CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        var employees = result.Value.ToList();
+        var employees = result.Value.Employees.ToList();
         employees.Should().HaveCount(2);
         employees.Single(e => e.Name.FirstName == "Alex").Email.Value
             .Should().Be("alex.rivera@acme.example");
@@ -131,11 +132,11 @@ public class WorkdayStaffingServiceTests
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-userid-not-email.xml"));
 
         var result = await service.GetEmployees(
-            BuildCredentials(useUserIdAsEmailFallback: true),
+            BuildContext(useUserIdAsEmailFallback: true),
             CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeEmpty(
+        result.Value.Employees.Should().BeEmpty(
             "fallback only accepts User_ID when it parses as a valid email — username-style values still skip the worker");
     }
 
@@ -145,10 +146,10 @@ public class WorkdayStaffingServiceTests
         var (service, handler) = BuildService();
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-preferred-name.xml"));
 
-        var result = await service.GetEmployees(BuildCredentials(usePreferredName: false), CancellationToken.None);
+        var result = await service.GetEmployees(BuildContext(usePreferredName: false), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        var employees = result.Value.ToList();
+        var employees = result.Value.Employees.ToList();
 
         // Default behaviour is Legal_Name_Data → Bobby's row uses "Robert" (legal first name).
         var bobby = employees.Single(e => e.EmployeeNumber == "aaaa1111-bbbb-cccc-dddd-eeeeffff0001");
@@ -162,10 +163,10 @@ public class WorkdayStaffingServiceTests
         var (service, handler) = BuildService();
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-preferred-name.xml"));
 
-        var result = await service.GetEmployees(BuildCredentials(usePreferredName: true), CancellationToken.None);
+        var result = await service.GetEmployees(BuildContext(usePreferredName: true), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        var employees = result.Value.ToList();
+        var employees = result.Value.Employees.ToList();
 
         // Bobby has a fully-populated preferred block — should map across all three name parts.
         var bobby = employees.Single(e => e.EmployeeNumber == "aaaa1111-bbbb-cccc-dddd-eeeeffff0001");
@@ -180,10 +181,10 @@ public class WorkdayStaffingServiceTests
         var (service, handler) = BuildService();
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-preferred-name.xml"));
 
-        var result = await service.GetEmployees(BuildCredentials(usePreferredName: true), CancellationToken.None);
+        var result = await service.GetEmployees(BuildContext(usePreferredName: true), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        var employees = result.Value.ToList();
+        var employees = result.Value.Employees.ToList();
 
         // Casey has a preferred first name but no preferred middle/last — those fall back to legal.
         var casey = employees.Single(e => e.EmployeeNumber == "aaaa1111-bbbb-cccc-dddd-eeeeffff0002");
@@ -199,11 +200,11 @@ public class WorkdayStaffingServiceTests
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-all-caps-names.xml"));
 
         var result = await service.GetEmployees(
-            BuildCredentials(normalizeNameCasing: false),
+            BuildContext(normalizeNameCasing: false),
             CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        var employees = result.Value.ToList();
+        var employees = result.Value.Employees.ToList();
 
         var dan = employees.Single(e => e.EmployeeNumber == "aaaa1111-bbbb-cccc-dddd-eeeeffff0001");
         dan.Name.FirstName.Should().Be("DANIEL");
@@ -223,11 +224,11 @@ public class WorkdayStaffingServiceTests
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-all-caps-names.xml"));
 
         var result = await service.GetEmployees(
-            BuildCredentials(normalizeNameCasing: true),
+            BuildContext(normalizeNameCasing: true),
             CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        var employees = result.Value.ToList();
+        var employees = result.Value.Employees.ToList();
 
         // MCDONALD → McDonald (Mc inner-cap rule)
         var dan = employees.Single(e => e.EmployeeNumber == "aaaa1111-bbbb-cccc-dddd-eeeeffff0001");
@@ -248,11 +249,11 @@ public class WorkdayStaffingServiceTests
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-all-caps-names.xml"));
 
         var result = await service.GetEmployees(
-            BuildCredentials(normalizeNameCasing: true),
+            BuildContext(normalizeNameCasing: true),
             CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        var employees = result.Value.ToList();
+        var employees = result.Value.Employees.ToList();
 
         // José Smith is already mixed-case — the heuristic must leave it exactly as-is, including
         // the diacritic. Regression here would mean we're stomping user-curated casing.
@@ -269,11 +270,11 @@ public class WorkdayStaffingServiceTests
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
 
         var result = await service.GetEmployees(
-            BuildCredentials(departmentOrganizationTypeId: null),
+            BuildContext(departmentOrganizationTypeId: null),
             CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Value.Single(e => e.Name.FirstName == "Alex").Department.Should().BeNull();
+        result.Value.Employees.Single(e => e.Name.FirstName == "Alex").Department.Should().BeNull();
     }
 
     [Fact]
@@ -284,11 +285,11 @@ public class WorkdayStaffingServiceTests
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
 
         var result = await service.GetEmployees(
-            BuildCredentials(departmentOrganizationTypeId: "SUPERVISORY"),
+            BuildContext(departmentOrganizationTypeId: "SUPERVISORY"),
             CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Value.Single(e => e.Name.FirstName == "Alex").Department.Should().Be("Engineering");
+        result.Value.Employees.Single(e => e.Name.FirstName == "Alex").Department.Should().Be("Engineering");
     }
 
     [Fact]
@@ -300,11 +301,11 @@ public class WorkdayStaffingServiceTests
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
 
         var result = await service.GetEmployees(
-            BuildCredentials(departmentOrganizationTypeId: "COST_CENTER"),
+            BuildContext(departmentOrganizationTypeId: "COST_CENTER"),
             CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Value.Single(e => e.Name.FirstName == "Alex").Department.Should().Be("R&D");
+        result.Value.Employees.Single(e => e.Name.FirstName == "Alex").Department.Should().Be("R&D");
     }
 
     [Theory]
@@ -319,11 +320,11 @@ public class WorkdayStaffingServiceTests
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
 
         var result = await service.GetEmployees(
-            BuildCredentials(departmentOrganizationTypeId: unsafeId),
+            BuildContext(departmentOrganizationTypeId: unsafeId),
             CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Value.Single(e => e.Name.FirstName == "Alex").Department.Should().BeNull();
+        result.Value.Employees.Single(e => e.Name.FirstName == "Alex").Department.Should().BeNull();
     }
 
     [Fact]
@@ -332,7 +333,7 @@ public class WorkdayStaffingServiceTests
         var (service, handler) = BuildService();
         handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
 
-        await service.GetEmployees(BuildCredentials(), CancellationToken.None);
+        await service.GetEmployees(BuildContext(), CancellationToken.None);
 
         var sent = handler.Captured.Single();
         var body = await sent.Content!.ReadAsStringAsync(TestContext.Current.CancellationToken);
@@ -342,5 +343,72 @@ public class WorkdayStaffingServiceTests
         body.Should().Contain("secret");
         body.Should().Contain("Get_Workers_Request");
         sent.RequestUri!.ToString().Should().Be("https://wd3-impl-services1.workday.com/ccx/service/acme_corp1/Staffing/v46.1");
+    }
+
+    [Fact]
+    public async Task GetEmployees_orgExclusions_dropsMatchingWorkersAndReportsCount()
+    {
+        // The fixture has Alex in two orgs: a SUPERVISORY org (WID "org-aaaa-0001") and a
+        // COST_CENTER org (WID "org-aaaa-0003"). Excluding either WID should drop Alex from the
+        // projected list and increment the count for that rule. Casey isn't in any org_data block,
+        // so neither rule should ever touch her.
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
+
+        var result = await service.GetEmployees(
+            BuildContext(orgExclusions:
+            [
+                new WorkdayOrgExclusion("COST_CENTER", "org-aaaa-0003", "R&D"),
+            ]),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Employees.Should().HaveCount(1, "Alex is excluded via the COST_CENTER rule; Casey has no org-data and so passes through");
+        result.Value.Employees.Single().Name.FirstName.Should().Be("Casey");
+
+        result.Value.ExclusionCounts.Should().HaveCount(1);
+        var count = result.Value.ExclusionCounts.Single();
+        count.OrganizationTypeId.Should().Be("COST_CENTER");
+        count.OrganizationReference.Should().Be("org-aaaa-0003");
+        count.DisplayName.Should().Be("R&D");
+        count.Count.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetEmployees_orgExclusions_rulesThatDontFireAreOmittedFromCounts()
+    {
+        // A rule that doesn't match any worker should NOT show up in ExclusionCounts — the sync log
+        // only narrates what actually happened. Admin can still verify their rules are present by
+        // looking at the connection config; we don't need to clutter run history with dead rules.
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
+
+        var result = await service.GetEmployees(
+            BuildContext(orgExclusions:
+            [
+                new WorkdayOrgExclusion("SUPERVISORY", "org-nonexistent-9999", "Phantom Org"),
+            ]),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Employees.Should().HaveCount(2, "both workers stay because the rule's target org isn't on either");
+        result.Value.ExclusionCounts.Should().BeEmpty("rules that didn't match anything aren't logged");
+    }
+
+    [Fact]
+    public async Task GetEmployees_orgExclusions_empty_returnsEveryone()
+    {
+        // Smoke test: an empty exclusion list must behave identically to the no-exclusions case
+        // (no projection cost, every worker included). Pins the default-off contract.
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
+
+        var result = await service.GetEmployees(
+            BuildContext(orgExclusions: []),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Employees.Should().HaveCount(2);
+        result.Value.ExclusionCounts.Should().BeEmpty();
     }
 }

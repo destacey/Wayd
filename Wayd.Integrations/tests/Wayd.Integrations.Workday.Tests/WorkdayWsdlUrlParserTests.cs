@@ -63,17 +63,16 @@ public class WorkdayWsdlUrlParserTests
     }
 
     [Fact]
-    public void Constructor_invalidUrl_leavesDerivedFieldsEmpty()
+    public void Constructor_invalidUrl_throwsArgumentException()
     {
-        var config = new WorkdayConnectionConfiguration(
+        // The configuration enforces its own invariant: an unparseable WsdlUrl can't produce a
+        // valid configuration object. The command-layer validator catches this at the API
+        // boundary; the ctor throw is the domain seatbelt for any path that bypasses the validator.
+        var act = () => new WorkdayConnectionConfiguration(
             wsdlUrl: "not-a-url",
             isuUsername: "wayd_isu@acme_corp1",
             isuPassword: "secret");
 
-        config.WsdlUrl.Should().Be("not-a-url");
-        config.ServiceHost.Should().BeEmpty();
-        config.TenantAlias.Should().BeEmpty();
-        config.WsdlVersion.Should().BeEmpty();
-        config.SoapEndpoint.Should().BeEmpty();
+        act.Should().Throw<ArgumentException>().WithMessage("*not a valid Workday Staffing endpoint URL*");
     }
 }

@@ -20,10 +20,10 @@ namespace Wayd.Integrations.Workday.Soap;
 /// WWS contract is forward+backward compatible for read operations across the supported window.
 /// Field-level changes are absorbed by the response parser (missing element → null).
 /// </remarks>
-public sealed class WorkdayStaffingClient
+public sealed class WorkdayStaffingClient(HttpClient httpClient, ILogger<WorkdayStaffingClient> logger)
 {
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<WorkdayStaffingClient> _logger;
+    private readonly HttpClient _httpClient = httpClient;
+    private readonly ILogger<WorkdayStaffingClient> _logger = logger;
 
     // Workday's two primary namespaces. The envelope name is suffixed with the WWS version on the
     // tenant endpoint — but since Workday accepts the bare 'urn:com.workday/bsvc' namespace for
@@ -34,24 +34,18 @@ public sealed class WorkdayStaffingClient
     private static readonly XNamespace _wsu = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd";
     private const string WssPasswordTextType = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText";
 
-    public WorkdayStaffingClient(HttpClient httpClient, ILogger<WorkdayStaffingClient> logger)
-    {
-        _httpClient = httpClient;
-        _logger = logger;
-    }
-
     /// <summary>
     /// Calls <c>Get_Workers</c> against the supplied tenant. Single page only — caller paginates
     /// by passing <paramref name="page"/> until <see cref="GetWorkersResponse.TotalPages"/> is reached.
     /// </summary>
     public async Task<GetWorkersResponse> GetWorkers(
-        WorkdayConnectionCredentials credentials,
+        WorkdayRequestContext context,
         int page,
         int pageSize,
         CancellationToken cancellationToken)
     {
-        var envelope = BuildGetWorkersEnvelope(credentials, page, pageSize);
-        var responseXml = await PostAsync(credentials, envelope, cancellationToken);
+        var envelope = BuildGetWorkersEnvelope(context, page, pageSize);
+        var responseXml = await PostAsync(context, envelope, cancellationToken);
 
         // Find all wd:Worker elements anywhere in the response — Workday nests them under
         // Response_Data which lives under the operation response, but using a descendant-search
@@ -64,10 +58,10 @@ public sealed class WorkdayStaffingClient
         return new GetWorkersResponse(workers, page, totalPages, totalResults);
     }
 
-    private static XDocument BuildGetWorkersEnvelope(WorkdayConnectionCredentials credentials, int page, int pageSize)
+    private static XDocument BuildGetWorkersEnvelope(WorkdayRequestContext context, int page, int pageSize)
     {
         var requestCriteria = new XElement(Wd + "Request_Criteria",
-            new XElement(Wd + "Exclude_Inactive_Workers", credentials.IncludeInactive ? "0" : "1"));
+            new XElement(Wd + "Exclude_Inactive_Workers", context.IncludeInactive ? "0" : "1"));
 
         // Transaction_Log_Criteria_Data filters Get_Workers to workers whose data changed since a
         // given timestamp. Only attach it when the runner asked for incremental — first runs and
@@ -80,7 +74,7 @@ public sealed class WorkdayStaffingClient
         //   2) Updated_From and Updated_Through are validated as a pair — supplying one without
         //      the other returns "If one of Updated From or Updated Through contains a value,
         //      both are Required!". We pair the watermark with "now" to close the range.
-        if (credentials.IncrementalUpdatedFrom is { } since)
+        if (context.IncrementalUpdatedFrom is { } since)
         {
             var now = DateTime.UtcNow;
             requestCriteria.Add(new XElement(Wd + "Transaction_Log_Criteria_Data",
@@ -106,7 +100,7 @@ public sealed class WorkdayStaffingClient
             responseFilter,
             responseGroup);
 
-        var security = BuildSecurityHeader(credentials.IsuUsername, credentials.IsuPassword);
+        var security = BuildSecurityHeader(context.Credentials);
 
         var envelope = new XElement(_soap + "Envelope",
             new XAttribute(XNamespace.Xmlns + "soapenv", _soap.NamespaceName),
@@ -117,7 +111,7 @@ public sealed class WorkdayStaffingClient
         return new XDocument(new XDeclaration("1.0", "utf-8", null), envelope);
     }
 
-    private static XElement BuildSecurityHeader(string username, string password)
+    private static XElement BuildSecurityHeader(WorkdayCredentials credentials)
     {
         // WS-Security UsernameToken with PasswordText. Workday accepts plain-text passwords over
         // TLS (the tenant endpoint is HTTPS-only). This is the standard ISU auth path.
@@ -126,10 +120,10 @@ public sealed class WorkdayStaffingClient
             new XAttribute(XNamespace.Xmlns + "wsu", _wsu.NamespaceName),
             new XAttribute(_soap + "mustUnderstand", "1"),
             new XElement(_wsse + "UsernameToken",
-                new XElement(_wsse + "Username", username),
+                new XElement(_wsse + "Username", credentials.IsuUsername),
                 new XElement(_wsse + "Password",
                     new XAttribute("Type", WssPasswordTextType),
-                    password)));
+                    credentials.IsuPassword)));
     }
 
     /// <summary>
@@ -140,13 +134,14 @@ public sealed class WorkdayStaffingClient
     /// usually small (tens to low thousands).
     /// </summary>
     public async Task<GetOrganizationsResponse> GetOrganizations(
-        WorkdayConnectionCredentials credentials,
+        WorkdayRequestContext context,
         int page,
         int pageSize,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? organizationTypeId = null)
     {
-        var envelope = BuildGetOrganizationsEnvelope(credentials, page, pageSize);
-        var responseXml = await PostAsync(credentials, envelope, cancellationToken);
+        var envelope = BuildGetOrganizationsEnvelope(context, page, pageSize, organizationTypeId);
+        var responseXml = await PostAsync(context, envelope, cancellationToken);
 
         // Each Organization element carries Reference_ID, Name, and Organization_Type_Reference.
         var orgs = responseXml.Descendants(Wd + "Organization").ToList();
@@ -157,12 +152,20 @@ public sealed class WorkdayStaffingClient
         return new GetOrganizationsResponse(orgs, page, totalPages, totalResults);
     }
 
-    private static XDocument BuildGetOrganizationsEnvelope(WorkdayConnectionCredentials credentials, int page, int pageSize)
+    private static XDocument BuildGetOrganizationsEnvelope(WorkdayRequestContext context, int page, int pageSize, string? organizationTypeId)
     {
-        // No criteria filter — we want everything so we can group by type. We omit Include_Inactive
-        // (defaults to false) since the catalog is for picking a Department source, and inactive
-        // orgs are by definition not used.
+        // Request_Criteria is empty by default — we want everything so we can group by type.
+        // When organizationTypeId is supplied (the lazy-load endpoint for the exclusions picker),
+        // we narrow with an Organization_Type_Reference filter so we don't fetch the entire tenant
+        // catalog just to enumerate orgs of one type.
         var requestCriteria = new XElement(Wd + "Request_Criteria");
+        if (!string.IsNullOrWhiteSpace(organizationTypeId))
+        {
+            requestCriteria.Add(new XElement(Wd + "Organization_Type_Reference",
+                new XElement(Wd + "ID",
+                    new XAttribute(Wd + "type", "Organization_Type_ID"),
+                    organizationTypeId)));
+        }
 
         // No response-group flags — the default response returns Reference + Name + Type for each
         // org, which is everything the catalog needs. Asking for Hierarchy/Supervisory data here
@@ -176,7 +179,7 @@ public sealed class WorkdayStaffingClient
             requestCriteria,
             responseFilter);
 
-        var security = BuildSecurityHeader(credentials.IsuUsername, credentials.IsuPassword);
+        var security = BuildSecurityHeader(context.Credentials);
 
         var envelope = new XElement(_soap + "Envelope",
             new XAttribute(XNamespace.Xmlns + "soapenv", _soap.NamespaceName),
@@ -187,12 +190,12 @@ public sealed class WorkdayStaffingClient
         return new XDocument(new XDeclaration("1.0", "utf-8", null), envelope);
     }
 
-    private async Task<XDocument> PostAsync(WorkdayConnectionCredentials credentials, XDocument envelope, CancellationToken cancellationToken)
+    private async Task<XDocument> PostAsync(WorkdayRequestContext context, XDocument envelope, CancellationToken cancellationToken)
     {
         var content = new StringContent(envelope.Declaration + envelope.ToString(SaveOptions.DisableFormatting), Encoding.UTF8, "text/xml");
         content.Headers.ContentType = new MediaTypeHeaderValue("text/xml") { CharSet = "utf-8" };
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, credentials.SoapEndpoint)
+        using var request = new HttpRequestMessage(HttpMethod.Post, context.SoapEndpoint)
         {
             Content = content,
         };

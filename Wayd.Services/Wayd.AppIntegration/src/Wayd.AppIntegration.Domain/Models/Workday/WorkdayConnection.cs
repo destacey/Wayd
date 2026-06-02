@@ -1,4 +1,4 @@
-using Wayd.AppIntegration.Domain.Interfaces;
+﻿using Wayd.AppIntegration.Domain.Interfaces;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Extensions;
 
@@ -44,6 +44,7 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
         bool usePreferredName,
         bool normalizeNameCasing,
         string? departmentOrganizationTypeId,
+        IReadOnlyList<WorkdayOrgExclusion>? orgExclusions,
         bool configurationIsValid,
         Instant timestamp)
     {
@@ -57,9 +58,18 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
             var newIsuUsername = Guard.Against.NullOrWhiteSpace(isuUsername, nameof(isuUsername)).Trim();
             var newIsuPassword = Guard.Against.NullOrWhiteSpace(isuPassword, nameof(isuPassword)).Trim();
             var newDepartmentOrgTypeId = string.IsNullOrWhiteSpace(departmentOrganizationTypeId) ? null : departmentOrganizationTypeId.Trim();
+            var newOrgExclusions = orgExclusions?.ToList() ?? [];
 
-            if (!UpdateValuesChanged(newName, newDescription, newWsdlUrl, newIsuUsername, newIsuPassword, workerKey, includeInactive, matchBy, useUserIdAsEmailFallback, usePreferredName, normalizeNameCasing, newDepartmentOrgTypeId, configurationIsValid))
+            if (!UpdateValuesChanged(newName, newDescription, newWsdlUrl, newIsuUsername, newIsuPassword, workerKey, includeInactive, matchBy, useUserIdAsEmailFallback, usePreferredName, normalizeNameCasing, newDepartmentOrgTypeId, newOrgExclusions, configurationIsValid))
                 return Result.Success();
+
+            // Parse the URL *before* any mutation so a bad URL doesn't leave the entity
+            // half-updated. The command-layer validator already rejects unparseable URLs, so this
+            // is defensive — it documents the invariant (no configuration with an unparseable URL
+            // ever persists) and protects against any caller that bypasses the validator.
+            if (!WorkdayConnectionConfiguration.TryParse(newWsdlUrl, out var parts))
+                return Result.Failure(
+                    $"WsdlUrl '{newWsdlUrl}' is not a valid Workday Staffing endpoint URL. Expected form: https://{{host}}/ccx/service/{{tenant}}/Staffing/{{version}}.");
 
             Name = newName;
             Description = newDescription;
@@ -75,23 +85,12 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
             Configuration.UsePreferredName = usePreferredName;
             Configuration.NormalizeNameCasing = normalizeNameCasing;
             Configuration.DepartmentOrganizationTypeId = newDepartmentOrgTypeId;
+            Configuration.OrgExclusions = newOrgExclusions;
 
-            // Re-derive endpoint parts from the (possibly new) URL. A bad URL leaves them blank;
-            // the init probe that follows the save catches that and flips IsValidConfiguration.
-            if (WorkdayConnectionConfiguration.TryParse(newWsdlUrl, out var parts))
-            {
-                Configuration.ServiceHost = parts.ServiceHost;
-                Configuration.TenantAlias = parts.TenantAlias;
-                Configuration.WsdlVersion = parts.WsdlVersion;
-                Configuration.SoapEndpoint = parts.SoapEndpoint;
-            }
-            else
-            {
-                Configuration.ServiceHost = string.Empty;
-                Configuration.TenantAlias = string.Empty;
-                Configuration.WsdlVersion = string.Empty;
-                Configuration.SoapEndpoint = string.Empty;
-            }
+            Configuration.ServiceHost = parts.ServiceHost;
+            Configuration.TenantAlias = parts.TenantAlias;
+            Configuration.WsdlVersion = parts.WsdlVersion;
+            Configuration.SoapEndpoint = parts.SoapEndpoint;
 
             AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
 
@@ -126,7 +125,7 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
         // Only persist the catalog when the probe actually returned one (null = "probe didn't get
         // far enough"); a successful probe with zero org-types is a real signal we keep.
         if (discoveredOrgTypes is not null)
-            Configuration.DiscoveredOrgTypes = discoveredOrgTypes.ToList();
+            Configuration.DiscoveredOrgTypes = [.. discoveredOrgTypes];
 
         IsValidConfiguration = succeeded;
     }
@@ -144,6 +143,7 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
         bool usePreferredName,
         bool normalizeNameCasing,
         string? departmentOrganizationTypeId,
+        IReadOnlyList<WorkdayOrgExclusion> orgExclusions,
         bool configurationIsValid)
     {
         if (!string.Equals(Name, name, StringComparison.Ordinal)) return true;
@@ -158,8 +158,20 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
         if (Configuration.UsePreferredName != usePreferredName) return true;
         if (Configuration.NormalizeNameCasing != normalizeNameCasing) return true;
         if (!string.Equals(Configuration.DepartmentOrganizationTypeId, departmentOrganizationTypeId, StringComparison.Ordinal)) return true;
+        if (!ExclusionsEqual(Configuration.OrgExclusions, orgExclusions)) return true;
         if (IsValidConfiguration != configurationIsValid) return true;
         return false;
+    }
+
+    /// <summary>
+    /// Order-insensitive set equality on (TypeId, OrganizationReference) — the DisplayName is a
+    /// cosmetic cache, so a change to just the descriptor doesn't constitute a config change.
+    /// </summary>
+    private static bool ExclusionsEqual(IReadOnlyList<WorkdayOrgExclusion> existing, IReadOnlyList<WorkdayOrgExclusion> incoming)
+    {
+        if (existing.Count != incoming.Count) return false;
+        var existingKeys = new HashSet<(string, string)>(existing.Select(e => (e.OrganizationTypeId, e.OrganizationReference)));
+        return incoming.All(i => existingKeys.Contains((i.OrganizationTypeId, i.OrganizationReference)));
     }
 
     public static WorkdayConnection Create(

@@ -233,6 +233,34 @@ public class ConnectionsController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpGet("{id}/workday/orgs")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
+    [OpenApiOperation("List Workday organizations of a given type.",
+        "Lazy-loads the orgs of one Organization_Type_ID from the connection's Workday tenant for the admin's " +
+        "exclusion picker. Backed by Workday's Get_Organizations with a server-side type filter. Returns up to " +
+        "500 orgs. Requires the connection to be a Workday connection.")]
+    [ProducesResponseType(typeof(IReadOnlyList<DiscoveredOrg>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<DiscoveredOrg>>> GetWorkdayOrgsByType(
+        Guid id,
+        [FromQuery] string typeId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(typeId))
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest("typeId is required.", HttpContext));
+
+        var connection = await _sender.Send(new GetConnectionQuery(id), cancellationToken);
+        if (connection is null)
+            return NotFound();
+        if (connection is not WorkdayConnectionDetailsDto)
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(
+                "This endpoint is only available for Workday connections.", HttpContext));
+
+        var result = await _sender.Send(new GetWorkdayOrgsByTypeCommand(id, typeId), cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpGet("{id}/sync-runs")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Connections)]
     [OpenApiOperation("Get sync run history for a connection.",

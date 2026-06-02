@@ -22,7 +22,8 @@ public sealed class WorkdayConnectionConfiguration
         bool useUserIdAsEmailFallback = false,
         bool usePreferredName = false,
         bool normalizeNameCasing = true,
-        string? departmentOrganizationTypeId = SupervisoryOrgTypeId)
+        string? departmentOrganizationTypeId = SupervisoryOrgTypeId,
+        IReadOnlyList<WorkdayOrgExclusion>? orgExclusions = null)
     {
         WsdlUrl = wsdlUrl.Trim();
         IsuUsername = isuUsername.Trim();
@@ -34,25 +35,23 @@ public sealed class WorkdayConnectionConfiguration
         UsePreferredName = usePreferredName;
         NormalizeNameCasing = normalizeNameCasing;
         DepartmentOrganizationTypeId = string.IsNullOrWhiteSpace(departmentOrganizationTypeId) ? null : departmentOrganizationTypeId.Trim();
-        ConfigVersion = 8;
+        OrgExclusions = orgExclusions?.ToList() ?? [];
+        ConfigVersion = 9;
 
         // Derive endpoint parts at construction so the runtime sync path doesn't reparse on every
-        // call. Failed parses surface to the command handler via TryParse — the public ctor still
-        // accepts the raw string so DTOs round-trip cleanly.
-        if (TryParse(WsdlUrl, out var parsed))
-        {
-            ServiceHost = parsed.ServiceHost;
-            TenantAlias = parsed.TenantAlias;
-            WsdlVersion = parsed.WsdlVersion;
-            SoapEndpoint = parsed.SoapEndpoint;
-        }
-        else
-        {
-            ServiceHost = string.Empty;
-            TenantAlias = string.Empty;
-            WsdlVersion = string.Empty;
-            SoapEndpoint = string.Empty;
-        }
+        // call. The command-layer validator (BeParseable) rejects unparseable URLs before they
+        // reach this constructor, so the throw here is defensive — it documents the invariant
+        // (no configuration object exists with an unparseable URL) and protects against any
+        // future code path that bypasses the validator (direct seed, new command handler, etc.).
+        if (!TryParse(WsdlUrl, out var parsed))
+            throw new ArgumentException(
+                $"WsdlUrl '{wsdlUrl}' is not a valid Workday Staffing endpoint URL. Expected form: https://{{host}}/ccx/service/{{tenant}}/Staffing/{{version}}.",
+                nameof(wsdlUrl));
+
+        ServiceHost = parsed.ServiceHost;
+        TenantAlias = parsed.TenantAlias;
+        WsdlVersion = parsed.WsdlVersion;
+        SoapEndpoint = parsed.SoapEndpoint;
     }
 
     /// <summary>
@@ -73,16 +72,16 @@ public sealed class WorkdayConnectionConfiguration
     public required string WsdlUrl { get; set; }
 
     /// <summary>Derived from <see cref="WsdlUrl"/>. The Workday service host (e.g. <c>wd3-impl-services1.workday.com</c>).</summary>
-    public string ServiceHost { get; set; } = string.Empty;
+    public required string ServiceHost { get; set; }
 
     /// <summary>Derived from <see cref="WsdlUrl"/>. The tenant alias segment.</summary>
-    public string TenantAlias { get; set; } = string.Empty;
+    public required string TenantAlias { get; set; }
 
     /// <summary>Derived from <see cref="WsdlUrl"/>. The WWS version (e.g. <c>v46.1</c>).</summary>
-    public string WsdlVersion { get; set; } = string.Empty;
+    public required string WsdlVersion { get; set; }
 
     /// <summary>Derived from <see cref="WsdlUrl"/>. The SOAP endpoint URL (the WSDL URL minus the <c>?wsdl</c> suffix).</summary>
-    public string SoapEndpoint { get; set; } = string.Empty;
+    public required string SoapEndpoint { get; set; }
 
     /// <summary>The Integration System User username (conventionally <c>{user}@{tenant}</c>).</summary>
     public required string IsuUsername { get; set; }
@@ -143,6 +142,16 @@ public sealed class WorkdayConnectionConfiguration
     /// types are populated vs empty.
     /// </summary>
     public List<WorkdayOrgType>? DiscoveredOrgTypes { get; set; }
+
+    /// <summary>
+    /// Workers belonging to any of these orgs are dropped from the sync after the SOAP response is
+    /// parsed. Workday's <c>Get_Workers</c> doesn't expose a server-side exclude filter — there's
+    /// only an <c>Organization_Reference</c> include list — so we filter locally. Each rule is a
+    /// (type, reference) pair: the type lets the admin understand which org dimension the filter
+    /// applies to; the reference is the stable Workday WID we match against the worker's
+    /// <c>Worker_Organization_Data</c>. Default empty (no exclusions).
+    /// </summary>
+    public List<WorkdayOrgExclusion> OrgExclusions { get; set; } = [];
 
     public int ConfigVersion { get; init; }
 
@@ -214,3 +223,15 @@ public readonly record struct WorkdayWsdlUrlParts(
 /// this type the probe saw — useful as a "this type has data" signal in the admin dropdown.
 /// </summary>
 public sealed record WorkdayOrgType(string TypeId, string? DisplayName, int Count);
+
+/// <summary>
+/// One exclusion rule: drop workers whose <c>Worker_Organization_Data</c> includes a reference to
+/// <see cref="OrganizationReference"/>. <see cref="OrganizationTypeId"/> is captured for UI/audit —
+/// the matching itself is purely on the WID (which is globally unique across orgs of any type).
+/// <see cref="DisplayName"/> is the cached descriptor at the time the rule was created, so the
+/// detail page and sync log can show the friendly name without re-fetching from Workday.
+/// </summary>
+public sealed record WorkdayOrgExclusion(
+    string OrganizationTypeId,
+    string OrganizationReference,
+    string? DisplayName);

@@ -184,7 +184,7 @@ public sealed class ModelBuilderExtensionsTests
     private class SoftDeletableEntity : ISoftDelete
     {
         public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
+        public required string Name { get; set; }
         public bool IsDeleted { get; set; }
         public Instant? Deleted { get; set; }
         public string? DeletedBy { get; set; }
@@ -201,7 +201,7 @@ public sealed class ModelBuilderExtensionsTests
     private class NonSoftDeletableEntity
     {
         public int Id { get; set; }
-        public string Value { get; set; } = string.Empty;
+        public required string Value { get; set; }
     }
 
     private interface IAuditable
@@ -212,7 +212,7 @@ public sealed class ModelBuilderExtensionsTests
     private class AuditableEntity : IAuditable, ISoftDelete
     {
         public int Id { get; set; }
-        public string CreatedBy { get; set; } = string.Empty;
+        public required string CreatedBy { get; set; }
         public bool IsDeleted { get; set; }
         public Instant? Deleted { get; set; }
         public string? DeletedBy { get; set; }
@@ -220,7 +220,7 @@ public sealed class ModelBuilderExtensionsTests
 
     private class DerivedSoftDeletableEntity : SoftDeletableEntity
     {
-        public string Extra { get; set; } = string.Empty;
+        public required string Extra { get; set; }
     }
 
     #endregion

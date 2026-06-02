@@ -114,7 +114,16 @@ function formatDuration(
 interface PeopleSyncDetail {
   employeesFetched?: number
   employeesUpserted?: number
+  employeesExcluded?: number
+  exclusionBreakdown?: ExclusionBreakdownEntry[]
   errors?: string[]
+}
+
+interface ExclusionBreakdownEntry {
+  orgTypeId: string
+  orgReference: string
+  displayName?: string | null
+  count: number
 }
 
 function parseDetailsJson<T>(json: string | null | undefined): T | undefined {
@@ -196,7 +205,32 @@ function PeopleExpandedRow({ syncRun }: { syncRun: SyncRunDetailsDto }) {
         <strong>Employees fetched:</strong> {detail.employeesFetched ?? 0}
         {'  '}
         <strong>Employees upserted:</strong> {detail.employeesUpserted ?? 0}
+        {(detail.employeesExcluded ?? 0) > 0 && (
+          <>
+            {'  '}
+            <strong>Excluded:</strong> {detail.employeesExcluded}
+          </>
+        )}
       </Typography.Text>
+      {(detail.exclusionBreakdown?.length ?? 0) > 0 && (
+        <>
+          <Typography.Text type="secondary">
+            Excluded by rule:
+          </Typography.Text>
+          <ul style={{ margin: 0 }}>
+            {detail.exclusionBreakdown!.map((b) => (
+              <li key={`${b.orgTypeId}:${b.orgReference}`}>
+                <Typography.Text>
+                  <code>{b.orgTypeId}</code>
+                  {b.displayName ? `: ${b.displayName}` : ` (${b.orgReference})`}
+                  {' → '}
+                  {b.count} worker{b.count === 1 ? '' : 's'}
+                </Typography.Text>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
       {detail.errors && detail.errors.length > 0 && (
         <>
           <Typography.Text type="danger">Errors:</Typography.Text>
@@ -227,7 +261,7 @@ function ExpandedRow({
     return (
       <Alert
         type="error"
-        message="Failed to load sync run details."
+        title="Failed to load sync run details."
         showIcon
         style={{ margin: '0 24px 8px' }}
       />
@@ -484,13 +518,13 @@ export default function SyncHistoryTab({ connectionId, category, isActive }: Pro
       ) : isError ? (
         <Alert
           type="error"
-          message="Failed to load sync run history."
+          title="Failed to load sync run history."
           showIcon
         />
       ) : runs?.length === 0 ? (
         <Alert
           type="info"
-          message="No sync runs in the selected window."
+          title="No sync runs in the selected window."
           showIcon
         />
       ) : (

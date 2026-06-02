@@ -8,7 +8,7 @@ import {
   WorkdayWorkerKey,
 } from '@/src/services/wayd-api'
 import { useInitConnectionMutation } from '@/src/store/features/app-integration/connections-api'
-import { Alert } from 'antd'
+import { Alert, Col, Descriptions, Row, Typography } from 'antd'
 import dayjs from 'dayjs'
 import { ItemType } from 'antd/es/menu/interface'
 import { useEffect, useMemo } from 'react'
@@ -18,6 +18,9 @@ import {
 } from '../_components/detail-registry'
 import GenericConnectionDetails from '../_components/generic-connection-details'
 import SyncHistoryTab from '../_components/sync-history-tab'
+
+const { Item } = Descriptions
+const { Title } = Typography
 
 const isWorkday = (c: ConnectionDetailsDto): c is WorkdayConnectionDetailsDto =>
   c?.connector?.name === 'Workday'
@@ -94,6 +97,54 @@ const InitResultCallout = ({
 }
 
 /**
+ * Renders the admin-configured exclusion rules. Each rule shows the org type, the cached display
+ * name (or the WID if no label is on file), and a hint about what it filters out at sync time.
+ * Null when no rules are configured — keeps the detail page quiet for the default case.
+ */
+const ExclusionsPanel = ({
+  connection,
+}: {
+  connection: WorkdayConnectionDetailsDto
+}) => {
+  const exclusions = connection.configuration?.orgExclusions ?? []
+  if (exclusions.length === 0) return null
+  return (
+    <div style={{ marginTop: 16, marginBottom: 16 }}>
+      <strong>Worker Exclusions</strong>
+      <div
+        style={{
+          fontSize: 13,
+          color: 'var(--ant-color-text-secondary)',
+          marginBottom: 8,
+        }}
+      >
+        Workers in any of these orgs are dropped from the sync. See the Sync
+        History tab for per-run exclusion counts.
+      </div>
+      <ul style={{ marginBottom: 0, paddingInlineStart: 20 }}>
+        {exclusions.map((e) => (
+          <li
+            key={`${e.organizationTypeId}:${e.organizationReference}`}
+          >
+            <code>{e.organizationTypeId}</code>
+            {e.displayName ? `: ${e.displayName}` : ''}
+            <span
+              style={{
+                marginLeft: 8,
+                fontSize: 12,
+                color: 'var(--ant-color-text-tertiary)',
+              }}
+            >
+              ({e.organizationReference})
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/**
  * Renders the catalog of Organization_Type_IDs discovered by the most recent init probe. Helps
  * admins pick a non-default value for "Department Source" — they can see which types actually
  * have data (the Count) and what each is labeled in their tenant (DisplayName).
@@ -108,7 +159,7 @@ const DiscoveredOrgTypesPanel = ({
 
   const selected = connection.configuration?.departmentOrganizationTypeId
   return (
-    <div style={{ marginBottom: 16 }}>
+    <div style={{ marginTop: 16, marginBottom: 16 }}>
       <strong>Discovered Organization Types</strong>
       <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginBottom: 8 }}>
         Available values for the Department Source. Edit the connection to switch.
@@ -135,50 +186,61 @@ const Details = ({ connection }: { connection: ConnectionDetailsDto }) => {
 
   return (
     <>
+      {/* The init callout stays at the top: a failed connection's error message must be the
+          first thing the admin sees. */}
       <InitResultCallout connection={connection} />
-      <DiscoveredOrgTypesPanel connection={connection} />
-      <GenericConnectionDetails
-        connection={connection}
-        configFields={[
-          { label: 'WSDL URL', value: config?.wsdlUrl },
-          { label: 'Service Host', value: config?.serviceHost },
-          { label: 'Tenant Alias', value: config?.tenantAlias },
-          { label: 'WSDL Version', value: config?.wsdlVersion },
-          { label: 'ISU Username', value: config?.isuUsername },
-          { label: 'ISU Password', value: config?.isuPassword, sensitive: true },
-          { label: 'Worker Key', value: workerKeyLabel(config?.workerKey) },
-          {
-            label: 'Match Employees By',
-            value:
-              config?.matchBy === EmployeeMatchProperty.EmployeeNumber
+
+      {/* Top metadata (Connector / Category / IsActive / IsValid / Description). We omit
+          configFields here so GenericConnectionDetails doesn't emit its own Configuration
+          section — we own that block below so the exclusion + discovered-types panels can sit
+          inside the same heading as the field list. */}
+      <GenericConnectionDetails connection={connection} />
+
+      <Row>
+        <Col span={24}>
+          <Title level={4}>Configuration</Title>
+          <Descriptions column={1}>
+            <Item label="WSDL URL">{config?.wsdlUrl ?? '—'}</Item>
+            <Item label="Service Host">{config?.serviceHost ?? '—'}</Item>
+            <Item label="Tenant Alias">{config?.tenantAlias ?? '—'}</Item>
+            <Item label="WSDL Version">{config?.wsdlVersion ?? '—'}</Item>
+            <Item label="ISU Username">{config?.isuUsername ?? '—'}</Item>
+            <Item label="ISU Password">••••••••</Item>
+            <Item label="Worker Key">{workerKeyLabel(config?.workerKey)}</Item>
+            <Item label="Match Employees By">
+              {config?.matchBy === EmployeeMatchProperty.EmployeeNumber
                 ? 'Employee Number'
-                : 'Email',
-          },
-          { label: 'Include Inactive Workers', value: config?.includeInactive },
-          {
-            label: 'Use User_ID as Email Fallback',
-            value: config?.useUserIdAsEmailFallback,
-          },
-          {
-            label: 'Use Preferred Name',
-            value: config?.usePreferredName,
-          },
-          {
-            label: 'Normalize Name Casing',
-            value: config?.normalizeNameCasing,
-          },
-          {
-            label: 'Department Source (Organization_Type_ID)',
-            value: config?.departmentOrganizationTypeId,
-          },
-          {
-            label: 'Last Validated',
-            value: config?.lastInitAt
-              ? dayjs(config.lastInitAt).format('M/D/YYYY h:mm A')
-              : undefined,
-          },
-        ]}
-      />
+                : 'Email'}
+            </Item>
+            <Item label="Include Inactive Workers">
+              {config?.includeInactive ? 'Yes' : 'No'}
+            </Item>
+            <Item label="Use User_ID as Email Fallback">
+              {config?.useUserIdAsEmailFallback ? 'Yes' : 'No'}
+            </Item>
+            <Item label="Use Preferred Name">
+              {config?.usePreferredName ? 'Yes' : 'No'}
+            </Item>
+            <Item label="Normalize Name Casing">
+              {config?.normalizeNameCasing ? 'Yes' : 'No'}
+            </Item>
+            <Item label="Department Source (Organization_Type_ID)">
+              {config?.departmentOrganizationTypeId ?? '—'}
+            </Item>
+            <Item label="Last Validated">
+              {config?.lastInitAt
+                ? dayjs(config.lastInitAt).format('M/D/YYYY h:mm A')
+                : '—'}
+            </Item>
+          </Descriptions>
+
+          {/* Configuration-section panels: same visual block as the field list above, separated
+              from each other by their own headings. Exclusions first because they're the
+              actionable filter the admin set up; discovered types is a reference list. */}
+          <ExclusionsPanel connection={connection} />
+          <DiscoveredOrgTypesPanel connection={connection} />
+        </Col>
+      </Row>
     </>
   )
 }

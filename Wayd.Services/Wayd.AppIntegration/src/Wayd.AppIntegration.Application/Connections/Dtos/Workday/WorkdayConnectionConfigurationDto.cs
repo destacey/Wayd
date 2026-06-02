@@ -9,13 +9,13 @@ public sealed record WorkdayConnectionConfigurationDto : IMapFrom<WorkdayConnect
     public required string WsdlUrl { get; set; }
 
     /// <summary>Derived from <see cref="WsdlUrl"/>. The Workday service host.</summary>
-    public string ServiceHost { get; set; } = string.Empty;
+    public required string ServiceHost { get; set; }
 
     /// <summary>Derived from <see cref="WsdlUrl"/>. The tenant alias.</summary>
-    public string TenantAlias { get; set; } = string.Empty;
+    public required string TenantAlias { get; set; }
 
     /// <summary>Derived from <see cref="WsdlUrl"/>. The WWS version.</summary>
-    public string WsdlVersion { get; set; } = string.Empty;
+    public required string WsdlVersion { get; set; }
 
     /// <summary>The Integration System User username.</summary>
     public required string IsuUsername { get; set; }
@@ -63,6 +63,13 @@ public sealed record WorkdayConnectionConfigurationDto : IMapFrom<WorkdayConnect
     /// </summary>
     public List<WorkdayOrgTypeDto>? DiscoveredOrgTypes { get; set; }
 
+    /// <summary>
+    /// Admin-configured rules that filter workers out of the sync. Each rule names an
+    /// Organization_Type_ID plus the WID of an org of that type; workers whose
+    /// Worker_Organization_Data references that WID are dropped before upsert. Empty by default.
+    /// </summary>
+    public List<WorkdayOrgExclusionDto> OrgExclusions { get; set; } = [];
+
     // --- Init / probe result ---
 
     /// <summary>UTC timestamp of the most recent init probe.</summary>
@@ -90,3 +97,9 @@ public sealed record WorkdayConnectionConfigurationDto : IMapFrom<WorkdayConnect
 
 /// <summary>One entry in the org-type catalog discovered by the init probe.</summary>
 public sealed record WorkdayOrgTypeDto(string TypeId, string? DisplayName, int Count) : IMapFrom<WorkdayOrgType>;
+
+/// <summary>One admin-configured exclusion rule for the Workday sync.</summary>
+public sealed record WorkdayOrgExclusionDto(
+    string OrganizationTypeId,
+    string OrganizationReference,
+    string? DisplayName) : IMapFrom<WorkdayOrgExclusion>;

@@ -52,9 +52,25 @@ public sealed record CreateWorkdayConnectionRequest : CreateConnectionRequest
     /// </summary>
     public string? DepartmentOrganizationTypeId { get; set; } = "SUPERVISORY";
 
+    /// <summary>
+    /// Optional admin-configured rules that filter workers out of the sync. Each rule names an
+    /// Organization_Type_ID plus the WID of an org of that type; workers in that org are dropped
+    /// before upsert. Empty by default.
+    /// </summary>
+    public List<WorkdayOrgExclusionRequest>? OrgExclusions { get; set; }
+
     public CreateWorkdayConnectionCommand ToCommand()
-        => new(Name, Description, WsdlUrl, IsuUsername, IsuPassword, WorkerKey, IncludeInactive, MatchBy, UseUserIdAsEmailFallback, UsePreferredName, NormalizeNameCasing, DepartmentOrganizationTypeId);
+        => new(
+            Name, Description, WsdlUrl, IsuUsername, IsuPassword, WorkerKey, IncludeInactive, MatchBy,
+            UseUserIdAsEmailFallback, UsePreferredName, NormalizeNameCasing, DepartmentOrganizationTypeId,
+            OrgExclusions?.Select(e => new WorkdayOrgExclusionInput(e.OrganizationTypeId, e.OrganizationReference, e.DisplayName)).ToList());
 }
+
+/// <summary>API-shaped exclusion rule. Maps 1:1 to <c>WorkdayOrgExclusionInput</c> on the command layer.</summary>
+public sealed record WorkdayOrgExclusionRequest(
+    string OrganizationTypeId,
+    string OrganizationReference,
+    string? DisplayName);
 
 public sealed class CreateWorkdayConnectionRequestValidator : CustomValidator<CreateWorkdayConnectionRequest>
 {

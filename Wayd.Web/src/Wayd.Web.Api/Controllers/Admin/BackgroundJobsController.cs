@@ -11,18 +11,11 @@ namespace Wayd.Web.Api.Controllers.Admin;
 [Route("api/admin/background-jobs")]
 [ApiVersionNeutral]
 [ApiController]
-public class BackgroundJobsController : ControllerBase
+public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, IJobService jobService, ISender sender) : ControllerBase
 {
-    private readonly ILogger<BackgroundJobsController> _logger;
-    private readonly IJobService _jobService;
-    private readonly ISender _sender;
-
-    public BackgroundJobsController(ILogger<BackgroundJobsController> logger, IJobService jobService, ISender sender)
-    {
-        _logger = logger;
-        _jobService = jobService;
-        _sender = sender;
-    }
+    private readonly ILogger<BackgroundJobsController> _logger = logger;
+    private readonly IJobService _jobService = jobService;
+    private readonly ISender _sender = sender;
 
     [HttpGet("job-types")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.BackgroundJobs)]

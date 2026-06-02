@@ -6,13 +6,16 @@ public enum BackgroundJobType
 {
     // Integration Jobs
 
-    [Display(Name = "People Sync", Description = "Synchronize people (employees and contingent workers) from all active people-sync connections (Entra, future Workday).", Order = 1, GroupName = "Integration Jobs")]
-    PeopleSync = 0,
+    [Display(Name = "People Full Sync", Description = "Run a full sync across all active people-sync connections (Entra, Workday). Re-fetches every worker and reconciles inactive employees.", Order = 1, GroupName = "Integration Jobs")]
+    PeopleFullSync = 0,
 
-    [Display(Name = "Work Full Sync", Description = "Run a full sync across all active work-management connections (Azure DevOps and any future Jira/GitHub connectors).", Order = 2, GroupName = "Integration Jobs")]
+    [Display(Name = "People Differential Sync", Description = "Run a differential sync across all active people-sync connections. Connectors that don't support incremental fetches transparently fall back to Full.", Order = 2, GroupName = "Integration Jobs")]
+    PeopleDiffSync = 3,
+
+    [Display(Name = "Work Full Sync", Description = "Run a full sync across all active work-management connections (Azure DevOps and any future Jira/GitHub connectors).", Order = 3, GroupName = "Integration Jobs")]
     WorkFullSync = 1,
 
-    [Display(Name = "Work Differential Sync", Description = "Run a differential sync across all active work-management connections (only items changed since the last sync).", Order = 3, GroupName = "Integration Jobs")]
+    [Display(Name = "Work Differential Sync", Description = "Run a differential sync across all active work-management connections (only items changed since the last sync).", Order = 4, GroupName = "Integration Jobs")]
     WorkDiffSync = 2,
 
 

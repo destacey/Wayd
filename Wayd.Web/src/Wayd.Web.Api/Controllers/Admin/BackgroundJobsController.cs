@@ -52,11 +52,14 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
         // TODO: should this code be moved to the manager?
         switch (jobType)
         {
-            case BackgroundJobType.PeopleSync:
-                // Manual one-off runs default to Full — the admin clicked it from the background-jobs
-                // page, where they don't pick a sync type. The connection-scoped Run endpoint
-                // exposes the choice; recurring schedules below run Differential.
+            case BackgroundJobType.PeopleFullSync:
                 _jobService.Enqueue(() => jobManager.RunPeopleSync(SyncType.Full, SyncTriggerSource.Manual, null, cancellationToken));
+                break;
+            case BackgroundJobType.PeopleDiffSync:
+                // Connectors that don't support incremental fall back to Full inside the runner
+                // (PeopleSyncRunner.SourceSupportsIncremental gates the watermark lookup), so this
+                // is safe to expose even when the only active connection is Entra (Full-only).
+                _jobService.Enqueue(() => jobManager.RunPeopleSync(SyncType.Differential, SyncTriggerSource.Manual, null, cancellationToken));
                 break;
             case BackgroundJobType.WorkFullSync:
                 _jobService.Enqueue(() => jobManager.RunWorkSync(SyncType.Full, SyncTriggerSource.Manual, null, cancellationToken));
@@ -101,10 +104,10 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
         {
             return jobType switch
             {
-                // Recurring people-sync runs are Differential by default — first run with no prior
-                // success silently degrades to Full inside the runner, so this is safe even on a
-                // fresh deployment.
-                BackgroundJobType.PeopleSync => () => jobManager.RunPeopleSync(SyncType.Differential, SyncTriggerSource.Scheduled, null, cancellationToken),
+                BackgroundJobType.PeopleFullSync => () => jobManager.RunPeopleSync(SyncType.Full, SyncTriggerSource.Scheduled, null, cancellationToken),
+                // Connectors that don't support incremental fall back to Full inside the runner —
+                // safe to schedule even when the only active connection is Entra (Full-only).
+                BackgroundJobType.PeopleDiffSync => () => jobManager.RunPeopleSync(SyncType.Differential, SyncTriggerSource.Scheduled, null, cancellationToken),
                 BackgroundJobType.WorkFullSync => () => jobManager.RunWorkSync(SyncType.Full, SyncTriggerSource.Scheduled, null, cancellationToken),
                 BackgroundJobType.WorkDiffSync => () => jobManager.RunWorkSync(SyncType.Differential, SyncTriggerSource.Scheduled, null, cancellationToken),
                 BackgroundJobType.TeamGraphSync => () => jobManager.RunSyncTeamsWithGraphTables(cancellationToken),

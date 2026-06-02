@@ -243,6 +243,39 @@ public sealed class WorkdayStaffingClient(HttpClient httpClient, ILogger<Workday
         }
     }
 
+    /// <summary>
+    /// Classifies a non-success Workday SOAP response body as retryable or not. Workday wraps
+    /// semantic faults — bad ISU credentials, malformed requests, missing-permission errors — in
+    /// HTTP 500 bodies, which the resilience handler's default predicate would otherwise treat as
+    /// transient and retry 3× to no effect. We parse the SOAP fault and refuse retries for faults
+    /// that re-running can't fix (auth + validation). Anything we can't classify (no parseable
+    /// fault, genuine transient server error) falls through to the default transient handling.
+    /// </summary>
+    /// <returns><c>true</c> when the fault is permanent and the request should NOT be retried.</returns>
+    public static bool IsNonRetryableFault(string body)
+    {
+        var fault = TryReadFault(body);
+        if (string.IsNullOrWhiteSpace(fault)) return false;
+
+        // Auth failures: same heuristics WorkdaySoapException.IsAuthFailure uses. Re-running with
+        // the same bad credentials will never succeed.
+        if (fault.Contains("authentication", StringComparison.OrdinalIgnoreCase)
+            || fault.Contains("invalid user", StringComparison.OrdinalIgnoreCase)
+            || fault.Contains("unauthorized", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        // Validation faults: Workday rejects malformed envelopes / invalid criteria with
+        // "Validation error" / "invalid" / "is not a valid" reasons. These are deterministic —
+        // the same request will fail identically every time.
+        if (fault.Contains("validation error", StringComparison.OrdinalIgnoreCase)
+            || fault.Contains("is not a valid", StringComparison.OrdinalIgnoreCase)
+            || fault.Contains("invalid request", StringComparison.OrdinalIgnoreCase)
+            || fault.Contains("processing error", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
+    }
+
     private static int ParseIntOrDefault(string? value, int fallback) =>
         int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : fallback;
 }

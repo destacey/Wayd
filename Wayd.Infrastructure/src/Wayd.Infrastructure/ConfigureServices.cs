@@ -95,8 +95,9 @@ public static class ConfigureServices
         // re-apply the longer integration timeouts here (90s/attempt) and additionally suppress retries
         // for Workday's permanent faults. Workday wraps auth/validation faults in HTTP 500 bodies, which
         // the default transient predicate would retry 3× to no effect; IsNonRetryableFault parses the
-        // SOAP fault and short-circuits those. Reading the body in the predicate is safe — fault bodies
-        // are tiny and ReadAsStringAsync buffers, so the client's own later read still sees the content.
+        // SOAP fault and short-circuits those. Reading the body in the predicate is cheap — fault bodies
+        // are tiny and ReadAsStringAsync buffers, so the client's own later read still sees the content —
+        // and guarded, so a read failure falls back to the default classification rather than escaping.
         services.AddHttpClient<WorkdayStaffingClient>()
             .AddStandardResilienceHandler(options =>
             {
@@ -110,9 +111,24 @@ public static class ConfigureServices
                     var response = args.Outcome.Result;
                     if (response is { IsSuccessStatusCode: false } && response.Content is not null)
                     {
-                        var body = await response.Content.ReadAsStringAsync(args.Context.CancellationToken);
-                        if (WorkdayStaffingClient.IsNonRetryableFault(body))
-                            return false;
+                        try
+                        {
+                            var body = await response.Content.ReadAsStringAsync(args.Context.CancellationToken);
+                            if (WorkdayStaffingClient.IsNonRetryableFault(body))
+                                return false;
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            // Genuine cancellation (request aborted / total-timeout) — let it propagate
+                            // rather than turning it into a retry decision.
+                            throw;
+                        }
+                        catch
+                        {
+                            // Reading/classifying the body failed (I/O, disposed content). Don't let that
+                            // escape the predicate and corrupt the pipeline outcome — fall through to the
+                            // default transient classification below.
+                        }
                     }
 
                     return await defaultShouldHandle(args);

@@ -30,6 +30,10 @@ public class WorkdayFaultClassificationTests
     [InlineData("Invalid username or password. The request could not be authenticated.")]
     [InlineData("Authentication failed for the supplied credentials.")]
     [InlineData("Unauthorized: the integration system user lacks the required security group.")]
+    // Stem coverage: "authenticated" with no "user"/"unauthorized" substring must still classify —
+    // it only matches via the "authenticat" stem, not the longer "authentication".
+    [InlineData("The request could not be authenticated.")]
+    [InlineData("Unable to authenticate the integration system security group.")]
     public void IsNonRetryableFault_authFault_returnsTrue(string reason)
     {
         WorkdayStaffingClient.IsNonRetryableFault(FaultBody(reason)).Should().BeTrue();

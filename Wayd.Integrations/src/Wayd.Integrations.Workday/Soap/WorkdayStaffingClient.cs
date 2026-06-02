@@ -271,8 +271,10 @@ public sealed class WorkdayStaffingClient(HttpClient httpClient, ILogger<Workday
         if (string.IsNullOrWhiteSpace(fault)) return false;
 
         // Auth failures: same heuristics WorkdaySoapException.IsAuthFailure uses. Re-running with
-        // the same bad credentials will never succeed.
-        if (fault.Contains("authentication", StringComparison.OrdinalIgnoreCase)
+        // the same bad credentials will never succeed. Match on the "authenticat" stem so all of
+        // authenticate / authenticated / authentication classify the same (Workday phrases these
+        // inconsistently, e.g. "could not be authenticated").
+        if (fault.Contains("authenticat", StringComparison.OrdinalIgnoreCase)
             || fault.Contains("invalid user", StringComparison.OrdinalIgnoreCase)
             || fault.Contains("unauthorized", StringComparison.OrdinalIgnoreCase))
             return true;

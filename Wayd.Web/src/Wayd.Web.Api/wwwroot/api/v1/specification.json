@@ -17290,6 +17290,93 @@
         ]
       }
     },
+    "/api/organization/employees/{id}/work-items": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Get the work items assigned to an employee.",
+        "operationId": "Employees_GetEmployeeWorkItems",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "statusCategories",
+            "in": "query",
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "array",
+              "nullable": true,
+              "items": {
+                "$ref": "#/components/schemas/WorkStatusCategory"
+              }
+            },
+            "x-position": 2
+          },
+          {
+            "name": "doneFrom",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "doneTo",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "nullable": true
+            },
+            "x-position": 4
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkItemListDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/organization/team-member-roles": {
       "get": {
         "tags": [
@@ -33311,6 +33398,22 @@
           }
         }
       },
+      "WorkStatusCategory": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Proposed",
+          "Active",
+          "Done",
+          "Removed"
+        ],
+        "enum": [
+          "Proposed",
+          "Active",
+          "Done",
+          "Removed"
+        ]
+      },
       "TeamMemberRoleDto": {
         "type": "object",
         "additionalProperties": false,
@@ -33865,22 +33968,6 @@
             }
           }
         }
-      },
-      "WorkStatusCategory": {
-        "type": "string",
-        "description": "",
-        "x-enumNames": [
-          "Proposed",
-          "Active",
-          "Done",
-          "Removed"
-        ],
-        "enum": [
-          "Proposed",
-          "Active",
-          "Done",
-          "Removed"
-        ]
       },
       "DependencyDto": {
         "type": "object",

@@ -83,6 +83,19 @@ public sealed class WorkdayStaffingClient(HttpClient httpClient, ILogger<Workday
                     new XElement(Wd + "Updated_Through", now.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture)))));
         }
 
+        // Response_Group controls how much Workday serializes per worker — the dominant driver of
+        // Get_Workers response time on large tenants. We request the four data areas the projector
+        // reads (reference, personal, employment, organizations) plus the management chain (the only
+        // place the direct-manager link lives).
+        //
+        // NOTE: org-data is the expensive area (Include_Organizations returns every org a worker is in
+        // plus full parent hierarchies). Workday offers Exclude_* sub-flags to trim it, but we can't
+        // blanket-apply them: the connector's Department source and exclusion rules both match on an
+        // admin-chosen Organization_Type_ID, and that catalog includes BOTH base org types AND
+        // hierarchy types — so any sub-category (including a *_Hierarchy) may be the exact data a
+        // tenant's config depends on. Excluding it would silently null departments / disable
+        // exclusions. Safe trimming has to be computed from the connection's config (only exclude
+        // sub-categories provably unused by this connector), which is a follow-up.
         var responseGroup = new XElement(Wd + "Response_Group",
             new XElement(Wd + "Include_Reference", "1"),
             new XElement(Wd + "Include_Personal_Information", "1"),

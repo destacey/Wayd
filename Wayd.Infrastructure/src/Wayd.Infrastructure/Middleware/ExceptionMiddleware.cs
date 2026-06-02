@@ -19,6 +19,16 @@ public sealed class ExceptionMiddleware(IProblemDetailsService problemDetailsSer
         {
             await next(httpContext);
         }
+        catch (Exception ex) when (IsClientDisconnect(ex, httpContext))
+        {
+            // The client gave up mid-request: it either sent a truncated body (BadHttpRequestException,
+            // "Unexpected end of request content") or cancelled an in-flight request (RequestAborted).
+            // This is not a server fault — most commonly it's the Hangfire dashboard's stats poller or
+            // a browser navigating away. Log it quietly and don't try to write a response: the socket is
+            // already gone, so a write would throw a second, more confusing exception.
+            Log.Debug(ex, "Request aborted by the client before completion ({Method} {Path}).",
+                httpContext.Request.Method, httpContext.Request.Path);
+        }
         catch (Exception ex)
         {
             using (LogContext.PushProperty("CorrelationId", httpContext.TraceIdentifier))
@@ -66,6 +76,26 @@ public sealed class ExceptionMiddleware(IProblemDetailsService problemDetailsSer
                 });
             }
         }
+    }
+
+    /// <summary>
+    /// True when the exception represents the client abandoning the request rather than a server
+    /// fault: a truncated/malformed request body (<see cref="BadHttpRequestException"/>) or a
+    /// cancellation that lines up with <see cref="HttpContext.RequestAborted"/> firing. These should
+    /// be logged quietly and never produce an error response — the connection is already gone.
+    /// </summary>
+    private static bool IsClientDisconnect(Exception exception, HttpContext httpContext)
+    {
+        // Kestrel surfaces a truncated/aborted request body as BadHttpRequestException (a client 400).
+        if (exception is BadHttpRequestException)
+            return true;
+
+        // A cancellation that coincides with the request being aborted is the client hanging up, not
+        // an internal timeout — distinguish on RequestAborted so we don't swallow genuine cancellations.
+        if (exception is OperationCanceledException && httpContext.RequestAborted.IsCancellationRequested)
+            return true;
+
+        return false;
     }
 
     public static int GetStatusCodeFromException(Exception exception)

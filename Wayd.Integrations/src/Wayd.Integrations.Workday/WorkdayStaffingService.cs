@@ -1,6 +1,6 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics;
+using System.Globalization;
 using System.Xml.Linq;
-using System.Xml.XPath;
 using CSharpFunctionalExtensions;
 using Microsoft.Extensions.Logging;
 using NodaTime;
@@ -19,9 +19,11 @@ namespace Wayd.Integrations.Workday;
 /// </summary>
 public sealed class WorkdayStaffingService(WorkdayStaffingClient client, ILogger<WorkdayStaffingService> logger) : IWorkdayEmployeeSource
 {
-    // 100 is the Workday-recommended max per page for Get_Workers; bumping further trades latency
-    // for throughput and tends to bump up against per-call timeouts on large tenants.
-    private const int SyncPageSize = 100;
+    // Workday caps Get_Workers Count at 999/page, but per-call latency scales with page size because
+    // Workday hydrates each worker server-side (the dominant cost). 200 keeps each call well under the
+    // 90s per-attempt resilience timeout (set in Infrastructure ConfigureServices) and pages small
+    // enough to overlap cleanly if/when pagination is parallelized.
+    private const int SyncPageSize = 200;
 
     private readonly WorkdayStaffingClient _client = client;
     private readonly ILogger<WorkdayStaffingService> _logger = logger;
@@ -44,18 +46,31 @@ public sealed class WorkdayStaffingService(WorkdayStaffingClient client, ILogger
             var page = 1;
             int totalPages;
 
+            // Phase timing: separate the Workday round-trip (network + Workday-side response assembly)
+            // from local projection (XPath reads + value-object construction). The bulk-sync wall clock
+            // is one or the other; logging the split tells us which to invest in rather than guessing.
+            // Stopwatch.GetTimestamp/GetElapsedTime times without allocating a Stopwatch instance and
+            // keeps sub-millisecond precision — matches the PerformanceBehavior convention.
+            double fetchMs = 0;
+            double projectMs = 0;
+
             do
             {
                 cancellationToken.ThrowIfCancellationRequested();
+
+                var fetchStart = Stopwatch.GetTimestamp();
                 var response = await _client.GetWorkers(context, page, SyncPageSize, cancellationToken);
+                var pageFetchMs = Stopwatch.GetElapsedTime(fetchStart).TotalMilliseconds;
+                fetchMs += pageFetchMs;
                 totalPages = response.TotalPages;
 
+                var projectStart = Stopwatch.GetTimestamp();
                 foreach (var worker in response.Workers)
                 {
                     // Drop workers in any excluded org before projection — projection runs name
                     // normalization, date parsing, etc., and there's no point doing that work for
                     // workers we're about to discard.
-                    var matchedExclusion = FindMatchingExclusion(worker, exclusionCounts.Keys);
+                    var matchedExclusion = FindMatchingExclusion(worker, exclusionCounts);
                     if (matchedExclusion is not null)
                     {
                         exclusionCounts[matchedExclusion].Count++;
@@ -66,13 +81,25 @@ public sealed class WorkdayStaffingService(WorkdayStaffingClient client, ILogger
                     if (projected is not null)
                         employees.Add(projected);
                 }
+                var pageProjectMs = Stopwatch.GetElapsedTime(projectStart).TotalMilliseconds;
+                projectMs += pageProjectMs;
 
-                _logger.LogInformation(
-                    "Workday Get_Workers page {Page}/{TotalPages} returned {Count} workers ({ProjectedCount} after projection, {ExcludedCount} excluded by rules).",
-                    page, totalPages, response.Workers.Count, employees.Count, exclusionCounts.Values.Sum(v => v.Count));
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug(
+                        "Workday Get_Workers page {Page}/{TotalPages} returned {Count} workers ({ProjectedCount} after projection, {ExcludedCount} excluded by rules) — fetch {FetchMs:F0}ms, project {ProjectMs:F1}ms.",
+                        page, totalPages, response.Workers.Count, employees.Count, exclusionCounts.Values.Sum(v => v.Count), pageFetchMs, pageProjectMs);
+                }
 
                 page++;
             } while (page <= totalPages);
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug(
+                    "Workday Get_Workers complete: {Projected} workers projected across {Pages} page(s) — total fetch {FetchMs:F0}ms, total project {ProjectMs:F1}ms.",
+                    employees.Count, totalPages, fetchMs, projectMs);
+            }
 
             EmitNullRateWarnings(employees);
 
@@ -98,32 +125,28 @@ public sealed class WorkdayStaffingService(WorkdayStaffingClient client, ILogger
         }
     }
 
+    // The worker's org-reference WIDs. Constant across the run, so it's compiled once and cached by
+    // WorkerFieldReader rather than recompiled per worker.
+    private const string OrgReferenceWidXPath =
+        "wd:Worker_Data/wd:Organization_Data/wd:Worker_Organization_Data/wd:Organization_Reference/wd:ID[@wd:type='WID']";
+
     /// <summary>
-    /// Returns the first excluded org-reference WID found on the worker, or null when none of the
-    /// configured exclusions match. We use an OrdinalIgnoreCase hash lookup on the worker's
-    /// Worker_Organization_Data WIDs so the cost is O(orgs-per-worker) per worker rather than
-    /// O(rules × orgs-per-worker). Workday emits WIDs in a single canonical case but matching
-    /// case-insensitively is defensive against tenant exports / copy-paste.
+    /// Returns the WID of the first excluded org the worker belongs to, or null when none of the
+    /// configured exclusions match. Both sides are case-insensitive: the worker's WIDs come from a
+    /// cached compiled XPath, and the exclusion check is an O(1) probe against the
+    /// OrdinalIgnoreCase-keyed accumulator dictionary — so the cost is O(orgs-per-worker), not
+    /// O(rules × orgs-per-worker). The returned WID is a valid lookup key for the caller's indexer
+    /// precisely because that dictionary ignores case. Workday emits WIDs in a single canonical case
+    /// but matching case-insensitively is defensive against tenant exports / copy-paste.
     /// </summary>
-    private static string? FindMatchingExclusion(XElement worker, ICollection<string> excludedReferences)
+    private static string? FindMatchingExclusion(XElement worker, Dictionary<string, ExclusionAccumulator> exclusions)
     {
-        if (excludedReferences.Count == 0) return null;
+        if (exclusions.Count == 0) return null;
 
-        var orgRefs = worker.XPathSelectElements(
-            "wd:Worker_Data/wd:Organization_Data/wd:Worker_Organization_Data/wd:Organization_Reference/wd:ID[@wd:type='WID']",
-            WorkdayNamespaceResolver.Instance);
-
-        foreach (var refEl in orgRefs)
+        foreach (var wid in WorkerFieldReader.SelectValues(worker, OrgReferenceWidXPath))
         {
-            var value = refEl?.Value?.Trim();
-            if (string.IsNullOrEmpty(value)) continue;
-
-            // Return the exact key that's in the dictionary so the caller indexes correctly.
-            foreach (var key in excludedReferences)
-            {
-                if (string.Equals(key, value, StringComparison.OrdinalIgnoreCase))
-                    return key;
-            }
+            if (exclusions.ContainsKey(wid))
+                return wid;
         }
         return null;
     }

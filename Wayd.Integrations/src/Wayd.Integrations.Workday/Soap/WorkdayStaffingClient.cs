@@ -83,6 +83,19 @@ public sealed class WorkdayStaffingClient(HttpClient httpClient, ILogger<Workday
                     new XElement(Wd + "Updated_Through", now.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture)))));
         }
 
+        // Response_Group controls how much Workday serializes per worker — the dominant driver of
+        // Get_Workers response time on large tenants. We request the four data areas the projector
+        // reads (reference, personal, employment, organizations) plus the management chain (the only
+        // place the direct-manager link lives).
+        //
+        // NOTE: org-data is the expensive area (Include_Organizations returns every org a worker is in
+        // plus full parent hierarchies). Workday offers Exclude_* sub-flags to trim it, but we can't
+        // blanket-apply them: the connector's Department source and exclusion rules both match on an
+        // admin-chosen Organization_Type_ID, and that catalog includes BOTH base org types AND
+        // hierarchy types — so any sub-category (including a *_Hierarchy) may be the exact data a
+        // tenant's config depends on. Excluding it would silently null departments / disable
+        // exclusions. Safe trimming has to be computed from the connection's config (only exclude
+        // sub-categories provably unused by this connector), which is a follow-up.
         var responseGroup = new XElement(Wd + "Response_Group",
             new XElement(Wd + "Include_Reference", "1"),
             new XElement(Wd + "Include_Personal_Information", "1"),
@@ -241,6 +254,41 @@ public sealed class WorkdayStaffingClient(HttpClient httpClient, ILogger<Workday
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Classifies a non-success Workday SOAP response body as retryable or not. Workday wraps
+    /// semantic faults — bad ISU credentials, malformed requests, missing-permission errors — in
+    /// HTTP 500 bodies, which the resilience handler's default predicate would otherwise treat as
+    /// transient and retry 3× to no effect. We parse the SOAP fault and refuse retries for faults
+    /// that re-running can't fix (auth + validation). Anything we can't classify (no parseable
+    /// fault, genuine transient server error) falls through to the default transient handling.
+    /// </summary>
+    /// <returns><c>true</c> when the fault is permanent and the request should NOT be retried.</returns>
+    public static bool IsNonRetryableFault(string body)
+    {
+        var fault = TryReadFault(body);
+        if (string.IsNullOrWhiteSpace(fault)) return false;
+
+        // Auth failures: same heuristics WorkdaySoapException.IsAuthFailure uses. Re-running with
+        // the same bad credentials will never succeed. Match on the "authenticat" stem so all of
+        // authenticate / authenticated / authentication classify the same (Workday phrases these
+        // inconsistently, e.g. "could not be authenticated").
+        if (fault.Contains("authenticat", StringComparison.OrdinalIgnoreCase)
+            || fault.Contains("invalid user", StringComparison.OrdinalIgnoreCase)
+            || fault.Contains("unauthorized", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        // Validation faults: Workday rejects malformed envelopes / invalid criteria with
+        // "Validation error" / "invalid" / "is not a valid" reasons. These are deterministic —
+        // the same request will fail identically every time.
+        if (fault.Contains("validation error", StringComparison.OrdinalIgnoreCase)
+            || fault.Contains("is not a valid", StringComparison.OrdinalIgnoreCase)
+            || fault.Contains("invalid request", StringComparison.OrdinalIgnoreCase)
+            || fault.Contains("processing error", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
     }
 
     private static int ParseIntOrDefault(string? value, int fallback) =>

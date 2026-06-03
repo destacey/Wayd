@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics;
+using System.Text.Json;
 using MediatR;
 using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.AppIntegration.Domain.Interfaces;
@@ -136,11 +137,19 @@ public sealed class PeopleSyncRunner(
 
         var details = new PeopleSyncDetail();
 
+        // Per-stage wall-clock timing. The connection run spans four sequential stages (fetch →
+        // upsert → user-link → user-sync); any of them could dominate the total. Timing each one
+        // tells us where to invest rather than optimizing the wrong stage on a hunch.
+        var stageTimer = Stopwatch.StartNew();
+        long fetchMs = 0, upsertMs = 0, userLinkMs = 0, userSyncMs = 0;
+
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
 
+            stageTimer.Restart();
             var fetchResult = await FetchEmployees(connectionId, connector, lastSuccessfulRunAt, cancellationToken);
+            fetchMs = stageTimer.ElapsedMilliseconds;
             if (fetchResult.IsFailure)
             {
                 details.Errors.Add(fetchResult.Error);
@@ -187,9 +196,11 @@ public sealed class PeopleSyncRunner(
 
             var matchBy = await ResolveMatchProperty(connectionId, connector, cancellationToken);
 
+            stageTimer.Restart();
             var upsertResult = await _sender.Send(
                 new BulkUpsertEmployeesCommand(employees, matchBy: matchBy, deactivateMissing: !incremental),
                 cancellationToken);
+            upsertMs = stageTimer.ElapsedMilliseconds;
             if (upsertResult.IsFailure)
             {
                 details.Errors.Add($"BulkUpsertEmployees failed: {upsertResult.Error}");
@@ -199,18 +210,29 @@ public sealed class PeopleSyncRunner(
             }
             details.EmployeesUpserted = employees.Count;
 
+            stageTimer.Restart();
             var userLinkResult = await _userService.UpdateMissingEmployeeIds(cancellationToken);
+            userLinkMs = stageTimer.ElapsedMilliseconds;
             if (userLinkResult.IsFailure)
             {
                 details.Errors.Add($"UpdateMissingEmployeeIds failed: {userLinkResult.Error}");
                 run.RecordError();
             }
 
+            stageTimer.Restart();
             var userUpdateResult = await _userService.SyncUsersFromEmployeeRecords(employees, cancellationToken);
+            userSyncMs = stageTimer.ElapsedMilliseconds;
             if (userUpdateResult.IsFailure)
             {
                 details.Errors.Add($"SyncUsersFromEmployeeRecords failed: {userUpdateResult.Error}");
                 run.RecordError();
+            }
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug(
+                    "People sync stages for connection {ConnectionId} ({EmployeeCount} employees): fetch {FetchMs}ms, upsert {UpsertMs}ms, user-link {UserLinkMs}ms, user-sync {UserSyncMs}ms.",
+                    connectionId, employees.Count, fetchMs, upsertMs, userLinkMs, userSyncMs);
             }
 
             run.MarkSucceeded(_clock.Now);

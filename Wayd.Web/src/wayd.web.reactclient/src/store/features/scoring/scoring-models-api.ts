@@ -43,6 +43,10 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
         }
       },
       providesTags: (result, error, arg) => [
+        // Tag by the model's GUID id (what mutations invalidate by), plus the original arg so a
+        // caller fetching by either id or key still matches. The detail page fetches by key, while
+        // update/activate/archive invalidate by id — without the id tag those would never refetch.
+        ...(result ? [{ type: QueryTags.ScoringModel, id: result.id }] : []),
         { type: QueryTags.ScoringModel, id: arg },
       ],
     }),

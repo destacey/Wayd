@@ -30,6 +30,10 @@ const ChangeScoringModelStateForm = ({
 }: ChangeScoringModelStateFormProps) => {
   const messageApi = useMessage()
 
+  // `${stateAction}ing` would produce "Archiveing"; map to the correct gerund instead.
+  const gerund =
+    stateAction === ScoringModelStateAction.Activate ? 'activating' : 'archiving'
+
   const [activateScoringModelMutation] = useActivateScoringModelMutation()
   const [archiveScoringModelMutation] = useArchiveScoringModelMutation()
 
@@ -55,10 +59,6 @@ const ChangeScoringModelStateForm = ({
         return true
       } catch (error) {
         const apiError: ApiError = isApiError(error) ? error : {}
-        const gerund =
-          stateAction === ScoringModelStateAction.Activate
-            ? 'activating'
-            : 'archiving'
         messageApi.error(
           apiError.detail ??
             `An unexpected error occurred while ${gerund} the scoring model.`,
@@ -69,7 +69,7 @@ const ChangeScoringModelStateForm = ({
     },
     onComplete: onFormComplete,
     onCancel: onFormCancel,
-    errorMessage: `An unexpected error occurred while ${stateAction}ing the scoring model.`,
+    errorMessage: `An unexpected error occurred while ${gerund} the scoring model.`,
     permission: 'Permissions.ScoringModels.Update',
   })
 

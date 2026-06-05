@@ -79,6 +79,38 @@ public static class ScoringModelFakerExtensions
         return model;
     }
 
+    // The canonical WSJF fixture: an "Impact" scale, the four WSJF criteria rated on it, an intermediate
+    // Cost of Delay output, and the primary WSJF output. The conventional worked example for this domain.
+    private static readonly (string Name, (string Label, decimal Value)[] Levels)[] WsjfScales =
+        [("Impact", [("High", 8m), ("Medium", 5m), ("Low", 1m)])];
+
+    private static readonly (string Name, string Token, decimal? Weight, string? ScaleName)[] WsjfCriteria =
+    [
+        ("Business Value", "BV", null, "Impact"),
+        ("Time Criticality", "TC", null, "Impact"),
+        ("Risk Reduction", "RR", null, "Impact"),
+        ("Job Size", "JS", null, "Impact")
+    ];
+
+    private static readonly (string Name, string Token, string Formula, bool IsPrimary)[] WsjfOutputs =
+    [
+        ("Cost of Delay", "CoD", "BV + TC + RR", false),
+        ("WSJF", "WSJF", "CoD / JS", true)
+    ];
+
+    /// <summary>
+    /// Generates a complete, valid WSJF model in the Proposed state — scale, four criteria, and the
+    /// CoD/WSJF output chain — so tests that just need "a realistic model" don't repeat the fixture.
+    /// </summary>
+    public static ScoringModel AsProposedWsjf(this ScoringModelFaker faker)
+        => faker.AsProposedWith(WsjfScales, WsjfCriteria, WsjfOutputs);
+
+    /// <summary>
+    /// Generates the same WSJF model as <see cref="AsProposedWsjf"/>, activated.
+    /// </summary>
+    public static ScoringModel AsActiveWsjf(this ScoringModelFaker faker)
+        => faker.AsActiveWith(WsjfScales, WsjfCriteria, WsjfOutputs);
+
     /// <summary>
     /// Adds scales (and their levels) to an existing model using the model's own methods.
     /// </summary>

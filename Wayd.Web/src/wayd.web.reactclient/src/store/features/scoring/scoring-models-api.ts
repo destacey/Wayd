@@ -3,8 +3,10 @@ import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import {
   CreateScoringModelRequest,
+  EvaluateScoringModelRequest,
   ScoringModelCriterionRequest,
   ScoringModelDetailsDto,
+  ScoringModelEvaluationDto,
   ScoringModelListDto,
   ScoringModelOutputRequest,
   ScoringModelState,
@@ -416,6 +418,23 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [{ type: QueryTags.ScoringModel }],
     }),
+    evaluateScoringModel: builder.mutation<
+      ScoringModelEvaluationDto,
+      { scoringModelId: string } & EvaluateScoringModelRequest
+    >({
+      queryFn: async ({ scoringModelId, ...request }) => {
+        try {
+          const data = await getScoringModelsClient().evaluate(
+            scoringModelId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+    }),
   }),
 })
 
@@ -443,4 +462,5 @@ export const {
   useUpdateScoringModelOutputMutation,
   useRemoveScoringModelOutputMutation,
   useReorderScoringModelOutputsMutation,
+  useEvaluateScoringModelMutation,
 } = scoringModelsApi

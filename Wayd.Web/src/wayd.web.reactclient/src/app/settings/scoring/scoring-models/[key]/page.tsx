@@ -20,6 +20,7 @@ import ChangeScoringModelStateForm, {
 import ScoringModelCriteriaList from '../_components/scoring-model-criteria-list'
 import ScoringScalesList from '../_components/scoring-scales-list'
 import ScoringModelOutputsList from '../_components/scoring-model-outputs-list'
+import ScoringModelTestPanel from '../_components/scoring-model-test-panel'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 import { isApiError } from '@/src/utils'
 
@@ -28,6 +29,7 @@ enum ScoringModelTabs {
   Criteria = 'criteria',
   RatingScale = 'rating-scale',
   Outputs = 'outputs',
+  Test = 'test',
 }
 
 const tabs = [
@@ -46,6 +48,10 @@ const tabs = [
   {
     key: ScoringModelTabs.Outputs,
     tab: 'Outputs',
+  },
+  {
+    key: ScoringModelTabs.Test,
+    tab: 'Test',
   },
 ]
 
@@ -118,6 +124,8 @@ const ScoringModelDetailsPage = (props: {
             loadData={refetch}
           />
         )
+      case ScoringModelTabs.Test:
+        return <ScoringModelTestPanel scoringModel={scoringModelData!} />
       default:
         return null
     }

@@ -113,6 +113,21 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPost("{id}/evaluate")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.ScoringModels)]
+    [OpenApiOperation("Evaluate (test) a scoring model against supplied criterion values.", "")]
+    [ProducesResponseType(typeof(ScoringModelEvaluationDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<ScoringModelEvaluationDto>> Evaluate(Guid id, [FromBody] EvaluateScoringModelRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(request.ToQuery(id), cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     #region Criteria
 
     [HttpPost("{id}/criteria")]

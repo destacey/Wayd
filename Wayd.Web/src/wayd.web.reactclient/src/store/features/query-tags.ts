@@ -100,6 +100,7 @@ export enum QueryTags {
   TaskPriorityOptions = 'Ppm.Project.Task.PriorityOptions',
   TaskTypeOptions = 'Ppm.Project.Task.TypeOptions',
   ProjectLifecycle = 'Ppm.ProjectLifecycle',
+  ScoringModel = 'Ppm.ScoringModel',
   ProjectPlanTree = 'Ppm.Project.PlanTree',
   StrategicInitiative = 'Ppm.StrategicInitiative',
   StrategicInitiativeKpi = 'Ppm.StrategicInitiativeKpi',

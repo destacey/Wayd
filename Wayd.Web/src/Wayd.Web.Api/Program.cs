@@ -86,8 +86,14 @@ try
 
     var app = builder.Build();
 
-    await app.Services.InitializeDatabases();
-    await app.Services.RunBootstrapCheck();
+    // Skip startup-only database work when the EF Core tooling builds the host
+    // (migrations add/remove/update). Otherwise the tooling would re-apply
+    // pending migrations on boot, fighting the very command being run.
+    if (!Microsoft.EntityFrameworkCore.EF.IsDesignTime)
+    {
+        await app.Services.InitializeDatabases();
+        await app.Services.RunBootstrapCheck();
+    }
 
     app.UseInfrastructure(builder.Configuration);
     app.MapDefaultEndpoints();

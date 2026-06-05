@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Identity;
+using Wayd.Common.Domain.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 using Wayd.Tests.Shared.Infrastructure;
@@ -28,6 +29,7 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
     private readonly List<StrategicInitiative> _strategicInitiatives = [];
     private readonly List<ProjectLifecycle> _projectLifecycles = [];
     private readonly List<ProjectPhase> _projectPhases = [];
+    private readonly List<ScoringModel> _scoringModels = [];
 
     // Common domain entities
     private readonly List<Employee> _employees = [];
@@ -49,6 +51,7 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
     public DbSet<StrategicInitiative> StrategicInitiatives => _strategicInitiatives.AsDbSet();
     public DbSet<ProjectLifecycle> ProjectLifecycles => _projectLifecycles.AsDbSet();
     public DbSet<ProjectPhase> ProjectPhases => _projectPhases.AsDbSet();
+    public DbSet<ScoringModel> ScoringModels => _scoringModels.AsDbSet();
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();
     public DbSet<OidcProvider> OidcProviders => _oidcProviders.AsDbSet();
@@ -138,6 +141,10 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
     public void AddProjectPhase(ProjectPhase phase) => _projectPhases.Add(phase);
     public void AddProjectPhases(IEnumerable<ProjectPhase> phases) => _projectPhases.AddRange(phases);
 
+    // ScoringModel
+    public void AddScoringModel(ScoringModel model) => _scoringModels.Add(model);
+    public void AddScoringModels(IEnumerable<ScoringModel> models) => _scoringModels.AddRange(models);
+
     // Employee
     public void AddEmployee(Employee employee) => _employees.Add(employee);
     public void AddEmployees(IEnumerable<Employee> employees) => _employees.AddRange(employees);
@@ -160,6 +167,7 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
         _strategicInitiatives.Clear();
         _projectLifecycles.Clear();
         _projectPhases.Clear();
+        _scoringModels.Clear();
         _employees.Clear();
         _externalEmployeeBlacklistItems.Clear();
         _personalAccessTokens.Clear();

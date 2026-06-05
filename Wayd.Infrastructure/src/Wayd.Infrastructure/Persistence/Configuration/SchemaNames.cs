@@ -3,6 +3,7 @@
 // These values are also used in the audit trails
 internal static class SchemaNames
 {
+    public static string App = "App";
     public static string AppIntegration = "AppIntegrations";
     public static string Auditing = "Auditing";
     public static string FeatureManagement = "FeatureManagement";

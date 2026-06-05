@@ -759,6 +759,236 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("IterationExternalMetadata", "Planning");
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.Scoring.ScoringModel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Key");
+
+                    b.HasIndex("State");
+
+                    b.ToTable("ScoringModels", "App");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Scoring.ScoringModelCriterion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("ScaleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ScoringModelId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<decimal?>("Weight")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScaleId");
+
+                    b.HasIndex("ScoringModelId");
+
+                    b.ToTable("ScoringModelCriteria", "App");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Scoring.ScoringModelOutput", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Formula")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ScoringModelId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScoringModelId");
+
+                    b.ToTable("ScoringModelOutputs", "App");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Scoring.ScoringRatingLevel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ScoringScaleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal>("Value")
+                        .HasColumnType("decimal(9,4)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScoringScaleId");
+
+                    b.ToTable("ScoringRatingLevels", "App");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Scoring.ScoringScale", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ScoringModelId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScoringModelId");
+
+                    b.ToTable("ScoringScales", "App");
+                });
+
             modelBuilder.Entity("Wayd.Infrastructure.Auditing.Trail", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4966,6 +5196,47 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.Scoring.ScoringModelCriterion", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Scoring.ScoringScale", null)
+                        .WithMany()
+                        .HasForeignKey("ScaleId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Wayd.Common.Domain.Scoring.ScoringModel", null)
+                        .WithMany("Criteria")
+                        .HasForeignKey("ScoringModelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Scoring.ScoringModelOutput", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Scoring.ScoringModel", null)
+                        .WithMany("Outputs")
+                        .HasForeignKey("ScoringModelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Scoring.ScoringRatingLevel", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Scoring.ScoringScale", null)
+                        .WithMany("Levels")
+                        .HasForeignKey("ScoringScaleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Scoring.ScoringScale", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Scoring.ScoringModel", null)
+                        .WithMany("Scales")
+                        .HasForeignKey("ScoringModelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Wayd.Infrastructure.Identity.ApplicationRoleClaim", b =>
                 {
                     b.HasOne("Wayd.Infrastructure.Identity.ApplicationRole", null)
@@ -6150,6 +6421,20 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             modelBuilder.Entity("Wayd.Common.Domain.Employees.Employee", b =>
                 {
                     b.Navigation("DirectReports");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Scoring.ScoringModel", b =>
+                {
+                    b.Navigation("Criteria");
+
+                    b.Navigation("Outputs");
+
+                    b.Navigation("Scales");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Scoring.ScoringScale", b =>
+                {
+                    b.Navigation("Levels");
                 });
 
             modelBuilder.Entity("Wayd.Infrastructure.Identity.ApplicationRole", b =>

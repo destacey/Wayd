@@ -1,0 +1,106 @@
+---
+title: Scoring Models
+description: Define formula-driven scoring models to rate and rank work consistently across Wayd.
+sidebar_position: 2
+audience: [user, agent]
+---
+
+# Scoring Models
+
+A **scoring model** defines how items are scored and ranked — for example, prioritizing a backlog by [WSJF](#worked-example-wsjf) (Weighted Shortest Job First). Each model is a set of **rated criteria** combined by one or more **output formulas**, with one formula designated as the primary **score**.
+
+Scoring models are managed under **Settings → Scoring → Scoring Models** and require the `Permissions.ScoringModels.*` permissions to view and manage.
+
+## How a model is built
+
+A scoring model is assembled from four kinds of building blocks, each on its own tab of the model detail page.
+
+### Criteria
+
+**Criteria** are the inputs a person rates. Each criterion has:
+
+- **Name** — what is being assessed (e.g. *Business Value*).
+- **Token** — a short symbol (e.g. `BV`) used to reference the criterion in formulas. Tokens must be unique within the model.
+- **Description** — optional guidance for whoever does the rating.
+- **Rating scale** — *optional*. When a criterion references a [scale](#rating-scales), raters pick from that scale's defined levels. With no scale, the criterion accepts free numeric entry.
+- **Weight** — *optional*. A weight can be recorded for reference and is used by the [Weighted Sum helper](#the-weighted-sum-helper), but it is **not authoritative**: the formulas are the single source of truth for how the score is calculated.
+
+### Rating scales
+
+**Rating scales** standardize qualitative judgments into numbers. A model owns any number of named scales, and each scale holds an ordered list of **levels**, where each level pairs a **Label** with a numeric **Value**.
+
+For example, a "Relative (Fibonacci)" scale might define the levels `1, 2, 3, 5, 8, 13, 20`, while an "Impact" scale might map `Very High = 5` down to `Very Low = 1`. Assigning the same scale to several criteria keeps their inputs comparable.
+
+Scales are reusable across criteria and optional per criterion — use them where standardizing input matters, and leave a criterion scale-free where a raw number is more natural (e.g. *Job Size* in raw points).
+
+### Outputs (formulas)
+
+**Outputs** are the named formulas that turn rated inputs into results. Each output has:
+
+- **Name** — a human-readable label (e.g. *Cost of Delay*).
+- **Token** — referenced by later formulas (e.g. `CoD`).
+- **Formula** — an arithmetic expression over criterion tokens and **earlier** output tokens.
+- **Is Primary** — exactly one output is the primary one; its value is *the* score for the model.
+
+Outputs are evaluated **in order**, so a later formula can build on an earlier one. This lets you express multi-step models — for example, summing several criteria into an intermediate value and then dividing by another criterion.
+
+Formulas support standard arithmetic (`+`, `-`, `*`, `/`, parentheses) over decimal values. A formula that divides by zero, references an unknown token, or is otherwise malformed produces an error rather than a score.
+
+### The Weighted Sum helper
+
+"Weighted sum" is **not** a separate model type — it is a convenience for getting started. The helper generates a single primary output whose formula is the **normalized** weighted sum of your criteria, using the weights you entered:
+
+```
+(BV*w1 + TC*w2 + ...) / (w1 + w2 + ...)
+```
+
+Because the formula divides by the actual sum of the weights, the weights only need to be *relative* — weights of `30 / 30 / 40` rank identically to `3 / 3 / 4`. The UI shows a running **Total: X%** for guidance but never blocks you on it. After generating the formula you can edit it freely like any other output.
+
+## Worked example: WSJF
+
+Wayd seeds a starter **WSJF** model (in the Proposed state) on first run when no scoring models exist yet. It illustrates the building blocks working together:
+
+- **Scale:** *Relative (Fibonacci)* — `1, 2, 3, 5, 8, 13, 20`.
+- **Criteria** (all rated on the Fibonacci scale):
+  - Business Value (`BV`)
+  - Time Criticality (`TC`)
+  - Risk Reduction / Opportunity Enablement (`RR`)
+  - Job Size (`JS`)
+- **Outputs:**
+  - *Cost of Delay* (`CoD`) = `BV + TC + RR` — a secondary output.
+  - *WSJF* (`WSJF`) = `CoD / JS` — the **primary** score.
+
+Because `WSJF` references `CoD`, the *Cost of Delay* output must be ordered before it. The highest WSJF score is the most economically valuable item to deliver next.
+
+## Testing a model
+
+The **Test** tab lets you preview the output formulas against sample inputs **without saving anything** — useful for sanity-checking a model before activating it, or for understanding how a change to a formula affects the score.
+
+1. Open a scoring model and select the **Test** tab.
+2. Enter a value for each criterion. Criteria with a rating scale offer a dropdown of that scale's levels; criteria without one accept a raw number.
+3. Once every criterion has a value, click **Calculate**.
+4. The results show **every** output value (not just the primary), with the primary output tagged as the **Score**.
+
+Editing any input clears the previously shown result, so the displayed numbers always reflect the current inputs. The test panel never persists data — it is purely a preview.
+
+:::note
+Testing requires only the View permission. You can preview a model in any state, including a published one, without affecting any real scores.
+:::
+
+## Model states
+
+A scoring model moves through a simple lifecycle:
+
+| State | Editable? | Meaning |
+|-------|-----------|---------|
+| **Proposed** | Yes | Being designed. Criteria, scales, and outputs can be added, edited, reordered, and removed. |
+| **Active** | No | Published and locked. The definition is frozen so that scores and rankings stay stable. |
+| **Archived** | No | Retired from use. |
+
+**State actions** are available from the **Actions** menu on the model detail page:
+
+- **Activate** — move a Proposed model to Active. Once active, the model is locked: its criteria, scales, and outputs can no longer be changed (this protects the stability of any rankings built on it).
+- **Archive** — retire an Active model.
+- **Delete** — only available while a model is Proposed.
+
+Because activation freezes the definition, use the [Test tab](#testing-a-model) to validate the model thoroughly while it is still Proposed.

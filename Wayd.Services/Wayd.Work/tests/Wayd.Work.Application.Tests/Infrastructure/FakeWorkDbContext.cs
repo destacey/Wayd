@@ -1,8 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Identity;
+using Wayd.Common.Domain.Scoring;
 using Wayd.Tests.Shared.Infrastructure;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Domain.Models;
@@ -36,6 +37,7 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
     private readonly List<OidcProvider> _oidcProviders = [];
     private readonly List<PersonalAccessToken> _personalAccessTokens = [];
     private readonly List<User> _waydUsers = [];
+    private readonly List<ScoringModel> _scoringModels = [];
 
     // DbSet properties
     public DbSet<Workspace> Workspaces => _workspaces.AsDbSet();
@@ -56,6 +58,7 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
     public DbSet<OidcProvider> OidcProviders => _oidcProviders.AsDbSet();
     public DbSet<PersonalAccessToken> PersonalAccessTokens => _personalAccessTokens.AsDbSet();
     public DbSet<User> WaydUsers => _waydUsers.AsDbSet();
+    public DbSet<ScoringModel> ScoringModels => _scoringModels.AsDbSet();
 
     // ChangeTracker - we can't create a real one, so we return null and the handler uses defensive coding (_workDbContext.ChangeTracker?.Clear())
     public ChangeTracker ChangeTracker => null!;

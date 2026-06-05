@@ -24,6 +24,7 @@ export enum QueryTags {
   HealthCheck = 'Common.HealthCheck',
   HealthChecksHealthReport = 'Common.HealthChecks.HealthReport',
   HealthChecksStatusOptions = 'Common.HealthChecks.StatusOptions',
+  ScoringModel = 'Common.ScoringModel',
 
   // ORGANIZATIONS
   ActiveSprint = 'Organizations.ActiveSprint',

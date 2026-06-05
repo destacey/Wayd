@@ -26,6 +26,7 @@ enum SettingsTab {
   // project portfolio management
   ExpenditureCategories = 'expenditure-categories',
   ProjectLifecycles = 'project-lifecycles',
+  ScoringModels = 'scoring-models',
 
   // work-management
   WorkTypes = 'work-types',
@@ -204,6 +205,15 @@ const buildSettingsMenuItems = (featureFlags: {
       'Project Lifecycles',
       SettingsTab.ProjectLifecycles,
       '/settings/ppm/project-lifecycles',
+    ),
+  ]),
+
+  getSectionMenuItem('Scoring', 'scoring', [
+    getRestrictedMenuItem(
+      'Permissions.ScoringModels.View',
+      'Scoring Models',
+      SettingsTab.ScoringModels,
+      '/settings/scoring/scoring-models',
     ),
   ]),
 

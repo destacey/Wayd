@@ -34,6 +34,8 @@ public static class ApplicationResource
     public const string Permissions = nameof(Permissions);
     public const string OidcProviders = nameof(OidcProviders);
 
+    public const string ScoringModels = nameof(ScoringModels);
+
     public const string Connections = nameof(Connections);
     public const string Connectors = nameof(Connectors);
 
@@ -80,6 +82,20 @@ public static class ApplicationResource
 public static class ApplicationPermissions
 {
     private static readonly ApplicationPermission[] _common = [];
+
+    private const string ApplicationCategory = "Application";
+    private static readonly ApplicationPermission[] _application =
+    [
+        new ("View Scoring Models", ApplicationAction.View, ApplicationResource.ScoringModels, ApplicationCategory),
+        new ("Create Scoring Models", ApplicationAction.Create, ApplicationResource.ScoringModels, ApplicationCategory),
+        new ("Update Scoring Models", ApplicationAction.Update, ApplicationResource.ScoringModels, ApplicationCategory),
+        new ("Delete Scoring Models", ApplicationAction.Delete, ApplicationResource.ScoringModels, ApplicationCategory),
+
+        new("View Feature Flags", ApplicationAction.View, ApplicationResource.FeatureFlags, ApplicationCategory),
+        new("Create Feature Flags", ApplicationAction.Create, ApplicationResource.FeatureFlags, ApplicationCategory),
+        new("Update Feature Flags", ApplicationAction.Update, ApplicationResource.FeatureFlags, ApplicationCategory),
+        new("Delete Feature Flags", ApplicationAction.Delete, ApplicationResource.FeatureFlags, ApplicationCategory),
+    ];
 
     private const string BackgroundJobsCategory = "Background Jobs";
     private static readonly ApplicationPermission[] _backgroundJobs =
@@ -297,18 +313,9 @@ public static class ApplicationPermissions
         new("Delete WorkTypes", ApplicationAction.Delete, ApplicationResource.WorkTypes, WorkManagementCategory),
     ];
 
-    private const string FeatureManagementCategory = "Feature Management";
-    private static readonly ApplicationPermission[] _featureManagement =
-    [
-        new("View Feature Flags", ApplicationAction.View, ApplicationResource.FeatureFlags, FeatureManagementCategory),
-        new("Create Feature Flags", ApplicationAction.Create, ApplicationResource.FeatureFlags, FeatureManagementCategory),
-        new("Update Feature Flags", ApplicationAction.Update, ApplicationResource.FeatureFlags, FeatureManagementCategory),
-        new("Delete Feature Flags", ApplicationAction.Delete, ApplicationResource.FeatureFlags, FeatureManagementCategory),
-    ];
-
     private static readonly ApplicationPermission[] _all = [.. _common
+        .Union(_application)
         .Union(_backgroundJobs)
-        .Union(_featureManagement)
         .Union(_identity)
         .Union(_appIntegration)
         .Union(_healthChecks)

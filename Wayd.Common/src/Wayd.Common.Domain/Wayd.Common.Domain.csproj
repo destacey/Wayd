@@ -4,6 +4,7 @@
         <PackageReference Include="CSharpFunctionalExtensions" />
         <PackageReference Include="FluentValidation" />
         <PackageReference Include="MediatR.Contracts" />
+        <PackageReference Include="NCalcSync" />
         <PackageReference Include="NodaTime" />
     </ItemGroup>
 

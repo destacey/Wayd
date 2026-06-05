@@ -27027,6 +27027,78 @@ export class ScoringModelsClient {
     }
 
     /**
+     * Evaluate (test) a scoring model against supplied criterion values.
+     */
+    evaluate(id: string, request: EvaluateScoringModelRequest, cancelToken?: CancelToken): Promise<ScoringModelEvaluationDto> {
+        let url_ = this.baseUrl + "/api/scoring-models/{id}/evaluate";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processEvaluate(_response);
+        });
+    }
+
+    protected processEvaluate(response: AxiosResponse): Promise<ScoringModelEvaluationDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ScoringModelEvaluationDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ScoringModelEvaluationDto>(null as any);
+    }
+
+    /**
      * Add a criterion to a scoring model.
      */
     addCriterion(id: string, request: ScoringModelCriterionRequest, cancelToken?: CancelToken): Promise<string> {
@@ -31713,6 +31785,30 @@ export interface UpdateScoringModelRequest {
     name: string;
     /** The description of the scoring model. */
     description: string;
+}
+
+export interface ScoringModelEvaluationDto {
+    primaryValue: number;
+    outputs: ScoringModelOutputValueDto[];
+}
+
+export interface ScoringModelOutputValueDto {
+    token: string;
+    name: string;
+    value: number;
+    isPrimary: boolean;
+    order: number;
+}
+
+/** A request to evaluate (test) a scoring model against a set of supplied criterion values, returning the resulting output values without persisting anything. */
+export interface EvaluateScoringModelRequest {
+    /** The value to plug in for each criterion, keyed by criterion id. */
+    criterionValues: CriterionValue[];
+}
+
+export interface CriterionValue {
+    criterionId: string;
+    value: number;
 }
 
 export interface ScoringModelCriterionRequest {

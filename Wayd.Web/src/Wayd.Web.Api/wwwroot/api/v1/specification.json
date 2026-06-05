@@ -22728,6 +22728,78 @@
         ]
       }
     },
+    "/api/scoring-models/{id}/evaluate": {
+      "post": {
+        "tags": [
+          "ScoringModels"
+        ],
+        "summary": "Evaluate (test) a scoring model against supplied criterion values.",
+        "operationId": "ScoringModels_Evaluate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluateScoringModelRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringModelEvaluationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/scoring-models/{id}/criteria": {
       "post": {
         "tags": [
@@ -38279,6 +38351,93 @@
             "maxLength": 1024,
             "minLength": 1,
             "nullable": false
+          }
+        }
+      },
+      "ScoringModelEvaluationDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "outputs",
+          "primaryValue"
+        ],
+        "properties": {
+          "primaryValue": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScoringModelOutputValueDto"
+            }
+          }
+        }
+      },
+      "ScoringModelOutputValueDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "token",
+          "name",
+          "value",
+          "isPrimary",
+          "order"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "isPrimary": {
+            "type": "boolean"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "EvaluateScoringModelRequest": {
+        "type": "object",
+        "description": "A request to evaluate (test) a scoring model against a set of supplied criterion values, returning\nthe resulting output values without persisting anything.",
+        "additionalProperties": false,
+        "required": [
+          "criterionValues"
+        ],
+        "properties": {
+          "criterionValues": {
+            "type": "array",
+            "description": "The value to plug in for each criterion, keyed by criterion id.",
+            "items": {
+              "$ref": "#/components/schemas/CriterionValue"
+            }
+          }
+        }
+      },
+      "CriterionValue": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "criterionId",
+          "value"
+        ],
+        "properties": {
+          "criterionId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "value": {
+            "type": "number",
+            "format": "decimal"
           }
         }
       },

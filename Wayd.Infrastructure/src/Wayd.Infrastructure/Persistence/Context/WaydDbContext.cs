@@ -18,6 +18,7 @@ using Wayd.Planning.Domain.Models.Iterations;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Planning.Domain.Models.Roadmaps;
 using Wayd.ProjectPortfolioManagement.Application;
+using Wayd.Common.Domain.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 using Wayd.StrategicManagement.Application;
@@ -115,6 +116,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<StrategicInitiative> StrategicInitiatives => Set<StrategicInitiative>();
     public DbSet<ProjectLifecycle> ProjectLifecycles => Set<ProjectLifecycle>();
     public DbSet<ProjectPhase> ProjectPhases => Set<ProjectPhase>();
+    public DbSet<ScoringModel> ScoringModels => Set<ScoringModel>();
 
     #endregion IProjectPortfolioManagementDbContext
 

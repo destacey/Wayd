@@ -8,6 +8,7 @@ using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Identity;
+using Wayd.Common.Domain.Scoring;
 using Wayd.Tests.Shared.Infrastructure;
 
 namespace Wayd.AppIntegration.Application.Tests.Infrastructure;
@@ -32,6 +33,7 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
     private readonly List<OidcProvider> _oidcProviders = [];
     private readonly List<PersonalAccessToken> _personalAccessTokens = [];
     private readonly List<User> _waydUsers = [];
+    private readonly List<ScoringModel> _scoringModels = [];
 
     // DbSet properties
     public DbSet<Connection> Connections => _connections.AsDbSet();
@@ -45,6 +47,7 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
     public DbSet<OidcProvider> OidcProviders => _oidcProviders.AsDbSet();
     public DbSet<PersonalAccessToken> PersonalAccessTokens => _personalAccessTokens.AsDbSet();
     public DbSet<User> WaydUsers => _waydUsers.AsDbSet();
+    public DbSet<ScoringModel> ScoringModels => _scoringModels.AsDbSet();
 
     // ChangeTracker - we can't create a real one, so we return null and the handler uses defensive coding
     public ChangeTracker ChangeTracker => null!;

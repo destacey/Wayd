@@ -31,16 +31,67 @@ Test projects: `\{ProjectName\}.Tests`
 
 Test classes and methods should clearly describe the scenario being tested.
 
-## Fake Data
+## Test Structure
 
-Domain fakers are located in `Wayd.Tests.Shared`. Use Bogus to generate realistic test data:
+These conventions keep the suite consistent and easy to scan. New tests should follow them.
+
+### One class per system-under-test, named after the file
+
+Each test class targets a single system-under-test (SUT), and the class name matches its file name. Do **not** merge tests for several SUTs (e.g. multiple command handlers) into one class — give each handler its own `\{Handler\}Tests.cs` containing a class of the same name.
+
+### Arrange / Act / Assert comments
+
+Every test method marks the three phases with `// Arrange`, `// Act`, and `// Assert` comments so the flow reads at a glance. When the setup needs context, append a note to the marker:
 
 ```csharp
-var faker = new WorkItemFaker();
-var workItem = faker.Generate();
+[Fact]
+public async Task Handle_ShouldFail_WhenModelIsActive()
+{
+    // Arrange — an active model cannot be deleted; the handler's guard should reject it
+    // and leave the row in place.
+    var model = _faker.AsActiveWsjf();
+    _dbContext.ScoringModels.Add(model);
+    var command = new DeleteScoringModelCommand(model.Id);
+
+    // Act
+    var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+    // Assert
+    result.IsFailure.Should().BeTrue();
+    _dbContext.SaveChangesCallCount.Should().Be(0);
+}
 ```
 
-Fake DbContext implementations are available for each application area for integration-style tests.
+### Cancellation tokens
+
+Pass `TestContext.Current.CancellationToken` to **every** method that accepts a `CancellationToken` — both the handler's `Handle(...)` call and any EF assertion queries (`SingleAsync(...)`, `AnyAsync(...)`, etc.). This is the dominant convention across the suite and clears the `xUnit1051` analyzer warning. Avoid `CancellationToken.None`.
+
+## Fake Data
+
+Domain fakers generate realistic test data with Bogus. They live in **each model's own test project**, under a `Data/` folder — not in `Wayd.Tests.Shared`. Only the `PrivateConstructorFaker<T>` base class lives in `Wayd.Tests.Shared`.
+
+```csharp
+var faker = new ScoringModelFaker();
+var model = faker.Generate();
+```
+
+### Faker conventions
+
+- **Per-property `With\{Property\}` builder extensions**, not a single `WithData(...)` with optional parameters. Each extension sets one `RuleFor` and returns the faker for chaining.
+- **Composition helpers** that build child collections through the aggregate's own methods (so invariants and ordering hold) are encouraged — e.g. `AsProposedWith(scales, criteria, outputs)`.
+- **Encapsulate shared fixtures as faker extensions**, not a separate `\{Thing\}TestData` holder class. When several test classes need the same realistic entity, add a convenience extension that builds the canonical fixture (e.g. `AsProposedWsjf()` / `AsActiveWsjf()` on `ScoringModelFaker`) and call it from each test. Keep small one-off fixtures inline.
+
+### Fake DbContext
+
+Fake `DbContext` implementations are available for each application area (e.g. `FakeWaydDbContext`), backing each `DbSet` with an in-memory list so handlers can be tested without a database. They track `SaveChangesCallCount`, which assertions use to verify a handler saved (or didn't) as expected. Combine with `NullLogger<T>.Instance` for the handler's logger.
+
+```csharp
+private readonly FakeWaydDbContext _dbContext = new();
+private readonly ScoringModelFaker _faker = new();
+
+private DeleteScoringModelCommandHandler CreateHandler() =>
+    new(_dbContext, NullLogger<DeleteScoringModelCommandHandler>.Instance);
+```
 
 ## Running Tests
 

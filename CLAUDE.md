@@ -162,9 +162,12 @@ Single shared `WaydDbContext`. Entity configs in `Wayd.Infrastructure/Persistenc
 ### Testing
 
 - Test naming: `{ProjectName}.Tests`
-- Domain fakers in `Wayd.Tests.Shared`
-- Fake DbContext implementations for each application area
+- Domain fakers live in the domain test project they belong to (each `{ServiceName}.Domain.Tests/Data/` folder), NOT in `Wayd.Tests.Shared` — only the `PrivateConstructorFaker<T>` base lives there. Use per-property `With{Property}` builder extensions.
+- One test class per system-under-test, named after its file; mark every test with `// Arrange` / `// Act` / `// Assert`
+- Pass `TestContext.Current.CancellationToken` to every cancellable call (handler `Handle(...)` and EF queries) — not `CancellationToken.None`
+- Fake DbContext implementations for each application area (e.g. `FakeWaydDbContext`); assert on `SaveChangesCallCount`
 - Moq.AutoMock for automatic dependency mocking
+- See [docs/contributing/testing.mdx](docs/contributing/testing.mdx) for the full conventions
 
 ## Important Considerations
 

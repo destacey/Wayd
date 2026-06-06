@@ -1,4 +1,5 @@
 ﻿using Wayd.ProjectPortfolioManagement.Domain.Models;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 
 namespace Wayd.ProjectPortfolioManagement.Application;
@@ -10,6 +11,7 @@ public interface IProjectPortfolioManagementDbContext : IWaydDbContext
     DbSet<Program> Programs { get; }
     DbSet<Project> Projects { get; }
     DbSet<ProjectHealthCheck> ProjectHealthChecks { get; }
+    DbSet<ProjectScore> ProjectScores { get; }
     DbSet<ProjectTask> ProjectTasks { get; }
     DbSet<ProjectTaskDependency> ProjectTaskDependencies { get; }
     DbSet<PpmTeam> PpmTeams { get; }

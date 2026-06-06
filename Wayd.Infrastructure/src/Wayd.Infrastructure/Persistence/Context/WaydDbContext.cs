@@ -20,6 +20,7 @@ using Wayd.Planning.Domain.Models.Roadmaps;
 using Wayd.ProjectPortfolioManagement.Application;
 using Wayd.Common.Domain.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 using Wayd.StrategicManagement.Application;
 using Wayd.StrategicManagement.Domain.Models;
@@ -109,6 +110,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<Program> Programs => Set<Program>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<ProjectHealthCheck> ProjectHealthChecks => Set<ProjectHealthCheck>();
+    public DbSet<ProjectScore> ProjectScores => Set<ProjectScore>();
     public DbSet<ProjectTask> ProjectTasks => Set<ProjectTask>();
     public DbSet<ProjectTaskDependency> ProjectTaskDependencies => Set<ProjectTaskDependency>();
     public DbSet<PpmTeam> PpmTeams => Set<PpmTeam>();

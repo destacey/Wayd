@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Domain.Scoring;
 
 namespace Wayd.Infrastructure.Persistence.Initialization;
@@ -18,7 +18,7 @@ public class ScoringModelSeeder : ICustomSeeder
     }
 
     /// <summary>
-    /// Weighted Shortest Job First (SAFe). Business Value, Time Criticality and Risk Reduction /
+    /// Weighted Shortest Job First. Business Value, Time Criticality and Risk Reduction /
     /// Opportunity Enablement are rated on a shared relative scale and summed into the Cost of Delay;
     /// Job Size is rated on the same scale, and WSJF = Cost of Delay / Job Size is the primary score.
     /// Seeded in the Proposed state so an admin can review and activate it.
@@ -39,7 +39,7 @@ public class ScoringModelSeeder : ICustomSeeder
 
         return ScoringModel.Create(
             "WSJF",
-            "Weighted Shortest Job First (SAFe). Prioritizes by Cost of Delay relative to Job Size; "
+            "Weighted Shortest Job First. Prioritizes by Cost of Delay relative to Job Size; "
                 + "the highest WSJF score is the most economically valuable to deliver next.",
             scales:
             [

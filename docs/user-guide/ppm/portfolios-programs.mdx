@@ -16,6 +16,7 @@ Every portfolio has:
 - **Status** — Lifecycle state (see [Portfolio Status Lifecycle](#portfolio-status-lifecycle))
 - **Date Range** — Start and optional end date
 - **Roles** — People assigned to portfolio-level roles
+- **Scoring Model** — Optional [active scoring model](../settings/scoring-models.mdx) used to score and rank projects in the portfolio
 
 Portfolios contain:
 - **Programs** — Groups of related [projects](./projects.mdx)
@@ -59,11 +60,19 @@ stateDiagram-v2
 - Only Proposed portfolios can be deleted
 - Archived portfolios are read-only
 
+### Portfolio Project Scoring
+
+A portfolio can be assigned one active [scoring model](../settings/scoring-models.mdx). Assigning a model enables **Priority Score** on every project in the portfolio; clearing the assignment disables new scoring but does not delete existing project score history.
+
+Use **Actions → Set Scoring Model** on the portfolio detail page to assign or clear the model. Only active scoring models can be assigned. If the assigned model is later archived, existing project scores stay intact and users can still see the recorded history.
+
+Project scoring uses immutable snapshots: every recorded score stores the model name, each criterion rating, and every output value at the time it was recorded. This keeps prior scores meaningful even if the portfolio later switches to a different model.
+
 ### Portfolio Detail Page
 
 The portfolio detail page has four tabs:
 
-**Details Tab** — Shows sponsors, owners, and managers (sorted alphabetically), description (Markdown), and links to related entities.
+**Details Tab** — Shows sponsors, owners, managers (sorted alphabetically), scoring model, description (Markdown), and links to related entities.
 
 **Programs Tab** — Grid of [programs](#programs) with Key, Name, Status, Start/End dates, Managers, Owners, Sponsors, and [Strategic Themes](../strategic-management/index.mdx#strategic-themes). Supports List and Timeline views. Filtered to show Active programs by default.
 
@@ -107,3 +116,11 @@ A warning alert appears if dates are missing: *"Program Dates are required befor
 3. Enter **Name** and **Description**
 4. The portfolio is created in **Proposed** status
 5. **Activate** the portfolio (requires a start date)
+
+### Enabling Project Scoring
+
+1. Create and activate a scoring model in **Settings → Scoring → Scoring Models**.
+2. Open the portfolio detail page.
+3. Select **Actions → Set Scoring Model**.
+4. Choose the active model and click **Save**.
+5. Open a project in the portfolio and use its **Priority Score** panel to record the first score.

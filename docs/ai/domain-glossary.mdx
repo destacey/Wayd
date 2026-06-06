@@ -89,7 +89,7 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 
 | Term | Definition |
 |------|-----------|
-| **Portfolio** | Top-level container for programs, projects, and strategic initiatives. Status lifecycle: Proposed → Active → OnHold ↔ Active → Closed → Archived. |
+| **Portfolio** | Top-level container for programs, projects, and strategic initiatives. Status lifecycle: Proposed → Active → OnHold ↔ Active → Closed → Archived. May assign one active scoring model to enable project priority scoring. |
 | **Program** | Groups related projects within a portfolio. Status: Proposed → Active → Completed/Cancelled. Only active programs accept new projects. |
 | **Project** | A timed endeavor with scope, timeline, and deliverables. Key is 2-20 uppercase alphanumeric. Status: Proposed → Approved (requires lifecycle) → Active (requires dates) → Completed/Cancelled. |
 | **Project Key** | A unique 2-20 character uppercase alphanumeric code identifying a project (e.g., `APOLLO`). Can be changed (cascades to task keys). |
@@ -97,6 +97,8 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Project Lifecycle Phase** | A template phase within a lifecycle (e.g., Initiation, Planning, Execution, Closing). Ordered. Immutable after lifecycle activation. |
 | **Project Phase** | A concrete instance of a lifecycle phase on a project. Has Status (NotStarted/InProgress/Completed/Cancelled), Date Range, Progress (0-100%), and Assignee roles. Name copied from template (not editable). |
 | **Project Task** | An actionable work item within a project phase. Key: ProjectKey-Number. Type: Task (date range, 0-100% progress) or Milestone (single date, 0 or 100% only). Supports hierarchy (WBS) and Finish-to-Start dependencies. |
+| **Project Priority Score** | The latest score recorded for a project using its portfolio's assigned scoring model. Shows the primary score value, scorer, timestamp, and model name. |
+| **Project Score Snapshot** | An immutable score history entry for a project. Stores the scoring model id/key/name, criterion ratings, computed outputs, scorer, timestamp, and per-project sequence so prior scores remain meaningful after model or portfolio assignment changes. |
 | **Task Priority** | Low, Medium, High, or Critical. Shown as color indicators in the UI. |
 | **Task Dependency** | Finish-to-Start relationship between project tasks. Soft-deleted (marked as removed, not permanently deleted). |
 | **Strategic Initiative** | A high-level strategic effort within a portfolio, tracked with KPIs. Status: Proposed → Approved → Active → OnHold ↔ Active → Completed/Cancelled. |
@@ -125,6 +127,10 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Connector Category** | The orchestration class a connector belongs to. `WorkSync` routes through `WorkSyncRunner`; `PeopleSync` routes through `PeopleSyncRunner`; `AiProvider` connectors aren't synced. The category — not the specific connector — drives which background job and Sync History view applies. |
 | **Feature Flag** | A toggle controlling feature visibility. Defined in code, stored in database, managed via Settings UI. New flags seeded as disabled on startup. |
 | **Health Check** | A status indicator (Healthy, AtRisk, Unhealthy/Critical) with expiration. Used on objectives, initiatives, and other entities. |
+| **Scoring Model** | A reusable formula-driven model for rating items. Contains criteria, optional rating scales, ordered output formulas, and exactly one primary output. Lifecycle: Proposed (editable) → Active (assignable/locked) → Archived. |
+| **Scoring Criterion** | A scoring-model input that a user rates. Has a unique token for formulas, optional description, optional weight, and optional rating scale. |
+| **Scoring Output** | An ordered formula in a scoring model. Outputs can reference criterion tokens and earlier output tokens; one output is primary and becomes the score. |
+| **Rating Scale** | A named set of ordered rating levels on a scoring model. Criteria can reference a scale so raters select standardized labels/values instead of entering a raw number. |
 | **SystemContext** | Identifies which domain references a work item (e.g., Goals, Projects). Used for work item references. |
 
 ## Technical Terms

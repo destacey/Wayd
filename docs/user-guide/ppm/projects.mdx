@@ -18,6 +18,7 @@ Every project has:
 - **[Lifecycle](#project-lifecycles)** — Defines the phases the project goes through
 - **Roles** — Sponsor, Owner, Manager, Member
 - **Health Check** — Optional point-in-time project health signal (Healthy, At Risk, Unhealthy) with expiration
+- **Priority Score** — Optional score recorded with the project's portfolio [scoring model](./portfolios-programs.mdx#portfolio-project-scoring)
 - **[Strategic Theme Tags](../strategic-management/index.mdx#strategic-themes)** — Links to strategic themes
 
 ## Project Status Lifecycle
@@ -46,7 +47,7 @@ The project detail page adapts based on the project's status:
 
 **Details Tab** (two-column layout):
 
-*Left sidebar* — [Portfolio](./portfolios-programs.mdx#portfolios) link, [Program](./portfolios-programs.mdx#programs) link (if assigned), date range, [Expenditure Category](../settings/index.mdx#expenditure-categories), Lifecycle name with tooltip, [Strategic Themes](../strategic-management/index.mdx#strategic-themes), Sponsors/Owners/Managers/Members, timeline progress bar, and links.
+*Left sidebar* — [Portfolio](./portfolios-programs.mdx#portfolios) link, [Program](./portfolios-programs.mdx#programs) link (if assigned), date range, [Expenditure Category](../settings/index.mdx#expenditure-categories), Lifecycle name with tooltip, [Strategic Themes](../strategic-management/index.mdx#strategic-themes), Sponsors/Owners/Managers/Members, timeline progress bar, Priority Score (when enabled), and links.
 
 *Right content area* — Changes based on status:
 - **Pre-Execution** (Proposed/Approved): Shows **Project Definition** first (Description, Business Case, Expected Benefits as expandable Markdown sections), then [Phases](#project-phases)/[Tasks](#project-tasks)
@@ -97,6 +98,37 @@ Typical actions include:
 - Status transitions such as **Approve**, **Activate**, **Complete**, and **Cancel**
 - **Create Health Check**
 - **Health Report**
+
+## Project Priority Scores
+
+Project priority scores help portfolio and project leaders compare projects using a consistent, formula-driven model such as WSJF. Scoring is enabled at the [portfolio](./portfolios-programs.mdx#portfolio-project-scoring) level by assigning an active scoring model.
+
+When scoring is enabled, the project details page shows a **Priority Score** panel. The panel shows the latest score, the scoring model name, who scored it, when it was scored, and a **View history** link when score history exists.
+
+### Record or Update a Score
+
+1. Open the project detail page.
+2. In the **Priority Score** panel, click **Score** or **Re-score**.
+3. Rate every criterion. Criteria with scales use dropdown levels; criteria without scales accept numeric input.
+4. Optionally click **Preview** to calculate every output value before saving.
+5. Click **Save score**.
+
+Each saved score is a new history entry. Re-scoring does not overwrite the previous score; it updates the project's current score summary and keeps the earlier score available in history.
+
+### Score History
+
+Use **View history** in the **Priority Score** panel to review previous scores. Each score records:
+
+- The scoring model name and primary score value
+- The person who recorded the score and when it was recorded
+- The selected criterion ratings
+- Every calculated output value, with the primary output marked as the score
+
+Scores are immutable snapshots. If the portfolio changes scoring models later, existing scores still show the model, ratings, and outputs used at the time they were recorded.
+
+### Permissions
+
+Users need project update rights and management access to record scores. Project Owner/Manager, portfolio Owner/Manager, or program Owner/Manager access is sufficient. Users with project view access can view current scores and score history.
 
 ## Health Report Tab Behavior
 

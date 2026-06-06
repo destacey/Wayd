@@ -1,5 +1,6 @@
 ﻿using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Employees.Dtos;
+using Wayd.ProjectPortfolioManagement.Application.Projects.Scoring.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
@@ -82,11 +83,23 @@ public sealed record ProjectListDto
     public ProjectHealthCheckSummaryDto? HealthCheck { get; set; }
 
     /// <summary>
+    /// The denormalised summary of the project's most recent score, or null if it has not been scored.
+    /// </summary>
+    public ScoreSummaryDto? CurrentScore { get; set; }
+
+    /// <summary>
+    /// Whether the current user can manage this project (record health checks, scores, etc.). True when
+    /// the user is an Owner or Manager of the project, its portfolio, or its program.
+    /// </summary>
+    public bool CanManageProject { get; set; }
+
+    /// <summary>
     /// Create a TypeAdapterConfig configured to map Project -> ProjectListDto using the provided
     /// current time to filter health checks by expiration. Callers can pass this config to
     /// ProjectToType to perform an EF-friendly projection that uses a captured constant time.
+    /// Pass <paramref name="employeeId"/> as null when no user is authenticated.
     /// </summary>
-    public static TypeAdapterConfig CreateTypeAdapterConfig(Instant now)
+    public static TypeAdapterConfig CreateTypeAdapterConfig(Instant now, Guid? employeeId)
     {
         var config = new TypeAdapterConfig();
 
@@ -113,7 +126,26 @@ public sealed record ProjectListDto
                     Id = h.Id,
                     Status = SimpleNavigationDto.FromEnum(h.Status)
                 })
-                .FirstOrDefault());
+                .FirstOrDefault())
+            // ScoredBy resolves through the owned navigation so the name is always current (not frozen).
+            .Map(dest => dest.CurrentScore, src => src.CurrentScore == null ? null : new ScoreSummaryDto
+            {
+                Value = src.CurrentScore.Value,
+                ScoredOn = src.CurrentScore.ScoredOn,
+                ScoredBy = src.CurrentScore.ScoredBy == null
+                    ? null
+                    : EmployeeNavigationDto.From(src.CurrentScore.ScoredBy),
+                ScoringModelName = src.CurrentScore.ScoringModelName,
+            })
+            // Single-pass authorization for the grid: Owner/Manager on the project, its portfolio, or
+            // its program. Evaluated inline as SQL subqueries (no per-row second pass).
+            .Map(dest => dest.CanManageProject, src => employeeId.HasValue && (
+                src.Roles.Any(r => r.EmployeeId == employeeId.Value &&
+                    (r.Role == ProjectRole.Owner || r.Role == ProjectRole.Manager)) ||
+                src.Portfolio!.Roles.Any(r => r.EmployeeId == employeeId.Value &&
+                    (r.Role == ProjectPortfolioRole.Owner || r.Role == ProjectPortfolioRole.Manager)) ||
+                (src.Program != null && src.Program.Roles.Any(r => r.EmployeeId == employeeId.Value &&
+                    (r.Role == ProgramRole.Owner || r.Role == ProgramRole.Manager)))));
 
         return config;
     }

@@ -91,8 +91,9 @@ internal sealed class GetProjectsQueryHandler(IProjectPortfolioManagementDbConte
         }
 
         var now = _dateTimeProvider.Now;
-        var config = ProjectListDto.CreateTypeAdapterConfig(now);
+        var config = ProjectListDto.CreateTypeAdapterConfig(now, _currentUser.GetEmployeeId());
         var projects = await query.ProjectToType<ProjectListDto>(config).ToListAsync(cancellationToken);
+
         return [.. projects.OrderBy(p => p.Name)];
     }
 }

@@ -21,7 +21,7 @@ public class ProjectCustomProjectionMappingTests
         // Arrange
         var project = CreateProjectWithPhases();
         var now = SystemClock.Instance.GetCurrentInstant();
-        var config = ProjectListDto.CreateTypeAdapterConfig(now);
+        var config = ProjectListDto.CreateTypeAdapterConfig(now, null);
 
         // Act
         var dto = new[] { project }

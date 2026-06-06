@@ -6,6 +6,7 @@ import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { ProjectPortfolioDetailsDto } from '@/src/services/wayd-api'
 import { getSortedNames } from '@/src/utils'
 import { Descriptions, Flex } from 'antd'
+import Link from 'next/link'
 
 const { Item } = Descriptions
 
@@ -38,6 +39,15 @@ const PortfolioDetails: React.FC<PortfolioDetailsProps> = ({
           <Item label="Sponsors">{sponsorNames}</Item>
           <Item label="Owners">{ownerNames}</Item>
           <Item label="PMs">{managerNames}</Item>
+          {portfolio.scoringModel && (
+            <Item label="Scoring Model">
+              <Link
+                href={`/settings/scoring/scoring-models/${portfolio.scoringModel.key}`}
+              >
+                {portfolio.scoringModel.name}
+              </Link>
+            </Item>
+          )}
         </Descriptions>
         <Descriptions layout="vertical" size="small">
           <Item label="Description">

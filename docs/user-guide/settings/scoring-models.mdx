@@ -9,7 +9,7 @@ audience: [user, agent]
 
 A **scoring model** defines how items are scored and ranked — for example, prioritizing a backlog by [WSJF](#worked-example-wsjf) (Weighted Shortest Job First). Each model is a set of **rated criteria** combined by one or more **output formulas**, with one formula designated as the primary **score**.
 
-Scoring models are managed under **Settings → Scoring → Scoring Models** and require the `Permissions.ScoringModels.*` permissions to view and manage.
+Scoring models are managed under **Settings → Scoring → Scoring Models** and require the `Permissions.ScoringModels.*` permissions to view and manage. Active models can be assigned to [PPM portfolios](../ppm/portfolios-programs.mdx#portfolio-project-scoring) so projects in that portfolio can be scored consistently.
 
 ## How a model is built
 
@@ -104,3 +104,9 @@ A scoring model moves through a simple lifecycle:
 - **Delete** — only available while a model is Proposed.
 
 Because activation freezes the definition, use the [Test tab](#testing-a-model) to validate the model thoroughly while it is still Proposed.
+
+## Using models in PPM
+
+Only **Active** scoring models can be assigned to portfolios. Once a model is assigned, users with project update rights and project/portfolio/program management access can record scores on projects in that portfolio.
+
+Recorded project scores are snapshots: Wayd stores the model name, criterion ratings, calculated outputs, scorer, and timestamp with each score. This means old scores remain interpretable if the model is later archived or the portfolio is assigned a different model.

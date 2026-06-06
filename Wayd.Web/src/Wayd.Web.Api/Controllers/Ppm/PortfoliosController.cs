@@ -2,6 +2,7 @@
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Queries;
+using Wayd.ProjectPortfolioManagement.Application.Portfolios.Scoring.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
@@ -137,6 +138,35 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         var result = await _sender.Send(new DeleteProjectPortfolioCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/scoring-model")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]
+    [OpenApiOperation("Assign a scoring model to a portfolio, enabling project scoring.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> AssignScoringModel(Guid id, [FromBody] AssignPortfolioScoringModelRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new AssignPortfolioScoringModelCommand(id, request.ScoringModelId), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpDelete("{id}/scoring-model")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]
+    [OpenApiOperation("Clear a portfolio's scoring model, disabling new project scoring.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> ClearScoringModel(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new ClearPortfolioScoringModelCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

@@ -2866,6 +2866,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid?>("ProjectLifecycleId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int?>("Rank")
+                        .HasColumnType("int");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -2892,13 +2895,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasIndex("Key")
                         .IsUnique();
 
-                    b.HasIndex("PortfolioId");
-
                     b.HasIndex("ProgramId");
 
                     b.HasIndex("ProjectLifecycleId");
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("PortfolioId", "Rank");
 
                     b.ToTable("Projects", "Ppm");
                 });
@@ -3130,6 +3133,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<Guid?>("ScoringModelId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -3152,6 +3158,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasKey("Id");
 
                     b.HasAlternateKey("Key");
+
+                    b.HasIndex("ScoringModelId");
 
                     b.HasIndex("Status");
 
@@ -3504,6 +3512,164 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasIndex("ObjectId");
 
                     b.ToTable("ProjectTaskAssignments", "Ppm");
+                });
+
+            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.Scoring.ProjectScore", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("PrimaryValue")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ScoredById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ScoredOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ScoringModelId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ScoringModelKey")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ScoringModelName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<long>("Sequence")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScoredById");
+
+                    b.HasIndex("ProjectId", "Sequence")
+                        .IsUnique();
+
+                    b.ToTable("ProjectScores", "Ppm");
+                });
+
+            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.Scoring.ProjectScoreOutput", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ProjectScoreId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<decimal>("Value")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectScoreId");
+
+                    b.ToTable("ProjectScoreOutputs", "Ppm");
+                });
+
+            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.Scoring.ProjectScoreRating", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CriterionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CriterionName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("CriterionToken")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ProjectScoreId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("RatingLevelId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RatingLevelLabel")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<decimal>("RatingValue")
+                        .HasColumnType("decimal(9,4)");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectScoreId");
+
+                    b.ToTable("ProjectScoreRatings", "Ppm");
                 });
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives.StrategicInitiative", b =>
@@ -5661,6 +5827,49 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                                 .HasForeignKey("ProjectId");
                         });
 
+                    b.OwnsOne("Wayd.ProjectPortfolioManagement.Domain.Models.Scoring.ScoreSummary", "CurrentScore", b1 =>
+                        {
+                            b1.Property<Guid>("ProjectId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid>("ScoredById")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("CurrentScoredById");
+
+                            b1.Property<DateTime>("ScoredOn")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("CurrentScoredOn");
+
+                            b1.Property<string>("ScoringModelName")
+                                .IsRequired()
+                                .HasMaxLength(128)
+                                .HasColumnType("nvarchar(128)")
+                                .HasColumnName("CurrentScoringModelName");
+
+                            b1.Property<decimal>("Value")
+                                .HasColumnType("decimal(18,4)")
+                                .HasColumnName("CurrentScoreValue");
+
+                            b1.HasKey("ProjectId");
+
+                            b1.HasIndex("ScoredById");
+
+                            b1.ToTable("Projects", "Ppm");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ProjectId");
+
+                            b1.HasOne("Wayd.Common.Domain.Employees.Employee", "ScoredBy")
+                                .WithMany()
+                                .HasForeignKey("ScoredById")
+                                .OnDelete(DeleteBehavior.NoAction)
+                                .IsRequired();
+
+                            b1.Navigation("ScoredBy");
+                        });
+
+                    b.Navigation("CurrentScore");
+
                     b.Navigation("DateRange");
 
                     b.Navigation("ExpenditureCategory");
@@ -5738,6 +5947,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectPortfolio", b =>
                 {
+                    b.HasOne("Wayd.Common.Domain.Scoring.ScoringModel", "ScoringModel")
+                        .WithMany()
+                        .HasForeignKey("ScoringModelId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.OwnsOne("Wayd.Common.Models.FlexibleDateRange", "DateRange", b1 =>
                         {
                             b1.Property<Guid>("ProjectPortfolioId")
@@ -5760,6 +5974,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         });
 
                     b.Navigation("DateRange");
+
+                    b.Navigation("ScoringModel");
                 });
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectTask", b =>
@@ -5929,6 +6145,41 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
 
                     b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.Scoring.ProjectScore", b =>
+                {
+                    b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.Project", null)
+                        .WithMany("Scores")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "ScoredBy")
+                        .WithMany()
+                        .HasForeignKey("ScoredById")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("ScoredBy");
+                });
+
+            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.Scoring.ProjectScoreOutput", b =>
+                {
+                    b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.Scoring.ProjectScore", null)
+                        .WithMany("Outputs")
+                        .HasForeignKey("ProjectScoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.Scoring.ProjectScoreRating", b =>
+                {
+                    b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.Scoring.ProjectScore", null)
+                        .WithMany("Ratings")
+                        .HasForeignKey("ProjectScoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives.StrategicInitiative", b =>
@@ -6530,6 +6781,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.Navigation("Roles");
 
+                    b.Navigation("Scores");
+
                     b.Navigation("StrategicInitiativeProjects");
 
                     b.Navigation("StrategicThemeTags");
@@ -6567,6 +6820,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Roles");
 
                     b.Navigation("Successors");
+                });
+
+            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.Scoring.ProjectScore", b =>
+                {
+                    b.Navigation("Outputs");
+
+                    b.Navigation("Ratings");
                 });
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives.StrategicInitiative", b =>

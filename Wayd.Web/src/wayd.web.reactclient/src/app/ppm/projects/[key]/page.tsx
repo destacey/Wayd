@@ -133,7 +133,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     refetch: refetchProject,
   } = useGetProjectQuery(projectKey)
 
-  const canManageHealthChecks = !!projectData?.canManageHealthChecks
+  const canManageProject = !!projectData?.canManageProject
 
   useDocumentTitle(`${projectData?.name ?? projectKey} - Project Details`)
 
@@ -369,7 +369,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
     items.push({ key: 'other-divider', type: 'divider' })
 
-    if (canManageHealthChecks) {
+    if (canManageProject) {
       items.push({
         key: 'create-health-check',
         label: 'Create Health Check',

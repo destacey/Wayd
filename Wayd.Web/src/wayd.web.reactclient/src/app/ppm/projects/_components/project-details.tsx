@@ -10,6 +10,7 @@ import { WaydTooltip } from '@/src/components/common'
 import dayjs from 'dayjs'
 import Link from 'next/link'
 import { FC } from 'react'
+import ProjectScoreCard from '../[key]/_components/scoring/project-score-card'
 
 export interface ProjectDetailsProps {
   project: ProjectDetailsDto
@@ -141,6 +142,14 @@ const ProjectDetails: FC<ProjectDetailsProps> = ({ project }) => {
             />
           </>
         )}
+
+        <ProjectScoreCard
+          projectId={project.id}
+          scoringModel={project.portfolioScoringModel}
+          currentScore={project.currentScore}
+          canManageProject={project.canManageProject}
+          variant="section"
+        />
 
         <Divider />
 

@@ -5,7 +5,9 @@ using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.HealthChecks;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 using NodaTime;
 
@@ -22,6 +24,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     private readonly List<ProjectPhase> _phases = [];
     private readonly List<ProjectTask> _tasks = [];
     private readonly List<ProjectHealthCheck> _healthChecks = [];
+    private readonly List<ProjectScore> _scores = [];
 
     private Project() { }
 
@@ -100,6 +103,11 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     public ProjectStatus Status { get; private set; }
 
     /// <summary>
+    /// Indicates if the project is in a closed state.
+    /// </summary>
+    public bool IsClosed => Status is ProjectStatus.Completed or ProjectStatus.Cancelled;
+
+    /// <summary>
     /// The roles associated with the project.
     /// </summary>
     public IReadOnlyCollection<RoleAssignment<ProjectRole>> Roles => _roles;
@@ -151,9 +159,10 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     public ProjectLifecycle? ProjectLifecycle { get; private set; }
 
     /// <summary>
-    /// Indicates if the project is in a closed state.
+    /// The project's stack-rank within its portfolio's prioritization view. Null until ranked.
+    /// A human override, independent of the computed score.
     /// </summary>
-    public bool IsClosed => Status is ProjectStatus.Completed or ProjectStatus.Cancelled;
+    public int? Rank { get; private set; }
 
     /// <summary>
     /// The strategic theme tags associated with this project.
@@ -180,6 +189,26 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// Domain invariant: at most one check is non-expired at any instant.
     /// </summary>
     public IReadOnlyCollection<ProjectHealthCheck> HealthChecks => _healthChecks.AsReadOnly();
+
+    /// <summary>
+    /// Full history of recorded scores for this project. Each is an immutable snapshot; the current
+    /// score is the one with the highest <see cref="ProjectScore.Sequence"/>.
+    /// </summary>
+    public IReadOnlyCollection<ProjectScore> Scores => _scores.AsReadOnly();
+
+    /// <summary>
+    /// A denormalised summary of the project's most recent score (value, date, scorer, model),
+    /// maintained for cheap list/grid reads without joining to the score history. Null until the
+    /// project has been scored. Always reflects <see cref="LatestScore"/>.
+    /// </summary>
+    public ScoreSummary? CurrentScore { get; private set; }
+
+    /// <summary>
+    /// The project's most recent score snapshot from the loaded history, or null if it has never been
+    /// scored. Requires the <see cref="Scores"/> collection to be loaded; for list views prefer the
+    /// denormalised <see cref="CurrentScore"/> summary.
+    /// </summary>
+    public ProjectScore? LatestScore => _scores.OrderByDescending(s => s.Sequence).FirstOrDefault();
 
     /// <summary>
     /// Indicates whether the project can be deleted.
@@ -909,6 +938,71 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
     #endregion Tasks
 
+    #region Scoring
+
+    private const string UnauthorizedScoreActorError =
+        "Only the project's owner or manager — or the parent portfolio's or program's owner or manager — may score this project.";
+
+    /// <summary>
+    /// Records a new score for the project from a calculated scoring model result, capturing an immutable
+    /// snapshot of the ratings and computed outputs. The actor must be authorized per <see cref="CanManageProject"/>.
+    /// The supplied <paramref name="model"/> is read only — it is never attached to this aggregate.
+    /// </summary>
+    /// <param name="model">The active scoring model assigned to the project's portfolio.</param>
+    /// <param name="ratingValuesByCriterionId">The numeric rating value for each criterion, keyed by criterion ID.</param>
+    /// <param name="selectedLevels">For scale-rated criteria, the selected (level id, label) keyed by criterion ID.</param>
+    /// <param name="actorEmployeeId">The ID of the employee recording the score.</param>
+    /// <param name="portfolioRoles">The actor's roles in the parent portfolio.</param>
+    /// <param name="programRoles">The actor's roles in the parent program, if applicable.</param>
+    /// <param name="timestamp">The current time.</param>
+    public Result<ProjectScore> RecordScore(
+        ScoringModel model,
+        IReadOnlyDictionary<Guid, decimal> ratingValuesByCriterionId,
+        IReadOnlyDictionary<Guid, (Guid LevelId, string Label)>? selectedLevels,
+        Guid actorEmployeeId,
+        IEnumerable<RoleAssignment<ProjectPortfolioRole>> portfolioRoles,
+        IEnumerable<RoleAssignment<ProgramRole>>? programRoles,
+        Instant timestamp)
+    {
+        Guard.Against.Null(model, nameof(model));
+        Guard.Against.Null(ratingValuesByCriterionId, nameof(ratingValuesByCriterionId));
+
+        if (!CanManageProject(actorEmployeeId, portfolioRoles, programRoles))
+        {
+            return Result.Failure<ProjectScore>(UnauthorizedScoreActorError);
+        }
+
+        var calculation = model.CalculateScore(ratingValuesByCriterionId);
+        if (calculation.IsFailure)
+        {
+            return Result.Failure<ProjectScore>(calculation.Error);
+        }
+
+        var sequence = _scores.Count == 0 ? 1 : _scores.Max(s => s.Sequence) + 1;
+
+        var score = ProjectScore.CreateSnapshot(
+            Id,
+            model,
+            calculation.Value,
+            ratingValuesByCriterionId,
+            selectedLevels,
+            actorEmployeeId,
+            timestamp,
+            sequence);
+
+        _scores.Add(score);
+
+        CurrentScore = new ScoreSummary(
+            calculation.Value.PrimaryValue,
+            timestamp,
+            actorEmployeeId,
+            model.Name);
+
+        return Result.Success(score);
+    }
+
+    #endregion Scoring
+
     #region Health Checks
 
     private const string UnauthorizedHealthCheckActorError =
@@ -916,7 +1010,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
     /// <summary>
     /// Adds a new health check to the project, attributed to <paramref name="actorEmployeeId"/>.
-    /// The actor must be authorized per <see cref="CanManageHealthChecks"/>; if the latest
+    /// The actor must be authorized per <see cref="CanManageProject"/>; if the latest
     /// existing check has not yet expired at <paramref name="now"/>, its expiration is truncated
     /// so that no two checks are active simultaneously.
     /// </summary>
@@ -937,7 +1031,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         string? note,
         Instant now)
     {
-        if (!CanManageHealthChecks(actorEmployeeId, portfolioRoles, programRoles))
+        if (!CanManageProject(actorEmployeeId, portfolioRoles, programRoles))
             return Result.Failure<ProjectHealthCheck>(UnauthorizedHealthCheckActorError);
 
         if (expiration <= now)
@@ -976,7 +1070,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         string? note,
         Instant now)
     {
-        if (!CanManageHealthChecks(actorEmployeeId, portfolioRoles, programRoles))
+        if (!CanManageProject(actorEmployeeId, portfolioRoles, programRoles))
             return Result.Failure<ProjectHealthCheck>(UnauthorizedHealthCheckActorError);
 
         var healthCheck = _healthChecks.FirstOrDefault(h => h.Id == healthCheckId);
@@ -1004,7 +1098,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         IEnumerable<RoleAssignment<ProjectPortfolioRole>> portfolioRoles,
         IEnumerable<RoleAssignment<ProgramRole>>? programRoles)
     {
-        if (!CanManageHealthChecks(actorEmployeeId, portfolioRoles, programRoles))
+        if (!CanManageProject(actorEmployeeId, portfolioRoles, programRoles))
             return Result.Failure<ProjectHealthCheck>(UnauthorizedHealthCheckActorError);
 
         var healthCheck = _healthChecks.FirstOrDefault(h => h.Id == healthCheckId);
@@ -1016,20 +1110,21 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     }
 
     /// <summary>
-    /// Read-side authorization predicate: returns true if the given employee may create, update,
-    /// or delete health checks on this project. Owner/Manager on the project itself OR on the
-    /// parent portfolio OR on the parent program (when assigned) is sufficient. Sponsors are
-    /// intentionally excluded — they fund and oversee but don't run delivery.
+    /// Read-side authorization predicate: returns true if the given employee may manage this project —
+    /// the delivery-management capability shared by actions such as recording health checks and scores.
+    /// Owner/Manager on the project itself OR on the parent portfolio OR on the parent program (when
+    /// assigned) is sufficient. Sponsors are intentionally excluded — they fund and oversee but don't
+    /// run delivery.
     ///
-    /// The lifecycle methods on this aggregate enforce the same rule inline, so callers cannot
-    /// bypass it; this method exists primarily so the API layer can surface the decision to the
-    /// UI for action-availability hints.
+    /// The aggregate's management methods enforce the same rule inline, so callers cannot bypass it;
+    /// this method exists primarily so the API layer can surface the decision to the UI for
+    /// action-availability hints.
     /// </summary>
     /// <param name="employeeId">The ID of the employee to check.</param>
     /// <param name="portfolioRoles">The roles of the employee in the portfolio.</param>
     /// <param name="programRoles">The roles of the employee in the program, if applicable.</param>
-    /// <returns>True if the employee can manage health checks; otherwise, false.</returns>
-    public bool CanManageHealthChecks(
+    /// <returns>True if the employee can manage the project; otherwise, false.</returns>
+    public bool CanManageProject(
         Guid employeeId,
         IEnumerable<RoleAssignment<ProjectPortfolioRole>> portfolioRoles,
         IEnumerable<RoleAssignment<ProgramRole>>? programRoles)

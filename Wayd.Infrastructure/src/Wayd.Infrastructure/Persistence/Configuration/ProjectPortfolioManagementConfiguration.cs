@@ -6,10 +6,12 @@ using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Models.KeyPerformanceIndicators;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Models;
 using Wayd.Infrastructure.Persistence.Converters;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 
 namespace Wayd.Infrastructure.Persistence.Configuration;
@@ -70,6 +72,7 @@ public class ProjectPortfolioConfiguration : IEntityTypeConfiguration<ProjectPor
         builder.HasAlternateKey(p => p.Key);
 
         builder.HasIndex(p => p.Status);
+        builder.HasIndex(p => p.ScoringModelId);
 
         builder.Property(p => p.Id).ValueGeneratedNever();
         builder.Property(p => p.Key).ValueGeneratedOnAdd();
@@ -79,6 +82,7 @@ public class ProjectPortfolioConfiguration : IEntityTypeConfiguration<ProjectPor
             .HasConversion<EnumConverter<ProjectPortfolioStatus>>()
             .HasMaxLength(32)
             .HasColumnType("varchar");
+        builder.Property(p => p.ScoringModelId);
 
         // Value Objects
         builder.OwnsOne(r => r.DateRange, options =>
@@ -92,6 +96,11 @@ public class ProjectPortfolioConfiguration : IEntityTypeConfiguration<ProjectPor
             .WithOne(prj => prj.Portfolio)
             .HasForeignKey(p => p.PortfolioId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(p => p.ScoringModel)
+            .WithMany()
+            .HasForeignKey(p => p.ScoringModelId)
+            .OnDelete(DeleteBehavior.NoAction);
 
         builder.HasMany(p => p.Programs)
             .WithOne(prg => prg.Portfolio)
@@ -168,6 +177,7 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
             .IsUnique();
 
         builder.HasIndex(p => p.Status);
+        builder.HasIndex(p => new { p.PortfolioId, p.Rank });
 
         builder.Property(p => p.Id).ValueGeneratedNever();
         builder.Property(p => p.Name).HasMaxLength(128).IsRequired();
@@ -188,11 +198,29 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
             .HasMaxLength(32)
             .HasColumnType("varchar");
 
+        builder.Property(p => p.Rank);
+
         // Value Objects
         builder.OwnsOne(r => r.DateRange, options =>
         {
             options.Property(d => d.Start).HasColumnName("Start");
             options.Property(d => d.End).HasColumnName("End");
+        });
+
+        // Denormalised current-score summary, stored as owned columns. The score history in
+        // ProjectScores remains authoritative; this is a read cache for list/grid views. The scorer is a
+        // navigation (not frozen) so the name always reflects the current employee.
+        builder.OwnsOne(p => p.CurrentScore, options =>
+        {
+            options.Property(s => s.Value).HasColumnName("CurrentScoreValue").HasColumnType("decimal(18,4)");
+            options.Property(s => s.ScoredOn).HasColumnName("CurrentScoredOn");
+            options.Property(s => s.ScoredById).HasColumnName("CurrentScoredById");
+            options.Property(s => s.ScoringModelName).HasColumnName("CurrentScoringModelName").HasMaxLength(128);
+
+            options.HasOne(s => s.ScoredBy)
+                .WithMany()
+                .HasForeignKey(s => s.ScoredById)
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         // Relationships
@@ -235,8 +263,104 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
             .WithOne()
             .HasForeignKey(h => h.ProjectId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(p => p.Scores)
+            .WithOne()
+            .HasForeignKey(s => s.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+#region Project Scoring
+
+public class ProjectScoreConfiguration : IEntityTypeConfiguration<ProjectScore>
+{
+    public void Configure(EntityTypeBuilder<ProjectScore> builder)
+    {
+        builder.ToTable("ProjectScores", SchemaNames.ProjectPortfolioManagement);
+
+        builder.HasKey(s => s.Id);
+
+        // Unique so the per-project monotonic Sequence is enforced at the database level: concurrent
+        // scores for the same project that compute the same next sequence collide here (one wins, the
+        // other fails and can retry) rather than silently producing duplicate sequences.
+        builder.HasIndex(s => new { s.ProjectId, s.Sequence }).IsUnique();
+
+        builder.Property(s => s.Id).ValueGeneratedNever();
+        builder.Property(s => s.ProjectId).IsRequired();
+
+        // Snapshot reference — deliberately NOT a foreign key. The source model may be archived or
+        // replaced; this score must remain valid and self-contained.
+        builder.Property(s => s.ScoringModelId).IsRequired();
+        builder.Property(s => s.ScoringModelKey).IsRequired();
+        builder.Property(s => s.ScoringModelName).HasMaxLength(128).IsRequired();
+
+        builder.Property(s => s.PrimaryValue).HasColumnType("decimal(18,4)").IsRequired();
+        builder.Property(s => s.ScoredOn).IsRequired();
+        builder.Property(s => s.ScoredById).IsRequired();
+        builder.Property(s => s.Sequence).IsRequired();
+
+        // Relationships
+        builder.HasOne(s => s.ScoredBy)
+            .WithMany()
+            .HasForeignKey(s => s.ScoredById)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasMany(s => s.Ratings)
+            .WithOne()
+            .HasForeignKey(r => r.ProjectScoreId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(s => s.Outputs)
+            .WithOne()
+            .HasForeignKey(o => o.ProjectScoreId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class ProjectScoreRatingConfiguration : IEntityTypeConfiguration<ProjectScoreRating>
+{
+    public void Configure(EntityTypeBuilder<ProjectScoreRating> builder)
+    {
+        builder.ToTable("ProjectScoreRatings", SchemaNames.ProjectPortfolioManagement);
+
+        builder.HasKey(r => r.Id);
+
+        builder.HasIndex(r => r.ProjectScoreId);
+
+        builder.Property(r => r.Id).ValueGeneratedNever();
+        builder.Property(r => r.ProjectScoreId).IsRequired();
+        builder.Property(r => r.CriterionId).IsRequired();
+        builder.Property(r => r.CriterionName).HasMaxLength(128).IsRequired();
+        builder.Property(r => r.CriterionToken).HasColumnType("varchar").HasMaxLength(32).IsRequired();
+        builder.Property(r => r.RatingValue).HasColumnType("decimal(9,4)").IsRequired();
+        builder.Property(r => r.RatingLevelId);
+        builder.Property(r => r.RatingLevelLabel).HasMaxLength(64);
+        builder.Property(r => r.Order).IsRequired();
+    }
+}
+
+public class ProjectScoreOutputConfiguration : IEntityTypeConfiguration<ProjectScoreOutput>
+{
+    public void Configure(EntityTypeBuilder<ProjectScoreOutput> builder)
+    {
+        builder.ToTable("ProjectScoreOutputs", SchemaNames.ProjectPortfolioManagement);
+
+        builder.HasKey(o => o.Id);
+
+        builder.HasIndex(o => o.ProjectScoreId);
+
+        builder.Property(o => o.Id).ValueGeneratedNever();
+        builder.Property(o => o.ProjectScoreId).IsRequired();
+        builder.Property(o => o.Token).HasColumnType("varchar").HasMaxLength(32).IsRequired();
+        builder.Property(o => o.Name).HasMaxLength(128).IsRequired();
+        builder.Property(o => o.Value).HasColumnType("decimal(18,4)").IsRequired();
+        builder.Property(o => o.IsPrimary).IsRequired();
+        builder.Property(o => o.Order).IsRequired();
+    }
+}
+
+#endregion Project Scoring
 
 public class ProjectHealthCheckConfiguration : IEntityTypeConfiguration<ProjectHealthCheck>
 {

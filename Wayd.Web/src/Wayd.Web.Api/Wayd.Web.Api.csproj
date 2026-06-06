@@ -78,8 +78,11 @@
         <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
     </PropertyGroup>
     <Target Name="NSwag" AfterTargets="PostBuildEvent" Condition=" '$(Configuration)' == 'Debug' ">
+        <!-- WAYD_SKIP_DB_INIT keeps the host from applying migrations / seeding when NSwag boots the
+             real app to read the OpenAPI document. EF.IsDesignTime is false here, so the boot-time
+             InitializeDatabases() guard alone is not enough. -->
         <Exec ConsoleToMSBuild="true" ContinueOnError="true" WorkingDirectory="$(ProjectDir)"
-            EnvironmentVariables="ASPNETCORE_ENVIRONMENT=Development"
+            EnvironmentVariables="ASPNETCORE_ENVIRONMENT=Development;WAYD_SKIP_DB_INIT=true"
             Command="$(NSwagExe_Net100) run nswag.json /variables:Configuration=$(Configuration)">
             <Output TaskParameter="ExitCode" PropertyName="NSwagExitCode" />
             <Output TaskParameter="ConsoleOutput" PropertyName="NSwagOutput" />

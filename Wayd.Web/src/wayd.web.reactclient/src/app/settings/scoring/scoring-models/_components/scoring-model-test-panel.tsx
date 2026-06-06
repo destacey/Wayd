@@ -115,9 +115,10 @@ const ScoringModelTestPanel = ({ scoringModel }: ScoringModelTestPanelProps) => 
                   </Space>
                 }
                 tooltip={
-                  scale
+                  criterion.description ||
+                  (scale
                     ? `Rated on the "${scale.name}" scale.`
-                    : 'Free numeric entry — no scale assigned.'
+                    : 'Free numeric entry — no scale assigned.')
                 }
                 style={{ marginBottom: token.marginSM }}
               >

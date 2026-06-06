@@ -6419,6 +6419,131 @@ export class PortfoliosClient {
     }
 
     /**
+     * Assign a scoring model to a portfolio, enabling project scoring.
+     */
+    assignScoringModel(id: string, request: AssignPortfolioScoringModelRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/portfolios/{id}/scoring-model";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAssignScoringModel(_response);
+        });
+    }
+
+    protected processAssignScoringModel(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Clear a portfolio's scoring model, disabling new project scoring.
+     */
+    clearScoringModel(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/portfolios/{id}/scoring-model";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processClearScoringModel(_response);
+        });
+    }
+
+    protected processClearScoringModel(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get a list of programs for the portfolio.
      * @param status (optional) 
      */
@@ -10059,6 +10184,271 @@ export class ProjectsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+}
+
+export class ProjectScoresClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get the scoring context for a project (assigned model, current score, and whether the user can score).
+     */
+    getScoringContext(id: string, cancelToken?: CancelToken): Promise<ProjectScoringContextDto> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/scoring-context";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetScoringContext(_response);
+        });
+    }
+
+    protected processGetScoringContext(response: AxiosResponse): Promise<ProjectScoringContextDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ProjectScoringContextDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ProjectScoringContextDto>(null as any);
+    }
+
+    /**
+     * Get the scoring history for a project.
+     */
+    getScores(id: string, cancelToken?: CancelToken): Promise<ProjectScoreSummaryDto[]> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/scores";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetScores(_response);
+        });
+    }
+
+    protected processGetScores(response: AxiosResponse): Promise<ProjectScoreSummaryDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ProjectScoreSummaryDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ProjectScoreSummaryDto[]>(null as any);
+    }
+
+    /**
+     * Record a score for a project.
+     */
+    recordScore(id: string, request: RecordProjectScoreRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/scores";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRecordScore(_response);
+        });
+    }
+
+    protected processRecordScore(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<string>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * Get a specific recorded score for a project.
+     */
+    getScore(id: string, scoreId: string, cancelToken?: CancelToken): Promise<ProjectScoreDetailsDto> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/scores/{scoreId}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (scoreId === undefined || scoreId === null)
+            throw new globalThis.Error("The parameter 'scoreId' must be defined.");
+        url_ = url_.replace("{scoreId}", encodeURIComponent("" + scoreId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetScore(_response);
+        });
+    }
+
+    protected processGetScore(response: AxiosResponse): Promise<ProjectScoreDetailsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ProjectScoreDetailsDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ProjectScoreDetailsDto>(null as any);
     }
 }
 
@@ -28722,6 +29112,7 @@ export interface ProjectPortfolioDetailsDto {
     name: string;
     description: string;
     status: LifecycleNavigationDto;
+    scoringModel?: NavigationDto | undefined;
     portfolioSponsors: EmployeeNavigationDto[];
     portfolioOwners: EmployeeNavigationDto[];
     portfolioManagers: EmployeeNavigationDto[];
@@ -28755,6 +29146,10 @@ export interface UpdatePortfolioRequest {
     managerIds?: string[] | undefined;
 }
 
+export interface AssignPortfolioScoringModelRequest {
+    scoringModelId: string;
+}
+
 export interface ProgramListDto {
     id: string;
     key: number;
@@ -28786,6 +29181,8 @@ export interface ProjectListDto {
     projectLifecycle?: NavigationDto | undefined;
     phases: ProjectPhaseListDto[];
     healthCheck?: ProjectHealthCheckSummaryDto | undefined;
+    currentScore?: ScoreSummaryDto | undefined;
+    canManageProject: boolean;
 }
 
 export interface ProjectPhaseListDto {
@@ -28801,6 +29198,13 @@ export interface ProjectPhaseListDto {
 export interface ProjectHealthCheckSummaryDto {
     id: string;
     status: SimpleNavigationDto;
+}
+
+export interface ScoreSummaryDto {
+    value: number;
+    scoredOn: Date;
+    scoredBy?: EmployeeNavigationDto | undefined;
+    scoringModelName: string;
 }
 
 export interface StrategicInitiativeListDto {
@@ -29024,7 +29428,9 @@ export interface ProjectDetailsDto {
     projectLifecycle?: DescriptiveNavigationDto | undefined;
     phases: ProjectPhaseListDto[];
     healthCheck?: ProjectHealthCheckDto | undefined;
-    canManageHealthChecks: boolean;
+    canManageProject: boolean;
+    portfolioScoringModel?: NavigationDto | undefined;
+    currentScore?: ScoreSummaryDto | undefined;
 }
 
 export interface DescriptiveNavigationDtoOfGuidAndInteger {
@@ -29277,6 +29683,110 @@ export interface Operation extends OperationBase {
 }
 
 export interface OperationOfUpdateProjectPhaseRequest extends Operation {
+}
+
+export interface ProjectScoringContextDto {
+    scoringModel?: ScoringModelDetailsDto | undefined;
+    scoringModelArchived: boolean;
+    currentScore?: ProjectScoreDetailsDto | undefined;
+}
+
+export interface ScoringModelDetailsDto {
+    id: string;
+    key: number;
+    name: string;
+    description: string;
+    state: SimpleNavigationDto;
+    criteria: ScoringModelCriterionDto[];
+    scales: ScoringScaleDto[];
+    outputs: ScoringModelOutputDto[];
+}
+
+export interface ScoringModelCriterionDto {
+    id: string;
+    name: string;
+    token: string;
+    description?: string | undefined;
+    weight?: number | undefined;
+    scaleId?: string | undefined;
+    order: number;
+}
+
+export interface ScoringScaleDto {
+    id: string;
+    name: string;
+    order: number;
+    levels: ScoringRatingLevelDto[];
+}
+
+export interface ScoringRatingLevelDto {
+    id: string;
+    label: string;
+    value: number;
+    order: number;
+}
+
+export interface ScoringModelOutputDto {
+    id: string;
+    name: string;
+    token: string;
+    formula: string;
+    isPrimary: boolean;
+    order: number;
+}
+
+export interface ProjectScoreDetailsDto {
+    id: string;
+    projectId: string;
+    sequence: number;
+    scoringModelId: string;
+    scoringModelKey: number;
+    scoringModelName: string;
+    primaryValue: number;
+    scoredOn: Date;
+    scoredBy?: EmployeeNavigationDto | undefined;
+    ratings: ProjectScoreRatingDto[];
+    outputs: ProjectScoreOutputDto[];
+}
+
+export interface ProjectScoreRatingDto {
+    criterionId: string;
+    criterionName: string;
+    criterionToken: string;
+    ratingValue: number;
+    ratingLevelId?: string | undefined;
+    ratingLevelLabel?: string | undefined;
+    order: number;
+}
+
+export interface ProjectScoreOutputDto {
+    token: string;
+    name: string;
+    value: number;
+    isPrimary: boolean;
+    order: number;
+}
+
+export interface ProjectScoreSummaryDto {
+    id: string;
+    sequence: number;
+    scoringModelId: string;
+    scoringModelKey: number;
+    scoringModelName: string;
+    primaryValue: number;
+    scoredOn: Date;
+    scoredBy?: EmployeeNavigationDto | undefined;
+    outputs: ProjectScoreOutputDto[];
+}
+
+export interface RecordProjectScoreRequest {
+    ratings: CriterionRatingRequest[];
+}
+
+export interface CriterionRatingRequest {
+    criterionId: string;
+    value?: number | undefined;
+    ratingLevelId?: string | undefined;
 }
 
 export interface ProjectTaskListDto {
@@ -31683,50 +32193,6 @@ export enum ScoringModelState {
     Proposed = "Proposed",
     Active = "Active",
     Archived = "Archived",
-}
-
-export interface ScoringModelDetailsDto {
-    id: string;
-    key: number;
-    name: string;
-    description: string;
-    state: SimpleNavigationDto;
-    criteria: ScoringModelCriterionDto[];
-    scales: ScoringScaleDto[];
-    outputs: ScoringModelOutputDto[];
-}
-
-export interface ScoringModelCriterionDto {
-    id: string;
-    name: string;
-    token: string;
-    description?: string | undefined;
-    weight?: number | undefined;
-    scaleId?: string | undefined;
-    order: number;
-}
-
-export interface ScoringScaleDto {
-    id: string;
-    name: string;
-    order: number;
-    levels: ScoringRatingLevelDto[];
-}
-
-export interface ScoringRatingLevelDto {
-    id: string;
-    label: string;
-    value: number;
-    order: number;
-}
-
-export interface ScoringModelOutputDto {
-    id: string;
-    name: string;
-    token: string;
-    formula: string;
-    isPrimary: boolean;
-    order: number;
 }
 
 export interface CreateScoringModelRequest {

@@ -2,6 +2,8 @@
 using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Scoring;
+using Wayd.Common.Domain.Scoring.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 using NodaTime;
@@ -100,6 +102,17 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     public IReadOnlyCollection<StrategicInitiative> StrategicInitiatives => _strategicInitiatives;
 
     /// <summary>
+    /// The ID of the scoring model the portfolio's projects are scored with. Null when scoring is not
+    /// enabled for the portfolio. Assigning a model enables project scoring across the portfolio.
+    /// </summary>
+    public Guid? ScoringModelId { get; private set; }
+
+    /// <summary>
+    /// The scoring model assigned to the portfolio, if any.
+    /// </summary>
+    public ScoringModel? ScoringModel { get; private set; }
+
+    /// <summary>
     /// Indicates whether the portfolio is readonly.
     /// </summary>
     public bool IsActive => Status is ProjectPortfolioStatus.Active or ProjectPortfolioStatus.OnHold;
@@ -171,6 +184,50 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
 
         return RoleManager.UpdateRoles(_roles, Id, updatedRoles);
     }
+
+    #region Scoring
+
+    /// <summary>
+    /// Assigns an active scoring model to the portfolio, enabling its projects to be scored. Existing
+    /// project scores are unaffected — they retain their own frozen model reference.
+    /// </summary>
+    /// <param name="model">The scoring model to assign. Must be in the Active state.</param>
+    public Result AssignScoringModel(ScoringModel model)
+    {
+        Guard.Against.Null(model, nameof(model));
+
+        if (IsReadOnly)
+        {
+            return Result.Failure(ReadOnlyErrorMessage);
+        }
+
+        if (model.State != ScoringModelState.Active)
+        {
+            return Result.Failure("Only active scoring models can be assigned to a portfolio.");
+        }
+
+        ScoringModelId = model.Id;
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Clears the portfolio's assigned scoring model, disabling new project scoring. Existing project
+    /// scores are unaffected.
+    /// </summary>
+    public Result ClearScoringModel()
+    {
+        if (IsReadOnly)
+        {
+            return Result.Failure(ReadOnlyErrorMessage);
+        }
+
+        ScoringModelId = null;
+
+        return Result.Success();
+    }
+
+    #endregion Scoring
 
     #region Lifecycle
 

@@ -45,10 +45,10 @@ internal sealed class GetProjectQueryHandler(
         // Project owner/manager check is handled in the projection.
         // Only do the more expensive portfolio/program lookup if that came back false.
         // Use dto.Id (already resolved) to avoid a second key-to-ID lookup.
-        if (!dto.CanManageHealthChecks && employeeId.HasValue)
+        if (!dto.CanManageProject && employeeId.HasValue)
         {
             var projectId = dto.Id;
-            dto.CanManageHealthChecks = await _ppmDbContext.Projects
+            dto.CanManageProject = await _ppmDbContext.Projects
                 .Where(p => p.Id == projectId)
                 .AnyAsync(p =>
                     p.Portfolio!.Roles.Any(r =>

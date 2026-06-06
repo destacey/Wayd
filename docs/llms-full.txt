@@ -262,12 +262,15 @@ Audit trail: Revision number, who, when, field-level changes (old/new values).
 
 Top-level container. Properties:
 - Name, Description, Status, Date Range, Roles
+- Optional ScoringModelId: active scoring model assigned to enable project priority scoring
 
 Status lifecycle: Proposed → Active (start date) → OnHold ↔ Active → Closed (all children closed, end date) → Archived (read-only).
 
 Roles: Sponsor, Owner, Manager, Portfolio Manager, Stakeholder Manager, Governance Reviewer, Capacity Planner.
 
 Contains: Programs, Projects, Strategic Initiatives.
+
+Portfolio scoring rules: only Active scoring models can be assigned. Clearing or changing the assignment disables/changes future scoring only; existing project score snapshots remain intact.
 
 ### Programs
 
@@ -283,10 +286,23 @@ Most feature-rich entity. Properties:
 - Key (ProjectKey, 2-20 uppercase alphanumeric), Name, Description, BusinessCase, ExpectedBenefits
 - Status, Date Range, Expenditure Category, Lifecycle, Roles (Sponsor/Owner/Manager/Member)
 - Strategic Theme Tags
+- CurrentScore summary: latest project priority score value, scorer, timestamp, and scoring model name
 
 Status lifecycle: Proposed → Approved (requires lifecycle) → Active (requires dates) → Completed/Cancelled.
 
 Key can be changed (cascades to all task keys). Only Proposed deletable. At most one program.
+
+Project priority scoring: if the parent portfolio has an assigned scoring model, project Owner/Manager, portfolio Owner/Manager, or program Owner/Manager can record scores. Each score is an immutable ProjectScore snapshot with per-project Sequence ordering, frozen criterion ratings, calculated outputs, scorer, timestamp, and model id/key/name. Re-scoring creates a new history entry and updates CurrentScore.
+
+### Scoring Models
+
+Reusable formula-driven models for consistent ranking. Properties:
+- Name, Description, State (Proposed/Active/Archived)
+- Criteria: rated inputs with unique tokens, optional descriptions, optional weights, optional rating scales
+- Rating scales: named ordered levels, each with label and decimal value
+- Outputs: ordered arithmetic formulas over criterion tokens and earlier output tokens; exactly one output is primary
+
+Lifecycle: Proposed is editable/deletable; Active is locked and assignable; Archived is retired. Activation requires at least one criterion and one valid primary output. Formulas support arithmetic over decimals and reject unknown tokens, malformed expressions, function calls, and divide-by-zero evaluations.
 
 ### Project Lifecycles
 

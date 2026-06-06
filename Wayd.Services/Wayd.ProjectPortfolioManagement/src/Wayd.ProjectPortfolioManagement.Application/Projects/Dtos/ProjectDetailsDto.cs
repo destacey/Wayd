@@ -1,5 +1,6 @@
 ﻿using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Employees.Dtos;
+using Wayd.ProjectPortfolioManagement.Application.Projects.Scoring.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
@@ -112,11 +113,22 @@ public sealed record ProjectDetailsDto
     public ProjectHealthCheckDto? HealthCheck { get; set; }
 
     /// <summary>
-    /// Whether the current user can manage health checks for this project.
-    /// True when the user is a project Owner or Manager. May be elevated to true
-    /// by a second-pass portfolio/program check in the query handler.
+    /// Whether the current user can manage this project (record health checks, scores, and other
+    /// delivery-management actions). True when the user is an Owner or Manager of the project, its
+    /// portfolio, or its program. May be elevated by a second-pass portfolio/program check in the
+    /// query handler.
     /// </summary>
-    public bool CanManageHealthChecks { get; set; }
+    public bool CanManageProject { get; set; }
+
+    /// <summary>
+    /// The scoring model assigned to the project's portfolio, or null if scoring is not enabled.
+    /// </summary>
+    public NavigationDto? PortfolioScoringModel { get; set; }
+
+    /// <summary>
+    /// A summary of the project's most recent score, or null if it has not been scored.
+    /// </summary>
+    public ScoreSummaryDto? CurrentScore { get; set; }
 
     /// <summary>
     /// Creates a TypeAdapterConfig that maps <see cref="Project"/> to <see cref="ProjectDetailsDto"/>,
@@ -162,9 +174,21 @@ public sealed record ProjectDetailsDto
                     Note = h.Note
                 })
                 .FirstOrDefault())
-            .Map(dest => dest.CanManageHealthChecks, src => employeeId.HasValue &&
+            .Map(dest => dest.CanManageProject, src => employeeId.HasValue &&
                 src.Roles.Any(r => r.EmployeeId == employeeId.Value &&
-                    (r.Role == ProjectRole.Owner || r.Role == ProjectRole.Manager)));
+                    (r.Role == ProjectRole.Owner || r.Role == ProjectRole.Manager)))
+            .Map(dest => dest.PortfolioScoringModel, src => src.Portfolio!.ScoringModel == null
+                ? null
+                : NavigationDto.Create(src.Portfolio.ScoringModel.Id, src.Portfolio.ScoringModel.Key, src.Portfolio.ScoringModel.Name))
+            .Map(dest => dest.CurrentScore, src => src.CurrentScore == null ? null : new ScoreSummaryDto
+            {
+                Value = src.CurrentScore.Value,
+                ScoredOn = src.CurrentScore.ScoredOn,
+                ScoredBy = src.CurrentScore.ScoredBy == null
+                    ? null
+                    : EmployeeNavigationDto.From(src.CurrentScore.ScoredBy),
+                ScoringModelName = src.CurrentScore.ScoringModelName,
+            });
 
         return cfg;
     }

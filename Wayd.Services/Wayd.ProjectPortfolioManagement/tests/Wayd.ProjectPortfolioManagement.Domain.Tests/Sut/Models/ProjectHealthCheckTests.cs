@@ -271,62 +271,62 @@ public sealed class ProjectHealthCheckTests
 
     #endregion
 
-    #region CanManageHealthChecks
+    #region CanManageProject
 
     [Fact]
-    public void CanManageHealthChecks_WhenProjectOwner_ReturnsTrue()
+    public void CanManageProject_WhenProjectOwner_ReturnsTrue()
     {
         var employeeId = Guid.NewGuid();
         var project = _projectFaker
             .WithData(roles: new() { [ProjectRole.Owner] = [employeeId] })
             .Generate();
 
-        var result = project.CanManageHealthChecks(employeeId, [], null);
+        var result = project.CanManageProject(employeeId, [], null);
 
         result.Should().BeTrue();
     }
 
     [Fact]
-    public void CanManageHealthChecks_WhenProjectManager_ReturnsTrue()
+    public void CanManageProject_WhenProjectManager_ReturnsTrue()
     {
         var employeeId = Guid.NewGuid();
         var project = _projectFaker
             .WithData(roles: new() { [ProjectRole.Manager] = [employeeId] })
             .Generate();
 
-        var result = project.CanManageHealthChecks(employeeId, [], null);
+        var result = project.CanManageProject(employeeId, [], null);
 
         result.Should().BeTrue();
     }
 
     [Fact]
-    public void CanManageHealthChecks_WhenProjectSponsor_ReturnsFalse()
+    public void CanManageProject_WhenProjectSponsor_ReturnsFalse()
     {
         var employeeId = Guid.NewGuid();
         var project = _projectFaker
             .WithData(roles: new() { [ProjectRole.Sponsor] = [employeeId] })
             .Generate();
 
-        var result = project.CanManageHealthChecks(employeeId, [], null);
+        var result = project.CanManageProject(employeeId, [], null);
 
         result.Should().BeFalse();
     }
 
     [Fact]
-    public void CanManageHealthChecks_WhenProjectMember_ReturnsFalse()
+    public void CanManageProject_WhenProjectMember_ReturnsFalse()
     {
         var employeeId = Guid.NewGuid();
         var project = _projectFaker
             .WithData(roles: new() { [ProjectRole.Member] = [employeeId] })
             .Generate();
 
-        var result = project.CanManageHealthChecks(employeeId, [], null);
+        var result = project.CanManageProject(employeeId, [], null);
 
         result.Should().BeFalse();
     }
 
     [Fact]
-    public void CanManageHealthChecks_WhenPortfolioOwner_ReturnsTrue()
+    public void CanManageProject_WhenPortfolioOwner_ReturnsTrue()
     {
         var employeeId = Guid.NewGuid();
         var project = _projectFaker.Generate();
@@ -335,13 +335,13 @@ public sealed class ProjectHealthCheckTests
             new RoleAssignment<ProjectPortfolioRole>(project.PortfolioId, ProjectPortfolioRole.Owner, employeeId),
         };
 
-        var result = project.CanManageHealthChecks(employeeId, portfolioRoles, null);
+        var result = project.CanManageProject(employeeId, portfolioRoles, null);
 
         result.Should().BeTrue();
     }
 
     [Fact]
-    public void CanManageHealthChecks_WhenPortfolioManager_ReturnsTrue()
+    public void CanManageProject_WhenPortfolioManager_ReturnsTrue()
     {
         var employeeId = Guid.NewGuid();
         var project = _projectFaker.Generate();
@@ -350,13 +350,13 @@ public sealed class ProjectHealthCheckTests
             new RoleAssignment<ProjectPortfolioRole>(project.PortfolioId, ProjectPortfolioRole.Manager, employeeId),
         };
 
-        var result = project.CanManageHealthChecks(employeeId, portfolioRoles, null);
+        var result = project.CanManageProject(employeeId, portfolioRoles, null);
 
         result.Should().BeTrue();
     }
 
     [Fact]
-    public void CanManageHealthChecks_WhenPortfolioSponsor_ReturnsFalse()
+    public void CanManageProject_WhenPortfolioSponsor_ReturnsFalse()
     {
         var employeeId = Guid.NewGuid();
         var project = _projectFaker.Generate();
@@ -365,13 +365,13 @@ public sealed class ProjectHealthCheckTests
             new RoleAssignment<ProjectPortfolioRole>(project.PortfolioId, ProjectPortfolioRole.Sponsor, employeeId),
         };
 
-        var result = project.CanManageHealthChecks(employeeId, portfolioRoles, null);
+        var result = project.CanManageProject(employeeId, portfolioRoles, null);
 
         result.Should().BeFalse();
     }
 
     [Fact]
-    public void CanManageHealthChecks_WhenProgramOwner_ReturnsTrue()
+    public void CanManageProject_WhenProgramOwner_ReturnsTrue()
     {
         var employeeId = Guid.NewGuid();
         var programId = Guid.NewGuid();
@@ -381,13 +381,13 @@ public sealed class ProjectHealthCheckTests
             new RoleAssignment<ProgramRole>(programId, ProgramRole.Owner, employeeId),
         };
 
-        var result = project.CanManageHealthChecks(employeeId, [], programRoles);
+        var result = project.CanManageProject(employeeId, [], programRoles);
 
         result.Should().BeTrue();
     }
 
     [Fact]
-    public void CanManageHealthChecks_WhenProgramManager_ReturnsTrue()
+    public void CanManageProject_WhenProgramManager_ReturnsTrue()
     {
         var employeeId = Guid.NewGuid();
         var programId = Guid.NewGuid();
@@ -397,13 +397,13 @@ public sealed class ProjectHealthCheckTests
             new RoleAssignment<ProgramRole>(programId, ProgramRole.Manager, employeeId),
         };
 
-        var result = project.CanManageHealthChecks(employeeId, [], programRoles);
+        var result = project.CanManageProject(employeeId, [], programRoles);
 
         result.Should().BeTrue();
     }
 
     [Fact]
-    public void CanManageHealthChecks_WhenProgramSponsor_ReturnsFalse()
+    public void CanManageProject_WhenProgramSponsor_ReturnsFalse()
     {
         var employeeId = Guid.NewGuid();
         var programId = Guid.NewGuid();
@@ -413,24 +413,24 @@ public sealed class ProjectHealthCheckTests
             new RoleAssignment<ProgramRole>(programId, ProgramRole.Sponsor, employeeId),
         };
 
-        var result = project.CanManageHealthChecks(employeeId, [], programRoles);
+        var result = project.CanManageProject(employeeId, [], programRoles);
 
         result.Should().BeFalse();
     }
 
     [Fact]
-    public void CanManageHealthChecks_WhenNoRoleAnywhere_ReturnsFalse()
+    public void CanManageProject_WhenNoRoleAnywhere_ReturnsFalse()
     {
         var employeeId = Guid.NewGuid();
         var project = _projectFaker.Generate();
 
-        var result = project.CanManageHealthChecks(employeeId, [], null);
+        var result = project.CanManageProject(employeeId, [], null);
 
         result.Should().BeFalse();
     }
 
     [Fact]
-    public void CanManageHealthChecks_WhenDifferentEmployeeOnAllLevels_ReturnsFalse()
+    public void CanManageProject_WhenDifferentEmployeeOnAllLevels_ReturnsFalse()
     {
         var requestingEmployeeId = Guid.NewGuid();
         var ownerEmployeeId = Guid.NewGuid();
@@ -450,7 +450,7 @@ public sealed class ProjectHealthCheckTests
             new RoleAssignment<ProgramRole>(programId, ProgramRole.Manager, ownerEmployeeId),
         };
 
-        var result = project.CanManageHealthChecks(requestingEmployeeId, portfolioRoles, programRoles);
+        var result = project.CanManageProject(requestingEmployeeId, portfolioRoles, programRoles);
 
         result.Should().BeFalse();
     }

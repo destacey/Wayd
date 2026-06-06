@@ -1,13 +1,16 @@
 ﻿using FluentAssertions;
+using NodaTime;
+using NodaTime.Extensions;
+using NodaTime.Testing;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Scoring;
+using Wayd.Common.Domain.Tests.Data;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Extensions;
-using NodaTime.Extensions;
-using NodaTime.Testing;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Sut.Models;
 
@@ -16,12 +19,14 @@ public class ProjectTests
     private readonly TestingDateTimeProvider _dateTimeProvider;
     private readonly ProjectFaker _projectFaker;
     private readonly StrategicThemeFaker _themeFaker;
+    private readonly ScoringModelFaker _scoringModelFaker;
 
     public ProjectTests()
     {
         _dateTimeProvider = new TestingDateTimeProvider(new FakeClock(DateTime.UtcNow.ToInstant()));
         _projectFaker = new ProjectFaker();
         _themeFaker = new StrategicThemeFaker();
+        _scoringModelFaker = new ScoringModelFaker();
     }
 
     /// <summary>
@@ -1691,4 +1696,242 @@ public class ProjectTests
     }
 
     #endregion ChangeLifecycle Tests
+
+    #region Scoring
+    // A simple free-numeric model: Score = BV / JS. Lets tests pick exact rating values and assert on
+    // the arithmetic without resolving scale levels.
+    private ScoringModel FreeNumericModel() =>
+        _scoringModelFaker.AsActiveWith(
+            scales: [],
+            criteria:
+            [
+                ("Business Value", "BV", null, null),
+                ("Job Size", "JS", null, null),
+            ],
+            outputs:
+            [
+                ("Score", "Score", "BV / JS", true),
+            ]);
+
+    private (Project Project, Guid ActorId) ProjectWithOwner()
+    {
+        var actorId = Guid.NewGuid();
+        var project = _projectFaker
+            .WithData(roles: new() { [ProjectRole.Owner] = [actorId] })
+            .Generate();
+        return (project, actorId);
+    }
+
+    private static IReadOnlyDictionary<Guid, decimal> RatingsByToken(
+        ScoringModel model,
+        params (string Token, decimal Value)[] values)
+    {
+        var byToken = values.ToDictionary(v => v.Token, v => v.Value);
+        return model.Criteria.ToDictionary(c => c.Id, c => byToken[c.Token]);
+    }
+
+    [Fact]
+    public void RecordScore_WhenAuthorizedAndValid_ComputesPrimaryAndAppendsSnapshot()
+    {
+        // Arrange
+        var now = _dateTimeProvider.Now;
+        var (project, actorId) = ProjectWithOwner();
+        var model = FreeNumericModel();
+        var ratings = RatingsByToken(model, ("BV", 10m), ("JS", 2m));
+
+        // Act
+        var result = project.RecordScore(model, ratings, null, actorId, [], null, now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.PrimaryValue.Should().Be(5m); // 10 / 2
+        result.Value.ProjectId.Should().Be(project.Id);
+        result.Value.ScoringModelId.Should().Be(model.Id);
+        result.Value.ScoringModelName.Should().Be(model.Name);
+        result.Value.ScoredById.Should().Be(actorId);
+        result.Value.ScoredOn.Should().Be(now);
+        result.Value.Sequence.Should().Be(1);
+        project.Scores.Should().ContainSingle().Which.Should().Be(result.Value);
+        project.LatestScore.Should().Be(result.Value);
+        project.CurrentScore.Should().NotBeNull();
+        project.CurrentScore!.Value.Should().Be(5m);
+        project.CurrentScore.ScoredOn.Should().Be(now);
+        project.CurrentScore.ScoredById.Should().Be(actorId);
+        project.CurrentScore.ScoringModelName.Should().Be(model.Name);
+    }
+
+    [Fact]
+    public void RecordScore_SnapshotsCriteriaAndOutputsFromModel()
+    {
+        // Arrange
+        var now = _dateTimeProvider.Now;
+        var (project, actorId) = ProjectWithOwner();
+        var model = FreeNumericModel();
+        var ratings = RatingsByToken(model, ("BV", 8m), ("JS", 4m));
+
+        // Act
+        var result = project.RecordScore(model, ratings, null, actorId, [], null, now);
+
+        // Assert
+        var score = result.Value;
+        score.Ratings.Should().HaveCount(2);
+        score.Ratings.Select(r => r.CriterionToken).Should().BeEquivalentTo(["BV", "JS"]);
+        score.Ratings.Single(r => r.CriterionToken == "BV").RatingValue.Should().Be(8m);
+
+        var output = score.Outputs.Should().ContainSingle().Subject;
+        output.Token.Should().Be("Score");
+        output.IsPrimary.Should().BeTrue();
+        output.Value.Should().Be(2m); // 8 / 4
+    }
+
+    [Fact]
+    public void RecordScore_WhenScaleBased_CapturesSelectedLevelLabel()
+    {
+        // Arrange — the WSJF fixture rates all criteria on the "Impact" scale (High=8, Medium=5, Low=1).
+        var now = _dateTimeProvider.Now;
+        var (project, actorId) = ProjectWithOwner();
+        var model = _scoringModelFaker.AsActiveWsjf();
+        var scale = model.Scales.Single();
+        var high = scale.Levels.Single(l => l.Label == "High");
+
+        var ratings = model.Criteria.ToDictionary(c => c.Id, _ => high.Value);
+        var levels = model.Criteria.ToDictionary(
+            c => c.Id,
+            _ => (high.Id, high.Label));
+
+        // Act
+        var result = project.RecordScore(model, ratings, levels, actorId, [], null, now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Ratings.Should().OnlyContain(r => r.RatingLevelId == high.Id);
+        result.Value.Ratings.Should().OnlyContain(r => r.RatingLevelLabel == "High");
+        result.Value.Ratings.Should().OnlyContain(r => r.RatingValue == 8m);
+        // CoD = BV+TC+RR = 24; WSJF = CoD / JS = 24 / 8 = 3.
+        result.Value.PrimaryValue.Should().Be(3m);
+        result.Value.Outputs.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void RecordScore_WhenScoredMultipleTimes_IncrementsSequenceAndUpdatesCurrent()
+    {
+        // Arrange
+        var now = _dateTimeProvider.Now;
+        var (project, actorId) = ProjectWithOwner();
+        var model = FreeNumericModel();
+
+        // Act
+        var first = project.RecordScore(model, RatingsByToken(model, ("BV", 10m), ("JS", 2m)), null, actorId, [], null, now);
+        var second = project.RecordScore(model, RatingsByToken(model, ("BV", 9m), ("JS", 3m)), null, actorId, [], null, now.Plus(Duration.FromDays(1)));
+
+        // Assert
+        first.Value.Sequence.Should().Be(1);
+        second.Value.Sequence.Should().Be(2);
+        project.Scores.Should().HaveCount(2);
+        project.LatestScore.Should().Be(second.Value);
+        project.CurrentScore!.Value.Should().Be(3m); // 9 / 3
+    }
+
+    [Fact]
+    public void RecordScore_WhenCalculationFails_ReturnsFailureAndDoesNotAppend()
+    {
+        // Arrange
+        var now = _dateTimeProvider.Now;
+        var (project, actorId) = ProjectWithOwner();
+        var model = FreeNumericModel();
+        var ratings = RatingsByToken(model, ("BV", 10m), ("JS", 0m)); // division by zero
+
+        // Act
+        var result = project.RecordScore(model, ratings, null, actorId, [], null, now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        project.Scores.Should().BeEmpty();
+        project.CurrentScore.Should().BeNull();
+    }
+
+    [Fact]
+    public void RecordScore_WhenActorNotAuthorized_ReturnsFailureAndDoesNotAppend()
+    {
+        // Arrange
+        var now = _dateTimeProvider.Now;
+        var project = _projectFaker.Generate();
+        var model = FreeNumericModel();
+        var ratings = RatingsByToken(model, ("BV", 10m), ("JS", 2m));
+        var unauthorizedActor = Guid.NewGuid();
+
+        // Act
+        var result = project.RecordScore(model, ratings, null, unauthorizedActor, [], null, now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("owner or manager");
+        project.Scores.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RecordScore_WhenAuthorizedViaPortfolioOwner_Succeeds()
+    {
+        // Arrange
+        var now = _dateTimeProvider.Now;
+        var actorId = Guid.NewGuid();
+        var project = _projectFaker.Generate();
+        var model = FreeNumericModel();
+        var ratings = RatingsByToken(model, ("BV", 6m), ("JS", 2m));
+        var portfolioRoles = new[]
+        {
+            new RoleAssignment<ProjectPortfolioRole>(project.PortfolioId, ProjectPortfolioRole.Owner, actorId),
+        };
+
+        // Act
+        var result = project.RecordScore(model, ratings, null, actorId, portfolioRoles, null, now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.ScoredById.Should().Be(actorId);
+    }
+
+    [Fact]
+    public void RecordScore_WhenAuthorizedViaProgramManager_Succeeds()
+    {
+        // Arrange
+        var now = _dateTimeProvider.Now;
+        var actorId = Guid.NewGuid();
+        var programId = Guid.NewGuid();
+        var project = _projectFaker.WithData(programId: programId).Generate();
+        var model = FreeNumericModel();
+        var ratings = RatingsByToken(model, ("BV", 6m), ("JS", 2m));
+        var programRoles = new[]
+        {
+            new RoleAssignment<ProgramRole>(programId, ProgramRole.Manager, actorId),
+        };
+
+        // Act
+        var result = project.RecordScore(model, ratings, null, actorId, [], programRoles, now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void RecordScore_WhenSponsor_ReturnsFailure()
+    {
+        // Arrange
+        var now = _dateTimeProvider.Now;
+        var sponsorId = Guid.NewGuid();
+        var project = _projectFaker
+            .WithData(roles: new() { [ProjectRole.Sponsor] = [sponsorId] })
+            .Generate();
+        var model = FreeNumericModel();
+        var ratings = RatingsByToken(model, ("BV", 6m), ("JS", 2m));
+
+        // Act
+        var result = project.RecordScore(model, ratings, null, sponsorId, [], null, now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        project.Scores.Should().BeEmpty();
+    }
+
+    #endregion Scoring
 }

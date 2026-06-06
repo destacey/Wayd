@@ -149,6 +149,42 @@ export const portfoliosApi = apiSlice.injectEndpoints({
         return [{ type: QueryTags.Portfolio, id: 'LIST' }]
       },
     }),
+    assignPortfolioScoringModel: builder.mutation<
+      void,
+      { id: string; scoringModelId: string; cacheKey: number }
+    >({
+      queryFn: async ({ id, scoringModelId }) => {
+        try {
+          const data = await getPortfoliosClient().assignScoringModel(id, {
+            scoringModelId,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, { cacheKey }) => [
+        { type: QueryTags.Portfolio, id: cacheKey },
+      ],
+    }),
+    clearPortfolioScoringModel: builder.mutation<
+      void,
+      { id: string; cacheKey: number }
+    >({
+      queryFn: async ({ id }) => {
+        try {
+          const data = await getPortfoliosClient().clearScoringModel(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, { cacheKey }) => [
+        { type: QueryTags.Portfolio, id: cacheKey },
+      ],
+    }),
     getPortfolioPrograms: builder.query<
       ProgramListDto[],
       { portfolioIdOrKey: string; status?: number[] }
@@ -291,6 +327,8 @@ export const {
   useClosePortfolioMutation,
   useArchivePortfolioMutation,
   useDeletePortfolioMutation,
+  useAssignPortfolioScoringModelMutation,
+  useClearPortfolioScoringModelMutation,
   useGetPortfolioProgramsQuery,
   useGetPortfolioProjectsQuery,
   useGetPortfolioStrategicInitiativesQuery,

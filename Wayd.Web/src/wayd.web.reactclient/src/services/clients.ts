@@ -28,6 +28,7 @@ import {
   ExpenditureCategoriesClient,
   ProjectsClient,
   ProjectHealthChecksClient,
+  ProjectScoresClient,
   ProjectTasksClient,
   StrategicInitiativesClient,
   ProjectLifecyclesClient,
@@ -394,6 +395,8 @@ export const getProgramsClient = () => new ProgramsClient('', axiosClient)
 export const getProjectsClient = () => new ProjectsClient('', axiosClient)
 export const getProjectHealthChecksClient = () =>
   new ProjectHealthChecksClient('', axiosClient)
+export const getProjectScoresClient = () =>
+  new ProjectScoresClient('', axiosClient)
 export const getProjectTasksClient = () =>
   new ProjectTasksClient('', axiosClient)
 export const getStrategicInitiativesClient = () =>

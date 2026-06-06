@@ -28,6 +28,7 @@ import {
 import ChangePortfolioStatusForm, {
   PortfolioStatusAction,
 } from '../_components/change-portfolio-status-form'
+import SetPortfolioScoringModelForm from './_components/set-portfolio-scoring-model-form'
 import {
   ProgramsFilterBar,
   ProgramViewManager,
@@ -69,6 +70,7 @@ enum MenuActions {
   Activate = 'Activate',
   Close = 'Close',
   Archive = 'Archive',
+  SetScoringModel = 'Set Scoring Model',
 }
 
 const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
@@ -99,6 +101,8 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [openArchivePortfolioForm, setOpenArchivePortfolioForm] =
     useState<boolean>(false)
   const [openDeletePortfolioForm, setOpenDeletePortfolioForm] =
+    useState<boolean>(false)
+  const [openSetScoringModelForm, setOpenSetScoringModelForm] =
     useState<boolean>(false)
 
   const pathname = usePathname()
@@ -284,14 +288,28 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       })
     }
 
-    if (
-      canUpdatePortfolio &&
-      (availableActions.includes(MenuActions.Activate) ||
-        availableActions.includes(MenuActions.Archive))
-    ) {
+    const canSetScoringModel =
+      canUpdatePortfolio && currentStatus !== 'Archived'
+
+    const hasManageActions =
+      canSetScoringModel ||
+      (canUpdatePortfolio &&
+        (availableActions.includes(MenuActions.Activate) ||
+          availableActions.includes(MenuActions.Close) ||
+          availableActions.includes(MenuActions.Archive)))
+
+    if (hasManageActions && items.length > 0) {
       items.push({
         key: 'manage-divider',
         type: 'divider',
+      })
+    }
+
+    if (canSetScoringModel) {
+      items.push({
+        key: 'set-scoring-model',
+        label: MenuActions.SetScoringModel,
+        onClick: () => setOpenSetScoringModelForm(true),
       })
     }
 
@@ -368,6 +386,13 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     }
   }
 
+  const onSetScoringModelFormClosed = (wasSaved: boolean) => {
+    setOpenSetScoringModelForm(false)
+    if (wasSaved) {
+      refetchPortfolio()
+    }
+  }
+
   const onDeletePortfolioFormClosed = (wasDeleted: boolean) => {
     setOpenDeletePortfolioForm(false)
     if (wasDeleted) {
@@ -436,6 +461,15 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           portfolio={portfolioData}
           onFormComplete={() => onDeletePortfolioFormClosed(true)}
           onFormCancel={() => onDeletePortfolioFormClosed(false)}
+        />
+      )}
+      {openSetScoringModelForm && portfolioData && (
+        <SetPortfolioScoringModelForm
+          portfolioId={portfolioData.id}
+          portfolioKey={portfolioData.key}
+          scoringModelId={portfolioData.scoringModel?.id}
+          onFormComplete={() => onSetScoringModelFormClosed(true)}
+          onFormCancel={() => onSetScoringModelFormClosed(false)}
         />
       )}
     </>

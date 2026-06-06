@@ -9,9 +9,7 @@ import {
   Button,
   Card,
   Divider,
-  Empty,
   Flex,
-  Statistic,
   Typography,
   theme,
 } from 'antd'
@@ -66,41 +64,49 @@ const ProjectScoreCard: FC<ProjectScoreCardProps> = ({
     </Typography.Link>
   )
 
+  const scoreButton = canManageProject && (
+    <Button
+      type="primary"
+      size="small"
+      loading={openForm && isContextLoading}
+      onClick={() => setOpenForm(true)}
+    >
+      {currentScore ? 'Re-score' : 'Score'}
+    </Button>
+  )
+
   const body = (
-    <Flex vertical gap="middle">
+    <Flex justify="space-between" align="center" gap="small" wrap>
       {currentScore ? (
-        <Statistic
-          title="Score"
-          value={currentScore.value}
-          precision={2}
-          styles={{ content: { color: token.colorPrimary } }}
-        />
-      ) : (
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="This project has not been scored yet."
-        />
-      )}
-
-      {currentScore && (
-        <Text type="secondary">
-          Scored {dayjs(currentScore.scoredOn).format('MMM D, YYYY')}
-          {currentScore.scoredBy ? ` by ${currentScore.scoredBy.name}` : ''}
-        </Text>
-      )}
-
-      <Flex justify="space-between" align="center">
-        <Text type="secondary">Model: {scoringModel.name}</Text>
-        {canManageProject && (
-          <Button
-            type="primary"
-            loading={openForm && isContextLoading}
-            onClick={() => setOpenForm(true)}
+        <Flex align="center" gap="small" wrap>
+          <Title
+            level={2}
+            style={{
+              margin: 0,
+              color: token.colorPrimary,
+              lineHeight: 1,
+              whiteSpace: 'nowrap',
+            }}
           >
-            {currentScore ? 'Re-score' : 'Score'}
-          </Button>
-        )}
-      </Flex>
+            {currentScore.value.toFixed(2)}
+          </Title>
+          <Flex vertical>
+            <Text style={{ lineHeight: 1.2 }}>
+              {currentScore.scoringModelName} ·{' '}
+              {dayjs(currentScore.scoredOn).format('MMM D, YYYY')}
+            </Text>
+            {currentScore.scoredBy && (
+              <Text type="secondary" style={{ fontSize: 12, lineHeight: 1.2 }}>
+                by {currentScore.scoredBy.name}
+              </Text>
+            )}
+          </Flex>
+        </Flex>
+      ) : (
+        <Text type="secondary">Not yet scored · {scoringModel.name}</Text>
+      )}
+
+      {scoreButton}
     </Flex>
   )
 

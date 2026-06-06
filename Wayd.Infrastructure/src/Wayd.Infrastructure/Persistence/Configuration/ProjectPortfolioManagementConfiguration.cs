@@ -281,7 +281,10 @@ public class ProjectScoreConfiguration : IEntityTypeConfiguration<ProjectScore>
 
         builder.HasKey(s => s.Id);
 
-        builder.HasIndex(s => new { s.ProjectId, s.Sequence });
+        // Unique so the per-project monotonic Sequence is enforced at the database level: concurrent
+        // scores for the same project that compute the same next sequence collide here (one wins, the
+        // other fails and can retry) rather than silently producing duplicate sequences.
+        builder.HasIndex(s => new { s.ProjectId, s.Sequence }).IsUnique();
 
         builder.Property(s => s.Id).ValueGeneratedNever();
         builder.Property(s => s.ProjectId).IsRequired();

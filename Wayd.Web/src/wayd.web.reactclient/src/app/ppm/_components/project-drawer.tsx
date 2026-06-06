@@ -17,6 +17,7 @@ import { Divider, Drawer, Flex } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
 import { projectHelpText } from '../projects/_components/project-help-text'
 import ProjectHealthCheckTag from '../projects/_components/project-health-check-tag'
+import ProjectScoreCard from '../projects/[key]/_components/scoring/project-score-card'
 import Link from 'next/link'
 import { FC, useEffect, useState } from 'react'
 
@@ -201,7 +202,20 @@ const ProjectDrawer: FC<ProjectDrawerProps> = ({
         )}
 
         {projectData?.id && (
-          <LinksCard objectId={projectData.id} width="100%" />
+          <ProjectScoreCard
+            projectId={projectData.id}
+            scoringModel={projectData.portfolioScoringModel}
+            currentScore={projectData.currentScore}
+            canManageProject={projectData.canManageProject}
+            variant="section"
+          />
+        )}
+
+        {projectData?.id && (
+          <>
+            <Divider size="small" />
+            <LinksCard objectId={projectData.id} width="100%" />
+          </>
         )}
       </Flex>
     </Drawer>

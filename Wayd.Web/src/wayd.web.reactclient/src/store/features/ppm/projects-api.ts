@@ -59,7 +59,11 @@ export const projectsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
+      // Tag by both the resolved GUID id and the original arg (key). The detail page fetches by key,
+      // while mutations such as recording a score invalidate by id — without the id tag those would
+      // never refetch, leaving denormalized fields (e.g. currentScore) stale.
       providesTags: (result, error, arg) => [
+        ...(result ? [{ type: QueryTags.Project, id: result.id }] : []),
         { type: QueryTags.Project, id: arg },
       ],
     }),

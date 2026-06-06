@@ -84,8 +84,12 @@ export const projectScoresApi = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, { projectId }) => [
         { type: QueryTags.ProjectScore, id: `LIST-${projectId}` },
         { type: QueryTags.ProjectScoringContext, id: projectId },
-        { type: QueryTags.Project, id: 'LIST' },
+        // The project's denormalized currentScore appears on the detail DTO and every ProjectListDto
+        // view, so refresh the detail (by id) and the project lists it can appear in.
         { type: QueryTags.Project, id: projectId },
+        { type: QueryTags.Project, id: 'LIST' },
+        { type: QueryTags.PortfolioProjects, id: 'LIST' },
+        { type: QueryTags.ProgramProjects, id: 'LIST' },
       ],
     }),
   }),

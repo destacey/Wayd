@@ -13,7 +13,7 @@ using Wayd.Infrastructure.Persistence.Context;
 namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 {
     [DbContext(typeof(WaydDbContext))]
-    [Migration("20260606163127_Add-Project-Scoring")]
+    [Migration("20260606185039_Add-Project-Scoring")]
     partial class AddProjectScoring
     {
         /// <inheritdoc />
@@ -3566,7 +3566,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasIndex("ScoredById");
 
-                    b.HasIndex("ProjectId", "Sequence");
+                    b.HasIndex("ProjectId", "Sequence")
+                        .IsUnique();
 
                     b.ToTable("ProjectScores", "Ppm");
                 });
@@ -5949,7 +5950,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectPortfolio", b =>
                 {
-                    b.HasOne("Wayd.Common.Domain.Scoring.ScoringModel", null)
+                    b.HasOne("Wayd.Common.Domain.Scoring.ScoringModel", "ScoringModel")
                         .WithMany()
                         .HasForeignKey("ScoringModelId")
                         .OnDelete(DeleteBehavior.NoAction);
@@ -5976,6 +5977,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         });
 
                     b.Navigation("DateRange");
+
+                    b.Navigation("ScoringModel");
                 });
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectTask", b =>

@@ -15,12 +15,18 @@ internal sealed class GetProjectScoringContextQueryHandler(
 
     public async Task<ProjectScoringContextDto?> Handle(GetProjectScoringContextQuery request, CancellationToken cancellationToken)
     {
-        var scoringModelId = await _ppmDbContext.Projects
+        // Project a nullable wrapper so a missing project (null) is distinguishable from a project whose
+        // portfolio has no model assigned (present, ScoringModelId == null). The former returns 404.
+        var project = await _ppmDbContext.Projects
             .AsNoTracking()
             .Where(p => p.Id == request.ProjectId)
-            .Select(p => p.Portfolio!.ScoringModelId)
+            .Select(p => new { p.Portfolio!.ScoringModelId })
             .FirstOrDefaultAsync(cancellationToken);
 
+        if (project is null)
+            return null;
+
+        var scoringModelId = project.ScoringModelId;
         var context = new ProjectScoringContextDto();
 
         if (scoringModelId is not null)

@@ -1,14 +1,16 @@
 ﻿using FluentAssertions;
+using NodaTime.Extensions;
+using NodaTime.Testing;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Scoring;
+using Wayd.Common.Domain.Tests.Data;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions;
 using Wayd.Tests.Shared;
-using NodaTime.Extensions;
-using NodaTime.Testing;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Sut.Models;
 
@@ -18,6 +20,7 @@ public class ProjectPortfolioTests
     private readonly ProjectPortfolioFaker _portfolioFaker;
     private readonly ProgramFaker _programFaker;
     private readonly ProjectFaker _projectFaker;
+    private readonly ScoringModelFaker _scoringModelFaker;
 
     public ProjectPortfolioTests()
     {
@@ -25,6 +28,7 @@ public class ProjectPortfolioTests
         _portfolioFaker = new ProjectPortfolioFaker();
         _programFaker = new ProgramFaker();
         _projectFaker = new ProjectFaker();
+        _scoringModelFaker = new ScoringModelFaker();
     }
 
     #region Portfolio Create and Update
@@ -822,4 +826,83 @@ public class ProjectPortfolioTests
     }
 
     #endregion Strategic Initiative Management
+
+    #region Scoring
+
+    [Fact]
+    public void AssignScoringModel_WhenModelActive_SetsScoringModelId()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        var model = _scoringModelFaker.AsActiveWsjf();
+
+        // Act
+        var result = portfolio.AssignScoringModel(model);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        portfolio.ScoringModelId.Should().Be(model.Id);
+    }
+
+    [Fact]
+    public void AssignScoringModel_WhenModelNotActive_ReturnsFailure()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        var proposedModel = ScoringModel.Create("Proposed", "Not yet active.");
+
+        // Act
+        var result = portfolio.AssignScoringModel(proposedModel);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("active");
+        portfolio.ScoringModelId.Should().BeNull();
+    }
+
+    [Fact]
+    public void AssignScoringModel_WhenPortfolioArchived_ReturnsFailure()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsArchived(_dateTimeProvider);
+        var model = _scoringModelFaker.AsActiveWsjf();
+
+        // Act
+        var result = portfolio.AssignScoringModel(model);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        portfolio.ScoringModelId.Should().BeNull();
+    }
+
+    [Fact]
+    public void ClearScoringModel_WhenAssigned_SetsScoringModelIdToNull()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        var model = _scoringModelFaker.AsActiveWsjf();
+        portfolio.AssignScoringModel(model);
+
+        // Act
+        var result = portfolio.ClearScoringModel();
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        portfolio.ScoringModelId.Should().BeNull();
+    }
+
+    [Fact]
+    public void ClearScoringModel_WhenPortfolioArchived_ReturnsFailure()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsArchived(_dateTimeProvider);
+
+        // Act
+        var result = portfolio.ClearScoringModel();
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+    }
+
+    #endregion Scoring
 }

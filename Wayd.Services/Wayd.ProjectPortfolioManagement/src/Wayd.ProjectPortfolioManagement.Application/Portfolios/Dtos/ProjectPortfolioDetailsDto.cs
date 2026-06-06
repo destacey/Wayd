@@ -30,6 +30,11 @@ public sealed record ProjectPortfolioDetailsDto : IMapFrom<ProjectPortfolio>
     public required LifecycleNavigationDto Status { get; set; }
 
     /// <summary>
+    /// The scoring model assigned to the portfolio, or null if scoring is not enabled.
+    /// </summary>
+    public NavigationDto? ScoringModel { get; set; }
+
+    /// <summary>
     /// The date range defining the portfolio’s lifecycle.
     /// </summary>
     //public FlexibleDateRange? DateRange { get; set; }
@@ -53,6 +58,9 @@ public sealed record ProjectPortfolioDetailsDto : IMapFrom<ProjectPortfolio>
     {
         config.NewConfig<ProjectPortfolio, ProjectPortfolioDetailsDto>()
             .Map(dest => dest.Status, src => LifecycleNavigationDto.FromEnum(src.Status))
+            .Map(dest => dest.ScoringModel, src => src.ScoringModel == null
+                ? null
+                : NavigationDto.Create(src.ScoringModel.Id, src.ScoringModel.Key, src.ScoringModel.Name))
             .Map(dest => dest.PortfolioSponsors, src => src.Roles.Where(r => r.Role == ProjectPortfolioRole.Sponsor).Select(x => EmployeeNavigationDto.From(x.Employee!)).ToList())
             .Map(dest => dest.PortfolioOwners, src => src.Roles.Where(r => r.Role == ProjectPortfolioRole.Owner).Select(x => EmployeeNavigationDto.From(x.Employee!)).ToList())
             .Map(dest => dest.PortfolioManagers, src => src.Roles.Where(r => r.Role == ProjectPortfolioRole.Manager).Select(x => EmployeeNavigationDto.From(x.Employee!)).ToList());

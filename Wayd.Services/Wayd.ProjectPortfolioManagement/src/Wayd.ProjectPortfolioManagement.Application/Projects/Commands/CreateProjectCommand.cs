@@ -126,6 +126,12 @@ internal sealed class CreateProjectCommandHandler(
 
             var projectKey = new ProjectKey(request.Key);
 
+            // Cheap scalar so the new project can be ranked at the bottom without loading every
+            // sibling project into the aggregate.
+            var currentMaxRank = await _projectPortfolioManagementDbContext.Projects
+                .Where(p => p.PortfolioId == request.PortfolioId)
+                .MaxAsync(p => (double?)p.Rank, cancellationToken);
+
             var createResult = portfolio.CreateProject(
                 request.Name,
                 request.Description,
@@ -137,7 +143,8 @@ internal sealed class CreateProjectCommandHandler(
                 request.ExpectedBenefits,
                 roles,
                 [.. strategicThemes.Select(st => st.Id)],
-                _dateTimeProvider.Now
+                _dateTimeProvider.Now,
+                currentMaxRank
                 );
             if (createResult.IsFailure)
             {

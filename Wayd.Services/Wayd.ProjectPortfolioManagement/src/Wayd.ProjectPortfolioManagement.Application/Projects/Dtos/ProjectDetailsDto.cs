@@ -131,6 +131,13 @@ public sealed record ProjectDetailsDto
     public ScoreSummaryDto? CurrentScore { get; set; }
 
     /// <summary>
+    /// The project's fractional rank sort key within its portfolio — the same value as the domain
+    /// <c>Project.Rank</c> (opaque; not the displayed position). Null = unranked (sorts last). Used to
+    /// order the ranking board and drive client-side reorder logic; not for display.
+    /// </summary>
+    public double Rank { get; set; }
+
+    /// <summary>
     /// Creates a TypeAdapterConfig that maps <see cref="Project"/> to <see cref="ProjectDetailsDto"/>,
     /// including the current health check and project-level authorization.
     /// <para>

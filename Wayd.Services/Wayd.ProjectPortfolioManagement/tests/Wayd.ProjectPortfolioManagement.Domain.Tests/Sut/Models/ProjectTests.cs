@@ -54,7 +54,7 @@ public class ProjectTests
         var expenditureCategoryId = 1;
 
         // Act
-        var project = Project.Create(name, description, key, expenditureCategoryId, null, portfolioId, null, null, null, null, null, _dateTimeProvider.Now);
+        var project = Project.Create(name, description, key, expenditureCategoryId, null, portfolioId, 1000d, null, null, null, null, null, _dateTimeProvider.Now);
 
         // Assert
         project.Should().NotBeNull();

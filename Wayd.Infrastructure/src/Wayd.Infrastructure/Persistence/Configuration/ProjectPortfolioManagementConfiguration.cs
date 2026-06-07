@@ -198,7 +198,7 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
             .HasMaxLength(32)
             .HasColumnType("varchar");
 
-        builder.Property(p => p.Rank);
+        builder.Property(p => p.Rank).IsRequired();
 
         // Value Objects
         builder.OwnsOne(r => r.DateRange, options =>

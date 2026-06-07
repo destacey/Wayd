@@ -16,20 +16,14 @@ namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Sut.Models;
 
 public class ProjectPortfolioTests
 {
-    private readonly TestingDateTimeProvider _dateTimeProvider;
-    private readonly ProjectPortfolioFaker _portfolioFaker;
-    private readonly ProgramFaker _programFaker;
-    private readonly ProjectFaker _projectFaker;
-    private readonly ScoringModelFaker _scoringModelFaker;
+    private readonly TestingDateTimeProvider _dateTimeProvider =
+        new(new FakeClock(DateTime.UtcNow.ToInstant()));
+    private readonly ProjectPortfolioFaker _portfolioFaker = new();
+    private readonly ProgramFaker _programFaker = new();
+    private readonly ProjectFaker _projectFaker = new();
+    private readonly ScoringModelFaker _scoringModelFaker = new();
 
-    public ProjectPortfolioTests()
-    {
-        _dateTimeProvider = new TestingDateTimeProvider(new FakeClock(DateTime.UtcNow.ToInstant()));
-        _portfolioFaker = new ProjectPortfolioFaker();
-        _programFaker = new ProgramFaker();
-        _projectFaker = new ProjectFaker();
-        _scoringModelFaker = new ScoringModelFaker();
-    }
+    private readonly Guid _ownerId = Guid.NewGuid();
 
     #region Portfolio Create and Update
 
@@ -563,6 +557,34 @@ public class ProjectPortfolioTests
     }
 
     [Fact]
+    public void CreateProject_WhenFirstProject_RanksAtRankStart()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+
+        // Act — no current max rank supplied (first project).
+        var result = portfolio.CreateProject("Test Project", "Test Description", new ProjectKey("TEST"), 1, null, null, null, null, null, null, _dateTimeProvider.Now);
+
+        // Assert — first project seeds at the base rank so the board is never all-null.
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Rank.Should().Be(1000d);
+    }
+
+    [Fact]
+    public void CreateProject_WhenPriorProjectsExist_RanksAtBottom()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+
+        // Act — a current max rank of 3000 is supplied (two prior projects); new one goes below.
+        var result = portfolio.CreateProject("Test Project", "Test Description", new ProjectKey("TEST"), 1, null, null, null, null, null, null, _dateTimeProvider.Now, currentMaxRank: 3000d);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Rank.Should().Be(4000d);
+    }
+
+    [Fact]
     public void CreateProject_ShouldFail_WhenProgramDoesNotBelongToPortfolio()
     {
         // Arrange
@@ -905,4 +927,349 @@ public class ProjectPortfolioTests
     }
 
     #endregion Scoring
+
+    #region Ranking
+
+    // An active portfolio owned by _ownerId (so ranking authorization passes) with the given projects
+    // attached. Uses the ProjectPortfolioFaker.WithProjects extension to populate the aggregate.
+    private ProjectPortfolio RankingPortfolio(params Project[] projects) =>
+        _portfolioFaker.WithData(
+            id: Guid.NewGuid(),
+            status: ProjectPortfolioStatus.Active,
+            roles: new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
+            {
+                [ProjectPortfolioRole.Owner] = [_ownerId],
+            }).Generate().WithProjects(projects);
+
+    private Project RankedProject(string name, double rank, ProjectStatus status = ProjectStatus.Active) =>
+        _projectFaker.WithData(name: name, status: status).WithRank(rank).Generate();
+
+    [Fact]
+    public void MoveProjectRanks_WhenBetweenTwoAnchors_PlacesBatchStrictlyWithinAndPreservesOrder()
+    {
+        // Arrange — a, b currently sit at the bottom; dragged up between After(1000) and Before(2000).
+        var after = RankedProject("After", 1000d);
+        var before = RankedProject("Before", 2000d);
+        var a = RankedProject("A", 90000d);
+        var b = RankedProject("B", 91000d);
+        var portfolio = RankingPortfolio(after, before, a, b);
+
+        // Act
+        var result = portfolio.MoveProjectRanks(_ownerId, [a.Id, b.Id], after.Id, before.Id);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        a.Rank.Should().BeGreaterThan(1000d).And.BeLessThan(2000d);
+        b.Rank.Should().BeGreaterThan(1000d).And.BeLessThan(2000d);
+        a.Rank.Should().BeLessThan(b.Rank); // batch order preserved
+        after.Rank.Should().Be(1000d); // anchors untouched
+        before.Rank.Should().Be(2000d);
+    }
+
+    [Fact]
+    public void MoveProjectRanks_WhenClosedProjectHiddenInSpan_KeepsClosedProjectDistinctSlot()
+    {
+        // Arrange — a closed project still holds rank 1500 between the visible anchors at 1000 and 2000.
+        var after = RankedProject("After", 1000d);
+        var closed = RankedProject("ClosedMid", 1500d, ProjectStatus.Completed);
+        var before = RankedProject("Before", 2000d);
+        var moved = RankedProject("Moved", 90000d);
+        var portfolio = RankingPortfolio(after, closed, before, moved);
+
+        // Act — drag the moved project between the visible anchors (the client can't see the closed one).
+        var result = portfolio.MoveProjectRanks(_ownerId, [moved.Id], after.Id, before.Id);
+
+        // Assert — no collision: every in-span project keeps a distinct rank strictly within the span.
+        result.IsSuccess.Should().BeTrue();
+        var inSpan = new[] { moved.Rank, closed.Rank };
+        inSpan.Should().OnlyHaveUniqueItems();
+        moved.Rank.Should().BeGreaterThan(1000d).And.BeLessThan(2000d);
+        closed.Rank.Should().BeGreaterThan(1000d).And.BeLessThan(2000d);
+    }
+
+    [Fact]
+    public void MoveProjectRanks_WhenOnlyBeforeAnchor_PlacesBatchAboveIt()
+    {
+        // Arrange — drop at the top: only a 'before' anchor.
+        var before = RankedProject("Before", 2000d);
+        var moved = RankedProject("Moved", 90000d);
+        var portfolio = RankingPortfolio(before, moved);
+
+        // Act
+        var result = portfolio.MoveProjectRanks(_ownerId, [moved.Id], null, before.Id);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        moved.Rank.Should().BeLessThan(2000d);
+    }
+
+    [Fact]
+    public void MoveProjectRanks_WhenOnlyAfterAnchor_PlacesBatchBelowIt()
+    {
+        // Arrange — drop at the bottom: only an 'after' anchor.
+        var after = RankedProject("After", 1000d);
+        var moved = RankedProject("Moved", 500d);
+        var portfolio = RankingPortfolio(after, moved);
+
+        // Act
+        var result = portfolio.MoveProjectRanks(_ownerId, [moved.Id], after.Id, null);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        moved.Rank.Should().BeGreaterThan(1000d);
+    }
+
+    [Fact]
+    public void MoveProjectRanks_WhenMultiSelectBatch_KeepsContiguousOrder()
+    {
+        // Arrange
+        var after = RankedProject("After", 1000d);
+        var before = RankedProject("Before", 5000d);
+        var x = RankedProject("X", 90000d);
+        var y = RankedProject("Y", 91000d);
+        var z = RankedProject("Z", 92000d);
+        var portfolio = RankingPortfolio(after, before, x, y, z);
+
+        // Act
+        var result = portfolio.MoveProjectRanks(_ownerId, [x.Id, y.Id, z.Id], after.Id, before.Id);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        x.Rank.Should().BeLessThan(y.Rank);
+        y.Rank.Should().BeLessThan(z.Rank);
+        x.Rank.Should().BeGreaterThan(1000d);
+        z.Rank.Should().BeLessThan(5000d);
+    }
+
+    [Fact]
+    public void MoveProjectRanks_WhenNoAnchors_Fails()
+    {
+        // Arrange
+        var moved = RankedProject("Moved", 1000d);
+        var portfolio = RankingPortfolio(moved);
+
+        // Act
+        var result = portfolio.MoveProjectRanks(_ownerId, [moved.Id], null, null);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("anchor");
+    }
+
+    [Fact]
+    public void MoveProjectRanks_WhenEmptyBatch_Fails()
+    {
+        // Arrange
+        var after = RankedProject("After", 1000d);
+        var portfolio = RankingPortfolio(after);
+
+        // Act
+        var result = portfolio.MoveProjectRanks(_ownerId, [], after.Id, null);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public void MoveProjectRanks_WhenAfterRanksAtOrBelowBefore_Fails()
+    {
+        // Arrange — anchors out of order.
+        var after = RankedProject("After", 2000d);
+        var before = RankedProject("Before", 1000d);
+        var moved = RankedProject("Moved", 90000d);
+        var portfolio = RankingPortfolio(after, before, moved);
+
+        // Act
+        var result = portfolio.MoveProjectRanks(_ownerId, [moved.Id], after.Id, before.Id);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("above");
+    }
+
+    [Fact]
+    public void MoveProjectRanks_WhenAnchorInBatch_Fails()
+    {
+        // Arrange
+        var after = RankedProject("After", 1000d);
+        var moved = RankedProject("Moved", 90000d);
+        var portfolio = RankingPortfolio(after, moved);
+
+        // Act
+        var result = portfolio.MoveProjectRanks(_ownerId, [moved.Id, after.Id], after.Id, null);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("anchor cannot also be in the batch");
+    }
+
+    [Fact]
+    public void MoveProjectRanks_WhenProjectNotInPortfolio_Fails()
+    {
+        // Arrange
+        var after = RankedProject("After", 1000d);
+        var portfolio = RankingPortfolio(after);
+
+        // Act
+        var result = portfolio.MoveProjectRanks(_ownerId, [Guid.NewGuid()], after.Id, null);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("does not belong");
+    }
+
+    [Fact]
+    public void MoveProjectRanks_WhenDuplicateInBatch_Fails()
+    {
+        // Arrange
+        var after = RankedProject("After", 1000d);
+        var moved = RankedProject("Moved", 90000d);
+        var portfolio = RankingPortfolio(after, moved);
+
+        // Act
+        var result = portfolio.MoveProjectRanks(_ownerId, [moved.Id, moved.Id], after.Id, null);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("duplicate");
+    }
+
+    [Fact]
+    public void MoveProjectRanks_WhenActorNotOwnerOrManager_Fails()
+    {
+        // Arrange
+        var after = RankedProject("After", 1000d);
+        var moved = RankedProject("Moved", 90000d);
+        var portfolio = RankingPortfolio(after, moved);
+
+        // Act
+        var result = portfolio.MoveProjectRanks(Guid.NewGuid(), [moved.Id], after.Id, null);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+    }
+
+    [Fact]
+    public void MoveProjectRanks_WhenManager_Succeeds()
+    {
+        // Arrange
+        var managerId = Guid.NewGuid();
+        var after = RankedProject("After", 1000d);
+        var moved = RankedProject("Moved", 90000d);
+        var portfolio = _portfolioFaker.WithData(
+            id: Guid.NewGuid(),
+            status: ProjectPortfolioStatus.Active,
+            roles: new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
+            {
+                [ProjectPortfolioRole.Manager] = [managerId],
+            }).Generate();
+        portfolio.WithProjects(after, moved);
+
+        // Act
+        var result = portfolio.MoveProjectRanks(managerId, [moved.Id], after.Id, null);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void MoveProjectRanks_WhenPortfolioArchived_Fails()
+    {
+        // Arrange
+        var after = RankedProject("After", 1000d);
+        var moved = RankedProject("Moved", 90000d);
+        var portfolio = _portfolioFaker.WithData(
+            id: Guid.NewGuid(),
+            status: ProjectPortfolioStatus.Archived,
+            roles: new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
+            {
+                [ProjectPortfolioRole.Owner] = [_ownerId],
+            }).Generate();
+        portfolio.WithProjects(after, moved);
+
+        // Act
+        var result = portfolio.MoveProjectRanks(_ownerId, [moved.Id], after.Id, null);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public void RebalanceRanks_RespacesProjectsByRankOntoWholeNumbers()
+    {
+        // Arrange — drifted/fractional ranks (incl. a closed one) collapse back to clean multiples.
+        var first = RankedProject("First", 1000.5d);
+        var second = RankedProject("Second", 1000.75d);
+        var closedRanked = RankedProject("ClosedRanked", 1001d, ProjectStatus.Completed);
+        var fourth = RankedProject("Fourth", 1002d);
+        var portfolio = RankingPortfolio(first, second, closedRanked, fourth);
+
+        // Act
+        var result = portfolio.RebalanceRanks(_ownerId);
+
+        // Assert — relative order preserved; renumbered to clean whole numbers.
+        result.IsSuccess.Should().BeTrue();
+        first.Rank.Should().Be(1000d);
+        second.Rank.Should().Be(2000d);
+        closedRanked.Rank.Should().Be(3000d);
+        fourth.Rank.Should().Be(4000d);
+    }
+
+    [Fact]
+    public void RebalanceRanks_WhenActorNotOwnerOrManager_Fails()
+    {
+        // Arrange
+        var project = RankedProject("A", 1234.5d);
+        var portfolio = RankingPortfolio(project);
+
+        // Act
+        var result = portfolio.RebalanceRanks(Guid.NewGuid());
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+        project.Rank.Should().Be(1234.5d); // unchanged
+    }
+
+    [Fact]
+    public void RebalanceRanks_WhenBypassManageCheck_SucceedsForNonOwner()
+    {
+        // Arrange — a non-owner actor, but the system bypass is requested (e.g. scheduled job).
+        var apple = RankedProject("Apple", 1000.25d);
+        var zebra = RankedProject("Zebra", 1000.5d);
+        var portfolio = RankingPortfolio(apple, zebra);
+
+        // Act
+        var result = portfolio.RebalanceRanks(Guid.NewGuid(), bypassManageCheck: true);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        apple.Rank.Should().Be(1000d);
+        zebra.Rank.Should().Be(2000d);
+    }
+
+    [Fact]
+    public void RebalanceRanks_WhenBypassManageCheckButArchived_StillFails()
+    {
+        // Arrange — bypass does not override the read-only (archived) guard.
+        var project = RankedProject("A", 1234.5d);
+        var portfolio = _portfolioFaker.WithData(
+            id: Guid.NewGuid(),
+            status: ProjectPortfolioStatus.Archived,
+            roles: new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
+            {
+                [ProjectPortfolioRole.Owner] = [_ownerId],
+            }).Generate();
+        portfolio.WithProjects(project);
+
+        // Act
+        var result = portfolio.RebalanceRanks(Guid.NewGuid(), bypassManageCheck: true);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        project.Rank.Should().Be(1234.5d); // unchanged
+    }
+
+    #endregion Ranking
 }

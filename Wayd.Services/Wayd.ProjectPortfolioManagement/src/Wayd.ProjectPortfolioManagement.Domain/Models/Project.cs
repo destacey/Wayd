@@ -28,7 +28,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
     private Project() { }
 
-    private Project(string name, string description, ProjectKey key, ProjectStatus status, int expenditureCategoryId, LocalDateRange? dateRange, Guid portfolioId, Guid? programId = null, string? businessCase = null, string? expectedBenefits = null, Dictionary<ProjectRole, HashSet<Guid>>? roles = null, HashSet<Guid>? strategicThemes = null)
+    private Project(string name, string description, ProjectKey key, ProjectStatus status, int expenditureCategoryId, LocalDateRange? dateRange, Guid portfolioId, double rank, Guid? programId = null, string? businessCase = null, string? expectedBenefits = null, Dictionary<ProjectRole, HashSet<Guid>>? roles = null, HashSet<Guid>? strategicThemes = null)
     {
         if (Status is ProjectStatus.Active or ProjectStatus.Completed && dateRange is null)
         {
@@ -43,6 +43,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         DateRange = dateRange;
         BusinessCase = businessCase?.Trim();
         ExpectedBenefits = expectedBenefits?.Trim();
+        Rank = rank;
 
         PortfolioId = portfolioId;
         ProgramId = programId;
@@ -159,10 +160,13 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     public ProjectLifecycle? ProjectLifecycle { get; private set; }
 
     /// <summary>
-    /// The project's stack-rank within its portfolio's prioritization view. Null until ranked.
-    /// A human override, independent of the computed score.
+    /// The project's fractional sort key within its portfolio's ranking (Jira-style: an opaque
+    /// between-able key, not the displayed position; the #1/#2/#3 shown to users is derived at read
+    /// time). Every project is ranked from creation, so this is always set. A human prioritization,
+    /// independent of the computed score. Mutated only via the owning <see cref="ProjectPortfolio"/>
+    /// aggregate.
     /// </summary>
-    public int? Rank { get; private set; }
+    public double Rank { get; private set; }
 
     /// <summary>
     /// The strategic theme tags associated with this project.
@@ -302,6 +306,13 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// Repositions this project within its portfolio's ranking. Internal so only the owning
+    /// <see cref="ProjectPortfolio"/> aggregate sets it (callers go through MoveProjectRanks /
+    /// RebalanceRanks).
+    /// </summary>
+    internal void SetRank(double rank) => Rank = rank;
 
     /// <summary>
     /// Updates the project's program association.
@@ -1157,9 +1168,9 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// <param name="strategicThemes"></param>
     /// <param name="timestamp"></param>
     /// <returns></returns>
-    internal static Project Create(string name, string description, ProjectKey key, int expenditureCategoryId, LocalDateRange? dateRange, Guid portfolioId, Guid? programId, string? businessCase, string? expectedBenefits, Dictionary<ProjectRole, HashSet<Guid>>? roles, HashSet<Guid>? strategicThemes, Instant timestamp)
+    internal static Project Create(string name, string description, ProjectKey key, int expenditureCategoryId, LocalDateRange? dateRange, Guid portfolioId, double rank, Guid? programId, string? businessCase, string? expectedBenefits, Dictionary<ProjectRole, HashSet<Guid>>? roles, HashSet<Guid>? strategicThemes, Instant timestamp)
     {
-        var project = new Project(name, description, key, ProjectStatus.Proposed, expenditureCategoryId, dateRange, portfolioId, programId, businessCase, expectedBenefits, roles, strategicThemes);
+        var project = new Project(name, description, key, ProjectStatus.Proposed, expenditureCategoryId, dateRange, portfolioId, rank, programId, businessCase, expectedBenefits, roles, strategicThemes);
 
         project.AddPostPersistenceAction(() => project.AddDomainEvent(
             new ProjectCreatedEvent

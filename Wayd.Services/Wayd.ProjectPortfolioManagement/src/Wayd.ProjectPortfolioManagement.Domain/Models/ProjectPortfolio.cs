@@ -229,6 +229,202 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
 
     #endregion Scoring
 
+    #region Ranking
+
+    // Whole-number spacing used by a rebalance. Fractional values appear between these as projects
+    // are dragged; a rebalance squeezes everything back to clean multiples. The wide step leaves
+    // generous float headroom for inserts between rebalances.
+    private const double RankStart = 1000d;
+    private const double RankStep = 1000d;
+
+    /// <summary>
+    /// Whether the employee may rank this portfolio's projects — portfolio Owner or Manager.
+    /// Mirrors the portfolio-role clause of <see cref="Project.CanManageProject"/>. Surfaced so the
+    /// API can hint action availability; enforced inside the ranking methods so no path bypasses it.
+    /// </summary>
+    public bool CanManageRanking(Guid employeeId) =>
+        _roles.Any(r => r.EmployeeId == employeeId
+            && r.Role is ProjectPortfolioRole.Owner or ProjectPortfolioRole.Manager);
+
+    /// <summary>
+    /// Places the ordered <paramref name="orderedProjectIds"/> between two ranked anchors, assigning
+    /// each a fractional rank. Either anchor may be null (drop at the top/bottom of the ranking); at
+    /// least one must be supplied. Both anchors must already be ranked. Any other portfolio projects
+    /// whose rank falls strictly between the anchors — including closed ones the caller can't see —
+    /// are folded into the span so they keep distinct slots (no collision). The client owns the
+    /// order; this method owns the values.
+    /// </summary>
+    public Result MoveProjectRanks(
+        Guid employeeId,
+        IReadOnlyList<Guid> orderedProjectIds,
+        Guid? afterProjectId,
+        Guid? beforeProjectId)
+    {
+        if (IsReadOnly)
+        {
+            return Result.Failure(ReadOnlyErrorMessage);
+        }
+
+        if (!CanManageRanking(employeeId))
+        {
+            return Result.Failure("You are not authorized to rank this portfolio's projects.");
+        }
+
+        if (orderedProjectIds is null || orderedProjectIds.Count == 0)
+        {
+            return Result.Failure("At least one project must be supplied.");
+        }
+
+        if (afterProjectId is null && beforeProjectId is null)
+        {
+            return Result.Failure("At least one anchor must be supplied.");
+        }
+
+        if (orderedProjectIds.Distinct().Count() != orderedProjectIds.Count)
+        {
+            return Result.Failure("The batch contains duplicate projects.");
+        }
+
+        foreach (var id in orderedProjectIds)
+        {
+            if (_projects.All(p => p.Id != id))
+            {
+                return Result.Failure($"Project {id} does not belong to this portfolio.");
+            }
+        }
+
+        if (afterProjectId.HasValue && orderedProjectIds.Contains(afterProjectId.Value))
+        {
+            return Result.Failure("An anchor cannot also be in the batch.");
+        }
+
+        if (beforeProjectId.HasValue && orderedProjectIds.Contains(beforeProjectId.Value))
+        {
+            return Result.Failure("An anchor cannot also be in the batch.");
+        }
+
+        Project? after = null;
+        if (afterProjectId.HasValue)
+        {
+            after = _projects.SingleOrDefault(p => p.Id == afterProjectId.Value);
+            if (after is null)
+            {
+                return Result.Failure("The 'after' anchor does not belong to this portfolio.");
+            }
+        }
+
+        Project? before = null;
+        if (beforeProjectId.HasValue)
+        {
+            before = _projects.SingleOrDefault(p => p.Id == beforeProjectId.Value);
+            if (before is null)
+            {
+                return Result.Failure("The 'before' anchor does not belong to this portfolio.");
+            }
+        }
+
+        if (after is not null && before is not null && after.Rank >= before.Rank)
+        {
+            return Result.Failure("The 'after' anchor must rank above the 'before' anchor.");
+        }
+
+        // Absent anchor = open end (drop at top/bottom); a present anchor always carries a rank.
+        double? lower = after?.Rank;
+        double? upper = before?.Rank;
+
+        // Fold in any other projects sitting strictly within the anchor span (including closed ones
+        // the client never saw) so they keep distinct slots and nothing collides. They sort after the
+        // moved batch within the span.
+        var hidden = _projects
+            .Where(p => !orderedProjectIds.Contains(p.Id)
+                && (lower is null || p.Rank > lower)
+                && (upper is null || p.Rank < upper))
+            .OrderBy(p => p.Rank)
+            .Select(p => p.Id);
+
+        var sequence = orderedProjectIds.Concat(hidden).ToList();
+
+        AssignSpan(sequence, lower, upper);
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Re-establishes a clean, gap-free, whole-number ranking across the entire portfolio. Ranked
+    /// projects (including closed ones) keep their relative order, renumbered from
+    /// <see cref="RankStart"/> by <see cref="RankStep"/>; then unranked projects, ordered by name,
+    /// continue the sequence. This bootstraps ranking when nothing is ranked yet and is also run
+    /// periodically to remove fractional drift and gaps left by closed projects.
+    /// </summary>
+    /// <param name="employeeId">The acting employee. Ignored when <paramref name="bypassManageCheck"/> is true.</param>
+    /// <param name="bypassManageCheck">
+    /// When true, skips the per-actor Owner/Manager check. Reserved for system-initiated maintenance
+    /// (e.g. a scheduled rebalance), where there is no human actor. The application layer is
+    /// responsible for only setting this for a trusted system context — never for a normal user.
+    /// </param>
+    public Result RebalanceRanks(Guid employeeId, bool bypassManageCheck = false)
+    {
+        if (IsReadOnly)
+        {
+            return Result.Failure(ReadOnlyErrorMessage);
+        }
+
+        if (!bypassManageCheck && !CanManageRanking(employeeId))
+        {
+            return Result.Failure("You are not authorized to rank this portfolio's projects.");
+        }
+
+        // Every project is ranked, so this simply re-spaces them by their current rank (name as a
+        // stable tiebreak for any equal values) back onto clean whole-number multiples of RankStep.
+        var ordered = _projects
+            .OrderBy(p => p.Rank)
+            .ThenBy(p => p.Name, StringComparer.OrdinalIgnoreCase);
+
+        var value = RankStart;
+        foreach (var project in ordered)
+        {
+            project.SetRank(value);
+            value += RankStep;
+        }
+
+        return Result.Success();
+    }
+
+    // Distributes the ordered sequence of project ids into distinct, monotonic ranks within the open
+    // interval bounded by lower/upper. With both bounds present, evenly divides the gap so values are
+    // strictly between them: rank_i = lower + (upper - lower) * (i + 1) / (n + 1). With only one
+    // bound, steps outward by RankStep from that anchor.
+    // TODO future: repeated dense inserts into one gap shrink the spacing; a rebalance is the cure.
+    private void AssignSpan(IReadOnlyList<Guid> sequence, double? lower, double? upper)
+    {
+        var count = sequence.Count;
+
+        for (var i = 0; i < count; i++)
+        {
+            var project = _projects.Single(p => p.Id == sequence[i]);
+            double rank;
+
+            if (lower is not null && upper is not null)
+            {
+                rank = lower.Value + (upper.Value - lower.Value) * (i + 1) / (count + 1);
+            }
+            else if (upper is not null)
+            {
+                // Dropped at the top: place the batch just above the upper anchor, ascending.
+                rank = upper.Value - (count - i) * RankStep;
+            }
+            else
+            {
+                // Dropped at the bottom: place the batch just below the lower anchor, ascending.
+                rank = lower!.Value + (i + 1) * RankStep;
+            }
+
+            project.SetRank(rank);
+        }
+    }
+
+    #endregion Ranking
+
     #region Lifecycle
 
     /// <summary>
@@ -374,8 +570,14 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// <param name="roles">The roles associated with the project (optional).</param>
     /// <param name="strategicThemes">The strategic themes associated with the project (optional).</param>
     /// <param name="timestamp"></param>
+    /// <param name="currentMaxRank">
+    /// The highest existing project rank in this portfolio (supplied by the handler via a cheap scalar
+    /// query so the aggregate need not load every project). The new project is ranked at the bottom:
+    /// <c>currentMaxRank + RankStep</c>, or <see cref="RankStart"/> when this is the first ranked
+    /// project. Ranking on create keeps every project ranked, so the board never has null neighbours.
+    /// </param>
     /// <returns>A result containing the created project or an error.</returns>
-    public Result<Project> CreateProject(string name, string description, ProjectKey key, int expenditureCategory, LocalDateRange? dateRange, Guid? programId, string? businessCase, string? expectedBenefits, Dictionary<ProjectRole, HashSet<Guid>>? roles, HashSet<Guid>? strategicThemes, Instant timestamp)
+    public Result<Project> CreateProject(string name, string description, ProjectKey key, int expenditureCategory, LocalDateRange? dateRange, Guid? programId, string? businessCase, string? expectedBenefits, Dictionary<ProjectRole, HashSet<Guid>>? roles, HashSet<Guid>? strategicThemes, Instant timestamp, double? currentMaxRank = null)
     {
         if (!IsActive)
         {
@@ -398,8 +600,12 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
             }
         }
 
-        // Create the project
-        var project = Project.Create(name, description, key, expenditureCategory, dateRange, Id, programId, businessCase, expectedBenefits, roles, strategicThemes, timestamp);
+        // Rank the project at the bottom of the portfolio's ranking so every project is always ranked
+        // from creation. The handler supplies the current max rank to avoid loading all projects.
+        var rank = currentMaxRank is null ? RankStart : currentMaxRank.Value + RankStep;
+
+        // Create the project (ranked from construction)
+        var project = Project.Create(name, description, key, expenditureCategory, dateRange, Id, rank, programId, businessCase, expectedBenefits, roles, strategicThemes, timestamp);
 
         // Add the project to the portfolio's project list
         _projects.Add(project);

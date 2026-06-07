@@ -4737,6 +4737,114 @@
         ]
       }
     },
+    "/api/ppm/portfolios/{id}/project-ranks": {
+      "put": {
+        "tags": [
+          "Portfolios"
+        ],
+        "summary": "Reposition an ordered batch of projects within the portfolio's ranking.",
+        "operationId": "Portfolios_MoveProjectRanks",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveProjectRanksRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/ppm/portfolios/{id}/project-ranks/rebalance": {
+      "put": {
+        "tags": [
+          "Portfolios"
+        ],
+        "summary": "Rebalance the portfolio's project ranks to clean, gap-free whole numbers.",
+        "operationId": "Portfolios_RebalanceProjectRanks",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/ppm/portfolios/{idOrKey}/programs": {
       "get": {
         "tags": [
@@ -26498,6 +26606,41 @@
           }
         }
       },
+      "MoveProjectRanksRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "projectIds"
+        ],
+        "properties": {
+          "projectIds": {
+            "type": "array",
+            "description": "The projects to (re)position, already in their intended order. Supports multi-select drag.",
+            "minLength": 1,
+            "nullable": false,
+            "items": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            }
+          },
+          "afterProjectId": {
+            "type": "string",
+            "description": "The anchor immediately above the batch in the ranking. Must already be ranked. Null when the\nbatch is dropped at the top of the ranking.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "beforeProjectId": {
+            "type": "string",
+            "description": "The anchor immediately below the batch in the ranking. Must already be ranked. Null when the\nbatch is dropped at the bottom of the ranking.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          }
+        }
+      },
       "ProgramListDto": {
         "type": "object",
         "additionalProperties": false,
@@ -26583,6 +26726,7 @@
           "strategicThemes",
           "id",
           "phases",
+          "rank",
           "canManageProject"
         ],
         "properties": {
@@ -26681,6 +26825,15 @@
                 "$ref": "#/components/schemas/ScoreSummaryDto"
               }
             ]
+          },
+          "rank": {
+            "type": "number",
+            "format": "double"
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           },
           "canManageProject": {
             "type": "boolean"
@@ -27594,7 +27747,8 @@
           "strategicInitiatives",
           "id",
           "phases",
-          "canManageProject"
+          "canManageProject",
+          "rank"
         ],
         "properties": {
           "id": {
@@ -27723,6 +27877,10 @@
                 "$ref": "#/components/schemas/ScoreSummaryDto"
               }
             ]
+          },
+          "rank": {
+            "type": "number",
+            "format": "double"
           }
         }
       },

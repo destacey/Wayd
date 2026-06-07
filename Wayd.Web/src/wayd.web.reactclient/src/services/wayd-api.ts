@@ -6544,6 +6544,131 @@ export class PortfoliosClient {
     }
 
     /**
+     * Reposition an ordered batch of projects within the portfolio's ranking.
+     */
+    moveProjectRanks(id: string, request: MoveProjectRanksRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/portfolios/{id}/project-ranks";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMoveProjectRanks(_response);
+        });
+    }
+
+    protected processMoveProjectRanks(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Rebalance the portfolio's project ranks to clean, gap-free whole numbers.
+     */
+    rebalanceProjectRanks(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/portfolios/{id}/project-ranks/rebalance";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "PUT",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRebalanceProjectRanks(_response);
+        });
+    }
+
+    protected processRebalanceProjectRanks(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get a list of programs for the portfolio.
      * @param status (optional) 
      */
@@ -29150,6 +29275,17 @@ export interface AssignPortfolioScoringModelRequest {
     scoringModelId: string;
 }
 
+export interface MoveProjectRanksRequest {
+    /** The projects to (re)position, already in their intended order. Supports multi-select drag. */
+    projectIds: string[];
+    /** The anchor immediately above the batch in the ranking. Must already be ranked. Null when the
+batch is dropped at the top of the ranking. */
+    afterProjectId?: string | undefined;
+    /** The anchor immediately below the batch in the ranking. Must already be ranked. Null when the
+batch is dropped at the bottom of the ranking. */
+    beforeProjectId?: string | undefined;
+}
+
 export interface ProgramListDto {
     id: string;
     key: number;
@@ -29182,6 +29318,8 @@ export interface ProjectListDto {
     phases: ProjectPhaseListDto[];
     healthCheck?: ProjectHealthCheckSummaryDto | undefined;
     currentScore?: ScoreSummaryDto | undefined;
+    rank: number;
+    position?: number | undefined;
     canManageProject: boolean;
 }
 
@@ -29431,6 +29569,7 @@ export interface ProjectDetailsDto {
     canManageProject: boolean;
     portfolioScoringModel?: NavigationDto | undefined;
     currentScore?: ScoreSummaryDto | undefined;
+    rank: number;
 }
 
 export interface DescriptiveNavigationDtoOfGuidAndInteger {

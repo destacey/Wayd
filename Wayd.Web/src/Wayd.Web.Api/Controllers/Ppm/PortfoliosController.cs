@@ -2,6 +2,7 @@
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Queries;
+using Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Scoring.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Queries;
@@ -167,6 +168,35 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
     public async Task<ActionResult> ClearScoringModel(Guid id, CancellationToken cancellationToken)
     {
         var result = await _sender.Send(new ClearPortfolioScoringModelCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/project-ranks")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]
+    [OpenApiOperation("Reposition an ordered batch of projects within the portfolio's ranking.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> MoveProjectRanks(Guid id, [FromBody] MoveProjectRanksRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(request.ToCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/project-ranks/rebalance")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectPortfolios)]
+    [OpenApiOperation("Rebalance the portfolio's project ranks to clean, gap-free whole numbers.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> RebalanceProjectRanks(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new RebalancePortfolioRanksCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

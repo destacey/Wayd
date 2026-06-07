@@ -149,6 +149,7 @@ public sealed record ProjectListDto
             {
                 Value = src.CurrentScore.Value,
                 ScoredOn = src.CurrentScore.ScoredOn,
+                ScoringModelId = src.CurrentScore.ScoringModelId,
                 ScoredBy = src.CurrentScore.ScoredBy == null
                     ? null
                     : EmployeeNavigationDto.From(src.CurrentScore.ScoredBy),

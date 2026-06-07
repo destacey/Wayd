@@ -1007,6 +1007,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             calculation.Value.PrimaryValue,
             timestamp,
             actorEmployeeId,
+            model.Id,
             model.Name);
 
         return Result.Success(score);

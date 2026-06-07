@@ -29341,6 +29341,7 @@ export interface ProjectHealthCheckSummaryDto {
 export interface ScoreSummaryDto {
     value: number;
     scoredOn: Date;
+    scoringModelId: string;
     scoredBy?: EmployeeNavigationDto | undefined;
     scoringModelName: string;
 }

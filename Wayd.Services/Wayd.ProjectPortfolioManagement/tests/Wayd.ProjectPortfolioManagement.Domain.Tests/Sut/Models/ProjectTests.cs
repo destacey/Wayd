@@ -1757,6 +1757,7 @@ public class ProjectTests
         project.CurrentScore!.Value.Should().Be(5m);
         project.CurrentScore.ScoredOn.Should().Be(now);
         project.CurrentScore.ScoredById.Should().Be(actorId);
+        project.CurrentScore.ScoringModelId.Should().Be(model.Id);
         project.CurrentScore.ScoringModelName.Should().Be(model.Name);
     }
 

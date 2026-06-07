@@ -13,7 +13,7 @@ using Wayd.Infrastructure.Persistence.Context;
 namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 {
     [DbContext(typeof(WaydDbContext))]
-    [Migration("20260607140547_Make-Project-Rank-Required")]
+    [Migration("20260607161829_Make-Project-Rank-Required")]
     partial class MakeProjectRankRequired
     {
         /// <inheritdoc />
@@ -5842,6 +5842,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                             b1.Property<DateTime>("ScoredOn")
                                 .HasColumnType("datetime2")
                                 .HasColumnName("CurrentScoredOn");
+
+                            b1.Property<Guid>("ScoringModelId")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("CurrentScoringModelId");
 
                             b1.Property<string>("ScoringModelName")
                                 .IsRequired()

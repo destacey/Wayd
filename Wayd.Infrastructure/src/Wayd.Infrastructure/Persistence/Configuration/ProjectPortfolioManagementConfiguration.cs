@@ -215,6 +215,7 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
             options.Property(s => s.Value).HasColumnName("CurrentScoreValue").HasColumnType("decimal(18,4)");
             options.Property(s => s.ScoredOn).HasColumnName("CurrentScoredOn");
             options.Property(s => s.ScoredById).HasColumnName("CurrentScoredById");
+            options.Property(s => s.ScoringModelId).HasColumnName("CurrentScoringModelId");
             options.Property(s => s.ScoringModelName).HasColumnName("CurrentScoringModelName").HasMaxLength(128);
 
             options.HasOne(s => s.ScoredBy)

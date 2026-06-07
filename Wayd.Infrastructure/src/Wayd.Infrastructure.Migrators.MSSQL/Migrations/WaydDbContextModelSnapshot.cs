@@ -5840,6 +5840,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                                 .HasColumnType("datetime2")
                                 .HasColumnName("CurrentScoredOn");
 
+                            b1.Property<Guid>("ScoringModelId")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("CurrentScoringModelId");
+
                             b1.Property<string>("ScoringModelName")
                                 .IsRequired()
                                 .HasMaxLength(128)

@@ -1,12 +1,15 @@
 'use client'
 
 import { WaydGrid, WaydTooltip } from '@/src/components/common'
-import { LifecycleStatusTagCellRenderer } from '@/src/components/common/wayd-grid-cell-renderers'
+import {
+  LifecycleStatusTagCellRenderer,
+  ProgramLinkCellRenderer,
+} from '@/src/components/common/wayd-grid-cell-renderers'
 import { useMessage } from '@/src/components/contexts/messaging'
 import ProjectDrawer from '@/src/app/ppm/_components/project-drawer'
 import { ProjectListDto } from '@/src/services/wayd-api'
 import { useMovePortfolioProjectRanksMutation } from '@/src/store/features/ppm/portfolios-api'
-import { isApiError } from '@/src/utils'
+import { getSortedNames, isApiError } from '@/src/utils'
 import { HolderOutlined, MoreOutlined } from '@ant-design/icons'
 import {
   ColDef,
@@ -22,13 +25,14 @@ import Link from 'next/link'
 import { MouseEvent, useCallback, useMemo, useRef, useState } from 'react'
 import styles from './project-ranking-board.module.css'
 import { buildMoveRanksPayload, RankableRow } from './ranking'
+import dayjs from 'dayjs'
 
 export interface ProjectRankingBoardProps {
   portfolioId: string
   portfolioKey: number
   projects: ProjectListDto[]
-  /** Whether the portfolio has a scoring model assigned (drives the optional score column). */
-  scoringEnabled: boolean
+  /** The current portfolio scoring model id (drives the optional score column). */
+  scoringModelId?: string
   /** Whether the current user may rank (portfolio Update permission). */
   canManage: boolean
   isLoading?: boolean
@@ -116,11 +120,17 @@ const ProjectNameCellRenderer = (
   )
 }
 
-const ScoreCellRenderer = (props: ICellRendererParams<ProjectListDto>) => {
+interface ScoreCellRendererProps extends ICellRendererParams<ProjectListDto> {
+  scoringModelId: string
+}
+
+const ScoreCellRenderer = (props: ScoreCellRendererProps) => {
   const score = props.data?.currentScore
+  const matchingScore =
+    score?.scoringModelId === props.scoringModelId ? score : null
   return (
-    <Tag color={score ? 'blue' : 'default'}>
-      {score ? score.value.toFixed(2) : 'Unscored'}
+    <Tag color={matchingScore ? 'blue' : 'default'}>
+      {matchingScore ? matchingScore.value.toFixed(2) : 'Unscored'}
     </Tag>
   )
 }
@@ -136,7 +146,7 @@ const ProjectRankingBoard = ({
   portfolioId,
   portfolioKey,
   projects,
-  scoringEnabled,
+  scoringModelId,
   canManage,
   isLoading,
   refetch,
@@ -272,9 +282,20 @@ const ProjectRankingBoard = ({
       {
         field: 'name',
         headerName: 'Project',
-        flex: 1,
         minWidth: 240,
         cellRenderer: ProjectNameCellRenderer,
+      },
+      {
+        field: 'program.name',
+        headerName: 'Program',
+        width: 200,
+        cellRenderer: (params: ICellRendererParams<ProjectListDto>) =>
+          params.data?.program
+            ? ProgramLinkCellRenderer({
+                ...(params as any),
+                data: params.data.program,
+              })
+            : null,
       },
       {
         field: 'status.name',
@@ -282,21 +303,47 @@ const ProjectRankingBoard = ({
         width: 140,
         cellRenderer: LifecycleStatusTagCellRenderer,
       },
-      ...(scoringEnabled
+      ...(scoringModelId
         ? [
             {
               headerName: 'Score',
               width: 120,
               sortable: true,
               filter: false,
-              // Sort by the numeric score; unscored projects sort as null.
-              valueGetter: (p) => p.data?.currentScore?.value ?? null,
-              cellRenderer: ScoreCellRenderer,
+              // Sort by the numeric score for the portfolio's current scoring model only.
+              valueGetter: (p) =>
+                p.data?.currentScore?.scoringModelId === scoringModelId
+                  ? p.data.currentScore.value
+                  : null,
+              cellRenderer: (params: ICellRendererParams<ProjectListDto>) => (
+                <ScoreCellRenderer
+                  {...params}
+                  scoringModelId={scoringModelId}
+                />
+              ),
             } as ColDef<ProjectListDto>,
           ]
         : []),
+      {
+        field: 'end',
+        width: 125,
+        valueGetter: (params) =>
+          params.data?.end && dayjs(params.data.end).format('MMM D, YYYY'),
+      },
+      {
+        field: 'projectManagers',
+        headerName: 'PMs',
+        valueGetter: (params) =>
+          getSortedNames(params.data?.projectManagers ?? []),
+      },
+      {
+        field: 'projectOwners',
+        headerName: 'Owners',
+        valueGetter: (params) =>
+          getSortedNames(params.data?.projectOwners ?? []),
+      },
     ],
-    [canManage, dragEnabled, openProjectDrawer, scoringEnabled],
+    [canManage, dragEnabled, openProjectDrawer, scoringModelId],
   )
 
   return (

@@ -268,7 +268,7 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             portfolioId={portfolioData!.id}
             portfolioKey={portfolioKey}
             projects={rankingData ?? []}
-            scoringEnabled={portfolioData?.scoringModel != null}
+            scoringModelId={portfolioData?.scoringModel?.id}
             canManage={canUpdatePortfolio}
             isLoading={isLoadingRanking}
             refetch={refetchRanking}

@@ -26908,7 +26908,8 @@
         "required": [
           "scoringModelName",
           "value",
-          "scoredOn"
+          "scoredOn",
+          "scoringModelId"
         ],
         "properties": {
           "value": {
@@ -26918,6 +26919,12 @@
           "scoredOn": {
             "type": "string",
             "format": "date-time"
+          },
+          "scoringModelId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
           },
           "scoredBy": {
             "nullable": true,

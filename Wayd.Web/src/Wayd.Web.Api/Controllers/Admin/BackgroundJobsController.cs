@@ -83,7 +83,7 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
                 _jobService.Enqueue(() => jobManager.RunSyncTeams(cancellationToken));
                 break;
             case BackgroundJobType.PortfolioRankRebalance:
-                _jobService.Enqueue(() => jobManager.RunPortfolioRankRebalance(cancellationToken));
+                _jobService.EnqueueSystem(() => jobManager.RunPortfolioRankRebalance(cancellationToken));
                 break;
             default:
                 _logger.LogWarning("Unknown job type {jobType} requested", jobType);

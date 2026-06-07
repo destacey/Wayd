@@ -1,4 +1,4 @@
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 
 namespace Wayd.Common.Application.BackgroundJobs;
 
@@ -9,6 +9,8 @@ public interface IJobService : IScopedService
     string Enqueue(Expression<Action> methodCall);
 
     string Enqueue(Expression<Func<Task>> methodCall);
+
+    string EnqueueSystem(Expression<Func<Task>> methodCall);
 
     string Enqueue<T>(Expression<Action<T>> methodCall);
 

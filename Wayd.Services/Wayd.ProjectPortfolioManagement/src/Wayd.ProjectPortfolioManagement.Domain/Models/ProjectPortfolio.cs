@@ -390,10 +390,12 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
         return Result.Success();
     }
 
-    // Distributes the ordered sequence of project ids into distinct, monotonic ranks within the open
-    // interval bounded by lower/upper. With both bounds present, evenly divides the gap so values are
-    // strictly between them: rank_i = lower + (upper - lower) * (i + 1) / (n + 1). With only one
-    // bound, steps outward by RankStep from that anchor.
+    // Distributes the ordered sequence of project ids into distinct, monotonic ranks.
+    //  - Both bounds (between two anchors): evenly divide the gap, strictly between them:
+    //      rank_i = lower + (upper - lower) * (i + 1) / (n + 1)
+    //  - Top drop (only an upper bound): subdivide toward zero so ranks stay positive:
+    //      rank_i = upper * (i + 1) / (n + 1)   (e.g. top 1000 -> 500 -> 250)
+    //  - Bottom drop (only a lower bound): step outward by RankStep below the anchor.
     // TODO future: repeated dense inserts into one gap shrink the spacing; a rebalance is the cure.
     private void AssignSpan(IReadOnlyList<Guid> sequence, double? lower, double? upper)
     {
@@ -410,8 +412,9 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
             }
             else if (upper is not null)
             {
-                // Dropped at the top: place the batch just above the upper anchor, ascending.
-                rank = upper.Value - (count - i) * RankStep;
+                // Dropped at the top: subdivide toward zero (virtual lower bound of 0) so ranks stay
+                // positive and never march into negative space — e.g. top 1000 -> 500 -> 250.
+                rank = upper.Value * (i + 1) / (count + 1);
             }
             else
             {

@@ -988,9 +988,9 @@ public class ProjectPortfolioTests
     }
 
     [Fact]
-    public void MoveProjectRanks_WhenOnlyBeforeAnchor_PlacesBatchAboveIt()
+    public void MoveProjectRanks_WhenOnlyBeforeAnchor_PlacesBatchAboveItTowardZero()
     {
-        // Arrange — drop at the top: only a 'before' anchor.
+        // Arrange — drop at the top: only a 'before' anchor. New rank subdivides toward zero (top/2).
         var before = RankedProject("Before", 2000d);
         var moved = RankedProject("Moved", 90000d);
         var portfolio = RankingPortfolio(before, moved);
@@ -1000,7 +1000,29 @@ public class ProjectPortfolioTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        moved.Rank.Should().BeLessThan(2000d);
+        moved.Rank.Should().Be(1000d); // 2000 / 2
+    }
+
+    [Fact]
+    public void MoveProjectRanks_WhenRepeatedlyDroppedAtTop_StaysPositive()
+    {
+        // Arrange — top item at 1000; repeatedly move other items above it.
+        var top = RankedProject("Top", 1000d);
+        var a = RankedProject("A", 90000d);
+        var b = RankedProject("B", 91000d);
+        var portfolio = RankingPortfolio(top, a, b);
+
+        // Act — move A above top, then B above A.
+        portfolio.MoveProjectRanks(_ownerId, [a.Id], null, top.Id);
+        var result = portfolio.MoveProjectRanks(_ownerId, [b.Id], null, a.Id);
+
+        // Assert — both stay strictly positive (no 0 / negative drift) and remain above the old top.
+        result.IsSuccess.Should().BeTrue();
+        a.Rank.Should().Be(500d);   // 1000 / 2
+        b.Rank.Should().Be(250d);   // 500 / 2
+        b.Rank.Should().BeGreaterThan(0d);
+        a.Rank.Should().BeLessThan(top.Rank);
+        b.Rank.Should().BeLessThan(a.Rank);
     }
 
     [Fact]

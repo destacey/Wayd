@@ -2,6 +2,7 @@ import { getPortfoliosClient } from '@/src/services/clients'
 import { apiSlice } from '../apiSlice'
 import {
   CreatePortfolioRequest,
+  MoveProjectRanksRequest,
   ObjectIdAndKey,
   ProgramListDto,
   ProjectListDto,
@@ -185,6 +186,42 @@ export const portfoliosApi = apiSlice.injectEndpoints({
         { type: QueryTags.Portfolio, id: cacheKey },
       ],
     }),
+    movePortfolioProjectRanks: builder.mutation<
+      void,
+      { id: string; request: MoveProjectRanksRequest; portfolioIdOrKey: string }
+    >({
+      queryFn: async ({ id, request }) => {
+        try {
+          const data = await getPortfoliosClient().moveProjectRanks(id, request)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, { portfolioIdOrKey }) => [
+        { type: QueryTags.PortfolioProjects, id: 'LIST' },
+        { type: QueryTags.PortfolioProjects, id: portfolioIdOrKey },
+      ],
+    }),
+    rebalancePortfolioProjectRanks: builder.mutation<
+      void,
+      { id: string; portfolioIdOrKey: string }
+    >({
+      queryFn: async ({ id }) => {
+        try {
+          const data = await getPortfoliosClient().rebalanceProjectRanks(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, { portfolioIdOrKey }) => [
+        { type: QueryTags.PortfolioProjects, id: 'LIST' },
+        { type: QueryTags.PortfolioProjects, id: portfolioIdOrKey },
+      ],
+    }),
     getPortfolioPrograms: builder.query<
       ProgramListDto[],
       { portfolioIdOrKey: string; status?: number[] }
@@ -329,6 +366,8 @@ export const {
   useDeletePortfolioMutation,
   useAssignPortfolioScoringModelMutation,
   useClearPortfolioScoringModelMutation,
+  useMovePortfolioProjectRanksMutation,
+  useRebalancePortfolioProjectRanksMutation,
   useGetPortfolioProgramsQuery,
   useGetPortfolioProjectsQuery,
   useGetPortfolioStrategicInitiativesQuery,

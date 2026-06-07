@@ -29,6 +29,7 @@ import ChangePortfolioStatusForm, {
   PortfolioStatusAction,
 } from '../_components/change-portfolio-status-form'
 import SetPortfolioScoringModelForm from './_components/set-portfolio-scoring-model-form'
+import ProjectRankingBoard from './_components/ranking/project-ranking-board'
 import {
   ProgramsFilterBar,
   ProgramViewManager,
@@ -42,8 +43,13 @@ enum PortfolioTabs {
   Details = 'details',
   Programs = 'programs',
   Projects = 'projects',
+  Ranking = 'ranking',
   StrategicInitiatives = 'strategicInitiatives',
 }
+
+// Non-closed project statuses for the ranking board: Proposed(1), Approved(5), Active(2)
+// (excludes Completed(3) and Cancelled(4)).
+const RANKING_STATUSES = [1, 5, 2]
 
 const tabs = [
   {
@@ -57,6 +63,10 @@ const tabs = [
   {
     key: PortfolioTabs.Projects,
     label: 'Projects',
+  },
+  {
+    key: PortfolioTabs.Ranking,
+    label: 'Ranking',
   },
   {
     key: PortfolioTabs.StrategicInitiatives,
@@ -86,6 +96,7 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [selectedProjectStatuses, setSelectedProjectStatuses] = useState<
     number[]
   >([5, 2]) // Approved, Active
+  const [rankingQueried, setRankingQueried] = useState(false)
   const [strategicInitiativesQueried, setStrategicInitiativesQueried] =
     useState(false)
   const [selectedSIStatuses, setSelectedSIStatuses] = useState<number[]>([
@@ -155,6 +166,18 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           : undefined,
     },
     { skip: !projectsQueried },
+  )
+
+  const {
+    data: rankingData,
+    isLoading: isLoadingRanking,
+    refetch: refetchRanking,
+  } = useGetPortfolioProjectsQuery(
+    {
+      portfolioIdOrKey: portfolioKey.toString(),
+      status: RANKING_STATUSES,
+    },
+    { skip: !rankingQueried },
   )
 
   const {
@@ -238,6 +261,18 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               groupByProgram={true}
             />
           </>
+        )
+      case PortfolioTabs.Ranking:
+        return (
+          <ProjectRankingBoard
+            portfolioId={portfolioData!.id}
+            portfolioKey={portfolioKey}
+            projects={rankingData ?? []}
+            scoringEnabled={portfolioData?.scoringModel != null}
+            canManage={canUpdatePortfolio}
+            isLoading={isLoadingRanking}
+            refetch={refetchRanking}
+          />
         )
       case PortfolioTabs.StrategicInitiatives:
         return (
@@ -348,6 +383,8 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       setProgramsQueried(true)
     } else if (tab === PortfolioTabs.Projects && !projectsQueried) {
       setProjectsQueried(true)
+    } else if (tab === PortfolioTabs.Ranking && !rankingQueried) {
+      setRankingQueried(true)
     } else if (
       tab === PortfolioTabs.StrategicInitiatives &&
       !strategicInitiativesQueried

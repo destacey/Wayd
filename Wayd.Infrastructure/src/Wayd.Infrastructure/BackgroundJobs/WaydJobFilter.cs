@@ -3,13 +3,14 @@ using Hangfire.Client;
 using Hangfire.Logging;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Wayd.Common.Application.Identity;
 
 namespace Wayd.Infrastructure.BackgroundJobs;
 
 public class WaydJobFilter : IClientFilter
 {
     private static readonly ILog _logger = LogProvider.GetCurrentClassLogger();
-    private const string JobAdminUserId = "11111111-1111-1111-1111-111111111111";
+    private const string JobAdminUserId = SystemIdentity.UserId;
 
     private readonly IServiceProvider _services;
 

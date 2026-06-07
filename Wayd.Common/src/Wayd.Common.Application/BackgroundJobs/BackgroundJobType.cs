@@ -35,4 +35,10 @@ public enum BackgroundJobType
 
     [Display(Name = "Teams Sync", Description = "Synchronize the latest teams data.", Order = 1005, GroupName = "Data Replication Jobs")]
     TeamsSync = 1004,
+
+
+    // Maintenance Jobs
+
+    [Display(Name = "Portfolio Rank Rebalance", Description = "Re-space project ranks within each portfolio to clean, gap-free whole numbers, removing fractional drift accumulated from drag-to-rank operations.", Order = 2001, GroupName = "Maintenance Jobs")]
+    PortfolioRankRebalance = 2000,
 }

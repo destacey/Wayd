@@ -109,7 +109,10 @@ const WaydGrid = forwardRef<AgGridReact, ModaGridProps>(
       gridRef.current?.api.exportDataAsCsv()
     }
 
-    const onClearFilters = () => {
+    const onClearSortAndFilters = () => {
+      gridRef.current?.api.applyColumnState({
+        defaultState: { sort: null },
+      })
       gridRef.current?.api.setFilterModel(null)
       setSearchValue('')
       gridRef.current?.api.setGridOption('quickFilterText', undefined)
@@ -155,12 +158,12 @@ const WaydGrid = forwardRef<AgGridReact, ModaGridProps>(
                       />
                     </Tooltip>
                   )}
-                  <Tooltip title="Clear Filters">
+                  <Tooltip title="Clear Sort and Filters">
                     <Button
                       type="text"
                       shape="circle"
                       icon={<ClearOutlined />}
-                      onClick={onClearFilters}
+                      onClick={onClearSortAndFilters}
                     />
                   </Tooltip>
                   {(showExportButton || toolbarActions) && (

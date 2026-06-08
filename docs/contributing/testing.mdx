@@ -78,6 +78,8 @@ var model = faker.Generate();
 ### Faker conventions
 
 - **Per-property `With\{Property\}` builder extensions**, not a single `WithData(...)` with optional parameters. Each extension sets one `RuleFor` and returns the faker for chaining.
+- **`With\{Property\}` means "set exactly this value."** Do not skip null values inside the extension. If a nullable property needs to be cleared, `WithDescription(null)` or `WithParentId(null)` should set the generated model's property to null.
+- **`As...` state helpers** are for coherent domain states and may update several aligned properties together — e.g. `AsActive()` can set status, date range, and timestamps consistently. If an `As...` helper accepts optional parameters, it should call the relevant `With\{Property\}` method only when the optional value is supplied.
 - **Composition helpers** that build child collections through the aggregate's own methods (so invariants and ordering hold) are encouraged — e.g. `AsProposedWith(scales, criteria, outputs)`.
 - **Encapsulate shared fixtures as faker extensions**, not a separate `\{Thing\}TestData` holder class. When several test classes need the same realistic entity, add a convenience extension that builds the canonical fixture (e.g. `AsProposedWsjf()` / `AsActiveWsjf()` on `ScoringModelFaker`) and call it from each test. Keep small one-off fixtures inline.
 

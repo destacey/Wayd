@@ -35,6 +35,7 @@ This file captures compact repo-specific lessons that future coding agents shoul
 ## Testing Notes
 
 - Domain fakers live in domain test projects and are referenced by application tests when useful. For Work items, use `Wayd.Work.Domain.Tests/Data/WorkItemFaker.cs`.
+- Faker `With{Property}` extensions are explicit setters: do not guard against null inside them. Put optional-parameter branching in `As...`/composition helpers before calling `With{Property}`.
 - Application test projects often include fake DbContexts, for example `FakeWorkDbContext`.
 - React page tests can mock heavy Ant Design surfaces and dynamic imports when the behavior under test is page wiring rather than AntD itself.
 - Next.js route `params` are promises in app-router pages. In React 19 tests, a fulfilled thenable can avoid getting stuck in Suspense for unit-level page tests.

@@ -16,7 +16,8 @@ Every portfolio has:
 - **Status** — Lifecycle state (see [Portfolio Status Lifecycle](#portfolio-status-lifecycle))
 - **Date Range** — Start and optional end date
 - **Roles** — People assigned to portfolio-level roles
-- **Scoring Model** — Optional [active scoring model](../settings/scoring-models.mdx) used to score and rank projects in the portfolio
+- **Scoring Model** — Optional [active scoring model](../settings/scoring-models.mdx) used to score projects in the portfolio
+- **Project Ranking** — Stack-ranked order of projects in the portfolio
 
 Portfolios contain:
 - **Programs** — Groups of related [projects](./projects.mdx)
@@ -68,15 +69,32 @@ Use **Actions → Set Scoring Model** on the portfolio detail page to assign or 
 
 Project scoring uses immutable snapshots: every recorded score stores the model name, each criterion rating, and every output value at the time it was recorded. This keeps prior scores meaningful even if the portfolio later switches to a different model.
 
+### Portfolio Project Ranking
+
+Every project has a **Rank** within its portfolio. Rank is a human-managed ordering used for prioritization and is independent of the calculated [Priority Score](./projects.mdx#project-priority-scores). A newly created project is placed at the bottom of the portfolio's ranking.
+
+Use the **Ranking** tab on the portfolio detail page to review and adjust the order of Proposed, Approved, and Active projects. The board shows:
+
+- Display position, project name, program, status, dates, project managers, and owners
+- Score columns from the portfolio's current scoring model, when one is assigned
+- Criterion ratings and output values from each project's current score, but only when that score was recorded with the portfolio's current scoring model
+- A score badge on the primary output column, which project managers can use to score or re-score a project
+
+Portfolio Owners and Managers can drag one or more projects to reorder them. Dragging is available only when the board is in its natural rank order; clear sorting, filters, and search to enable ranking. Completed and Cancelled projects are not shown on the Ranking tab, but they keep their underlying rank so historical order remains stable.
+
+Wayd stores ranks as fractional sort keys so drag-and-drop can insert projects between existing rows without renumbering the whole portfolio every time. The **Portfolio Rank Rebalance** background job periodically re-spaces dense ranks back to clean whole-number gaps.
+
 ### Portfolio Detail Page
 
-The portfolio detail page has four tabs:
+The portfolio detail page has five tabs:
 
 **Details Tab** — Shows sponsors, owners, managers (sorted alphabetically), scoring model, description (Markdown), and links to related entities.
 
 **Programs Tab** — Grid of [programs](#programs) with Key, Name, Status, Start/End dates, Managers, Owners, Sponsors, and [Strategic Themes](../strategic-management/index.mdx#strategic-themes). Supports List and Timeline views. Filtered to show Active programs by default.
 
-**Projects Tab** — Grid of [projects](./projects.mdx) with Key, Name, Status, Portfolio, Program, Start/End dates, Managers, Owners, Sponsors, Strategic Themes, and Lifecycle. Supports **Card**, **List**, and **Timeline** views. Filtered to show Approved and Active projects by default. The Timeline view groups projects by program.
+**Projects Tab** — Grid of [projects](./projects.mdx) with Key, Name, Status, Portfolio, Program, Start/End dates, Managers, Owners, Sponsors, Strategic Themes, Lifecycle, and Rank. Supports **Card**, **List**, and **Timeline** views. Card view can sort by name or rank. Filtered to show Approved and Active projects by default. The Timeline view groups projects by program.
+
+**Ranking Tab** — Rank-ordered board for Proposed, Approved, and Active projects. Supports drag-to-rank for portfolio Owners/Managers and includes score breakdown columns when a scoring model is assigned.
 
 **Strategic Initiatives Tab** — Grid of [strategic initiatives](./strategic-initiatives.mdx) with Key, Name, Status, Start/End dates, Managers, Owners, Sponsors, and Strategic Themes. Supports List and Timeline views. Filtered to show Approved and Active by default.
 
@@ -124,3 +142,11 @@ A warning alert appears if dates are missing: *"Program Dates are required befor
 3. Select **Actions → Set Scoring Model**.
 4. Choose the active model and click **Save**.
 5. Open a project in the portfolio and use its **Priority Score** panel to record the first score.
+
+### Ranking Projects
+
+1. Open the portfolio detail page.
+2. Select the **Ranking** tab.
+3. Clear any sorting, filters, or search terms.
+4. Drag one or more projects to the desired position.
+5. Review the **Rank** column in list views, or sort card view by rank, to see the updated order.

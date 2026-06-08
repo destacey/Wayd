@@ -102,7 +102,7 @@ PATs inherit the permissions of the user who created them. See [Your Profile](..
 | Work Management | `/api/work-management/` | Work items, workspaces, work processes |
 | Organization | `/api/organization/` | Teams, employees |
 | Planning | `/api/planning/` | Planning intervals, iterations |
-| Portfolio Management | `/api/portfolio-management/` | Projects, portfolios |
+| Project Portfolio Management | `/api/ppm/` | Portfolios, programs, projects, ranking, strategic initiatives |
 | Settings | `/api/settings/` | Configuration, feature flags |
 | Auth | `/api/auth/` | Login, refresh, exchange, providers |
 | User Management | `/api/user-management/` | Profile, roles, permissions, PATs |
@@ -115,3 +115,11 @@ The TypeScript client is auto-generated from this spec and located in:
 ```
 wayd.web.reactclient/src/services/wayd-api.ts
 ```
+
+## PPM Ranking Endpoints
+
+Portfolio project ranking is exposed under `/api/ppm/portfolios`:
+
+- `PUT /api/ppm/portfolios/{id}/project-ranks` — Reposition an ordered batch of projects within a portfolio's ranking.
+- `PUT /api/ppm/portfolios/{id}/project-ranks/rebalance` — Re-space a portfolio's ranks to clean whole-number gaps.
+- `GET /api/ppm/portfolios/{id}/ranking-scoreboard` — Get the current scoring-model breakdown used by the portfolio Ranking tab.

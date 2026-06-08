@@ -52,6 +52,11 @@ This file captures compact repo-specific lessons that future coding agents shoul
 
 ## Recent Feature Notes
 
+- Portfolio project ranking added:
+  - Domain: `Project.Rank` is a required fractional sort key; display `Position` is derived per portfolio in `GetProjectsQuery`.
+  - API: `PUT /api/ppm/portfolios/{id}/project-ranks`, `PUT /api/ppm/portfolios/{id}/project-ranks/rebalance`, and `GET /api/ppm/portfolios/{id}/ranking-scoreboard`.
+  - Frontend: portfolio details has a `Ranking` tab with `ProjectRankingBoard`; drag is disabled while sorted/filtered/searched.
+  - Maintenance: `PortfolioRankRebalance` Hangfire job re-spaces dense fractional ranks.
 - Employee cycle time report added:
   - Query: `GetEmployeeWorkItemsQuery` in `Wayd.Work.Application/WorkItems/Queries`.
   - Endpoint: `GET /api/organization/employees/{id}/work-items`.

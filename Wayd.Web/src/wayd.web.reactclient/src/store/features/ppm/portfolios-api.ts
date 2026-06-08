@@ -166,8 +166,10 @@ export const portfoliosApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => [
+      invalidatesTags: (result, error, { cacheKey, id }) => [
         { type: QueryTags.Portfolio, id: cacheKey },
+        { type: QueryTags.PortfolioRankingScoreboard, id: 'LIST' },
+        { type: QueryTags.PortfolioRankingScoreboard, id },
       ],
     }),
     clearPortfolioScoringModel: builder.mutation<
@@ -183,8 +185,10 @@ export const portfoliosApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => [
+      invalidatesTags: (result, error, { cacheKey, id }) => [
         { type: QueryTags.Portfolio, id: cacheKey },
+        { type: QueryTags.PortfolioRankingScoreboard, id: 'LIST' },
+        { type: QueryTags.PortfolioRankingScoreboard, id },
       ],
     }),
     movePortfolioProjectRanks: builder.mutation<
@@ -238,8 +242,8 @@ export const portfoliosApi = apiSlice.injectEndpoints({
         }
       },
       providesTags: (result, error, portfolioId) => [
-        { type: QueryTags.PortfolioProjects, id: 'LIST' },
-        { type: QueryTags.PortfolioProjects, id: portfolioId },
+        { type: QueryTags.PortfolioRankingScoreboard, id: 'LIST' },
+        { type: QueryTags.PortfolioRankingScoreboard, id: portfolioId },
       ],
     }),
     getPortfolioPrograms: builder.query<

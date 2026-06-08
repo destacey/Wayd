@@ -89,6 +89,7 @@ export const projectScoresApi = apiSlice.injectEndpoints({
         { type: QueryTags.Project, id: projectId },
         { type: QueryTags.Project, id: 'LIST' },
         { type: QueryTags.PortfolioProjects, id: 'LIST' },
+        { type: QueryTags.PortfolioRankingScoreboard, id: 'LIST' },
         { type: QueryTags.ProgramProjects, id: 'LIST' },
       ],
     }),

@@ -4,6 +4,7 @@ import {
   CreatePortfolioRequest,
   MoveProjectRanksRequest,
   ObjectIdAndKey,
+  PortfolioRankingScoreboardDto,
   ProgramListDto,
   ProjectListDto,
   ProjectPortfolioDetailsDto,
@@ -222,6 +223,25 @@ export const portfoliosApi = apiSlice.injectEndpoints({
         { type: QueryTags.PortfolioProjects, id: portfolioIdOrKey },
       ],
     }),
+    getPortfolioRankingScoreboard: builder.query<
+      PortfolioRankingScoreboardDto,
+      string
+    >({
+      queryFn: async (portfolioId) => {
+        try {
+          const data =
+            await getPortfoliosClient().getRankingScoreboard(portfolioId)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, portfolioId) => [
+        { type: QueryTags.PortfolioProjects, id: 'LIST' },
+        { type: QueryTags.PortfolioProjects, id: portfolioId },
+      ],
+    }),
     getPortfolioPrograms: builder.query<
       ProgramListDto[],
       { portfolioIdOrKey: string; status?: number[] }
@@ -368,6 +388,7 @@ export const {
   useClearPortfolioScoringModelMutation,
   useMovePortfolioProjectRanksMutation,
   useRebalancePortfolioProjectRanksMutation,
+  useGetPortfolioRankingScoreboardQuery,
   useGetPortfolioProgramsQuery,
   useGetPortfolioProjectsQuery,
   useGetPortfolioStrategicInitiativesQuery,

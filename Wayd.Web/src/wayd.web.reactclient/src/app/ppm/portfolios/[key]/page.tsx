@@ -23,6 +23,7 @@ import {
   useGetPortfolioProgramsQuery,
   useGetPortfolioProjectsQuery,
   useGetPortfolioQuery,
+  useGetPortfolioRankingScoreboardQuery,
   useGetPortfolioStrategicInitiativesQuery,
 } from '@/src/store/features/ppm/portfolios-api'
 import ChangePortfolioStatusForm, {
@@ -180,6 +181,11 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     { skip: !rankingQueried },
   )
 
+  const { data: rankingScoreboard } = useGetPortfolioRankingScoreboardQuery(
+    portfolioData?.id ?? '',
+    { skip: !rankingQueried || !portfolioData?.id },
+  )
+
   const {
     data: strategicInitiativeData,
     isLoading: isLoadingStrategicInitiatives,
@@ -268,7 +274,7 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             portfolioId={portfolioData!.id}
             portfolioKey={portfolioKey}
             projects={rankingData ?? []}
-            scoringModelId={portfolioData?.scoringModel?.id}
+            scoreboard={rankingScoreboard}
             canManage={canUpdatePortfolio}
             isLoading={isLoadingRanking}
             refetch={refetchRanking}

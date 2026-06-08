@@ -3,6 +3,8 @@ using Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
+using Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Dtos;
+using Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Scoring.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Queries;
@@ -201,6 +203,20 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpGet("{id}/ranking-scoreboard")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
+    [OpenApiOperation("Get the per-project score breakdown for the portfolio's ranking board.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PortfolioRankingScoreboardDto>> GetRankingScoreboard(Guid id, CancellationToken cancellationToken)
+    {
+        var scoreboard = await _sender.Send(new GetPortfolioRankingScoreboardQuery(id), cancellationToken);
+
+        return scoreboard is not null
+            ? Ok(scoreboard)
+            : NotFound();
     }
 
     [HttpGet("{idOrKey}/programs")]

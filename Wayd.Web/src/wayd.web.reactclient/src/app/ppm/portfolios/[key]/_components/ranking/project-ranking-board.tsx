@@ -7,7 +7,10 @@ import {
 } from '@/src/components/common/wayd-grid-cell-renderers'
 import { useMessage } from '@/src/components/contexts/messaging'
 import ProjectDrawer from '@/src/app/ppm/_components/project-drawer'
-import { ProjectListDto } from '@/src/services/wayd-api'
+import {
+  PortfolioRankingScoreboardDto,
+  ProjectListDto,
+} from '@/src/services/wayd-api'
 import { useMovePortfolioProjectRanksMutation } from '@/src/store/features/ppm/portfolios-api'
 import { getSortedNames, isApiError } from '@/src/utils'
 import { HolderOutlined, MoreOutlined } from '@ant-design/icons'
@@ -31,8 +34,8 @@ export interface ProjectRankingBoardProps {
   portfolioId: string
   portfolioKey: number
   projects: ProjectListDto[]
-  /** The current portfolio scoring model id (drives the optional score column). */
-  scoringModelId?: string
+  /** Current-model score breakdown per project + the model definition for criterion/output columns. */
+  scoreboard?: PortfolioRankingScoreboardDto
   /** Whether the current user may rank (portfolio Update permission). */
   canManage: boolean
   isLoading?: boolean
@@ -120,20 +123,20 @@ const ProjectNameCellRenderer = (
   )
 }
 
-interface ScoreCellRendererProps extends ICellRendererParams<ProjectListDto> {
-  scoringModelId: string
-}
-
-const ScoreCellRenderer = (props: ScoreCellRendererProps) => {
-  const score = props.data?.currentScore
-  const matchingScore =
-    score?.scoringModelId === props.scoringModelId ? score : null
+// Renders the primary output value (already gated to the current-model score via the column's
+// valueGetter) as a badge. Null = no current-model score → "Unscored".
+const ScoreCellRenderer = (props: ICellRendererParams<ProjectListDto>) => {
+  const value = props.value as number | null | undefined
+  const hasScore = value != null
   return (
-    <Tag color={matchingScore ? 'blue' : 'default'}>
-      {matchingScore ? matchingScore.value.toFixed(2) : 'Unscored'}
+    <Tag color={hasScore ? 'blue' : 'default'}>
+      {hasScore ? value.toFixed(2) : 'Unscored'}
     </Tag>
   )
 }
+
+const buildScoringColumnTooltip = (name: string, description?: string | null) =>
+  [name, description?.trim()].filter(Boolean).join(' - ')
 
 const rowSelection: RowSelectionOptions<ProjectListDto> = {
   mode: 'multiRow',
@@ -146,7 +149,7 @@ const ProjectRankingBoard = ({
   portfolioId,
   portfolioKey,
   projects,
-  scoringModelId,
+  scoreboard,
   canManage,
   isLoading,
   refetch,
@@ -158,6 +161,28 @@ const ProjectRankingBoard = ({
     null,
   )
   const [drawerOpen, setDrawerOpen] = useState(false)
+
+  // Per-project breakdown lookups keyed by project id: criterion values by criterionId, output values
+  // by token. Only projects whose current score matches the portfolio's current model are present, so
+  // a missing entry (different/older model, or unscored) yields blank breakdown cells.
+  const criterionValuesByProject = useMemo(() => {
+    const map = new Map<string, Map<string, number>>()
+    for (const p of scoreboard?.projects ?? []) {
+      map.set(
+        p.projectId,
+        new Map(p.ratings.map((r) => [r.criterionId, r.ratingValue])),
+      )
+    }
+    return map
+  }, [scoreboard])
+
+  const outputValuesByProject = useMemo(() => {
+    const map = new Map<string, Map<string, number>>()
+    for (const p of scoreboard?.projects ?? []) {
+      map.set(p.projectId, new Map(p.outputs.map((o) => [o.token, o.value])))
+    }
+    return map
+  }, [scoreboard])
 
   // Dragging only makes sense in the API-provided rank order. When the user sorts, column-filters, or
   // uses the global search, the visible order no longer reflects rank, so the drag handle is disabled
@@ -303,27 +328,59 @@ const ProjectRankingBoard = ({
         width: 140,
         cellRenderer: LifecycleStatusTagCellRenderer,
       },
-      ...(scoringModelId
-        ? [
-            {
-              headerName: 'Score',
-              width: 120,
-              sortable: true,
-              filter: false,
-              // Sort by the numeric score for the portfolio's current scoring model only.
-              valueGetter: (p) =>
-                p.data?.currentScore?.scoringModelId === scoringModelId
-                  ? p.data.currentScore.value
-                  : null,
-              cellRenderer: (params: ICellRendererParams<ProjectListDto>) => (
-                <ScoreCellRenderer
-                  {...params}
-                  scoringModelId={scoringModelId}
-                />
-              ),
-            } as ColDef<ProjectListDto>,
-          ]
-        : []),
+      // Model-derived columns: criteria (in model order), then outputs (in model order). Headers use
+      // the token. Values come from the project's current-model score; blank when there's no matching
+      // score. The primary output renders as a badge to set it apart from the plain criterion/output
+      // value cells.
+      ...(scoreboard?.scoringModel?.criteria ?? []).map(
+        (criterion) =>
+          ({
+            colId: `criterion:${criterion.id}`,
+            headerName: criterion.token,
+            headerTooltip: buildScoringColumnTooltip(
+              criterion.name,
+              criterion.description,
+            ),
+            width: 120,
+            sortable: true,
+            filter: false,
+            valueGetter: (p) =>
+              p.data
+                ? (criterionValuesByProject.get(p.data.id)?.get(criterion.id) ??
+                  null)
+                : null,
+            valueFormatter: (p) =>
+              p.value == null ? '' : Number(p.value).toLocaleString(),
+          }) as ColDef<ProjectListDto>,
+      ),
+      ...(scoreboard?.scoringModel?.outputs ?? []).map(
+        (output) =>
+          ({
+            colId: `output:${output.token}`,
+            headerName: output.token,
+            headerTooltip: buildScoringColumnTooltip(
+              output.name,
+              `Formula: ${output.formula}`,
+            ),
+            width: 120,
+            sortable: true,
+            filter: false,
+            valueGetter: (p) =>
+              p.data
+                ? (outputValuesByProject.get(p.data.id)?.get(output.token) ??
+                  null)
+                : null,
+            valueFormatter: output.isPrimary
+              ? undefined
+              : (p) =>
+                  p.value == null ? '' : Number(p.value).toLocaleString(),
+            cellRenderer: output.isPrimary
+              ? (params: ICellRendererParams<ProjectListDto>) => (
+                  <ScoreCellRenderer {...params} />
+                )
+              : undefined,
+          }) as ColDef<ProjectListDto>,
+      ),
       {
         field: 'end',
         width: 125,
@@ -343,7 +400,15 @@ const ProjectRankingBoard = ({
           getSortedNames(params.data?.projectOwners ?? []),
       },
     ],
-    [canManage, dragEnabled, openProjectDrawer, scoringModelId],
+    [
+      canManage,
+      dragEnabled,
+      openProjectDrawer,
+      scoreboard?.scoringModel?.criteria,
+      scoreboard?.scoringModel?.outputs,
+      criterionValuesByProject,
+      outputValuesByProject,
+    ],
   )
 
   return (
@@ -363,6 +428,7 @@ const ProjectRankingBoard = ({
         onRowDragEnd={onRowDragEnd}
         onSortChanged={syncInteractionState}
         onFilterChanged={syncInteractionState}
+        onFirstDataRendered={syncInteractionState}
       />
       {selectedProjectKey && (
         <ProjectDrawer

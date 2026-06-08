@@ -20,7 +20,8 @@ public sealed class ProjectFaker : PrivateConstructorFaker<Project>
         RuleFor(x => x.DateRange, f => null); // Default is null for proposed projects.
         RuleFor(p => p.ExpenditureCategoryId, f => f.Random.Int(1, 10));
         RuleFor(x => x.PortfolioId, f => f.Random.Guid()); // Set by portfolio in real scenarios.
-        RuleFor(x => x.ProgramId, f => null); // Optional, can be null by default.
+        RuleFor(x => x.ProgramId, f => null);
+        RuleFor(x => x.Rank, f => f.Random.Double(1, 100000));
     }
 }
 
@@ -230,5 +231,14 @@ public static class ProjectFakerExtensions
         typeof(ProjectTask)
             .GetProperty(nameof(ProjectTask.Project))!
             .SetValue(task, project);
+    }
+
+    /// <summary>
+    /// Sets the project's fractional rank sort key at construction.
+    /// </summary>
+    public static ProjectFaker WithRank(this ProjectFaker faker, double rank)
+    {
+        faker.RuleFor(x => x.Rank, rank);
+        return faker;
     }
 }

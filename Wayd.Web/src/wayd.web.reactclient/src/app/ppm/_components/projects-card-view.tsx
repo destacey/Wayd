@@ -5,13 +5,30 @@ import TimelineProgress from '@/src/components/common/planning/timeline-progress
 import PhaseTimeline from './phase-timeline'
 import { ProjectListDto } from '@/src/services/wayd-api'
 import { getSortedNames } from '@/src/utils'
-import { Card, Flex, Spin, Typography } from 'antd'
+import { Card, Flex, Segmented, Spin, Typography } from 'antd'
 import styles from './projects-card-view.module.css'
 import Link from 'next/link'
-import { FC, ReactNode } from 'react'
+import { FC, ReactNode, useMemo, useState } from 'react'
 import { ProjectHealthCheckTag } from '../projects/_components'
 
 const { Text } = Typography
+type SortMode = 'name' | 'rank'
+
+const compareProjectNames = (a: ProjectListDto, b: ProjectListDto) =>
+  a.name.localeCompare(b.name, undefined, {
+    numeric: true,
+    sensitivity: 'base',
+  })
+
+const compareProjectRanks = (a: ProjectListDto, b: ProjectListDto) => {
+  const aPosition = a.position ?? Number.MAX_SAFE_INTEGER
+  const bPosition = b.position ?? Number.MAX_SAFE_INTEGER
+  const positionDiff = aPosition - bPosition
+
+  if (positionDiff !== 0) return positionDiff
+
+  return compareProjectNames(a, b)
+}
 
 interface ProjectCardProps {
   project: ProjectListDto
@@ -126,10 +143,40 @@ const ProjectsCardView: FC<ProjectsCardViewProps> = ({
   onCardClick,
   hidePortfolio,
 }) => {
+  const [sortMode, setSortMode] = useState<SortMode>('name')
+
+  const sortedProjects = useMemo(() => {
+    const comparer =
+      sortMode === 'rank' ? compareProjectRanks : compareProjectNames
+
+    return [...(projects ?? [])].sort(comparer)
+  }, [projects, sortMode])
+
+  const toolbar = (
+    <Flex
+      align="center"
+      justify="space-between"
+      gap="small"
+      wrap="wrap"
+      className={styles.toolbar}
+    >
+      <Segmented
+        size="small"
+        value={sortMode}
+        onChange={(value) => setSortMode(value as SortMode)}
+        options={[
+          { label: 'by name', value: 'name' },
+          { label: 'by rank', value: 'rank' },
+        ]}
+      />
+      {viewSelector}
+    </Flex>
+  )
+
   if (isLoading) {
     return (
       <Flex vertical gap="small">
-        {viewSelector && <Flex justify="flex-end">{viewSelector}</Flex>}
+        {toolbar}
         <Flex justify="center" style={{ padding: 24 }}>
           <Spin />
         </Flex>
@@ -137,16 +184,9 @@ const ProjectsCardView: FC<ProjectsCardViewProps> = ({
     )
   }
 
-  const sortedProjects = [...(projects ?? [])].sort((a, b) =>
-    a.name.localeCompare(b.name, undefined, {
-      numeric: true,
-      sensitivity: 'base',
-    }),
-  )
-
   return (
     <Flex vertical gap="small">
-      {viewSelector && <Flex justify="flex-end">{viewSelector}</Flex>}
+      {toolbar}
       <div className={styles.grid}>
         {sortedProjects.map((project) => (
           <ProjectCard

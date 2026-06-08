@@ -94,6 +94,25 @@ internal sealed class GetProjectsQueryHandler(IProjectPortfolioManagementDbConte
         var config = ProjectListDto.CreateTypeAdapterConfig(now, _currentUser.GetEmployeeId());
         var projects = await query.ProjectToType<ProjectListDto>(config).ToListAsync(cancellationToken);
 
-        return [.. projects.OrderBy(p => p.Name)];
+        var ordered = projects
+            .OrderBy(p => p.Portfolio.Id)
+            .ThenBy(p => p.Rank)
+            .ThenBy(p => p.Name)
+            .ToList();
+
+        Guid? currentPortfolioId = null;
+        var position = 0;
+        foreach (var project in ordered)
+        {
+            if (currentPortfolioId != project.Portfolio.Id)
+            {
+                currentPortfolioId = project.Portfolio.Id;
+                position = 1;
+            }
+
+            project.Position = position++;
+        }
+
+        return [.. ordered.OrderBy(p => p.Name)];
     }
 }

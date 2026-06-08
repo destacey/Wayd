@@ -30,6 +30,7 @@ internal static class ConfigureServices
 
         services.AddHangfire((provider, hangfireConfig) => hangfireConfig
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseActivator(provider.GetRequiredService<JobActivator>())
             .UseDatabase(storageSettings.StorageProvider, storageSettings.ConnectionString, config)
             .UseFilter(new WaydJobFilter(provider))
             .UseFilter(new LogJobFilter())

@@ -82,6 +82,9 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
             case BackgroundJobType.TeamsSync:
                 _jobService.Enqueue(() => jobManager.RunSyncTeams(cancellationToken));
                 break;
+            case BackgroundJobType.PortfolioRankRebalance:
+                _jobService.EnqueueSystem(() => jobManager.RunPortfolioRankRebalance(cancellationToken));
+                break;
             default:
                 _logger.LogWarning("Unknown job type {jobType} requested", jobType);
                 return BadRequest(ProblemDetailsExtensions.ForBadRequest($"Unknown job type {jobType} requested.", HttpContext));
@@ -111,6 +114,7 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
                 BackgroundJobType.WorkFullSync => () => jobManager.RunWorkSync(SyncType.Full, SyncTriggerSource.Scheduled, null, cancellationToken),
                 BackgroundJobType.WorkDiffSync => () => jobManager.RunWorkSync(SyncType.Differential, SyncTriggerSource.Scheduled, null, cancellationToken),
                 BackgroundJobType.TeamGraphSync => () => jobManager.RunSyncTeamsWithGraphTables(cancellationToken),
+                BackgroundJobType.PortfolioRankRebalance => () => jobManager.RunPortfolioRankRebalance(cancellationToken),
                 _ => throw new ArgumentOutOfRangeException(nameof(jobType), jobType, "Unknown job type requested")
             };
         }

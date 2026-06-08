@@ -89,7 +89,7 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 
 | Term | Definition |
 |------|-----------|
-| **Portfolio** | Top-level container for programs, projects, and strategic initiatives. Status lifecycle: Proposed → Active → OnHold ↔ Active → Closed → Archived. May assign one active scoring model to enable project priority scoring. |
+| **Portfolio** | Top-level container for programs, projects, and strategic initiatives. Status lifecycle: Proposed → Active → OnHold ↔ Active → Closed → Archived. May assign one active scoring model to enable project priority scoring. Owns the project ranking for all projects in the portfolio. |
 | **Program** | Groups related projects within a portfolio. Status: Proposed → Active → Completed/Cancelled. Only active programs accept new projects. |
 | **Project** | A timed endeavor with scope, timeline, and deliverables. Key is 2-20 uppercase alphanumeric. Status: Proposed → Approved (requires lifecycle) → Active (requires dates) → Completed/Cancelled. |
 | **Project Key** | A unique 2-20 character uppercase alphanumeric code identifying a project (e.g., `APOLLO`). Can be changed (cascades to task keys). |
@@ -97,6 +97,8 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Project Lifecycle Phase** | A template phase within a lifecycle (e.g., Initiation, Planning, Execution, Closing). Ordered. Immutable after lifecycle activation. |
 | **Project Phase** | A concrete instance of a lifecycle phase on a project. Has Status (NotStarted/InProgress/Completed/Cancelled), Date Range, Progress (0-100%), and Assignee roles. Name copied from template (not editable). |
 | **Project Task** | An actionable work item within a project phase. Key: ProjectKey-Number. Type: Task (date range, 0-100% progress) or Milestone (single date, 0 or 100% only). Supports hierarchy (WBS) and Finish-to-Start dependencies. |
+| **Project Rank** | Opaque fractional sort key used to order projects within a portfolio. Every project receives a rank on creation. Users see the derived 1-based display position, not the raw rank value. |
+| **Portfolio Ranking Board** | Portfolio detail tab that shows Proposed, Approved, and Active projects in rank order. Portfolio Owners/Managers can drag projects to reorder them; score columns come from the current portfolio scoring model when assigned. |
 | **Project Priority Score** | The latest score recorded for a project using its portfolio's assigned scoring model. Shows the primary score value, scorer, timestamp, and model name. |
 | **Project Score Snapshot** | An immutable score history entry for a project. Stores the scoring model id/key/name, criterion ratings, computed outputs, scorer, timestamp, and per-project sequence so prior scores remain meaningful after model or portfolio assignment changes. |
 | **Task Priority** | Low, Medium, High, or Critical. Shown as color indicators in the UI. |

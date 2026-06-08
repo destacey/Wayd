@@ -11,7 +11,7 @@ Wayd supports:
 - **Organizations** — Teams and teams of teams with operating models, memberships, and hierarchy
 - **Planning** — Planning intervals (PIs), sprints, objectives, risks, roadmaps, and planning poker
 - **Work Management** — Workspaces, work items, work processes, workflows, and work types
-- **Project Portfolio Management** — Portfolios, programs, projects with lifecycles/phases/tasks, priority scoring, strategic initiatives with KPIs
+- **Project Portfolio Management** — Portfolios, programs, projects with lifecycles/phases/tasks, portfolio ranking, priority scoring, strategic initiatives with KPIs
 - **Strategic Management** — Visions, strategies, and strategic themes for organizational alignment
 
 ## Documentation
@@ -29,7 +29,7 @@ Wayd supports:
 - [Work Configuration](docs/user-guide/work-management/work-configuration.mdx): Work processes, types, tiers, levels, workflows, statuses
 - [Cycle Time Report](docs/user-guide/work-management/cycle-time-report.mdx): Cycle time analysis for team-owned and employee-assigned work items
 - [PPM Overview](docs/user-guide/ppm/index.mdx): How PPM connects strategy and execution
-- [Portfolios & Programs](docs/user-guide/ppm/portfolios-programs.mdx): Portfolio lifecycle, programs, roles, scoring-model assignment
+- [Portfolios & Programs](docs/user-guide/ppm/portfolios-programs.mdx): Portfolio lifecycle, programs, roles, scoring-model assignment, project ranking
 - [Projects](docs/user-guide/ppm/projects.mdx): Project lifecycle, priority scoring, phases, tasks, dependencies, plan tab
 - [Scoring Models](docs/user-guide/settings/scoring-models.mdx): Formula-driven criteria, rating scales, outputs, and PPM scoring usage
 - [Strategic Initiatives](docs/user-guide/ppm/strategic-initiatives.mdx): Initiatives, KPIs, checkpoints, measurements

@@ -40,6 +40,7 @@ graph LR
     PF -->|contains| Prog
     PF -->|contains| Proj
     PF -->|contains| SI
+    PF -->|ranks| Proj
     Prog -->|groups| Proj
     Proj -->|has| Phase
     Phase -->|has| Task
@@ -53,6 +54,7 @@ graph LR
 - **[Work Items](../work-management/work-items.mdx#work-items)** from [workspaces](../work-management/work-items.mdx#workspaces) can be associated with projects on the [Project Work Items tab](./projects.mdx#project-detail-page).
 - **[Teams](../organizations/index.mdx#teams)** are assigned roles on projects (Sponsor, Owner, Manager, Member).
 - **[Scoring Models](../settings/scoring-models.mdx)** can be assigned to portfolios so their projects can be scored and compared with the same criteria.
+- **Portfolio Ranking** gives each project a human-managed stack rank within its portfolio, independent of the computed priority score.
 
 ## Sections
 
@@ -71,6 +73,7 @@ graph LR
 | Project activation | Date range required before activation |
 | Project deletion | Only Proposed projects can be deleted |
 | Portfolio scoring | Only Active scoring models can be assigned; project score history is retained when assignments change |
+| Portfolio ranking | Every project is ranked within its portfolio from creation; portfolio Owners/Managers can reorder non-closed projects on the Ranking tab |
 | Task hierarchy | Milestones cannot have children |
 | Task deletion | Cannot delete tasks with children or active dependencies |
 | Dependencies | Cannot create circular task dependencies |

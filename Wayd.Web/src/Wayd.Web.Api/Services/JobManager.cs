@@ -7,6 +7,8 @@ using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Planning.Application.Iterations.Queries;
 using Wayd.Planning.Application.PlanningTeams.Commands;
+using Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
+using Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Queries;
 using Wayd.ProjectPortfolioManagement.Application.PpmTeams.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 using Wayd.StrategicManagement.Application.StrategicThemes.Queries;
@@ -164,5 +166,27 @@ public class JobManager(
         }
 
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncTeams));
+    }
+
+    [DisableConcurrentExecution(60 * 30)]
+    [AutomaticRetry(Attempts = 3, DelaysInSeconds = [60, 300, 600])]
+    public async Task RunPortfolioRankRebalance(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Running {BackgroundJob} job", nameof(RunPortfolioRankRebalance));
+
+        // Runs as the system identity (set by the Hangfire activator), so the rebalance command
+        // bypasses the per-actor Owner/Manager check for this maintenance pass.
+        var portfolioIds = await _sender.Send(new GetPortfolioIdsToRebalanceQuery(), cancellationToken);
+
+        foreach (var portfolioId in portfolioIds)
+        {
+            var result = await _sender.Send(new RebalancePortfolioRanksCommand(portfolioId), cancellationToken);
+            if (result.IsFailure)
+            {
+                _logger.LogWarning("Failed to rebalance ranks for portfolio {PortfolioId}: {Error}", portfolioId, result.Error);
+            }
+        }
+
+        _logger.LogInformation("Completed {BackgroundJob} job ({Count} portfolios)", nameof(RunPortfolioRankRebalance), portfolioIds.Count);
     }
 }

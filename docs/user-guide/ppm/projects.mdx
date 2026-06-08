@@ -19,6 +19,7 @@ Every project has:
 - **Roles** — Sponsor, Owner, Manager, Member
 - **Health Check** — Optional point-in-time project health signal (Healthy, At Risk, Unhealthy) with expiration
 - **Priority Score** — Optional score recorded with the project's portfolio [scoring model](./portfolios-programs.mdx#portfolio-project-scoring)
+- **Portfolio Rank** — Human-managed position within the project's portfolio, shown as **Rank** in project lists and available as a card-view sort mode
 - **[Strategic Theme Tags](../strategic-management/index.mdx#strategic-themes)** — Links to strategic themes
 
 ## Project Status Lifecycle
@@ -40,6 +41,7 @@ stateDiagram-v2
 - Only Proposed projects can be deleted
 - A project can belong to at most one [program](./portfolios-programs.mdx#programs) (or none)
 - The project key can be changed (cascades to all [task](#project-tasks) keys)
+- A project is ranked within its portfolio from creation; rank is changed from the portfolio [Ranking tab](./portfolios-programs.mdx#portfolio-project-ranking)
 
 ## Project Detail Page
 
@@ -104,6 +106,8 @@ Typical actions include:
 Project priority scores help portfolio and project leaders compare projects using a consistent, formula-driven model such as WSJF. Scoring is enabled at the [portfolio](./portfolios-programs.mdx#portfolio-project-scoring) level by assigning an active scoring model.
 
 When scoring is enabled, the project details page shows a **Priority Score** panel. The panel shows the latest score, the scoring model name, who scored it, when it was scored, and a **View history** link when score history exists.
+
+The portfolio [Ranking tab](./portfolios-programs.mdx#portfolio-project-ranking) can also show the current scoring model's criterion and output columns for every ranked project. The primary output appears as the score badge. A blank score breakdown means the project is unscored or its current score was recorded with a different scoring model.
 
 ### Record or Update a Score
 

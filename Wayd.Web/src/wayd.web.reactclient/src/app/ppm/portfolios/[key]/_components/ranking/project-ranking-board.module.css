@@ -1,0 +1,31 @@
+/* Suppress the cell focus border for the row-actions column.
+   The inner drag handle and menu button retain their native focus rings,
+   so keyboard navigation still works and remains visible. */
+.rowActionsCell.ag-cell-focus,
+.rowActionsCell:focus {
+  outline: none !important;
+  border-color: transparent !important;
+}
+
+.scoreTagAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-end: 0;
+  cursor: pointer;
+  user-select: none;
+  line-height: 1.4;
+}
+
+.scoreTagAction:hover {
+  filter: brightness(0.98);
+}
+
+.scoreTagAction:focus-visible {
+  outline: 2px solid var(--ant-color-primary-border);
+  outline-offset: 2px;
+}
+
+.scoreTagIcon {
+  font-size: 10px;
+}

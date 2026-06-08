@@ -24,11 +24,13 @@ public sealed class ScoreSummary
         decimal value,
         Instant scoredOn,
         Guid scoredById,
+        Guid scoringModelId,
         string scoringModelName)
     {
         Value = value;
         ScoredOn = scoredOn;
         ScoredById = scoredById;
+        ScoringModelId = scoringModelId;
         ScoringModelName = scoringModelName;
     }
 
@@ -52,6 +54,11 @@ public sealed class ScoreSummary
     /// The employee who recorded the most recent score, resolved by navigation (not frozen).
     /// </summary>
     public Employee? ScoredBy { get; private set; }
+
+    /// <summary>
+    /// The ID of the scoring model that produced the most recent score, frozen at scoring time.
+    /// </summary>
+    public Guid ScoringModelId { get; private init; }
 
     /// <summary>
     /// The name of the scoring model that produced the most recent score, frozen at scoring time.

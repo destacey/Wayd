@@ -6544,6 +6544,192 @@ export class PortfoliosClient {
     }
 
     /**
+     * Reposition an ordered batch of projects within the portfolio's ranking.
+     */
+    moveProjectRanks(id: string, request: MoveProjectRanksRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/portfolios/{id}/project-ranks";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMoveProjectRanks(_response);
+        });
+    }
+
+    protected processMoveProjectRanks(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Rebalance the portfolio's project ranks to clean, gap-free whole numbers.
+     */
+    rebalanceProjectRanks(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/portfolios/{id}/project-ranks/rebalance";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "PUT",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRebalanceProjectRanks(_response);
+        });
+    }
+
+    protected processRebalanceProjectRanks(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get the per-project score breakdown for the portfolio's ranking board.
+     */
+    getRankingScoreboard(id: string, cancelToken?: CancelToken): Promise<PortfolioRankingScoreboardDto> {
+        let url_ = this.baseUrl + "/api/ppm/portfolios/{id}/ranking-scoreboard";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetRankingScoreboard(_response);
+        });
+    }
+
+    protected processGetRankingScoreboard(response: AxiosResponse): Promise<PortfolioRankingScoreboardDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PortfolioRankingScoreboardDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PortfolioRankingScoreboardDto>(null as any);
+    }
+
+    /**
      * Get a list of programs for the portfolio.
      * @param status (optional) 
      */
@@ -29150,6 +29336,90 @@ export interface AssignPortfolioScoringModelRequest {
     scoringModelId: string;
 }
 
+export interface MoveProjectRanksRequest {
+    /** The projects to (re)position, already in their intended order. Supports multi-select drag. */
+    projectIds: string[];
+    /** The anchor immediately above the batch in the ranking. Must already be ranked. Null when the
+batch is dropped at the top of the ranking. */
+    afterProjectId?: string | undefined;
+    /** The anchor immediately below the batch in the ranking. Must already be ranked. Null when the
+batch is dropped at the bottom of the ranking. */
+    beforeProjectId?: string | undefined;
+}
+
+export interface PortfolioRankingScoreboardDto {
+    scoringModel?: ScoringModelDetailsDto | undefined;
+    projects: ProjectRankingScoreDto[];
+}
+
+export interface ScoringModelDetailsDto {
+    id: string;
+    key: number;
+    name: string;
+    description: string;
+    state: SimpleNavigationDto;
+    criteria: ScoringModelCriterionDto[];
+    scales: ScoringScaleDto[];
+    outputs: ScoringModelOutputDto[];
+}
+
+export interface ScoringModelCriterionDto {
+    id: string;
+    name: string;
+    token: string;
+    description?: string | undefined;
+    weight?: number | undefined;
+    scaleId?: string | undefined;
+    order: number;
+}
+
+export interface ScoringScaleDto {
+    id: string;
+    name: string;
+    order: number;
+    levels: ScoringRatingLevelDto[];
+}
+
+export interface ScoringRatingLevelDto {
+    id: string;
+    label: string;
+    value: number;
+    order: number;
+}
+
+export interface ScoringModelOutputDto {
+    id: string;
+    name: string;
+    token: string;
+    formula: string;
+    isPrimary: boolean;
+    order: number;
+}
+
+export interface ProjectRankingScoreDto {
+    projectId: string;
+    ratings: ProjectScoreRatingDto[];
+    outputs: ProjectScoreOutputDto[];
+}
+
+export interface ProjectScoreRatingDto {
+    criterionId: string;
+    criterionName: string;
+    criterionToken: string;
+    ratingValue: number;
+    ratingLevelId?: string | undefined;
+    ratingLevelLabel?: string | undefined;
+    order: number;
+}
+
+export interface ProjectScoreOutputDto {
+    token: string;
+    name: string;
+    value: number;
+    isPrimary: boolean;
+    order: number;
+}
+
 export interface ProgramListDto {
     id: string;
     key: number;
@@ -29182,6 +29452,8 @@ export interface ProjectListDto {
     phases: ProjectPhaseListDto[];
     healthCheck?: ProjectHealthCheckSummaryDto | undefined;
     currentScore?: ScoreSummaryDto | undefined;
+    rank: number;
+    position?: number | undefined;
     canManageProject: boolean;
 }
 
@@ -29203,6 +29475,7 @@ export interface ProjectHealthCheckSummaryDto {
 export interface ScoreSummaryDto {
     value: number;
     scoredOn: Date;
+    scoringModelId: string;
     scoredBy?: EmployeeNavigationDto | undefined;
     scoringModelName: string;
 }
@@ -29431,6 +29704,7 @@ export interface ProjectDetailsDto {
     canManageProject: boolean;
     portfolioScoringModel?: NavigationDto | undefined;
     currentScore?: ScoreSummaryDto | undefined;
+    rank: number;
 }
 
 export interface DescriptiveNavigationDtoOfGuidAndInteger {
@@ -29691,50 +29965,6 @@ export interface ProjectScoringContextDto {
     currentScore?: ProjectScoreDetailsDto | undefined;
 }
 
-export interface ScoringModelDetailsDto {
-    id: string;
-    key: number;
-    name: string;
-    description: string;
-    state: SimpleNavigationDto;
-    criteria: ScoringModelCriterionDto[];
-    scales: ScoringScaleDto[];
-    outputs: ScoringModelOutputDto[];
-}
-
-export interface ScoringModelCriterionDto {
-    id: string;
-    name: string;
-    token: string;
-    description?: string | undefined;
-    weight?: number | undefined;
-    scaleId?: string | undefined;
-    order: number;
-}
-
-export interface ScoringScaleDto {
-    id: string;
-    name: string;
-    order: number;
-    levels: ScoringRatingLevelDto[];
-}
-
-export interface ScoringRatingLevelDto {
-    id: string;
-    label: string;
-    value: number;
-    order: number;
-}
-
-export interface ScoringModelOutputDto {
-    id: string;
-    name: string;
-    token: string;
-    formula: string;
-    isPrimary: boolean;
-    order: number;
-}
-
 export interface ProjectScoreDetailsDto {
     id: string;
     projectId: string;
@@ -29747,24 +29977,6 @@ export interface ProjectScoreDetailsDto {
     scoredBy?: EmployeeNavigationDto | undefined;
     ratings: ProjectScoreRatingDto[];
     outputs: ProjectScoreOutputDto[];
-}
-
-export interface ProjectScoreRatingDto {
-    criterionId: string;
-    criterionName: string;
-    criterionToken: string;
-    ratingValue: number;
-    ratingLevelId?: string | undefined;
-    ratingLevelLabel?: string | undefined;
-    order: number;
-}
-
-export interface ProjectScoreOutputDto {
-    token: string;
-    name: string;
-    value: number;
-    isPrimary: boolean;
-    order: number;
 }
 
 export interface ProjectScoreSummaryDto {

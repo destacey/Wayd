@@ -80,12 +80,29 @@ public sealed record ProjectListDto
     /// </summary>
     public List<ProjectPhaseListDto> Phases { get; set; } = [];
 
+    /// <summary>
+    /// The current (non-expired) health check for this project, or null if none exists.
+    /// </summary>
     public ProjectHealthCheckSummaryDto? HealthCheck { get; set; }
 
     /// <summary>
     /// The denormalised summary of the project's most recent score, or null if it has not been scored.
     /// </summary>
     public ScoreSummaryDto? CurrentScore { get; set; }
+
+    /// <summary>
+    /// The project's fractional rank sort key within its portfolio — the same value as the domain
+    /// <c>Project.Rank</c> (opaque; not the displayed position). Every project is ranked, so this is
+    /// always set. Used to order the ranking board and drive client-side reorder logic; not for display.
+    /// </summary>
+    public double Rank { get; set; }
+
+    /// <summary>
+    /// The project's 1-based display position within its portfolio's ranking, derived at read time
+    /// from <see cref="Rank"/>. Null only when the result is not scoped to a single portfolio (a
+    /// cross-portfolio position would be meaningless).
+    /// </summary>
+    public int? Position { get; set; }
 
     /// <summary>
     /// Whether the current user can manage this project (record health checks, scores, etc.). True when
@@ -132,11 +149,13 @@ public sealed record ProjectListDto
             {
                 Value = src.CurrentScore.Value,
                 ScoredOn = src.CurrentScore.ScoredOn,
+                ScoringModelId = src.CurrentScore.ScoringModelId,
                 ScoredBy = src.CurrentScore.ScoredBy == null
                     ? null
                     : EmployeeNavigationDto.From(src.CurrentScore.ScoredBy),
                 ScoringModelName = src.CurrentScore.ScoringModelName,
             })
+            .Ignore(dest => dest.Position!)
             // Single-pass authorization for the grid: Owner/Manager on the project, its portfolio, or
             // its program. Evaluated inline as SQL subqueries (no per-row second pass).
             .Map(dest => dest.CanManageProject, src => employeeId.HasValue && (

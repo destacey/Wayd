@@ -2866,8 +2866,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid?>("ProjectLifecycleId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int?>("Rank")
-                        .HasColumnType("int");
+                    b.Property<double>("Rank")
+                        .HasColumnType("float");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -5839,6 +5839,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                             b1.Property<DateTime>("ScoredOn")
                                 .HasColumnType("datetime2")
                                 .HasColumnName("CurrentScoredOn");
+
+                            b1.Property<Guid>("ScoringModelId")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("CurrentScoringModelId");
 
                             b1.Property<string>("ScoringModelName")
                                 .IsRequired()

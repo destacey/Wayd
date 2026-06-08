@@ -3,6 +3,7 @@ using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Data;
+using Wayd.Tests.Shared.Extensions;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 
@@ -114,5 +115,19 @@ public static class ProjectPortfolioFakerExtensions
         ).Generate();
     }
 
+    /// <summary>
+    /// Attaches the given projects to the portfolio's internal _projects set, simulating EF Core's
+    /// Include behaviour for unit tests (the aggregate's collection is otherwise only populated by EF).
+    /// Each project's PortfolioId is set to this portfolio's Id so the graph is internally consistent.
+    /// </summary>
+    public static ProjectPortfolio WithProjects(this ProjectPortfolio portfolio, params Project[] projects)
+    {
+        foreach (var project in projects)
+        {
+            project.SetPrivate(p => p.PortfolioId, portfolio.Id);
+        }
 
+        portfolio.SetPrivateField("_projects", new HashSet<Project>(projects));
+        return portfolio;
+    }
 }

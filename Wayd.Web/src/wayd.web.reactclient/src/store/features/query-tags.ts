@@ -85,6 +85,7 @@ export enum QueryTags {
   ExpenditureCategory = 'Ppm.ExpenditureCategory',
   Portfolio = 'Ppm.Portfolio',
   PortfolioProjects = 'Ppm.Portfolio.Project',
+  PortfolioRankingScoreboard = 'Ppm.Portfolio.RankingScoreboard',
   PortfolioPrograms = 'Ppm.Portfolio.Program',
   PortfolioStrategicInitiatives = 'Ppm.Portfolio.StrategicInitiatives',
   Program = 'Ppm.Program',

@@ -4737,6 +4737,164 @@
         ]
       }
     },
+    "/api/ppm/portfolios/{id}/project-ranks": {
+      "put": {
+        "tags": [
+          "Portfolios"
+        ],
+        "summary": "Reposition an ordered batch of projects within the portfolio's ranking.",
+        "operationId": "Portfolios_MoveProjectRanks",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveProjectRanksRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/ppm/portfolios/{id}/project-ranks/rebalance": {
+      "put": {
+        "tags": [
+          "Portfolios"
+        ],
+        "summary": "Rebalance the portfolio's project ranks to clean, gap-free whole numbers.",
+        "operationId": "Portfolios_RebalanceProjectRanks",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/ppm/portfolios/{id}/ranking-scoreboard": {
+      "get": {
+        "tags": [
+          "Portfolios"
+        ],
+        "summary": "Get the per-project score breakdown for the portfolio's ranking board.",
+        "operationId": "Portfolios_GetRankingScoreboard",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioRankingScoreboardDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/ppm/portfolios/{idOrKey}/programs": {
       "get": {
         "tags": [
@@ -26498,6 +26656,358 @@
           }
         }
       },
+      "MoveProjectRanksRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "projectIds"
+        ],
+        "properties": {
+          "projectIds": {
+            "type": "array",
+            "description": "The projects to (re)position, already in their intended order. Supports multi-select drag.",
+            "minLength": 1,
+            "nullable": false,
+            "items": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            }
+          },
+          "afterProjectId": {
+            "type": "string",
+            "description": "The anchor immediately above the batch in the ranking. Must already be ranked. Null when the\nbatch is dropped at the top of the ranking.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "beforeProjectId": {
+            "type": "string",
+            "description": "The anchor immediately below the batch in the ranking. Must already be ranked. Null when the\nbatch is dropped at the bottom of the ranking.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          }
+        }
+      },
+      "PortfolioRankingScoreboardDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "projects"
+        ],
+        "properties": {
+          "scoringModel": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ScoringModelDetailsDto"
+              }
+            ]
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectRankingScoreDto"
+            }
+          }
+        }
+      },
+      "ScoringModelDetailsDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "description",
+          "state",
+          "criteria",
+          "scales",
+          "outputs",
+          "id",
+          "key"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SimpleNavigationDto"
+          },
+          "criteria": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScoringModelCriterionDto"
+            }
+          },
+          "scales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScoringScaleDto"
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScoringModelOutputDto"
+            }
+          }
+        }
+      },
+      "ScoringModelCriterionDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "token",
+          "id",
+          "order"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "name": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "weight": {
+            "type": "number",
+            "format": "decimal",
+            "nullable": true
+          },
+          "scaleId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ScoringScaleDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "levels",
+          "id",
+          "order"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScoringRatingLevelDto"
+            }
+          }
+        }
+      },
+      "ScoringRatingLevelDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "label",
+          "id",
+          "value",
+          "order"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ScoringModelOutputDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "token",
+          "formula",
+          "id",
+          "isPrimary",
+          "order"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "name": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "formula": {
+            "type": "string"
+          },
+          "isPrimary": {
+            "type": "boolean"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ProjectRankingScoreDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "projectId",
+          "ratings",
+          "outputs"
+        ],
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "ratings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectScoreRatingDto"
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectScoreOutputDto"
+            }
+          }
+        }
+      },
+      "ProjectScoreRatingDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "criterionName",
+          "criterionToken",
+          "criterionId",
+          "ratingValue",
+          "order"
+        ],
+        "properties": {
+          "criterionId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "criterionName": {
+            "type": "string"
+          },
+          "criterionToken": {
+            "type": "string"
+          },
+          "ratingValue": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "ratingLevelId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "ratingLevelLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ProjectScoreOutputDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "token",
+          "name",
+          "value",
+          "isPrimary",
+          "order"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "isPrimary": {
+            "type": "boolean"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "ProgramListDto": {
         "type": "object",
         "additionalProperties": false,
@@ -26583,6 +27093,7 @@
           "strategicThemes",
           "id",
           "phases",
+          "rank",
           "canManageProject"
         ],
         "properties": {
@@ -26682,6 +27193,15 @@
               }
             ]
           },
+          "rank": {
+            "type": "number",
+            "format": "double"
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
           "canManageProject": {
             "type": "boolean"
           }
@@ -26755,7 +27275,8 @@
         "required": [
           "scoringModelName",
           "value",
-          "scoredOn"
+          "scoredOn",
+          "scoringModelId"
         ],
         "properties": {
           "value": {
@@ -26765,6 +27286,12 @@
           "scoredOn": {
             "type": "string",
             "format": "date-time"
+          },
+          "scoringModelId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
           },
           "scoredBy": {
             "nullable": true,
@@ -27594,7 +28121,8 @@
           "strategicInitiatives",
           "id",
           "phases",
-          "canManageProject"
+          "canManageProject",
+          "rank"
         ],
         "properties": {
           "id": {
@@ -27723,6 +28251,10 @@
                 "$ref": "#/components/schemas/ScoreSummaryDto"
               }
             ]
+          },
+          "rank": {
+            "type": "number",
+            "format": "double"
           }
         }
       },
@@ -28818,198 +29350,6 @@
           }
         }
       },
-      "ScoringModelDetailsDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "name",
-          "description",
-          "state",
-          "criteria",
-          "scales",
-          "outputs",
-          "id",
-          "key"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "key": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "state": {
-            "$ref": "#/components/schemas/SimpleNavigationDto"
-          },
-          "criteria": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ScoringModelCriterionDto"
-            }
-          },
-          "scales": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ScoringScaleDto"
-            }
-          },
-          "outputs": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ScoringModelOutputDto"
-            }
-          }
-        }
-      },
-      "ScoringModelCriterionDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "name",
-          "token",
-          "id",
-          "order"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "name": {
-            "type": "string"
-          },
-          "token": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "weight": {
-            "type": "number",
-            "format": "decimal",
-            "nullable": true
-          },
-          "scaleId": {
-            "type": "string",
-            "format": "guid",
-            "nullable": true,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "order": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "ScoringScaleDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "name",
-          "levels",
-          "id",
-          "order"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "name": {
-            "type": "string"
-          },
-          "order": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "levels": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ScoringRatingLevelDto"
-            }
-          }
-        }
-      },
-      "ScoringRatingLevelDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "label",
-          "id",
-          "value",
-          "order"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "label": {
-            "type": "string"
-          },
-          "value": {
-            "type": "number",
-            "format": "decimal"
-          },
-          "order": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "ScoringModelOutputDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "name",
-          "token",
-          "formula",
-          "id",
-          "isPrimary",
-          "order"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "name": {
-            "type": "string"
-          },
-          "token": {
-            "type": "string"
-          },
-          "formula": {
-            "type": "string"
-          },
-          "isPrimary": {
-            "type": "boolean"
-          },
-          "order": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
       "ProjectScoreDetailsDto": {
         "type": "object",
         "additionalProperties": false,
@@ -29082,79 +29422,6 @@
             "items": {
               "$ref": "#/components/schemas/ProjectScoreOutputDto"
             }
-          }
-        }
-      },
-      "ProjectScoreRatingDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "criterionName",
-          "criterionToken",
-          "criterionId",
-          "ratingValue",
-          "order"
-        ],
-        "properties": {
-          "criterionId": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "criterionName": {
-            "type": "string"
-          },
-          "criterionToken": {
-            "type": "string"
-          },
-          "ratingValue": {
-            "type": "number",
-            "format": "decimal"
-          },
-          "ratingLevelId": {
-            "type": "string",
-            "format": "guid",
-            "nullable": true,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "ratingLevelLabel": {
-            "type": "string",
-            "nullable": true
-          },
-          "order": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "ProjectScoreOutputDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "token",
-          "name",
-          "value",
-          "isPrimary",
-          "order"
-        ],
-        "properties": {
-          "token": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "value": {
-            "type": "number",
-            "format": "decimal"
-          },
-          "isPrimary": {
-            "type": "boolean"
-          },
-          "order": {
-            "type": "integer",
-            "format": "int32"
           }
         }
       },

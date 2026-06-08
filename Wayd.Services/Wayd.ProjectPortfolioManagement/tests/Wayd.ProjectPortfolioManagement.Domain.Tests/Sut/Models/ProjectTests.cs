@@ -54,7 +54,7 @@ public class ProjectTests
         var expenditureCategoryId = 1;
 
         // Act
-        var project = Project.Create(name, description, key, expenditureCategoryId, null, portfolioId, null, null, null, null, null, _dateTimeProvider.Now);
+        var project = Project.Create(name, description, key, expenditureCategoryId, null, portfolioId, 1000d, null, null, null, null, null, _dateTimeProvider.Now);
 
         // Assert
         project.Should().NotBeNull();
@@ -1757,6 +1757,7 @@ public class ProjectTests
         project.CurrentScore!.Value.Should().Be(5m);
         project.CurrentScore.ScoredOn.Should().Be(now);
         project.CurrentScore.ScoredById.Should().Be(actorId);
+        project.CurrentScore.ScoringModelId.Should().Be(model.Id);
         project.CurrentScore.ScoringModelName.Should().Be(model.Name);
     }
 

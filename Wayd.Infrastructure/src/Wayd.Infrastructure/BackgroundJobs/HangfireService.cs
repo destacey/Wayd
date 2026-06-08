@@ -1,7 +1,9 @@
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using Hangfire;
-using Wayd.Common.Application.BackgroundJobs;
+using Hangfire.Common;
 using NodaTime;
+using Wayd.Common.Application.BackgroundJobs;
+using Wayd.Common.Application.Identity;
 
 namespace Wayd.Infrastructure.BackgroundJobs;
 
@@ -37,6 +39,14 @@ public class HangfireService : IJobService
 
     public string Enqueue(Expression<Func<Task>> methodCall) =>
         BackgroundJob.Enqueue(methodCall);
+
+    public string EnqueueSystem(Expression<Func<Task>> methodCall)
+    {
+        var jobId = BackgroundJob.Enqueue(methodCall);
+        using var connection = JobStorage.Current.GetConnection();
+        connection.SetJobParameter(jobId, QueryStringKeys.UserId, SerializationHelper.Serialize(SystemIdentity.UserId));
+        return jobId;
+    }
 
     public string Enqueue<T>(Expression<Action<T>> methodCall) =>
         BackgroundJob.Enqueue(methodCall);

@@ -52,6 +52,7 @@ function createProject(
     projectMembers: [],
     strategicThemes: [],
     phases: [],
+    rank: 1000,
     canManageProject: false,
   } as ProjectListDto
 }

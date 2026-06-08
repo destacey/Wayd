@@ -29,6 +29,14 @@ const ProjectsGrid: FC<ProjectsGridProps> = (props: ProjectsGridProps) => {
 
   const columnDefs = useMemo<ColDef<ProjectListDto>[]>(
     () => [
+      {
+        field: 'position',
+        headerName: 'Rank',
+        headerTooltip: 'Rank based on the project\'s portfolio and the current context.',
+        width: 90,
+        valueFormatter: (params) =>
+          params.value == null ? '—' : String(params.value),
+      },
       { field: 'key', width: 125 },
       {
         field: 'name',

@@ -15,7 +15,11 @@ import {
 import { useGetProjectScoringContextQuery } from '@/src/store/features/ppm/project-scores-api'
 import { useMovePortfolioProjectRanksMutation } from '@/src/store/features/ppm/portfolios-api'
 import { getSortedNames, isApiError } from '@/src/utils'
-import { HolderOutlined, LoadingOutlined, MoreOutlined } from '@ant-design/icons'
+import {
+  HolderOutlined,
+  LoadingOutlined,
+  MoreOutlined,
+} from '@ant-design/icons'
 import {
   ColDef,
   GetRowIdParams,
@@ -550,3 +554,4 @@ const ProjectRankingBoard = ({
 }
 
 export default ProjectRankingBoard
+

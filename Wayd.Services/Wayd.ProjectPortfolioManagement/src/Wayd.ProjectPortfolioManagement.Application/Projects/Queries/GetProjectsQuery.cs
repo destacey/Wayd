@@ -94,26 +94,25 @@ internal sealed class GetProjectsQueryHandler(IProjectPortfolioManagementDbConte
         var config = ProjectListDto.CreateTypeAdapterConfig(now, _currentUser.GetEmployeeId());
         var projects = await query.ProjectToType<ProjectListDto>(config).ToListAsync(cancellationToken);
 
-        // When scoped to a single portfolio, present projects in their human-authored rank order
-        // (unranked last, then by name) and derive the 1-based display position. Outside a single
-        // portfolio a cross-portfolio rank is meaningless, so fall back to name ordering.
-        var singlePortfolioScope = request.PortfolioIdOrKey is not null && request.ProgramIdOrKey is null;
-        if (!singlePortfolioScope)
-        {
-            return [.. projects.OrderBy(p => p.Name)];
-        }
-
         var ordered = projects
-            .OrderBy(p => p.Rank)
+            .OrderBy(p => p.Portfolio.Name)
+            .ThenBy(p => p.Rank)
             .ThenBy(p => p.Name)
             .ToList();
 
-        var position = 1;
+        Guid? currentPortfolioId = null;
+        var position = 0;
         foreach (var project in ordered)
         {
+            if (currentPortfolioId != project.Portfolio.Id)
+            {
+                currentPortfolioId = project.Portfolio.Id;
+                position = 1;
+            }
+
             project.Position = position++;
         }
 
-        return ordered;
+        return [.. ordered.OrderBy(p => p.Name)];
     }
 }

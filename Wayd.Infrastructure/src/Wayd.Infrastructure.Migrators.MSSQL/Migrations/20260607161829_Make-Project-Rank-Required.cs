@@ -114,7 +114,7 @@ public partial class MakeProjectRankRequired : Migration
                 FROM [Auditing].[AuditTrails]
                 WHERE [CorrelationId] <> '{CorrelationId}'
                   AND [SchemaName] = 'Ppm'
-                  AND [TableName] = 'Projects'
+                  AND [TableName] = 'Project'
                   AND [Type] = 'Update'
                   AND [AffectedColumns] LIKE '%""Rank""%'
             )
@@ -126,14 +126,14 @@ public partial class MakeProjectRankRequired : Migration
                     ON a.[PrimaryKey] = CONVERT(varchar(450), p.[Id])
                 WHERE a.[CorrelationId] = '{CorrelationId}'
                   AND a.[SchemaName] = 'Ppm'
-                  AND a.[TableName] = 'Projects'
+                  AND a.[TableName] = 'Project'
                   AND a.[Type] = 'Update'
                   AND a.[AffectedColumns] = '[""Rank""]';
 
                 DELETE FROM [Auditing].[AuditTrails]
                 WHERE [CorrelationId] = '{CorrelationId}'
                   AND [SchemaName] = 'Ppm'
-                  AND [TableName] = 'Projects'
+                  AND [TableName] = 'Project'
                   AND [Type] = 'Update'
                   AND [AffectedColumns] = '[""Rank""]';
             END

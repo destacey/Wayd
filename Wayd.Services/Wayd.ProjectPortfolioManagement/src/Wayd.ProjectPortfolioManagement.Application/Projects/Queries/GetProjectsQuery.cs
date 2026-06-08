@@ -95,7 +95,7 @@ internal sealed class GetProjectsQueryHandler(IProjectPortfolioManagementDbConte
         var projects = await query.ProjectToType<ProjectListDto>(config).ToListAsync(cancellationToken);
 
         var ordered = projects
-            .OrderBy(p => p.Portfolio.Name)
+            .OrderBy(p => p.Portfolio.Id)
             .ThenBy(p => p.Rank)
             .ThenBy(p => p.Name)
             .ToList();

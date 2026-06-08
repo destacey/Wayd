@@ -40,8 +40,8 @@ public class ProjectCustomProjectionMappingTests
     public void ProjectListDto_PositionOrdering_ShouldResetPerPortfolio_WhenResultsContainMultiplePortfolios()
     {
         // Arrange
-        var portfolioA = new ProjectPortfolioFaker().WithData(name: "Alpha Portfolio").Generate();
-        var portfolioB = new ProjectPortfolioFaker().WithData(name: "Beta Portfolio").Generate();
+        var portfolioA = new ProjectPortfolioFaker().WithData(name: "Shared Portfolio Name").Generate();
+        var portfolioB = new ProjectPortfolioFaker().WithData(name: "Shared Portfolio Name").Generate();
         var expenditureCategory = new ExpenditureCategoryFaker().GenerateActive();
 
         var projectA2 = CreateRankedProject("Project A2", portfolioA, expenditureCategory, 20);
@@ -56,7 +56,7 @@ public class ProjectCustomProjectionMappingTests
         var ordered = new[] { projectA2, projectB2, projectA1, projectB1 }
             .AsQueryable()
             .ProjectToType<ProjectListDto>(config)
-            .OrderBy(p => p.Portfolio.Name)
+            .OrderBy(p => p.Portfolio.Id)
             .ThenBy(p => p.Rank)
             .ThenBy(p => p.Name)
             .ToList();
@@ -75,11 +75,13 @@ public class ProjectCustomProjectionMappingTests
         }
 
         // Assert
-        ordered.Select(p => (p.Portfolio.Name, p.Name, p.Position)).Should().Equal(
-            ("Alpha Portfolio", "Project A1", 1),
-            ("Alpha Portfolio", "Project A2", 2),
-            ("Beta Portfolio", "Project B1", 1),
-            ("Beta Portfolio", "Project B2", 2));
+        ordered.Where(p => p.Portfolio.Id == portfolioA.Id)
+            .Select(p => (p.Name, p.Position))
+            .Should().Equal(("Project A1", 1), ("Project A2", 2));
+
+        ordered.Where(p => p.Portfolio.Id == portfolioB.Id)
+            .Select(p => (p.Name, p.Position))
+            .Should().Equal(("Project B1", 1), ("Project B2", 2));
     }
 
     [Fact]

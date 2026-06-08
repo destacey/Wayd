@@ -132,8 +132,8 @@ public sealed record ProjectDetailsDto
 
     /// <summary>
     /// The project's fractional rank sort key within its portfolio — the same value as the domain
-    /// <c>Project.Rank</c> (opaque; not the displayed position). Null = unranked (sorts last). Used to
-    /// order the ranking board and drive client-side reorder logic; not for display.
+    /// <c>Project.Rank</c> (opaque; not the displayed position). Every project is ranked from creation.
+    /// Used to order the ranking board and drive client-side reorder logic; not for display.
     /// </summary>
     public double Rank { get; set; }
 

@@ -111,7 +111,7 @@ const WaydGrid = forwardRef<AgGridReact, ModaGridProps>(
 
     const onClearSortAndFilters = () => {
       gridRef.current?.api.applyColumnState({
-        defaultState: { sort: null },
+        defaultState: { sort: null, sortIndex: null },
       })
       gridRef.current?.api.setFilterModel(null)
       setSearchValue('')

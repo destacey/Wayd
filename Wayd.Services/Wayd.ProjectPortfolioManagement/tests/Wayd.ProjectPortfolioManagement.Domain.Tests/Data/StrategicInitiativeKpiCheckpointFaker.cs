@@ -1,7 +1,7 @@
-﻿using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
+﻿using NodaTime;
+using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Data;
-using NodaTime;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 
@@ -22,21 +22,44 @@ public sealed class StrategicInitiativeKpiCheckpointFaker : PrivateConstructorFa
 
 public static class StrategicInitiativeKpiCheckpointFakerExtensions
 {
-    public static StrategicInitiativeKpiCheckpointFaker WithData(
-        this StrategicInitiativeKpiCheckpointFaker faker,
-        Guid? id = null,
-        Guid? kpiId = null,
-        double? targetValue = null,
-        double? atRiskValue = null,
-        Instant? checkpointDate = null,
-        string? dateLabel = null)
+    public static StrategicInitiativeKpiCheckpointFaker WithId(this StrategicInitiativeKpiCheckpointFaker faker, Guid? id)
     {
-        if (id.HasValue) { faker.RuleFor(x => x.Id, id.Value); }
-        if (kpiId.HasValue) { faker.RuleFor(x => x.KpiId, kpiId.Value); }
-        if (targetValue.HasValue) { faker.RuleFor(x => x.TargetValue, targetValue.Value); }
-        if (atRiskValue.HasValue) { faker.RuleFor(x => x.AtRiskValue, atRiskValue.Value); }
-        if (checkpointDate.HasValue) { faker.RuleFor(x => x.CheckpointDate, checkpointDate.Value); }
-        if (dateLabel != null) { faker.RuleFor(x => x.DateLabel, dateLabel); }
+        faker.RuleFor(x => x.Id, id);
+
+        return faker;
+    }
+
+    public static StrategicInitiativeKpiCheckpointFaker WithKpiId(this StrategicInitiativeKpiCheckpointFaker faker, Guid? kpiId)
+    {
+        faker.RuleFor(x => x.KpiId, kpiId);
+
+        return faker;
+    }
+
+    public static StrategicInitiativeKpiCheckpointFaker WithTargetValue(this StrategicInitiativeKpiCheckpointFaker faker, double? targetValue)
+    {
+        faker.RuleFor(x => x.TargetValue, targetValue);
+
+        return faker;
+    }
+
+    public static StrategicInitiativeKpiCheckpointFaker WithAtRiskValue(this StrategicInitiativeKpiCheckpointFaker faker, double? atRiskValue)
+    {
+        faker.RuleFor(x => x.AtRiskValue, atRiskValue);
+
+        return faker;
+    }
+
+    public static StrategicInitiativeKpiCheckpointFaker WithCheckpointDate(this StrategicInitiativeKpiCheckpointFaker faker, Instant? checkpointDate)
+    {
+        faker.RuleFor(x => x.CheckpointDate, checkpointDate);
+
+        return faker;
+    }
+
+    public static StrategicInitiativeKpiCheckpointFaker WithDateLabel(this StrategicInitiativeKpiCheckpointFaker faker, string? dateLabel)
+    {
+        faker.RuleFor(x => x.DateLabel, dateLabel);
 
         return faker;
     }

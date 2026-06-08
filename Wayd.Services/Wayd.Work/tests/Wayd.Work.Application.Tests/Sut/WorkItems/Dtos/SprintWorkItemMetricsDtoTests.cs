@@ -1,4 +1,4 @@
-using NodaTime;
+﻿using NodaTime;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Domain.Models;
@@ -23,7 +23,7 @@ public sealed class SprintWorkItemMetricsDtoTests
 
         return new WorkItemFaker()
             .WithDoneState()
-            .WithData(activatedTimestamp: activated, doneTimestamp: done)
+            .WithActivatedTimestamp(activated).WithDoneTimestamp(done)
             .RuleFor(w => w.StoryPoints, storyPoints)
             .Generate();
     }

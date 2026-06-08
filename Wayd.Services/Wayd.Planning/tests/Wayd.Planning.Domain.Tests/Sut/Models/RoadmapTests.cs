@@ -1,4 +1,7 @@
-﻿using Wayd.Common.Domain.Enums;
+﻿using NodaTime.Extensions;
+using NodaTime.Testing;
+using OneOf;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Models;
 using Wayd.Planning.Domain.Enums;
@@ -7,9 +10,6 @@ using Wayd.Planning.Domain.Models.Roadmaps;
 using Wayd.Planning.Domain.Tests.Data;
 using Wayd.Planning.Domain.Tests.Models;
 using Wayd.Tests.Shared;
-using NodaTime.Extensions;
-using NodaTime.Testing;
-using OneOf;
 
 namespace Wayd.Planning.Domain.Tests.Sut.Models;
 
@@ -464,7 +464,7 @@ public class RoadmapTests
         parentActivityResult.Value.SetPrivate(x => x.Id, Guid.NewGuid());
 
         // Create child activity
-        var childActivity = _activityFaker.WithData(parentId: parentActivityResult.Value.Id).Generate();
+        var childActivity = _activityFaker.WithParentId(parentActivityResult.Value.Id).Generate();
         var childActivityResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(childActivity), managerId);
         childActivityResult.IsSuccess.Should().BeTrue();
         childActivityResult.Value.SetPrivate(x => x.Id, Guid.NewGuid());
@@ -546,7 +546,7 @@ public class RoadmapTests
         var fakeRoadmap = _faker.Generate();
         var managerId = Guid.NewGuid();
         var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId]).Value;
-        var activity = _activityFaker.WithData(parentId: Guid.NewGuid()).Generate();
+        var activity = _activityFaker.WithParentId(Guid.NewGuid()).Generate();
         var upsertActivity = new TestUpsertRoadmapActivity(activity);
 
         // Act
@@ -573,7 +573,7 @@ public class RoadmapTests
 
         // Create child activity
         var childActivity = _activityFaker
-            .WithData(parentId: parentResult.Value.Id)
+            .WithParentId(parentResult.Value.Id)
             .Generate();
         var upsertChildActivity = new TestUpsertRoadmapActivity(childActivity);
 
@@ -724,11 +724,7 @@ public class RoadmapTests
         createResult.IsSuccess.Should().BeTrue();
 
         var updateActivity = new TestUpsertRoadmapActivity(_activityFaker
-            .WithData(
-                name: "Updated Activity",
-                description: "Updated Description",
-                dateRange: new LocalDateRange(_dateTimeProvider.Today.PlusDays(1), _dateTimeProvider.Today.PlusDays(5))
-            )
+            .WithName("Updated Activity").WithDescription("Updated Description").WithDateRange(new LocalDateRange(_dateTimeProvider.Today.PlusDays(1), _dateTimeProvider.Today.PlusDays(5)))
             .Generate());
 
         // Act
@@ -798,7 +794,7 @@ public class RoadmapTests
 
         // Create child activity
         var childActivity = _activityFaker
-            .WithData(parentId: createParentResult.Value.Id)
+            .WithParentId(createParentResult.Value.Id)
             .Generate();
         var createChildResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(childActivity), managerId);
         createChildResult.IsSuccess.Should().BeTrue();
@@ -884,11 +880,7 @@ public class RoadmapTests
         createResult.Value.SetPrivate(x => x.Id, Guid.NewGuid());
 
         var updateMilestone = new TestUpsertRoadmapMilestone(_milestoneFaker
-            .WithData(
-                name: "Updated Milestone",
-                description: "Updated Description",
-                date: _dateTimeProvider.Today.PlusDays(1)
-            )
+            .WithName("Updated Milestone").WithDescription("Updated Description").WithDate(_dateTimeProvider.Today.PlusDays(1))
             .Generate());
 
         // Act
@@ -993,11 +985,7 @@ public class RoadmapTests
         createResult.Value.SetPrivate(x => x.Id, Guid.NewGuid());
 
         var updateTimebox = new TestUpsertRoadmapTimebox(_timeboxFaker
-            .WithData(
-                name: "Updated Timebox",
-                description: "Updated Description",
-                dateRange: new LocalDateRange(_dateTimeProvider.Today.PlusDays(1), _dateTimeProvider.Today.PlusDays(5))
-            )
+            .WithName("Updated Timebox").WithDescription("Updated Description").WithDateRange(new LocalDateRange(_dateTimeProvider.Today.PlusDays(1), _dateTimeProvider.Today.PlusDays(5)))
             .Generate());
 
         // Act

@@ -17,25 +17,49 @@ public sealed class ExpenditureCategoryFaker : PrivateConstructorFaker<Expenditu
         RuleFor(x => x.AccountingCode, f => f.Random.Bool() ? f.Finance.Account() : null);
     }
 
-    public ExpenditureCategoryFaker WithData(
-        string? name = null,
-        string? description = null,
-        ExpenditureCategoryState? state = null,
-        bool? isCapitalizable = null,
-        bool? requiresDepreciation = null,
-        string? accountingCode = null)
+    public ExpenditureCategoryFaker WithName(string? name)
     {
-        if (!string.IsNullOrWhiteSpace(name)) RuleFor(x => x.Name, name);
-        if (!string.IsNullOrWhiteSpace(description)) RuleFor(x => x.Description, description);
-        if (state.HasValue) RuleFor(x => x.State, state.Value);
-        if (isCapitalizable.HasValue) RuleFor(x => x.IsCapitalizable, isCapitalizable.Value);
-        if (requiresDepreciation.HasValue) RuleFor(x => x.RequiresDepreciation, requiresDepreciation.Value);
-        if (!string.IsNullOrWhiteSpace(accountingCode)) RuleFor(x => x.AccountingCode, accountingCode);
+        RuleFor(x => x.Name, name);
 
         return this;
     }
 
-    public ExpenditureCategory GenerateProposed() => WithData(state: ExpenditureCategoryState.Proposed).Generate();
-    public ExpenditureCategory GenerateActive() => WithData(state: ExpenditureCategoryState.Active).Generate();
-    public ExpenditureCategory GenerateArchived() => WithData(state: ExpenditureCategoryState.Archived).Generate();
+    public ExpenditureCategoryFaker WithDescription(string? description)
+    {
+        RuleFor(x => x.Description, description);
+
+        return this;
+    }
+
+    public ExpenditureCategoryFaker WithState(ExpenditureCategoryState? state)
+    {
+        RuleFor(x => x.State, state);
+
+        return this;
+    }
+
+    public ExpenditureCategoryFaker WithIsCapitalizable(bool? isCapitalizable)
+    {
+        RuleFor(x => x.IsCapitalizable, isCapitalizable);
+
+        return this;
+    }
+
+    public ExpenditureCategoryFaker WithRequiresDepreciation(bool? requiresDepreciation)
+    {
+        RuleFor(x => x.RequiresDepreciation, requiresDepreciation);
+
+        return this;
+    }
+
+    public ExpenditureCategoryFaker WithAccountingCode(string? accountingCode)
+    {
+        RuleFor(x => x.AccountingCode, accountingCode);
+
+        return this;
+    }
+
+    public ExpenditureCategory GenerateProposed() => WithState(ExpenditureCategoryState.Proposed).Generate();
+    public ExpenditureCategory GenerateActive() => WithState(ExpenditureCategoryState.Active).Generate();
+    public ExpenditureCategory GenerateArchived() => WithState(ExpenditureCategoryState.Archived).Generate();
 }

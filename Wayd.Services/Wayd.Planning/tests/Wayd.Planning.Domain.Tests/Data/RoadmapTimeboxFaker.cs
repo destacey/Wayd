@@ -24,20 +24,59 @@ public class RoadmapTimeboxFaker : PrivateConstructorFaker<RoadmapTimebox>
 
 public static class RoadmapTimeboxFakerExtensions
 {
-    public static RoadmapTimeboxFaker WithData(this RoadmapTimeboxFaker faker, Guid? id = null, Guid? roadmapId = null, string? name = null, string? description = null, LocalDateRange? dateRange = null, Guid? parentId = null, RoadmapActivity? parent = null, string? color = null)
+    public static RoadmapTimeboxFaker WithId(this RoadmapTimeboxFaker faker, Guid? id)
     {
-        if (id.HasValue) { faker.RuleFor(x => x.Id, id.Value); }
-        if (roadmapId.HasValue) { faker.RuleFor(x => x.RoadmapId, roadmapId.Value); }
-        if (!string.IsNullOrWhiteSpace(name)) { faker.RuleFor(x => x.Name, name); }
-        if (!string.IsNullOrWhiteSpace(description)) { faker.RuleFor(x => x.Description, description); }
-        if (dateRange is not null) { faker.RuleFor(x => x.DateRange, dateRange); }
-        if (parentId.HasValue && parent is null) { faker.RuleFor(x => x.ParentId, parentId); }
-        if (parent is not null)
-        {
-            faker.RuleFor(x => x.ParentId, parent.Id);
-            faker.RuleFor(x => x.Parent, parent);
-        }
-        if (!string.IsNullOrWhiteSpace(color)) { faker.RuleFor(x => x.Color, color); }
+        faker.RuleFor(x => x.Id, id);
+
+        return faker;
+    }
+
+    public static RoadmapTimeboxFaker WithRoadmapId(this RoadmapTimeboxFaker faker, Guid? roadmapId)
+    {
+        faker.RuleFor(x => x.RoadmapId, roadmapId);
+
+        return faker;
+    }
+
+    public static RoadmapTimeboxFaker WithName(this RoadmapTimeboxFaker faker, string? name)
+    {
+        faker.RuleFor(x => x.Name, name);
+
+        return faker;
+    }
+
+    public static RoadmapTimeboxFaker WithDescription(this RoadmapTimeboxFaker faker, string? description)
+    {
+        faker.RuleFor(x => x.Description, description);
+
+        return faker;
+    }
+
+    public static RoadmapTimeboxFaker WithDateRange(this RoadmapTimeboxFaker faker, LocalDateRange? dateRange)
+    {
+        faker.RuleFor(x => x.DateRange, dateRange);
+
+        return faker;
+    }
+
+    public static RoadmapTimeboxFaker WithParentId(this RoadmapTimeboxFaker faker, Guid? parentId)
+    {
+        faker.RuleFor(x => x.ParentId, parentId);
+
+        return faker;
+    }
+
+    public static RoadmapTimeboxFaker WithParent(this RoadmapTimeboxFaker faker, RoadmapActivity parent)
+    {
+        faker.RuleFor(x => x.ParentId, parent.Id);
+        faker.RuleFor(x => x.Parent, parent);
+
+        return faker;
+    }
+
+    public static RoadmapTimeboxFaker WithColor(this RoadmapTimeboxFaker faker, string? color)
+    {
+        faker.RuleFor(x => x.Color, color);
 
         return faker;
     }

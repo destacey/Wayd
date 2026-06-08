@@ -1,9 +1,9 @@
 ﻿using FluentAssertions.Extensions;
+using NodaTime;
+using NodaTime.Extensions;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Tests.Shared.Data;
 using Wayd.Work.Domain.Models;
-using NodaTime;
-using NodaTime.Extensions;
 
 namespace Wayd.Work.Domain.Tests.Data;
 
@@ -80,26 +80,130 @@ public class WorkItemFaker : PrivateConstructorFaker<WorkItem>
 
 public static class WorkItemFakerExtensions
 {
-    public static WorkItemFaker WithData(this WorkItemFaker faker, Guid? workspaceId = null, string? title = null, WorkType? type = null, WorkStatus? status = null, WorkStatusCategory? statusCategory = null, Guid? parentId = null, Instant? created = null, Guid? createdById = null, Instant? lastModified = null, Guid? lastModifiedById = null, Guid? assignedToId = null, int? priority = null, double? stackRank = null, Guid? projectId = null, Guid? parentProjectId = null, Guid? iterationId = null, Instant? activatedTimestamp = null, Instant? doneTimestamp = null)
+    public static WorkItemFaker WithWorkspaceId(this WorkItemFaker faker, Guid? workspaceId)
     {
-        if (workspaceId.HasValue) { faker.RuleFor(x => x.WorkspaceId, workspaceId.Value); }
-        if (!string.IsNullOrWhiteSpace(title)) { faker.RuleFor(x => x.Title, title); }
-        if (type != null) { faker.RuleFor(x => x.TypeId, type.Id); faker.RuleFor(x => x.Type, type); }
-        if (status != null) { faker.RuleFor(x => x.StatusId, status.Id); faker.RuleFor(x => x.Status, status); }
-        if (statusCategory.HasValue) { faker.RuleFor(x => x.StatusCategory, statusCategory.Value); }
-        if (parentId.HasValue) { faker.RuleFor(x => x.ParentId, parentId.Value); }
-        if (created.HasValue) { faker.RuleFor(x => x.Created, created.Value); }
-        if (createdById.HasValue) { faker.RuleFor(x => x.CreatedById, createdById.Value); }
-        if (lastModified.HasValue) { faker.RuleFor(x => x.LastModified, lastModified.Value); }
-        if (lastModifiedById.HasValue) { faker.RuleFor(x => x.LastModifiedById, lastModifiedById.Value); }
-        if (assignedToId.HasValue) { faker.RuleFor(x => x.AssignedToId, assignedToId.Value); }
-        if (priority.HasValue) { faker.RuleFor(x => x.Priority, priority.Value); }
-        if (stackRank.HasValue) { faker.RuleFor(x => x.StackRank, stackRank.Value); }
-        if (projectId.HasValue) { faker.RuleFor(x => x.ProjectId, projectId.Value); }
-        if (parentProjectId.HasValue) { faker.RuleFor(x => x.ParentProjectId, parentProjectId.Value); }
-        if (iterationId.HasValue) { faker.RuleFor(x => x.IterationId, iterationId.Value); }
-        if (activatedTimestamp.HasValue) { faker.RuleFor(x => x.ActivatedTimestamp, activatedTimestamp.Value); }
-        if (doneTimestamp.HasValue) { faker.RuleFor(x => x.DoneTimestamp, doneTimestamp.Value); }
+        faker.RuleFor(x => x.WorkspaceId, workspaceId);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithTitle(this WorkItemFaker faker, string? title)
+    {
+        faker.RuleFor(x => x.Title, title);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithType(this WorkItemFaker faker, WorkType type)
+    {
+        faker.RuleFor(x => x.TypeId, type.Id);
+        faker.RuleFor(x => x.Type, type);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithStatus(this WorkItemFaker faker, WorkStatus status)
+    {
+        faker.RuleFor(x => x.StatusId, status.Id);
+        faker.RuleFor(x => x.Status, status);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithStatusCategory(this WorkItemFaker faker, WorkStatusCategory? statusCategory)
+    {
+        faker.RuleFor(x => x.StatusCategory, statusCategory);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithParentId(this WorkItemFaker faker, Guid? parentId)
+    {
+        faker.RuleFor(x => x.ParentId, parentId);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithCreated(this WorkItemFaker faker, Instant? created)
+    {
+        faker.RuleFor(x => x.Created, created);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithCreatedById(this WorkItemFaker faker, Guid? createdById)
+    {
+        faker.RuleFor(x => x.CreatedById, createdById);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithLastModified(this WorkItemFaker faker, Instant? lastModified)
+    {
+        faker.RuleFor(x => x.LastModified, lastModified);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithLastModifiedById(this WorkItemFaker faker, Guid? lastModifiedById)
+    {
+        faker.RuleFor(x => x.LastModifiedById, lastModifiedById);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithAssignedToId(this WorkItemFaker faker, Guid? assignedToId)
+    {
+        faker.RuleFor(x => x.AssignedToId, assignedToId);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithPriority(this WorkItemFaker faker, int? priority)
+    {
+        faker.RuleFor(x => x.Priority, priority);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithStackRank(this WorkItemFaker faker, double? stackRank)
+    {
+        faker.RuleFor(x => x.StackRank, stackRank);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithProjectId(this WorkItemFaker faker, Guid? projectId)
+    {
+        faker.RuleFor(x => x.ProjectId, projectId);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithParentProjectId(this WorkItemFaker faker, Guid? parentProjectId)
+    {
+        faker.RuleFor(x => x.ParentProjectId, parentProjectId);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithIterationId(this WorkItemFaker faker, Guid? iterationId)
+    {
+        faker.RuleFor(x => x.IterationId, iterationId);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithActivatedTimestamp(this WorkItemFaker faker, Instant? activatedTimestamp)
+    {
+        faker.RuleFor(x => x.ActivatedTimestamp, activatedTimestamp);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithDoneTimestamp(this WorkItemFaker faker, Instant? doneTimestamp)
+    {
+        faker.RuleFor(x => x.DoneTimestamp, doneTimestamp);
 
         return faker;
     }

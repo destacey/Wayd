@@ -106,7 +106,7 @@ public class ProjectPortfolioTests
     {
         // Arrange
         var employeeId = Guid.NewGuid();
-        var portfolio = _portfolioFaker.WithData(roles: new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
+        var portfolio = _portfolioFaker.WithRoles(new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
         {
             { ProjectPortfolioRole.Owner, new HashSet<Guid> { employeeId } }
         }).Generate();
@@ -138,7 +138,7 @@ public class ProjectPortfolioTests
     {
         // Arrange
         var employeeId = Guid.NewGuid();
-        var portfolio = _portfolioFaker.WithData(roles: new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
+        var portfolio = _portfolioFaker.WithRoles(new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
         {
             { ProjectPortfolioRole.Owner, new HashSet<Guid> { employeeId } }
         }).Generate();
@@ -157,7 +157,7 @@ public class ProjectPortfolioTests
         // Arrange
         var employeeId1 = Guid.NewGuid();
         var employeeId2 = Guid.NewGuid();
-        var portfolio = _portfolioFaker.WithData(roles: new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
+        var portfolio = _portfolioFaker.WithRoles(new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
         {
             { ProjectPortfolioRole.Owner, new HashSet<Guid> { employeeId1, employeeId2 } }
         }).Generate();
@@ -226,7 +226,7 @@ public class ProjectPortfolioTests
     public void UpdateRoles_ShouldRemoveUnspecifiedRoles()
     {
         // Arrange
-        var portfolio = _portfolioFaker.WithData(roles: new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
+        var portfolio = _portfolioFaker.WithRoles(new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
         {
             { ProjectPortfolioRole.Manager, new HashSet<Guid> { Guid.NewGuid(), Guid.NewGuid() } },
             { ProjectPortfolioRole.Owner, new HashSet<Guid> { Guid.NewGuid() } }
@@ -251,7 +251,7 @@ public class ProjectPortfolioTests
     {
         // Arrange
         var employeeId = Guid.NewGuid();
-        var portfolio = _portfolioFaker.WithData(roles: new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
+        var portfolio = _portfolioFaker.WithRoles(new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
         {
             { ProjectPortfolioRole.Sponsor, new HashSet<Guid> { employeeId } }
         }).Generate();
@@ -933,16 +933,13 @@ public class ProjectPortfolioTests
     // An active portfolio owned by _ownerId (so ranking authorization passes) with the given projects
     // attached. Uses the ProjectPortfolioFaker.WithProjects extension to populate the aggregate.
     private ProjectPortfolio RankingPortfolio(params Project[] projects) =>
-        _portfolioFaker.WithData(
-            id: Guid.NewGuid(),
-            status: ProjectPortfolioStatus.Active,
-            roles: new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
-            {
-                [ProjectPortfolioRole.Owner] = [_ownerId],
-            }).Generate().WithProjects(projects);
+        _portfolioFaker.WithStatus(ProjectPortfolioStatus.Active).WithRoles(new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
+        {
+            [ProjectPortfolioRole.Owner] = [_ownerId],
+        }).Generate().WithProjects(projects);
 
     private Project RankedProject(string name, double rank, ProjectStatus status = ProjectStatus.Active) =>
-        _projectFaker.WithData(name: name, status: status).WithRank(rank).Generate();
+        _projectFaker.WithName(name).WithStatus(status).WithRank(rank).Generate();
 
     [Fact]
     public void MoveProjectRanks_WhenBetweenTwoAnchors_PlacesBatchStrictlyWithinAndPreservesOrder()
@@ -1179,13 +1176,10 @@ public class ProjectPortfolioTests
         var managerId = Guid.NewGuid();
         var after = RankedProject("After", 1000d);
         var moved = RankedProject("Moved", 90000d);
-        var portfolio = _portfolioFaker.WithData(
-            id: Guid.NewGuid(),
-            status: ProjectPortfolioStatus.Active,
-            roles: new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
-            {
-                [ProjectPortfolioRole.Manager] = [managerId],
-            }).Generate();
+        var portfolio = _portfolioFaker.WithStatus(ProjectPortfolioStatus.Active).WithRoles(new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
+        {
+            [ProjectPortfolioRole.Manager] = [managerId],
+        }).Generate();
         portfolio.WithProjects(after, moved);
 
         // Act
@@ -1201,13 +1195,10 @@ public class ProjectPortfolioTests
         // Arrange
         var after = RankedProject("After", 1000d);
         var moved = RankedProject("Moved", 90000d);
-        var portfolio = _portfolioFaker.WithData(
-            id: Guid.NewGuid(),
-            status: ProjectPortfolioStatus.Archived,
-            roles: new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
-            {
-                [ProjectPortfolioRole.Owner] = [_ownerId],
-            }).Generate();
+        var portfolio = _portfolioFaker.WithStatus(ProjectPortfolioStatus.Archived).WithRoles(new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
+        {
+            [ProjectPortfolioRole.Owner] = [_ownerId],
+        }).Generate();
         portfolio.WithProjects(after, moved);
 
         // Act
@@ -1276,13 +1267,10 @@ public class ProjectPortfolioTests
     {
         // Arrange — bypass does not override the read-only (archived) guard.
         var project = RankedProject("A", 1234.5d);
-        var portfolio = _portfolioFaker.WithData(
-            id: Guid.NewGuid(),
-            status: ProjectPortfolioStatus.Archived,
-            roles: new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
-            {
-                [ProjectPortfolioRole.Owner] = [_ownerId],
-            }).Generate();
+        var portfolio = _portfolioFaker.WithStatus(ProjectPortfolioStatus.Archived).WithRoles(new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
+        {
+            [ProjectPortfolioRole.Owner] = [_ownerId],
+        }).Generate();
         portfolio.WithProjects(project);
 
         // Act

@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Scoring.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
@@ -22,8 +22,8 @@ public class GetProjectScoresQueryHandlerTests : IDisposable
     {
         // Arrange
         var projectId = Guid.NewGuid();
-        var first = _scoreFaker.WithData(projectId: projectId, sequence: 1, primaryValue: 5m).Generate();
-        var second = _scoreFaker.WithData(projectId: projectId, sequence: 2, primaryValue: 9m).Generate();
+        var first = _scoreFaker.WithProjectId(projectId).WithSequence(1).WithPrimaryValue(5m).Generate();
+        var second = _scoreFaker.WithProjectId(projectId).WithSequence(2).WithPrimaryValue(9m).Generate();
         _dbContext.AddProjectScores([first, second]);
 
         // Act
@@ -42,8 +42,8 @@ public class GetProjectScoresQueryHandlerTests : IDisposable
     {
         // Arrange
         var projectId = Guid.NewGuid();
-        var mine = _scoreFaker.WithData(projectId: projectId, sequence: 1).Generate();
-        var other = _scoreFaker.WithData(projectId: Guid.NewGuid(), sequence: 1).Generate();
+        var mine = _scoreFaker.WithProjectId(projectId).WithSequence(1).Generate();
+        var other = _scoreFaker.WithProjectId(Guid.NewGuid()).WithSequence(1).Generate();
         _dbContext.AddProjectScores([mine, other]);
 
         // Act

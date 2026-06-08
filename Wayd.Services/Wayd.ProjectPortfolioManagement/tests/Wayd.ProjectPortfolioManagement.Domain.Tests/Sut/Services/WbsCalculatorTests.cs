@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Services;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
@@ -16,7 +16,7 @@ public class WbsCalculatorTests
     public void CalculateWbs_ShouldReturnPosition_ForSingleRootTask()
     {
         // Arrange
-        var task = TaskFaker().WithData(order: 1).Generate();
+        var task = TaskFaker().WithOrder(1).Generate();
         var tasks = new List<ProjectTask> { task };
 
         // Act
@@ -30,9 +30,9 @@ public class WbsCalculatorTests
     public void CalculateWbs_ShouldReturnCorrectPosition_ForMultipleRootTasks()
     {
         // Arrange
-        var task1 = TaskFaker().WithData(order: 1).Generate();
-        var task2 = TaskFaker().WithData(order: 2).Generate();
-        var task3 = TaskFaker().WithData(order: 3).Generate();
+        var task1 = TaskFaker().WithOrder(1).Generate();
+        var task2 = TaskFaker().WithOrder(2).Generate();
+        var task3 = TaskFaker().WithOrder(3).Generate();
         var tasks = new List<ProjectTask> { task1, task2, task3 };
 
         // Act & Assert
@@ -45,8 +45,8 @@ public class WbsCalculatorTests
     public void CalculateWbs_ShouldReturnHierarchicalCode_ForChildTasks()
     {
         // Arrange
-        var parentTask = TaskFaker().WithData(order: 1).Generate();
-        var childTask = TaskFaker().WithData(order: 1, parentId: parentTask.Id).Generate();
+        var parentTask = TaskFaker().WithOrder(1).Generate();
+        var childTask = TaskFaker().WithOrder(1).WithParentId(parentTask.Id).Generate();
         var tasks = new List<ProjectTask> { parentTask, childTask };
 
         // Act
@@ -60,10 +60,10 @@ public class WbsCalculatorTests
     public void CalculateWbs_ShouldReturnCorrectCodes_ForMultipleChildTasks()
     {
         // Arrange
-        var parentTask = TaskFaker().WithData(order: 1).Generate();
-        var child1 = TaskFaker().WithData(order: 1, parentId: parentTask.Id).Generate();
-        var child2 = TaskFaker().WithData(order: 2, parentId: parentTask.Id).Generate();
-        var child3 = TaskFaker().WithData(order: 3, parentId: parentTask.Id).Generate();
+        var parentTask = TaskFaker().WithOrder(1).Generate();
+        var child1 = TaskFaker().WithOrder(1).WithParentId(parentTask.Id).Generate();
+        var child2 = TaskFaker().WithOrder(2).WithParentId(parentTask.Id).Generate();
+        var child3 = TaskFaker().WithOrder(3).WithParentId(parentTask.Id).Generate();
         var tasks = new List<ProjectTask> { parentTask, child1, child2, child3 };
 
         // Act & Assert
@@ -76,9 +76,9 @@ public class WbsCalculatorTests
     public void CalculateWbs_ShouldReturnDeepHierarchicalCode_ForNestedTasks()
     {
         // Arrange
-        var root = TaskFaker().WithData(order: 2).Generate();
-        var child = TaskFaker().WithData(order: 3, parentId: root.Id).Generate();
-        var grandchild = TaskFaker().WithData(order: 1, parentId: child.Id).Generate();
+        var root = TaskFaker().WithOrder(2).Generate();
+        var child = TaskFaker().WithOrder(3).WithParentId(root.Id).Generate();
+        var grandchild = TaskFaker().WithOrder(1).WithParentId(child.Id).Generate();
         var tasks = new List<ProjectTask> { root, child, grandchild };
 
         // Act
@@ -92,9 +92,9 @@ public class WbsCalculatorTests
     public void CalculateWbs_ShouldOrderByOrderProperty_NotByInsertionOrder()
     {
         // Arrange - add tasks in reverse order
-        var task1 = TaskFaker().WithData(order: 3).Generate();
-        var task2 = TaskFaker().WithData(order: 1).Generate();
-        var task3 = TaskFaker().WithData(order: 2).Generate();
+        var task1 = TaskFaker().WithOrder(3).Generate();
+        var task2 = TaskFaker().WithOrder(1).Generate();
+        var task3 = TaskFaker().WithOrder(2).Generate();
         var tasks = new List<ProjectTask> { task1, task2, task3 };
 
         // Act & Assert
@@ -107,11 +107,11 @@ public class WbsCalculatorTests
     public void CalculateWbs_ShouldScopeSiblings_ToSameParent()
     {
         // Arrange - two parents each with children
-        var parent1 = TaskFaker().WithData(order: 1).Generate();
-        var parent2 = TaskFaker().WithData(order: 2).Generate();
-        var child1OfParent1 = TaskFaker().WithData(order: 1, parentId: parent1.Id).Generate();
-        var child2OfParent1 = TaskFaker().WithData(order: 2, parentId: parent1.Id).Generate();
-        var child1OfParent2 = TaskFaker().WithData(order: 1, parentId: parent2.Id).Generate();
+        var parent1 = TaskFaker().WithOrder(1).Generate();
+        var parent2 = TaskFaker().WithOrder(2).Generate();
+        var child1OfParent1 = TaskFaker().WithOrder(1).WithParentId(parent1.Id).Generate();
+        var child2OfParent1 = TaskFaker().WithOrder(2).WithParentId(parent1.Id).Generate();
+        var child1OfParent2 = TaskFaker().WithOrder(1).WithParentId(parent2.Id).Generate();
         var tasks = new List<ProjectTask> { parent1, parent2, child1OfParent1, child2OfParent1, child1OfParent2 };
 
         // Act & Assert
@@ -129,11 +129,11 @@ public class WbsCalculatorTests
     {
         // Arrange
         var projectId = Guid.NewGuid();
-        var phase1 = PhaseFaker().WithData(projectId: projectId, order: 1).Generate();
-        var phase2 = PhaseFaker().WithData(projectId: projectId, order: 2).Generate();
+        var phase1 = PhaseFaker().WithProjectId(projectId).WithOrder(1).Generate();
+        var phase2 = PhaseFaker().WithProjectId(projectId).WithOrder(2).Generate();
         var phases = new List<ProjectPhase> { phase1, phase2 };
 
-        var task = TaskFaker().WithData(order: 1, projectPhaseId: phase1.Id).Generate();
+        var task = TaskFaker().WithOrder(1).WithProjectPhaseId(phase1.Id).Generate();
         var tasks = new List<ProjectTask> { task };
 
         // Act
@@ -148,13 +148,13 @@ public class WbsCalculatorTests
     {
         // Arrange
         var projectId = Guid.NewGuid();
-        var phase1 = PhaseFaker().WithData(projectId: projectId, order: 1).Generate();
-        var phase2 = PhaseFaker().WithData(projectId: projectId, order: 2).Generate();
-        var phase3 = PhaseFaker().WithData(projectId: projectId, order: 3).Generate();
+        var phase1 = PhaseFaker().WithProjectId(projectId).WithOrder(1).Generate();
+        var phase2 = PhaseFaker().WithProjectId(projectId).WithOrder(2).Generate();
+        var phase3 = PhaseFaker().WithProjectId(projectId).WithOrder(3).Generate();
         var phases = new List<ProjectPhase> { phase1, phase2, phase3 };
 
-        var taskInPhase1 = TaskFaker().WithData(order: 1, projectPhaseId: phase1.Id).Generate();
-        var taskInPhase3 = TaskFaker().WithData(order: 1, projectPhaseId: phase3.Id).Generate();
+        var taskInPhase1 = TaskFaker().WithOrder(1).WithProjectPhaseId(phase1.Id).Generate();
+        var taskInPhase3 = TaskFaker().WithOrder(1).WithProjectPhaseId(phase3.Id).Generate();
         var tasks = new List<ProjectTask> { taskInPhase1, taskInPhase3 };
 
         // Act & Assert
@@ -167,13 +167,13 @@ public class WbsCalculatorTests
     {
         // Arrange
         var projectId = Guid.NewGuid();
-        var phase1 = PhaseFaker().WithData(projectId: projectId, order: 1).Generate();
-        var phase2 = PhaseFaker().WithData(projectId: projectId, order: 2).Generate();
+        var phase1 = PhaseFaker().WithProjectId(projectId).WithOrder(1).Generate();
+        var phase2 = PhaseFaker().WithProjectId(projectId).WithOrder(2).Generate();
         var phases = new List<ProjectPhase> { phase1, phase2 };
 
-        var task1InPhase1 = TaskFaker().WithData(order: 1, projectPhaseId: phase1.Id).Generate();
-        var task2InPhase1 = TaskFaker().WithData(order: 2, projectPhaseId: phase1.Id).Generate();
-        var task1InPhase2 = TaskFaker().WithData(order: 1, projectPhaseId: phase2.Id).Generate();
+        var task1InPhase1 = TaskFaker().WithOrder(1).WithProjectPhaseId(phase1.Id).Generate();
+        var task2InPhase1 = TaskFaker().WithOrder(2).WithProjectPhaseId(phase1.Id).Generate();
+        var task1InPhase2 = TaskFaker().WithOrder(1).WithProjectPhaseId(phase2.Id).Generate();
         var tasks = new List<ProjectTask> { task1InPhase1, task2InPhase1, task1InPhase2 };
 
         // Act & Assert
@@ -187,12 +187,12 @@ public class WbsCalculatorTests
     {
         // Arrange
         var projectId = Guid.NewGuid();
-        var phase = PhaseFaker().WithData(projectId: projectId, order: 3).Generate();
+        var phase = PhaseFaker().WithProjectId(projectId).WithOrder(3).Generate();
         var phases = new List<ProjectPhase> { phase };
 
-        var rootTask = TaskFaker().WithData(order: 1, projectPhaseId: phase.Id).Generate();
-        var childTask = TaskFaker().WithData(order: 1, parentId: rootTask.Id, projectPhaseId: phase.Id).Generate();
-        var grandchild = TaskFaker().WithData(order: 1, parentId: childTask.Id, projectPhaseId: phase.Id).Generate();
+        var rootTask = TaskFaker().WithOrder(1).WithProjectPhaseId(phase.Id).Generate();
+        var childTask = TaskFaker().WithOrder(1).WithParentId(rootTask.Id).WithProjectPhaseId(phase.Id).Generate();
+        var grandchild = TaskFaker().WithOrder(1).WithParentId(childTask.Id).WithProjectPhaseId(phase.Id).Generate();
         var tasks = new List<ProjectTask> { rootTask, childTask, grandchild };
 
         // Act & Assert
@@ -205,7 +205,7 @@ public class WbsCalculatorTests
     public void CalculateWbs_ShouldNotPrefixPhase_WhenPhasesNull()
     {
         // Arrange
-        var task = TaskFaker().WithData(order: 1).Generate();
+        var task = TaskFaker().WithOrder(1).Generate();
         var tasks = new List<ProjectTask> { task };
 
         // Act
@@ -223,9 +223,9 @@ public class WbsCalculatorTests
     public void CalculateAllWbs_ShouldReturnWbsForAllTasks()
     {
         // Arrange
-        var parent = TaskFaker().WithData(order: 1).Generate();
-        var child1 = TaskFaker().WithData(order: 1, parentId: parent.Id).Generate();
-        var child2 = TaskFaker().WithData(order: 2, parentId: parent.Id).Generate();
+        var parent = TaskFaker().WithOrder(1).Generate();
+        var child1 = TaskFaker().WithOrder(1).WithParentId(parent.Id).Generate();
+        var child2 = TaskFaker().WithOrder(2).WithParentId(parent.Id).Generate();
         var tasks = new List<ProjectTask> { parent, child1, child2 };
 
         // Act
@@ -257,13 +257,13 @@ public class WbsCalculatorTests
     {
         // Arrange
         var projectId = Guid.NewGuid();
-        var phase1 = PhaseFaker().WithData(projectId: projectId, order: 1).Generate();
-        var phase2 = PhaseFaker().WithData(projectId: projectId, order: 2).Generate();
+        var phase1 = PhaseFaker().WithProjectId(projectId).WithOrder(1).Generate();
+        var phase2 = PhaseFaker().WithProjectId(projectId).WithOrder(2).Generate();
         var phases = new List<ProjectPhase> { phase1, phase2 };
 
-        var rootInPhase1 = TaskFaker().WithData(order: 1, projectPhaseId: phase1.Id).Generate();
-        var childInPhase1 = TaskFaker().WithData(order: 1, parentId: rootInPhase1.Id, projectPhaseId: phase1.Id).Generate();
-        var rootInPhase2 = TaskFaker().WithData(order: 1, projectPhaseId: phase2.Id).Generate();
+        var rootInPhase1 = TaskFaker().WithOrder(1).WithProjectPhaseId(phase1.Id).Generate();
+        var childInPhase1 = TaskFaker().WithOrder(1).WithParentId(rootInPhase1.Id).WithProjectPhaseId(phase1.Id).Generate();
+        var rootInPhase2 = TaskFaker().WithOrder(1).WithProjectPhaseId(phase2.Id).Generate();
         var tasks = new List<ProjectTask> { rootInPhase1, childInPhase1, rootInPhase2 };
 
         // Act
@@ -280,8 +280,8 @@ public class WbsCalculatorTests
     public void CalculateAllWbs_ShouldReturnNonPrefixedWbs_WhenPhasesNull()
     {
         // Arrange
-        var task1 = TaskFaker().WithData(order: 1).Generate();
-        var task2 = TaskFaker().WithData(order: 2).Generate();
+        var task1 = TaskFaker().WithOrder(1).Generate();
+        var task2 = TaskFaker().WithOrder(2).Generate();
         var tasks = new List<ProjectTask> { task1, task2 };
 
         // Act
@@ -301,23 +301,23 @@ public class WbsCalculatorTests
     {
         // Arrange - realistic project plan structure
         var projectId = Guid.NewGuid();
-        var planning = PhaseFaker().WithData(projectId: projectId, name: "Planning", order: 1).Generate();
-        var execution = PhaseFaker().WithData(projectId: projectId, name: "Execution", order: 2).Generate();
-        var closure = PhaseFaker().WithData(projectId: projectId, name: "Closure", order: 3).Generate();
+        var planning = PhaseFaker().WithProjectId(projectId).WithName("Planning").WithOrder(1).Generate();
+        var execution = PhaseFaker().WithProjectId(projectId).WithName("Execution").WithOrder(2).Generate();
+        var closure = PhaseFaker().WithProjectId(projectId).WithName("Closure").WithOrder(3).Generate();
         var phases = new List<ProjectPhase> { planning, execution, closure };
 
         // Planning phase tasks
-        var requirements = TaskFaker().WithData(name: "Requirements", order: 1, projectPhaseId: planning.Id).Generate();
-        var design = TaskFaker().WithData(name: "Design", order: 2, projectPhaseId: planning.Id).Generate();
+        var requirements = TaskFaker().WithName("Requirements").WithOrder(1).WithProjectPhaseId(planning.Id).Generate();
+        var design = TaskFaker().WithName("Design").WithOrder(2).WithProjectPhaseId(planning.Id).Generate();
 
         // Execution phase tasks with nesting
-        var buildApi = TaskFaker().WithData(name: "Build API", order: 1, projectPhaseId: execution.Id).Generate();
-        var endpoint1 = TaskFaker().WithData(name: "Users endpoint", order: 1, parentId: buildApi.Id, projectPhaseId: execution.Id).Generate();
-        var endpoint2 = TaskFaker().WithData(name: "Orders endpoint", order: 2, parentId: buildApi.Id, projectPhaseId: execution.Id).Generate();
-        var buildUi = TaskFaker().WithData(name: "Build UI", order: 2, projectPhaseId: execution.Id).Generate();
+        var buildApi = TaskFaker().WithName("Build API").WithOrder(1).WithProjectPhaseId(execution.Id).Generate();
+        var endpoint1 = TaskFaker().WithName("Users endpoint").WithOrder(1).WithParentId(buildApi.Id).WithProjectPhaseId(execution.Id).Generate();
+        var endpoint2 = TaskFaker().WithName("Orders endpoint").WithOrder(2).WithParentId(buildApi.Id).WithProjectPhaseId(execution.Id).Generate();
+        var buildUi = TaskFaker().WithName("Build UI").WithOrder(2).WithProjectPhaseId(execution.Id).Generate();
 
         // Closure phase tasks
-        var signOff = TaskFaker().WithData(name: "Sign-off", order: 1, projectPhaseId: closure.Id).Generate();
+        var signOff = TaskFaker().WithName("Sign-off").WithOrder(1).WithProjectPhaseId(closure.Id).Generate();
 
         var tasks = new List<ProjectTask> { requirements, design, buildApi, endpoint1, endpoint2, buildUi, signOff };
 
@@ -338,8 +338,8 @@ public class WbsCalculatorTests
     public void CalculateWbs_ShouldHandleSameOrderValues_Deterministically()
     {
         // Arrange - tasks with same order (edge case)
-        var task1 = TaskFaker().WithData(order: 1).Generate();
-        var task2 = TaskFaker().WithData(order: 1).Generate();
+        var task1 = TaskFaker().WithOrder(1).Generate();
+        var task2 = TaskFaker().WithOrder(1).Generate();
         var tasks = new List<ProjectTask> { task1, task2 };
 
         // Act

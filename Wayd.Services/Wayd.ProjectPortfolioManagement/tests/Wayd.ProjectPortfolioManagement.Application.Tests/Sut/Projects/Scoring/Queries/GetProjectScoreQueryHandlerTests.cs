@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Scoring.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
@@ -26,18 +26,13 @@ public class GetProjectScoreQueryHandlerTests : IDisposable
         var projectId = Guid.NewGuid();
         var scoreId = Guid.NewGuid();
         var rating = _ratingFaker
-            .WithData(projectScoreId: scoreId, criterionToken: "BV", ratingValue: 8m, order: 1)
+            .WithProjectScoreId(scoreId).WithCriterionToken("BV").WithRatingValue(8m).WithOrder(1)
             .Generate();
         var output = _outputFaker
-            .WithData(projectScoreId: scoreId, token: "Score", value: 4m, isPrimary: true, order: 1)
+            .WithProjectScoreId(scoreId).WithToken("Score").WithValue(4m).WithIsPrimary(true).WithOrder(1)
             .Generate();
         var score = _scoreFaker
-            .WithData(
-                id: scoreId,
-                projectId: projectId,
-                primaryValue: 4m,
-                ratings: [rating],
-                outputs: [output])
+            .WithId(scoreId).WithProjectId(projectId).WithPrimaryValue(4m).WithRatings([rating]).WithOutputs([output])
             .Generate();
         _dbContext.AddProjectScore(score);
 
@@ -59,7 +54,7 @@ public class GetProjectScoreQueryHandlerTests : IDisposable
     {
         // Arrange
         var scoreId = Guid.NewGuid();
-        var score = _scoreFaker.WithData(id: scoreId, projectId: Guid.NewGuid()).Generate();
+        var score = _scoreFaker.WithId(scoreId).WithProjectId(Guid.NewGuid()).Generate();
         _dbContext.AddProjectScore(score);
 
         // Act

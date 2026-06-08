@@ -57,7 +57,7 @@ public class GetProjectTeamQueryHandlerTests : IDisposable
     {
         // Arrange
         var projectKey = new ProjectKey("EMPTY");
-        var project = _projectFaker.WithData(key: projectKey).Generate();
+        var project = _projectFaker.WithKey(projectKey).Generate();
         _dbContext.AddProject(project);
 
         var query = new GetProjectTeamQuery(projectKey.Value);
@@ -78,14 +78,11 @@ public class GetProjectTeamQueryHandlerTests : IDisposable
         var manager = _employeeFaker.Generate();
 
         var projectKey = new ProjectKey("ROLES");
-        var project = _projectFaker.WithData(
-            key: projectKey,
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project = _projectFaker.WithKey(projectKey).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Sponsor, [sponsor.Id] },
                 { ProjectRole.Manager, [manager.Id] },
-            }
-        ).Generate();
+            }).Generate();
 
         foreach (var role in project.Roles)
         {
@@ -119,14 +116,11 @@ public class GetProjectTeamQueryHandlerTests : IDisposable
         var employee = _employeeFaker.Generate();
 
         var projectKey = new ProjectKey("MULTI");
-        var project = _projectFaker.WithData(
-            key: projectKey,
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project = _projectFaker.WithKey(projectKey).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Owner, [employee.Id] },
                 { ProjectRole.Manager, [employee.Id] },
-            }
-        ).Generate();
+            }).Generate();
 
         foreach (var role in project.Roles)
             role.Employee = employee;
@@ -154,22 +148,16 @@ public class GetProjectTeamQueryHandlerTests : IDisposable
         var taskOnlyAssignee = _employeeFaker.Generate();
 
         var projectKey = new ProjectKey("TASKS");
-        var project = _projectFaker.WithData(
-            key: projectKey,
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project = _projectFaker.WithKey(projectKey).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Manager, [projectRoleMember.Id] },
-            }
-        ).Generate();
+            }).Generate();
 
         foreach (var role in project.Roles)
             role.Employee = projectRoleMember;
 
         // Create a task assigned to taskOnlyAssignee (not in any project role)
-        var task = new ProjectTaskFaker().WithData(
-            projectId: project.Id,
-            status: TaskStatus.InProgress
-        ).Generate();
+        var task = new ProjectTaskFaker().WithProjectId(project.Id).WithStatus(TaskStatus.InProgress).Generate();
         task.SetPrivateField("_roles", CreateTaskAssigneeRoles(task.Id, taskOnlyAssignee));
 
         _dbContext.AddProject(project);
@@ -196,50 +184,31 @@ public class GetProjectTeamQueryHandlerTests : IDisposable
         var employee = _employeeFaker.Generate();
 
         var projectKey = new ProjectKey("COUNT");
-        var project = _projectFaker.WithData(
-            key: projectKey,
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project = _projectFaker.WithKey(projectKey).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Member, [employee.Id] },
-            }
-        ).Generate();
+            }).Generate();
 
         foreach (var role in project.Roles)
             role.Employee = employee;
 
         // Active leaf task (InProgress) - should be counted
-        var activeTask = new ProjectTaskFaker().WithData(
-            projectId: project.Id,
-            status: TaskStatus.InProgress
-        ).Generate();
+        var activeTask = new ProjectTaskFaker().WithProjectId(project.Id).WithStatus(TaskStatus.InProgress).Generate();
         activeTask.SetPrivateField("_roles", CreateTaskAssigneeRoles(activeTask.Id, employee));
 
         // Active leaf task (NotStarted) - should be counted
-        var notStartedTask = new ProjectTaskFaker().WithData(
-            projectId: project.Id,
-            status: TaskStatus.NotStarted
-        ).Generate();
+        var notStartedTask = new ProjectTaskFaker().WithProjectId(project.Id).WithStatus(TaskStatus.NotStarted).Generate();
         notStartedTask.SetPrivateField("_roles", CreateTaskAssigneeRoles(notStartedTask.Id, employee));
 
         // Completed leaf task - should NOT be counted
-        var completedTask = new ProjectTaskFaker().WithData(
-            projectId: project.Id,
-            status: TaskStatus.Completed
-        ).Generate();
+        var completedTask = new ProjectTaskFaker().WithProjectId(project.Id).WithStatus(TaskStatus.Completed).Generate();
         completedTask.SetPrivateField("_roles", CreateTaskAssigneeRoles(completedTask.Id, employee));
 
         // Parent task with child (not a leaf) - should NOT be counted
-        var parentTask = new ProjectTaskFaker().WithData(
-            projectId: project.Id,
-            status: TaskStatus.InProgress
-        ).Generate();
+        var parentTask = new ProjectTaskFaker().WithProjectId(project.Id).WithStatus(TaskStatus.InProgress).Generate();
         parentTask.SetPrivateField("_roles", CreateTaskAssigneeRoles(parentTask.Id, employee));
 
-        var childTask = new ProjectTaskFaker().WithData(
-            projectId: project.Id,
-            parentId: parentTask.Id,
-            status: TaskStatus.InProgress
-        ).Generate();
+        var childTask = new ProjectTaskFaker().WithProjectId(project.Id).WithParentId(parentTask.Id).WithStatus(TaskStatus.InProgress).Generate();
         childTask.SetPrivateField("_roles", CreateTaskAssigneeRoles(childTask.Id, employee));
 
         _dbContext.AddProject(project);
@@ -267,13 +236,10 @@ public class GetProjectTeamQueryHandlerTests : IDisposable
         var bob = _employeeFaker.WithName(new PersonName("Bob", null, "Baker")).Generate();
 
         var projectKey = new ProjectKey("ORDER");
-        var project = _projectFaker.WithData(
-            key: projectKey,
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project = _projectFaker.WithKey(projectKey).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Member, [alice.Id, charlie.Id, bob.Id] },
-            }
-        ).Generate();
+            }).Generate();
 
         foreach (var role in project.Roles)
         {
@@ -302,12 +268,10 @@ public class GetProjectTeamQueryHandlerTests : IDisposable
     {
         // Arrange
         var employee = _employeeFaker.Generate();
-        var project = _projectFaker.WithData(
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project = _projectFaker.WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Sponsor, [employee.Id] },
-            }
-        ).Generate();
+            }).Generate();
 
         foreach (var role in project.Roles)
             role.Employee = employee;

@@ -1,9 +1,9 @@
-using FluentAssertions;
+﻿using FluentAssertions;
+using NodaTime.Extensions;
+using NodaTime.Testing;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
-using NodaTime.Extensions;
-using NodaTime.Testing;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Sut.Models;
 
@@ -24,7 +24,7 @@ public class ProjectTaskTests
         // Arrange
         var originalProjectKey = new ProjectKey("ORIG");
         var taskNumber = 123;
-        var task = new ProjectTaskFaker().WithData(key: new ProjectTaskKey(originalProjectKey, taskNumber)).Generate();
+        var task = new ProjectTaskFaker().WithKey(new ProjectTaskKey(originalProjectKey, taskNumber)).Generate();
 
         var newProjectKey = new ProjectKey("NEWKEY");
 
@@ -43,7 +43,7 @@ public class ProjectTaskTests
         // Arrange
         var projectKey = new ProjectKey("SAME");
         var taskNumber = 7;
-        var task = new ProjectTaskFaker().WithData(key: new ProjectTaskKey(projectKey, taskNumber)).Generate();
+        var task = new ProjectTaskFaker().WithKey(new ProjectTaskKey(projectKey, taskNumber)).Generate();
         var originalTaskKeyValue = task.Key.Value;
 
         // Act
@@ -130,8 +130,8 @@ public class ProjectTaskTests
         var parentTaskId = Guid.NewGuid();
         var childTaskId = Guid.NewGuid();
 
-        var parentTask = new ProjectTaskFaker().WithData(id: parentTaskId, projectId: projectId).Generate();
-        var childTask = new ProjectTaskFaker().WithData(id: childTaskId, projectId: projectId).Generate();
+        var parentTask = new ProjectTaskFaker().WithId(parentTaskId).WithProjectId(projectId).Generate();
+        var childTask = new ProjectTaskFaker().WithId(childTaskId).WithProjectId(projectId).Generate();
 
         // Act
         var result = childTask.ChangeParent(parentTask.Id, 1);
@@ -148,7 +148,7 @@ public class ProjectTaskTests
         // Arrange
         var projectId = Guid.NewGuid();
         var parentId = Guid.NewGuid();
-        var childTask = new ProjectTaskFaker().WithData(projectId: projectId, parentId: parentId).Generate();
+        var childTask = new ProjectTaskFaker().WithProjectId(projectId).WithParentId(parentId).Generate();
 
         // Act
         var result = childTask.ChangeParent(null, 1);
@@ -166,7 +166,7 @@ public class ProjectTaskTests
         var projectId = Guid.NewGuid();
         var originalParentId = Guid.NewGuid();
         var newParentId = Guid.NewGuid();
-        var childTask = new ProjectTaskFaker().WithData(projectId: projectId, parentId: originalParentId).Generate();
+        var childTask = new ProjectTaskFaker().WithProjectId(projectId).WithParentId(originalParentId).Generate();
 
         // Act
         var result = childTask.ChangeParent(newParentId, 3);
@@ -199,8 +199,8 @@ public class ProjectTaskTests
         var parentTaskId = Guid.NewGuid();
         var childTaskId = Guid.NewGuid();
 
-        var parentTask = new ProjectTaskFaker().WithData(id: parentTaskId, projectId: projectId).Generate();
-        var childTask = new ProjectTaskFaker().WithData(id: childTaskId, projectId: projectId, parentId: parentTaskId).Generate();
+        var parentTask = new ProjectTaskFaker().WithId(parentTaskId).WithProjectId(projectId).Generate();
+        var childTask = new ProjectTaskFaker().WithId(childTaskId).WithProjectId(projectId).WithParentId(parentTaskId).Generate();
 
         parentTask.AddChild(childTask);
 
@@ -221,9 +221,9 @@ public class ProjectTaskTests
         var parentId = Guid.NewGuid();
         var childId = Guid.NewGuid();
 
-        var grandparentTask = new ProjectTaskFaker().WithData(id: grandparentId, projectId: projectId).Generate();
-        var parentTask = new ProjectTaskFaker().WithData(id: parentId, projectId: projectId, parentId: grandparentId).Generate();
-        var childTask = new ProjectTaskFaker().WithData(id: childId, projectId: projectId, parentId: parentId).Generate();
+        var grandparentTask = new ProjectTaskFaker().WithId(grandparentId).WithProjectId(projectId).Generate();
+        var parentTask = new ProjectTaskFaker().WithId(parentId).WithProjectId(projectId).WithParentId(grandparentId).Generate();
+        var childTask = new ProjectTaskFaker().WithId(childId).WithProjectId(projectId).WithParentId(parentId).Generate();
 
         grandparentTask.AddChild(parentTask);
         parentTask.AddChild(childTask);
@@ -246,10 +246,10 @@ public class ProjectTaskTests
         var level2Id = Guid.NewGuid();
         var level3Id = Guid.NewGuid();
 
-        var rootTask = new ProjectTaskFaker().WithData(id: rootId, projectId: projectId).Generate();
-        var level1Task = new ProjectTaskFaker().WithData(id: level1Id, projectId: projectId, parentId: rootId).Generate();
-        var level2Task = new ProjectTaskFaker().WithData(id: level2Id, projectId: projectId, parentId: level1Id).Generate();
-        var level3Task = new ProjectTaskFaker().WithData(id: level3Id, projectId: projectId, parentId: level2Id).Generate();
+        var rootTask = new ProjectTaskFaker().WithId(rootId).WithProjectId(projectId).Generate();
+        var level1Task = new ProjectTaskFaker().WithId(level1Id).WithProjectId(projectId).WithParentId(rootId).Generate();
+        var level2Task = new ProjectTaskFaker().WithId(level2Id).WithProjectId(projectId).WithParentId(level1Id).Generate();
+        var level3Task = new ProjectTaskFaker().WithId(level3Id).WithProjectId(projectId).WithParentId(level2Id).Generate();
 
         rootTask.AddChild(level1Task);
         level1Task.AddChild(level2Task);
@@ -272,9 +272,9 @@ public class ProjectTaskTests
         var sibling1Id = Guid.NewGuid();
         var sibling2Id = Guid.NewGuid();
 
-        var parentTask = new ProjectTaskFaker().WithData(id: parentId, projectId: projectId).Generate();
-        var sibling1 = new ProjectTaskFaker().WithData(id: sibling1Id, projectId: projectId, parentId: parentId, order: 1).Generate();
-        var sibling2 = new ProjectTaskFaker().WithData(id: sibling2Id, projectId: projectId, parentId: parentId, order: 2).Generate();
+        var parentTask = new ProjectTaskFaker().WithId(parentId).WithProjectId(projectId).Generate();
+        var sibling1 = new ProjectTaskFaker().WithId(sibling1Id).WithProjectId(projectId).WithParentId(parentId).WithOrder(1).Generate();
+        var sibling2 = new ProjectTaskFaker().WithId(sibling2Id).WithProjectId(projectId).WithParentId(parentId).WithOrder(2).Generate();
 
         parentTask.AddChild(sibling1);
         parentTask.AddChild(sibling2);
@@ -298,10 +298,10 @@ public class ProjectTaskTests
         var uncleId = Guid.NewGuid();
         var childId = Guid.NewGuid();
 
-        var grandparent = new ProjectTaskFaker().WithData(id: grandparentId, projectId: projectId).Generate();
-        var parent = new ProjectTaskFaker().WithData(id: parentId, projectId: projectId, parentId: grandparentId).Generate();
-        var uncle = new ProjectTaskFaker().WithData(id: uncleId, projectId: projectId, parentId: grandparentId).Generate();
-        var child = new ProjectTaskFaker().WithData(id: childId, projectId: projectId, parentId: parentId).Generate();
+        var grandparent = new ProjectTaskFaker().WithId(grandparentId).WithProjectId(projectId).Generate();
+        var parent = new ProjectTaskFaker().WithId(parentId).WithProjectId(projectId).WithParentId(grandparentId).Generate();
+        var uncle = new ProjectTaskFaker().WithId(uncleId).WithProjectId(projectId).WithParentId(grandparentId).Generate();
+        var child = new ProjectTaskFaker().WithId(childId).WithProjectId(projectId).WithParentId(parentId).Generate();
 
         grandparent.AddChild(parent);
         grandparent.AddChild(uncle);
@@ -349,7 +349,7 @@ public class ProjectTaskTests
     public void ChangeParent_ShouldUpdateOrder_WhenChangingParent()
     {
         // Arrange
-        var task = new ProjectTaskFaker().WithData(order: 5).Generate();
+        var task = new ProjectTaskFaker().WithOrder(5).Generate();
         var newParentId = Guid.NewGuid();
 
         // Act
@@ -366,7 +366,7 @@ public class ProjectTaskTests
     {
         // Arrange
         var parentId = Guid.NewGuid();
-        var task = new ProjectTaskFaker().WithData(parentId: parentId, order: 3).Generate();
+        var task = new ProjectTaskFaker().WithParentId(parentId).WithOrder(3).Generate();
 
         // Act
         var result = task.ChangeParent(null, 7);
@@ -383,7 +383,7 @@ public class ProjectTaskTests
         // Arrange
         var originalParentId = Guid.NewGuid();
         var newParentId = Guid.NewGuid();
-        var task = new ProjectTaskFaker().WithData(parentId: originalParentId, order: 5).Generate();
+        var task = new ProjectTaskFaker().WithParentId(originalParentId).WithOrder(5).Generate();
 
         // Act
         var result = task.ChangeParent(newParentId, 0);

@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
+﻿using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
 using Wayd.Tests.Shared.Data;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
@@ -21,27 +21,65 @@ public sealed class ProjectScoreRatingFaker : PrivateConstructorFaker<ProjectSco
 
 public static class ProjectScoreRatingFakerExtensions
 {
-    public static ProjectScoreRatingFaker WithData(
-        this ProjectScoreRatingFaker faker,
-        Guid? id = null,
-        Guid? projectScoreId = null,
-        Guid? criterionId = null,
-        string? criterionName = null,
-        string? criterionToken = null,
-        decimal? ratingValue = null,
-        Guid? ratingLevelId = null,
-        string? ratingLevelLabel = null,
-        int? order = null)
+    public static ProjectScoreRatingFaker WithId(this ProjectScoreRatingFaker faker, Guid? id)
     {
-        if (id.HasValue) { faker.RuleFor(x => x.Id, id.Value); }
-        if (projectScoreId.HasValue) { faker.RuleFor(x => x.ProjectScoreId, projectScoreId.Value); }
-        if (criterionId.HasValue) { faker.RuleFor(x => x.CriterionId, criterionId.Value); }
-        if (!string.IsNullOrWhiteSpace(criterionName)) { faker.RuleFor(x => x.CriterionName, criterionName); }
-        if (!string.IsNullOrWhiteSpace(criterionToken)) { faker.RuleFor(x => x.CriterionToken, criterionToken); }
-        if (ratingValue.HasValue) { faker.RuleFor(x => x.RatingValue, ratingValue.Value); }
-        if (ratingLevelId.HasValue) { faker.RuleFor(x => x.RatingLevelId, ratingLevelId.Value); }
-        if (!string.IsNullOrWhiteSpace(ratingLevelLabel)) { faker.RuleFor(x => x.RatingLevelLabel, ratingLevelLabel); }
-        if (order.HasValue) { faker.RuleFor(x => x.Order, order.Value); }
+        faker.RuleFor(x => x.Id, id);
+
+        return faker;
+    }
+
+    public static ProjectScoreRatingFaker WithProjectScoreId(this ProjectScoreRatingFaker faker, Guid? projectScoreId)
+    {
+        faker.RuleFor(x => x.ProjectScoreId, projectScoreId);
+
+        return faker;
+    }
+
+    public static ProjectScoreRatingFaker WithCriterionId(this ProjectScoreRatingFaker faker, Guid? criterionId)
+    {
+        faker.RuleFor(x => x.CriterionId, criterionId);
+
+        return faker;
+    }
+
+    public static ProjectScoreRatingFaker WithCriterionName(this ProjectScoreRatingFaker faker, string? criterionName)
+    {
+        faker.RuleFor(x => x.CriterionName, criterionName);
+
+        return faker;
+    }
+
+    public static ProjectScoreRatingFaker WithCriterionToken(this ProjectScoreRatingFaker faker, string? criterionToken)
+    {
+        faker.RuleFor(x => x.CriterionToken, criterionToken);
+
+        return faker;
+    }
+
+    public static ProjectScoreRatingFaker WithRatingValue(this ProjectScoreRatingFaker faker, decimal? ratingValue)
+    {
+        faker.RuleFor(x => x.RatingValue, ratingValue);
+
+        return faker;
+    }
+
+    public static ProjectScoreRatingFaker WithRatingLevelId(this ProjectScoreRatingFaker faker, Guid? ratingLevelId)
+    {
+        faker.RuleFor(x => x.RatingLevelId, ratingLevelId);
+
+        return faker;
+    }
+
+    public static ProjectScoreRatingFaker WithRatingLevelLabel(this ProjectScoreRatingFaker faker, string? ratingLevelLabel)
+    {
+        faker.RuleFor(x => x.RatingLevelLabel, ratingLevelLabel);
+
+        return faker;
+    }
+
+    public static ProjectScoreRatingFaker WithOrder(this ProjectScoreRatingFaker faker, int? order)
+    {
+        faker.RuleFor(x => x.Order, order);
 
         return faker;
     }

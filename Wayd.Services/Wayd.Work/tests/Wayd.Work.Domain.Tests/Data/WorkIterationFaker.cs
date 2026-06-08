@@ -1,9 +1,9 @@
+﻿using NodaTime;
+using NodaTime.Extensions;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Tests.Shared.Data;
 using Wayd.Work.Domain.Models;
-using NodaTime;
-using NodaTime.Extensions;
 
 namespace Wayd.Work.Domain.Tests.Data;
 
@@ -28,15 +28,51 @@ public class WorkIterationFaker : PrivateConstructorFaker<WorkIteration>
 
 public static class WorkIterationFakerExtensions
 {
-    public static WorkIterationFaker WithData(this WorkIterationFaker faker, Guid? id = null, int? key = null, string? name = null, IterationType? type = null, IterationState? state = null, IterationDateRange? dateRange = null, Guid? teamId = null)
+    public static WorkIterationFaker WithId(this WorkIterationFaker faker, Guid? id)
     {
-        if (id.HasValue) { faker.RuleFor(x => x.Id, id.Value); }
-        if (key.HasValue) { faker.RuleFor(x => x.Key, key.Value); }
-        if (name != null) { faker.RuleFor(x => x.Name, name); }
-        if (type.HasValue) { faker.RuleFor(x => x.Type, type.Value); }
-        if (state.HasValue) { faker.RuleFor(x => x.State, state.Value); }
-        if (dateRange != null) { faker.RuleFor(x => x.DateRange, dateRange); }
-        if (teamId.HasValue) { faker.RuleFor(x => x.TeamId, teamId.Value); }
+        faker.RuleFor(x => x.Id, id);
+
+        return faker;
+    }
+
+    public static WorkIterationFaker WithKey(this WorkIterationFaker faker, int? key)
+    {
+        faker.RuleFor(x => x.Key, key);
+
+        return faker;
+    }
+
+    public static WorkIterationFaker WithName(this WorkIterationFaker faker, string? name)
+    {
+        faker.RuleFor(x => x.Name, name);
+
+        return faker;
+    }
+
+    public static WorkIterationFaker WithType(this WorkIterationFaker faker, IterationType? type)
+    {
+        faker.RuleFor(x => x.Type, type);
+
+        return faker;
+    }
+
+    public static WorkIterationFaker WithState(this WorkIterationFaker faker, IterationState? state)
+    {
+        faker.RuleFor(x => x.State, state);
+
+        return faker;
+    }
+
+    public static WorkIterationFaker WithDateRange(this WorkIterationFaker faker, IterationDateRange? dateRange)
+    {
+        faker.RuleFor(x => x.DateRange, dateRange);
+
+        return faker;
+    }
+
+    public static WorkIterationFaker WithTeamId(this WorkIterationFaker faker, Guid? teamId)
+    {
+        faker.RuleFor(x => x.TeamId, teamId);
 
         return faker;
     }

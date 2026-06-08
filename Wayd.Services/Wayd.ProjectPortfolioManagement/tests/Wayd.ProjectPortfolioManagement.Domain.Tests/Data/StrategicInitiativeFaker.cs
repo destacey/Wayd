@@ -1,10 +1,11 @@
-﻿using Wayd.Common.Models;
+﻿using NodaTime;
+using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Data;
-using NodaTime;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 
@@ -27,45 +28,76 @@ public class StrategicInitiativeFaker : PrivateConstructorFaker<StrategicInitiat
 
 public static class StrategicInitiativeFakerExtensions
 {
-    public static StrategicInitiativeFaker WithData(
-        this StrategicInitiativeFaker faker,
-        Guid? id = null,
-        int? key = null,
-        string? name = null,
-        string? description = null,
-        StrategicInitiativeStatus? status = null,
-        LocalDateRange? dateRange = null,
-        Guid? portfolioId = null,
-        Dictionary<StrategicInitiativeRole, HashSet<Guid>>? roles = null)
+    public static StrategicInitiativeFaker WithId(this StrategicInitiativeFaker faker, Guid? id)
     {
-        if (id.HasValue) { faker.RuleFor(x => x.Id, id.Value); }
-        if (key.HasValue) { faker.RuleFor(x => x.Key, key.Value); }
-        if (!string.IsNullOrWhiteSpace(name)) { faker.RuleFor(x => x.Name, name); }
-        if (!string.IsNullOrWhiteSpace(description)) { faker.RuleFor(x => x.Description, description); }
-        if (status.HasValue) { faker.RuleFor(x => x.Status, status); }
-        if (dateRange is not null) { faker.RuleFor(x => x.DateRange, dateRange); }
-        if (portfolioId.HasValue) { faker.RuleFor(x => x.PortfolioId, portfolioId.Value); }
+        faker.RuleFor(x => x.Id, id);
 
-        if (roles is not null)
+        return faker;
+    }
+
+    public static StrategicInitiativeFaker WithKey(this StrategicInitiativeFaker faker, int? key)
+    {
+        faker.RuleFor(x => x.Key, key);
+
+        return faker;
+    }
+
+    public static StrategicInitiativeFaker WithName(this StrategicInitiativeFaker faker, string? name)
+    {
+        faker.RuleFor(x => x.Name, name);
+
+        return faker;
+    }
+
+    public static StrategicInitiativeFaker WithDescription(this StrategicInitiativeFaker faker, string? description)
+    {
+        faker.RuleFor(x => x.Description, description);
+
+        return faker;
+    }
+
+    public static StrategicInitiativeFaker WithStatus(this StrategicInitiativeFaker faker, StrategicInitiativeStatus? status)
+    {
+        faker.RuleFor(x => x.Status, status);
+
+        return faker;
+    }
+
+    public static StrategicInitiativeFaker WithDateRange(this StrategicInitiativeFaker faker, LocalDateRange? dateRange)
+    {
+        faker.RuleFor(x => x.DateRange, dateRange);
+
+        return faker;
+    }
+
+    public static StrategicInitiativeFaker WithPortfolioId(this StrategicInitiativeFaker faker, Guid? portfolioId)
+    {
+        faker.RuleFor(x => x.PortfolioId, portfolioId);
+
+        return faker;
+    }
+
+    public static StrategicInitiativeFaker WithRoles(this StrategicInitiativeFaker faker, Dictionary<StrategicInitiativeRole, HashSet<Guid>>? roles)
+    {
+        faker.RuleFor("_roles", (_, initiative) =>
         {
-            var initiativeId = id ?? Guid.NewGuid();
-            if (!id.HasValue)
+            if (roles is null)
             {
-                faker.RuleFor(x => x.Id, initiativeId);
+                return new HashSet<RoleAssignment<StrategicInitiativeRole>>();
             }
 
             HashSet<RoleAssignment<StrategicInitiativeRole>> updatedRoles = [];
             foreach (var role in roles)
             {
-                var roleId = Guid.NewGuid();
-                foreach (var userId in role.Value)
+                foreach (var employeeId in role.Value)
                 {
-                    updatedRoles.Add(new RoleAssignment<StrategicInitiativeRole>(initiativeId, role.Key, userId));
+                    updatedRoles.Add(new RoleAssignment<StrategicInitiativeRole>(initiative.Id, role.Key, employeeId));
                 }
             }
 
-            faker.RuleFor("_roles", x => updatedRoles);
-        }
+            return updatedRoles;
+        });
+
         return faker;
     }
 
@@ -84,11 +116,11 @@ public static class StrategicInitiativeFakerExtensions
         var start = dateTimeProvider.Now.Plus(Duration.FromDays(10)).InUtc().LocalDateTime.Date;
         var end = start.PlusDays(200);
 
-        return faker.WithData(
-            status: StrategicInitiativeStatus.Proposed,
-            dateRange: new LocalDateRange(start, end),
-            portfolioId: portfolioId
-        ).Generate();
+        return faker
+            .WithStatus(StrategicInitiativeStatus.Proposed)
+            .WithDateRange(new LocalDateRange(start, end))
+            .WithOptionalPortfolioId(portfolioId)
+            .Generate();
     }
 
     /// <summary>
@@ -106,11 +138,11 @@ public static class StrategicInitiativeFakerExtensions
         var start = dateTimeProvider.Now.Plus(Duration.FromDays(10)).InUtc().LocalDateTime.Date;
         var end = start.PlusDays(200);
 
-        return faker.WithData(
-            status: StrategicInitiativeStatus.Approved,
-            dateRange: new LocalDateRange(start, end),
-            portfolioId: portfolioId
-        ).Generate();
+        return faker
+            .WithStatus(StrategicInitiativeStatus.Approved)
+            .WithDateRange(new LocalDateRange(start, end))
+            .WithOptionalPortfolioId(portfolioId)
+            .Generate();
     }
 
     /// <summary>
@@ -128,11 +160,11 @@ public static class StrategicInitiativeFakerExtensions
         var start = dateTimeProvider.Now.Plus(Duration.FromDays(-10)).InUtc().LocalDateTime.Date;
         var end = start.PlusDays(200);
 
-        return faker.WithData(
-            status: StrategicInitiativeStatus.Active,
-            dateRange: new LocalDateRange(start, end),
-            portfolioId: portfolioId
-        ).Generate();
+        return faker
+            .WithStatus(StrategicInitiativeStatus.Active)
+            .WithDateRange(new LocalDateRange(start, end))
+            .WithOptionalPortfolioId(portfolioId)
+            .Generate();
     }
 
     /// <summary>
@@ -150,11 +182,11 @@ public static class StrategicInitiativeFakerExtensions
         var start = dateTimeProvider.Now.Plus(Duration.FromDays(-200)).InUtc().LocalDateTime.Date;
         var end = start.PlusDays(100);
 
-        return faker.WithData(
-            status: StrategicInitiativeStatus.Completed,
-            dateRange: new LocalDateRange(start, end),
-            portfolioId: portfolioId
-        ).Generate();
+        return faker
+            .WithStatus(StrategicInitiativeStatus.Completed)
+            .WithDateRange(new LocalDateRange(start, end))
+            .WithOptionalPortfolioId(portfolioId)
+            .Generate();
     }
 
     /// <summary>
@@ -172,10 +204,15 @@ public static class StrategicInitiativeFakerExtensions
         var start = dateTimeProvider.Now.Plus(Duration.FromDays(-200)).InUtc().LocalDateTime.Date;
         var end = start.PlusDays(100);
 
-        return faker.WithData(
-            status: StrategicInitiativeStatus.Cancelled,
-            dateRange: new LocalDateRange(start, end),
-            portfolioId: portfolioId
-        ).Generate();
+        return faker
+            .WithStatus(StrategicInitiativeStatus.Cancelled)
+            .WithDateRange(new LocalDateRange(start, end))
+            .WithOptionalPortfolioId(portfolioId)
+            .Generate();
+    }
+
+    private static StrategicInitiativeFaker WithOptionalPortfolioId(this StrategicInitiativeFaker faker, Guid? portfolioId)
+    {
+        return portfolioId.HasValue ? faker.WithPortfolioId(portfolioId.Value) : faker;
     }
 }

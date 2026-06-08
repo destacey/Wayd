@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
+﻿using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
 using Wayd.Tests.Shared.Data;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
@@ -19,23 +19,51 @@ public sealed class ProjectScoreOutputFaker : PrivateConstructorFaker<ProjectSco
 
 public static class ProjectScoreOutputFakerExtensions
 {
-    public static ProjectScoreOutputFaker WithData(
-        this ProjectScoreOutputFaker faker,
-        Guid? id = null,
-        Guid? projectScoreId = null,
-        string? token = null,
-        string? name = null,
-        decimal? value = null,
-        bool? isPrimary = null,
-        int? order = null)
+    public static ProjectScoreOutputFaker WithId(this ProjectScoreOutputFaker faker, Guid? id)
     {
-        if (id.HasValue) { faker.RuleFor(x => x.Id, id.Value); }
-        if (projectScoreId.HasValue) { faker.RuleFor(x => x.ProjectScoreId, projectScoreId.Value); }
-        if (!string.IsNullOrWhiteSpace(token)) { faker.RuleFor(x => x.Token, token); }
-        if (!string.IsNullOrWhiteSpace(name)) { faker.RuleFor(x => x.Name, name); }
-        if (value.HasValue) { faker.RuleFor(x => x.Value, value.Value); }
-        if (isPrimary.HasValue) { faker.RuleFor(x => x.IsPrimary, isPrimary.Value); }
-        if (order.HasValue) { faker.RuleFor(x => x.Order, order.Value); }
+        faker.RuleFor(x => x.Id, id);
+
+        return faker;
+    }
+
+    public static ProjectScoreOutputFaker WithProjectScoreId(this ProjectScoreOutputFaker faker, Guid? projectScoreId)
+    {
+        faker.RuleFor(x => x.ProjectScoreId, projectScoreId);
+
+        return faker;
+    }
+
+    public static ProjectScoreOutputFaker WithToken(this ProjectScoreOutputFaker faker, string? token)
+    {
+        faker.RuleFor(x => x.Token, token);
+
+        return faker;
+    }
+
+    public static ProjectScoreOutputFaker WithName(this ProjectScoreOutputFaker faker, string? name)
+    {
+        faker.RuleFor(x => x.Name, name);
+
+        return faker;
+    }
+
+    public static ProjectScoreOutputFaker WithValue(this ProjectScoreOutputFaker faker, decimal? value)
+    {
+        faker.RuleFor(x => x.Value, value);
+
+        return faker;
+    }
+
+    public static ProjectScoreOutputFaker WithIsPrimary(this ProjectScoreOutputFaker faker, bool? isPrimary)
+    {
+        faker.RuleFor(x => x.IsPrimary, isPrimary);
+
+        return faker;
+    }
+
+    public static ProjectScoreOutputFaker WithOrder(this ProjectScoreOutputFaker faker, int? order)
+    {
+        faker.RuleFor(x => x.Order, order);
 
         return faker;
     }

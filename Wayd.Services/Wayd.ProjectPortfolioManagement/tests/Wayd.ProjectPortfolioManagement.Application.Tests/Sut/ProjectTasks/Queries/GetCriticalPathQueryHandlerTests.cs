@@ -1,10 +1,10 @@
 ﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Moq;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
-using Moq;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.ProjectTasks.Queries;
 
@@ -30,7 +30,7 @@ public class GetCriticalPathQueryHandlerTests : IDisposable
     {
         // Arrange - This is a stub implementation that returns empty list
         var projectKey = new ProjectKey("TEST");
-        var project = _projectFaker.WithData(key: projectKey).Generate();
+        var project = _projectFaker.WithKey(projectKey).Generate();
         _dbContext.AddProject(project);
 
         var query = new GetCriticalPathQuery(projectKey.Value);
@@ -79,7 +79,7 @@ public class GetCriticalPathQueryHandlerTests : IDisposable
     {
         // Arrange
         var projectKey = new ProjectKey("APOLLO");
-        var project = _projectFaker.WithData(key: projectKey).Generate();
+        var project = _projectFaker.WithKey(projectKey).Generate();
         _dbContext.AddProject(project);
 
         var query = new GetCriticalPathQuery("APOLLO");

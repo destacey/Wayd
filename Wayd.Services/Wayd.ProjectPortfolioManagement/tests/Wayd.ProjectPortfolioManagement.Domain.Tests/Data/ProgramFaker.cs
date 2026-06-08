@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Models;
+﻿using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.Tests.Shared;
@@ -21,29 +22,55 @@ public sealed class ProgramFaker : PrivateConstructorFaker<Program>
 
 public static class ProgramFakerExtensions
 {
-    public static ProgramFaker WithData(
-        this ProgramFaker faker,
-        Guid? id = null,
-        string? name = null,
-        string? description = null,
-        ProgramStatus? status = null,
-        LocalDateRange? dateRange = null,
-        Guid? portfolioId = null,
-        Dictionary<ProgramRole, HashSet<Guid>>? roles = null)
+    public static ProgramFaker WithId(this ProgramFaker faker, Guid? id)
     {
-        if (id.HasValue) { faker.RuleFor(x => x.Id, id.Value); }
-        if (!string.IsNullOrWhiteSpace(name)) { faker.RuleFor(x => x.Name, name); }
-        if (!string.IsNullOrWhiteSpace(description)) { faker.RuleFor(x => x.Description, description); }
-        if (status.HasValue) { faker.RuleFor(x => x.Status, status); }
-        if (dateRange is not null) { faker.RuleFor(x => x.DateRange, dateRange); }
-        if (portfolioId.HasValue) { faker.RuleFor(x => x.PortfolioId, portfolioId.Value); }
+        faker.RuleFor(x => x.Id, id);
 
-        if (roles is not null)
+        return faker;
+    }
+
+    public static ProgramFaker WithName(this ProgramFaker faker, string? name)
+    {
+        faker.RuleFor(x => x.Name, name);
+
+        return faker;
+    }
+
+    public static ProgramFaker WithDescription(this ProgramFaker faker, string? description)
+    {
+        faker.RuleFor(x => x.Description, description);
+
+        return faker;
+    }
+
+    public static ProgramFaker WithStatus(this ProgramFaker faker, ProgramStatus? status)
+    {
+        faker.RuleFor(x => x.Status, status);
+
+        return faker;
+    }
+
+    public static ProgramFaker WithDateRange(this ProgramFaker faker, LocalDateRange? dateRange)
+    {
+        faker.RuleFor(x => x.DateRange, dateRange);
+
+        return faker;
+    }
+
+    public static ProgramFaker WithPortfolioId(this ProgramFaker faker, Guid? portfolioId)
+    {
+        faker.RuleFor(x => x.PortfolioId, portfolioId);
+
+        return faker;
+    }
+
+    public static ProgramFaker WithRoles(this ProgramFaker faker, Dictionary<ProgramRole, HashSet<Guid>>? roles)
+    {
+        faker.RuleFor("_roles", (_, program) =>
         {
-            var programId = id ?? Guid.NewGuid();
-            if (!id.HasValue)
+            if (roles is null)
             {
-                faker.RuleFor(x => x.Id, programId);
+                return new HashSet<RoleAssignment<ProgramRole>>();
             }
 
             HashSet<RoleAssignment<ProgramRole>> updatedRoles = [];
@@ -51,12 +78,12 @@ public static class ProgramFakerExtensions
             {
                 foreach (var employeeId in role.Value)
                 {
-                    updatedRoles.Add(new RoleAssignment<ProgramRole>(programId, role.Key, employeeId));
+                    updatedRoles.Add(new RoleAssignment<ProgramRole>(program.Id, role.Key, employeeId));
                 }
             }
 
-            faker.RuleFor("_roles", x => updatedRoles);
-        }
+            return updatedRoles;
+        });
 
         return faker;
     }
@@ -66,10 +93,10 @@ public static class ProgramFakerExtensions
     /// </summary>
     public static Program AsProposed(this ProgramFaker faker, Guid? portfolioId = null)
     {
-        return faker.WithData(
-            status: ProgramStatus.Proposed,
-            portfolioId: portfolioId
-        ).Generate();
+        return faker
+            .WithStatus(ProgramStatus.Proposed)
+            .WithOptionalPortfolioId(portfolioId)
+            .Generate();
     }
 
     /// <summary>
@@ -81,11 +108,11 @@ public static class ProgramFakerExtensions
         var startDate = now.PlusDays(-10);
         var endDate = startDate.PlusDays(10);
 
-        return faker.WithData(
-            status: ProgramStatus.Active,
-            dateRange: new LocalDateRange(startDate, endDate),
-            portfolioId: portfolioId
-        ).Generate();
+        return faker
+            .WithStatus(ProgramStatus.Active)
+            .WithDateRange(new LocalDateRange(startDate, endDate))
+            .WithOptionalPortfolioId(portfolioId)
+            .Generate();
     }
 
     /// <summary>
@@ -97,11 +124,11 @@ public static class ProgramFakerExtensions
         var startDate = now.PlusDays(-20);
         var endDate = startDate.PlusDays(5);
 
-        return faker.WithData(
-            status: ProgramStatus.Completed,
-            dateRange: new LocalDateRange(startDate, endDate),
-            portfolioId: portfolioId
-        ).Generate();
+        return faker
+            .WithStatus(ProgramStatus.Completed)
+            .WithDateRange(new LocalDateRange(startDate, endDate))
+            .WithOptionalPortfolioId(portfolioId)
+            .Generate();
     }
 
     /// <summary>
@@ -113,10 +140,15 @@ public static class ProgramFakerExtensions
         var startDate = now.PlusDays(-15);
         var endDate = startDate.PlusDays(5);
 
-        return faker.WithData(
-            status: ProgramStatus.Cancelled,
-            dateRange: new LocalDateRange(startDate, endDate),
-            portfolioId: portfolioId
-        ).Generate();
+        return faker
+            .WithStatus(ProgramStatus.Cancelled)
+            .WithDateRange(new LocalDateRange(startDate, endDate))
+            .WithOptionalPortfolioId(portfolioId)
+            .Generate();
+    }
+
+    private static ProgramFaker WithOptionalPortfolioId(this ProgramFaker faker, Guid? portfolioId)
+    {
+        return portfolioId.HasValue ? faker.WithPortfolioId(portfolioId.Value) : faker;
     }
 }

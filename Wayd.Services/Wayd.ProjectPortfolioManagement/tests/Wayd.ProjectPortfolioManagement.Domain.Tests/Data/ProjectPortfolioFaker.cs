@@ -22,28 +22,48 @@ public sealed class ProjectPortfolioFaker : PrivateConstructorFaker<ProjectPortf
 
 public static class ProjectPortfolioFakerExtensions
 {
-    public static ProjectPortfolioFaker WithData(
-        this ProjectPortfolioFaker faker,
-        Guid? id = null,
-        int? key = null,
-        string? name = null,
-        string? description = null,
-        ProjectPortfolioStatus? status = null,
-        Dictionary<ProjectPortfolioRole, HashSet<Guid>>? roles = null,
-        FlexibleDateRange? dateRange = null)
+    public static ProjectPortfolioFaker WithId(this ProjectPortfolioFaker faker, Guid? id)
     {
-        if (id.HasValue) { faker.RuleFor(x => x.Id, id.Value); }
-        if (key.HasValue) { faker.RuleFor(x => x.Key, key.Value); }
-        if (!string.IsNullOrWhiteSpace(name)) { faker.RuleFor(x => x.Name, name); }
-        if (!string.IsNullOrWhiteSpace(description)) { faker.RuleFor(x => x.Description, description); }
-        if (status.HasValue) { faker.RuleFor(x => x.Status, status); }
+        faker.RuleFor(x => x.Id, id);
 
-        if (roles is not null)
+        return faker;
+    }
+
+    public static ProjectPortfolioFaker WithKey(this ProjectPortfolioFaker faker, int? key)
+    {
+        faker.RuleFor(x => x.Key, key);
+
+        return faker;
+    }
+
+    public static ProjectPortfolioFaker WithName(this ProjectPortfolioFaker faker, string? name)
+    {
+        faker.RuleFor(x => x.Name, name);
+
+        return faker;
+    }
+
+    public static ProjectPortfolioFaker WithDescription(this ProjectPortfolioFaker faker, string? description)
+    {
+        faker.RuleFor(x => x.Description, description);
+
+        return faker;
+    }
+
+    public static ProjectPortfolioFaker WithStatus(this ProjectPortfolioFaker faker, ProjectPortfolioStatus? status)
+    {
+        faker.RuleFor(x => x.Status, status);
+
+        return faker;
+    }
+
+    public static ProjectPortfolioFaker WithRoles(this ProjectPortfolioFaker faker, Dictionary<ProjectPortfolioRole, HashSet<Guid>>? roles)
+    {
+        faker.RuleFor("_roles", (_, portfolio) =>
         {
-            var portfolioId = id ?? Guid.NewGuid();
-            if (!id.HasValue)
+            if (roles is null)
             {
-                faker.RuleFor(x => x.Id, portfolioId);
+                return new HashSet<RoleAssignment<ProjectPortfolioRole>>();
             }
 
             HashSet<RoleAssignment<ProjectPortfolioRole>> updatedRoles = [];
@@ -51,14 +71,19 @@ public static class ProjectPortfolioFakerExtensions
             {
                 foreach (var employeeId in role.Value)
                 {
-                    updatedRoles.Add(new RoleAssignment<ProjectPortfolioRole>(portfolioId, role.Key, employeeId));
+                    updatedRoles.Add(new RoleAssignment<ProjectPortfolioRole>(portfolio.Id, role.Key, employeeId));
                 }
             }
 
-            faker.RuleFor("_roles", x => updatedRoles);
-        }
+            return updatedRoles;
+        });
 
-        if (dateRange is not null) { faker.RuleFor(x => x.DateRange, dateRange); }
+        return faker;
+    }
+
+    public static ProjectPortfolioFaker WithDateRange(this ProjectPortfolioFaker faker, FlexibleDateRange? dateRange)
+    {
+        faker.RuleFor(x => x.DateRange, dateRange);
 
         return faker;
     }
@@ -68,7 +93,7 @@ public static class ProjectPortfolioFakerExtensions
     /// </summary>
     public static ProjectPortfolio AsProposed(this ProjectPortfolioFaker faker)
     {
-        return faker.WithData(status: ProjectPortfolioStatus.Proposed).Generate();
+        return faker.WithStatus(ProjectPortfolioStatus.Proposed).Generate();
     }
 
     /// <summary>
@@ -79,10 +104,7 @@ public static class ProjectPortfolioFakerExtensions
         var now = dateTimeProvider.Today;
         var defaultStartDate = now.PlusDays(-10);
 
-        return faker.WithData(
-            status: ProjectPortfolioStatus.Active,
-            dateRange: new FlexibleDateRange(defaultStartDate)
-        ).Generate();
+        return faker.WithStatus(ProjectPortfolioStatus.Active).WithDateRange(new FlexibleDateRange(defaultStartDate)).Generate();
     }
 
     /// <summary>
@@ -94,10 +116,7 @@ public static class ProjectPortfolioFakerExtensions
         var defaultStartDate = now.PlusDays(-20);
         var defaultEndDate = now.PlusDays(-10);
 
-        return faker.WithData(
-            status: ProjectPortfolioStatus.Closed,
-            dateRange: new FlexibleDateRange(defaultStartDate, defaultEndDate)
-        ).Generate();
+        return faker.WithStatus(ProjectPortfolioStatus.Closed).WithDateRange(new FlexibleDateRange(defaultStartDate, defaultEndDate)).Generate();
     }
 
     /// <summary>
@@ -109,10 +128,7 @@ public static class ProjectPortfolioFakerExtensions
         var defaultStartDate = now.PlusDays(-20);
         var defaultEndDate = now.PlusDays(-10);
 
-        return faker.WithData(
-            status: ProjectPortfolioStatus.Archived,
-            dateRange: new FlexibleDateRange(defaultStartDate, defaultEndDate)
-        ).Generate();
+        return faker.WithStatus(ProjectPortfolioStatus.Archived).WithDateRange(new FlexibleDateRange(defaultStartDate, defaultEndDate)).Generate();
     }
 
     /// <summary>

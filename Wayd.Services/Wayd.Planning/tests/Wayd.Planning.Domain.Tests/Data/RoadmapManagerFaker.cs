@@ -14,10 +14,16 @@ public class RoadmapManagerFaker : PrivateConstructorFaker<RoadmapManager>
 
 public static class RoadmapManagerFakerExtensions
 {
-    public static RoadmapManagerFaker WithData(this RoadmapManagerFaker faker, Guid? roadmapId = null, Guid? managerId = null)
+    public static RoadmapManagerFaker WithRoadmapId(this RoadmapManagerFaker faker, Guid? roadmapId)
     {
-        if (roadmapId.HasValue) { faker.RuleFor(x => x.RoadmapId, roadmapId.Value); }
-        if (managerId.HasValue) { faker.RuleFor(x => x.ManagerId, managerId.Value); }
+        faker.RuleFor(x => x.RoadmapId, roadmapId);
+
+        return faker;
+    }
+
+    public static RoadmapManagerFaker WithManagerId(this RoadmapManagerFaker faker, Guid? managerId)
+    {
+        faker.RuleFor(x => x.ManagerId, managerId);
 
         return faker;
     }

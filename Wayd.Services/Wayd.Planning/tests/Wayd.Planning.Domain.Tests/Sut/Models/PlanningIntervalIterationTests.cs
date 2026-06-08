@@ -1,11 +1,11 @@
-﻿using Wayd.Common.Domain.Enums.Planning;
+﻿using NodaTime.Extensions;
+using NodaTime.Testing;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Models;
 using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models;
 using Wayd.Planning.Domain.Tests.Data;
 using Wayd.Tests.Shared;
-using NodaTime.Extensions;
-using NodaTime.Testing;
 
 namespace Wayd.Planning.Domain.Tests.Sut.Models;
 
@@ -181,7 +181,7 @@ public class PlanningIntervalIterationTests
         // Arrange
         var today = _dateTimeProvider.Today;
         var iterationDateRange = new LocalDateRange(today.Plus(Period.FromWeeks(-4)), today.Plus(Period.FromWeeks(-2)));
-        var sut = _faker.WithData(dateRange: iterationDateRange).Generate();
+        var sut = _faker.WithDateRange(iterationDateRange).Generate();
 
         // Act
         var result = sut.StateOn(today);
@@ -196,7 +196,7 @@ public class PlanningIntervalIterationTests
         // Arrange
         var today = _dateTimeProvider.Today;
         var iterationDateRange = new LocalDateRange(today.Plus(Period.FromWeeks(-1)), today.Plus(Period.FromWeeks(1)));
-        var sut = _faker.WithData(dateRange: iterationDateRange).Generate();
+        var sut = _faker.WithDateRange(iterationDateRange).Generate();
 
         // Act
         var result = sut.StateOn(today);
@@ -211,7 +211,7 @@ public class PlanningIntervalIterationTests
         // Arrange
         var today = _dateTimeProvider.Today;
         var iterationDateRange = new LocalDateRange(today.Plus(Period.FromWeeks(1)), today.Plus(Period.FromWeeks(3)));
-        var sut = _faker.WithData(dateRange: iterationDateRange).Generate();
+        var sut = _faker.WithDateRange(iterationDateRange).Generate();
 
         // Act
         var result = sut.StateOn(today);

@@ -1,9 +1,9 @@
-﻿using Wayd.Common.Domain.Enums.Planning;
+﻿using NodaTime;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Tests.Shared;
 using Wayd.Work.Domain.Models;
 using Wayd.Work.Domain.Tests.Data;
-using NodaTime;
 
 namespace Wayd.Work.Domain.Tests.Sut.Models;
 
@@ -24,7 +24,7 @@ public class DependencyWorkItemInfoTests
     public void Create_WithNoIteration_ReturnsInfoWithNullPlannedOn()
     {
         // Arrange
-        var workItem = _workItemFaker.WithData(statusCategory: WorkStatusCategory.Active).Generate();
+        var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).Generate();
 
         // Act
         var info = DependencyWorkItemInfo.Create(workItem);
@@ -43,7 +43,7 @@ public class DependencyWorkItemInfoTests
         var now = _dateTimeProvider.Now;
         var iteration = _workIterationFaker.WithEndDate(now.Plus(Duration.FromDays(5)), IterationState.Active, IterationType.Sprint).Generate();
 
-        var workItem = _workItemFaker.WithData(statusCategory: WorkStatusCategory.Active, iterationId: iteration.Id).Generate();
+        var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         workItem.Iteration = iteration;
 
         // Act
@@ -63,7 +63,7 @@ public class DependencyWorkItemInfoTests
         var now = _dateTimeProvider.Now;
         var iteration = _workIterationFaker.WithEndDate(now.Plus(Duration.FromDays(5)), IterationState.Active, IterationType.Iteration).Generate();
 
-        var workItem = _workItemFaker.WithData(statusCategory: WorkStatusCategory.Active, iterationId: iteration.Id).Generate();
+        var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         workItem.Iteration = iteration;
 
         // Act
@@ -83,7 +83,7 @@ public class DependencyWorkItemInfoTests
         var now = _dateTimeProvider.Now;
         var iteration = _workIterationFaker.WithEndDate(now.Plus(Duration.FromDays(5)), IterationState.Completed, IterationType.Sprint).Generate();
 
-        var workItem = _workItemFaker.WithData(statusCategory: WorkStatusCategory.Active, iterationId: iteration.Id).Generate();
+        var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         workItem.Iteration = iteration;
 
         // Act
@@ -103,7 +103,7 @@ public class DependencyWorkItemInfoTests
         var now = _dateTimeProvider.Now;
         var iteration = _workIterationFaker.WithEndDate(now.Minus(Duration.FromDays(5)), IterationState.Active, IterationType.Sprint).Generate();
 
-        var workItem = _workItemFaker.WithData(statusCategory: WorkStatusCategory.Active, iterationId: iteration.Id).Generate();
+        var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         workItem.Iteration = iteration;
 
         // Act
@@ -123,7 +123,7 @@ public class DependencyWorkItemInfoTests
         var now = _dateTimeProvider.Now;
         var iteration = _workIterationFaker.WithEndDate(now, IterationState.Active, IterationType.Sprint).Generate();
 
-        var workItem = _workItemFaker.WithData(statusCategory: WorkStatusCategory.Active, iterationId: iteration.Id).Generate();
+        var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         workItem.Iteration = iteration;
 
         // Act
@@ -143,7 +143,7 @@ public class DependencyWorkItemInfoTests
         var now = _dateTimeProvider.Now;
         var iteration = _workIterationFaker.WithEndDate(now.Plus(Duration.FromDays(1)), IterationState.Future, IterationType.Sprint).Generate();
 
-        var workItem = _workItemFaker.WithData(statusCategory: WorkStatusCategory.Active, iterationId: iteration.Id).Generate();
+        var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         workItem.Iteration = iteration;
 
         // Act
@@ -163,7 +163,7 @@ public class DependencyWorkItemInfoTests
         var now = _dateTimeProvider.Now;
         var iteration = _workIterationFaker.WithEndDate(now.Minus(Duration.FromDays(5)), IterationState.Active, IterationType.Sprint).Generate();
 
-        var workItem = _workItemFaker.WithData(statusCategory: WorkStatusCategory.Active, iterationId: iteration.Id).Generate();
+        var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         workItem.Iteration = iteration;
 
         // Act - calling without 'now' parameter should not filter by date
@@ -184,7 +184,7 @@ public class DependencyWorkItemInfoTests
     public void Create_PreservesStatusCategory(WorkStatusCategory statusCategory)
     {
         // Arrange
-        var workItem = _workItemFaker.WithData(statusCategory: statusCategory).Generate();
+        var workItem = _workItemFaker.WithStatusCategory(statusCategory).Generate();
 
         // Act
         var info = DependencyWorkItemInfo.Create(workItem);
@@ -200,7 +200,7 @@ public class DependencyWorkItemInfoTests
         var now = _dateTimeProvider.Now;
         var iteration = _workIterationFaker.WithEndDate(now.Plus(Duration.FromDays(7)), IterationState.Active, IterationType.Sprint).Generate();
 
-        var workItem = _workItemFaker.WithData(statusCategory: WorkStatusCategory.Active, iterationId: iteration.Id).Generate();
+        var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         workItem.Iteration = iteration;
 
         // Act
@@ -218,7 +218,7 @@ public class DependencyWorkItemInfoTests
         var now = _dateTimeProvider.Now;
         var iteration = _workIterationFaker.WithEndDate(now.Minus(Duration.FromDays(5)), IterationState.Completed, IterationType.Iteration).Generate();
 
-        var workItem = _workItemFaker.WithData(statusCategory: WorkStatusCategory.Active, iterationId: iteration.Id).Generate();
+        var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).WithIterationId(iteration.Id).Generate();
         workItem.Iteration = iteration;
 
         // Act
@@ -233,7 +233,7 @@ public class DependencyWorkItemInfoTests
     public void Create_IsRecordType_AllowsWithSyntax()
     {
         // Arrange
-        var workItem = _workItemFaker.WithData(statusCategory: WorkStatusCategory.Active).Generate();
+        var workItem = _workItemFaker.WithStatusCategory(WorkStatusCategory.Active).Generate();
         var originalInfo = DependencyWorkItemInfo.Create(workItem);
 
         // Act - Records support 'with' syntax for non-destructive mutation

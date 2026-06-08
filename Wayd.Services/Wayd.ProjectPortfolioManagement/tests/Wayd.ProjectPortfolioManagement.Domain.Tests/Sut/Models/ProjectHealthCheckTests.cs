@@ -16,7 +16,7 @@ public sealed class ProjectHealthCheckTests
     {
         var actorId = Guid.NewGuid();
         var project = _projectFaker
-            .WithData(roles: new() { [ProjectRole.Owner] = [actorId] })
+            .WithRoles(new() { [ProjectRole.Owner] = [actorId] })
             .Generate();
         return (project, actorId);
     }
@@ -257,7 +257,7 @@ public sealed class ProjectHealthCheckTests
     {
         var actorId = Guid.NewGuid();
         var programId = Guid.NewGuid();
-        var project = _projectFaker.WithData(programId: programId).Generate();
+        var project = _projectFaker.WithProgramId(programId).Generate();
         var programRoles = new[]
         {
             new RoleAssignment<ProgramRole>(programId, ProgramRole.Manager, actorId),
@@ -278,7 +278,7 @@ public sealed class ProjectHealthCheckTests
     {
         var employeeId = Guid.NewGuid();
         var project = _projectFaker
-            .WithData(roles: new() { [ProjectRole.Owner] = [employeeId] })
+            .WithRoles(new() { [ProjectRole.Owner] = [employeeId] })
             .Generate();
 
         var result = project.CanManageProject(employeeId, [], null);
@@ -291,7 +291,7 @@ public sealed class ProjectHealthCheckTests
     {
         var employeeId = Guid.NewGuid();
         var project = _projectFaker
-            .WithData(roles: new() { [ProjectRole.Manager] = [employeeId] })
+            .WithRoles(new() { [ProjectRole.Manager] = [employeeId] })
             .Generate();
 
         var result = project.CanManageProject(employeeId, [], null);
@@ -304,7 +304,7 @@ public sealed class ProjectHealthCheckTests
     {
         var employeeId = Guid.NewGuid();
         var project = _projectFaker
-            .WithData(roles: new() { [ProjectRole.Sponsor] = [employeeId] })
+            .WithRoles(new() { [ProjectRole.Sponsor] = [employeeId] })
             .Generate();
 
         var result = project.CanManageProject(employeeId, [], null);
@@ -317,7 +317,7 @@ public sealed class ProjectHealthCheckTests
     {
         var employeeId = Guid.NewGuid();
         var project = _projectFaker
-            .WithData(roles: new() { [ProjectRole.Member] = [employeeId] })
+            .WithRoles(new() { [ProjectRole.Member] = [employeeId] })
             .Generate();
 
         var result = project.CanManageProject(employeeId, [], null);
@@ -375,7 +375,7 @@ public sealed class ProjectHealthCheckTests
     {
         var employeeId = Guid.NewGuid();
         var programId = Guid.NewGuid();
-        var project = _projectFaker.WithData(programId: programId).Generate();
+        var project = _projectFaker.WithProgramId(programId).Generate();
         var programRoles = new[]
         {
             new RoleAssignment<ProgramRole>(programId, ProgramRole.Owner, employeeId),
@@ -391,7 +391,7 @@ public sealed class ProjectHealthCheckTests
     {
         var employeeId = Guid.NewGuid();
         var programId = Guid.NewGuid();
-        var project = _projectFaker.WithData(programId: programId).Generate();
+        var project = _projectFaker.WithProgramId(programId).Generate();
         var programRoles = new[]
         {
             new RoleAssignment<ProgramRole>(programId, ProgramRole.Manager, employeeId),
@@ -407,7 +407,7 @@ public sealed class ProjectHealthCheckTests
     {
         var employeeId = Guid.NewGuid();
         var programId = Guid.NewGuid();
-        var project = _projectFaker.WithData(programId: programId).Generate();
+        var project = _projectFaker.WithProgramId(programId).Generate();
         var programRoles = new[]
         {
             new RoleAssignment<ProgramRole>(programId, ProgramRole.Sponsor, employeeId),
@@ -436,9 +436,7 @@ public sealed class ProjectHealthCheckTests
         var ownerEmployeeId = Guid.NewGuid();
         var programId = Guid.NewGuid();
         var project = _projectFaker
-            .WithData(
-                programId: programId,
-                roles: new() { [ProjectRole.Owner] = [ownerEmployeeId] })
+            .WithProgramId(programId).WithRoles(new() { [ProjectRole.Owner] = [ownerEmployeeId] })
             .Generate();
 
         var portfolioRoles = new[]

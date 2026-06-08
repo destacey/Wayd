@@ -181,10 +181,10 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     { skip: !rankingQueried },
   )
 
-  const { data: rankingScoreboard } = useGetPortfolioRankingScoreboardQuery(
-    portfolioData?.id ?? '',
-    { skip: !rankingQueried || !portfolioData?.id },
-  )
+  const { data: rankingScoreboard, refetch: refetchRankingScoreboard } =
+    useGetPortfolioRankingScoreboardQuery(portfolioData?.id ?? '', {
+      skip: !rankingQueried || !portfolioData?.id,
+    })
 
   const {
     data: strategicInitiativeData,
@@ -278,6 +278,7 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             canManage={canUpdatePortfolio}
             isLoading={isLoadingRanking}
             refetch={refetchRanking}
+            refetchScoreboard={refetchRankingScoreboard}
           />
         )
       case PortfolioTabs.StrategicInitiatives:

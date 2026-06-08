@@ -7,13 +7,15 @@ import {
 } from '@/src/components/common/wayd-grid-cell-renderers'
 import { useMessage } from '@/src/components/contexts/messaging'
 import ProjectDrawer from '@/src/app/ppm/_components/project-drawer'
+import RecordProjectScoreForm from '@/src/app/ppm/projects/[key]/_components/scoring/record-project-score-form'
 import {
   PortfolioRankingScoreboardDto,
   ProjectListDto,
 } from '@/src/services/wayd-api'
+import { useGetProjectScoringContextQuery } from '@/src/store/features/ppm/project-scores-api'
 import { useMovePortfolioProjectRanksMutation } from '@/src/store/features/ppm/portfolios-api'
 import { getSortedNames, isApiError } from '@/src/utils'
-import { HolderOutlined, MoreOutlined } from '@ant-design/icons'
+import { HolderOutlined, LoadingOutlined, MoreOutlined } from '@ant-design/icons'
 import {
   ColDef,
   GetRowIdParams,
@@ -25,7 +27,14 @@ import { AgGridReact } from 'ag-grid-react'
 import { Button, Dropdown, Flex, Tag, theme } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
-import { MouseEvent, useCallback, useMemo, useRef, useState } from 'react'
+import {
+  KeyboardEvent,
+  SyntheticEvent,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import styles from './project-ranking-board.module.css'
 import { buildMoveRanksPayload, RankableRow } from './ranking'
 import dayjs from 'dayjs'
@@ -40,6 +49,7 @@ export interface ProjectRankingBoardProps {
   canManage: boolean
   isLoading?: boolean
   refetch: () => void
+  refetchScoreboard: () => void
 }
 
 interface DragHandleCellProps extends ICellRendererParams<ProjectListDto> {
@@ -50,7 +60,12 @@ interface DragHandleCellProps extends ICellRendererParams<ProjectListDto> {
   menuItems: ItemType[]
 }
 
-const stopRowClick = (event: MouseEvent) => {
+interface ScoreCellRendererProps extends ICellRendererParams<ProjectListDto> {
+  isOpening: boolean
+  onOpenScoreForm: (projectId: string) => void
+}
+
+const stopRowClick = (event: SyntheticEvent) => {
   event.stopPropagation()
 }
 
@@ -124,14 +139,55 @@ const ProjectNameCellRenderer = (
 }
 
 // Renders the primary output value (already gated to the current-model score via the column's
-// valueGetter) as a badge. Null = no current-model score → "Unscored".
-const ScoreCellRenderer = (props: ICellRendererParams<ProjectListDto>) => {
-  const value = props.value as number | null | undefined
-  const hasScore = value != null
+// valueGetter) as a score action when the user may manage the project.
+const ScoreCellRenderer = ({
+  data,
+  isOpening,
+  onOpenScoreForm,
+  value,
+}: ScoreCellRendererProps) => {
+  const scoreValue = value as number | null | undefined
+  const hasScore = scoreValue != null
+  const label = hasScore ? scoreValue.toFixed(2) : 'Unscored'
+
+  if (!data?.canManageProject) {
+    return (
+      <Tag color={hasScore ? 'blue' : 'default'} style={{ marginInlineEnd: 0 }}>
+        {label}
+      </Tag>
+    )
+  }
+
+  const actionTitle = hasScore
+    ? 'Click to re-score project'
+    : 'Click to score project'
+  const openScore = () => onOpenScoreForm(data.id)
+  const onScoreKeyDown = (event: KeyboardEvent<HTMLSpanElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    event.preventDefault()
+    stopRowClick(event)
+    openScore()
+  }
+
   return (
-    <Tag color={hasScore ? 'blue' : 'default'}>
-      {hasScore ? value.toFixed(2) : 'Unscored'}
-    </Tag>
+    <WaydTooltip title={actionTitle}>
+      <Tag
+        color={hasScore ? 'blue' : 'default'}
+        className={styles.scoreTagAction}
+        role="button"
+        tabIndex={0}
+        aria-busy={isOpening}
+        onClick={(event) => {
+          stopRowClick(event)
+          openScore()
+        }}
+        onKeyDown={onScoreKeyDown}
+        onMouseDown={stopRowClick}
+      >
+        {isOpening && <LoadingOutlined className={styles.scoreTagIcon} />}
+        {label}
+      </Tag>
+    </WaydTooltip>
   )
 }
 
@@ -153,6 +209,7 @@ const ProjectRankingBoard = ({
   canManage,
   isLoading,
   refetch,
+  refetchScoreboard,
 }: ProjectRankingBoardProps) => {
   const messageApi = useMessage()
   const gridRef = useRef<AgGridReact<ProjectListDto>>(null)
@@ -161,6 +218,13 @@ const ProjectRankingBoard = ({
     null,
   )
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [scoreProjectId, setScoreProjectId] = useState<string | null>(null)
+
+  const { currentData: scoringContext, isFetching: isScoringContextLoading } =
+    useGetProjectScoringContextQuery(
+      { projectId: scoreProjectId ?? '' },
+      { skip: !scoreProjectId },
+    )
 
   // Per-project breakdown lookups keyed by project id: criterion values by criterionId, output values
   // by token. Only projects whose current score matches the portfolio's current model are present, so
@@ -207,6 +271,20 @@ const ProjectRankingBoard = ({
     setSelectedProjectKey(projectKey)
     setDrawerOpen(true)
   }, [])
+
+  const openScoreForm = useCallback((projectId: string) => {
+    setScoreProjectId(projectId)
+  }, [])
+
+  const closeScoreForm = () => {
+    setScoreProjectId(null)
+  }
+
+  const onScoreFormComplete = () => {
+    closeScoreForm()
+    refetch()
+    refetchScoreboard()
+  }
 
   const syncInteractionState = () => {
     const api = gridRef.current?.api
@@ -376,11 +454,24 @@ const ProjectRankingBoard = ({
                   p.value == null ? '' : Number(p.value).toLocaleString(),
             cellRenderer: output.isPrimary
               ? (params: ICellRendererParams<ProjectListDto>) => (
-                  <ScoreCellRenderer {...params} />
+                  <ScoreCellRenderer
+                    {...params}
+                    isOpening={
+                      isScoringContextLoading &&
+                      params.data?.id === scoreProjectId
+                    }
+                    onOpenScoreForm={openScoreForm}
+                  />
                 )
               : undefined,
           }) as ColDef<ProjectListDto>,
       ),
+      {
+        field: 'start',
+        width: 125,
+        valueGetter: (params) =>
+          params.data?.start && dayjs(params.data.start).format('MMM D, YYYY'),
+      },
       {
         field: 'end',
         width: 125,
@@ -404,6 +495,9 @@ const ProjectRankingBoard = ({
       canManage,
       dragEnabled,
       openProjectDrawer,
+      openScoreForm,
+      isScoringContextLoading,
+      scoreProjectId,
       scoreboard?.scoringModel?.criteria,
       scoreboard?.scoringModel?.outputs,
       criterionValuesByProject,
@@ -440,9 +534,19 @@ const ProjectRankingBoard = ({
           }}
         />
       )}
+      {scoreProjectId && scoringContext?.scoringModel && (
+        <RecordProjectScoreForm
+          key={scoreProjectId}
+          projectId={scoreProjectId}
+          scoringModel={scoringContext.scoringModel}
+          modelArchived={scoringContext.scoringModelArchived}
+          currentScore={scoringContext.currentScore}
+          onFormComplete={onScoreFormComplete}
+          onFormCancel={closeScoreForm}
+        />
+      )}
     </>
   )
 }
 
 export default ProjectRankingBoard
-

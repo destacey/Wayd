@@ -20,12 +20,30 @@ public class WorkTypeLevelFaker : PrivateConstructorFaker<WorkTypeLevel>
 
 public static class WorkTypeLevelFakerExtensions
 {
-    public static WorkTypeLevel WithData(this WorkTypeLevelFaker faker, string? name = null, string? description = null, WorkTypeTier? tier = null, int? order = null)
+    public static WorkTypeLevelFaker WithName(this WorkTypeLevelFaker faker, string? name)
     {
-        if (!string.IsNullOrWhiteSpace(name)) { faker.RuleFor(x => x.Name, name); }
-        if (!string.IsNullOrWhiteSpace(description)) { faker.RuleFor(x => x.Description, description); }
-        if (tier.HasValue) { faker.RuleFor(x => x.Tier, tier.Value); }
-        if (order.HasValue) { faker.RuleFor(x => x.Order, order.Value); }
+        faker.RuleFor(x => x.Name, name);
+
+        return faker;
+    }
+
+    public static WorkTypeLevelFaker WithDescription(this WorkTypeLevelFaker faker, string? description)
+    {
+        faker.RuleFor(x => x.Description, description);
+
+        return faker;
+    }
+
+    public static WorkTypeLevelFaker WithTier(this WorkTypeLevelFaker faker, WorkTypeTier tier)
+    {
+        faker.RuleFor(x => x.Tier, tier);
+
+        return faker;
+    }
+
+    public static WorkTypeLevelFaker WithOrder(this WorkTypeLevelFaker faker, int order)
+    {
+        faker.RuleFor(x => x.Order, order);
 
         return faker;
     }

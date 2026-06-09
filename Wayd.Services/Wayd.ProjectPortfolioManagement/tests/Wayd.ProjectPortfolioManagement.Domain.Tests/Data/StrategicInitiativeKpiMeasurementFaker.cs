@@ -1,7 +1,7 @@
-﻿using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
+﻿using NodaTime;
+using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Data;
-using NodaTime;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 
@@ -22,21 +22,44 @@ public sealed class StrategicInitiativeKpiMeasurementFaker : PrivateConstructorF
 
 public static class StrategicInitiativeKpiMeasurementFakerExtensions
 {
-    public static StrategicInitiativeKpiMeasurementFaker WithData(
-        this StrategicInitiativeKpiMeasurementFaker faker,
-        Guid? id = null,
-        Guid? kpiId = null,
-        double? actualValue = null,
-        Instant? measurementDate = null,
-        Guid? measuredById = null,
-        string? note = null)
+    public static StrategicInitiativeKpiMeasurementFaker WithId(this StrategicInitiativeKpiMeasurementFaker faker, Guid id)
     {
-        if (id.HasValue) { faker.RuleFor(x => x.Id, id.Value); }
-        if (kpiId.HasValue) { faker.RuleFor(x => x.KpiId, kpiId.Value); }
-        if (actualValue.HasValue) { faker.RuleFor(x => x.ActualValue, actualValue.Value); }
-        if (measurementDate.HasValue) { faker.RuleFor(x => x.MeasurementDate, measurementDate.Value); }
-        if (measuredById.HasValue) { faker.RuleFor(x => x.MeasuredById, measuredById.Value); }
-        if (!string.IsNullOrWhiteSpace(note)) { faker.RuleFor(x => x.Note, note); }
+        faker.RuleFor(x => x.Id, id);
+
+        return faker;
+    }
+
+    public static StrategicInitiativeKpiMeasurementFaker WithKpiId(this StrategicInitiativeKpiMeasurementFaker faker, Guid kpiId)
+    {
+        faker.RuleFor(x => x.KpiId, kpiId);
+
+        return faker;
+    }
+
+    public static StrategicInitiativeKpiMeasurementFaker WithActualValue(this StrategicInitiativeKpiMeasurementFaker faker, double actualValue)
+    {
+        faker.RuleFor(x => x.ActualValue, actualValue);
+
+        return faker;
+    }
+
+    public static StrategicInitiativeKpiMeasurementFaker WithMeasurementDate(this StrategicInitiativeKpiMeasurementFaker faker, Instant measurementDate)
+    {
+        faker.RuleFor(x => x.MeasurementDate, measurementDate);
+
+        return faker;
+    }
+
+    public static StrategicInitiativeKpiMeasurementFaker WithMeasuredById(this StrategicInitiativeKpiMeasurementFaker faker, Guid? measuredById)
+    {
+        faker.RuleFor(x => x.MeasuredById, measuredById);
+
+        return faker;
+    }
+
+    public static StrategicInitiativeKpiMeasurementFaker WithNote(this StrategicInitiativeKpiMeasurementFaker faker, string? note)
+    {
+        faker.RuleFor(x => x.Note, note);
 
         return faker;
     }

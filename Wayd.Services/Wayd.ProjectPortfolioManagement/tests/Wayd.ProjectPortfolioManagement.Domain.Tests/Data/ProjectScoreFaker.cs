@@ -1,4 +1,4 @@
-using NodaTime;
+﻿using NodaTime;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
 using Wayd.Tests.Shared.Data;
 
@@ -22,31 +22,79 @@ public sealed class ProjectScoreFaker : PrivateConstructorFaker<ProjectScore>
 
 public static class ProjectScoreFakerExtensions
 {
-    public static ProjectScoreFaker WithData(
-        this ProjectScoreFaker faker,
-        Guid? id = null,
-        Guid? projectId = null,
-        Guid? scoringModelId = null,
-        int? scoringModelKey = null,
-        string? scoringModelName = null,
-        decimal? primaryValue = null,
-        Instant? scoredOn = null,
-        Guid? scoredById = null,
-        long? sequence = null,
-        IEnumerable<ProjectScoreRating>? ratings = null,
-        IEnumerable<ProjectScoreOutput>? outputs = null)
+    public static ProjectScoreFaker WithId(this ProjectScoreFaker faker, Guid id)
     {
-        if (id.HasValue) { faker.RuleFor(x => x.Id, id.Value); }
-        if (projectId.HasValue) { faker.RuleFor(x => x.ProjectId, projectId.Value); }
-        if (scoringModelId.HasValue) { faker.RuleFor(x => x.ScoringModelId, scoringModelId.Value); }
-        if (scoringModelKey.HasValue) { faker.RuleFor(x => x.ScoringModelKey, scoringModelKey.Value); }
-        if (!string.IsNullOrWhiteSpace(scoringModelName)) { faker.RuleFor(x => x.ScoringModelName, scoringModelName); }
-        if (primaryValue.HasValue) { faker.RuleFor(x => x.PrimaryValue, primaryValue.Value); }
-        if (scoredOn.HasValue) { faker.RuleFor(x => x.ScoredOn, scoredOn.Value); }
-        if (scoredById.HasValue) { faker.RuleFor(x => x.ScoredById, scoredById.Value); }
-        if (sequence.HasValue) { faker.RuleFor(x => x.Sequence, sequence.Value); }
-        if (ratings is not null) { faker.RuleFor("_ratings", _ => ratings.ToList()); }
-        if (outputs is not null) { faker.RuleFor("_outputs", _ => outputs.ToList()); }
+        faker.RuleFor(x => x.Id, id);
+
+        return faker;
+    }
+
+    public static ProjectScoreFaker WithProjectId(this ProjectScoreFaker faker, Guid projectId)
+    {
+        faker.RuleFor(x => x.ProjectId, projectId);
+
+        return faker;
+    }
+
+    public static ProjectScoreFaker WithScoringModelId(this ProjectScoreFaker faker, Guid scoringModelId)
+    {
+        faker.RuleFor(x => x.ScoringModelId, scoringModelId);
+
+        return faker;
+    }
+
+    public static ProjectScoreFaker WithScoringModelKey(this ProjectScoreFaker faker, int scoringModelKey)
+    {
+        faker.RuleFor(x => x.ScoringModelKey, scoringModelKey);
+
+        return faker;
+    }
+
+    public static ProjectScoreFaker WithScoringModelName(this ProjectScoreFaker faker, string? scoringModelName)
+    {
+        faker.RuleFor(x => x.ScoringModelName, scoringModelName);
+
+        return faker;
+    }
+
+    public static ProjectScoreFaker WithPrimaryValue(this ProjectScoreFaker faker, decimal primaryValue)
+    {
+        faker.RuleFor(x => x.PrimaryValue, primaryValue);
+
+        return faker;
+    }
+
+    public static ProjectScoreFaker WithScoredOn(this ProjectScoreFaker faker, Instant scoredOn)
+    {
+        faker.RuleFor(x => x.ScoredOn, scoredOn);
+
+        return faker;
+    }
+
+    public static ProjectScoreFaker WithScoredById(this ProjectScoreFaker faker, Guid? scoredById)
+    {
+        faker.RuleFor(x => x.ScoredById, scoredById);
+
+        return faker;
+    }
+
+    public static ProjectScoreFaker WithSequence(this ProjectScoreFaker faker, long sequence)
+    {
+        faker.RuleFor(x => x.Sequence, sequence);
+
+        return faker;
+    }
+
+    public static ProjectScoreFaker WithRatings(this ProjectScoreFaker faker, IEnumerable<ProjectScoreRating> ratings)
+    {
+        faker.RuleFor("_ratings", _ => ratings.ToList());
+
+        return faker;
+    }
+
+    public static ProjectScoreFaker WithOutputs(this ProjectScoreFaker faker, IEnumerable<ProjectScoreOutput> outputs)
+    {
+        faker.RuleFor("_outputs", _ => outputs.ToList());
 
         return faker;
     }

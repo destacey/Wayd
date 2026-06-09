@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Wayd.Common.Application.Interfaces;
@@ -28,16 +28,13 @@ public class MoveProjectRanksCommandHandlerTests : IDisposable
     }
 
     private Project Project(string name, double rank) =>
-        _projectFaker.WithData(id: Guid.NewGuid(), name: name, status: ProjectStatus.Active).WithRank(rank).Generate();
+        _projectFaker.WithName(name).WithStatus(ProjectStatus.Active).WithRank(rank).Generate();
 
     private ProjectPortfolio Portfolio(params Project[] projects) =>
-        _portfolioFaker.WithData(
-            id: Guid.NewGuid(),
-            status: ProjectPortfolioStatus.Active,
-            roles: new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
-            {
-                [ProjectPortfolioRole.Owner] = [_employeeId],
-            }).Generate().WithProjects(projects);
+        _portfolioFaker.WithStatus(ProjectPortfolioStatus.Active).WithRoles(new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
+        {
+            [ProjectPortfolioRole.Owner] = [_employeeId],
+        }).Generate().WithProjects(projects);
 
     [Fact]
     public async Task Handle_WhenValid_MovesAndSaves()

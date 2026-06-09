@@ -40,8 +40,8 @@ public class ProjectCustomProjectionMappingTests
     public void ProjectListDto_PositionOrdering_ShouldResetPerPortfolio_WhenResultsContainMultiplePortfolios()
     {
         // Arrange
-        var portfolioA = new ProjectPortfolioFaker().WithData(name: "Shared Portfolio Name").Generate();
-        var portfolioB = new ProjectPortfolioFaker().WithData(name: "Shared Portfolio Name").Generate();
+        var portfolioA = new ProjectPortfolioFaker().WithName("Shared Portfolio Name").Generate();
+        var portfolioB = new ProjectPortfolioFaker().WithName("Shared Portfolio Name").Generate();
         var expenditureCategory = new ExpenditureCategoryFaker().GenerateActive();
 
         var projectA2 = CreateRankedProject("Project A2", portfolioA, expenditureCategory, 20);
@@ -114,19 +114,17 @@ public class ProjectCustomProjectionMappingTests
         var expenditureCategory = new ExpenditureCategoryFaker().GenerateActive();
 
         var project = new ProjectFaker()
-            .WithData(
-                portfolioId: portfolio.Id,
-                expenditureCategoryId: expenditureCategory.Id)
+            .WithPortfolioId(portfolio.Id).WithExpenditureCategoryId(expenditureCategory.Id)
             .Generate();
 
         typeof(Project).GetProperty(nameof(Project.Portfolio))!.SetValue(project, portfolio);
         typeof(Project).GetProperty(nameof(Project.ExpenditureCategory))!.SetValue(project, expenditureCategory);
 
         var initiativeA = new StrategicInitiativeFaker(dateTimeProvider)
-            .WithData(name: "Initiative A", status: StrategicInitiativeStatus.Active, portfolioId: portfolio.Id)
+            .WithName("Initiative A").WithStatus(StrategicInitiativeStatus.Active).WithPortfolioId(portfolio.Id)
             .Generate();
         var initiativeB = new StrategicInitiativeFaker(dateTimeProvider)
-            .WithData(name: "Initiative B", status: StrategicInitiativeStatus.Proposed, portfolioId: portfolio.Id)
+            .WithName("Initiative B").WithStatus(StrategicInitiativeStatus.Proposed).WithPortfolioId(portfolio.Id)
             .Generate();
 
         var linkA = (StrategicInitiativeProject)typeof(StrategicInitiativeProject)
@@ -184,28 +182,18 @@ public class ProjectCustomProjectionMappingTests
         var expenditureCategory = new ExpenditureCategoryFaker().GenerateActive();
 
         var project = new ProjectFaker()
-            .WithData(
-                portfolioId: portfolio.Id,
-                expenditureCategoryId: expenditureCategory.Id)
+            .WithPortfolioId(portfolio.Id).WithExpenditureCategoryId(expenditureCategory.Id)
             .Generate();
 
         typeof(Project).GetProperty(nameof(Project.Portfolio))!.SetValue(project, portfolio);
         typeof(Project).GetProperty(nameof(Project.ExpenditureCategory))!.SetValue(project, expenditureCategory);
 
         var firstPhase = new ProjectPhaseFaker()
-            .WithData(
-                projectId: project.Id,
-                name: "Build",
-                order: 2,
-                status: TaskStatus.NotStarted)
+            .WithProjectId(project.Id).WithName("Build").WithOrder(2).WithStatus(TaskStatus.NotStarted)
             .Generate();
 
         var secondPhase = new ProjectPhaseFaker()
-            .WithData(
-                projectId: project.Id,
-                name: "Design",
-                order: 1,
-                status: TaskStatus.InProgress)
+            .WithProjectId(project.Id).WithName("Design").WithOrder(1).WithStatus(TaskStatus.InProgress)
             .Generate();
 
         project.AddToPrivateList("_phases", firstPhase);
@@ -217,10 +205,7 @@ public class ProjectCustomProjectionMappingTests
     private static Project CreateRankedProject(string name, ProjectPortfolio portfolio, ExpenditureCategory expenditureCategory, double rank)
     {
         var project = new ProjectFaker()
-            .WithData(
-                name: name,
-                portfolioId: portfolio.Id,
-                expenditureCategoryId: expenditureCategory.Id)
+            .WithName(name).WithPortfolioId(portfolio.Id).WithExpenditureCategoryId(expenditureCategory.Id)
             .WithRank(rank)
             .Generate();
 

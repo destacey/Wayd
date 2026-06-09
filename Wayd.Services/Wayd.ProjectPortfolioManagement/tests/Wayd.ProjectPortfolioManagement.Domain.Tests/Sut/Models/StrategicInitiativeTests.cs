@@ -1,11 +1,11 @@
 ﻿using FluentAssertions;
+using NodaTime.Extensions;
+using NodaTime.Testing;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions;
 using Wayd.Tests.Shared;
-using NodaTime.Extensions;
-using NodaTime.Testing;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Sut.Models;
 
@@ -52,7 +52,7 @@ public sealed class StrategicInitiativeTests
     public void CanBeDeleted_ShouldReturnExpectedBasedOnStatus(StrategicInitiativeStatus status, bool expected)
     {
         // Arrange
-        var initiative = _strategicInitiativeFaker.WithData(status: status).Generate();
+        var initiative = _strategicInitiativeFaker.WithStatus(status).Generate();
 
         // Act & Assert
         initiative.CanBeDeleted().Should().Be(expected);
@@ -67,7 +67,7 @@ public sealed class StrategicInitiativeTests
     public void IsClosed_ShouldReturnExpectedBasedOnStatus(StrategicInitiativeStatus status, bool expected)
     {
         // Arrange
-        var initiative = _strategicInitiativeFaker.WithData(status: status).Generate();
+        var initiative = _strategicInitiativeFaker.WithStatus(status).Generate();
 
         // Act & Assert
         initiative.IsClosed.Should().Be(expected);
@@ -97,7 +97,7 @@ public sealed class StrategicInitiativeTests
     {
         // Arrange
         var employeeId = Guid.NewGuid();
-        var initiative = _strategicInitiativeFaker.WithData(roles: new Dictionary<StrategicInitiativeRole, HashSet<Guid>>
+        var initiative = _strategicInitiativeFaker.WithRoles(new Dictionary<StrategicInitiativeRole, HashSet<Guid>>
         {
             { StrategicInitiativeRole.Owner, new HashSet<Guid> { employeeId } }
         }).Generate();
@@ -115,7 +115,7 @@ public sealed class StrategicInitiativeTests
     {
         // Arrange
         var employeeId = Guid.NewGuid();
-        var initiative = _strategicInitiativeFaker.WithData(roles: new Dictionary<StrategicInitiativeRole, HashSet<Guid>>
+        var initiative = _strategicInitiativeFaker.WithRoles(new Dictionary<StrategicInitiativeRole, HashSet<Guid>>
         {
             { StrategicInitiativeRole.Owner, new HashSet<Guid> { employeeId } }
         }).Generate();
@@ -134,7 +134,7 @@ public sealed class StrategicInitiativeTests
         // Arrange
         var employeeId1 = Guid.NewGuid();
         var employeeId2 = Guid.NewGuid();
-        var initiative = _strategicInitiativeFaker.WithData(roles: new Dictionary<StrategicInitiativeRole, HashSet<Guid>>
+        var initiative = _strategicInitiativeFaker.WithRoles(new Dictionary<StrategicInitiativeRole, HashSet<Guid>>
         {
             { StrategicInitiativeRole.Owner, new HashSet<Guid> { employeeId1, employeeId2 } }
         }).Generate();
@@ -190,7 +190,7 @@ public sealed class StrategicInitiativeTests
     public void UpdateRoles_ShouldRemoveUnspecifiedRoles()
     {
         // Arrange
-        var initiative = _strategicInitiativeFaker.WithData(roles: new Dictionary<StrategicInitiativeRole, HashSet<Guid>>
+        var initiative = _strategicInitiativeFaker.WithRoles(new Dictionary<StrategicInitiativeRole, HashSet<Guid>>
         {
             { StrategicInitiativeRole.Sponsor, new HashSet<Guid> { Guid.NewGuid(), Guid.NewGuid() } },
             { StrategicInitiativeRole.Owner, new HashSet<Guid> { Guid.NewGuid() } }
@@ -215,7 +215,7 @@ public sealed class StrategicInitiativeTests
     {
         // Arrange
         var employeeId = Guid.NewGuid();
-        var initiative = _strategicInitiativeFaker.WithData(roles: new Dictionary<StrategicInitiativeRole, HashSet<Guid>>
+        var initiative = _strategicInitiativeFaker.WithRoles(new Dictionary<StrategicInitiativeRole, HashSet<Guid>>
         {
             { StrategicInitiativeRole.Sponsor, new HashSet<Guid> { employeeId } }
         }).Generate();

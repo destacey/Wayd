@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Scoring.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
@@ -35,8 +35,8 @@ public class GetProjectScoringContextQueryHandlerTests : IDisposable
     public async Task Handle_WhenProjectExistsButPortfolioHasNoModel_ReturnsEmptyContext()
     {
         // Arrange
-        var portfolio = _portfolioFaker.WithData(id: Guid.NewGuid()).Generate();
-        var project = _projectFaker.WithData(portfolioId: portfolio.Id).Generate();
+        var portfolio = _portfolioFaker.Generate();
+        var project = _projectFaker.WithPortfolioId(portfolio.Id).Generate();
         project.SetPrivate(p => p.Portfolio, portfolio);
         _dbContext.AddProject(project);
 

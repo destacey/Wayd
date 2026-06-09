@@ -1,11 +1,11 @@
 ﻿using FluentAssertions;
+using NodaTime.Extensions;
+using NodaTime.Testing;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
-using NodaTime.Extensions;
-using NodaTime.Testing;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Sut.Models;
 
@@ -169,7 +169,7 @@ public class ProgramTests
     {
         // Arrange
         var employeeId = Guid.NewGuid();
-        var program = _programFaker.WithData(roles: new Dictionary<ProgramRole, HashSet<Guid>>
+        var program = _programFaker.WithRoles(new Dictionary<ProgramRole, HashSet<Guid>>
         {
             { ProgramRole.Owner, new HashSet<Guid> { employeeId } }
         }).Generate();
@@ -187,7 +187,7 @@ public class ProgramTests
     {
         // Arrange
         var employeeId = Guid.NewGuid();
-        var program = _programFaker.WithData(roles: new Dictionary<ProgramRole, HashSet<Guid>>
+        var program = _programFaker.WithRoles(new Dictionary<ProgramRole, HashSet<Guid>>
         {
             { ProgramRole.Owner, new HashSet<Guid> { employeeId } }
         }).Generate();
@@ -206,7 +206,7 @@ public class ProgramTests
         // Arrange
         var employeeId1 = Guid.NewGuid();
         var employeeId2 = Guid.NewGuid();
-        var program = _programFaker.WithData(roles: new Dictionary<ProgramRole, HashSet<Guid>>
+        var program = _programFaker.WithRoles(new Dictionary<ProgramRole, HashSet<Guid>>
         {
             { ProgramRole.Owner, new HashSet<Guid> { employeeId1, employeeId2 } }
         }).Generate();
@@ -261,7 +261,7 @@ public class ProgramTests
     public void UpdateRoles_ShouldRemoveUnspecifiedRoles()
     {
         // Arrange
-        var program = _programFaker.WithData(roles: new Dictionary<ProgramRole, HashSet<Guid>>
+        var program = _programFaker.WithRoles(new Dictionary<ProgramRole, HashSet<Guid>>
         {
             { ProgramRole.Manager, new HashSet<Guid> { Guid.NewGuid(), Guid.NewGuid() } },
             { ProgramRole.Owner, new HashSet<Guid> { Guid.NewGuid() } }
@@ -286,7 +286,7 @@ public class ProgramTests
     {
         // Arrange
         var employeeId = Guid.NewGuid();
-        var program = _programFaker.WithData(roles: new Dictionary<ProgramRole, HashSet<Guid>>
+        var program = _programFaker.WithRoles(new Dictionary<ProgramRole, HashSet<Guid>>
         {
             { ProgramRole.Sponsor, new HashSet<Guid> { employeeId } }
         }).Generate();
@@ -333,7 +333,7 @@ public class ProgramTests
     {
         // Arrange
         var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3));
-        var program = _programFaker.WithData(dateRange: dateRange).Generate();
+        var program = _programFaker.WithDateRange(dateRange).Generate();
 
         // Act
         var result = program.Activate();
@@ -439,7 +439,7 @@ public class ProgramTests
         // Arrange
         Guid portfolioId = Guid.NewGuid();
         var program = _programFaker.AsActive(_dateTimeProvider, portfolioId);
-        var project = _projectFaker.WithData(portfolioId: portfolioId).Generate();
+        var project = _projectFaker.WithPortfolioId(portfolioId).Generate();
 
         // Act
         var result = program.AddProject(project);
@@ -456,7 +456,7 @@ public class ProgramTests
         // Arrange
         Guid portfolioId = Guid.NewGuid();
         var program = _programFaker.AsCompleted(_dateTimeProvider, portfolioId);
-        var project = _projectFaker.WithData(portfolioId: portfolioId).Generate();
+        var project = _projectFaker.WithPortfolioId(portfolioId).Generate();
 
         // Act
         var result = program.AddProject(project);
@@ -473,7 +473,7 @@ public class ProgramTests
         Guid portfolioId1 = Guid.NewGuid();
         Guid portfolioId2 = Guid.NewGuid();
         var program = _programFaker.AsActive(_dateTimeProvider, portfolioId1);
-        var project = _projectFaker.WithData(portfolioId: portfolioId2).Generate();
+        var project = _projectFaker.WithPortfolioId(portfolioId2).Generate();
 
         // Act
         var result = program.AddProject(project);
@@ -489,7 +489,7 @@ public class ProgramTests
         // Arrange
         Guid portfolioId = Guid.NewGuid();
         var program = _programFaker.AsActive(_dateTimeProvider, portfolioId);
-        var project = _projectFaker.WithData(portfolioId: portfolioId).Generate();
+        var project = _projectFaker.WithPortfolioId(portfolioId).Generate();
 
         program.AddProject(project);
 

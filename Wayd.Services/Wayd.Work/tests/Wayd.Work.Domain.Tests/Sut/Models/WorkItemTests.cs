@@ -40,7 +40,7 @@ public class WorkItemTests
     public void UpdateParent_WithParent_SetNullParent_ShouldSucceed()
     {
         // Arrange
-        var workItem = _workItemFaker.WithData(parentId: Guid.NewGuid(), parentProjectId: Guid.NewGuid()).Generate();
+        var workItem = _workItemFaker.WithParentId(Guid.NewGuid()).WithParentProjectId(Guid.NewGuid()).Generate();
         IWorkItemParentInfo? parentInfo = null;
 
         // Act
@@ -58,7 +58,7 @@ public class WorkItemTests
         // Arrange
         var storyWorkType = _workTypeFaker.AsStory().Generate();
         var epicWorkType = _workTypeFaker.AsEpic().Generate();
-        var workItem = _workItemFaker.WithData(type: storyWorkType).Generate();
+        var workItem = _workItemFaker.WithType(storyWorkType).Generate();
         var parentInfo = new TestParentInfo(Guid.NewGuid(), 123456, epicWorkType.Level!.Tier, epicWorkType.Level.Order);
 
         // Act
@@ -77,7 +77,7 @@ public class WorkItemTests
         var featureWorkType = _workTypeFaker.AsFeature().Generate();
         var epicWorkType = _workTypeFaker.AsEpic().Generate();
         var projectId = Guid.NewGuid();
-        var workItem = _workItemFaker.WithData(type: featureWorkType, projectId: projectId).Generate();
+        var workItem = _workItemFaker.WithType(featureWorkType).WithProjectId(projectId).Generate();
         var parentProjectId = Guid.NewGuid();
         var parentInfo = new TestParentInfo(Guid.NewGuid(), 123456, epicWorkType.Level!.Tier, epicWorkType.Level.Order, parentProjectId);
 
@@ -96,7 +96,7 @@ public class WorkItemTests
     {
         // Arrange
         var storyWorkType = _workTypeFaker.AsStory().Generate();
-        var workItem = _workItemFaker.WithData(type: storyWorkType).Generate();
+        var workItem = _workItemFaker.WithType(storyWorkType).Generate();
         var parentInfo = new TestParentInfo(Guid.NewGuid(), 123456, storyWorkType.Level!.Tier, storyWorkType.Level.Order);
 
         // Act
@@ -115,7 +115,7 @@ public class WorkItemTests
         // Arrange
         var storyWorkType = _workTypeFaker.AsStory().Generate();
         var otherWorkType = _workTypeFaker.AsOther().Generate();
-        var workItem = _workItemFaker.WithData(type: storyWorkType).Generate();
+        var workItem = _workItemFaker.WithType(storyWorkType).Generate();
         var parentInfo = new TestParentInfo(Guid.NewGuid(), 123456, otherWorkType.Level!.Tier, otherWorkType.Level.Order);
 
         // Act
@@ -134,7 +134,7 @@ public class WorkItemTests
         // Arrange
         var featureWorkType = _workTypeFaker.AsFeature().Generate();
         var otherWorkType = _workTypeFaker.AsOther().Generate();
-        var workItem = _workItemFaker.WithData(type: featureWorkType).Generate();
+        var workItem = _workItemFaker.WithType(featureWorkType).Generate();
         var parentInfo = new TestParentInfo(Guid.NewGuid(), 123456, otherWorkType.Level!.Tier, otherWorkType.Level.Order);
 
         // Act
@@ -153,7 +153,7 @@ public class WorkItemTests
         // Arrange
         var featureWorkType = _workTypeFaker.AsFeature().Generate();
         var storyWorkType = _workTypeFaker.AsStory().Generate();
-        var workItem = _workItemFaker.WithData(type: featureWorkType).Generate();
+        var workItem = _workItemFaker.WithType(featureWorkType).Generate();
         var parentInfo = new TestParentInfo(Guid.NewGuid(), 123456, storyWorkType.Level!.Tier, storyWorkType.Level.Order);
 
         // Act
@@ -171,7 +171,7 @@ public class WorkItemTests
     {
         // Arrange
         var featureWorkType = _workTypeFaker.AsFeature().Generate();
-        var workItem = _workItemFaker.WithData(type: featureWorkType).Generate();
+        var workItem = _workItemFaker.WithType(featureWorkType).Generate();
         var parentInfo = new TestParentInfo(Guid.NewGuid(), 123456, featureWorkType.Level!.Tier, featureWorkType.Level.Order);
 
         // Act
@@ -190,7 +190,7 @@ public class WorkItemTests
         // Arrange
         var storyWorkType = _workTypeFaker.AsStory().Generate();
         var epicWorkType = _workTypeFaker.AsEpic().Generate();
-        var workItem = _workItemFaker.WithData(type: storyWorkType, parentId: Guid.NewGuid()).Generate();
+        var workItem = _workItemFaker.WithType(storyWorkType).WithParentId(Guid.NewGuid()).Generate();
         var parentInfo = new TestParentInfo(Guid.NewGuid(), 123456, epicWorkType.Level!.Tier, epicWorkType.Level.Order, Guid.NewGuid());
 
         // Act
@@ -208,7 +208,7 @@ public class WorkItemTests
         // Arrange
         var featureWorkType = _workTypeFaker.AsFeature().Generate();
         var epicWorkType = _workTypeFaker.AsEpic().Generate();
-        var workItem = _workItemFaker.WithData(type: featureWorkType, parentId: Guid.NewGuid()).Generate();
+        var workItem = _workItemFaker.WithType(featureWorkType).WithParentId(Guid.NewGuid()).Generate();
         var parentInfo = new TestParentInfo(Guid.NewGuid(), 123456, epicWorkType.Level!.Tier, epicWorkType.Level.Order, Guid.NewGuid());
 
         // Act
@@ -227,7 +227,7 @@ public class WorkItemTests
         var featureWorkType = _workTypeFaker.AsFeature().Generate();
         var epicWorkType = _workTypeFaker.AsEpic().Generate();
         var featureProjectId = Guid.NewGuid();
-        var workItem = _workItemFaker.WithData(type: featureWorkType, parentId: Guid.NewGuid(), projectId: featureProjectId).Generate();
+        var workItem = _workItemFaker.WithType(featureWorkType).WithParentId(Guid.NewGuid()).WithProjectId(featureProjectId).Generate();
         var parentInfo = new TestParentInfo(Guid.NewGuid(), 123456, epicWorkType.Level!.Tier, epicWorkType.Level.Order, Guid.NewGuid());
 
         // Act
@@ -247,7 +247,7 @@ public class WorkItemTests
         var featureWorkType = _workTypeFaker.AsFeature().Generate();
         var epicWorkType = _workTypeFaker.AsEpic().Generate();
         var projectId = Guid.NewGuid();
-        var workItem = _workItemFaker.WithData(type: featureWorkType, parentId: Guid.NewGuid(), projectId: projectId).Generate();
+        var workItem = _workItemFaker.WithType(featureWorkType).WithParentId(Guid.NewGuid()).WithProjectId(projectId).Generate();
         var parentInfo = new TestParentInfo(Guid.NewGuid(), 123456, epicWorkType.Level!.Tier, epicWorkType.Level.Order, projectId);
 
         // Act
@@ -267,7 +267,7 @@ public class WorkItemTests
         var storyWorkType = _workTypeFaker.AsStory().Generate();
         var expectedParentId = Guid.NewGuid();
         var expectedParentProjectId = Guid.NewGuid();
-        var workItem = _workItemFaker.WithData(type: storyWorkType, parentId: expectedParentId, parentProjectId: expectedParentProjectId).Generate();
+        var workItem = _workItemFaker.WithType(storyWorkType).WithParentId(expectedParentId).WithParentProjectId(expectedParentProjectId).Generate();
         var parentInfo = new TestParentInfo(Guid.NewGuid(), 123456, storyWorkType.Level!.Tier, storyWorkType.Level.Order);
 
         // Act
@@ -288,7 +288,7 @@ public class WorkItemTests
         var otherWorkType = _workTypeFaker.AsOther().Generate();
         var expectedParentId = Guid.NewGuid();
         var expectedParentProjectId = Guid.NewGuid();
-        var workItem = _workItemFaker.WithData(type: storyWorkType, parentId: expectedParentId, parentProjectId: expectedParentProjectId).Generate();
+        var workItem = _workItemFaker.WithType(storyWorkType).WithParentId(expectedParentId).WithParentProjectId(expectedParentProjectId).Generate();
         var parentInfo = new TestParentInfo(Guid.NewGuid(), 123456, otherWorkType.Level!.Tier, otherWorkType.Level.Order);
 
         // Act
@@ -308,7 +308,7 @@ public class WorkItemTests
         var featureWorkType = _workTypeFaker.AsFeature().Generate();
         var otherWorkType = _workTypeFaker.AsOther().Generate();
         var expectedParentId = Guid.NewGuid();
-        var workItem = _workItemFaker.WithData(type: featureWorkType, parentId: expectedParentId).Generate();
+        var workItem = _workItemFaker.WithType(featureWorkType).WithParentId(expectedParentId).Generate();
         var parentInfo = new TestParentInfo(Guid.NewGuid(), 123456, otherWorkType.Level!.Tier, otherWorkType.Level.Order, Guid.NewGuid());
 
         // Act
@@ -328,7 +328,7 @@ public class WorkItemTests
         var featureWorkType = _workTypeFaker.AsFeature().Generate();
         var storyWorkType = _workTypeFaker.AsStory().Generate();
         var expectedParentId = Guid.NewGuid();
-        var workItem = _workItemFaker.WithData(type: featureWorkType, parentId: expectedParentId).Generate();
+        var workItem = _workItemFaker.WithType(featureWorkType).WithParentId(expectedParentId).Generate();
         var parentInfo = new TestParentInfo(Guid.NewGuid(), 123456, storyWorkType.Level!.Tier, storyWorkType.Level.Order, Guid.NewGuid());
 
         // Act
@@ -347,7 +347,7 @@ public class WorkItemTests
         // Arrange
         var featureWorkType = _workTypeFaker.AsFeature().Generate();
         var expectedParentId = Guid.NewGuid();
-        var workItem = _workItemFaker.WithData(type: featureWorkType, parentId: expectedParentId).Generate();
+        var workItem = _workItemFaker.WithType(featureWorkType).WithParentId(expectedParentId).Generate();
         var parentInfo = new TestParentInfo(Guid.NewGuid(), 123456, featureWorkType.Level!.Tier, featureWorkType.Level.Order, Guid.NewGuid());
 
         // Act
@@ -370,7 +370,7 @@ public class WorkItemTests
         workItemType.Level = null;
 
         var expectedParentId = Guid.NewGuid();
-        var workItem = _workItemFaker.WithData(type: workItemType, parentId: expectedParentId).Generate();
+        var workItem = _workItemFaker.WithType(workItemType).WithParentId(expectedParentId).Generate();
         var parentInfo = new TestParentInfo(Guid.NewGuid(), 123456, parentType.Level!.Tier, parentType.Level.Order, Guid.NewGuid());
 
         // Act

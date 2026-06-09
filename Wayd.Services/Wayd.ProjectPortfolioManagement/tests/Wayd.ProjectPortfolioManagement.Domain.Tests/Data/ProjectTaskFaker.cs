@@ -1,3 +1,4 @@
+﻿using NodaTime;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
@@ -5,7 +6,6 @@ using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Data;
 using Wayd.Tests.Shared.Extensions;
-using NodaTime;
 using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
@@ -30,7 +30,7 @@ public sealed class ProjectTaskFaker : PrivateConstructorFaker<ProjectTask>
         RuleFor(x => x.Progress, f => Progress.NotStarted());
         RuleFor(x => x.Order, f => f.Random.Int(1, 10));
         RuleFor(x => x.ParentId, f => null); // No parent by default
-        RuleFor(x => x.ProjectPhaseId, f => Guid.Empty); // Default; set via WithData for tests needing phases
+        RuleFor(x => x.ProjectPhaseId, f => Guid.Empty); // Default; set via WithProjectPhaseId for tests needing phases
         RuleFor(x => x.PlannedDateRange, f => null);
         RuleFor(x => x.EstimatedEffortHours, f => f.Random.Decimal(1, 100));
     }
@@ -38,43 +38,108 @@ public sealed class ProjectTaskFaker : PrivateConstructorFaker<ProjectTask>
 
 public static class ProjectTaskFakerExtensions
 {
-    public static ProjectTaskFaker WithData(
-        this ProjectTaskFaker faker,
-        Guid? id = null,
-        ProjectTaskKey? key = null,
-        Guid? projectId = null,
-        string? name = null,
-        string? description = null,
-        ProjectTaskType? type = null,
-        TaskStatus? status = null,
-        TaskPriority? priority = null,
-        Progress? progress = null,
-        int? order = null,
-        Guid? parentId = null,
-        Guid? projectPhaseId = null,
-        FlexibleDateRange? plannedDateRange = null,
-        LocalDate? plannedDate = null,
-        decimal? estimatedEffortHours = null)
+    public static ProjectTaskFaker WithId(this ProjectTaskFaker faker, Guid id)
     {
-        if (id.HasValue) { faker.RuleFor(x => x.Id, id.Value); }
-        if (key is not null)
-        {
-            faker.RuleFor(x => x.Key, key);
-            faker.RuleFor(x => x.Number, key.TaskNumber);
-        }
-        if (projectId.HasValue) { faker.RuleFor(x => x.ProjectId, projectId.Value); }
-        if (!string.IsNullOrWhiteSpace(name)) { faker.RuleFor(x => x.Name, name); }
-        if (!string.IsNullOrWhiteSpace(description)) { faker.RuleFor(x => x.Description, description); }
-        if (type.HasValue) { faker.RuleFor(x => x.Type, type.Value); }
-        if (status.HasValue) { faker.RuleFor(x => x.Status, status.Value); }
-        if (priority.HasValue) { faker.RuleFor(x => x.Priority, priority); }
-        if (progress is not null) { faker.RuleFor(x => x.Progress, progress); }
-        if (order.HasValue) { faker.RuleFor(x => x.Order, order.Value); }
-        if (parentId.HasValue) { faker.RuleFor(x => x.ParentId, parentId); }
-        if (projectPhaseId.HasValue) { faker.RuleFor(x => x.ProjectPhaseId, projectPhaseId.Value); }
-        if (plannedDateRange is not null) { faker.RuleFor(x => x.PlannedDateRange, plannedDateRange); }
-        if (plannedDate.HasValue) { faker.RuleFor(x => x.PlannedDate, plannedDate); }
-        if (estimatedEffortHours.HasValue) { faker.RuleFor(x => x.EstimatedEffortHours, estimatedEffortHours); }
+        faker.RuleFor(x => x.Id, id);
+
+        return faker;
+    }
+
+    public static ProjectTaskFaker WithKey(this ProjectTaskFaker faker, ProjectTaskKey key)
+    {
+        faker.RuleFor(x => x.Key, key);
+        faker.RuleFor(x => x.Number, key.TaskNumber);
+
+        return faker;
+    }
+
+    public static ProjectTaskFaker WithProjectId(this ProjectTaskFaker faker, Guid projectId)
+    {
+        faker.RuleFor(x => x.ProjectId, projectId);
+
+        return faker;
+    }
+
+    public static ProjectTaskFaker WithName(this ProjectTaskFaker faker, string? name)
+    {
+        faker.RuleFor(x => x.Name, name);
+
+        return faker;
+    }
+
+    public static ProjectTaskFaker WithDescription(this ProjectTaskFaker faker, string? description)
+    {
+        faker.RuleFor(x => x.Description, description);
+
+        return faker;
+    }
+
+    public static ProjectTaskFaker WithType(this ProjectTaskFaker faker, ProjectTaskType type)
+    {
+        faker.RuleFor(x => x.Type, type);
+
+        return faker;
+    }
+
+    public static ProjectTaskFaker WithStatus(this ProjectTaskFaker faker, TaskStatus status)
+    {
+        faker.RuleFor(x => x.Status, status);
+
+        return faker;
+    }
+
+    public static ProjectTaskFaker WithPriority(this ProjectTaskFaker faker, TaskPriority priority)
+    {
+        faker.RuleFor(x => x.Priority, priority);
+
+        return faker;
+    }
+
+    public static ProjectTaskFaker WithProgress(this ProjectTaskFaker faker, Progress? progress)
+    {
+        faker.RuleFor(x => x.Progress, progress);
+
+        return faker;
+    }
+
+    public static ProjectTaskFaker WithOrder(this ProjectTaskFaker faker, int order)
+    {
+        faker.RuleFor(x => x.Order, order);
+
+        return faker;
+    }
+
+    public static ProjectTaskFaker WithParentId(this ProjectTaskFaker faker, Guid? parentId)
+    {
+        faker.RuleFor(x => x.ParentId, parentId);
+
+        return faker;
+    }
+
+    public static ProjectTaskFaker WithProjectPhaseId(this ProjectTaskFaker faker, Guid? projectPhaseId)
+    {
+        faker.RuleFor(x => x.ProjectPhaseId, projectPhaseId);
+
+        return faker;
+    }
+
+    public static ProjectTaskFaker WithPlannedDateRange(this ProjectTaskFaker faker, FlexibleDateRange? plannedDateRange)
+    {
+        faker.RuleFor(x => x.PlannedDateRange, plannedDateRange);
+
+        return faker;
+    }
+
+    public static ProjectTaskFaker WithPlannedDate(this ProjectTaskFaker faker, LocalDate? plannedDate)
+    {
+        faker.RuleFor(x => x.PlannedDate, plannedDate);
+
+        return faker;
+    }
+
+    public static ProjectTaskFaker WithEstimatedEffortHours(this ProjectTaskFaker faker, decimal? estimatedEffortHours)
+    {
+        faker.RuleFor(x => x.EstimatedEffortHours, estimatedEffortHours);
 
         return faker;
     }
@@ -89,13 +154,7 @@ public static class ProjectTaskFakerExtensions
         var endDate = startDate.PlusDays(10);
         var progress = new Progress(Decimal.Zero);
 
-        return faker.WithData(
-            projectId: projectId,
-            key: new ProjectTaskKey(projectKey, new Random().Next(1, 999)),
-            status: TaskStatus.NotStarted,
-            progress: progress,
-            plannedDateRange: new FlexibleDateRange(startDate, endDate)
-        ).Generate();
+        return faker.WithProjectId(projectId).WithKey(new ProjectTaskKey(projectKey, new Random().Next(1, 999))).WithStatus(TaskStatus.NotStarted).WithProgress(progress).WithPlannedDateRange(new FlexibleDateRange(startDate, endDate)).Generate();
     }
 
     /// <summary>
@@ -108,13 +167,7 @@ public static class ProjectTaskFakerExtensions
         var endDate = now.PlusDays(10);
         var progress = new Progress(0.25m);
 
-        return faker.WithData(
-            projectId: projectId,
-            key: new ProjectTaskKey(projectKey, new Random().Next(1, 999)),
-            status: TaskStatus.InProgress,
-            progress: progress,
-            plannedDateRange: new FlexibleDateRange(startDate, endDate)
-        ).Generate();
+        return faker.WithProjectId(projectId).WithKey(new ProjectTaskKey(projectKey, new Random().Next(1, 999))).WithStatus(TaskStatus.InProgress).WithProgress(progress).WithPlannedDateRange(new FlexibleDateRange(startDate, endDate)).Generate();
     }
 
     /// <summary>
@@ -127,13 +180,7 @@ public static class ProjectTaskFakerExtensions
         var endDate = now.PlusDays(-5);
         var progress = Progress.Completed();
 
-        return faker.WithData(
-            projectId: projectId,
-            key: new ProjectTaskKey(projectKey, new Random().Next(1, 999)),
-            status: TaskStatus.Completed,
-            progress: progress,
-            plannedDateRange: new FlexibleDateRange(startDate, endDate)
-        ).Generate();
+        return faker.WithProjectId(projectId).WithKey(new ProjectTaskKey(projectKey, new Random().Next(1, 999))).WithStatus(TaskStatus.Completed).WithProgress(progress).WithPlannedDateRange(new FlexibleDateRange(startDate, endDate)).Generate();
     }
 
     /// <summary>
@@ -144,12 +191,7 @@ public static class ProjectTaskFakerExtensions
         var now = dateTimeProvider.Today;
         var milestoneDate = now.PlusDays(30);
 
-        return faker.WithData(
-            projectId: projectId,
-            key: new ProjectTaskKey(projectKey, new Random().Next(1, 999)),
-            type: ProjectTaskType.Milestone,
-            plannedDate: milestoneDate
-        ).Generate();
+        return faker.WithProjectId(projectId).WithKey(new ProjectTaskKey(projectKey, new Random().Next(1, 999))).WithType(ProjectTaskType.Milestone).WithPlannedDate(milestoneDate).Generate();
     }
 
     /// <summary>

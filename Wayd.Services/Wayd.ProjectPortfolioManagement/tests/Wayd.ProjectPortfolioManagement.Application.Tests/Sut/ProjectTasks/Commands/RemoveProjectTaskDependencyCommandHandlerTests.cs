@@ -1,12 +1,12 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Moq;
+using NodaTime.Extensions;
+using NodaTime.Testing;
 using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
-using Moq;
-using NodaTime.Extensions;
-using NodaTime.Testing;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.ProjectTasks.Commands;
 
@@ -35,8 +35,8 @@ public class RemoveProjectTaskDependencyCommandHandlerTests : IDisposable
     {
         // Arrange
         var projectId = Guid.NewGuid();
-        var predecessor = _taskFaker.WithData(projectId: projectId, name: "Predecessor Task").Generate();
-        var successor = _taskFaker.WithData(projectId: projectId, name: "Successor Task").Generate();
+        var predecessor = _taskFaker.WithProjectId(projectId).WithName("Predecessor Task").Generate();
+        var successor = _taskFaker.WithProjectId(projectId).WithName("Successor Task").Generate();
 
         _dbContext.AddProjectTasks([predecessor, successor]);
 
@@ -98,8 +98,8 @@ public class RemoveProjectTaskDependencyCommandHandlerTests : IDisposable
     {
         // Arrange
         var projectId = Guid.NewGuid();
-        var predecessor = _taskFaker.WithData(projectId: projectId).Generate();
-        var successor = _taskFaker.WithData(projectId: projectId).Generate();
+        var predecessor = _taskFaker.WithProjectId(projectId).Generate();
+        var successor = _taskFaker.WithProjectId(projectId).Generate();
 
         _dbContext.AddProjectTasks([predecessor, successor]);
 
@@ -120,9 +120,9 @@ public class RemoveProjectTaskDependencyCommandHandlerTests : IDisposable
     {
         // Arrange
         var projectId = Guid.NewGuid();
-        var predecessor = _taskFaker.WithData(projectId: projectId, name: "Predecessor").Generate();
-        var successor1 = _taskFaker.WithData(projectId: projectId, name: "Successor 1").Generate();
-        var successor2 = _taskFaker.WithData(projectId: projectId, name: "Successor 2").Generate();
+        var predecessor = _taskFaker.WithProjectId(projectId).WithName("Predecessor").Generate();
+        var successor1 = _taskFaker.WithProjectId(projectId).WithName("Successor 1").Generate();
+        var successor2 = _taskFaker.WithProjectId(projectId).WithName("Successor 2").Generate();
 
         _dbContext.AddProjectTasks([predecessor, successor1, successor2]);
 

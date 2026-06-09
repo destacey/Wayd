@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Wayd.Common.Application.Identity;
@@ -29,16 +29,13 @@ public class RebalancePortfolioRanksCommandHandlerTests : IDisposable
     }
 
     private Project Project(string name, double rank) =>
-        _projectFaker.WithData(id: Guid.NewGuid(), name: name, status: ProjectStatus.Active).WithRank(rank).Generate();
+        _projectFaker.WithName(name).WithStatus(ProjectStatus.Active).WithRank(rank).Generate();
 
     private ProjectPortfolio Portfolio(bool authorized, params Project[] projects) =>
-        _portfolioFaker.WithData(
-            id: Guid.NewGuid(),
-            status: ProjectPortfolioStatus.Active,
-            roles: new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
-            {
-                [ProjectPortfolioRole.Owner] = [authorized ? _employeeId : Guid.NewGuid()],
-            }).Generate().WithProjects(projects);
+        _portfolioFaker.WithStatus(ProjectPortfolioStatus.Active).WithRoles(new Dictionary<ProjectPortfolioRole, HashSet<Guid>>
+        {
+            [ProjectPortfolioRole.Owner] = [authorized ? _employeeId : Guid.NewGuid()],
+        }).Generate().WithProjects(projects);
 
     [Fact]
     public async Task Handle_WhenValid_RebalancesAndSaves()

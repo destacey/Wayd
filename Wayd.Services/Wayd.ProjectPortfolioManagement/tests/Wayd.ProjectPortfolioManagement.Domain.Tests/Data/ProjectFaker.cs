@@ -27,35 +27,76 @@ public sealed class ProjectFaker : PrivateConstructorFaker<Project>
 
 public static class ProjectFakerExtensions
 {
-    public static ProjectFaker WithData(
-        this ProjectFaker faker,
-        Guid? id = null,
-        ProjectKey? key = null,
-        string? name = null,
-        string? description = null,
-        ProjectStatus? status = null,
-        LocalDateRange? dateRange = null,
-        int? expenditureCategoryId = null,
-        Guid? portfolioId = null,
-        Guid? programId = null,
-        Dictionary<ProjectRole, HashSet<Guid>>? roles = null)
+    public static ProjectFaker WithId(this ProjectFaker faker, Guid id)
     {
-        if (id.HasValue) { faker.RuleFor(x => x.Id, id.Value); }
-        if (key is not null) { faker.RuleFor(x => x.Key, key); }
-        if (!string.IsNullOrWhiteSpace(name)) { faker.RuleFor(x => x.Name, name); }
-        if (!string.IsNullOrWhiteSpace(description)) { faker.RuleFor(x => x.Description, description); }
-        if (status.HasValue) { faker.RuleFor(x => x.Status, status); }
-        if (dateRange is not null) { faker.RuleFor(x => x.DateRange, dateRange); }
-        if (expenditureCategoryId.HasValue) faker.RuleFor(p => p.ExpenditureCategoryId, expenditureCategoryId.Value);
-        if (portfolioId.HasValue) { faker.RuleFor(x => x.PortfolioId, portfolioId.Value); }
-        if (programId.HasValue) { faker.RuleFor(x => x.ProgramId, programId.Value); }
+        faker.RuleFor(x => x.Id, id);
 
-        if (roles is not null)
+        return faker;
+    }
+
+    public static ProjectFaker WithKey(this ProjectFaker faker, ProjectKey key)
+    {
+        faker.RuleFor(x => x.Key, key);
+
+        return faker;
+    }
+
+    public static ProjectFaker WithName(this ProjectFaker faker, string? name)
+    {
+        faker.RuleFor(x => x.Name, name);
+
+        return faker;
+    }
+
+    public static ProjectFaker WithDescription(this ProjectFaker faker, string? description)
+    {
+        faker.RuleFor(x => x.Description, description);
+
+        return faker;
+    }
+
+    public static ProjectFaker WithStatus(this ProjectFaker faker, ProjectStatus status)
+    {
+        faker.RuleFor(x => x.Status, status);
+
+        return faker;
+    }
+
+    public static ProjectFaker WithDateRange(this ProjectFaker faker, LocalDateRange? dateRange)
+    {
+        faker.RuleFor(x => x.DateRange, dateRange);
+
+        return faker;
+    }
+
+    public static ProjectFaker WithExpenditureCategoryId(this ProjectFaker faker, int expenditureCategoryId)
+    {
+        faker.RuleFor(p => p.ExpenditureCategoryId, expenditureCategoryId);
+
+        return faker;
+    }
+
+    public static ProjectFaker WithPortfolioId(this ProjectFaker faker, Guid portfolioId)
+    {
+        faker.RuleFor(x => x.PortfolioId, portfolioId);
+
+        return faker;
+    }
+
+    public static ProjectFaker WithProgramId(this ProjectFaker faker, Guid? programId)
+    {
+        faker.RuleFor(x => x.ProgramId, programId);
+
+        return faker;
+    }
+
+    public static ProjectFaker WithRoles(this ProjectFaker faker, Dictionary<ProjectRole, HashSet<Guid>>? roles)
+    {
+        faker.RuleFor("_roles", (_, project) =>
         {
-            var projectId = id ?? Guid.NewGuid();
-            if (!id.HasValue)
+            if (roles is null)
             {
-                faker.RuleFor(x => x.Id, projectId);
+                return new HashSet<RoleAssignment<ProjectRole>>();
             }
 
             HashSet<RoleAssignment<ProjectRole>> updatedRoles = [];
@@ -63,12 +104,12 @@ public static class ProjectFakerExtensions
             {
                 foreach (var employeeId in role.Value)
                 {
-                    updatedRoles.Add(new RoleAssignment<ProjectRole>(projectId, role.Key, employeeId));
+                    updatedRoles.Add(new RoleAssignment<ProjectRole>(project.Id, role.Key, employeeId));
                 }
             }
 
-            faker.RuleFor("_roles", x => updatedRoles);
-        }
+            return updatedRoles;
+        });
 
         return faker;
     }
@@ -87,12 +128,12 @@ public static class ProjectFakerExtensions
         var startDate = now.PlusDays(10);
         var endDate = startDate.PlusMonths(5);
 
-        return faker.WithData(
-            status: ProjectStatus.Proposed,
-            dateRange: new LocalDateRange(startDate, endDate),
-            portfolioId: portfolioId,
-            programId: programId
-        ).Generate();
+        return faker
+            .WithStatus(ProjectStatus.Proposed)
+            .WithDateRange(new LocalDateRange(startDate, endDate))
+            .WithOptionalPortfolioId(portfolioId)
+            .WithOptionalProgramId(programId)
+            .Generate();
     }
 
     /// <summary>
@@ -104,12 +145,12 @@ public static class ProjectFakerExtensions
         var startDate = now.PlusDays(10);
         var endDate = startDate.PlusMonths(5);
 
-        return faker.WithData(
-            status: ProjectStatus.Approved,
-            dateRange: new LocalDateRange(startDate, endDate),
-            portfolioId: portfolioId,
-            programId: programId
-        ).Generate();
+        return faker
+            .WithStatus(ProjectStatus.Approved)
+            .WithDateRange(new LocalDateRange(startDate, endDate))
+            .WithOptionalPortfolioId(portfolioId)
+            .WithOptionalProgramId(programId)
+            .Generate();
     }
 
     /// <summary>
@@ -121,12 +162,12 @@ public static class ProjectFakerExtensions
         var startDate = now.PlusDays(-10);
         var endDate = startDate.PlusMonths(5);
 
-        return faker.WithData(
-            status: ProjectStatus.Active,
-            dateRange: new LocalDateRange(startDate, endDate),
-            portfolioId: portfolioId,
-            programId: programId
-        ).Generate();
+        return faker
+            .WithStatus(ProjectStatus.Active)
+            .WithDateRange(new LocalDateRange(startDate, endDate))
+            .WithOptionalPortfolioId(portfolioId)
+            .WithOptionalProgramId(programId)
+            .Generate();
     }
 
     /// <summary>
@@ -138,12 +179,12 @@ public static class ProjectFakerExtensions
         var startDate = now.PlusDays(-20);
         var endDate = startDate.PlusDays(10);
 
-        return faker.WithData(
-            status: ProjectStatus.Completed,
-            dateRange: new LocalDateRange(startDate, endDate),
-            portfolioId: portfolioId,
-            programId: programId
-        ).Generate();
+        return faker
+            .WithStatus(ProjectStatus.Completed)
+            .WithDateRange(new LocalDateRange(startDate, endDate))
+            .WithOptionalPortfolioId(portfolioId)
+            .WithOptionalProgramId(programId)
+            .Generate();
     }
 
     /// <summary>
@@ -155,12 +196,12 @@ public static class ProjectFakerExtensions
         var startDate = now.PlusDays(-15);
         var endDate = startDate.PlusDays(5);
 
-        return faker.WithData(
-            status: ProjectStatus.Cancelled,
-            dateRange: new LocalDateRange(startDate, endDate),
-            portfolioId: portfolioId,
-            programId: programId
-        ).Generate();
+        return faker
+            .WithStatus(ProjectStatus.Cancelled)
+            .WithDateRange(new LocalDateRange(startDate, endDate))
+            .WithOptionalPortfolioId(portfolioId)
+            .WithOptionalProgramId(programId)
+            .Generate();
     }
 
     /// <summary>
@@ -178,13 +219,18 @@ public static class ProjectFakerExtensions
 
         for (int i = 1; i <= taskCount; i++)
         {
-            var task = taskFaker.WithData(
-                id: Guid.NewGuid(),
-                projectId: project.Id,
-                key: new ProjectTaskKey(project.Key, i),
-                order: i,
-                projectPhaseId: projectPhaseId
-            ).Generate();
+            taskFaker
+
+                .WithProjectId(project.Id)
+                .WithKey(new ProjectTaskKey(project.Key, i))
+                .WithOrder(i);
+
+            if (projectPhaseId.HasValue)
+            {
+                taskFaker.WithProjectPhaseId(projectPhaseId.Value);
+            }
+
+            var task = taskFaker.Generate();
 
             tasks.Add(task);
             project.AddToPrivateList("_tasks", task);
@@ -209,11 +255,7 @@ public static class ProjectFakerExtensions
         for (int i = 1; i <= taskCount; i++)
         {
             var taskFaker = new ProjectTaskFaker()
-                .WithData(
-                    id: Guid.NewGuid(),
-                    projectId: project.Id,
-                    key: new ProjectTaskKey(project.Key, i),
-                    order: i);
+                .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, i)).WithOrder(i);
 
             configureTask(taskFaker, i);
 
@@ -240,5 +282,15 @@ public static class ProjectFakerExtensions
     {
         faker.RuleFor(x => x.Rank, rank);
         return faker;
+    }
+
+    private static ProjectFaker WithOptionalPortfolioId(this ProjectFaker faker, Guid? portfolioId)
+    {
+        return portfolioId.HasValue ? faker.WithPortfolioId(portfolioId.Value) : faker;
+    }
+
+    private static ProjectFaker WithOptionalProgramId(this ProjectFaker faker, Guid? programId)
+    {
+        return programId.HasValue ? faker.WithProgramId(programId.Value) : faker;
     }
 }

@@ -1,4 +1,7 @@
-using FluentAssertions;
+﻿using FluentAssertions;
+using Moq;
+using NodaTime;
+using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
@@ -6,9 +9,6 @@ using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
-using Moq;
-using NodaTime;
-using NodaTime.Testing;
 using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Projects.Queries;
@@ -63,15 +63,12 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
     public async Task Handle_LeadershipRole_ShouldCountAllTasksOnProject()
     {
         // Arrange: user is PM on a project with 2 overdue tasks — one assigned to user, one to someone else
-        var project = new ProjectFaker().WithData(
-            status: ProjectStatus.Active,
-            roles: new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Manager, [_employeeId] } }
-        ).Generate();
+        var project = new ProjectFaker().WithStatus(ProjectStatus.Active).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Manager, [_employeeId] } }).Generate();
 
         var overdueDates = OverdueDateRange();
         var tasks = project.WithTasks(2, (faker, i) =>
         {
-            faker.WithData(status: TaskStatus.InProgress, plannedDateRange: overdueDates);
+            faker.WithStatus(TaskStatus.InProgress).WithPlannedDateRange(overdueDates);
         });
         tasks[0].WithAssignees(_employeeId);
         tasks[1].WithAssignees(_otherEmployeeId);
@@ -90,12 +87,12 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
     public async Task Handle_AssigneeOnly_ShouldCountOnlyAssignedTasks()
     {
         // Arrange: user has NO project role, but is assigned to 1 of 3 overdue tasks
-        var project = new ProjectFaker().WithData(status: ProjectStatus.Active).Generate();
+        var project = new ProjectFaker().WithStatus(ProjectStatus.Active).Generate();
 
         var overdueDates = OverdueDateRange();
         var tasks = project.WithTasks(3, (faker, _) =>
         {
-            faker.WithData(status: TaskStatus.InProgress, plannedDateRange: overdueDates);
+            faker.WithStatus(TaskStatus.InProgress).WithPlannedDateRange(overdueDates);
         });
         tasks[0].WithAssignees(_employeeId);
         tasks[1].WithAssignees(_otherEmployeeId);
@@ -115,15 +112,12 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
     public async Task Handle_LeadershipAndAssignee_ShouldNotDoubleCount()
     {
         // Arrange: user is PM AND assigned to a task on the same project
-        var project = new ProjectFaker().WithData(
-            status: ProjectStatus.Active,
-            roles: new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Manager, [_employeeId] } }
-        ).Generate();
+        var project = new ProjectFaker().WithStatus(ProjectStatus.Active).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Manager, [_employeeId] } }).Generate();
 
         var overdueDates = OverdueDateRange();
         var tasks = project.WithTasks(2, (faker, _) =>
         {
-            faker.WithData(status: TaskStatus.InProgress, plannedDateRange: overdueDates);
+            faker.WithStatus(TaskStatus.InProgress).WithPlannedDateRange(overdueDates);
         });
         tasks[0].WithAssignees(_employeeId);
         tasks[1].WithAssignees(_otherEmployeeId);
@@ -143,15 +137,12 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
     {
         // Arrange:
         // Project A: user is PM — has 3 overdue tasks (2 assigned to others, 1 to user)
-        var projectA = new ProjectFaker().WithData(
-            status: ProjectStatus.Active,
-            roles: new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Manager, [_employeeId] } }
-        ).Generate();
+        var projectA = new ProjectFaker().WithStatus(ProjectStatus.Active).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Manager, [_employeeId] } }).Generate();
 
         var overdueDates = OverdueDateRange();
         var tasksA = projectA.WithTasks(3, (faker, _) =>
         {
-            faker.WithData(status: TaskStatus.InProgress, plannedDateRange: overdueDates);
+            faker.WithStatus(TaskStatus.InProgress).WithPlannedDateRange(overdueDates);
         });
         tasksA[0].WithAssignees(_employeeId);
         tasksA[1].WithAssignees(_otherEmployeeId);
@@ -161,11 +152,11 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
         _dbContext.AddProjectTasks(tasksA);
 
         // Project B: user is only a task assignee — has 3 overdue tasks (1 assigned to user, 2 to others)
-        var projectB = new ProjectFaker().WithData(status: ProjectStatus.Active).Generate();
+        var projectB = new ProjectFaker().WithStatus(ProjectStatus.Active).Generate();
 
         var tasksB = projectB.WithTasks(3, (faker, _) =>
         {
-            faker.WithData(status: TaskStatus.InProgress, plannedDateRange: overdueDates);
+            faker.WithStatus(TaskStatus.InProgress).WithPlannedDateRange(overdueDates);
         });
         tasksB[0].WithAssignees(_employeeId);
         tasksB[1].WithAssignees(_otherEmployeeId);
@@ -188,15 +179,12 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
     public async Task Handle_MemberRole_ShouldCountOnlyAssignedTasks()
     {
         // Arrange: user is a Member on a project — should only see their assigned tasks
-        var project = new ProjectFaker().WithData(
-            status: ProjectStatus.Active,
-            roles: new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Member, [_employeeId] } }
-        ).Generate();
+        var project = new ProjectFaker().WithStatus(ProjectStatus.Active).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Member, [_employeeId] } }).Generate();
 
         var overdueDates = OverdueDateRange();
         var tasks = project.WithTasks(2, (faker, _) =>
         {
-            faker.WithData(status: TaskStatus.InProgress, plannedDateRange: overdueDates);
+            faker.WithStatus(TaskStatus.InProgress).WithPlannedDateRange(overdueDates);
         });
         tasks[0].WithAssignees(_employeeId);
         tasks[1].WithAssignees(_otherEmployeeId);
@@ -215,17 +203,11 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
     public async Task Handle_SponsorRole_ShouldCountAllTasks()
     {
         // Arrange: user is Sponsor — leadership role, should see all tasks
-        var project = new ProjectFaker().WithData(
-            status: ProjectStatus.Active,
-            roles: new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Sponsor, [_employeeId] } }
-        ).Generate();
+        var project = new ProjectFaker().WithStatus(ProjectStatus.Active).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Sponsor, [_employeeId] } }).Generate();
 
         var tasks = project.WithTasks(2, (faker, i) =>
         {
-            faker.WithData(
-                status: TaskStatus.InProgress,
-                plannedDateRange: i == 1 ? OverdueDateRange() : DueThisWeekDateRange()
-            );
+            faker.WithStatus(TaskStatus.InProgress).WithPlannedDateRange(i == 1 ? OverdueDateRange() : DueThisWeekDateRange());
         });
         tasks[0].WithAssignees(_otherEmployeeId);
         tasks[1].WithAssignees(_otherEmployeeId);
@@ -245,14 +227,11 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
     public async Task Handle_OwnerRole_ShouldCountAllTasks()
     {
         // Arrange: user is Owner — leadership role
-        var project = new ProjectFaker().WithData(
-            status: ProjectStatus.Active,
-            roles: new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Owner, [_employeeId] } }
-        ).Generate();
+        var project = new ProjectFaker().WithStatus(ProjectStatus.Active).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Owner, [_employeeId] } }).Generate();
 
         var tasks = project.WithTasks(1, (faker, _) =>
         {
-            faker.WithData(status: TaskStatus.NotStarted, plannedDateRange: UpcomingDateRange());
+            faker.WithStatus(TaskStatus.NotStarted).WithPlannedDateRange(UpcomingDateRange());
         });
         tasks[0].WithAssignees(_otherEmployeeId);
 
@@ -271,15 +250,12 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
     {
         // Arrange: user is Owner on a project, but filtered to Task Assignee only
         // Should only count tasks assigned to user, not all tasks
-        var project = new ProjectFaker().WithData(
-            status: ProjectStatus.Active,
-            roles: new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Owner, [_employeeId] } }
-        ).Generate();
+        var project = new ProjectFaker().WithStatus(ProjectStatus.Active).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Owner, [_employeeId] } }).Generate();
 
         var overdueDates = OverdueDateRange();
         var tasks = project.WithTasks(3, (faker, _) =>
         {
-            faker.WithData(status: TaskStatus.InProgress, plannedDateRange: overdueDates);
+            faker.WithStatus(TaskStatus.InProgress).WithPlannedDateRange(overdueDates);
         });
         tasks[0].WithAssignees(_employeeId);
         tasks[1].WithAssignees(_otherEmployeeId);
@@ -302,15 +278,12 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
     {
         // Arrange: user is Owner on a project, filtered to Owner + Task Assignee
         // Owner is a leadership role, so all tasks should be visible
-        var project = new ProjectFaker().WithData(
-            status: ProjectStatus.Active,
-            roles: new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Owner, [_employeeId] } }
-        ).Generate();
+        var project = new ProjectFaker().WithStatus(ProjectStatus.Active).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>> { { ProjectRole.Owner, [_employeeId] } }).Generate();
 
         var overdueDates = OverdueDateRange();
         var tasks = project.WithTasks(3, (faker, _) =>
         {
-            faker.WithData(status: TaskStatus.InProgress, plannedDateRange: overdueDates);
+            faker.WithStatus(TaskStatus.InProgress).WithPlannedDateRange(overdueDates);
         });
         tasks[0].WithAssignees(_employeeId);
         tasks[1].WithAssignees(_otherEmployeeId);

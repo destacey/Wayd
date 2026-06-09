@@ -17,7 +17,7 @@ public static class StrategicInitiativeDataExtensions
 
         for (int i = 0; i < count; i++)
         {
-            var kpi = kpiFaker.WithData(strategicInitiativeId: strategicInitiative.Id, order: i + 1).Generate();
+            var kpi = kpiFaker.WithStrategicInitiativeId(strategicInitiative.Id).WithOrder(i + 1).Generate();
             kpisList.Add(kpi);
         }
 

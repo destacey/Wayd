@@ -26,21 +26,66 @@ public class RoadmapActivityFaker : PrivateConstructorFaker<RoadmapActivity>
 
 public static class RoadmapActivityFakerExtensions
 {
-    public static RoadmapActivityFaker WithData(this RoadmapActivityFaker faker, Guid? id = null, Guid? roadmapId = null, string? name = null, string? description = null, LocalDateRange? dateRange = null, Guid? parentId = null, RoadmapActivity? parent = null, int? order = null, string? color = null)
+    public static RoadmapActivityFaker WithId(this RoadmapActivityFaker faker, Guid? id)
     {
-        if (id.HasValue) { faker.RuleFor(x => x.Id, id.Value); }
-        if (roadmapId.HasValue) { faker.RuleFor(x => x.RoadmapId, roadmapId.Value); }
-        if (!string.IsNullOrWhiteSpace(name)) { faker.RuleFor(x => x.Name, name); }
-        if (!string.IsNullOrWhiteSpace(description)) { faker.RuleFor(x => x.Description, description); }
-        if (dateRange is not null) { faker.RuleFor(x => x.DateRange, dateRange); }
-        if (parentId.HasValue && parent is null) { faker.RuleFor(x => x.ParentId, parentId); }
-        if (parent is not null)
-        {
-            faker.RuleFor(x => x.ParentId, parent.Id);
-            faker.RuleFor(x => x.Parent, parent);
-        }
-        if (order.HasValue) { faker.RuleFor(x => x.Order, order); }
-        if (!string.IsNullOrWhiteSpace(color)) { faker.RuleFor(x => x.Color, color); }
+        faker.RuleFor(x => x.Id, id);
+
+        return faker;
+    }
+
+    public static RoadmapActivityFaker WithRoadmapId(this RoadmapActivityFaker faker, Guid? roadmapId)
+    {
+        faker.RuleFor(x => x.RoadmapId, roadmapId);
+
+        return faker;
+    }
+
+    public static RoadmapActivityFaker WithName(this RoadmapActivityFaker faker, string? name)
+    {
+        faker.RuleFor(x => x.Name, name);
+
+        return faker;
+    }
+
+    public static RoadmapActivityFaker WithDescription(this RoadmapActivityFaker faker, string? description)
+    {
+        faker.RuleFor(x => x.Description, description);
+
+        return faker;
+    }
+
+    public static RoadmapActivityFaker WithDateRange(this RoadmapActivityFaker faker, LocalDateRange? dateRange)
+    {
+        faker.RuleFor(x => x.DateRange, dateRange);
+
+        return faker;
+    }
+
+    public static RoadmapActivityFaker WithParentId(this RoadmapActivityFaker faker, Guid? parentId)
+    {
+        faker.RuleFor(x => x.ParentId, parentId);
+
+        return faker;
+    }
+
+    public static RoadmapActivityFaker WithParent(this RoadmapActivityFaker faker, RoadmapActivity parent)
+    {
+        faker.RuleFor(x => x.ParentId, parent.Id);
+        faker.RuleFor(x => x.Parent, parent);
+
+        return faker;
+    }
+
+    public static RoadmapActivityFaker WithOrder(this RoadmapActivityFaker faker, int? order)
+    {
+        faker.RuleFor(x => x.Order, order);
+
+        return faker;
+    }
+
+    public static RoadmapActivityFaker WithColor(this RoadmapActivityFaker faker, string? color)
+    {
+        faker.RuleFor(x => x.Color, color);
 
         return faker;
     }
@@ -54,7 +99,7 @@ public static class RoadmapActivityFakerExtensions
         List<BaseRoadmapItem> children = new(childrenCount);
         for (int i = 0; i < childrenCount; i++)
         {
-            var child = childFaker.WithData(parent: activity, order: i + 1).Generate();
+            var child = childFaker.WithParent(activity).WithOrder(i + 1).Generate();
             children.Add(child);
         }
 

@@ -27,15 +27,44 @@ public class RoadmapFaker : PrivateConstructorFaker<Roadmap>
 
 public static class RoadmapFakerExtensions
 {
-    public static RoadmapFaker WithData(this RoadmapFaker faker, Guid? id = null, string? name = null, string? description = null, LocalDateRange? dateRange = null, Visibility? visibility = null, RoadmapState? state = null)
+    public static RoadmapFaker WithId(this RoadmapFaker faker, Guid? id)
     {
-        if (id.HasValue) { faker.RuleFor(x => x.Id, id.Value); }
-        if (!string.IsNullOrWhiteSpace(name)) { faker.RuleFor(x => x.Name, name); }
-        if (!string.IsNullOrWhiteSpace(description)) { faker.RuleFor(x => x.Description, description); }
-        if (dateRange is not null) { faker.RuleFor(x => x.DateRange, dateRange); }
-        if (visibility.HasValue) { faker.RuleFor(x => x.Visibility, visibility); }
-        if (state.HasValue) { faker.RuleFor(x => x.State, state.Value); }
-        // TODO - Add roadmap managers
+        faker.RuleFor(x => x.Id, id);
+
+        return faker;
+    }
+
+    public static RoadmapFaker WithName(this RoadmapFaker faker, string? name)
+    {
+        faker.RuleFor(x => x.Name, name);
+
+        return faker;
+    }
+
+    public static RoadmapFaker WithDescription(this RoadmapFaker faker, string? description)
+    {
+        faker.RuleFor(x => x.Description, description);
+
+        return faker;
+    }
+
+    public static RoadmapFaker WithDateRange(this RoadmapFaker faker, LocalDateRange? dateRange)
+    {
+        faker.RuleFor(x => x.DateRange, dateRange);
+
+        return faker;
+    }
+
+    public static RoadmapFaker WithVisibility(this RoadmapFaker faker, Visibility? visibility)
+    {
+        faker.RuleFor(x => x.Visibility, visibility);
+
+        return faker;
+    }
+
+    public static RoadmapFaker WithState(this RoadmapFaker faker, RoadmapState? state)
+    {
+        faker.RuleFor(x => x.State, state);
 
         return faker;
     }
@@ -49,7 +78,7 @@ public static class RoadmapFakerExtensions
     //    List<Roadmap> children = new(childrenCount);
     //    for (int i = 0; i < childrenCount; i++)
     //    {
-    //        var child = childFaker.WithData(parentId: roadmapId, order: i + 1).Generate();
+    //        var child = childFaker.WithParentId(roadmapId).WithOrder(i + 1).Generate();
     //        children.Add(child);
     //    }
 
@@ -58,6 +87,6 @@ public static class RoadmapFakerExtensions
     //    faker.RuleFor("_children", f => children.ToList());
     //    faker.RuleFor("_roadmapManagers", f => managers.ToList());
 
-    //    return faker.WithData(id: roadmapId).Generate();
+    //    return faker.WithId(roadmapId).Generate();
     //}
 }

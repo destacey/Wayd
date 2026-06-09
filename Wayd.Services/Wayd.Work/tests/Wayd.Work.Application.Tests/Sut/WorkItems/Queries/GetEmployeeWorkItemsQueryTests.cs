@@ -1,10 +1,10 @@
+﻿using NodaTime;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Models;
 using Wayd.Work.Application.Tests.Infrastructure;
 using Wayd.Work.Application.WorkItems.Queries;
 using Wayd.Work.Domain.Models;
 using Wayd.Work.Domain.Tests.Data;
-using NodaTime;
 using Xunit;
 
 namespace Wayd.Work.Application.Tests.Sut.WorkItems.Queries;
@@ -84,14 +84,7 @@ public sealed class GetEmployeeWorkItemsQueryTests
             : null);
         var faker = new WorkItemFaker(workspace.Id)
             .WithExternalId(externalId)
-            .WithData(
-                type: workType,
-                status: status,
-                statusCategory: statusCategory,
-                assignedToId: employeeId,
-                created: created,
-                activatedTimestamp: activated,
-                doneTimestamp: done);
+            .WithType(workType).WithStatus(status).WithStatusCategory(statusCategory).WithAssignedToId(employeeId).WithCreated(created).WithActivatedTimestamp(activated).WithDoneTimestamp(done);
 
         faker.RuleFor(x => x.Workspace, workspace);
 

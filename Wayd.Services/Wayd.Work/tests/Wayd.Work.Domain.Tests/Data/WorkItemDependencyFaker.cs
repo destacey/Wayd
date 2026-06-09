@@ -1,8 +1,8 @@
-﻿using Wayd.Tests.Shared.Data;
+﻿using NodaTime;
+using NodaTime.Extensions;
+using Wayd.Tests.Shared.Data;
 using Wayd.Tests.Shared.Extensions;
 using Wayd.Work.Domain.Models;
-using NodaTime;
-using NodaTime.Extensions;
 
 namespace Wayd.Work.Domain.Tests.Data;
 
@@ -34,25 +34,55 @@ public class WorkItemDependencyFaker : PrivateConstructorFaker<WorkItemDependenc
 
 public static class WorkItemDependencyFakerExtensions
 {
-    public static WorkItemDependencyFaker WithData(this WorkItemDependencyFaker faker, WorkItem? source = null, WorkItem? target = null, Instant? sourcePlannedOn = null, Instant? targetPlannedOn = null, Instant? createdOn = null, Guid? createdById = null, string? comment = null)
+    public static WorkItemDependencyFaker WithSource(this WorkItemDependencyFaker faker, WorkItem source)
     {
-        if (source != null)
-        {
-            faker.RuleFor(x => x.SourceId, source.Id);
-            faker.RuleFor(x => x.Source, source);
-            faker.RuleFor(x => x.SourceStatusCategory, source.StatusCategory);
-        }
-        if (target != null)
-        {
-            faker.RuleFor(x => x.TargetId, target.Id);
-            faker.RuleFor(x => x.Target, target);
-            faker.RuleFor(x => x.TargetStatusCategory, target.StatusCategory);
-        }
-        if (sourcePlannedOn.HasValue) { faker.RuleFor(x => x.SourcePlannedOn, sourcePlannedOn.Value); }
-        if (targetPlannedOn.HasValue) { faker.RuleFor(x => x.TargetPlannedOn, targetPlannedOn.Value); }
-        if (createdOn.HasValue) { faker.RuleFor(x => x.CreatedOn, createdOn.Value); }
-        if (createdById.HasValue) { faker.RuleFor(x => x.CreatedById, createdById.Value); }
-        if (comment != null) { faker.RuleFor(x => x.Comment, comment); }
+        faker.RuleFor(x => x.SourceId, source.Id);
+        faker.RuleFor(x => x.Source, source);
+        faker.RuleFor(x => x.SourceStatusCategory, source.StatusCategory);
+
+        return faker;
+    }
+
+    public static WorkItemDependencyFaker WithTarget(this WorkItemDependencyFaker faker, WorkItem target)
+    {
+        faker.RuleFor(x => x.TargetId, target.Id);
+        faker.RuleFor(x => x.Target, target);
+        faker.RuleFor(x => x.TargetStatusCategory, target.StatusCategory);
+
+        return faker;
+    }
+
+    public static WorkItemDependencyFaker WithSourcePlannedOn(this WorkItemDependencyFaker faker, Instant? sourcePlannedOn)
+    {
+        faker.RuleFor(x => x.SourcePlannedOn, sourcePlannedOn);
+
+        return faker;
+    }
+
+    public static WorkItemDependencyFaker WithTargetPlannedOn(this WorkItemDependencyFaker faker, Instant? targetPlannedOn)
+    {
+        faker.RuleFor(x => x.TargetPlannedOn, targetPlannedOn);
+
+        return faker;
+    }
+
+    public static WorkItemDependencyFaker WithCreatedOn(this WorkItemDependencyFaker faker, Instant createdOn)
+    {
+        faker.RuleFor(x => x.CreatedOn, createdOn);
+
+        return faker;
+    }
+
+    public static WorkItemDependencyFaker WithCreatedById(this WorkItemDependencyFaker faker, Guid? createdById)
+    {
+        faker.RuleFor(x => x.CreatedById, createdById);
+
+        return faker;
+    }
+
+    public static WorkItemDependencyFaker WithComment(this WorkItemDependencyFaker faker, string? comment)
+    {
+        faker.RuleFor(x => x.Comment, comment);
 
         return faker;
     }

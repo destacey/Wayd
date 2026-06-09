@@ -1,12 +1,12 @@
 ﻿using FluentAssertions;
+using NodaTime;
+using NodaTime.Extensions;
+using NodaTime.Testing;
 using Wayd.Common.Domain.Models.KeyPerformanceIndicators;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions;
 using Wayd.Tests.Shared;
-using NodaTime;
-using NodaTime.Extensions;
-using NodaTime.Testing;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Sut.Models;
 
@@ -84,8 +84,8 @@ public sealed class StrategicInitiativeKpiTests
     {
         // Arrange
         var kpi = _kpiFaker.Generate();
-        var measurement1 = _measurementFaker.WithData(kpiId: kpi.Id, measurementDate: _dateTimeProvider.Now.Minus(Duration.FromDays(10))).Generate();
-        var measurement2 = _measurementFaker.WithData(kpiId: kpi.Id, measurementDate: _dateTimeProvider.Now.Minus(Duration.FromDays(5))).Generate();
+        var measurement1 = _measurementFaker.WithKpiId(kpi.Id).WithMeasurementDate(_dateTimeProvider.Now.Minus(Duration.FromDays(10))).Generate();
+        var measurement2 = _measurementFaker.WithKpiId(kpi.Id).WithMeasurementDate(_dateTimeProvider.Now.Minus(Duration.FromDays(5))).Generate();
 
         // Act
         kpi.AddMeasurement(measurement1);
@@ -102,7 +102,7 @@ public sealed class StrategicInitiativeKpiTests
     {
         // Arrange
         var kpi = _kpiFaker.Generate();
-        var checkpoint = _checkpointFaker.WithData(kpiId: kpi.Id).Generate();
+        var checkpoint = _checkpointFaker.WithKpiId(kpi.Id).Generate();
 
         // Act
         var addResult = kpi.AddCheckpoint(checkpoint);
@@ -132,8 +132,8 @@ public sealed class StrategicInitiativeKpiTests
         // Arrange
         var kpi = _kpiFaker.Generate();
         var checkpointDate = _dateTimeProvider.Now.Minus(Duration.FromDays(1));
-        var checkpoint1 = _checkpointFaker.WithData(kpiId: kpi.Id, checkpointDate: checkpointDate).Generate();
-        var checkpoint2 = _checkpointFaker.WithData(kpiId: kpi.Id, checkpointDate: checkpointDate).Generate();
+        var checkpoint1 = _checkpointFaker.WithKpiId(kpi.Id).WithCheckpointDate(checkpointDate).Generate();
+        var checkpoint2 = _checkpointFaker.WithKpiId(kpi.Id).WithCheckpointDate(checkpointDate).Generate();
         kpi.AddCheckpoint(checkpoint1);
 
         // Act
@@ -148,7 +148,7 @@ public sealed class StrategicInitiativeKpiTests
     {
         // Arrange
         var kpi = _kpiFaker.Generate();
-        var checkpoint = _checkpointFaker.WithData(kpiId: kpi.Id).Generate();
+        var checkpoint = _checkpointFaker.WithKpiId(kpi.Id).Generate();
         kpi.AddCheckpoint(checkpoint);
 
         // Act
@@ -198,7 +198,7 @@ public sealed class StrategicInitiativeKpiTests
     {
         // Arrange
         var kpi = _kpiFaker.Generate();
-        var existingCheckpoint = _checkpointFaker.WithData(kpiId: kpi.Id).Generate();
+        var existingCheckpoint = _checkpointFaker.WithKpiId(kpi.Id).Generate();
         kpi.AddCheckpoint(existingCheckpoint);
 
         var updatedTargetValue = existingCheckpoint.TargetValue + 1;
@@ -225,8 +225,8 @@ public sealed class StrategicInitiativeKpiTests
     {
         // Arrange
         var kpi = _kpiFaker.Generate();
-        var checkpoint1 = _checkpointFaker.WithData(kpiId: kpi.Id).Generate();
-        var checkpoint2 = _checkpointFaker.WithData(kpiId: kpi.Id).Generate();
+        var checkpoint1 = _checkpointFaker.WithKpiId(kpi.Id).Generate();
+        var checkpoint2 = _checkpointFaker.WithKpiId(kpi.Id).Generate();
         kpi.AddCheckpoint(checkpoint1);
         kpi.AddCheckpoint(checkpoint2);
 
@@ -261,7 +261,7 @@ public sealed class StrategicInitiativeKpiTests
     {
         // Arrange
         var kpi = _kpiFaker.Generate();
-        var checkpoint = _checkpointFaker.WithData(kpiId: kpi.Id).Generate();
+        var checkpoint = _checkpointFaker.WithKpiId(kpi.Id).Generate();
         kpi.AddCheckpoint(checkpoint);
 
         var upsert1 = UpsertStrategicInitiativeKpiCheckpoint.Create(checkpoint.Id, checkpoint.TargetValue, checkpoint.CheckpointDate, checkpoint.DateLabel);
@@ -296,8 +296,8 @@ public sealed class StrategicInitiativeKpiTests
     {
         // Arrange
         var kpi = _kpiFaker.Generate();
-        var checkpoint1 = _checkpointFaker.WithData(kpiId: kpi.Id, checkpointDate: _dateTimeProvider.Now.Minus(Duration.FromDays(2))).Generate();
-        var checkpoint2 = _checkpointFaker.WithData(kpiId: kpi.Id, checkpointDate: _dateTimeProvider.Now.Minus(Duration.FromDays(1))).Generate();
+        var checkpoint1 = _checkpointFaker.WithKpiId(kpi.Id).WithCheckpointDate(_dateTimeProvider.Now.Minus(Duration.FromDays(2))).Generate();
+        var checkpoint2 = _checkpointFaker.WithKpiId(kpi.Id).WithCheckpointDate(_dateTimeProvider.Now.Minus(Duration.FromDays(1))).Generate();
         kpi.AddCheckpoint(checkpoint1);
         kpi.AddCheckpoint(checkpoint2);
 
@@ -321,7 +321,7 @@ public sealed class StrategicInitiativeKpiTests
     {
         // Arrange
         var kpi = _kpiFaker.Generate();
-        var measurement = _measurementFaker.WithData(kpiId: kpi.Id).Generate();
+        var measurement = _measurementFaker.WithKpiId(kpi.Id).Generate();
 
         // Act
         var addResult = kpi.AddMeasurement(measurement);
@@ -352,8 +352,8 @@ public sealed class StrategicInitiativeKpiTests
         // Arrange
         var kpi = _kpiFaker.Generate();
         var measurementDate = _dateTimeProvider.Now.Minus(Duration.FromDays(1));
-        var measurement1 = _measurementFaker.WithData(kpiId: kpi.Id, measurementDate: measurementDate).Generate();
-        var measurement2 = _measurementFaker.WithData(kpiId: kpi.Id, measurementDate: measurementDate).Generate();
+        var measurement1 = _measurementFaker.WithKpiId(kpi.Id).WithMeasurementDate(measurementDate).Generate();
+        var measurement2 = _measurementFaker.WithKpiId(kpi.Id).WithMeasurementDate(measurementDate).Generate();
         kpi.AddMeasurement(measurement1);
 
         // Act
@@ -370,8 +370,8 @@ public sealed class StrategicInitiativeKpiTests
     {
         // Arrange
         var kpi = _kpiFaker.Generate();
-        var measurement1 = _measurementFaker.WithData(kpiId: kpi.Id, measurementDate: _dateTimeProvider.Now.Minus(Duration.FromDays(2))).Generate();
-        var measurement2 = _measurementFaker.WithData(kpiId: kpi.Id, measurementDate: _dateTimeProvider.Now.Minus(Duration.FromDays(1))).Generate();
+        var measurement1 = _measurementFaker.WithKpiId(kpi.Id).WithMeasurementDate(_dateTimeProvider.Now.Minus(Duration.FromDays(2))).Generate();
+        var measurement2 = _measurementFaker.WithKpiId(kpi.Id).WithMeasurementDate(_dateTimeProvider.Now.Minus(Duration.FromDays(1))).Generate();
 
         // Act
         var result1 = kpi.AddMeasurement(measurement1);
@@ -388,7 +388,7 @@ public sealed class StrategicInitiativeKpiTests
     {
         // Arrange
         var kpi = _kpiFaker.Generate();
-        var measurement = _measurementFaker.WithData(kpiId: kpi.Id).Generate();
+        var measurement = _measurementFaker.WithKpiId(kpi.Id).Generate();
         kpi.AddMeasurement(measurement);
 
         // Act

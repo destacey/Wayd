@@ -1,11 +1,11 @@
 ﻿using FluentAssertions;
+using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared.Extensions;
-using Moq;
 using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Projects.Queries;
@@ -63,12 +63,10 @@ public class GetMyProjectsSummaryQueryHandlerTests : IDisposable
     public async Task Handle_ShouldCountSponsorRole()
     {
         // Arrange
-        var project = new ProjectFaker().WithData(
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project = new ProjectFaker().WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Sponsor, [_employeeId] },
-            }
-        ).Generate();
+            }).Generate();
         _dbContext.AddProject(project);
 
         var query = new GetMyProjectsSummaryQuery();
@@ -85,12 +83,10 @@ public class GetMyProjectsSummaryQueryHandlerTests : IDisposable
     public async Task Handle_ShouldCountOwnerRole()
     {
         // Arrange
-        var project = new ProjectFaker().WithData(
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project = new ProjectFaker().WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Owner, [_employeeId] },
-            }
-        ).Generate();
+            }).Generate();
         _dbContext.AddProject(project);
 
         var query = new GetMyProjectsSummaryQuery();
@@ -107,12 +103,10 @@ public class GetMyProjectsSummaryQueryHandlerTests : IDisposable
     public async Task Handle_ShouldCountManagerRole()
     {
         // Arrange
-        var project = new ProjectFaker().WithData(
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project = new ProjectFaker().WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Manager, [_employeeId] },
-            }
-        ).Generate();
+            }).Generate();
         _dbContext.AddProject(project);
 
         var query = new GetMyProjectsSummaryQuery();
@@ -129,12 +123,10 @@ public class GetMyProjectsSummaryQueryHandlerTests : IDisposable
     public async Task Handle_ShouldCountMemberRole()
     {
         // Arrange
-        var project = new ProjectFaker().WithData(
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project = new ProjectFaker().WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Member, [_employeeId] },
-            }
-        ).Generate();
+            }).Generate();
         _dbContext.AddProject(project);
 
         var query = new GetMyProjectsSummaryQuery();
@@ -153,10 +145,7 @@ public class GetMyProjectsSummaryQueryHandlerTests : IDisposable
         // Arrange
         var project = new ProjectFaker().Generate();
 
-        var task = new ProjectTaskFaker().WithData(
-            projectId: project.Id,
-            status: TaskStatus.InProgress
-        ).Generate().WithAssignees(_employeeId);
+        var task = new ProjectTaskFaker().WithProjectId(project.Id).WithStatus(TaskStatus.InProgress).Generate().WithAssignees(_employeeId);
         project.AddToPrivateList("_tasks", task);
 
         _dbContext.AddProject(project);
@@ -175,13 +164,11 @@ public class GetMyProjectsSummaryQueryHandlerTests : IDisposable
     public async Task Handle_ShouldCountMultipleRolesOnSameProject()
     {
         // Arrange — user is both Sponsor and Manager on same project
-        var project = new ProjectFaker().WithData(
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project = new ProjectFaker().WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Sponsor, [_employeeId] },
                 { ProjectRole.Manager, [_employeeId] },
-            }
-        ).Generate();
+            }).Generate();
         _dbContext.AddProject(project);
 
         var query = new GetMyProjectsSummaryQuery();
@@ -199,19 +186,15 @@ public class GetMyProjectsSummaryQueryHandlerTests : IDisposable
     public async Task Handle_ShouldCountAcrossMultipleProjects()
     {
         // Arrange
-        var project1 = new ProjectFaker().WithData(
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project1 = new ProjectFaker().WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Sponsor, [_employeeId] },
-            }
-        ).Generate();
+            }).Generate();
 
-        var project2 = new ProjectFaker().WithData(
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project2 = new ProjectFaker().WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Manager, [_employeeId] },
-            }
-        ).Generate();
+            }).Generate();
 
         _dbContext.AddProjects([project1, project2]);
 
@@ -231,12 +214,10 @@ public class GetMyProjectsSummaryQueryHandlerTests : IDisposable
     {
         // Arrange
         var otherId = Guid.NewGuid();
-        var project = new ProjectFaker().WithData(
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project = new ProjectFaker().WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Sponsor, [otherId] },
-            }
-        ).Generate();
+            }).Generate();
         _dbContext.AddProject(project);
 
         var query = new GetMyProjectsSummaryQuery();
@@ -253,21 +234,15 @@ public class GetMyProjectsSummaryQueryHandlerTests : IDisposable
     public async Task Handle_ShouldFilterByStatus()
     {
         // Arrange
-        var activeProject = new ProjectFaker().WithData(
-            status: ProjectStatus.Active,
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var activeProject = new ProjectFaker().WithStatus(ProjectStatus.Active).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Owner, [_employeeId] },
-            }
-        ).Generate();
+            }).Generate();
 
-        var proposedProject = new ProjectFaker().WithData(
-            status: ProjectStatus.Proposed,
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var proposedProject = new ProjectFaker().WithStatus(ProjectStatus.Proposed).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Owner, [_employeeId] },
-            }
-        ).Generate();
+            }).Generate();
 
         _dbContext.AddProjects([activeProject, proposedProject]);
 
@@ -285,21 +260,15 @@ public class GetMyProjectsSummaryQueryHandlerTests : IDisposable
     public async Task Handle_ShouldReturnAllStatuses_WhenNoStatusFilter()
     {
         // Arrange
-        var activeProject = new ProjectFaker().WithData(
-            status: ProjectStatus.Active,
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var activeProject = new ProjectFaker().WithStatus(ProjectStatus.Active).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Owner, [_employeeId] },
-            }
-        ).Generate();
+            }).Generate();
 
-        var proposedProject = new ProjectFaker().WithData(
-            status: ProjectStatus.Proposed,
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var proposedProject = new ProjectFaker().WithStatus(ProjectStatus.Proposed).WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Manager, [_employeeId] },
-            }
-        ).Generate();
+            }).Generate();
 
         _dbContext.AddProjects([activeProject, proposedProject]);
 
@@ -318,17 +287,12 @@ public class GetMyProjectsSummaryQueryHandlerTests : IDisposable
     public async Task Handle_ShouldCountAssigneeWhoAlsoHasProjectRole()
     {
         // Arrange — user is a Manager AND has task assignments on same project
-        var project = new ProjectFaker().WithData(
-            roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project = new ProjectFaker().WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
             {
                 { ProjectRole.Manager, [_employeeId] },
-            }
-        ).Generate();
+            }).Generate();
 
-        var task = new ProjectTaskFaker().WithData(
-            projectId: project.Id,
-            status: TaskStatus.InProgress
-        ).Generate().WithAssignees(_employeeId);
+        var task = new ProjectTaskFaker().WithProjectId(project.Id).WithStatus(TaskStatus.InProgress).Generate().WithAssignees(_employeeId);
         project.AddToPrivateList("_tasks", task);
 
         _dbContext.AddProject(project);

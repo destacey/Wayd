@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Domain.Enums;
+﻿using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.Tests.Shared.Data;
 
@@ -18,19 +18,37 @@ public sealed class ProjectLifecycleFaker : PrivateConstructorFaker<ProjectLifec
 
 public static class ProjectLifecycleFakerExtensions
 {
-    public static ProjectLifecycleFaker WithData(
-        this ProjectLifecycleFaker faker,
-        Guid? id = null,
-        int? key = null,
-        string? name = null,
-        string? description = null,
-        ProjectLifecycleState? state = null)
+    public static ProjectLifecycleFaker WithId(this ProjectLifecycleFaker faker, Guid id)
     {
-        if (id.HasValue) { faker.RuleFor(x => x.Id, id.Value); }
-        if (key.HasValue) { faker.RuleFor(x => x.Key, key.Value); }
-        if (!string.IsNullOrWhiteSpace(name)) { faker.RuleFor(x => x.Name, name); }
-        if (!string.IsNullOrWhiteSpace(description)) { faker.RuleFor(x => x.Description, description); }
-        if (state.HasValue) { faker.RuleFor(x => x.State, state.Value); }
+        faker.RuleFor(x => x.Id, id);
+
+        return faker;
+    }
+
+    public static ProjectLifecycleFaker WithKey(this ProjectLifecycleFaker faker, int key)
+    {
+        faker.RuleFor(x => x.Key, key);
+
+        return faker;
+    }
+
+    public static ProjectLifecycleFaker WithName(this ProjectLifecycleFaker faker, string? name)
+    {
+        faker.RuleFor(x => x.Name, name);
+
+        return faker;
+    }
+
+    public static ProjectLifecycleFaker WithDescription(this ProjectLifecycleFaker faker, string? description)
+    {
+        faker.RuleFor(x => x.Description, description);
+
+        return faker;
+    }
+
+    public static ProjectLifecycleFaker WithState(this ProjectLifecycleFaker faker, ProjectLifecycleState state)
+    {
+        faker.RuleFor(x => x.State, state);
 
         return faker;
     }

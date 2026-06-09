@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
@@ -55,7 +55,7 @@ public class RecordProjectScoreCommandHandlerTests : IDisposable
     {
         var model = FreeNumericModel();
         var portfolioId = Guid.NewGuid();
-        var portfolio = _portfolioFaker.WithData(id: portfolioId).Generate();
+        var portfolio = _portfolioFaker.WithId(portfolioId).Generate();
         if (withModel)
         {
             portfolio.SetPrivate(p => p.ScoringModelId, (Guid?)model.Id);
@@ -64,7 +64,7 @@ public class RecordProjectScoreCommandHandlerTests : IDisposable
         var roles = ownerIsActor
             ? new Dictionary<ProjectRole, HashSet<Guid>> { [ProjectRole.Owner] = [_currentEmployeeId] }
             : null;
-        var project = _projectFaker.WithData(portfolioId: portfolioId, roles: roles).Generate();
+        var project = _projectFaker.WithPortfolioId(portfolioId).WithRoles(roles).Generate();
         project.SetPrivate(p => p.Portfolio, portfolio);
 
         _dbContext.AddProject(project);

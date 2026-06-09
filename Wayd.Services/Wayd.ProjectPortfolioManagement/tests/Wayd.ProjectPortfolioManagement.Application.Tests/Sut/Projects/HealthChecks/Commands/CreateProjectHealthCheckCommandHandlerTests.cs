@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
@@ -39,9 +39,9 @@ public class CreateProjectHealthCheckCommandHandlerTests : IDisposable
     private Project ProjectWithOwnerAndPortfolio()
     {
         var portfolioId = Guid.NewGuid();
-        var portfolio = _portfolioFaker.WithData(id: portfolioId).Generate();
+        var portfolio = _portfolioFaker.WithId(portfolioId).Generate();
         var project = _projectFaker
-            .WithData(portfolioId: portfolioId, roles: new() { [ProjectRole.Owner] = [_currentEmployeeId] })
+            .WithPortfolioId(portfolioId).WithRoles(new() { [ProjectRole.Owner] = [_currentEmployeeId] })
             .Generate();
         project.SetPrivate(p => p.Portfolio, portfolio);
         return project;
@@ -102,8 +102,8 @@ public class CreateProjectHealthCheckCommandHandlerTests : IDisposable
     public async Task Handle_WhenActorNotAuthorized_ReturnsFailure()
     {
         var portfolioId = Guid.NewGuid();
-        var portfolio = _portfolioFaker.WithData(id: portfolioId).Generate();
-        var project = _projectFaker.WithData(portfolioId: portfolioId).Generate();
+        var portfolio = _portfolioFaker.WithId(portfolioId).Generate();
+        var project = _projectFaker.WithPortfolioId(portfolioId).Generate();
         project.SetPrivate(p => p.Portfolio, portfolio);
         _dbContext.AddProject(project);
 

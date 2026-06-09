@@ -190,7 +190,7 @@ public class ProjectTests
     {
         // Arrange
         var employeeId = Guid.NewGuid();
-        var project = _projectFaker.WithData(roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project = _projectFaker.WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
         {
             { ProjectRole.Owner, new HashSet<Guid> { employeeId } }
         }).Generate();
@@ -208,7 +208,7 @@ public class ProjectTests
     {
         // Arrange
         var employeeId = Guid.NewGuid();
-        var project = _projectFaker.WithData(roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project = _projectFaker.WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
         {
             { ProjectRole.Owner, new HashSet<Guid> { employeeId } }
         }).Generate();
@@ -227,7 +227,7 @@ public class ProjectTests
         // Arrange
         var employeeId1 = Guid.NewGuid();
         var employeeId2 = Guid.NewGuid();
-        var project = _projectFaker.WithData(roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project = _projectFaker.WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
         {
             { ProjectRole.Owner, new HashSet<Guid> { employeeId1, employeeId2 } }
         }).Generate();
@@ -283,7 +283,7 @@ public class ProjectTests
     public void UpdateRoles_ShouldRemoveUnspecifiedRoles()
     {
         // Arrange
-        var project = _projectFaker.WithData(roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project = _projectFaker.WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
         {
             { ProjectRole.Manager, new HashSet<Guid> { Guid.NewGuid(), Guid.NewGuid() } },
             { ProjectRole.Owner, new HashSet<Guid> { Guid.NewGuid() } }
@@ -308,7 +308,7 @@ public class ProjectTests
     {
         // Arrange
         var employeeId = Guid.NewGuid();
-        var project = _projectFaker.WithData(roles: new Dictionary<ProjectRole, HashSet<Guid>>
+        var project = _projectFaker.WithRoles(new Dictionary<ProjectRole, HashSet<Guid>>
         {
             { ProjectRole.Sponsor, new HashSet<Guid> { employeeId } }
         }).Generate();
@@ -355,7 +355,7 @@ public class ProjectTests
     {
         // Arrange
         var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3));
-        var project = _projectFaker.WithData(dateRange: dateRange).Generate();
+        var project = _projectFaker.WithDateRange(dateRange).Generate();
 
         // Act
         var result = project.Activate();
@@ -550,7 +550,7 @@ public class ProjectTests
     public void UpdateProgram_ShouldRemoveProgramAssociation_WhenNullProgramPassed()
     {
         // Arrange
-        var project = _projectFaker.WithData(programId: Guid.NewGuid()).Generate();
+        var project = _projectFaker.WithProgramId(Guid.NewGuid()).Generate();
 
         // Act
         var result = project.UpdateProgram(null);
@@ -828,12 +828,12 @@ public class ProjectTests
         var phaseId = phases[0].Id;
 
         var parentTask = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 1), order: 1, projectPhaseId: phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 1)).WithOrder(1).WithProjectPhaseId(phaseId)
             .Generate();
         project.AddToPrivateList("_tasks", parentTask);
 
         var childTask = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 2), order: 1, parentId: parentTask.Id, projectPhaseId: phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 2)).WithOrder(1).WithParentId(parentTask.Id).WithProjectPhaseId(phaseId)
             .Generate();
         project.AddToPrivateList("_tasks", childTask);
         parentTask.AddChild(childTask);
@@ -896,18 +896,18 @@ public class ProjectTests
         var phaseId = phases[0].Id;
 
         var parentTask = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 1), order: 1, projectPhaseId: phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 1)).WithOrder(1).WithProjectPhaseId(phaseId)
             .Generate();
         project.AddToPrivateList("_tasks", parentTask);
 
         var existingChild = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 2), order: 1, parentId: parentTask.Id, projectPhaseId: phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 2)).WithOrder(1).WithParentId(parentTask.Id).WithProjectPhaseId(phaseId)
             .Generate();
         project.AddToPrivateList("_tasks", existingChild);
         parentTask.AddChild(existingChild);
 
         var taskToMove = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 3), order: 2, projectPhaseId: phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 3)).WithOrder(2).WithProjectPhaseId(phaseId)
             .Generate();
         project.AddToPrivateList("_tasks", taskToMove);
 
@@ -962,30 +962,30 @@ public class ProjectTests
         var phaseId = phases[0].Id;
 
         var oldParent = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 1), order: 1, projectPhaseId: phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 1)).WithOrder(1).WithProjectPhaseId(phaseId)
             .Generate();
         project.AddToPrivateList("_tasks", oldParent);
 
         var child1 = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 2), order: 1, parentId: oldParent.Id, projectPhaseId: phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 2)).WithOrder(1).WithParentId(oldParent.Id).WithProjectPhaseId(phaseId)
             .Generate();
         project.AddToPrivateList("_tasks", child1);
         oldParent.AddChild(child1);
 
         var child2 = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 3), order: 2, parentId: oldParent.Id, projectPhaseId: phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 3)).WithOrder(2).WithParentId(oldParent.Id).WithProjectPhaseId(phaseId)
             .Generate();
         project.AddToPrivateList("_tasks", child2);
         oldParent.AddChild(child2);
 
         var child3 = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 4), order: 3, parentId: oldParent.Id, projectPhaseId: phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 4)).WithOrder(3).WithParentId(oldParent.Id).WithProjectPhaseId(phaseId)
             .Generate();
         project.AddToPrivateList("_tasks", child3);
         oldParent.AddChild(child3);
 
         var newParent = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 5), order: 2, projectPhaseId: phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 5)).WithOrder(2).WithProjectPhaseId(phaseId)
             .Generate();
         project.AddToPrivateList("_tasks", newParent);
 
@@ -1007,24 +1007,24 @@ public class ProjectTests
         var phaseId = phases[0].Id;
 
         var newParent = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 1), order: 1, projectPhaseId: phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 1)).WithOrder(1).WithProjectPhaseId(phaseId)
             .Generate();
         project.AddToPrivateList("_tasks", newParent);
 
         var existingChild1 = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 2), order: 1, parentId: newParent.Id, projectPhaseId: phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 2)).WithOrder(1).WithParentId(newParent.Id).WithProjectPhaseId(phaseId)
             .Generate();
         project.AddToPrivateList("_tasks", existingChild1);
         newParent.AddChild(existingChild1);
 
         var existingChild2 = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 3), order: 2, parentId: newParent.Id, projectPhaseId: phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 3)).WithOrder(2).WithParentId(newParent.Id).WithProjectPhaseId(phaseId)
             .Generate();
         project.AddToPrivateList("_tasks", existingChild2);
         newParent.AddChild(existingChild2);
 
         var taskToMove = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 4), order: 2, projectPhaseId: phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 4)).WithOrder(2).WithProjectPhaseId(phaseId)
             .Generate();
         project.AddToPrivateList("_tasks", taskToMove);
 
@@ -1063,18 +1063,18 @@ public class ProjectTests
         var phaseId = phases[0].Id;
 
         var parentTask = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 1), order: 1, projectPhaseId: phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 1)).WithOrder(1).WithProjectPhaseId(phaseId)
             .Generate();
         project.AddToPrivateList("_tasks", parentTask);
 
         var childTask = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 2), order: 1, parentId: parentTask.Id, projectPhaseId: phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 2)).WithOrder(1).WithParentId(parentTask.Id).WithProjectPhaseId(phaseId)
             .Generate();
         project.AddToPrivateList("_tasks", childTask);
         parentTask.AddChild(childTask);
 
         var grandchildTask = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 3), order: 1, parentId: childTask.Id, projectPhaseId: phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 3)).WithOrder(1).WithParentId(childTask.Id).WithProjectPhaseId(phaseId)
             .Generate();
         project.AddToPrivateList("_tasks", grandchildTask);
         childTask.AddChild(grandchildTask);
@@ -1414,12 +1414,12 @@ public class ProjectTests
         var executePhase = phases.First(p => p.Name == "Execute");
 
         var parent = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 1), order: 1, projectPhaseId: planPhase.Id)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 1)).WithOrder(1).WithProjectPhaseId(planPhase.Id)
             .Generate();
         project.AddToPrivateList("_tasks", parent);
 
         var child = new ProjectTaskFaker()
-            .WithData(id: Guid.NewGuid(), projectId: project.Id, key: new ProjectTaskKey(project.Key, 2), order: 1, parentId: parent.Id, projectPhaseId: planPhase.Id)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 2)).WithOrder(1).WithParentId(parent.Id).WithProjectPhaseId(planPhase.Id)
             .Generate();
         project.AddToPrivateList("_tasks", child);
         parent.AddChild(child);
@@ -1717,7 +1717,7 @@ public class ProjectTests
     {
         var actorId = Guid.NewGuid();
         var project = _projectFaker
-            .WithData(roles: new() { [ProjectRole.Owner] = [actorId] })
+            .WithRoles(new() { [ProjectRole.Owner] = [actorId] })
             .Generate();
         return (project, actorId);
     }
@@ -1899,7 +1899,7 @@ public class ProjectTests
         var now = _dateTimeProvider.Now;
         var actorId = Guid.NewGuid();
         var programId = Guid.NewGuid();
-        var project = _projectFaker.WithData(programId: programId).Generate();
+        var project = _projectFaker.WithProgramId(programId).Generate();
         var model = FreeNumericModel();
         var ratings = RatingsByToken(model, ("BV", 6m), ("JS", 2m));
         var programRoles = new[]
@@ -1921,7 +1921,7 @@ public class ProjectTests
         var now = _dateTimeProvider.Now;
         var sponsorId = Guid.NewGuid();
         var project = _projectFaker
-            .WithData(roles: new() { [ProjectRole.Sponsor] = [sponsorId] })
+            .WithRoles(new() { [ProjectRole.Sponsor] = [sponsorId] })
             .Generate();
         var model = FreeNumericModel();
         var ratings = RatingsByToken(model, ("BV", 6m), ("JS", 2m));

@@ -18,19 +18,38 @@ public sealed class StrategicThemeFaker : PrivateConstructorFaker<StrategicTheme
 
 public static class StrategicThemeFakerExtensions
 {
-    public static StrategicThemeFaker WithData(
-        this StrategicThemeFaker faker,
-        Guid? id = null,
-        int? key = null,
-        string? name = null,
-        string? description = null,
-        StrategicThemeState? state = null)
+    public static StrategicThemeFaker WithId(this StrategicThemeFaker faker, Guid id)
     {
-        if (id.HasValue) { faker.RuleFor(x => x.Id, id.Value); }
-        if (key.HasValue) { faker.RuleFor(x => x.Key, key.Value); }
-        if (!string.IsNullOrWhiteSpace(name)) { faker.RuleFor(x => x.Name, name); }
-        if (!string.IsNullOrWhiteSpace(description)) { faker.RuleFor(x => x.Description, description); }
-        if (state.HasValue) { faker.RuleFor(x => x.State, state); }
+        faker.RuleFor(x => x.Id, id);
+
+        return faker;
+    }
+
+    public static StrategicThemeFaker WithKey(this StrategicThemeFaker faker, int key)
+    {
+        faker.RuleFor(x => x.Key, key);
+
+        return faker;
+    }
+
+    public static StrategicThemeFaker WithName(this StrategicThemeFaker faker, string? name)
+    {
+        faker.RuleFor(x => x.Name, name);
+
+        return faker;
+    }
+
+    public static StrategicThemeFaker WithDescription(this StrategicThemeFaker faker, string? description)
+    {
+        faker.RuleFor(x => x.Description, description);
+
+        return faker;
+    }
+
+    public static StrategicThemeFaker WithState(this StrategicThemeFaker faker, StrategicThemeState state)
+    {
+        faker.RuleFor(x => x.State, state);
+
         return faker;
     }
 }

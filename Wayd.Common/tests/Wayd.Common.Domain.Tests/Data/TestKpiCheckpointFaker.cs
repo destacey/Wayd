@@ -21,21 +21,44 @@ public sealed class TestKpiCheckpointFaker : PrivateConstructorFaker<TestKpiChec
 
 public static class TestKpiCheckpointFakerExtensions
 {
-    public static TestKpiCheckpointFaker WithData(
-        this TestKpiCheckpointFaker faker,
-        Guid? id = null,
-        Guid? kpiId = null,
-        double? targetValue = null,
-        double? atRiskValue = null,
-        Instant? checkpointDate = null,
-        string? dateLabel = null)
+    public static TestKpiCheckpointFaker WithId(this TestKpiCheckpointFaker faker, Guid? id)
     {
-        if (id.HasValue) { faker.RuleFor(x => x.Id, id.Value); }
-        if (kpiId.HasValue) { faker.RuleFor(x => x.KpiId, kpiId.Value); }
-        if (targetValue.HasValue) { faker.RuleFor(x => x.TargetValue, targetValue.Value); }
-        if (atRiskValue.HasValue) { faker.RuleFor(x => x.AtRiskValue, atRiskValue.Value); }
-        if (checkpointDate.HasValue) { faker.RuleFor(x => x.CheckpointDate, checkpointDate.Value); }
-        if (dateLabel != null) { faker.RuleFor(x => x.DateLabel, dateLabel); }
+        faker.RuleFor(x => x.Id, id);
+
+        return faker;
+    }
+
+    public static TestKpiCheckpointFaker WithKpiId(this TestKpiCheckpointFaker faker, Guid? kpiId)
+    {
+        faker.RuleFor(x => x.KpiId, kpiId);
+
+        return faker;
+    }
+
+    public static TestKpiCheckpointFaker WithTargetValue(this TestKpiCheckpointFaker faker, double? targetValue)
+    {
+        faker.RuleFor(x => x.TargetValue, targetValue);
+
+        return faker;
+    }
+
+    public static TestKpiCheckpointFaker WithAtRiskValue(this TestKpiCheckpointFaker faker, double? atRiskValue)
+    {
+        faker.RuleFor(x => x.AtRiskValue, atRiskValue);
+
+        return faker;
+    }
+
+    public static TestKpiCheckpointFaker WithCheckpointDate(this TestKpiCheckpointFaker faker, Instant? checkpointDate)
+    {
+        faker.RuleFor(x => x.CheckpointDate, checkpointDate);
+
+        return faker;
+    }
+
+    public static TestKpiCheckpointFaker WithDateLabel(this TestKpiCheckpointFaker faker, string? dateLabel)
+    {
+        faker.RuleFor(x => x.DateLabel, dateLabel);
 
         return faker;
     }

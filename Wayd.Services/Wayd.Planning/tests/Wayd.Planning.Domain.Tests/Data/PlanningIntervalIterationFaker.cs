@@ -1,8 +1,8 @@
-﻿using Wayd.Common.Models;
+﻿using NodaTime.Extensions;
+using Wayd.Common.Models;
 using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models;
 using Wayd.Tests.Shared.Data;
-using NodaTime.Extensions;
 
 namespace Wayd.Planning.Domain.Tests.Data;
 
@@ -22,12 +22,30 @@ public class PlanningIntervalIterationFaker : PrivateConstructorFaker<PlanningIn
 
 public static class PlanningIntervalIterationFakerExtensions
 {
-    public static PlanningIntervalIterationFaker WithData(this PlanningIntervalIterationFaker faker, Guid? planningIntervalId = null, string? name = null, IterationCategory? iterationCategory = null, LocalDateRange? dateRange = null)
+    public static PlanningIntervalIterationFaker WithPlanningIntervalId(this PlanningIntervalIterationFaker faker, Guid? planningIntervalId)
     {
-        if (planningIntervalId.HasValue) { faker.RuleFor(x => x.PlanningIntervalId, planningIntervalId.Value); }
-        if (!string.IsNullOrWhiteSpace(name)) { faker.RuleFor(x => x.Name, name); }
-        if (iterationCategory.HasValue) { faker.RuleFor(x => x.Category, iterationCategory.Value); }
-        if (dateRange is not null) { faker.RuleFor(x => x.DateRange, dateRange); }
+        faker.RuleFor(x => x.PlanningIntervalId, planningIntervalId);
+
+        return faker;
+    }
+
+    public static PlanningIntervalIterationFaker WithName(this PlanningIntervalIterationFaker faker, string? name)
+    {
+        faker.RuleFor(x => x.Name, name);
+
+        return faker;
+    }
+
+    public static PlanningIntervalIterationFaker WithIterationCategory(this PlanningIntervalIterationFaker faker, IterationCategory? iterationCategory)
+    {
+        faker.RuleFor(x => x.Category, iterationCategory);
+
+        return faker;
+    }
+
+    public static PlanningIntervalIterationFaker WithDateRange(this PlanningIntervalIterationFaker faker, LocalDateRange? dateRange)
+    {
+        faker.RuleFor(x => x.DateRange, dateRange);
 
         return faker;
     }

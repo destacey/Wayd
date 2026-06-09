@@ -21,21 +21,44 @@ public sealed class TestKpiMeasurementFaker : PrivateConstructorFaker<TestKpiMea
 
 public static class TestKpiMeasurementFakerExtensions
 {
-    public static TestKpiMeasurementFaker WithData(
-        this TestKpiMeasurementFaker faker,
-        Guid? id = null,
-        Guid? kpiId = null,
-        double? actualValue = null,
-        Instant? measurementDate = null,
-        Guid? measuredById = null,
-        string? note = null)
+    public static TestKpiMeasurementFaker WithId(this TestKpiMeasurementFaker faker, Guid? id)
     {
-        if (id.HasValue) { faker.RuleFor(x => x.Id, id.Value); }
-        if (kpiId.HasValue) { faker.RuleFor(x => x.KpiId, kpiId.Value); }
-        if (actualValue.HasValue) { faker.RuleFor(x => x.ActualValue, actualValue.Value); }
-        if (measurementDate.HasValue) { faker.RuleFor(x => x.MeasurementDate, measurementDate.Value); }
-        if (measuredById.HasValue) { faker.RuleFor(x => x.MeasuredById, measuredById.Value); }
-        if (!string.IsNullOrWhiteSpace(note)) { faker.RuleFor(x => x.Note, note); }
+        faker.RuleFor(x => x.Id, id);
+
+        return faker;
+    }
+
+    public static TestKpiMeasurementFaker WithKpiId(this TestKpiMeasurementFaker faker, Guid? kpiId)
+    {
+        faker.RuleFor(x => x.KpiId, kpiId);
+
+        return faker;
+    }
+
+    public static TestKpiMeasurementFaker WithActualValue(this TestKpiMeasurementFaker faker, double? actualValue)
+    {
+        faker.RuleFor(x => x.ActualValue, actualValue);
+
+        return faker;
+    }
+
+    public static TestKpiMeasurementFaker WithMeasurementDate(this TestKpiMeasurementFaker faker, Instant? measurementDate)
+    {
+        faker.RuleFor(x => x.MeasurementDate, measurementDate);
+
+        return faker;
+    }
+
+    public static TestKpiMeasurementFaker WithMeasuredById(this TestKpiMeasurementFaker faker, Guid? measuredById)
+    {
+        faker.RuleFor(x => x.MeasuredById, measuredById);
+
+        return faker;
+    }
+
+    public static TestKpiMeasurementFaker WithNote(this TestKpiMeasurementFaker faker, string? note)
+    {
+        faker.RuleFor(x => x.Note, note);
 
         return faker;
     }

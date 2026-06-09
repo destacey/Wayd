@@ -1,10 +1,10 @@
 ﻿using FluentAssertions;
-using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
-using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
-using Wayd.Tests.Shared;
 using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.Testing;
+using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
+using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
+using Wayd.Tests.Shared;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Sut.Models;
 
@@ -43,7 +43,7 @@ public sealed class StrategicInitiativeKpiMeasurementTests
     {
         // Arrange
         var measurement = _kpiMeasurementFaker
-            .WithData(measurementDate: _dateTimeProvider.Now.Plus(Duration.FromDays(1)))
+            .WithMeasurementDate(_dateTimeProvider.Now.Plus(Duration.FromDays(1)))
             .Generate();
         var timestamp = _dateTimeProvider.Now;
 

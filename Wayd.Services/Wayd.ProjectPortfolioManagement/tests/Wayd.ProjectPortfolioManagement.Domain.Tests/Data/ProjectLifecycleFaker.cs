@@ -18,14 +18,14 @@ public sealed class ProjectLifecycleFaker : PrivateConstructorFaker<ProjectLifec
 
 public static class ProjectLifecycleFakerExtensions
 {
-    public static ProjectLifecycleFaker WithId(this ProjectLifecycleFaker faker, Guid? id)
+    public static ProjectLifecycleFaker WithId(this ProjectLifecycleFaker faker, Guid id)
     {
         faker.RuleFor(x => x.Id, id);
 
         return faker;
     }
 
-    public static ProjectLifecycleFaker WithKey(this ProjectLifecycleFaker faker, int? key)
+    public static ProjectLifecycleFaker WithKey(this ProjectLifecycleFaker faker, int key)
     {
         faker.RuleFor(x => x.Key, key);
 
@@ -46,7 +46,7 @@ public static class ProjectLifecycleFakerExtensions
         return faker;
     }
 
-    public static ProjectLifecycleFaker WithState(this ProjectLifecycleFaker faker, ProjectLifecycleState? state)
+    public static ProjectLifecycleFaker WithState(this ProjectLifecycleFaker faker, ProjectLifecycleState state)
     {
         faker.RuleFor(x => x.State, state);
 

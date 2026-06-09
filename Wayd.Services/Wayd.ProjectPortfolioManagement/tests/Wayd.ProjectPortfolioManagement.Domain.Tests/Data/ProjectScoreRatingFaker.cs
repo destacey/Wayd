@@ -21,21 +21,21 @@ public sealed class ProjectScoreRatingFaker : PrivateConstructorFaker<ProjectSco
 
 public static class ProjectScoreRatingFakerExtensions
 {
-    public static ProjectScoreRatingFaker WithId(this ProjectScoreRatingFaker faker, Guid? id)
+    public static ProjectScoreRatingFaker WithId(this ProjectScoreRatingFaker faker, Guid id)
     {
         faker.RuleFor(x => x.Id, id);
 
         return faker;
     }
 
-    public static ProjectScoreRatingFaker WithProjectScoreId(this ProjectScoreRatingFaker faker, Guid? projectScoreId)
+    public static ProjectScoreRatingFaker WithProjectScoreId(this ProjectScoreRatingFaker faker, Guid projectScoreId)
     {
         faker.RuleFor(x => x.ProjectScoreId, projectScoreId);
 
         return faker;
     }
 
-    public static ProjectScoreRatingFaker WithCriterionId(this ProjectScoreRatingFaker faker, Guid? criterionId)
+    public static ProjectScoreRatingFaker WithCriterionId(this ProjectScoreRatingFaker faker, Guid criterionId)
     {
         faker.RuleFor(x => x.CriterionId, criterionId);
 
@@ -56,7 +56,7 @@ public static class ProjectScoreRatingFakerExtensions
         return faker;
     }
 
-    public static ProjectScoreRatingFaker WithRatingValue(this ProjectScoreRatingFaker faker, decimal? ratingValue)
+    public static ProjectScoreRatingFaker WithRatingValue(this ProjectScoreRatingFaker faker, decimal ratingValue)
     {
         faker.RuleFor(x => x.RatingValue, ratingValue);
 
@@ -77,7 +77,7 @@ public static class ProjectScoreRatingFakerExtensions
         return faker;
     }
 
-    public static ProjectScoreRatingFaker WithOrder(this ProjectScoreRatingFaker faker, int? order)
+    public static ProjectScoreRatingFaker WithOrder(this ProjectScoreRatingFaker faker, int order)
     {
         faker.RuleFor(x => x.Order, order);
 

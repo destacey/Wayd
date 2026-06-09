@@ -31,21 +31,21 @@ public sealed class ExpenditureCategoryFaker : PrivateConstructorFaker<Expenditu
         return this;
     }
 
-    public ExpenditureCategoryFaker WithState(ExpenditureCategoryState? state)
+    public ExpenditureCategoryFaker WithState(ExpenditureCategoryState state)
     {
         RuleFor(x => x.State, state);
 
         return this;
     }
 
-    public ExpenditureCategoryFaker WithIsCapitalizable(bool? isCapitalizable)
+    public ExpenditureCategoryFaker WithIsCapitalizable(bool isCapitalizable)
     {
         RuleFor(x => x.IsCapitalizable, isCapitalizable);
 
         return this;
     }
 
-    public ExpenditureCategoryFaker WithRequiresDepreciation(bool? requiresDepreciation)
+    public ExpenditureCategoryFaker WithRequiresDepreciation(bool requiresDepreciation)
     {
         RuleFor(x => x.RequiresDepreciation, requiresDepreciation);
 

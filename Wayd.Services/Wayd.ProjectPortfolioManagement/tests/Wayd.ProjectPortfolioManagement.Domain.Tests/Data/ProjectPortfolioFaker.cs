@@ -22,14 +22,14 @@ public sealed class ProjectPortfolioFaker : PrivateConstructorFaker<ProjectPortf
 
 public static class ProjectPortfolioFakerExtensions
 {
-    public static ProjectPortfolioFaker WithId(this ProjectPortfolioFaker faker, Guid? id)
+    public static ProjectPortfolioFaker WithId(this ProjectPortfolioFaker faker, Guid id)
     {
         faker.RuleFor(x => x.Id, id);
 
         return faker;
     }
 
-    public static ProjectPortfolioFaker WithKey(this ProjectPortfolioFaker faker, int? key)
+    public static ProjectPortfolioFaker WithKey(this ProjectPortfolioFaker faker, int key)
     {
         faker.RuleFor(x => x.Key, key);
 
@@ -50,7 +50,7 @@ public static class ProjectPortfolioFakerExtensions
         return faker;
     }
 
-    public static ProjectPortfolioFaker WithStatus(this ProjectPortfolioFaker faker, ProjectPortfolioStatus? status)
+    public static ProjectPortfolioFaker WithStatus(this ProjectPortfolioFaker faker, ProjectPortfolioStatus status)
     {
         faker.RuleFor(x => x.Status, status);
 

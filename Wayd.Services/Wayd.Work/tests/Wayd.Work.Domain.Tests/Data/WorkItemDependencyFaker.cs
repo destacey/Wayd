@@ -66,7 +66,7 @@ public static class WorkItemDependencyFakerExtensions
         return faker;
     }
 
-    public static WorkItemDependencyFaker WithCreatedOn(this WorkItemDependencyFaker faker, Instant? createdOn)
+    public static WorkItemDependencyFaker WithCreatedOn(this WorkItemDependencyFaker faker, Instant createdOn)
     {
         faker.RuleFor(x => x.CreatedOn, createdOn);
 

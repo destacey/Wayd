@@ -22,28 +22,28 @@ public sealed class ProjectScoreFaker : PrivateConstructorFaker<ProjectScore>
 
 public static class ProjectScoreFakerExtensions
 {
-    public static ProjectScoreFaker WithId(this ProjectScoreFaker faker, Guid? id)
+    public static ProjectScoreFaker WithId(this ProjectScoreFaker faker, Guid id)
     {
         faker.RuleFor(x => x.Id, id);
 
         return faker;
     }
 
-    public static ProjectScoreFaker WithProjectId(this ProjectScoreFaker faker, Guid? projectId)
+    public static ProjectScoreFaker WithProjectId(this ProjectScoreFaker faker, Guid projectId)
     {
         faker.RuleFor(x => x.ProjectId, projectId);
 
         return faker;
     }
 
-    public static ProjectScoreFaker WithScoringModelId(this ProjectScoreFaker faker, Guid? scoringModelId)
+    public static ProjectScoreFaker WithScoringModelId(this ProjectScoreFaker faker, Guid scoringModelId)
     {
         faker.RuleFor(x => x.ScoringModelId, scoringModelId);
 
         return faker;
     }
 
-    public static ProjectScoreFaker WithScoringModelKey(this ProjectScoreFaker faker, int? scoringModelKey)
+    public static ProjectScoreFaker WithScoringModelKey(this ProjectScoreFaker faker, int scoringModelKey)
     {
         faker.RuleFor(x => x.ScoringModelKey, scoringModelKey);
 
@@ -57,14 +57,14 @@ public static class ProjectScoreFakerExtensions
         return faker;
     }
 
-    public static ProjectScoreFaker WithPrimaryValue(this ProjectScoreFaker faker, decimal? primaryValue)
+    public static ProjectScoreFaker WithPrimaryValue(this ProjectScoreFaker faker, decimal primaryValue)
     {
         faker.RuleFor(x => x.PrimaryValue, primaryValue);
 
         return faker;
     }
 
-    public static ProjectScoreFaker WithScoredOn(this ProjectScoreFaker faker, Instant? scoredOn)
+    public static ProjectScoreFaker WithScoredOn(this ProjectScoreFaker faker, Instant scoredOn)
     {
         faker.RuleFor(x => x.ScoredOn, scoredOn);
 
@@ -78,7 +78,7 @@ public static class ProjectScoreFakerExtensions
         return faker;
     }
 
-    public static ProjectScoreFaker WithSequence(this ProjectScoreFaker faker, long? sequence)
+    public static ProjectScoreFaker WithSequence(this ProjectScoreFaker faker, long sequence)
     {
         faker.RuleFor(x => x.Sequence, sequence);
 

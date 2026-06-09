@@ -22,21 +22,21 @@ public sealed class StrategicInitiativeKpiCheckpointFaker : PrivateConstructorFa
 
 public static class StrategicInitiativeKpiCheckpointFakerExtensions
 {
-    public static StrategicInitiativeKpiCheckpointFaker WithId(this StrategicInitiativeKpiCheckpointFaker faker, Guid? id)
+    public static StrategicInitiativeKpiCheckpointFaker WithId(this StrategicInitiativeKpiCheckpointFaker faker, Guid id)
     {
         faker.RuleFor(x => x.Id, id);
 
         return faker;
     }
 
-    public static StrategicInitiativeKpiCheckpointFaker WithKpiId(this StrategicInitiativeKpiCheckpointFaker faker, Guid? kpiId)
+    public static StrategicInitiativeKpiCheckpointFaker WithKpiId(this StrategicInitiativeKpiCheckpointFaker faker, Guid kpiId)
     {
         faker.RuleFor(x => x.KpiId, kpiId);
 
         return faker;
     }
 
-    public static StrategicInitiativeKpiCheckpointFaker WithTargetValue(this StrategicInitiativeKpiCheckpointFaker faker, double? targetValue)
+    public static StrategicInitiativeKpiCheckpointFaker WithTargetValue(this StrategicInitiativeKpiCheckpointFaker faker, double targetValue)
     {
         faker.RuleFor(x => x.TargetValue, targetValue);
 
@@ -50,7 +50,7 @@ public static class StrategicInitiativeKpiCheckpointFakerExtensions
         return faker;
     }
 
-    public static StrategicInitiativeKpiCheckpointFaker WithCheckpointDate(this StrategicInitiativeKpiCheckpointFaker faker, Instant? checkpointDate)
+    public static StrategicInitiativeKpiCheckpointFaker WithCheckpointDate(this StrategicInitiativeKpiCheckpointFaker faker, Instant checkpointDate)
     {
         faker.RuleFor(x => x.CheckpointDate, checkpointDate);
 

@@ -19,14 +19,14 @@ public sealed class ProjectScoreOutputFaker : PrivateConstructorFaker<ProjectSco
 
 public static class ProjectScoreOutputFakerExtensions
 {
-    public static ProjectScoreOutputFaker WithId(this ProjectScoreOutputFaker faker, Guid? id)
+    public static ProjectScoreOutputFaker WithId(this ProjectScoreOutputFaker faker, Guid id)
     {
         faker.RuleFor(x => x.Id, id);
 
         return faker;
     }
 
-    public static ProjectScoreOutputFaker WithProjectScoreId(this ProjectScoreOutputFaker faker, Guid? projectScoreId)
+    public static ProjectScoreOutputFaker WithProjectScoreId(this ProjectScoreOutputFaker faker, Guid projectScoreId)
     {
         faker.RuleFor(x => x.ProjectScoreId, projectScoreId);
 
@@ -47,21 +47,21 @@ public static class ProjectScoreOutputFakerExtensions
         return faker;
     }
 
-    public static ProjectScoreOutputFaker WithValue(this ProjectScoreOutputFaker faker, decimal? value)
+    public static ProjectScoreOutputFaker WithValue(this ProjectScoreOutputFaker faker, decimal value)
     {
         faker.RuleFor(x => x.Value, value);
 
         return faker;
     }
 
-    public static ProjectScoreOutputFaker WithIsPrimary(this ProjectScoreOutputFaker faker, bool? isPrimary)
+    public static ProjectScoreOutputFaker WithIsPrimary(this ProjectScoreOutputFaker faker, bool isPrimary)
     {
         faker.RuleFor(x => x.IsPrimary, isPrimary);
 
         return faker;
     }
 
-    public static ProjectScoreOutputFaker WithOrder(this ProjectScoreOutputFaker faker, int? order)
+    public static ProjectScoreOutputFaker WithOrder(this ProjectScoreOutputFaker faker, int order)
     {
         faker.RuleFor(x => x.Order, order);
 

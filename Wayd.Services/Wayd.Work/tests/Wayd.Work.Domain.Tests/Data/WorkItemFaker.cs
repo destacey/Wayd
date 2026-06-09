@@ -80,7 +80,7 @@ public class WorkItemFaker : PrivateConstructorFaker<WorkItem>
 
 public static class WorkItemFakerExtensions
 {
-    public static WorkItemFaker WithWorkspaceId(this WorkItemFaker faker, Guid? workspaceId)
+    public static WorkItemFaker WithWorkspaceId(this WorkItemFaker faker, Guid workspaceId)
     {
         faker.RuleFor(x => x.WorkspaceId, workspaceId);
 
@@ -110,7 +110,7 @@ public static class WorkItemFakerExtensions
         return faker;
     }
 
-    public static WorkItemFaker WithStatusCategory(this WorkItemFaker faker, WorkStatusCategory? statusCategory)
+    public static WorkItemFaker WithStatusCategory(this WorkItemFaker faker, WorkStatusCategory statusCategory)
     {
         faker.RuleFor(x => x.StatusCategory, statusCategory);
 
@@ -124,7 +124,7 @@ public static class WorkItemFakerExtensions
         return faker;
     }
 
-    public static WorkItemFaker WithCreated(this WorkItemFaker faker, Instant? created)
+    public static WorkItemFaker WithCreated(this WorkItemFaker faker, Instant created)
     {
         faker.RuleFor(x => x.Created, created);
 
@@ -138,7 +138,7 @@ public static class WorkItemFakerExtensions
         return faker;
     }
 
-    public static WorkItemFaker WithLastModified(this WorkItemFaker faker, Instant? lastModified)
+    public static WorkItemFaker WithLastModified(this WorkItemFaker faker, Instant lastModified)
     {
         faker.RuleFor(x => x.LastModified, lastModified);
 
@@ -166,7 +166,7 @@ public static class WorkItemFakerExtensions
         return faker;
     }
 
-    public static WorkItemFaker WithStackRank(this WorkItemFaker faker, double? stackRank)
+    public static WorkItemFaker WithStackRank(this WorkItemFaker faker, double stackRank)
     {
         faker.RuleFor(x => x.StackRank, stackRank);
 

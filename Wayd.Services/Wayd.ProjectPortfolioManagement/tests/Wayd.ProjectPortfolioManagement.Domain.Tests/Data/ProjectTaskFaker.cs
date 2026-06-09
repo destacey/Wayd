@@ -38,7 +38,7 @@ public sealed class ProjectTaskFaker : PrivateConstructorFaker<ProjectTask>
 
 public static class ProjectTaskFakerExtensions
 {
-    public static ProjectTaskFaker WithId(this ProjectTaskFaker faker, Guid? id)
+    public static ProjectTaskFaker WithId(this ProjectTaskFaker faker, Guid id)
     {
         faker.RuleFor(x => x.Id, id);
 
@@ -53,7 +53,7 @@ public static class ProjectTaskFakerExtensions
         return faker;
     }
 
-    public static ProjectTaskFaker WithProjectId(this ProjectTaskFaker faker, Guid? projectId)
+    public static ProjectTaskFaker WithProjectId(this ProjectTaskFaker faker, Guid projectId)
     {
         faker.RuleFor(x => x.ProjectId, projectId);
 
@@ -74,21 +74,21 @@ public static class ProjectTaskFakerExtensions
         return faker;
     }
 
-    public static ProjectTaskFaker WithType(this ProjectTaskFaker faker, ProjectTaskType? type)
+    public static ProjectTaskFaker WithType(this ProjectTaskFaker faker, ProjectTaskType type)
     {
         faker.RuleFor(x => x.Type, type);
 
         return faker;
     }
 
-    public static ProjectTaskFaker WithStatus(this ProjectTaskFaker faker, TaskStatus? status)
+    public static ProjectTaskFaker WithStatus(this ProjectTaskFaker faker, TaskStatus status)
     {
         faker.RuleFor(x => x.Status, status);
 
         return faker;
     }
 
-    public static ProjectTaskFaker WithPriority(this ProjectTaskFaker faker, TaskPriority? priority)
+    public static ProjectTaskFaker WithPriority(this ProjectTaskFaker faker, TaskPriority priority)
     {
         faker.RuleFor(x => x.Priority, priority);
 
@@ -102,7 +102,7 @@ public static class ProjectTaskFakerExtensions
         return faker;
     }
 
-    public static ProjectTaskFaker WithOrder(this ProjectTaskFaker faker, int? order)
+    public static ProjectTaskFaker WithOrder(this ProjectTaskFaker faker, int order)
     {
         faker.RuleFor(x => x.Order, order);
 

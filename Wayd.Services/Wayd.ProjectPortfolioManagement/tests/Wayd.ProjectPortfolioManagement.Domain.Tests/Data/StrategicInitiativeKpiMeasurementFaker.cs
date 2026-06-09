@@ -22,28 +22,28 @@ public sealed class StrategicInitiativeKpiMeasurementFaker : PrivateConstructorF
 
 public static class StrategicInitiativeKpiMeasurementFakerExtensions
 {
-    public static StrategicInitiativeKpiMeasurementFaker WithId(this StrategicInitiativeKpiMeasurementFaker faker, Guid? id)
+    public static StrategicInitiativeKpiMeasurementFaker WithId(this StrategicInitiativeKpiMeasurementFaker faker, Guid id)
     {
         faker.RuleFor(x => x.Id, id);
 
         return faker;
     }
 
-    public static StrategicInitiativeKpiMeasurementFaker WithKpiId(this StrategicInitiativeKpiMeasurementFaker faker, Guid? kpiId)
+    public static StrategicInitiativeKpiMeasurementFaker WithKpiId(this StrategicInitiativeKpiMeasurementFaker faker, Guid kpiId)
     {
         faker.RuleFor(x => x.KpiId, kpiId);
 
         return faker;
     }
 
-    public static StrategicInitiativeKpiMeasurementFaker WithActualValue(this StrategicInitiativeKpiMeasurementFaker faker, double? actualValue)
+    public static StrategicInitiativeKpiMeasurementFaker WithActualValue(this StrategicInitiativeKpiMeasurementFaker faker, double actualValue)
     {
         faker.RuleFor(x => x.ActualValue, actualValue);
 
         return faker;
     }
 
-    public static StrategicInitiativeKpiMeasurementFaker WithMeasurementDate(this StrategicInitiativeKpiMeasurementFaker faker, Instant? measurementDate)
+    public static StrategicInitiativeKpiMeasurementFaker WithMeasurementDate(this StrategicInitiativeKpiMeasurementFaker faker, Instant measurementDate)
     {
         faker.RuleFor(x => x.MeasurementDate, measurementDate);
 

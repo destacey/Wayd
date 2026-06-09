@@ -23,7 +23,7 @@ public sealed class StrategicInitiativeKpiFaker : PrivateConstructorFaker<Strate
 
 public static class StrategicInitiativeKpiFakerExtensions
 {
-    public static StrategicInitiativeKpiFaker WithId(this StrategicInitiativeKpiFaker faker, Guid? id)
+    public static StrategicInitiativeKpiFaker WithId(this StrategicInitiativeKpiFaker faker, Guid id)
     {
         faker.RuleFor(x => x.Id, id);
 
@@ -44,7 +44,7 @@ public static class StrategicInitiativeKpiFakerExtensions
         return faker;
     }
 
-    public static StrategicInitiativeKpiFaker WithTargetValue(this StrategicInitiativeKpiFaker faker, double? targetValue)
+    public static StrategicInitiativeKpiFaker WithTargetValue(this StrategicInitiativeKpiFaker faker, double targetValue)
     {
         faker.RuleFor(x => x.TargetValue, targetValue);
 
@@ -72,21 +72,21 @@ public static class StrategicInitiativeKpiFakerExtensions
         return faker;
     }
 
-    public static StrategicInitiativeKpiFaker WithKpiTargetDirection(this StrategicInitiativeKpiFaker faker, KpiTargetDirection? kpiTargetDirection)
+    public static StrategicInitiativeKpiFaker WithKpiTargetDirection(this StrategicInitiativeKpiFaker faker, KpiTargetDirection kpiTargetDirection)
     {
         faker.RuleFor(x => x.TargetDirection, kpiTargetDirection);
 
         return faker;
     }
 
-    public static StrategicInitiativeKpiFaker WithStrategicInitiativeId(this StrategicInitiativeKpiFaker faker, Guid? strategicInitiativeId)
+    public static StrategicInitiativeKpiFaker WithStrategicInitiativeId(this StrategicInitiativeKpiFaker faker, Guid strategicInitiativeId)
     {
         faker.RuleFor(x => x.StrategicInitiativeId, strategicInitiativeId);
 
         return faker;
     }
 
-    public static StrategicInitiativeKpiFaker WithOrder(this StrategicInitiativeKpiFaker faker, int? order)
+    public static StrategicInitiativeKpiFaker WithOrder(this StrategicInitiativeKpiFaker faker, int order)
     {
         faker.RuleFor(x => x.Order, order);
 

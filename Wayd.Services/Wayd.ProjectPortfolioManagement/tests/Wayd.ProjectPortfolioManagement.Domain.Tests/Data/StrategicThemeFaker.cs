@@ -18,14 +18,14 @@ public sealed class StrategicThemeFaker : PrivateConstructorFaker<StrategicTheme
 
 public static class StrategicThemeFakerExtensions
 {
-    public static StrategicThemeFaker WithId(this StrategicThemeFaker faker, Guid? id)
+    public static StrategicThemeFaker WithId(this StrategicThemeFaker faker, Guid id)
     {
         faker.RuleFor(x => x.Id, id);
 
         return faker;
     }
 
-    public static StrategicThemeFaker WithKey(this StrategicThemeFaker faker, int? key)
+    public static StrategicThemeFaker WithKey(this StrategicThemeFaker faker, int key)
     {
         faker.RuleFor(x => x.Key, key);
 
@@ -46,7 +46,7 @@ public static class StrategicThemeFakerExtensions
         return faker;
     }
 
-    public static StrategicThemeFaker WithState(this StrategicThemeFaker faker, StrategicThemeState? state)
+    public static StrategicThemeFaker WithState(this StrategicThemeFaker faker, StrategicThemeState state)
     {
         faker.RuleFor(x => x.State, state);
 

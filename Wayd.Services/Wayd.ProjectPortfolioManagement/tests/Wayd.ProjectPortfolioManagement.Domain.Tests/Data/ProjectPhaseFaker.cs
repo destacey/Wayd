@@ -22,21 +22,21 @@ public sealed class ProjectPhaseFaker : PrivateConstructorFaker<ProjectPhase>
 
 public static class ProjectPhaseFakerExtensions
 {
-    public static ProjectPhaseFaker WithId(this ProjectPhaseFaker faker, Guid? id)
+    public static ProjectPhaseFaker WithId(this ProjectPhaseFaker faker, Guid id)
     {
         faker.RuleFor(x => x.Id, id);
 
         return faker;
     }
 
-    public static ProjectPhaseFaker WithProjectId(this ProjectPhaseFaker faker, Guid? projectId)
+    public static ProjectPhaseFaker WithProjectId(this ProjectPhaseFaker faker, Guid projectId)
     {
         faker.RuleFor(x => x.ProjectId, projectId);
 
         return faker;
     }
 
-    public static ProjectPhaseFaker WithProjectLifecyclePhaseId(this ProjectPhaseFaker faker, Guid? projectLifecyclePhaseId)
+    public static ProjectPhaseFaker WithProjectLifecyclePhaseId(this ProjectPhaseFaker faker, Guid projectLifecyclePhaseId)
     {
         faker.RuleFor(x => x.ProjectLifecyclePhaseId, projectLifecyclePhaseId);
 
@@ -57,14 +57,14 @@ public static class ProjectPhaseFakerExtensions
         return faker;
     }
 
-    public static ProjectPhaseFaker WithStatus(this ProjectPhaseFaker faker, TaskStatus? status)
+    public static ProjectPhaseFaker WithStatus(this ProjectPhaseFaker faker, TaskStatus status)
     {
         faker.RuleFor(x => x.Status, status);
 
         return faker;
     }
 
-    public static ProjectPhaseFaker WithOrder(this ProjectPhaseFaker faker, int? order)
+    public static ProjectPhaseFaker WithOrder(this ProjectPhaseFaker faker, int order)
     {
         faker.RuleFor(x => x.Order, order);
 

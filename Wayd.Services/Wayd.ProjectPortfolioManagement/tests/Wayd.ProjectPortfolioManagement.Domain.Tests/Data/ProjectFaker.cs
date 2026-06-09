@@ -27,14 +27,14 @@ public sealed class ProjectFaker : PrivateConstructorFaker<Project>
 
 public static class ProjectFakerExtensions
 {
-    public static ProjectFaker WithId(this ProjectFaker faker, Guid? id)
+    public static ProjectFaker WithId(this ProjectFaker faker, Guid id)
     {
         faker.RuleFor(x => x.Id, id);
 
         return faker;
     }
 
-    public static ProjectFaker WithKey(this ProjectFaker faker, ProjectKey? key)
+    public static ProjectFaker WithKey(this ProjectFaker faker, ProjectKey key)
     {
         faker.RuleFor(x => x.Key, key);
 
@@ -55,7 +55,7 @@ public static class ProjectFakerExtensions
         return faker;
     }
 
-    public static ProjectFaker WithStatus(this ProjectFaker faker, ProjectStatus? status)
+    public static ProjectFaker WithStatus(this ProjectFaker faker, ProjectStatus status)
     {
         faker.RuleFor(x => x.Status, status);
 
@@ -69,14 +69,14 @@ public static class ProjectFakerExtensions
         return faker;
     }
 
-    public static ProjectFaker WithExpenditureCategoryId(this ProjectFaker faker, int? expenditureCategoryId)
+    public static ProjectFaker WithExpenditureCategoryId(this ProjectFaker faker, int expenditureCategoryId)
     {
         faker.RuleFor(p => p.ExpenditureCategoryId, expenditureCategoryId);
 
         return faker;
     }
 
-    public static ProjectFaker WithPortfolioId(this ProjectFaker faker, Guid? portfolioId)
+    public static ProjectFaker WithPortfolioId(this ProjectFaker faker, Guid portfolioId)
     {
         faker.RuleFor(x => x.PortfolioId, portfolioId);
 

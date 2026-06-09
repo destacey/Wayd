@@ -28,14 +28,14 @@ public class StrategicInitiativeFaker : PrivateConstructorFaker<StrategicInitiat
 
 public static class StrategicInitiativeFakerExtensions
 {
-    public static StrategicInitiativeFaker WithId(this StrategicInitiativeFaker faker, Guid? id)
+    public static StrategicInitiativeFaker WithId(this StrategicInitiativeFaker faker, Guid id)
     {
         faker.RuleFor(x => x.Id, id);
 
         return faker;
     }
 
-    public static StrategicInitiativeFaker WithKey(this StrategicInitiativeFaker faker, int? key)
+    public static StrategicInitiativeFaker WithKey(this StrategicInitiativeFaker faker, int key)
     {
         faker.RuleFor(x => x.Key, key);
 
@@ -56,21 +56,21 @@ public static class StrategicInitiativeFakerExtensions
         return faker;
     }
 
-    public static StrategicInitiativeFaker WithStatus(this StrategicInitiativeFaker faker, StrategicInitiativeStatus? status)
+    public static StrategicInitiativeFaker WithStatus(this StrategicInitiativeFaker faker, StrategicInitiativeStatus status)
     {
         faker.RuleFor(x => x.Status, status);
 
         return faker;
     }
 
-    public static StrategicInitiativeFaker WithDateRange(this StrategicInitiativeFaker faker, LocalDateRange? dateRange)
+    public static StrategicInitiativeFaker WithDateRange(this StrategicInitiativeFaker faker, LocalDateRange dateRange)
     {
         faker.RuleFor(x => x.DateRange, dateRange);
 
         return faker;
     }
 
-    public static StrategicInitiativeFaker WithPortfolioId(this StrategicInitiativeFaker faker, Guid? portfolioId)
+    public static StrategicInitiativeFaker WithPortfolioId(this StrategicInitiativeFaker faker, Guid portfolioId)
     {
         faker.RuleFor(x => x.PortfolioId, portfolioId);
 

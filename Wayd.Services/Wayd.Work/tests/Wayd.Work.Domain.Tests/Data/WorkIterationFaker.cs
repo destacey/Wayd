@@ -28,14 +28,14 @@ public class WorkIterationFaker : PrivateConstructorFaker<WorkIteration>
 
 public static class WorkIterationFakerExtensions
 {
-    public static WorkIterationFaker WithId(this WorkIterationFaker faker, Guid? id)
+    public static WorkIterationFaker WithId(this WorkIterationFaker faker, Guid id)
     {
         faker.RuleFor(x => x.Id, id);
 
         return faker;
     }
 
-    public static WorkIterationFaker WithKey(this WorkIterationFaker faker, int? key)
+    public static WorkIterationFaker WithKey(this WorkIterationFaker faker, int key)
     {
         faker.RuleFor(x => x.Key, key);
 
@@ -49,21 +49,21 @@ public static class WorkIterationFakerExtensions
         return faker;
     }
 
-    public static WorkIterationFaker WithType(this WorkIterationFaker faker, IterationType? type)
+    public static WorkIterationFaker WithType(this WorkIterationFaker faker, IterationType type)
     {
         faker.RuleFor(x => x.Type, type);
 
         return faker;
     }
 
-    public static WorkIterationFaker WithState(this WorkIterationFaker faker, IterationState? state)
+    public static WorkIterationFaker WithState(this WorkIterationFaker faker, IterationState state)
     {
         faker.RuleFor(x => x.State, state);
 
         return faker;
     }
 
-    public static WorkIterationFaker WithDateRange(this WorkIterationFaker faker, IterationDateRange? dateRange)
+    public static WorkIterationFaker WithDateRange(this WorkIterationFaker faker, IterationDateRange dateRange)
     {
         faker.RuleFor(x => x.DateRange, dateRange);
 

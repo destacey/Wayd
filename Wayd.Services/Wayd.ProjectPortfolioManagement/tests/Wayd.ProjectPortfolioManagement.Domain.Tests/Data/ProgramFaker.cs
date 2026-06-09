@@ -22,7 +22,7 @@ public sealed class ProgramFaker : PrivateConstructorFaker<Program>
 
 public static class ProgramFakerExtensions
 {
-    public static ProgramFaker WithId(this ProgramFaker faker, Guid? id)
+    public static ProgramFaker WithId(this ProgramFaker faker, Guid id)
     {
         faker.RuleFor(x => x.Id, id);
 
@@ -43,7 +43,7 @@ public static class ProgramFakerExtensions
         return faker;
     }
 
-    public static ProgramFaker WithStatus(this ProgramFaker faker, ProgramStatus? status)
+    public static ProgramFaker WithStatus(this ProgramFaker faker, ProgramStatus status)
     {
         faker.RuleFor(x => x.Status, status);
 
@@ -57,7 +57,7 @@ public static class ProgramFakerExtensions
         return faker;
     }
 
-    public static ProgramFaker WithPortfolioId(this ProgramFaker faker, Guid? portfolioId)
+    public static ProgramFaker WithPortfolioId(this ProgramFaker faker, Guid portfolioId)
     {
         faker.RuleFor(x => x.PortfolioId, portfolioId);
 

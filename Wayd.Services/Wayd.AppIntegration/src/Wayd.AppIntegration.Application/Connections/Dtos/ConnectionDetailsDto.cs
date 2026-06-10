@@ -18,8 +18,6 @@ namespace Wayd.AppIntegration.Application.Connections.Dtos;
 [JsonDerivedType(typeof(AzureOpenAIConnectionDetailsDto), typeDiscriminator: "azure-openai")]
 [JsonDerivedType(typeof(EntraConnectionDetailsDto), typeDiscriminator: "entra")]
 [JsonDerivedType(typeof(WorkdayConnectionDetailsDto), typeDiscriminator: "workday")]
-// Note: OpenAI discriminator reserved for future implementation
-// [JsonDerivedType(typeof(OpenAIConnectionDetailsDto), typeDiscriminator: "openai")]
 public record ConnectionDetailsDto : IMapFrom<Connection>
 {
     /// <summary>
@@ -71,7 +69,6 @@ public record ConnectionDetailsDto : IMapFrom<Connection>
             .Include<AzureOpenAIConnection, AzureOpenAIConnectionDetailsDto>()
             .Include<EntraConnection, EntraConnectionDetailsDto>()
             .Include<WorkdayConnection, WorkdayConnectionDetailsDto>()
-            // OpenAI mapping reserved for future: .Include<OpenAIConnection, OpenAIConnectionDetailsDto>()
             .Map(dest => dest.Connector, src => SimpleNavigationDto.FromEnum(src.Connector))
             .Map(dest => dest.Category, src => SimpleNavigationDto.FromEnum(src.Connector.GetCategory()))
             .Map(dest => dest.CanSync, src => (src as ISyncableConnection) != null ? ((ISyncableConnection)src).CanSync : (bool?)null);

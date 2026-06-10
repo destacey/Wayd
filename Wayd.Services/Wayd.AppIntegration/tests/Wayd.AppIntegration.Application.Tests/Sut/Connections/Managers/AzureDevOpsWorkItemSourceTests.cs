@@ -170,7 +170,7 @@ public class AzureDevOpsWorkItemSourceTests
     {
         var descriptor = new SyncableConnectionDescriptor(
             Guid.CreateVersion7(),
-            Connector.OpenAI,
+            Connector.Entra,
             SystemId: null,
             Configuration: new AzureDevOpsBoardsConnectionConfiguration("o", "p"),
             TeamConfiguration: null);
@@ -178,7 +178,7 @@ public class AzureDevOpsWorkItemSourceTests
         var result = _sut.Bind(descriptor);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("OpenAI");
+        result.Error.Should().Contain("Entra");
     }
 
     [Fact]

@@ -32298,7 +32298,6 @@ export interface SyncRunListDto {
 export enum Connector {
     AzureDevOps = "AzureDevOps",
     AzureOpenAI = "AzureOpenAI",
-    OpenAI = "OpenAI",
     Entra = "Entra",
     Workday = "Workday",
 }

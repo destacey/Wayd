@@ -38746,14 +38746,12 @@
         "x-enumNames": [
           "AzureDevOps",
           "AzureOpenAI",
-          "OpenAI",
           "Entra",
           "Workday"
         ],
         "enum": [
           "AzureDevOps",
           "AzureOpenAI",
-          "OpenAI",
           "Entra",
           "Workday"
         ]

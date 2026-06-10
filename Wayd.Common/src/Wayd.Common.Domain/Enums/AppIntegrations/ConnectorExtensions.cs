@@ -10,7 +10,6 @@ public static class ConnectorExtensions
     {
         Connector.AzureDevOps => ConnectorCategory.WorkSync,
         Connector.AzureOpenAI => ConnectorCategory.AiProvider,
-        Connector.OpenAI => ConnectorCategory.AiProvider,
         Connector.Entra => ConnectorCategory.PeopleSync,
         Connector.Workday => ConnectorCategory.PeopleSync,
         _ => ConnectorCategory.Unknown

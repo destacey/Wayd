@@ -12,7 +12,6 @@ export const CONNECTOR_FORM_REGISTRY: Record<
 > = {
   [ConnectorType.AzureDevOps]: AzureDevOpsConfigurationSection,
   [ConnectorType.AzureOpenAI]: AzureOpenAIConfigurationSection,
-  [ConnectorType.OpenAI]: AzureOpenAIConfigurationSection, // Placeholder for future implementation
   [ConnectorType.Entra]: EntraConfigurationSection,
   [ConnectorType.Workday]: WorkdayConfigurationSection,
 }

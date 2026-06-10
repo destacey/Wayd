@@ -66,10 +66,7 @@ export const ConnectorTypeSelector: React.FC<ConnectorTypeSelectorProps> = ({
       .filter((id): id is number => typeof id === 'number'),
   )
 
-  const options: ConnectorOption[] = connectors
-    // OpenAI ships as a known enum value but no Create/Update support yet — hide it.
-    .filter((c) => c.id !== ConnectorType.OpenAI)
-    .map((c) => ({
+  const options: ConnectorOption[] = connectors.map((c) => ({
       type: c.id as ConnectorType,
       // Prefer the frontend's friendlier name + description when we have one, so we control wording.
       name: CONNECTOR_NAMES[c.id as ConnectorType] ?? c.name,

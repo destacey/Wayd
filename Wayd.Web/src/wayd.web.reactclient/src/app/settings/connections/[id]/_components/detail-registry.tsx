@@ -7,7 +7,6 @@ import { ComponentType, ReactNode } from 'react'
 import { azureDevOpsDetailEntry } from '../azure-devops'
 import { azureOpenAIDetailEntry } from '../azure-openai'
 import { entraDetailEntry } from '../entra'
-import { openAIDetailEntry } from '../openai'
 import { workdayDetailEntry } from '../workday'
 
 export interface ConnectionTabDefinition {
@@ -73,7 +72,6 @@ export interface DetailEntry {
 export const DETAIL_REGISTRY: Partial<Record<ConnectorType, DetailEntry>> = {
   [ConnectorType.AzureDevOps]: azureDevOpsDetailEntry,
   [ConnectorType.AzureOpenAI]: azureOpenAIDetailEntry,
-  [ConnectorType.OpenAI]: openAIDetailEntry,
   [ConnectorType.Entra]: entraDetailEntry,
   [ConnectorType.Workday]: workdayDetailEntry,
 }
@@ -81,7 +79,6 @@ export const DETAIL_REGISTRY: Partial<Record<ConnectorType, DetailEntry>> = {
 const NAME_TO_TYPE: Record<string, ConnectorType> = {
   'Azure DevOps': ConnectorType.AzureDevOps,
   'Azure OpenAI': ConnectorType.AzureOpenAI,
-  'OpenAI': ConnectorType.OpenAI,
   'Entra': ConnectorType.Entra,
   'Workday': ConnectorType.Workday,
 }

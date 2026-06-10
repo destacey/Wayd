@@ -38,14 +38,17 @@ internal sealed class GetConnectionsQueryHandler(IAppIntegrationDbContext appInt
         if (request.Category.HasValue)
             connections = [.. connections.Where(c => c.Connector.GetCategory() == request.Category.Value)];
 
-        // Map each connection to its appropriate derived DTO type for polymorphic serialization
+        // Map each connection to its appropriate derived DTO type for polymorphic serialization.
+        // Every concrete connection type must have an arm here — falling through to the base DTO
+        // would silently drop the configuration and $type discriminator, so throw instead.
         return [.. connections.Select(connection => connection switch
         {
             AzureDevOpsBoardsConnection azdo => (ConnectionListDto)azdo.Adapt<AzureDevOpsConnectionListDto>(),
             AzureOpenAIConnection aoai => aoai.Adapt<AzureOpenAIConnectionListDto>(),
             EntraConnection entra => entra.Adapt<EntraConnectionListDto>(),
             WorkdayConnection workday => workday.Adapt<WorkdayConnectionListDto>(),
-            _ => connection.Adapt<ConnectionListDto>()
+            _ => throw new InvalidOperationException(
+                $"No list DTO mapping is registered for connection type '{connection.GetType().Name}'.")
         })];
     }
 }

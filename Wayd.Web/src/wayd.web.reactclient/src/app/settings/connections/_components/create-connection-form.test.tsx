@@ -11,10 +11,6 @@ describe('create-connection-form helpers', () => {
       expect(getDiscriminator(ConnectorType.AzureOpenAI)).toBe('azure-openai')
     })
 
-    it('should return "openai" for OpenAI connector', () => {
-      expect(getDiscriminator(ConnectorType.OpenAI)).toBe('openai')
-    })
-
     it('should return "entra" for Entra connector', () => {
       expect(getDiscriminator(ConnectorType.Entra)).toBe('entra')
     })
@@ -24,7 +20,7 @@ describe('create-connection-form helpers', () => {
     })
 
     it('should handle all ConnectorType enum values', () => {
-      // Verify we have tests for all enum values
+      // Verify we have a discriminator for every enum value
       const connectorTypes = Object.values(ConnectorType).filter(
         (v) => typeof v === 'number',
       ) as ConnectorType[]
@@ -38,7 +34,7 @@ describe('create-connection-form helpers', () => {
 
     it('should return valid discriminator strings matching backend expectations', () => {
       // These discriminators must match the JsonDerivedType attributes in the backend
-      const validDiscriminators = ['azure-devops', 'azure-openai', 'openai', 'entra', 'workday']
+      const validDiscriminators = ['azure-devops', 'azure-openai', 'entra', 'workday']
 
       Object.values(ConnectorType)
         .filter((v) => typeof v === 'number')
@@ -46,6 +42,13 @@ describe('create-connection-form helpers', () => {
           const discriminator = getDiscriminator(type as ConnectorType)
           expect(validDiscriminators).toContain(discriminator)
         })
+    })
+
+    it('should throw for a connector type with no discriminator', () => {
+      // A silent fallback would submit a request the backend cannot deserialize
+      expect(() => getDiscriminator(999 as ConnectorType)).toThrow(
+        /No request discriminator is registered/,
+      )
     })
   })
 })

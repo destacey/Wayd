@@ -5806,27 +5806,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasForeignKey("ProjectLifecycleId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.OwnsOne("Wayd.Common.Models.LocalDateRange", "DateRange", b1 =>
-                        {
-                            b1.Property<Guid>("ProjectId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<DateTime>("End")
-                                .HasColumnType("date")
-                                .HasColumnName("End");
-
-                            b1.Property<DateTime>("Start")
-                                .HasColumnType("date")
-                                .HasColumnName("Start");
-
-                            b1.HasKey("ProjectId");
-
-                            b1.ToTable("Projects", "Ppm");
-
-                            b1.WithOwner()
-                                .HasForeignKey("ProjectId");
-                        });
-
                     b.OwnsOne("Wayd.ProjectPortfolioManagement.Domain.Models.Scoring.ScoreSummary", "CurrentScore", b1 =>
                         {
                             b1.Property<Guid>("ProjectId")
@@ -5870,6 +5849,27 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                                 .IsRequired();
 
                             b1.Navigation("ScoredBy");
+                        });
+
+                    b.OwnsOne("Wayd.Common.Models.LocalDateRange", "DateRange", b1 =>
+                        {
+                            b1.Property<Guid>("ProjectId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<DateTime>("End")
+                                .HasColumnType("date")
+                                .HasColumnName("End");
+
+                            b1.Property<DateTime>("Start")
+                                .HasColumnType("date")
+                                .HasColumnName("Start");
+
+                            b1.HasKey("ProjectId");
+
+                            b1.ToTable("Projects", "Ppm");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ProjectId");
                         });
 
                     b.Navigation("CurrentScore");

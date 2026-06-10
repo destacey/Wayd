@@ -139,7 +139,7 @@ Wayd.Work.Application/
 
 Customer-configured integrations (Azure DevOps, Entra, Azure OpenAI, future Jira / GitHub / Workday connectors) plug into a shared framework in the `Wayd.AppIntegration` service, the `Wayd.Integrations.*` projects, and a frontend registry pair. The goal is that adding a connector is *additive* — drop in new files, register them, no edits to the generic plumbing.
 
-Every connector belongs to a `ConnectorCategory` (`WorkSync`, `PeopleSync`, `AiProvider`). The category — not the specific connector type — determines which background runner picks the connection up and which Sync History view the detail page shows.
+Every connector declares its `ConnectorCapability` values (`WorkItems`, `People`, `AiProvider`) — a multi-surface connector can support several through one connection. The capability — not the specific connector type — determines which background runner picks the connection up and which Sync History view the detail page shows. Each capability carries a display category via `Display(GroupName)` that groups the connector picker UI.
 
 ### Backend shape
 

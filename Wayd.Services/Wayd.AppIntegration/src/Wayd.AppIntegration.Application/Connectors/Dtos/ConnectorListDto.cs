@@ -1,5 +1,3 @@
-﻿using Wayd.Common.Application.Dtos;
-
 namespace Wayd.AppIntegration.Application.Connectors.Dtos;
 
 public sealed class ConnectorListDto
@@ -9,8 +7,8 @@ public sealed class ConnectorListDto
     public string? Description { get; set; }
 
     /// <summary>
-    /// The connector's category — drives grouping in the connector-picker UI and the
-    /// single-active-per-category rule (e.g. PeopleSync).
+    /// The capabilities this connector supports, each with its display category. Multi-surface
+    /// connectors can support more than one capability while still using one connection.
     /// </summary>
-    public required SimpleNavigationDto Category { get; set; }
+    public required IReadOnlyList<ConnectorCapabilityDto> Capabilities { get; set; }
 }

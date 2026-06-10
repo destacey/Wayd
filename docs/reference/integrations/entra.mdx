@@ -70,7 +70,7 @@ Wayd does not write back to Entra. There is no `User.ReadWrite` or similar eleva
 ## How it works
 
 1. An admin creates an **Entra Connection** in Settings → Connections, supplying tenant ID, client ID, client secret (encrypted at rest), and optionally a group object ID.
-2. The `PeopleSyncRunner` reads all active `ConnectorCategory.PeopleSync` connections and, for each, builds a per-connection `GraphServiceClient` from the stored credentials — there is no shared app-wide Graph client for sync.
+2. The `PeopleSyncRunner` reads all active connections with the `ConnectorCapability.People` capability and, for each, builds a per-connection `GraphServiceClient` from the stored credentials — there is no shared app-wide Graph client for sync.
 3. The `MicrosoftGraphService` source pulls users (paginated through Graph's `$skiptoken` cursor), filters out accounts missing `givenName`/`surname`, optionally applies the group-membership scope, optionally filters out disabled accounts, and returns `EntraEmployee` records.
 4. The connector-agnostic `BulkUpsertEmployeesCommand` reconciles those records against the `Employee` table. Any active employee row not matched against the payload is deactivated — safe because the [single-active People Sync rule](./index.mdx#only-one-people-sync-connection-may-be-active-at-a-time) guarantees one source of truth at a time. (The runner additionally aborts loudly if more than one active People Sync connection ever slips through, as a defense-in-depth check.)
 5. Each run is captured as a `SyncRun` row; per-run details (`employeesFetched`, `employeesUpserted`, `errors[]`) are stored as JSON and rendered in the Sync History tab.

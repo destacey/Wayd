@@ -28,15 +28,15 @@ Connectors are managed from **Settings → Connections**. The set of supported c
 
 These behaviors apply to every connector — the per-connector pages link back here rather than repeat them.
 
-### Categories drive orchestration
+### Capabilities drive orchestration
 
-Each connector belongs to a `ConnectorCategory`. The category — not the specific connector type — determines which background runner picks the connection up:
+Each connector declares the `ConnectorCapability` values it supports (a multi-surface connector like GitHub can support several through one connection). The capability — not the specific connector type — determines which background runner picks the connection up:
 
 - **Work Sync** → `WorkSyncRunner` (Hangfire job `WorkFullSync` / `WorkDiffSync`).
 - **People Sync** → `PeopleSyncRunner` (Hangfire jobs `PeopleFullSync` / `PeopleDiffSync`). Connectors that don't support incremental fall back to Full transparently.
 - **AI Provider** → not synced; consumed on demand by features that need LLM access.
 
-The detail page's **Sync Now** action and **Sync History** tab dispatch by category too, so a future BambooHR / Okta / Jira connector just declares the right `ConnectorCategory` and gets the same plumbing for free.
+The detail page's **Sync Now** action and **Sync History** tab dispatch by capability too, so a future BambooHR / Okta / Jira connector just declares the right `ConnectorCapability` values and gets the same plumbing for free. Each capability also carries a display category (the enum's `Display(GroupName)`, e.g. "Work Management") that groups the connector picker.
 
 ### Only one People Sync connection may be active at a time
 
@@ -113,7 +113,7 @@ graph LR
 For sync-shaped or AI-provider connectors that customers configure in Settings → Connections:
 
 1. Add the connector type to `Connector` enum in `Wayd.Common.Domain.Enums.AppIntegrations`
-2. Map it to a `ConnectorCategory` in `ConnectorExtensions.GetCategory()` — the category determines which runner picks it up (work-sync, people-sync, AI-provider)
+2. Declare its `ConnectorCapability` values in `ConnectorExtensions.GetCapabilities()` — the capabilities determine which runners pick it up (work-sync, people-sync, AI-provider); a multi-surface connector declares several
 3. Create a domain configuration class (e.g. `JiraConnectionConfiguration`) and connection aggregate (`JiraConnection : Connection<JiraConnectionConfiguration>`). For sync-shaped connectors that have per-target integration state (workspaces, projects), also implement `ISyncableConnection`. Mark credential fields with `[Encrypted]` for at-rest encryption — see [Architecture → Connector framework](../../contributing/architecture.mdx#connector-framework)
 4. Create command/query handlers under `Wayd.AppIntegration.Application/Connections/Commands/{Connector}/` following the AzDO, Entra, and AOAI templates
 5. Register the EF entity configuration in `AppIntegrationConfiguration.cs` and add a migration (the migration is typically a no-op when the connector reuses the shared `Connections` TPH table — it just adds a discriminator value)

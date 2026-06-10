@@ -31939,11 +31939,17 @@ export interface ConnectionListDto {
     name: string;
     systemId?: string | undefined;
     connector: SimpleNavigationDto;
-    category: SimpleNavigationDto;
+    capabilities: ConnectorCapabilityDto[];
     isActive: boolean;
     isValidConfiguration: boolean;
     canSync?: boolean | undefined;
     $type: string;
+}
+
+export interface ConnectorCapabilityDto {
+    id: number;
+    name: string;
+    category: string;
 }
 
 export interface AzureDevOpsConnectionListDto extends ConnectionListDto {
@@ -31962,7 +31968,7 @@ export interface ConnectorListDto {
     id: number;
     name: string;
     description?: string | undefined;
-    category: SimpleNavigationDto;
+    capabilities: ConnectorCapabilityDto[];
 }
 
 export interface ConnectionDetailsDto {
@@ -31970,7 +31976,7 @@ export interface ConnectionDetailsDto {
     name: string;
     description?: string | undefined;
     connector: SimpleNavigationDto;
-    category: SimpleNavigationDto;
+    capabilities: ConnectorCapabilityDto[];
     isActive: boolean;
     isValidConfiguration: boolean;
     canSync?: boolean | undefined;

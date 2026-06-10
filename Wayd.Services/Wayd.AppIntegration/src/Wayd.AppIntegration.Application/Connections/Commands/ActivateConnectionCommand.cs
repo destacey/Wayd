@@ -31,13 +31,13 @@ internal sealed class ActivateConnectionCommandHandler(
             // PeopleSync is single-source by design: only one PeopleSync connection may be active
             // at a time. Activating a second one would let two sources upsert into the same
             // Employee table with different source-IDs and split the same person into two rows.
-            if (connection.Connector.GetCategory() == ConnectorCategory.PeopleSync && !connection.IsActive)
+            if (connection.Connector.HasCapability(ConnectorCapability.People) && !connection.IsActive)
             {
                 var existing = await _appIntegrationDbContext.Connections
                     .Where(c => c.Id != connection.Id && c.IsActive && !c.IsDeleted)
                     .ToListAsync(cancellationToken);
 
-                var conflicting = existing.FirstOrDefault(c => c.Connector.GetCategory() == ConnectorCategory.PeopleSync);
+                var conflicting = existing.FirstOrDefault(c => c.Connector.HasCapability(ConnectorCapability.People));
                 if (conflicting is not null)
                     return Result.Failure($"Another PeopleSync connection ({conflicting.Name}) is already active. Deactivate it before activating this one.");
             }

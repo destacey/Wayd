@@ -52,7 +52,7 @@ public sealed class WorkSyncRunner(
             try
             {
                 var connections = await _sender.Send(
-                    new GetConnectionsQuery(IncludeInactive: false, Category: ConnectorCategory.WorkSync),
+                    new GetConnectionsQuery(IncludeInactive: false, Capability: ConnectorCapability.WorkItems),
                     cancellationToken);
                 var active = connections
                     .Where(c => c.CanSync == true)

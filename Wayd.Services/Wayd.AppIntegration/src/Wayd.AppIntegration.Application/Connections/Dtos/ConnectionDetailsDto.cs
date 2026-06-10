@@ -3,6 +3,7 @@ using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureOpenAI;
 using Wayd.AppIntegration.Application.Connections.Dtos.Entra;
 using Wayd.AppIntegration.Application.Connections.Dtos.Workday;
+using Wayd.AppIntegration.Application.Connectors.Dtos;
 using Wayd.AppIntegration.Domain.Interfaces;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
@@ -41,9 +42,9 @@ public record ConnectionDetailsDto : IMapFrom<Connection>
     public required SimpleNavigationDto Connector { get; set; }
 
     /// <summary>
-    /// The category of the connector which indicates the broader type of integration (e.g. "People Sync", "Work Management", "AI Service").
+    /// The capabilities this connection's connector supports, each with its display category.
     /// </summary>
-    public required SimpleNavigationDto Category { get; set; }
+    public IReadOnlyList<ConnectorCapabilityDto> Capabilities { get; set; } = [];
 
     /// <summary>
     /// Indicates whether the connection is active or not. Inactive connections are not included in operations.
@@ -70,7 +71,7 @@ public record ConnectionDetailsDto : IMapFrom<Connection>
             .Include<EntraConnection, EntraConnectionDetailsDto>()
             .Include<WorkdayConnection, WorkdayConnectionDetailsDto>()
             .Map(dest => dest.Connector, src => SimpleNavigationDto.FromEnum(src.Connector))
-            .Map(dest => dest.Category, src => SimpleNavigationDto.FromEnum(src.Connector.GetCategory()))
+            .Map(dest => dest.Capabilities, src => src.Connector.GetCapabilities().Select(ConnectorCapabilityDto.FromEnum).ToList())
             .Map(dest => dest.CanSync, src => (src as ISyncableConnection) != null ? ((ISyncableConnection)src).CanSync : (bool?)null);
     }
 }

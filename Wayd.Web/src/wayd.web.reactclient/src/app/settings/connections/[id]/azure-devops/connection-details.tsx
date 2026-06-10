@@ -1,4 +1,5 @@
 import { AzureDevOpsConnectionDetailsDto } from '@/src/services/wayd-api'
+import { getCapabilityNames } from '@/src/types/connectors'
 import { Col, Descriptions, Row, Typography } from 'antd'
 import AzdoConnectionConfiguration from './connection-configuration'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
@@ -19,7 +20,7 @@ const AzdoConnectionDetails = ({ connection }: AzdoConnectionDetailsProps) => {
           <Descriptions column={1}>
             <Item label="System Id">{connection.systemId}</Item>
             <Item label="Connector">{connection.connector.name}</Item>
-            <Item label="Category">{connection.category?.name}</Item>
+            <Item label="Capabilities">{getCapabilityNames(connection)}</Item>
             <Item label="Is Active?">{connection.isActive ? 'Yes' : 'No'}</Item>
             <Item label="Is Valid Configuration?">
               {connection.isValidConfiguration ? 'Yes' : 'No'}

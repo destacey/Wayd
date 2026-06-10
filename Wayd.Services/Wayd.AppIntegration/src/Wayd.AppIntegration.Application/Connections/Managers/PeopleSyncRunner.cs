@@ -42,7 +42,7 @@ public sealed class PeopleSyncRunner(
         {
             _logger.LogInformation("PeopleSyncRunner starting (trigger={Trigger}, requestedSyncType={SyncType})", trigger, requestedSyncType);
 
-            // Load all non-deleted connections and filter by category + CanSync. CanSync lives
+            // Load all non-deleted connections and filter by capability + CanSync. CanSync lives
             // on ISyncableConnection and encodes IsActive && IsValidConfiguration &&
             // HasActiveIntegrationObjects — the same predicate WorkSyncRunner uses, so both
             // runners agree on what "ready to sync" means.
@@ -51,7 +51,7 @@ public sealed class PeopleSyncRunner(
                 .ToListAsync(cancellationToken);
 
             var active = connections
-                .Where(c => c.Connector.GetCategory() == ConnectorCategory.PeopleSync
+                .Where(c => c.Connector.HasCapability(ConnectorCapability.People)
                             && c is ISyncableConnection syncable
                             && syncable.CanSync)
                 .ToList();
@@ -100,7 +100,7 @@ public sealed class PeopleSyncRunner(
         if (connection is null)
             return Result.Failure($"Connection {connectionId} not found.");
 
-        if (connection.Connector.GetCategory() != ConnectorCategory.PeopleSync)
+        if (!connection.Connector.HasCapability(ConnectorCapability.People))
             return Result.Failure($"Connection {connectionId} is not a people-sync connection.");
 
         // Inactive connections must never sync. The controller blocks this at request time;

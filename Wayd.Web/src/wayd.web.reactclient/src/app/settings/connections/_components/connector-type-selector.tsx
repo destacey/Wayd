@@ -1,11 +1,10 @@
 import {
-  ConnectorCategory,
   ConnectorType,
-  CONNECTOR_CATEGORY_DESCRIPTIONS,
-  CONNECTOR_CATEGORY_LABELS,
-  CONNECTOR_CATEGORY_ORDER,
+  CAPABILITY_CATEGORY_DESCRIPTIONS,
+  CAPABILITY_CATEGORY_ORDER,
   CONNECTOR_DESCRIPTIONS,
   CONNECTOR_NAMES,
+  getCapabilityCategories,
 } from '@/src/types/connectors'
 import {
   useGetConnectionsQuery,
@@ -20,14 +19,17 @@ interface ConnectorTypeSelectorProps {
 }
 
 /**
- * Group a list of connectors by category id. The id is the backend ConnectorCategory enum value.
+ * Group a list of connectors by capability category. A connector can appear in more than one
+ * category when its capabilities span several.
  */
-const groupByCategory = <T extends { categoryId: number }>(items: T[]) => {
-  const grouped = new Map<number, T[]>()
+const groupByCategory = <T extends { categories: string[] }>(items: T[]) => {
+  const grouped = new Map<string, T[]>()
   for (const item of items) {
-    const list = grouped.get(item.categoryId) ?? []
-    list.push(item)
-    grouped.set(item.categoryId, list)
+    for (const category of item.categories) {
+      const list = grouped.get(category) ?? []
+      list.push(item)
+      grouped.set(category, list)
+    }
   }
   return grouped
 }
@@ -36,7 +38,7 @@ interface ConnectorOption {
   type: ConnectorType
   name: string
   description: string
-  categoryId: ConnectorCategory
+  categories: string[]
   isConnected: boolean
 }
 
@@ -59,11 +61,8 @@ export const ConnectorTypeSelector: React.FC<ConnectorTypeSelectorProps> = ({
     )
   }
 
-  const connectedCategoryIds = new Set(
-    (connections ?? [])
-      .filter((c) => c.isActive)
-      .map((c) => c.category?.id)
-      .filter((id): id is number => typeof id === 'number'),
+  const connectedCategories = new Set(
+    (connections ?? []).filter((c) => c.isActive).flatMap(getCapabilityCategories),
   )
 
   const options: ConnectorOption[] = connectors.map((c) => ({
@@ -72,17 +71,17 @@ export const ConnectorTypeSelector: React.FC<ConnectorTypeSelectorProps> = ({
       name: CONNECTOR_NAMES[c.id as ConnectorType] ?? c.name,
       description:
         CONNECTOR_DESCRIPTIONS[c.id as ConnectorType] ?? c.description ?? '',
-      categoryId: (c.category?.id as ConnectorCategory) ?? ConnectorCategory.Unknown,
+      categories: getCapabilityCategories(c),
       isConnected: false, // resolved per-card below if there's an active connection for the type
     }))
 
   const grouped = groupByCategory(options)
 
-  // Sort categories using our preferred display order; any uncategorized goes at the end.
+  // Sort categories using our preferred display order; any unrecognized goes at the end.
   const orderedCategories = [
-    ...CONNECTOR_CATEGORY_ORDER.filter((cat) => grouped.has(cat)),
+    ...CAPABILITY_CATEGORY_ORDER.filter((cat) => grouped.has(cat)),
     ...[...grouped.keys()].filter(
-      (cat) => !CONNECTOR_CATEGORY_ORDER.includes(cat as ConnectorCategory),
+      (cat) => !CAPABILITY_CATEGORY_ORDER.includes(cat),
     ),
   ]
 
@@ -92,19 +91,18 @@ export const ConnectorTypeSelector: React.FC<ConnectorTypeSelectorProps> = ({
         Select Connector Type
       </Title>
 
-      {orderedCategories.map((categoryId, index) => {
-        const categoryConnectors = (grouped.get(categoryId) ?? []).sort(
+      {orderedCategories.map((category, index) => {
+        const categoryConnectors = (grouped.get(category) ?? []).sort(
           (a, b) => a.name.localeCompare(b.name),
         )
-        const categoryHasActive = connectedCategoryIds.has(categoryId)
-        const categoryLabel =
-          CONNECTOR_CATEGORY_LABELS[categoryId as ConnectorCategory] ?? 'Other'
+        const categoryHasActive = connectedCategories.has(category)
+        const categoryLabel = category
         const categoryDescription =
-          CONNECTOR_CATEGORY_DESCRIPTIONS[categoryId as ConnectorCategory] ?? ''
+          CAPABILITY_CATEGORY_DESCRIPTIONS[category] ?? ''
 
         return (
           <div
-            key={categoryId}
+            key={category}
             style={{ marginBottom: index === orderedCategories.length - 1 ? 0 : 24 }}
           >
             <div style={{ marginBottom: 8 }}>

@@ -8,6 +8,7 @@ using Wayd.AppIntegration.Application.Connections.Dtos;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Managers;
 using Wayd.AppIntegration.Application.Connections.Queries;
+using Wayd.AppIntegration.Application.Connectors.Dtos;
 using Wayd.AppIntegration.Application.Persistence;
 using Wayd.AppIntegration.Application.Tests.Infrastructure;
 using Wayd.AppIntegration.Domain.Models;
@@ -107,7 +108,7 @@ public class WorkSyncRunnerTests
             Name = e.Name,
             SystemId = e.SystemId,
             Connector = new SimpleNavigationDto { Id = (int)e.Connector, Name = "Azure DevOps" },
-            Category = new SimpleNavigationDto { Id = (int)ConnectorCategory.WorkSync, Name = "Work Sync" },
+            Capabilities = [ConnectorCapabilityDto.FromEnum(ConnectorCapability.WorkItems)],
             IsActive = e.IsActive,
             IsValidConfiguration = e.IsValidConfiguration,
             CanSync = e.CanSync
@@ -444,12 +445,12 @@ public class WorkSyncRunnerTests
         await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, CancellationToken.None);
 
         // Critical invariant: the runner must only see WorkSync connectors. If this assertion
-        // is changed to allow uncategorized queries, future People/AI-sync connectors will be
+        // is changed to allow unfiltered queries, future People/AI-sync connectors will be
         // pulled into the work-sync pipeline.
         _mocker.GetMock<ISender>().Verify(s => s.Send(
             It.Is<GetConnectionsQuery>(q =>
                 q.IncludeInactive == false
-                && q.Category == ConnectorCategory.WorkSync),
+                && q.Capability == ConnectorCapability.WorkItems),
             It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -480,7 +481,7 @@ public class WorkSyncRunnerTests
             Id = connection.Id,
             Name = connection.Name,
             Connector = new SimpleNavigationDto { Id = (int)connection.Connector, Name = "Azure DevOps" },
-            Category = new SimpleNavigationDto { Id = (int)ConnectorCategory.WorkSync, Name = "Work Sync" },
+            Capabilities = [ConnectorCapabilityDto.FromEnum(ConnectorCapability.WorkItems)],
             IsActive = connection.IsActive,
             IsValidConfiguration = connection.IsValidConfiguration,
             SystemId = connection.SystemId,

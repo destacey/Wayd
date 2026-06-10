@@ -7,6 +7,7 @@ using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.AppIntegration.Domain.Models.Workday;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 
 namespace Wayd.AppIntegration.Application.Tests.Sut.Connections.Queries;
 
@@ -82,6 +83,25 @@ public class GetConnectionsQueryHandlerTests
         // Assert
         result.Should().HaveCount(1);
         result[0].Name.Should().Be("Active");
+    }
+
+    [Fact]
+    public async Task Handle_WhenCapabilityFilterIsSpecified_ReturnsConnectionsWithThatCapability()
+    {
+        // Arrange
+        var connections = CreateOneOfEachConcreteConnectionType();
+        _db.AddConnections(connections);
+
+        // Act
+        var result = await _sut.Handle(
+            new GetConnectionsQuery(IncludeInactive: true, Capability: ConnectorCapability.People),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Select(c => c.Connector.Id).Should().BeEquivalentTo(
+            [(int)Connector.Entra, (int)Connector.Workday]);
+        result.Should().AllSatisfy(c =>
+            c.Capabilities.Should().Contain(capability => capability.Id == (int)ConnectorCapability.People));
     }
 
     private static List<Connection> CreateOneOfEachConcreteConnectionType() =>

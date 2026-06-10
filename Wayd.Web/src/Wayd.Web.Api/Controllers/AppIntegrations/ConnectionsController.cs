@@ -11,6 +11,7 @@ using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Application.BackgroundJobs;
 using Wayd.Common.Application.Enums;
+using Wayd.Common.Extensions;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Interfaces;
@@ -176,7 +177,7 @@ public class ConnectionsController(ISender sender) : ControllerBase
     [HttpPost("{id}/run")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
     [OpenApiOperation("Trigger a sync for a connection.",
-        "Enqueues a background job that runs the sync pipeline for this connection only. Routes by connector category. The syncType query parameter is honored by both work-sync and people-sync connectors; the default is Differential. For PeopleSync, Differential silently degrades to Full when no prior successful run exists (or when the source doesn't support incremental). The connection must be active.")]
+        "Enqueues a background job that runs the sync pipeline for this connection only. Routes by connector capability; a multi-capability connector runs every sync it supports. The syncType query parameter is honored by both work-sync and people-sync connectors; the default is Differential. For PeopleSync, Differential silently degrades to Full when no prior successful run exists (or when the source doesn't support incremental). The connection must be active.")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RunSync(
@@ -194,19 +195,29 @@ public class ConnectionsController(ISender sender) : ControllerBase
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(
                 "Connection is inactive. Activate the connection before triggering a sync.", HttpContext));
 
-        var category = ((Connector)connection.Connector.Id).GetCategory();
-        switch (category)
+        // Manual sync means "sync this connection" — a multi-surface connector (e.g. GitHub:
+        // work sync + source control) enqueues a job for every capability it supports.
+        var connector = (Connector)connection.Connector.Id;
+        var enqueuedAny = false;
+
+        if (connector.HasCapability(ConnectorCapability.WorkItems))
         {
-            case ConnectorCategory.WorkSync:
-                jobService.Enqueue(() => jobManager.RunWorkSync(syncType, SyncTriggerSource.Manual, id, cancellationToken));
-                return Accepted();
-            case ConnectorCategory.PeopleSync:
-                jobService.Enqueue(() => jobManager.RunPeopleSync(syncType, SyncTriggerSource.Manual, id, cancellationToken));
-                return Accepted();
-            default:
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest(
-                    $"Connections of category '{category}' do not support manual sync.", HttpContext));
+            jobService.Enqueue(() => jobManager.RunWorkSync(syncType, SyncTriggerSource.Manual, id, cancellationToken));
+            enqueuedAny = true;
         }
+
+        if (connector.HasCapability(ConnectorCapability.People))
+        {
+            jobService.Enqueue(() => jobManager.RunPeopleSync(syncType, SyncTriggerSource.Manual, id, cancellationToken));
+            enqueuedAny = true;
+        }
+
+        if (enqueuedAny)
+            return Accepted();
+
+        var capabilityNames = string.Join(", ", connector.GetCapabilities().Select(c => c.GetDisplayName()));
+        return BadRequest(ProblemDetailsExtensions.ForBadRequest(
+            $"Connections with capabilities '{capabilityNames}' do not support manual sync.", HttpContext));
     }
 
     [HttpPost("{id}/init")]

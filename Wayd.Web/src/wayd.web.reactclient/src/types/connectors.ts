@@ -25,39 +25,60 @@ export const CONNECTOR_DESCRIPTIONS: Record<ConnectorType, string> = {
 }
 
 /**
- * Categories of connectors — mirrors `Wayd.Common.Domain.Enums.AppIntegrations.ConnectorCategory`.
- * Used to group the connector picker by purpose and to drive the single-active-per-category rule.
+ * Display-category grouping for capabilities. Keys are the capability `category` strings the API
+ * sends (the backend `ConnectorCapability` enum's Display GroupName). Listed in the order an
+ * admin most commonly sets things up: who works here → what they're working on → AI features on
+ * top.
  */
-export enum ConnectorCategory {
-  Unknown = 0,
-  WorkSync = 1,
-  PeopleSync = 2,
-  AiProvider = 3,
-}
-
-/**
- * Display order in the connector picker. Listed in the order an admin most commonly sets things up:
- * who works here → what they're working on → AI features on top.
- */
-export const CONNECTOR_CATEGORY_ORDER: ConnectorCategory[] = [
-  ConnectorCategory.PeopleSync,
-  ConnectorCategory.WorkSync,
-  ConnectorCategory.AiProvider,
+export const CAPABILITY_CATEGORY_ORDER: string[] = [
+  'People',
+  'Work Management',
+  'AI Provider',
 ]
 
-export const CONNECTOR_CATEGORY_LABELS: Record<ConnectorCategory, string> = {
-  [ConnectorCategory.Unknown]: 'Other',
-  [ConnectorCategory.PeopleSync]: 'People',
-  [ConnectorCategory.WorkSync]: 'Work Management',
-  [ConnectorCategory.AiProvider]: 'AI Provider',
+export const CAPABILITY_CATEGORY_DESCRIPTIONS: Record<string, string> = {
+  People:
+    'Identify who works at your company. Only one People connector can be active at a time.',
+  'Work Management':
+    'Pull work items, teams, and iterations from your delivery system.',
+  'AI Provider':
+    'Power AI features in Wayd. Only one AI Provider can be active at a time.',
 }
 
-export const CONNECTOR_CATEGORY_DESCRIPTIONS: Record<ConnectorCategory, string> = {
-  [ConnectorCategory.Unknown]: '',
-  [ConnectorCategory.PeopleSync]:
-    'Identify who works at your company. Only one People connector can be active at a time.',
-  [ConnectorCategory.WorkSync]:
-    'Pull work items, teams, and iterations from your delivery system.',
-  [ConnectorCategory.AiProvider]:
-    'Power AI features in Wayd. Only one AI Provider can be active at a time.',
+/** Fallback picker section for capabilities whose category the frontend doesn't recognize. */
+export const UNKNOWN_CAPABILITY_CATEGORY = 'Other'
+
+/**
+ * Minimal capability shape shared by connector and connection DTOs
+ * (structurally compatible with ConnectorCapabilityDto).
+ */
+interface CapabilityRef {
+  id?: number
+  name?: string
+  category?: string
+}
+
+interface CapableDto {
+  capabilities?: CapabilityRef[]
+}
+
+/** Comma-separated capability names for display (e.g. grid cells, detail panes). */
+export const getCapabilityNames = (item: CapableDto | undefined): string =>
+  (item?.capabilities ?? [])
+    .map((capability) => capability.name)
+    .filter(Boolean)
+    .join(', ')
+
+/**
+ * Distinct display categories across an item's capabilities — the picker groups connectors by
+ * these. Falls back to a single "Other" bucket so grouping UIs always have a section.
+ */
+export const getCapabilityCategories = (item: CapableDto | undefined): string[] => {
+  const categories = (item?.capabilities ?? [])
+    .map((capability) => capability.category)
+    .filter((category): category is string => !!category)
+
+  return categories.length > 0
+    ? [...new Set(categories)]
+    : [UNKNOWN_CAPABILITY_CATEGORY]
 }

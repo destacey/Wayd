@@ -8,6 +8,7 @@ using NodaTime;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Managers;
 using Wayd.AppIntegration.Application.Connections.Queries.AzureDevOps;
+using Wayd.AppIntegration.Application.Connectors.Dtos;
 using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Application.Dtos;
@@ -90,7 +91,7 @@ public class AzureDevOpsWorkItemSourceTests
             Id = connectionId,
             Name = "Test Connection",
             Connector = new SimpleNavigationDto { Id = (int)Connector.AzureDevOps, Name = "Azure DevOps" },
-            Category = new SimpleNavigationDto { Id = (int)ConnectorCategory.WorkSync, Name = "Work Sync" },
+            Capabilities = [ConnectorCapabilityDto.FromEnum(ConnectorCapability.WorkItems)],
             IsActive = true,
             IsValidConfiguration = true,
             SystemId = systemId,

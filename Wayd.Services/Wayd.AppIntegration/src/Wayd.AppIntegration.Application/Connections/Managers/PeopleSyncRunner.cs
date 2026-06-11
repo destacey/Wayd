@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.Json;
 using MediatR;
 using Wayd.AppIntegration.Application.Interfaces;
@@ -7,32 +7,35 @@ using Wayd.Common.Application.Employees.Commands;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Identity.Users;
 using Wayd.Common.Domain.Enums.AppIntegrations;
-using Wayd.Common.Application.Interfaces.ExternalPeople;
+using Wayd.Integrations.Abstractions;
 
 namespace Wayd.AppIntegration.Application.Connections.Managers;
 
 /// <summary>
-/// Per-run orchestrator for people sync. Loops over all active PeopleSync-category connections,
-/// fetches employees from each source, and feeds them into the existing
-/// <see cref="BulkUpsertEmployeesCommand"/> pipeline. Persists one <see cref="SyncRun"/> row per
-/// connection per run; per-run metrics are stuffed into <c>DetailsJson</c> since the SyncRun
-/// schema is currently work-item-flavored.
+/// Per-run orchestrator for people sync. Loops over all active connections with the People
+/// capability, resolves each connector's <see cref="IEmployeeSource"/> via the keyed factory, and
+/// feeds the fetched employees into the existing <see cref="BulkUpsertEmployeesCommand"/>
+/// pipeline. The runner never names a concrete connector — adding a people connector means
+/// registering a source and a descriptor builder, not editing this class. Persists one
+/// <see cref="SyncRun"/> row per connection per run; per-run metrics are stuffed into
+/// <c>DetailsJson</c> since the SyncRun schema is currently work-item-flavored.
 /// </summary>
 public sealed class PeopleSyncRunner(
     ILogger<PeopleSyncRunner> logger,
     ISender sender,
     IAppIntegrationDbContext db,
     IDateTimeProvider clock,
-    IEntraEmployeeSource entraEmployeeSource,
-    IWorkdayEmployeeSource workdayEmployeeSource,
+    IEmployeeSourceFactory sourceFactory,
+    IEnumerable<ISyncableConnectionDescriptorBuilder> descriptorBuilders,
     IUserService userService) : IPeopleSyncRunner
 {
     private readonly ILogger<PeopleSyncRunner> _logger = logger;
     private readonly ISender _sender = sender;
     private readonly IAppIntegrationDbContext _db = db;
     private readonly IDateTimeProvider _clock = clock;
-    private readonly IEntraEmployeeSource _entraEmployeeSource = entraEmployeeSource;
-    private readonly IWorkdayEmployeeSource _workdayEmployeeSource = workdayEmployeeSource;
+    private readonly IEmployeeSourceFactory _sourceFactory = sourceFactory;
+    private readonly IReadOnlyDictionary<Connector, ISyncableConnectionDescriptorBuilder> _descriptorBuilders =
+        descriptorBuilders.ToDictionary(b => b.Connector);
     private readonly IUserService _userService = userService;
 
     public async Task<Result> Run(SyncTriggerSource trigger, SyncType requestedSyncType, CancellationToken cancellationToken)
@@ -114,12 +117,26 @@ public sealed class PeopleSyncRunner(
 
     private async Task<Result> RunConnection(Guid connectionId, Connector connector, SyncTriggerSource trigger, SyncType requestedSyncType, CancellationToken cancellationToken)
     {
+        // Resolve the connector's source up front: descriptor builder (typed entity load, boxed
+        // config) → keyed IEmployeeSource → Bind. Resolution failures still produce a failed
+        // SyncRun row so the sync-history audit trail shows why nothing happened.
+        var sourceResult = await ResolveSource(connectionId, connector, cancellationToken);
+        if (sourceResult.IsFailure)
+        {
+            var failedRun = SyncRun.Start(connectionId, connector, SyncType.Full, trigger, _clock.Now);
+            _db.SyncRuns.Add(failedRun);
+            failedRun.MarkFailed(_clock.Now, sourceResult.Error);
+            await SaveRun(failedRun, new PeopleSyncDetail { Errors = [sourceResult.Error] }, cancellationToken);
+            return Result.Failure(sourceResult.Error);
+        }
+        var source = sourceResult.Value;
+
         // The caller picks the sync type. Manual/full and scheduled/full ignore any prior watermark
         // and re-pull everything. Differential reads the most recent successful run's FinishedAt as
         // the watermark — first run with no prior success silently degrades to a full snapshot, since
         // "incremental from null" is meaningless.
         Instant? lastSuccessfulRunAt = null;
-        if (requestedSyncType == SyncType.Differential && SourceSupportsIncremental(connector))
+        if (requestedSyncType == SyncType.Differential && source.SupportsIncremental)
         {
             lastSuccessfulRunAt = await _db.SyncRuns
                 .Where(r => r.ConnectionId == connectionId && r.Status == SyncRunStatus.Succeeded && r.FinishedAt != null)
@@ -148,7 +165,7 @@ public sealed class PeopleSyncRunner(
             cancellationToken.ThrowIfCancellationRequested();
 
             stageTimer.Restart();
-            var fetchResult = await FetchEmployees(connectionId, connector, lastSuccessfulRunAt, cancellationToken);
+            var fetchResult = await source.GetEmployees(lastSuccessfulRunAt, cancellationToken);
             fetchMs = stageTimer.ElapsedMilliseconds;
             if (fetchResult.IsFailure)
             {
@@ -158,8 +175,8 @@ public sealed class PeopleSyncRunner(
                 return Result.Failure(fetchResult.Error);
             }
 
-            var (employeesEnumerable, exclusionCounts) = fetchResult.Value;
-            var employees = employeesEnumerable.ToList();
+            var employees = fetchResult.Value.Employees.ToList();
+            var exclusionCounts = fetchResult.Value.ExclusionCounts;
             details.EmployeesFetched = employees.Count;
             details.IncrementalUsed = incremental;
             if (exclusionCounts.Count > 0)
@@ -167,8 +184,8 @@ public sealed class PeopleSyncRunner(
                 details.EmployeesExcluded = exclusionCounts.Sum(c => c.Count);
                 details.ExclusionBreakdown = [.. exclusionCounts
                     .Select(c => new ExclusionBreakdownEntry(
-                        OrgTypeId: c.OrganizationTypeId,
-                        OrgReference: c.OrganizationReference,
+                        OrgTypeId: c.RuleType,
+                        OrgReference: c.RuleReference,
                         DisplayName: c.DisplayName,
                         Count: c.Count))];
             }
@@ -194,11 +211,9 @@ public sealed class PeopleSyncRunner(
                 return Result.Failure(msg);
             }
 
-            var matchBy = await ResolveMatchProperty(connectionId, connector, cancellationToken);
-
             stageTimer.Restart();
             var upsertResult = await _sender.Send(
-                new BulkUpsertEmployeesCommand(employees, matchBy: matchBy, deactivateMissing: !incremental),
+                new BulkUpsertEmployeesCommand(employees, matchBy: source.MatchBy, deactivateMissing: !incremental),
                 cancellationToken);
             upsertMs = stageTimer.ElapsedMilliseconds;
             if (upsertResult.IsFailure)
@@ -255,127 +270,21 @@ public sealed class PeopleSyncRunner(
         }
     }
 
-    private async Task<Result<FetchEmployeesResult>> FetchEmployees(
-        Guid connectionId,
-        Connector connector,
-        Instant? lastSuccessfulRunAt,
-        CancellationToken cancellationToken)
-    {
-        // Routed by connector. Add new connectors (BambooHR, ...) by adding arms here.
-        return connector switch
-        {
-            Connector.Entra => await FetchFromEntra(connectionId, cancellationToken),
-            Connector.Workday => await FetchFromWorkday(connectionId, lastSuccessfulRunAt, cancellationToken),
-            _ => Result.Failure<FetchEmployeesResult>(
-                $"No people source registered for connector '{connector}'.")
-        };
-    }
-
     /// <summary>
-    /// Common return shape from <see cref="FetchEmployees"/>. Entra always returns an empty
-    /// exclusion list; Workday populates it when admin-configured org-exclusion rules fired.
+    /// Resolves the bound <see cref="IEmployeeSource"/> for a connection: descriptor builder →
+    /// keyed source → Bind. Each step returns a failure rather than throwing so the caller can
+    /// record it on the sync run.
     /// </summary>
-    private sealed record FetchEmployeesResult(
-        IEnumerable<Wayd.Common.Application.Interfaces.IExternalEmployee> Employees,
-        IReadOnlyList<WorkdayExclusionCount> ExclusionCounts);
-
-    /// <summary>
-    /// True when the source for <paramref name="connector"/> can return a delta of changed
-    /// employees since a given timestamp. Used by the runner to (a) tag the SyncRun as
-    /// Differential and (b) skip the deactivation pass on incremental runs.
-    /// </summary>
-    private static bool SourceSupportsIncremental(Connector connector) => connector switch
+    private async Task<Result<IEmployeeSource>> ResolveSource(Guid connectionId, Connector connector, CancellationToken cancellationToken)
     {
-        Connector.Workday => true,
-        _ => false
-    };
+        if (!_descriptorBuilders.TryGetValue(connector, out var builder))
+            return Result.Failure<IEmployeeSource>($"No connection descriptor builder is registered for connector '{connector}'.");
 
-    /// <summary>
-    /// Resolves the connection's <c>MatchBy</c> property for the BulkUpsert. Each PeopleSync
-    /// connection type stores this on its own configuration; this dispatches by connector kind.
-    /// </summary>
-    private async Task<EmployeeMatchProperty> ResolveMatchProperty(Guid connectionId, Connector connector, CancellationToken cancellationToken)
-    {
-        switch (connector)
-        {
-            case Connector.Entra:
-                var entra = await _db.EntraConnections.AsNoTracking()
-                    .FirstOrDefaultAsync(c => c.Id == connectionId, cancellationToken);
-                return entra?.Configuration.MatchBy ?? EmployeeMatchProperty.Email;
-            case Connector.Workday:
-                var workday = await _db.WorkdayConnections.AsNoTracking()
-                    .FirstOrDefaultAsync(c => c.Id == connectionId, cancellationToken);
-                return workday?.Configuration.MatchBy ?? EmployeeMatchProperty.Email;
-            default:
-                return EmployeeMatchProperty.Email;
-        }
-    }
+        var descriptorResult = await builder.Build(connectionId, cancellationToken);
+        if (descriptorResult.IsFailure)
+            return Result.Failure<IEmployeeSource>(descriptorResult.Error);
 
-    private async Task<Result<FetchEmployeesResult>> FetchFromEntra(
-        Guid connectionId,
-        CancellationToken cancellationToken)
-    {
-        var entity = await _db.EntraConnections
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == connectionId, cancellationToken);
-        if (entity is null)
-            return Result.Failure<FetchEmployeesResult>(
-                $"Entra connection {connectionId} not found.");
-
-        var credentials = new EntraConnectionCredentials(
-            entity.Configuration.TenantId,
-            entity.Configuration.ClientId,
-            entity.Configuration.ClientSecret,
-            entity.Configuration.AllUsersGroupObjectId,
-            entity.Configuration.IncludeDisabledUsers,
-            NormalizeNameCasing: entity.Configuration.NormalizeNameCasing);
-
-        var result = await _entraEmployeeSource.GetEmployees(credentials, cancellationToken);
-        return result.IsSuccess
-            ? Result.Success(new FetchEmployeesResult(result.Value, []))
-            : Result.Failure<FetchEmployeesResult>(result.Error);
-    }
-
-    private async Task<Result<FetchEmployeesResult>> FetchFromWorkday(
-        Guid connectionId,
-        Instant? lastSuccessfulRunAt,
-        CancellationToken cancellationToken)
-    {
-        var entity = await _db.WorkdayConnections
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == connectionId, cancellationToken);
-        if (entity is null)
-            return Result.Failure<FetchEmployeesResult>(
-                $"Workday connection {connectionId} not found.");
-
-        // Incremental is automatic: the runner passes the last-successful-run timestamp when there
-        // is one, and falls back to a full snapshot on first run. No admin toggle — same model as
-        // the work-sync runner.
-        // Project domain WorkdayOrgExclusion records into the application-layer record. They're
-        // the same shape; the layer split exists because Common.Application can't depend on
-        // AppIntegration.Domain.
-        var exclusions = entity.Configuration.OrgExclusions
-            .Select(e => new WorkdayOrgExclusion(e.OrganizationTypeId, e.OrganizationReference, e.DisplayName))
-            .ToList();
-
-        var context = new WorkdayRequestContext(
-            entity.Configuration.SoapEndpoint,
-            entity.Configuration.TenantAlias,
-            entity.Configuration.WsdlVersion,
-            new WorkdayCredentials(entity.Configuration.IsuUsername, entity.Configuration.IsuPassword),
-            entity.Configuration.WorkerKey,
-            entity.Configuration.IncludeInactive,
-            IncrementalUpdatedFrom: lastSuccessfulRunAt,
-            UseUserIdAsEmailFallback: entity.Configuration.UseUserIdAsEmailFallback,
-            UsePreferredName: entity.Configuration.UsePreferredName,
-            NormalizeNameCasing: entity.Configuration.NormalizeNameCasing,
-            DepartmentOrganizationTypeId: entity.Configuration.DepartmentOrganizationTypeId,
-            OrgExclusions: exclusions);
-
-        var result = await _workdayEmployeeSource.GetEmployees(context, cancellationToken);
-        return result.IsSuccess
-            ? Result.Success(new FetchEmployeesResult(result.Value.Employees, result.Value.ExclusionCounts))
-            : Result.Failure<FetchEmployeesResult>(result.Error);
+        return _sourceFactory.Create(descriptorResult.Value);
     }
 
     // Match the API-wide convention so frontend consumers read camelCase keys
@@ -432,9 +341,9 @@ public sealed class PeopleSyncRunner(
         public int EmployeesUpserted { get; set; }
 
         /// <summary>
-        /// Total workers dropped by admin-configured org exclusions, summed across all rules.
-        /// Distinct from <see cref="EmployeesFetched"/> — these workers came back from Workday and
-        /// were filtered locally, so they don't end up in the upsert.
+        /// Total records dropped by source-side exclusion rules, summed across all rules.
+        /// Distinct from <see cref="EmployeesFetched"/> — these records came back from the source
+        /// and were filtered before the upsert.
         /// </summary>
         public int EmployeesExcluded { get; set; }
 
@@ -445,7 +354,10 @@ public sealed class PeopleSyncRunner(
         public List<string> Errors { get; set; } = [];
     }
 
-    /// <summary>One entry in the sync run's exclusion breakdown.</summary>
+    /// <summary>
+    /// One entry in the sync run's exclusion breakdown. Property names are part of the persisted
+    /// DetailsJson contract — keep them stable.
+    /// </summary>
     private sealed record ExclusionBreakdownEntry(
         string OrgTypeId,
         string OrgReference,

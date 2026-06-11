@@ -137,10 +137,15 @@ public static class ConfigureServices
         services.AddScoped<IWorkdayEmployeeSource, WorkdayStaffingService>();
         services.AddScoped<IWorkdayConnectionInitializer, WorkdayConnectionInitializer>();
 
-        // Generic sync orchestration: one IWorkItemSource and one descriptor builder per connector.
-        // (IWorkItemSourceFactory is auto-registered via the IScopedService marker scan.)
+        // Generic sync orchestration: one source and one descriptor builder per connector
+        // capability. (IWorkItemSourceFactory / IEmployeeSourceFactory are auto-registered via
+        // the IScopedService marker scan.)
         services.AddKeyedTransient<IWorkItemSource, AzureDevOpsWorkItemSource>(Connector.AzureDevOps);
+        services.AddKeyedTransient<IEmployeeSource, EntraEmployeeSource>(Connector.Entra);
+        services.AddKeyedTransient<IEmployeeSource, WorkdayEmployeeSource>(Connector.Workday);
         services.AddScoped<ISyncableConnectionDescriptorBuilder, AzureDevOpsConnectionDescriptorBuilder>();
+        services.AddScoped<ISyncableConnectionDescriptorBuilder, EntraConnectionDescriptorBuilder>();
+        services.AddScoped<ISyncableConnectionDescriptorBuilder, WorkdayConnectionDescriptorBuilder>();
 
         // SIGNALR
         var signalRBuilder = services.AddSignalR();

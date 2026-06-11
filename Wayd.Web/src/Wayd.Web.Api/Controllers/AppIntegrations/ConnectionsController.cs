@@ -13,6 +13,7 @@ using Wayd.Common.Application.BackgroundJobs;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Extensions;
 using Wayd.Common.Domain.Enums.AppIntegrations;
+using Wayd.Integrations.Abstractions;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Interfaces;
 using Wayd.Web.Api.Models.AppIntegrations.Connections;
@@ -224,23 +225,28 @@ public class ConnectionsController(ISender sender) : ControllerBase
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
     [OpenApiOperation("Validate (re-initialize) a connection.",
         "Runs a small probe against the upstream system to confirm the configuration is usable. " +
-        "Updates IsValidConfiguration and any structured per-connector validation details. Currently supported for Workday.")]
+        "Updates IsValidConfiguration and any structured per-connector validation details. " +
+        "Supported when the connector registers an init probe (currently Workday).")]
     [ProducesResponseType(typeof(ConnectionInitResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ConnectionInitResult>> InitConnection(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult<ConnectionInitResult>> InitConnection(
+        Guid id,
+        [FromServices] IServiceProvider serviceProvider,
+        CancellationToken cancellationToken)
     {
         var connection = await _sender.Send(new GetConnectionQuery(id), cancellationToken);
         if (connection is null)
             return NotFound();
 
-        Result<ConnectionInitResult> result = connection switch
-        {
-            WorkdayConnectionDetailsDto =>
-                await _sender.Send(new InitWorkdayConnectionCommand(id), cancellationToken),
-            _ => Result.Failure<ConnectionInitResult>($"The '{connection.Connector?.Name}' connector does not support an init probe."),
-        };
+        // A connector supports an init probe exactly when one is registered for it — resolve by
+        // key instead of switching on connection types.
+        var probe = serviceProvider.GetKeyedService<IConnectionInitProbe>((Connector)connection.Connector.Id);
+        if (probe is null)
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(
+                $"The '{connection.Connector.Name}' connector does not support an init probe.", HttpContext));
 
+        var result = await probe.Run(id, cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 

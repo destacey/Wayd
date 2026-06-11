@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Wayd.Infrastructure.ConnectorModules;
 using Wayd.Infrastructure.DataProtection;
 using Wayd.Infrastructure.FeatureManagement;
 using Wayd.Infrastructure.Logging;
@@ -84,68 +85,12 @@ public static class ConfigureServices
         // persistence so the EF model can pick up the protector via SecretProtectorAccessor.
         services.AddDataProtectionForSecrets(config);
 
-        // INTEGRATIONS
-        services.AddTransient<IAzureDevOpsService, AzureDevOpsService>();
-        services.AddScoped<IEntraEmployeeSource, MicrosoftGraphService>();
-
-        // Workday: shared SOAP client used by both bulk sync and the init probe. The runner
-        // resolves IWorkdayEmployeeSource; Create/Update/Init handlers resolve IWorkdayConnectionInitializer.
-        //
-        // A per-client standard resilience handler REPLACES the global default for this client, so we
-        // re-apply the longer integration timeouts here (90s/attempt) and additionally suppress retries
-        // for Workday's permanent faults. Workday wraps auth/validation faults in HTTP 500 bodies, which
-        // the default transient predicate would retry 3× to no effect; IsNonRetryableFault parses the
-        // SOAP fault and short-circuits those. Reading the body in the predicate is cheap — fault bodies
-        // are tiny and ReadAsStringAsync buffers, so the client's own later read still sees the content —
-        // and guarded, so a read failure falls back to the default classification rather than escaping.
-        services.AddHttpClient<WorkdayStaffingClient>()
-            .AddStandardResilienceHandler(options =>
-            {
-                options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(90);
-                options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(5);
-                options.CircuitBreaker.SamplingDuration = TimeSpan.FromMinutes(3);
-
-                var defaultShouldHandle = options.Retry.ShouldHandle;
-                options.Retry.ShouldHandle = async args =>
-                {
-                    var response = args.Outcome.Result;
-                    if (response is { IsSuccessStatusCode: false } && response.Content is not null)
-                    {
-                        try
-                        {
-                            var body = await response.Content.ReadAsStringAsync(args.Context.CancellationToken);
-                            if (WorkdayStaffingClient.IsNonRetryableFault(body))
-                                return false;
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            // Genuine cancellation (request aborted / total-timeout) — let it propagate
-                            // rather than turning it into a retry decision.
-                            throw;
-                        }
-                        catch
-                        {
-                            // Reading/classifying the body failed (I/O, disposed content). Don't let that
-                            // escape the predicate and corrupt the pipeline outcome — fall through to the
-                            // default transient classification below.
-                        }
-                    }
-
-                    return await defaultShouldHandle(args);
-                };
-            });
-        services.AddScoped<IWorkdayEmployeeSource, WorkdayStaffingService>();
-        services.AddScoped<IWorkdayConnectionInitializer, WorkdayConnectionInitializer>();
-
-        // Generic sync orchestration: one source and one descriptor builder per connector
-        // capability. (IWorkItemSourceFactory / IEmployeeSourceFactory are auto-registered via
-        // the IScopedService marker scan.)
-        services.AddKeyedTransient<IWorkItemSource, AzureDevOpsWorkItemSource>(Connector.AzureDevOps);
-        services.AddKeyedTransient<IEmployeeSource, EntraEmployeeSource>(Connector.Entra);
-        services.AddKeyedTransient<IEmployeeSource, WorkdayEmployeeSource>(Connector.Workday);
-        services.AddScoped<ISyncableConnectionDescriptorBuilder, AzureDevOpsConnectionDescriptorBuilder>();
-        services.AddScoped<ISyncableConnectionDescriptorBuilder, EntraConnectionDescriptorBuilder>();
-        services.AddScoped<ISyncableConnectionDescriptorBuilder, WorkdayConnectionDescriptorBuilder>();
+        // CONNECTOR MODULES — one self-contained registration per connector (keyed sources,
+        // descriptor builders, init probes, HTTP clients), discovered from this assembly. Adding
+        // a connector means adding a module class in ConnectorModules/, not editing this method.
+        // (IWorkItemSourceFactory / IEmployeeSourceFactory are auto-registered via the
+        // IScopedService marker scan.)
+        services.AddConnectorModules();
 
         // SIGNALR
         var signalRBuilder = services.AddSignalR();

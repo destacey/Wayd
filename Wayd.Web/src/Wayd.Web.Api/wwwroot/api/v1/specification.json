@@ -22214,7 +22214,7 @@
           "Connections"
         ],
         "summary": "Validate (re-initialize) a connection.",
-        "description": "Runs a small probe against the upstream system to confirm the configuration is usable. Updates IsValidConfiguration and any structured per-connector validation details. Currently supported for Workday.",
+        "description": "Runs a small probe against the upstream system to confirm the configuration is usable. Updates IsValidConfiguration and any structured per-connector validation details. Supported when the connector registers an init probe (currently Workday).",
         "operationId": "Connections_InitConnection",
         "parameters": [
           {

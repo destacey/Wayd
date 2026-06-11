@@ -33,6 +33,10 @@ public static class MockDbSetFactory
         mockSet.As<IQueryable<T>>().Setup(m => m.ElementType).Returns(() => data.AsQueryable().ElementType);
         mockSet.As<IQueryable<T>>().Setup(m => m.GetEnumerator()).Returns(() => data.GetEnumerator());
 
+        // DbSet<T>.AsQueryable() is a virtual instance method (not the LINQ extension), so without
+        // a setup Moq returns an empty EnumerableQuery whose provider can't run async operators.
+        mockSet.Setup(m => m.AsQueryable()).Returns(() => mockSet.Object);
+
         // Intercept mutating methods so handlers that call dbSet.Add(...) / AddAsync(...) / Remove(...)
         // actually persist into the underlying list, which is what tests then inspect.
         mockSet.Setup(m => m.Add(It.IsAny<T>())).Callback<T>(data.Add).Returns((EntityEntry<T>)null!);

@@ -67,7 +67,7 @@ public class AzureOpenAIConnection : Connection<AzureOpenAIConnectionConfigurati
             || Description != description.NullIfWhiteSpacePlusTrim()
             || Configuration.ApiKey != apiKey.Trim()
             || Configuration.DeploymentName != deploymentName.Trim()
-            || IsValidConfiguration != configurationIsValid; // Assuming OpenAIConnectionConfiguration has an appropriate Equals method
+            || IsValidConfiguration != configurationIsValid; // Assuming AzureOpenAIConnectionConfiguration has an appropriate Equals method
     }
 
     public static AzureOpenAIConnection Create(

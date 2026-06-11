@@ -11,8 +11,8 @@ public enum Connector
     [Display(Name = "Azure OpenAI", Description = "The Azure OpenAI connector enables Wayd to connect and retrieve data from Azure-hosted OpenAI services for AI-powered features.")]
     AzureOpenAI = 1,
 
-    [Display(Name = "OpenAI", Description = "The OpenAI connector enables Wayd to connect to OpenAI API for LLM capabilities.")]
-    OpenAI = 2,
+    // Value 2 was OpenAI — removed before any integration shipped; do not reuse the value
+    // because the discriminator is stored as the enum name and old API clients may know the id.
 
     [Display(Name = "Entra", Description = "The Entra connector enables Wayd to synchronize people (employees and contingent workers) from Microsoft Entra ID via Microsoft Graph.")]
     Entra = 3,

@@ -8,6 +8,7 @@ import useAuth from '../../../components/contexts/auth'
 import CreateConnectionForm from './_components/create-connection-form'
 import Link from 'next/link'
 import { ConnectionListDto } from '@/src/services/wayd-api'
+import { getCapabilityNames } from '@/src/types/connectors'
 import { ColDef, ICellRendererParams } from 'ag-grid-community'
 import { ItemType } from 'antd/es/menu/interface'
 import { useGetConnectionsQuery } from '@/src/store/features/app-integration/connections-api'
@@ -42,7 +43,11 @@ const ConnectionsPage = () => {
       { field: 'id', hide: true },
       { field: 'name', cellRenderer: ConnectionLinkCellRenderer, width: 250 },
       { field: 'connector.name', headerName: 'Connector', width: 150 },
-      { field: 'category.name', headerName: 'Category', width: 150 },
+      {
+        headerName: 'Capabilities',
+        valueGetter: ({ data }) => getCapabilityNames(data),
+        width: 180,
+      },
       { field: 'isActive', width: 125 },
       { field: 'isValidConfiguration', width: 150 },
     ],

@@ -80,9 +80,6 @@ const connectorTypeFromName = (
       return ConnectorType.Entra
     case 'Workday':
       return ConnectorType.Workday
-    // OpenAI is deliberately omitted: the backend has no Create/Update command
-    // for it yet, so offering an edit form would only ever fail at submit.
-    // Add the case back once UpdateOpenAIConnectionCommand ships.
     default:
       return null
   }

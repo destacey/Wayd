@@ -28,17 +28,17 @@ internal sealed class GetConnectionQueryHandler(IAppIntegrationDbContext appInte
         }
 
         // Polymorphic adapt — each arm projects the connection-typed row to its concrete DTO so the
-        // configuration block and the $type discriminator both survive serialization. Missing an arm
-        // here is silent: the falls-through default emits the base DTO with no Configuration, which
-        // looks to the UI like every field is null.
+        // configuration block and the $type discriminator both survive serialization. Every concrete
+        // connection type must have an arm here — falling through to the base DTO would silently drop
+        // the configuration, so throw instead.
         return connection switch
         {
             AzureDevOpsBoardsConnection => connection.Adapt<AzureDevOpsConnectionDetailsDto>(),
             AzureOpenAIConnection => connection.Adapt<AzureOpenAIConnectionDetailsDto>(),
             EntraConnection => connection.Adapt<EntraConnectionDetailsDto>(),
             WorkdayConnection => connection.Adapt<WorkdayConnectionDetailsDto>(),
-            // case OpenAIConnection:
-            _ => connection.Adapt<ConnectionDetailsDto>(),
+            _ => throw new InvalidOperationException(
+                $"No details DTO mapping is registered for connection type '{connection.GetType().Name}'."),
         };
     }
 }

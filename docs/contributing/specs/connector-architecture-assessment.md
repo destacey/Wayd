@@ -111,6 +111,8 @@ This collapses three shotgun-edit points into one file per connector:
 
 **Scope discipline:** EF entity configuration, `DbSet`s, and migrations stay central. The module declares *behavior wiring*, not persistence — that boundary is what keeps the TPH model's benefits while still consolidating everything else. An architecture test asserts every `Connector` enum value has exactly one module.
 
+> **Resolved (June 2026):** `IConnectorModule` lives in `Wayd.Integrations.Abstractions` (Connector + `Capabilities` manifest + `Register(IServiceCollection)`); the four implementations live in `Wayd.Infrastructure/ConnectorModules/`, discovered by `AddConnectorModules()`'s assembly scan, which replaced the manual integrations DI block. Architecture tests in `Wayd.Infrastructure.Tests` enforce: one module per `Connector` value, module capabilities match `GetCapabilities()`, and every declared sync capability has its keyed source + descriptor builder registered — the "capability ⇔ port" derivation enforced as CI rather than runtime magic (`GetCapabilities()` stays the static domain declaration). The init probe also generalized: keyed `IConnectionInitProbe` port (Workday's wraps `InitWorkdayConnectionCommand`); the controller's init endpoint resolves by key — "supports an init probe" now means "registers one". The DTO-mapping registry (third bullet above) remains future work — the throwing switches + reflection guards cover it.
+
 ### 3. Fix the silent DTO fallthrough
 
 Three layers, strongest last:
@@ -154,6 +156,7 @@ Recorded so future cleanup instincts don't erase healthy patterns:
 - **Single shared DbContext and central migrations.** Per-module contexts are a separate modular-monolith debate, not a connector-scaling problem.
 - **The single-active people-sync constraint.** A domain rule (two HR sources of truth would fight over employee activation), not architectural debt. Keep the defense-in-depth check in the runner.
 - **Per-connector special commands** (init probes, workspace refresh). Inherent variance — shotgun-edit point #9 is not debt.
+- **The name `ConnectorModule`.** Considered and kept (June 2026) despite "module" also meaning the product's functional areas in the user guide and CSS modules on the frontend. It's the established .NET term for a self-contained DI registration bundle (Autofac `Module`, ABP modules), it's always compound-qualified in practice ("connector module" vs "Work module"), and it's the natural plugin-entry-point vocabulary if external connectors ever happen. Alternatives weighed: `ConnectorDefinition` (undersells the DI half), `ConnectorRegistration` (loses the capability manifest).
 
 ## Capability model
 
@@ -198,7 +201,7 @@ The frontend can't probe DI, so `GetConnectorCapabilitiesQuery` projects "which 
 | 1 | ✅ **Done (June 2026)** — Fix silent DTO fallthrough: throw on default arm + reflection-guard tests over all concrete Connection subclasses. The OpenAI gap was closed by removing the never-functional OpenAI connector entirely. | Hours | ~~Before next connector~~ |
 | 2 | ✅ **Done (June 2026)** — Multi-surface taxonomy, landed as **capabilities**: `Connector.GetCapabilities()` / `HasCapability()` gate everything; `ConnectorCapability` members declare their display category via `Display(GroupName)`; DTOs expose `Capabilities`; one connection serves multiple capabilities. | Hours–1 day | ~~Before GitHub specifically~~ |
 | 3 | ✅ **Done (June 2026)** — People sync unified onto the keyed-DI port: `IEmployeeSource` in Abstractions (with `SupportsIncremental` and `MatchBy` declared on the port), Entra/Workday adapters + descriptor builders, `EmployeeSourceFactory`; all three `PeopleSyncRunner` switches deleted; `PeopleSyncRunnerTests` created. | 2–4 days | ~~Before next people-sync connector~~ |
-| 4 | `IConnectorModule` seam + enum↔module architecture test | 2–3 days | **Before next connector** (lands naturally with #3) |
+| 4 | ✅ **Done (June 2026)** — `IConnectorModule` seam: four modules in `Wayd.Infrastructure/ConnectorModules/`, assembly-scanned by `AddConnectorModules()`; architecture tests enforce enum↔module 1:1, capability↔declaration match, and capability↔keyed-port presence; init probe generalized to keyed `IConnectionInitProbe`. | 2–3 days | ~~Before next connector~~ |
 | 5 | "Anatomy of a sync category" template + category-neutral `SyncRun` | Doc'd here; refactor rides with first new category PR | **With first new category** |
 | 6 | Capability model: ports as supported capabilities + `GetConnectorCapabilitiesQuery` projection (see revised Capability model section); per-connection **enabled** capabilities storage | Projection: rides with #3/#4. Enablement: ~2 days | **Projection opportunistic; enablement with first multi-surface connector** |
 | 7 | Generic `ISourceFactory<TPort>` | Hours | **Only when a second port exists** — never speculatively |

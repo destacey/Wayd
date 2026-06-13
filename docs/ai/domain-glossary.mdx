@@ -118,6 +118,20 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Strategy** | The approach for achieving the vision. States: Draft → Active → Completed → Archived. Independent of visions. |
 | **Strategic Theme** | A high-level organizational priority guiding investment decisions. States: Proposed → Active → Archived. Only Proposed deletable. Cross-domain: tags Projects, Programs, Strategic Initiatives in PPM. |
 
+## Identity & Access
+
+| Term | Definition |
+|------|-----------|
+| **Identity Provider (OIDC Provider)** | A configured single sign-on source (Microsoft Entra ID or a generic OIDC issuer), stored as a row in `Identity.OidcProviders`. The database is the sole source of truth; providers are managed via Settings → Identity Providers. |
+| **UserIdentity** | The link between an `ApplicationUser` and a login provider, keyed by `(Provider, ProviderTenantId, ProviderSubject)`. At most one active row per user; every authentication path resolves through this table. |
+| **Role** | A named permission group assigned to users. Two system roles (`Admin`, `Basic`) are seeded and protected; admins can create custom roles. |
+| **Auto-Registration (JIT Provisioning)** | Creating a Wayd account automatically the first time an unknown user signs in through an identity provider. Governed by a per-provider registration policy; **off by default** (secure by default). |
+| **Registration Policy** | The per-provider settings that govern auto-registration: `AllowAutoRegistration` (master switch), `RequireEmployeeRecord` (employee-match gate), and `DefaultRoleId` (role for new users). Modeled as a `RegistrationPolicy` value object whose dependent fields are only meaningful while auto-registration is enabled. |
+| **Employee-Record Gate** | The `RequireEmployeeRecord` policy: when on, auto-registration is restricted to users whose email matches an existing `Employee`. Turning it off grants accounts to anyone who can authenticate through the provider. |
+| **Default Role** | The role assigned to auto-registered users for a provider (`DefaultRoleId`); required when auto-registration is enabled (no implicit fallback). Protected by a foreign key — a role pinned as a default cannot be deleted until the provider is repointed. |
+| **First-User Bootstrap** | The first user to sign in to an empty deployment is always created and made `Admin`, bypassing the registration policy so a fresh install cannot lock itself out. |
+| **Identity Migration** | Admin-staged moves that preserve `ApplicationUser.Id`: Entra tenant migration, cross-provider migration (OIDC→OIDC or Wayd→OIDC), and immediate OIDC→local conversion. |
+
 ## Cross-Cutting Concepts
 
 | Term | Definition |

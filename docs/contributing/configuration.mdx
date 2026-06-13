@@ -46,6 +46,9 @@ The database is the single source of truth for identity providers — there is n
 | `AllowedTenantIds` | **Entra only.** Empty/null rejected at the entity level. Tokens whose `tid` (or issuer-derived tenant) is not in this list are rejected. Ignored for `GenericOidc`. |
 | `ClockSkewSeconds` | Tolerance for expiry/not-before checks. Defaults to 60; range `[0, 600]`. |
 | `IsEnabled` | Disabled providers are hidden from the login page; exchange attempts against them return 401. |
+| `AllowAutoRegistration` | Master switch for just-in-time user provisioning. Defaults to **`false`** (secure by default). When off, an unknown user signing in is rejected and must be pre-created by an admin. See [User provisioning](#user-provisioning-auto-registration). |
+| `RequireEmployeeRecord` | When auto-registration is on, gates it to users whose email matches an existing employee. `true` (the safer default) lets only known employees self-register; `false` grants an account to anyone who can authenticate. Ignored when `AllowAutoRegistration` is off. |
+| `DefaultRoleId` | Role assigned to users auto-created through this provider. **Required** when `AllowAutoRegistration` is on (no implicit fallback). Protected by a FK: a role pinned here cannot be deleted until the provider is repointed. Null/ignored when `AllowAutoRegistration` is off. |
 
 **Adding a Microsoft Entra ID provider.** From **Settings → Identity Providers**, choose **Add provider → Microsoft Entra ID** and fill in:
 
@@ -244,6 +247,28 @@ Provider-specific logic is confined to *how the incoming credential is validated
 
 `ApplicationUser.LoginProvider` is retained as a "primary provider" indicator (it mirrors the active `UserIdentity.Provider`) so code that needs a cheap provider check doesn't have to join.
 
+### User provisioning (auto-registration)
+
+When a sign-in resolves no active `UserIdentity` (and no pending migration applies), the exchange reaches the **create-new-user** path. Whether a user is actually created there is governed by a per-provider **registration policy** stored on the `OidcProvider` row: `AllowAutoRegistration`, `RequireEmployeeRecord`, and `DefaultRoleId`. The policy is read from the provider via the registry on every first-time sign-in.
+
+**Decision flow for a new (unresolved) user:**
+
+```text
+new user signing in via provider P
+├─ first user ever?  ──────────────► create, assign Admin   (bootstrap — ignores policy)
+├─ P.AllowAutoRegistration == false ─► reject (403)          "Registration is disabled for this identity provider"
+├─ P.RequireEmployeeRecord == true
+│    and no matching employee ───────► reject (403)          "Registration is restricted to users with an employee record"
+└─ otherwise ───────────────────────► create, assign P.DefaultRoleId  (required when enabled)
+```
+
+- **Secure by default.** `AllowAutoRegistration` defaults to `false`. A freshly configured provider does **not** auto-provision until an admin opts in — including providers that predate this setting (the migration backfills existing rows to `false`, so they stop auto-registering on upgrade until re-enabled).
+- **First-user bootstrap is exempt.** The very first user to sign in to an empty deployment is always created and made `Admin`, regardless of policy — a fresh install can never lock itself out. (Self-hosted first-run uses the bootstrap-token flow instead; see [First-Run Setup](./first-run-setup.mdx).)
+- **Employee-record gate.** Historically registration was restricted to users whose email matched an `Employee` record. That gate is now `RequireEmployeeRecord`, defaulting to `true`. Turning it off is a deliberate loosening: anyone who can authenticate through the provider gets an account.
+- **Default role.** Auto-created users are assigned `DefaultRoleId` (any role — system or custom). It is **required** when auto-registration is enabled — there is no implicit fallback; an enabled policy always names a role. The reference is protected by a foreign key with `NO ACTION` on delete, so a role that's pinned as a provider's default cannot be deleted until the provider is repointed; `RoleService` surfaces this as a clear conflict before the constraint fires. As a runtime backstop, if the referenced role is somehow missing (e.g. a raw SQL delete), sign-in falls back to `Basic` rather than failing.
+
+The policy is enforced in `UserService.CreateOrUpdateFromPrincipalAsync`. Generic-OIDC providers do not yet provision new users at all (unknown users are rejected); the policy is currently actionable on the Entra path.
+
 ### Identity migration
 
 Wayd supports three admin-initiated identity migration workflows. In all three cases the `ApplicationUser.Id` is preserved, so all downstream FKs (permissions, work items, audit) remain intact.
@@ -252,7 +277,7 @@ Wayd supports three admin-initiated identity migration workflows. In all three c
 
 When an org moves users from one Entra tenant to another, an admin stages the migration per user. The rebind completes automatically when the user next signs in from the new tenant.
 
-`PendingMigrationTenantId` is set on `ApplicationUser` to the target Entra tenant GUID. During Entra token exchange, `UserService.ResolveUserByEntraIdentity` tries lookups in order: `FindActive(provider, tid, sub)` → null-tid upgrade (one-time tenant population for backfilled rows) → **pending-migration rebind** → fall through to create-new-user. The rebind path matches a user by `PendingMigrationTenantId == token.tid` AND `LoginProvider == MicrosoftEntraId` AND (`NormalizedUserName == token.upn` OR `NormalizedEmail == token.upn`). On match, inside one transaction:
+`PendingMigrationTenantId` is set on `ApplicationUser` to the target Entra tenant GUID. During Entra token exchange, `UserService.ResolveUserByEntraIdentity` tries lookups in order: `FindActive(provider, tid, sub)` → null-tid upgrade (one-time tenant population for backfilled rows) → **pending-migration rebind** → fall through to create-new-user (subject to the [registration policy](#user-provisioning-auto-registration)). The rebind path matches a user by `PendingMigrationTenantId == token.tid` AND `LoginProvider == MicrosoftEntraId` AND (`NormalizedUserName == token.upn` OR `NormalizedEmail == token.upn`). On match, inside one transaction:
 
 1. Deactivate all active identity rows (`UnlinkReason = TenantMigration`).
 2. Insert a new active row with `(MicrosoftEntraId, token.tid, token.sub)`.

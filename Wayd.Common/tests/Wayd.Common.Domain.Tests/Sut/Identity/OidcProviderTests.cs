@@ -1,6 +1,7 @@
 using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Identity;
+using Wayd.Tests.Shared.Data;
 
 namespace Wayd.Common.Domain.Tests.Sut.Identity;
 
@@ -225,7 +226,7 @@ public sealed class OidcProviderTests
     [Fact]
     public void Update_WithValidFields_ChangesMutableFieldsOnly()
     {
-        var provider = CreateEntra().Value;
+        var provider = EntraFixture().Generate();
         provider.ClearDomainEvents();
 
         var result = provider.Update(
@@ -264,7 +265,7 @@ public sealed class OidcProviderTests
     {
         // Same Authority invariant as Create. Update could otherwise downgrade
         // a previously-secure provider config.
-        var provider = CreateEntra().Value;
+        var provider = EntraFixture().Generate();
 
         var result = provider.Update(
             displayName: ValidDisplayName,
@@ -286,7 +287,7 @@ public sealed class OidcProviderTests
     {
         // The Entra tenant-allowlist invariant must hold across Updates too.
         // Without this an admin could disable the multi-tenant gate post-create.
-        var provider = CreateEntra().Value;
+        var provider = EntraFixture().Generate();
 
         var result = provider.Update(
             displayName: ValidDisplayName,
@@ -340,7 +341,7 @@ public sealed class OidcProviderTests
     [Fact]
     public void SetEnabled_FromEnabledToDisabled_AddsUpdateEvent()
     {
-        var provider = CreateEntra(isEnabled: true).Value;
+        var provider = EntraFixture().AsEnabled().Generate();
         provider.ClearDomainEvents();
 
         var result = provider.SetEnabled(false, Timestamp);
@@ -356,7 +357,7 @@ public sealed class OidcProviderTests
         // Idempotent: re-applying the current state shouldn't generate an
         // audit event. Saves event-handler work for admins clicking the toggle
         // twice.
-        var provider = CreateEntra(isEnabled: true).Value;
+        var provider = EntraFixture().AsEnabled().Generate();
         provider.ClearDomainEvents();
 
         var result = provider.SetEnabled(true, Timestamp);
@@ -366,8 +367,127 @@ public sealed class OidcProviderTests
         provider.DomainEvents.Should().BeEmpty();
     }
 
+    // --- Registration policy ---
+
+    [Fact]
+    public void Create_WithoutPolicyArgs_DefaultsToAutoRegistrationOff()
+    {
+        // Secure by default: omitting the policy args creates a provider with
+        // auto-registration disabled. The dependent settings have no value in that
+        // state — the nullable projections read null.
+        var provider = EntraFixture().Generate();
+
+        provider.RegistrationPolicy.AllowAutoRegistration.Should().BeFalse();
+        provider.RegistrationPolicy.RequireEmployeeRecord.Should().BeNull();
+        provider.RegistrationPolicy.DefaultRoleId.Should().BeNull();
+    }
+
+    [Fact]
+    public void Create_WithAutoRegistrationOn_PersistsDependentFields()
+    {
+        var result = OidcProvider.Create(
+            name: ValidName,
+            displayName: ValidDisplayName,
+            providerType: OidcProviderType.MicrosoftEntraId,
+            authority: ValidEntraAuthority,
+            clientId: ValidClientId,
+            audience: ValidAudience,
+            scopes: ValidScopes,
+            allowedTenantIds: ValidAllowedTenants,
+            clockSkewSeconds: 60,
+            isEnabled: true,
+            timestamp: Timestamp,
+            registrationPolicy: RegistrationPolicy.Enabled(requireEmployeeRecord: false, defaultRoleId: "role-123"));
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.RegistrationPolicy.AllowAutoRegistration.Should().BeTrue();
+        result.Value.RegistrationPolicy.RequireEmployeeRecord.Should().BeFalse();
+        result.Value.RegistrationPolicy.DefaultRoleId.Should().Be("role-123");
+    }
+
+    [Fact]
+    public void Create_WithAutoRegistrationOff_IgnoresDependentFields()
+    {
+        // The invariant: when auto-registration is off, the dependent settings
+        // can't carry a value — FromFlat discards loosened inputs, so the stored
+        // policy projections read null regardless of what the caller passed.
+        var result = OidcProvider.Create(
+            name: ValidName,
+            displayName: ValidDisplayName,
+            providerType: OidcProviderType.MicrosoftEntraId,
+            authority: ValidEntraAuthority,
+            clientId: ValidClientId,
+            audience: ValidAudience,
+            scopes: ValidScopes,
+            allowedTenantIds: ValidAllowedTenants,
+            clockSkewSeconds: 60,
+            isEnabled: true,
+            timestamp: Timestamp,
+            registrationPolicy: RegistrationPolicy.FromFlat(
+                allowAutoRegistration: false, requireEmployeeRecord: false, defaultRoleId: "role-123"));
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.RegistrationPolicy.AllowAutoRegistration.Should().BeFalse();
+        result.Value.RegistrationPolicy.RequireEmployeeRecord.Should().BeNull();
+        result.Value.RegistrationPolicy.DefaultRoleId.Should().BeNull();
+    }
+
+    [Fact]
+    public void Update_WithAutoRegistrationOn_ChangesDependentFields()
+    {
+        var provider = EntraFixture().Generate();
+
+        var result = provider.Update(
+            displayName: ValidDisplayName,
+            authority: ValidEntraAuthority,
+            clientId: ValidClientId,
+            audience: ValidAudience,
+            scopes: ValidScopes,
+            allowedTenantIds: ValidAllowedTenants,
+            clockSkewSeconds: 60,
+            isEnabled: true,
+            timestamp: Timestamp,
+            registrationPolicy: RegistrationPolicy.Enabled(requireEmployeeRecord: false, defaultRoleId: " role-xyz "));
+
+        result.IsSuccess.Should().BeTrue();
+        provider.RegistrationPolicy.AllowAutoRegistration.Should().BeTrue();
+        provider.RegistrationPolicy.RequireEmployeeRecord.Should().BeFalse();
+        provider.RegistrationPolicy.DefaultRoleId.Should().Be("role-xyz");
+    }
+
+    [Fact]
+    public void Update_TurningAutoRegistrationOff_ClearsDependentFields()
+    {
+        // Start from an auto-registering provider with a custom role, then disable
+        // auto-registration. The dependent fields must not survive — a later
+        // re-enable shouldn't silently inherit the old loosened posture.
+        var provider = EntraFixture()
+            .WithAutoRegistration(requireEmployeeRecord: false, defaultRoleId: "role-abc")
+            .Generate();
+
+        var result = provider.Update(
+            displayName: ValidDisplayName,
+            authority: ValidEntraAuthority,
+            clientId: ValidClientId,
+            audience: ValidAudience,
+            scopes: ValidScopes,
+            allowedTenantIds: ValidAllowedTenants,
+            clockSkewSeconds: 60,
+            isEnabled: true,
+            timestamp: Timestamp,
+            registrationPolicy: RegistrationPolicy.Disabled());
+
+        result.IsSuccess.Should().BeTrue();
+        provider.RegistrationPolicy.AllowAutoRegistration.Should().BeFalse();
+        provider.RegistrationPolicy.RequireEmployeeRecord.Should().BeNull();
+        provider.RegistrationPolicy.DefaultRoleId.Should().BeNull();
+    }
+
     // --- Helpers ---
 
+    // CreateEntra exercises the Create factory directly — it is the system under
+    // test for the validation cases above, so it must NOT go through the faker
+    // (which bypasses Create via field binding and would test nothing).
     private static Result<OidcProvider> CreateEntra(
         string name = ValidName,
         string authority = ValidEntraAuthority,
@@ -388,4 +508,19 @@ public sealed class OidcProviderTests
             isEnabled: isEnabled,
             timestamp: Timestamp);
     }
+
+    // A valid Entra provider built via the faker, for tests that need a starting
+    // fixture to act on (Update/SetEnabled) rather than testing Create itself.
+    // Name/authority/etc. are pinned to the same constants the Create-based tests
+    // use so assertions that check those values stay stable.
+    private static OidcProviderFaker EntraFixture() =>
+        new OidcProviderFaker()
+            .WithName(ValidName)
+            .WithDisplayName(ValidDisplayName)
+            .AsMicrosoftEntraId(ValidTenantId)
+            .WithAuthority(ValidEntraAuthority)
+            .WithClientId(ValidClientId)
+            .WithAudience(ValidAudience)
+            .WithScopes(ValidScopes)
+            .WithClockSkewSeconds(60);
 }

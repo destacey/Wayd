@@ -12,7 +12,12 @@ public sealed record CreateOidcProviderRequest(
     IReadOnlyList<string> Scopes,
     IReadOnlyList<string>? AllowedTenantIds,
     int ClockSkewSeconds,
-    bool IsEnabled);
+    bool IsEnabled,
+    // Defaults preserve the historical behavior (auto-register employee-matched
+    // users into Basic) for callers that omit the registration-policy fields.
+    bool AllowAutoRegistration = true,
+    bool RequireEmployeeRecord = true,
+    string? DefaultRoleId = null);
 
 public sealed record UpdateOidcProviderRequest(
     Guid Id,
@@ -23,4 +28,7 @@ public sealed record UpdateOidcProviderRequest(
     IReadOnlyList<string> Scopes,
     IReadOnlyList<string>? AllowedTenantIds,
     int ClockSkewSeconds,
-    bool IsEnabled);
+    bool IsEnabled,
+    bool AllowAutoRegistration = true,
+    bool RequireEmployeeRecord = true,
+    string? DefaultRoleId = null);

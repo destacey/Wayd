@@ -58,7 +58,10 @@ public class OidcProvidersController(ISender sender) : ControllerBase
             request.Scopes,
             request.AllowedTenantIds,
             request.ClockSkewSeconds,
-            request.IsEnabled);
+            request.IsEnabled,
+            request.AllowAutoRegistration,
+            request.RequireEmployeeRecord,
+            request.DefaultRoleId);
 
         var result = await _sender.Send(command, cancellationToken);
 
@@ -86,7 +89,10 @@ public class OidcProvidersController(ISender sender) : ControllerBase
             request.Scopes,
             request.AllowedTenantIds,
             request.ClockSkewSeconds,
-            request.IsEnabled);
+            request.IsEnabled,
+            request.AllowAutoRegistration,
+            request.RequireEmployeeRecord,
+            request.DefaultRoleId);
 
         var result = await _sender.Send(command, cancellationToken);
 

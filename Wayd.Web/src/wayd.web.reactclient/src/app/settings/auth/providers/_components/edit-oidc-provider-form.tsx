@@ -9,9 +9,19 @@ import {
   useGetOidcProviderQuery,
   useUpdateOidcProviderMutation,
 } from '@/src/store/features/user-management/oidc-providers-api'
+import { useGetRolesQuery } from '@/src/store/features/user-management/roles-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { useModalForm } from '@/src/hooks'
-import { Form, Input, InputNumber, Modal, Switch, Typography } from 'antd'
+import {
+  Alert,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Switch,
+  Typography,
+} from 'antd'
 import { useEffect } from 'react'
 import TagInput from './tag-input'
 
@@ -33,6 +43,9 @@ interface EditOidcProviderFormValues {
   allowedTenantIds?: string[]
   clockSkewSeconds: number
   isEnabled: boolean
+  allowAutoRegistration: boolean
+  requireEmployeeRecord: boolean
+  defaultRoleId?: string
 }
 
 const EditOidcProviderForm = ({
@@ -43,6 +56,7 @@ const EditOidcProviderForm = ({
   const messageApi = useMessage()
   const { data: providerData, isLoading: providerLoading } =
     useGetOidcProviderQuery(providerId)
+  const { data: roles } = useGetRolesQuery()
   const [updateOidcProvider] = useUpdateOidcProviderMutation()
 
   const isMicrosoftEntraId =
@@ -64,6 +78,16 @@ const EditOidcProviderForm = ({
               : undefined,
             clockSkewSeconds: values.clockSkewSeconds ?? 60,
             isEnabled: values.isEnabled ?? true,
+            allowAutoRegistration: values.allowAutoRegistration ?? true,
+            // When auto-registration is off, the gating fields are irrelevant —
+            // send conservative values so a later re-enable doesn't inherit a
+            // stale loosened posture.
+            requireEmployeeRecord: values.allowAutoRegistration
+              ? (values.requireEmployeeRecord ?? true)
+              : true,
+            defaultRoleId: values.allowAutoRegistration
+              ? (values.defaultRoleId ?? undefined)
+              : undefined,
           }
           const response = await updateOidcProvider(request)
           if (response.error) throw response.error
@@ -88,6 +112,8 @@ const EditOidcProviderForm = ({
       permission: 'Permissions.OidcProviders.Update',
     })
 
+  const allowAutoRegistration = Form.useWatch('allowAutoRegistration', form)
+
   useEffect(() => {
     if (!providerData) return
     form.setFieldsValue({
@@ -99,6 +125,9 @@ const EditOidcProviderForm = ({
       allowedTenantIds: [...(providerData.allowedTenantIds ?? [])],
       clockSkewSeconds: providerData.clockSkewSeconds,
       isEnabled: providerData.isEnabled,
+      allowAutoRegistration: providerData.allowAutoRegistration,
+      requireEmployeeRecord: providerData.requireEmployeeRecord,
+      defaultRoleId: providerData.defaultRoleId ?? undefined,
     })
   }, [providerData, form])
 
@@ -226,6 +255,60 @@ const EditOidcProviderForm = ({
         >
           <Switch />
         </Item>
+
+        <Typography.Title level={5} style={{ marginTop: 8 }}>
+          Registration
+        </Typography.Title>
+
+        <Item
+          label="Allow automatic user registration"
+          name="allowAutoRegistration"
+          valuePropName="checked"
+          tooltip="When on, a user signing in through this provider for the first time has an account created automatically. When off, unknown users are rejected and an admin must create their account first."
+        >
+          <Switch />
+        </Item>
+
+        {allowAutoRegistration && (
+          <>
+            <Item
+              label="Require matching employee record"
+              name="requireEmployeeRecord"
+              valuePropName="checked"
+              tooltip="When on, only users whose email matches an existing employee can self-register."
+            >
+              <Switch />
+            </Item>
+
+            <Item noStyle shouldUpdate>
+              {({ getFieldValue }) =>
+                getFieldValue('requireEmployeeRecord') ? null : (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    style={{ marginBottom: 16 }}
+                    message="Anyone who can authenticate through this provider will be granted an account."
+                  />
+                )
+              }
+            </Item>
+
+            <Item
+              label="Default role for new users"
+              name="defaultRoleId"
+              rules={[{ required: true, message: 'A default role is required' }]}
+              tooltip="Role assigned to users created automatically through this provider."
+            >
+              <Select
+                placeholder="Select a role"
+                options={(roles ?? []).map((r) => ({
+                  value: r.id,
+                  label: r.name,
+                }))}
+              />
+            </Item>
+          </>
+        )}
       </Form>
     </Modal>
   )

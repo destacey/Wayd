@@ -14,6 +14,7 @@ using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Identity;
 using Wayd.Infrastructure.Identity;
 using Wayd.Tests.Shared;
+using Wayd.Tests.Shared.Data;
 using NotFoundException = Wayd.Common.Application.Exceptions.NotFoundException;
 
 namespace Wayd.Infrastructure.Tests.Sut.Identity;
@@ -1233,6 +1234,189 @@ public class UserServiceTests
         _mockUserIdentityStore.Verify(s => s.DeactivateAllActive(
             user.Id, It.IsAny<NodaTime.Instant>(), UserIdentityUnlinkReasons.TenantMigration, It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    #endregion
+
+    #region GetOrCreateFromPrincipalAsync — registration policy
+
+    // A principal carrying every claim the create path reads: object/tenant id for
+    // identity resolution, UPN as email, name for the username, and given/surname
+    // which the entity guards against being blank.
+    private static ClaimsPrincipal CreateNewUserPrincipal(
+        string objectId, string tenantId, string upn, string displayName = "New User")
+    {
+        var claims = new List<Claim>
+        {
+            new(Microsoft.Identity.Web.ClaimConstants.ObjectId, objectId),
+            new(Microsoft.Identity.Web.ClaimConstants.TenantId, tenantId),
+            new(ClaimTypes.Upn, upn),
+            new("name", displayName),
+            new(ClaimTypes.GivenName, "New"),
+            new(ClaimTypes.Surname, "User"),
+        };
+
+        return new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
+    }
+
+    private static OidcProvider CreateEntraProviderWithPolicy(
+        bool allowAutoRegistration = true,
+        bool requireEmployeeRecord = true,
+        string? defaultRoleId = null)
+    {
+        // Name must be the well-known Entra key — the registry lookup in
+        // GetOrCreateFromPrincipalAsync resolves the policy by it.
+        var faker = new OidcProviderFaker()
+            .WithName(LoginProviders.MicrosoftEntraId)
+            .AsMicrosoftEntraId("tenant-1");
+
+        faker = allowAutoRegistration
+            ? faker.WithAutoRegistration(requireEmployeeRecord, defaultRoleId)
+            : faker.WithoutAutoRegistration();
+
+        return faker.Generate();
+    }
+
+    // Arranges the registry to return the given provider for the Entra key, an
+    // empty (non-first-user) user set, no existing user/identity match, and a
+    // successful create. The employee lookup defaults to "no match" unless overridden.
+    private void ArrangeNewUserCreatePath(OidcProvider provider, Guid? employeeId = null)
+    {
+        _mockOidcProviderRegistry
+            .Setup(r => r.GetByName(LoginProviders.MicrosoftEntraId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(provider);
+
+        // A single existing user makes isFirstUser false without matching the new
+        // principal (different username/email), so we exercise real policy rather
+        // than the first-user bootstrap exemption.
+        var existing = CreateUser(id: "existing", userName: "someone-else", loginProvider: LoginProviders.MicrosoftEntraId);
+        existing.NormalizedUserName = "SOMEONE-ELSE";
+        existing.NormalizedEmail = "SOMEONE-ELSE@EXAMPLE.COM";
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { existing }.AsQueryable().BuildMockDbSet().Object);
+
+        _mockUserIdentityStore.Setup(s => s.FindActive(LoginProviders.MicrosoftEntraId, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserIdentity?)null);
+        _mockUserIdentityStore.Setup(s => s.FindActiveByNullTenant(LoginProviders.MicrosoftEntraId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<UserIdentity>());
+        _mockUserIdentityStore.Setup(s => s.ExistsActive(It.IsAny<string>(), LoginProviders.MicrosoftEntraId))
+            .ReturnsAsync(false);
+
+        _mockUserManager.Setup(x => x.FindByNameAsync(It.IsAny<string>())).ReturnsAsync((ApplicationUser?)null);
+        _mockUserManager.Setup(x => x.FindByEmailAsync(It.IsAny<string>())).ReturnsAsync((ApplicationUser?)null);
+        _mockUserManager.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>())).ReturnsAsync(IdentityResult.Success);
+        _mockUserManager.Setup(x => x.GetRolesAsync(It.IsAny<ApplicationUser>())).ReturnsAsync([]);
+        _mockUserManager.Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>())).ReturnsAsync(IdentityResult.Success);
+
+        _mockSender.Setup(s => s.Send(It.IsAny<Wayd.Common.Application.Employees.Queries.GetEmployeeByEmailQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(employeeId);
+    }
+
+    [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldDenyRegistration_WhenAutoRegistrationDisabled()
+    {
+        // Arrange
+        var provider = CreateEntraProviderWithPolicy(allowAutoRegistration: false);
+        ArrangeNewUserCreatePath(provider, employeeId: Guid.NewGuid());
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.GetOrCreateFromPrincipalAsync(
+            CreateNewUserPrincipal("oid-1", "tenant-1", "newuser@acme.example"));
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>().WithMessage("*disabled for this identity provider*");
+        _mockUserManager.Verify(x => x.CreateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldDenyRegistration_WhenEmployeeRequiredButNoMatch()
+    {
+        // Arrange
+        var provider = CreateEntraProviderWithPolicy(allowAutoRegistration: true, requireEmployeeRecord: true);
+        ArrangeNewUserCreatePath(provider, employeeId: null);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.GetOrCreateFromPrincipalAsync(
+            CreateNewUserPrincipal("oid-2", "tenant-1", "newuser@acme.example"));
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>().WithMessage("*restricted to users with an employee record*");
+        _mockUserManager.Verify(x => x.CreateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldCreateUser_WhenEmployeeRequiredAndMatches()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var provider = CreateEntraProviderWithPolicy(allowAutoRegistration: true, requireEmployeeRecord: true);
+        ArrangeNewUserCreatePath(provider, employeeId: employeeId);
+        var sut = CreateSut();
+
+        // Act
+        var (resolvedId, resolvedEmployeeId) = await sut.GetOrCreateFromPrincipalAsync(
+            CreateNewUserPrincipal("oid-3", "tenant-1", "newuser@acme.example"));
+
+        // Assert
+        resolvedId.Should().NotBeNullOrWhiteSpace();
+        resolvedEmployeeId.Should().Be(employeeId.ToString());
+        _mockUserManager.Verify(x => x.CreateAsync(It.Is<ApplicationUser>(u => u.EmployeeId == employeeId)), Times.Once);
+        _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), ApplicationRoles.Basic), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldCreateUser_WhenEmployeeNotRequiredAndNoEmployeeMatch()
+    {
+        // Arrange — the loosened posture: anyone who authenticates gets an account.
+        var provider = CreateEntraProviderWithPolicy(allowAutoRegistration: true, requireEmployeeRecord: false);
+        ArrangeNewUserCreatePath(provider, employeeId: null);
+        var sut = CreateSut();
+
+        // Act
+        var (resolvedId, _) = await sut.GetOrCreateFromPrincipalAsync(
+            CreateNewUserPrincipal("oid-4", "tenant-1", "outsider@acme.example"));
+
+        // Assert
+        resolvedId.Should().NotBeNullOrWhiteSpace();
+        _mockUserManager.Verify(x => x.CreateAsync(It.Is<ApplicationUser>(u => u.EmployeeId == null)), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldAssignConfiguredDefaultRole_WhenPolicyNamesRole()
+    {
+        // Arrange
+        const string roleId = "role-guid-pm";
+        const string roleName = "ProjectManager";
+        var provider = CreateEntraProviderWithPolicy(requireEmployeeRecord: false, defaultRoleId: roleId);
+        ArrangeNewUserCreatePath(provider, employeeId: null);
+        _mockRoleManager.Setup(x => x.FindByIdAsync(roleId))
+            .ReturnsAsync(new ApplicationRole(roleName) { Id = roleId });
+        var sut = CreateSut();
+
+        // Act
+        await sut.GetOrCreateFromPrincipalAsync(CreateNewUserPrincipal("oid-5", "tenant-1", "pm@acme.example"));
+
+        // Assert
+        _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), roleName), Times.Once);
+        _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), ApplicationRoles.Basic), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldFallBackToBasic_WhenConfiguredDefaultRoleDeleted()
+    {
+        // Arrange — a stale default-role reference must not block sign-in.
+        const string roleId = "role-guid-deleted";
+        var provider = CreateEntraProviderWithPolicy(requireEmployeeRecord: false, defaultRoleId: roleId);
+        ArrangeNewUserCreatePath(provider, employeeId: null);
+        _mockRoleManager.Setup(x => x.FindByIdAsync(roleId)).ReturnsAsync((ApplicationRole?)null);
+        var sut = CreateSut();
+
+        // Act
+        await sut.GetOrCreateFromPrincipalAsync(CreateNewUserPrincipal("oid-6", "tenant-1", "user@acme.example"));
+
+        // Assert
+        _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), ApplicationRoles.Basic), Times.Once);
     }
 
     #endregion

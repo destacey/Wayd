@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Application.Persistence;
+﻿using Wayd.Common.Application.Identity.Roles;
+using Wayd.Common.Application.Persistence;
+using Wayd.Common.Domain.Identity;
 
 namespace Wayd.Common.Application.Identity.OidcProviders.Commands;
 
@@ -17,12 +19,18 @@ public sealed record UpdateOidcProviderCommand(
     IReadOnlyList<string> Scopes,
     IReadOnlyList<string>? AllowedTenantIds,
     int ClockSkewSeconds,
-    bool IsEnabled) : ICommand;
+    bool IsEnabled,
+    bool AllowAutoRegistration,
+    bool RequireEmployeeRecord,
+    string? DefaultRoleId) : ICommand;
 
 public sealed class UpdateOidcProviderCommandValidator : CustomValidator<UpdateOidcProviderCommand>
 {
-    public UpdateOidcProviderCommandValidator()
+    private readonly IRoleService _roleService;
+
+    public UpdateOidcProviderCommandValidator(IRoleService roleService)
     {
+        _roleService = roleService;
         RuleLevelCascadeMode = CascadeMode.Stop;
 
         RuleFor(x => x.Id).NotEmpty();
@@ -36,6 +44,16 @@ public sealed class UpdateOidcProviderCommandValidator : CustomValidator<UpdateO
         // need to read the persisted ProviderType to know which branch applies,
         // and FluentValidation can't easily fetch the row here without coupling
         // to IWaydDbContext just for one MustAsync.
+
+        // When auto-registration is enabled a default role is required and must
+        // reference an existing role; when disabled it's ignored.
+        RuleFor(x => x.DefaultRoleId)
+            .NotEmpty().WithMessage("A default role is required when auto-registration is enabled.")
+            .DependentRules(() =>
+                RuleFor(x => x.DefaultRoleId)
+                    .MustAsync(BeAnExistingRole)
+                    .WithMessage("The selected default role does not exist."))
+            .When(x => x.AllowAutoRegistration);
     }
 
     private static bool BeHttpsAbsoluteUrl(string? value)
@@ -43,6 +61,11 @@ public sealed class UpdateOidcProviderCommandValidator : CustomValidator<UpdateO
         return !string.IsNullOrWhiteSpace(value)
             && Uri.TryCreate(value, UriKind.Absolute, out var uri)
             && string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task<bool> BeAnExistingRole(string? roleId, CancellationToken cancellationToken)
+    {
+        return await _roleService.GetById(roleId!.Trim(), cancellationToken) is not null;
     }
 }
 
@@ -79,7 +102,11 @@ internal sealed class UpdateOidcProviderCommandHandler(
                 allowedTenantIds: request.AllowedTenantIds,
                 clockSkewSeconds: request.ClockSkewSeconds,
                 isEnabled: request.IsEnabled,
-                timestamp: _dateTimeProvider.Now);
+                timestamp: _dateTimeProvider.Now,
+                registrationPolicy: RegistrationPolicy.FromFlat(
+                    request.AllowAutoRegistration,
+                    request.RequireEmployeeRecord,
+                    request.DefaultRoleId));
 
             if (updateResult.IsFailure)
             {

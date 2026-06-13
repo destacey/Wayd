@@ -24702,7 +24702,9 @@
           "audience",
           "scopes",
           "clockSkewSeconds",
-          "isEnabled"
+          "isEnabled",
+          "allowAutoRegistration",
+          "requireEmployeeRecord"
         ],
         "properties": {
           "id": {
@@ -24748,6 +24750,16 @@
           },
           "isEnabled": {
             "type": "boolean"
+          },
+          "allowAutoRegistration": {
+            "type": "boolean"
+          },
+          "requireEmployeeRecord": {
+            "type": "boolean"
+          },
+          "defaultRoleId": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -24763,7 +24775,9 @@
           "audience",
           "scopes",
           "clockSkewSeconds",
-          "isEnabled"
+          "isEnabled",
+          "allowAutoRegistration",
+          "requireEmployeeRecord"
         ],
         "properties": {
           "name": {
@@ -24803,6 +24817,16 @@
           },
           "isEnabled": {
             "type": "boolean"
+          },
+          "allowAutoRegistration": {
+            "type": "boolean"
+          },
+          "requireEmployeeRecord": {
+            "type": "boolean"
+          },
+          "defaultRoleId": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -24829,7 +24853,9 @@
           "audience",
           "scopes",
           "clockSkewSeconds",
-          "isEnabled"
+          "isEnabled",
+          "allowAutoRegistration",
+          "requireEmployeeRecord"
         ],
         "properties": {
           "id": {
@@ -24869,6 +24895,16 @@
           },
           "isEnabled": {
             "type": "boolean"
+          },
+          "allowAutoRegistration": {
+            "type": "boolean"
+          },
+          "requireEmployeeRecord": {
+            "type": "boolean"
+          },
+          "defaultRoleId": {
+            "type": "string",
+            "nullable": true
           }
         }
       },

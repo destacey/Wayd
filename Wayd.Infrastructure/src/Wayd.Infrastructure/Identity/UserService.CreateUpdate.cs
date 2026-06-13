@@ -50,12 +50,19 @@ internal partial class UserService
 
         var isFirstUser = !await _userManager.Users.AnyAsync();
 
+        // The Entra provider's UserIdentity.Provider key is the well-known constant,
+        // which is also its OidcProvider.Name. Load its registration policy so the
+        // create path can honor the admin's auto-registration / employee-record /
+        // default-role settings. First-user bootstrap ignores the policy entirely
+        // (see below) — a fresh install must always be able to create its admin.
+        var policy = await ResolveRegistrationPolicy(LoginProviders.MicrosoftEntraId);
+
         var user = await ResolveUserByEntraIdentityAsync(tenantId, objectId, upn)
-            ?? await CreateOrUpdateFromPrincipalAsync(principal, isFirstUser);
+            ?? await CreateOrUpdateFromPrincipalAsync(principal, isFirstUser, policy);
 
         if (isFirstUser)
         {
-            await _userManager.AddToRoleAsync(user, "Admin");
+            await _userManager.AddToRoleAsync(user, ApplicationRoles.Admin);
             await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, _dateTimeProvider.Now, true));
         }
         else
@@ -63,12 +70,49 @@ internal partial class UserService
             var roles = await _userManager.GetRolesAsync(user);
             if (roles is null || !roles.Any())
             {
-                await _userManager.AddToRoleAsync(user, "Basic");
+                await _userManager.AddToRoleAsync(user, await ResolveDefaultRoleName(policy));
                 await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, _dateTimeProvider.Now, true));
             }
         }
 
         return (user.Id, user.EmployeeId?.ToString());
+    }
+
+    /// <summary>
+    /// Resolves the provider's <see cref="RegistrationPolicy"/> from the registry.
+    /// A missing row is treated as a disabled policy: the token was already
+    /// validated against a configured provider, so a cache miss here is effectively
+    /// impossible, and denying is the safe default if it ever occurs.
+    /// </summary>
+    private async Task<RegistrationPolicy> ResolveRegistrationPolicy(string providerName)
+    {
+        var provider = await _oidcProviderRegistry.GetByName(providerName, CancellationToken.None);
+        return provider?.RegistrationPolicy ?? RegistrationPolicy.Disabled();
+    }
+
+    /// <summary>
+    /// Resolves the role name to assign to an auto-created user. An enabled policy
+    /// always names a role (it's required), so this looks it up directly. The FK on
+    /// <c>DefaultRoleId</c> means the role can't normally be deleted while referenced;
+    /// the "role missing" branch is a defensive backstop (e.g. a raw SQL delete) —
+    /// a sign-in must never hard-fail on a dangling reference, so it falls back to
+    /// <see cref="ApplicationRoles.Basic"/>.
+    /// </summary>
+    private async Task<string> ResolveDefaultRoleName(RegistrationPolicy policy)
+    {
+        var roleId = policy.DefaultRoleId
+            ?? throw new InvalidOperationException("Enabled registration policy is missing its default role.");
+
+        var role = await _roleManager.FindByIdAsync(roleId);
+        if (role?.Name is null)
+        {
+            _logger.LogWarning(
+                "Default role {RoleId} configured for auto-registration no longer exists; falling back to {FallbackRole}.",
+                roleId, ApplicationRoles.Basic);
+            return ApplicationRoles.Basic;
+        }
+
+        return role.Name;
     }
 
     private async Task<ApplicationUser?> ResolveUserByEntraIdentityAsync(string tenantId, string objectId, string? upn)
@@ -350,7 +394,7 @@ internal partial class UserService
         return candidate;
     }
 
-    private async Task<ApplicationUser> CreateOrUpdateFromPrincipalAsync(ClaimsPrincipal principal, bool isFirstUser)
+    private async Task<ApplicationUser> CreateOrUpdateFromPrincipalAsync(ClaimsPrincipal principal, bool isFirstUser, RegistrationPolicy policy)
     {
         string principalObjectId = principal.GetObjectId() ?? throw new InternalServerException("Principal ObjectId is missing or null.");
 
@@ -394,9 +438,22 @@ internal partial class UserService
         }
         else
         {
+            // The first-ever user bootstraps the system and bypasses all policy
+            // gates — a fresh install must always be able to create its admin even
+            // with auto-registration disabled or no employee records seeded yet.
+            if (!isFirstUser && !policy.AllowAutoRegistration)
+            {
+                _logger.LogWarning("Registration denied for user {Username} (Email: {Email}). Auto-registration is disabled for this provider.",
+                    username, email);
+                throw new ForbiddenException("Registration is disabled for this identity provider. Contact an administrator.");
+            }
+
             var employeeId = await GetEmployeeIdByEmail(email);
 
-            if (!employeeId.HasValue && !isFirstUser)
+            // RequireEmployeeRecord is null only on a disabled policy, which the
+            // gate above already rejected for non-first users — so `== true` here
+            // safely means "auto-reg on and the employee gate is set".
+            if (!employeeId.HasValue && !isFirstUser && policy.RequireEmployeeRecord == true)
             {
                 _logger.LogWarning("Registration denied for user {Username} (Email: {Email}). No matching employee record found.",
                     username, email);

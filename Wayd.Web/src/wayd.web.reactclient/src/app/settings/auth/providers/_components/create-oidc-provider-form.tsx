@@ -292,7 +292,7 @@ const CreateOidcProviderForm = ({
                     type="warning"
                     showIcon
                     style={{ marginBottom: 16 }}
-                    message="Anyone who can authenticate through this provider will be granted an account."
+                    title="Anyone who can authenticate through this provider will be granted an account."
                   />
                 )
               }

@@ -104,7 +104,7 @@ const DeleteOidcProviderForm = ({
         <Alert
           type="warning"
           showIcon
-          message="This cannot be completed if any users have an active identity bound to this provider. Rebind those users first."
+          title="This cannot be completed if any users have an active identity bound to this provider. Rebind those users first."
         />
       </Flex>
     </Modal>

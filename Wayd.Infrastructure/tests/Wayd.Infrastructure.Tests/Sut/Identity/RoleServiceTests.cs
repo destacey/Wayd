@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Events;
 using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Identity.Roles;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Identity;
 using Wayd.Infrastructure.Identity;
@@ -15,8 +17,10 @@ public class RoleServiceTests
 {
     private readonly Mock<RoleManager<ApplicationRole>> _mockRoleManager;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
+    private readonly Mock<IOidcProviderDefaultRoleChecker> _mockDefaultRoleChecker;
     private readonly Mock<IEventPublisher> _mockEvents;
     private readonly Mock<ICurrentUser> _mockCurrentUser;
+    private readonly Mock<ILogger<RoleService>> _mockLogger;
     private readonly TestingDateTimeProvider _dateTimeProvider;
 
     public RoleServiceTests()
@@ -29,8 +33,10 @@ public class RoleServiceTests
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStore.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
+        _mockDefaultRoleChecker = new Mock<IOidcProviderDefaultRoleChecker>();
         _mockEvents = new Mock<IEventPublisher>();
         _mockCurrentUser = new Mock<ICurrentUser>();
+        _mockLogger = new Mock<ILogger<RoleService>>();
         _dateTimeProvider = new TestingDateTimeProvider(DateTime.UtcNow);
     }
 
@@ -40,9 +46,11 @@ public class RoleServiceTests
             _mockRoleManager.Object,
             _mockUserManager.Object,
             null!, // WaydDbContext - not used by Create/Delete methods
+            _mockDefaultRoleChecker.Object,
             _mockCurrentUser.Object,
             _mockEvents.Object,
-            _dateTimeProvider);
+            _dateTimeProvider,
+            _mockLogger.Object);
     }
 
     #region CreateOrUpdate - Create
@@ -177,10 +185,13 @@ public class RoleServiceTests
     public async Task Delete_ShouldDeleteRole_WhenRoleExistsAndIsNotDefault()
     {
         // Arrange
-        var role = new ApplicationRole("CustomRole", "A custom role");
+        var role = new ApplicationRole("CustomRole", "A custom role") { Id = "role-1" };
         _mockRoleManager.Setup(x => x.FindByIdAsync("role-1")).ReturnsAsync(role);
         _mockUserManager.Setup(x => x.GetUsersInRoleAsync("CustomRole")).ReturnsAsync([]);
         _mockRoleManager.Setup(x => x.DeleteAsync(role)).ReturnsAsync(IdentityResult.Success);
+        // No provider references this role as its default.
+        _mockDefaultRoleChecker.Setup(x => x.CountProvidersUsingRole("role-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
 
         var sut = CreateSut();
 
@@ -191,6 +202,27 @@ public class RoleServiceTests
         result.Should().Contain("CustomRole").And.Contain("Deleted");
         _mockRoleManager.Verify(x => x.DeleteAsync(role), Times.Once);
         _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationRoleDeletedEvent>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Delete_ShouldThrowConflict_WhenRoleIsAProviderDefault()
+    {
+        // Arrange — a provider pins this role as its auto-registration default.
+        var role = new ApplicationRole("ProjectManager") { Id = "role-pm" };
+        _mockRoleManager.Setup(x => x.FindByIdAsync("role-pm")).ReturnsAsync(role);
+        _mockUserManager.Setup(x => x.GetUsersInRoleAsync("ProjectManager")).ReturnsAsync([]);
+        _mockDefaultRoleChecker.Setup(x => x.CountProvidersUsingRole("role-pm", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(2);
+
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.Delete("role-pm");
+
+        // Assert
+        await act.Should().ThrowAsync<ConflictException>()
+            .WithMessage("*default registration role*identity provider*");
+        _mockRoleManager.Verify(x => x.DeleteAsync(It.IsAny<ApplicationRole>()), Times.Never);
     }
 
     [Fact]

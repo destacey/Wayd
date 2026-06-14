@@ -28842,6 +28842,9 @@ export interface OidcProviderDto {
     allowedTenantIds?: string[] | undefined;
     clockSkewSeconds: number;
     isEnabled: boolean;
+    allowAutoRegistration: boolean;
+    requireEmployeeRecord?: boolean | undefined;
+    defaultRoleId?: string | undefined;
 }
 
 export interface CreateOidcProviderRequest {
@@ -28855,6 +28858,9 @@ export interface CreateOidcProviderRequest {
     allowedTenantIds?: string[] | undefined;
     clockSkewSeconds: number;
     isEnabled: boolean;
+    allowAutoRegistration: boolean;
+    requireEmployeeRecord?: boolean | undefined;
+    defaultRoleId?: string | undefined;
 }
 
 export enum OidcProviderType {
@@ -28872,6 +28878,9 @@ export interface UpdateOidcProviderRequest {
     allowedTenantIds?: string[] | undefined;
     clockSkewSeconds: number;
     isEnabled: boolean;
+    allowAutoRegistration: boolean;
+    requireEmployeeRecord?: boolean | undefined;
+    defaultRoleId?: string | undefined;
 }
 
 export interface DeleteOidcProviderResult {

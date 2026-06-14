@@ -14,6 +14,7 @@ using Wayd.Infrastructure.Auth.Local;
 using Wayd.Infrastructure.Auth.Oidc;
 using Wayd.Infrastructure.Identity;
 using Wayd.Tests.Shared;
+using Wayd.Tests.Shared.Data;
 
 namespace Wayd.Infrastructure.Tests.Sut.Auth.Local;
 
@@ -777,18 +778,15 @@ public class TokenServiceTests
         // via the explicit field list (BeEquivalentTo treats extras as a failure
         // when the expected shape doesn't include them — but here we just check
         // each known field is right).
-        var entra = OidcProvider.Create(
-            name: LoginProviders.MicrosoftEntraId,
-            displayName: "Microsoft Entra ID",
-            providerType: OidcProviderType.MicrosoftEntraId,
-            authority: "https://login.microsoftonline.com/common/v2.0",
-            clientId: "test-client-id",
-            audience: "api://test",
-            scopes: new[] { "openid", "profile" },
-            allowedTenantIds: new[] { "11111111-1111-1111-1111-111111111111" },
-            clockSkewSeconds: 60,
-            isEnabled: true,
-            timestamp: NodaTime.SystemClock.Instance.GetCurrentInstant()).Value;
+        // Pin the fields the assertions below check; the faker fills the rest.
+        var entra = new OidcProviderFaker()
+            .WithName(LoginProviders.MicrosoftEntraId)
+            .WithDisplayName("Microsoft Entra ID")
+            .AsMicrosoftEntraId("11111111-1111-1111-1111-111111111111")
+            .WithAuthority("https://login.microsoftonline.com/common/v2.0")
+            .WithClientId("test-client-id")
+            .WithScopes("openid", "profile")
+            .Generate();
 
         _mockOidcProviderRegistry
             .Setup(r => r.GetEnabled(It.IsAny<CancellationToken>()))

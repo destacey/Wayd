@@ -1,4 +1,4 @@
-using Ardalis.GuardClauses;
+﻿using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Data;
 using NodaTime;
@@ -46,7 +46,8 @@ public sealed class OidcProvider : BaseAuditableEntity
         IReadOnlyList<string> scopes,
         IReadOnlyList<string>? allowedTenantIds,
         int clockSkewSeconds,
-        bool isEnabled)
+        bool isEnabled,
+        RegistrationPolicy registrationPolicy)
     {
         Name = name;
         DisplayName = displayName;
@@ -58,6 +59,7 @@ public sealed class OidcProvider : BaseAuditableEntity
         AllowedTenantIds = allowedTenantIds;
         ClockSkewSeconds = clockSkewSeconds;
         IsEnabled = isEnabled;
+        RegistrationPolicy = registrationPolicy;
     }
 
     /// <summary>
@@ -137,9 +139,31 @@ public sealed class OidcProvider : BaseAuditableEntity
     public bool IsEnabled { get; private set; }
 
     /// <summary>
+    /// Just-in-time provisioning policy: whether first-time sign-ins auto-create an
+    /// account and, if so, under what employee-record gate and default role. The
+    /// dependent settings are only readable while auto-registration is enabled — see
+    /// <see cref="Identity.RegistrationPolicy"/>. Never <c>null</c>; a brand-new or
+    /// reset provider carries a disabled policy.
+    /// </summary>
+    public RegistrationPolicy RegistrationPolicy { get; private set; } = RegistrationPolicy.Disabled();
+
+    /// <summary>
     /// Creates a new OIDC provider configuration. Validates the type-specific
     /// invariants up front (e.g. Entra requires at least one tenant ID).
     /// </summary>
+    /// <param name="name">The name of the provider.</param>
+    /// <param name="displayName">The display name of the provider.</param>
+    /// <param name="providerType">The type of the provider.</param>
+    /// <param name="authority">The authority URL of the provider.</param>
+    /// <param name="clientId">The client ID of the provider.</param>
+    /// <param name="audience">The audience of the provider.</param>
+    /// <param name="scopes">The scopes of the provider.</param>
+    /// <param name="allowedTenantIds">The allowed tenant IDs of the provider.</param>
+    /// <param name="clockSkewSeconds">The clock skew in seconds.</param>
+    /// <param name="isEnabled">Whether the provider is enabled.</param>
+    /// <param name="timestamp">The timestamp of the creation.</param>
+    /// <param name="registrationPolicy">The registration policy of the provider. Optional; if not provided, defaults to disabled.</param>
+    /// <returns>A result indicating success or failure.</returns>
     public static Result<OidcProvider> Create(
         string name,
         string displayName,
@@ -151,7 +175,8 @@ public sealed class OidcProvider : BaseAuditableEntity
         IReadOnlyList<string>? allowedTenantIds,
         int clockSkewSeconds,
         bool isEnabled,
-        Instant timestamp)
+        Instant timestamp,
+        RegistrationPolicy? registrationPolicy = null)
     {
         try
         {
@@ -171,7 +196,8 @@ public sealed class OidcProvider : BaseAuditableEntity
                 scopes ?? [],
                 NormalizeAllowedTenantIds(allowedTenantIds),
                 clockSkewSeconds,
-                isEnabled);
+                isEnabled,
+                registrationPolicy ?? RegistrationPolicy.Disabled());
 
             provider.AddDomainEvent(EntityCreatedEvent.WithEntity(provider, timestamp));
 
@@ -190,6 +216,17 @@ public sealed class OidcProvider : BaseAuditableEntity
     /// path applies to existing identities. Mutating either would orphan or
     /// silently re-route those rows.
     /// </summary>
+    /// <param name="displayName">The display name of the provider.</param>
+    /// <param name="authority">The authority URL of the provider.</param>
+    /// <param name="clientId">The client ID of the provider.</param>
+    /// <param name="audience">The audience of the provider.</param>
+    /// <param name="scopes">The scopes of the provider.</param>
+    /// <param name="allowedTenantIds">The allowed tenant IDs of the provider.</param>
+    /// <param name="clockSkewSeconds">The clock skew in seconds.</param>
+    /// <param name="isEnabled">Whether the provider is enabled.</param>
+    /// <param name="timestamp">The timestamp of the update.</param>
+    /// <param name="registrationPolicy">The registration policy of the provider. Optional; if not provided, defaults to disabled.</param>
+    /// <returns>A result indicating success or failure.</returns>
     public Result Update(
         string displayName,
         string authority,
@@ -199,7 +236,8 @@ public sealed class OidcProvider : BaseAuditableEntity
         IReadOnlyList<string>? allowedTenantIds,
         int clockSkewSeconds,
         bool isEnabled,
-        Instant timestamp)
+        Instant timestamp,
+        RegistrationPolicy? registrationPolicy = null)
     {
         try
         {
@@ -217,6 +255,7 @@ public sealed class OidcProvider : BaseAuditableEntity
             AllowedTenantIds = NormalizeAllowedTenantIds(allowedTenantIds);
             ClockSkewSeconds = clockSkewSeconds;
             IsEnabled = isEnabled;
+            RegistrationPolicy = registrationPolicy ?? RegistrationPolicy.Disabled();
 
             AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
 

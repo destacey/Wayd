@@ -88,6 +88,31 @@ Converts an OIDC user to a local (password-based) account **immediately** — no
 - The user's `UserId`, permissions, and all other records are preserved — only the authentication method changes.
 - The temporary password must meet the deployment's password policy (minimum 8 characters).
 
+### Identity Providers
+
+Single sign-on providers are configured in **Settings → Identity Providers** (available once the `IdentityProviders` feature flag is enabled). Beyond the connection details — issuer, client ID, audience, scopes, and (for Microsoft Entra ID) the allowed tenants — each provider carries a **registration policy** that controls whether and how new users are created when someone signs in for the first time.
+
+**Registration policy fields:**
+
+- **Allow automatic user registration** — The master switch. **Off by default.** When off, a person who authenticates successfully but has no Wayd account yet is turned away, and an administrator must create their account first. When on, a matching account is created automatically on first sign-in (subject to the options below).
+- **Require matching employee record** — Shown only when auto-registration is on; defaults to on. While on, only people whose email matches an existing employee can self-register. Turning it off is a deliberate loosening — **anyone** who can authenticate through this provider will be granted an account — so the form shows a warning when you do.
+- **Default role for new users** — Shown only when auto-registration is on, where it is **required**. The role assigned to accounts created through this provider — pick any role, system or custom. There is no implicit fallback; you must choose one explicitly.
+
+**What happens on first sign-in:**
+
+| Auto-registration | Employee record | Result |
+|---|---|---|
+| Off | — | Sign-in rejected; an admin must pre-create the account. |
+| On | Required, no match | Sign-in rejected ("restricted to users with an employee record"). |
+| On | Required, match found | Account created, assigned the default role. |
+| On | Not required | Account created for anyone who authenticates, assigned the default role. |
+
+**Things to know:**
+
+- **The first user is special.** The very first person to sign in to a brand-new deployment always becomes an administrator, regardless of policy — this can't lock you out of an empty system.
+- **Upgrades are secure by default.** Existing providers have auto-registration turned **off** after upgrading to this version; re-enable it deliberately per provider.
+- **A role in use can't be deleted.** If a role is set as a provider's default, attempting to delete it is blocked with a clear message until you repoint the provider to a different role.
+
 ### Roles
 
 Roles define permission groups. Users are assigned to roles to control access to features, pages, and actions throughout the application.

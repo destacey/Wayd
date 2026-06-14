@@ -221,6 +221,10 @@ If `aud` has `api://` in it but the provider's `Audience` is a bare GUID, the AP
 
 **User from a new Entra tenant gets rejected.** Add their tenant ID to `AllowedTenantIds`. The tenant's admin also needs to admin-consent the `access_as_user` permission (see Step 2) — otherwise users see Microsoft's consent prompt on first sign-in, and individual users may not be allowed to consent depending on the tenant's policies.
 
+**`403 Registration is disabled for this identity provider`.** The token validated fine, but the provider's `AllowAutoRegistration` is off (the default) and this user has no existing account. Either enable auto-registration on the provider or pre-create the user. See [User provisioning](./configuration.mdx#user-provisioning-auto-registration).
+
+**`403 Registration is restricted to users with an employee record`.** Auto-registration is on, but the provider's `RequireEmployeeRecord` is on and no `Employee` matches the user's email. Add a matching employee (e.g. via People Sync), turn off the employee-record requirement on the provider, or pre-create the user.
+
 **People sync / Graph calls fail with 401.** The Entra connection's client secret has expired, was never set, or is wrong. Edit the connection in **Settings → Connections** and re-enter the secret. This is independent of the token-exchange flow — login still works, only Graph-backed people sync breaks. See [Create a client secret](#create-a-client-secret-only-if-you-want-the-entra-people-sync-connector).
 
 ## References

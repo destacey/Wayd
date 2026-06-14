@@ -35,6 +35,11 @@ internal sealed class GetOidcProviderQueryHandler(IWaydDbContext dbContext)
                 AllowedTenantIds = p.AllowedTenantIds,
                 ClockSkewSeconds = p.ClockSkewSeconds,
                 IsEnabled = p.IsEnabled,
+                AllowAutoRegistration = p.RegistrationPolicy.AllowAutoRegistration,
+                // Dependent settings are NULL on a disabled policy; surface the safe
+                // default (employee gate on) so the form shows it when re-enabling.
+                RequireEmployeeRecord = p.RegistrationPolicy.RequireEmployeeRecord ?? true,
+                DefaultRoleId = p.RegistrationPolicy.DefaultRoleId,
             })
             .SingleOrDefaultAsync(cancellationToken);
     }

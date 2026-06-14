@@ -20,6 +20,7 @@ import {
 import { ColDef, ICellRendererParams } from 'ag-grid-community'
 import { Button, Space, Tag, Tooltip, Typography } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import {
   CreateOidcProviderForm,
@@ -205,7 +206,19 @@ const OidcProvidersPage = () => {
         },
       },
       { field: 'id', hide: true },
-      { field: 'name', headerName: 'Name', flex: 1 },
+      {
+        field: 'name',
+        headerName: 'Name',
+        flex: 1,
+        cellRenderer: (params: ICellRendererParams<OidcProviderListItemDto>) => {
+          if (!params.data) return null
+          return (
+            <Link href={`/settings/auth/providers/${params.data.id}`}>
+              {params.data.name}
+            </Link>
+          )
+        },
+      },
       { field: 'displayName', headerName: 'Display Name', flex: 1 },
       {
         field: 'providerType',

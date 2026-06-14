@@ -237,6 +237,33 @@ public class OidcProviderConfig : IEntityTypeConfiguration<OidcProvider>
         builder.Property(p => p.IsEnabled)
             .IsRequired()
             .HasDefaultValue(false);
+
+        builder.OwnsOne(p => p.RegistrationPolicy, policy =>
+        {
+            policy.Property(rp => rp.AllowAutoRegistration)
+                .HasColumnName("AllowAutoRegistration")
+                .IsRequired()
+                .HasDefaultValue(false);
+
+            policy.Property(rp => rp.RequireEmployeeRecord)
+                .HasColumnName("RequireEmployeeRecord");
+
+            policy.Property(rp => rp.DefaultRoleId)
+                .HasColumnName("DefaultRoleId")
+                .HasMaxLength(450);
+
+            // Real FK to the role, with NO ACTION on delete: a role that's pinned as
+            // a provider's auto-registration default cannot be deleted until the
+            // provider is repointed. This is the hard guarantee that the stored
+            // DefaultRoleId can never dangle; RoleService.Delete surfaces the same
+            // rule as a friendly ConflictException before the constraint fires.
+            policy.HasOne<ApplicationRole>()
+                .WithMany()
+                .HasForeignKey(rp => rp.DefaultRoleId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        builder.Navigation(p => p.RegistrationPolicy).IsRequired();
     }
 }
 

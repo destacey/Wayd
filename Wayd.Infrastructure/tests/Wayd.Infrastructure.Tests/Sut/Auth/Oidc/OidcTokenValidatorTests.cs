@@ -10,6 +10,7 @@ using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Identity.OidcProviders;
 using Wayd.Common.Domain.Identity;
 using Wayd.Infrastructure.Auth.Oidc;
+using Wayd.Tests.Shared.Data;
 
 namespace Wayd.Infrastructure.Tests.Sut.Auth.Oidc;
 
@@ -429,39 +430,40 @@ public class OidcTokenValidatorTests
         // common happy-path case. Tests that want a different list pass it in.
         allowedTenantIds ??= new[] { AllowedTenantId };
 
-        var result = OidcProvider.Create(
-            name: EntraProviderName,
-            displayName: "Microsoft Entra ID",
-            providerType: OidcProviderType.MicrosoftEntraId,
-            authority: EntraAuthority,
-            clientId: "test-client-id",
-            audience: TestAudience,
-            scopes: new[] { "openid", "profile" },
-            allowedTenantIds: allowedTenantIds,
-            clockSkewSeconds: 60,
-            isEnabled: isEnabled,
-            timestamp: SystemClock.Instance.GetCurrentInstant());
-        result.IsSuccess.Should().BeTrue();
-        return result.Value;
+        // The validator pins on authority/audience/client-id, so set them explicitly
+        // rather than taking the faker's randomized values.
+        var faker = new OidcProviderFaker()
+            .WithName(EntraProviderName)
+            .WithDisplayName("Microsoft Entra ID")
+            .AsMicrosoftEntraId([.. allowedTenantIds])
+            .WithAuthority(EntraAuthority)
+            .WithClientId("test-client-id")
+            .WithAudience(TestAudience);
+
+        return (isEnabled ? faker.AsEnabled() : faker.AsDisabled()).Generate();
     }
 
     private static OidcProvider CreateGenericProvider(
         IReadOnlyList<string>? allowedTenantIds = null)
     {
-        var result = OidcProvider.Create(
-            name: GenericProviderName,
-            displayName: "Acme Google",
-            providerType: OidcProviderType.GenericOidc,
-            authority: GenericAuthority,
-            clientId: "test-client-id",
-            audience: TestAudience,
-            scopes: new[] { "openid", "profile" },
-            allowedTenantIds: allowedTenantIds,
-            clockSkewSeconds: 60,
-            isEnabled: true,
-            timestamp: SystemClock.Instance.GetCurrentInstant());
-        result.IsSuccess.Should().BeTrue();
-        return result.Value;
+        var provider = new OidcProviderFaker()
+            .WithName(GenericProviderName)
+            .WithDisplayName("Acme Google")
+            .AsGenericOidc()
+            .WithAuthority(GenericAuthority)
+            .WithClientId("test-client-id")
+            .WithAudience(TestAudience)
+            .Generate();
+
+        // GenericOidc ignores the tenant allowlist, but a couple of tests assert the
+        // validator does too — honor an explicitly supplied list via field binding.
+        if (allowedTenantIds is not null)
+        {
+            typeof(OidcProvider).GetProperty(nameof(OidcProvider.AllowedTenantIds))!
+                .SetValue(provider, allowedTenantIds);
+        }
+
+        return provider;
     }
 
     /// <summary>

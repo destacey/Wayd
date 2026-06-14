@@ -1,4 +1,5 @@
 using Wayd.Common.Application.Identity.OidcProviders.Dtos;
+using Wayd.Common.Application.Identity.Roles;
 using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.Identity;
 
@@ -20,15 +21,20 @@ public sealed record CreateOidcProviderCommand(
     IReadOnlyList<string> Scopes,
     IReadOnlyList<string>? AllowedTenantIds,
     int ClockSkewSeconds,
-    bool IsEnabled) : ICommand<OidcProviderDto>;
+    bool IsEnabled,
+    bool AllowAutoRegistration,
+    bool? RequireEmployeeRecord,
+    string? DefaultRoleId) : ICommand<OidcProviderDto>;
 
 public sealed class CreateOidcProviderCommandValidator : CustomValidator<CreateOidcProviderCommand>
 {
     private readonly IWaydDbContext _dbContext;
+    private readonly IRoleService _roleService;
 
-    public CreateOidcProviderCommandValidator(IWaydDbContext dbContext)
+    public CreateOidcProviderCommandValidator(IWaydDbContext dbContext, IRoleService roleService)
     {
         _dbContext = dbContext;
+        _roleService = roleService;
         RuleLevelCascadeMode = CascadeMode.Stop;
 
         // Field-level shape — domain entity also enforces these, but failing
@@ -58,6 +64,22 @@ public sealed class CreateOidcProviderCommandValidator : CustomValidator<CreateO
         RuleFor(x => x.Name)
             .Must(n => !string.Equals(n?.Trim(), "Wayd", StringComparison.OrdinalIgnoreCase))
             .WithMessage("'Wayd' is a reserved provider name.");
+
+        // When auto-registration is enabled a default role is required and must
+        // reference an existing role. Validated here so it's a clean 400 rather than
+        // the entity throwing at construction time. When disabled the role is ignored.
+        RuleFor(x => x.DefaultRoleId)
+            .NotEmpty().WithMessage("A default role is required when auto-registration is enabled.")
+            .DependentRules(() =>
+                RuleFor(x => x.DefaultRoleId)
+                    .MustAsync(BeAnExistingRole)
+                    .WithMessage("The selected default role does not exist."))
+            .When(x => x.AllowAutoRegistration);
+    }
+
+    private async Task<bool> BeAnExistingRole(string? roleId, CancellationToken cancellationToken)
+    {
+        return await _roleService.GetById(roleId!.Trim(), cancellationToken) is not null;
     }
 
     private static bool BeHttpsAbsoluteUrl(string? value)
@@ -101,7 +123,11 @@ internal sealed class CreateOidcProviderCommandHandler(
                 allowedTenantIds: request.AllowedTenantIds,
                 clockSkewSeconds: request.ClockSkewSeconds,
                 isEnabled: request.IsEnabled,
-                timestamp: _dateTimeProvider.Now);
+                timestamp: _dateTimeProvider.Now,
+                registrationPolicy: RegistrationPolicy.FromFlat(
+                    request.AllowAutoRegistration,
+                    request.RequireEmployeeRecord,
+                    request.DefaultRoleId));
 
             if (result.IsFailure)
             {
@@ -142,5 +168,10 @@ internal sealed class CreateOidcProviderCommandHandler(
         AllowedTenantIds = p.AllowedTenantIds,
         ClockSkewSeconds = p.ClockSkewSeconds,
         IsEnabled = p.IsEnabled,
+        AllowAutoRegistration = p.RegistrationPolicy.AllowAutoRegistration,
+        // Flatten the gated value for the admin form; when auto-registration is
+        // off the gate has no stored value, so surface its default for display.
+        RequireEmployeeRecord = p.RegistrationPolicy.RequireEmployeeRecord ?? true,
+        DefaultRoleId = p.RegistrationPolicy.DefaultRoleId,
     };
 }

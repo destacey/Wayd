@@ -1,34 +1,36 @@
-namespace Wayd.Common.Application.Identity.OidcProviders.Dtos;
+﻿namespace Wayd.Common.Application.Identity.OidcProviders.Dtos;
 
 /// <summary>
 /// Admin-facing detail DTO. Includes every editable field plus audit metadata.
 /// </summary>
 public sealed record OidcProviderDto
 {
-    public Guid Id { get; init; }
-    public string Name { get; init; } = null!;
-    public string DisplayName { get; init; } = null!;
-    public string ProviderType { get; init; } = null!;
-    public string Authority { get; init; } = null!;
-    public string ClientId { get; init; } = null!;
-    public string Audience { get; init; } = null!;
-    public IReadOnlyList<string> Scopes { get; init; } = [];
-    public IReadOnlyList<string>? AllowedTenantIds { get; init; }
-    public int ClockSkewSeconds { get; init; }
-    public bool IsEnabled { get; init; }
-}
+    public Guid Id { get; set; }
+    public required string Name { get; set; }
+    public required string DisplayName { get; set; }
+    public required string ProviderType { get; set; }
+    public required string Authority { get; set; }
+    public required string ClientId { get; set; }
+    public required string Audience { get; set; }
+    public IReadOnlyList<string> Scopes { get; set; } = [];
+    public IReadOnlyList<string>? AllowedTenantIds { get; set; }
+    public int ClockSkewSeconds { get; set; }
+    public bool IsEnabled { get; set; }
 
-/// <summary>
-/// Compact list row. Same fields as the detail DTO; kept as a separate type so
-/// the API contract is explicit and the listing endpoint stays stable if the
-/// detail shape grows fields later.
-/// </summary>
-public sealed record OidcProviderListItemDto
-{
-    public Guid Id { get; init; }
-    public string Name { get; init; } = null!;
-    public string DisplayName { get; init; } = null!;
-    public string ProviderType { get; init; } = null!;
-    public string Authority { get; init; } = null!;
-    public bool IsEnabled { get; init; }
+    /// <summary>
+    /// Whether first-time sign-ins through this provider auto-create an account.
+    /// </summary>
+    public bool AllowAutoRegistration { get; set; }
+
+    /// <summary>
+    /// Whether auto-registration is restricted to users with a matching employee
+    /// record. Only meaningful when <see cref="AllowAutoRegistration"/> is true.
+    /// </summary>
+    public bool? RequireEmployeeRecord { get; set; }
+
+    /// <summary>
+    /// Role id assigned to auto-created users. Null when auto-registration is
+    /// disabled (a default role is required whenever it's enabled).
+    /// </summary>
+    public string? DefaultRoleId { get; set; }
 }

@@ -1,5 +1,6 @@
 using FluentValidation.TestHelper;
 using Wayd.Common.Application.Identity.OidcProviders.Commands;
+using Wayd.Common.Application.Identity.Roles;
 
 namespace Wayd.Common.Application.Tests.Sut.Identity.OidcProviders;
 
@@ -11,7 +12,18 @@ namespace Wayd.Common.Application.Tests.Sut.Identity.OidcProviders;
 /// </summary>
 public class UpdateOidcProviderCommandValidatorTests
 {
-    private readonly UpdateOidcProviderCommandValidator _sut = new();
+    private const string ExistingRoleId = "role-existing";
+
+    private readonly Mock<IRoleService> _roleService;
+    private readonly UpdateOidcProviderCommandValidator _sut;
+
+    public UpdateOidcProviderCommandValidatorTests()
+    {
+        _roleService = new Mock<IRoleService>();
+        _roleService.Setup(s => s.GetById(ExistingRoleId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RoleDto { Id = ExistingRoleId, Name = "Existing" });
+        _sut = new UpdateOidcProviderCommandValidator(_roleService.Object);
+    }
 
     private static UpdateOidcProviderCommand ValidCommand() => new(
         Id: Guid.NewGuid(),
@@ -22,7 +34,10 @@ public class UpdateOidcProviderCommandValidatorTests
         Scopes: new[] { "openid", "profile" },
         AllowedTenantIds: new[] { "11111111-1111-1111-1111-111111111111" },
         ClockSkewSeconds: 60,
-        IsEnabled: true);
+        IsEnabled: true,
+        AllowAutoRegistration: true,
+        RequireEmployeeRecord: true,
+        DefaultRoleId: ExistingRoleId);
 
     [Fact]
     public async Task Validate_WithValidCommand_PassesAllRules()
@@ -77,5 +92,22 @@ public class UpdateOidcProviderCommandValidatorTests
         var command = ValidCommand() with { ClockSkewSeconds = clockSkew };
         var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);
         result.ShouldHaveValidationErrorFor(x => x.ClockSkewSeconds);
+    }
+
+    [Fact]
+    public async Task Validate_WithExistingDefaultRoleId_PassesRoleRule()
+    {
+        var command = ValidCommand() with { DefaultRoleId = ExistingRoleId };
+        var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);
+        result.ShouldNotHaveValidationErrorFor(x => x.DefaultRoleId);
+    }
+
+    [Fact]
+    public async Task Validate_WithUnknownDefaultRoleId_FailsRoleRule()
+    {
+        var command = ValidCommand() with { DefaultRoleId = "does-not-exist" };
+        var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);
+        result.ShouldHaveValidationErrorFor(x => x.DefaultRoleId)
+            .WithErrorMessage("The selected default role does not exist.");
     }
 }

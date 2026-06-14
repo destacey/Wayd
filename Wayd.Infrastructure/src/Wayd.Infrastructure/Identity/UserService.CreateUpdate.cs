@@ -93,10 +93,10 @@ internal partial class UserService
     /// <summary>
     /// Resolves the role name to assign to an auto-created user. An enabled policy
     /// always names a role (it's required), so this looks it up directly. The FK on
-    /// <c>DefaultRoleId</c> means the role can't normally be deleted while referenced;
-    /// the "role missing" branch is a defensive backstop (e.g. a raw SQL delete) —
-    /// a sign-in must never hard-fail on a dangling reference, so it falls back to
-    /// <see cref="ApplicationRoles.Basic"/>.
+    /// <c>DefaultRoleId</c> plus the delete guard in <c>RoleService.Delete</c> keep the
+    /// reference valid, so a missing role here is an invariant violation — there is no
+    /// fallback. Auto-registration cannot proceed without a valid configured role, so
+    /// this throws rather than inventing one.
     /// </summary>
     private async Task<string> ResolveDefaultRoleName(RegistrationPolicy policy)
     {
@@ -106,10 +106,10 @@ internal partial class UserService
         var role = await _roleManager.FindByIdAsync(roleId);
         if (role?.Name is null)
         {
-            _logger.LogWarning(
-                "Default role {RoleId} configured for auto-registration no longer exists; falling back to {FallbackRole}.",
-                roleId, ApplicationRoles.Basic);
-            return ApplicationRoles.Basic;
+            _logger.LogError(
+                "Default role {RoleId} configured for auto-registration no longer exists; cannot provision user.",
+                roleId);
+            throw new InternalServerException("The configured registration role no longer exists. Contact an administrator.");
         }
 
         return role.Name;
@@ -558,7 +558,7 @@ internal partial class UserService
                     throw new UserCreationRollbackException();
                 }
 
-                await _userManager.AddToRoleAsync(user, ApplicationRoles.Basic);
+                await _userManager.AddToRolesAsync(user, command.RoleNames);
 
                 // Wayd (local) users get an identity row immediately, keyed by the
                 // stable ApplicationUser.Id (usernames are mutable). Entra users

@@ -244,17 +244,17 @@ public class RoleServiceTests
     public async Task Delete_ShouldThrowConflict_WhenDeletingDefaultRole()
     {
         // Arrange
-        var basicRole = new ApplicationRole(ApplicationRoles.Basic);
-        _mockRoleManager.Setup(x => x.FindByIdAsync("basic-id")).ReturnsAsync(basicRole);
+        var adminRole = new ApplicationRole(ApplicationRoles.Admin);
+        _mockRoleManager.Setup(x => x.FindByIdAsync("admin-id")).ReturnsAsync(adminRole);
 
         var sut = CreateSut();
 
         // Act
-        var act = () => sut.Delete("basic-id");
+        var act = () => sut.Delete("admin-id");
 
         // Assert
         await act.Should().ThrowAsync<ConflictException>()
-            .WithMessage("*Not allowed to delete*Basic*");
+            .WithMessage("*Not allowed to delete*Admin*");
     }
 
     [Fact]

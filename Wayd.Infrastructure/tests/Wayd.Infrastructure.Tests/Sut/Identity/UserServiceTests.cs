@@ -112,13 +112,14 @@ public class UserServiceTests
             Email = "john@example.com",
             LoginProvider = LoginProviders.Wayd,
             Password = "Password123!",
+            RoleNames = ["Contributor"],
         };
 
         _mockUserManager
             .Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), "Password123!"))
             .ReturnsAsync(IdentityResult.Success);
         _mockUserManager
-            .Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), ApplicationRoles.Basic))
+            .Setup(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(IdentityResult.Success);
 
         var sut = CreateSut();
@@ -136,7 +137,8 @@ public class UserServiceTests
             u.UserName == "john@example.com" &&
             u.LoginProvider == LoginProviders.Wayd &&
             u.IsActive), "Password123!"), Times.Once);
-        _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), ApplicationRoles.Basic), Times.Once);
+        _mockUserManager.Verify(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(),
+            It.Is<IEnumerable<string>>(r => r.SequenceEqual(new[] { "Contributor" }))), Times.Once);
         _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserCreatedEvent>()), Times.Once);
     }
 
@@ -150,13 +152,14 @@ public class UserServiceTests
             LastName = "Doe",
             Email = "jane@example.com",
             LoginProvider = LoginProviders.MicrosoftEntraId,
+            RoleNames = ["Contributor"],
         };
 
         _mockUserManager
             .Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
         _mockUserManager
-            .Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), ApplicationRoles.Basic))
+            .Setup(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(IdentityResult.Success);
 
         var sut = CreateSut();
@@ -197,7 +200,7 @@ public class UserServiceTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("Duplicate username.");
-        _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
+        _mockUserManager.Verify(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<string>>()), Times.Never);
         _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserCreatedEvent>()), Times.Never);
     }
 
@@ -218,7 +221,7 @@ public class UserServiceTests
             .Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), "Password123!"))
             .ReturnsAsync(IdentityResult.Success);
         _mockUserManager
-            .Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), ApplicationRoles.Basic))
+            .Setup(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(IdentityResult.Success);
 
         var sut = CreateSut();
@@ -257,7 +260,7 @@ public class UserServiceTests
             .Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
         _mockUserManager
-            .Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), ApplicationRoles.Basic))
+            .Setup(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(IdentityResult.Success);
 
         var sut = CreateSut();
@@ -309,7 +312,7 @@ public class UserServiceTests
             .Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
         _mockUserManager
-            .Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), ApplicationRoles.Basic))
+            .Setup(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(IdentityResult.Success);
 
         var sut = CreateSut();
@@ -1307,6 +1310,11 @@ public class UserServiceTests
         _mockUserManager.Setup(x => x.GetRolesAsync(It.IsAny<ApplicationUser>())).ReturnsAsync([]);
         _mockUserManager.Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>())).ReturnsAsync(IdentityResult.Success);
 
+        // The registration policy's default role resolves to a real role by default.
+        // Tests exercising a deleted/missing role override this with a more specific setup.
+        _mockRoleManager.Setup(x => x.FindByIdAsync(It.IsAny<string>()))
+            .ReturnsAsync((string id) => new ApplicationRole("Contributor") { Id = id });
+
         _mockSender.Setup(s => s.Send(It.IsAny<Wayd.Common.Application.Employees.Queries.GetEmployeeByEmailQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(employeeId);
     }
@@ -1349,9 +1357,13 @@ public class UserServiceTests
     public async Task GetOrCreateFromPrincipalAsync_ShouldCreateUser_WhenEmployeeRequiredAndMatches()
     {
         // Arrange
+        const string roleId = "role-guid-default";
+        const string roleName = "Contributor";
         var employeeId = Guid.NewGuid();
-        var provider = CreateEntraProviderWithPolicy(allowAutoRegistration: true, requireEmployeeRecord: true);
+        var provider = CreateEntraProviderWithPolicy(allowAutoRegistration: true, requireEmployeeRecord: true, defaultRoleId: roleId);
         ArrangeNewUserCreatePath(provider, employeeId: employeeId);
+        _mockRoleManager.Setup(x => x.FindByIdAsync(roleId))
+            .ReturnsAsync(new ApplicationRole(roleName) { Id = roleId });
         var sut = CreateSut();
 
         // Act
@@ -1362,7 +1374,7 @@ public class UserServiceTests
         resolvedId.Should().NotBeNullOrWhiteSpace();
         resolvedEmployeeId.Should().Be(employeeId.ToString());
         _mockUserManager.Verify(x => x.CreateAsync(It.Is<ApplicationUser>(u => u.EmployeeId == employeeId)), Times.Once);
-        _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), ApplicationRoles.Basic), Times.Once);
+        _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), roleName), Times.Once);
     }
 
     [Fact]
@@ -1399,13 +1411,16 @@ public class UserServiceTests
 
         // Assert
         _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), roleName), Times.Once);
-        _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), ApplicationRoles.Basic), Times.Never);
+        // Only the configured role is assigned — no implicit additional role.
+        _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.Is<string>(r => r != roleName)), Times.Never);
     }
 
     [Fact]
-    public async Task GetOrCreateFromPrincipalAsync_ShouldFallBackToBasic_WhenConfiguredDefaultRoleDeleted()
+    public async Task GetOrCreateFromPrincipalAsync_ShouldThrow_WhenConfiguredDefaultRoleDeleted()
     {
-        // Arrange — a stale default-role reference must not block sign-in.
+        // Arrange — there is no fallback role. A stale default-role reference (which
+        // the FK + role-delete guard normally prevent) is an invariant violation that
+        // must fail loudly rather than silently provisioning an unintended role.
         const string roleId = "role-guid-deleted";
         var provider = CreateEntraProviderWithPolicy(requireEmployeeRecord: false, defaultRoleId: roleId);
         ArrangeNewUserCreatePath(provider, employeeId: null);
@@ -1413,10 +1428,13 @@ public class UserServiceTests
         var sut = CreateSut();
 
         // Act
-        await sut.GetOrCreateFromPrincipalAsync(CreateNewUserPrincipal("oid-6", "tenant-1", "user@acme.example"));
+        var act = () => sut.GetOrCreateFromPrincipalAsync(
+            CreateNewUserPrincipal("oid-6", "tenant-1", "user@acme.example"));
 
         // Assert
-        _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), ApplicationRoles.Basic), Times.Once);
+        await act.Should().ThrowAsync<InternalServerException>()
+            .WithMessage("*configured registration role no longer exists*");
+        _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
     }
 
     #endregion

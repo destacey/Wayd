@@ -24990,7 +24990,6 @@
           "action",
           "resource",
           "category",
-          "isBasic",
           "isRoot",
           "name"
         ],
@@ -25006,9 +25005,6 @@
           },
           "category": {
             "type": "string"
-          },
-          "isBasic": {
-            "type": "boolean"
           },
           "isRoot": {
             "type": "boolean"
@@ -25536,7 +25532,8 @@
           "firstName",
           "lastName",
           "email",
-          "loginProvider"
+          "loginProvider",
+          "roleNames"
         ],
         "properties": {
           "firstName": {
@@ -25564,6 +25561,12 @@
           "password": {
             "type": "string",
             "nullable": true
+          },
+          "roleNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

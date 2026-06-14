@@ -25,8 +25,8 @@ const EditRoleForm = ({
   const messageApi = useMessage()
 
   // The hook's permission check handles the basic permission claim.
-  // We also need to check that the role is editable (not Admin or Basic).
-  const editableRole = role && role.name !== 'Admin' && role.name !== 'Basic'
+  // We also need to check that the role is editable (not the Admin system role).
+  const editableRole = role && role.name !== 'Admin'
 
   const [upsertRole] = useUpsertRoleMutation()
 

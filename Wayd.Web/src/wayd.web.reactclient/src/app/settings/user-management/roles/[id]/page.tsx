@@ -66,8 +66,7 @@ const RoleDetailsPage = (props: { params: Promise<{ id: string }> }) => {
   const title = roleData ? `${roleData.name} - Role Details` : 'Role Details'
   useDocumentTitle(title)
 
-  const isSystemRole =
-    !!roleData && (roleData.name === 'Admin' || roleData.name === 'Basic')
+  const isSystemRole = !!roleData && roleData.name === 'Admin'
   const editableRole = !!roleData && !isSystemRole
 
   const canUpdateRole =

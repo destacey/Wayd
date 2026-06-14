@@ -23,7 +23,7 @@ public sealed record CreateOidcProviderCommand(
     int ClockSkewSeconds,
     bool IsEnabled,
     bool AllowAutoRegistration,
-    bool RequireEmployeeRecord,
+    bool? RequireEmployeeRecord,
     string? DefaultRoleId) : ICommand<OidcProviderDto>;
 
 public sealed class CreateOidcProviderCommandValidator : CustomValidator<CreateOidcProviderCommand>

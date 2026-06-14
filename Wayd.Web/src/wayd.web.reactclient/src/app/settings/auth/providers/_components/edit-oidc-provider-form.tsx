@@ -78,13 +78,13 @@ const EditOidcProviderForm = ({
               : undefined,
             clockSkewSeconds: values.clockSkewSeconds ?? 60,
             isEnabled: values.isEnabled ?? true,
-            allowAutoRegistration: values.allowAutoRegistration ?? true,
-            // When auto-registration is off, the gating fields are irrelevant —
-            // send conservative values so a later re-enable doesn't inherit a
-            // stale loosened posture.
+            allowAutoRegistration: values.allowAutoRegistration ?? false,
+            // When auto-registration is off the dependent fields must be omitted —
+            // the request validator rejects them, and the domain treats the policy
+            // as a discriminated shape (no dependent values while disabled).
             requireEmployeeRecord: values.allowAutoRegistration
               ? (values.requireEmployeeRecord ?? true)
-              : true,
+              : undefined,
             defaultRoleId: values.allowAutoRegistration
               ? (values.defaultRoleId ?? undefined)
               : undefined,

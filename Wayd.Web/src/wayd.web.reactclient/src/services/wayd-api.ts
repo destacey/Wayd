@@ -28843,7 +28843,7 @@ export interface OidcProviderDto {
     clockSkewSeconds: number;
     isEnabled: boolean;
     allowAutoRegistration: boolean;
-    requireEmployeeRecord: boolean;
+    requireEmployeeRecord?: boolean | undefined;
     defaultRoleId?: string | undefined;
 }
 
@@ -28859,7 +28859,7 @@ export interface CreateOidcProviderRequest {
     clockSkewSeconds: number;
     isEnabled: boolean;
     allowAutoRegistration: boolean;
-    requireEmployeeRecord: boolean;
+    requireEmployeeRecord?: boolean | undefined;
     defaultRoleId?: string | undefined;
 }
 
@@ -28879,7 +28879,7 @@ export interface UpdateOidcProviderRequest {
     clockSkewSeconds: number;
     isEnabled: boolean;
     allowAutoRegistration: boolean;
-    requireEmployeeRecord: boolean;
+    requireEmployeeRecord?: boolean | undefined;
     defaultRoleId?: string | undefined;
 }
 

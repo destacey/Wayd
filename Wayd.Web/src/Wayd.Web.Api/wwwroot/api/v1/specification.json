@@ -24658,11 +24658,11 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "id",
           "name",
           "displayName",
           "providerType",
           "authority",
+          "id",
           "isEnabled"
         ],
         "properties": {
@@ -24693,18 +24693,17 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "id",
           "name",
           "displayName",
           "providerType",
           "authority",
           "clientId",
           "audience",
+          "id",
           "scopes",
           "clockSkewSeconds",
           "isEnabled",
-          "allowAutoRegistration",
-          "requireEmployeeRecord"
+          "allowAutoRegistration"
         ],
         "properties": {
           "id": {
@@ -24755,7 +24754,8 @@
             "type": "boolean"
           },
           "requireEmployeeRecord": {
-            "type": "boolean"
+            "type": "boolean",
+            "nullable": true
           },
           "defaultRoleId": {
             "type": "string",
@@ -24769,34 +24769,48 @@
         "required": [
           "name",
           "displayName",
-          "providerType",
           "authority",
           "clientId",
           "audience",
+          "providerType",
           "scopes",
           "clockSkewSeconds",
           "isEnabled",
-          "allowAutoRegistration",
-          "requireEmployeeRecord"
+          "allowAutoRegistration"
         ],
         "properties": {
           "name": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "nullable": false
           },
           "displayName": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "nullable": false
           },
           "providerType": {
             "$ref": "#/components/schemas/OidcProviderType"
           },
           "authority": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "nullable": false
           },
           "clientId": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "nullable": false
           },
           "audience": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "nullable": false
           },
           "scopes": {
             "type": "array",
@@ -24813,7 +24827,9 @@
           },
           "clockSkewSeconds": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "maximum": 600.0,
+            "minimum": 0.0
           },
           "isEnabled": {
             "type": "boolean"
@@ -24822,7 +24838,8 @@
             "type": "boolean"
           },
           "requireEmployeeRecord": {
-            "type": "boolean"
+            "type": "boolean",
+            "nullable": true
           },
           "defaultRoleId": {
             "type": "string",
@@ -24846,35 +24863,47 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "id",
           "displayName",
           "authority",
           "clientId",
           "audience",
+          "id",
           "scopes",
           "clockSkewSeconds",
           "isEnabled",
-          "allowAutoRegistration",
-          "requireEmployeeRecord"
+          "allowAutoRegistration"
         ],
         "properties": {
           "id": {
             "type": "string",
             "format": "guid",
+            "minLength": 1,
             "nullable": false,
             "example": "00000000-0000-0000-0000-000000000000"
           },
           "displayName": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "nullable": false
           },
           "authority": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "nullable": false
           },
           "clientId": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "nullable": false
           },
           "audience": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "nullable": false
           },
           "scopes": {
             "type": "array",
@@ -24891,7 +24920,9 @@
           },
           "clockSkewSeconds": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "maximum": 600.0,
+            "minimum": 0.0
           },
           "isEnabled": {
             "type": "boolean"
@@ -24900,7 +24931,8 @@
             "type": "boolean"
           },
           "requireEmployeeRecord": {
-            "type": "boolean"
+            "type": "boolean",
+            "nullable": true
           },
           "defaultRoleId": {
             "type": "string",

@@ -74,10 +74,12 @@ const CreateOidcProviderForm = ({
                 : undefined,
             clockSkewSeconds: values.clockSkewSeconds ?? 60,
             isEnabled: values.isEnabled ?? true,
-            allowAutoRegistration: values.allowAutoRegistration ?? true,
+            allowAutoRegistration: values.allowAutoRegistration ?? false,
+            // The dependent fields are only valid when auto-registration is on;
+            // when off they must be omitted (the request validator rejects them).
             requireEmployeeRecord: values.allowAutoRegistration
               ? (values.requireEmployeeRecord ?? true)
-              : true,
+              : undefined,
             defaultRoleId: values.allowAutoRegistration
               ? (values.defaultRoleId ?? undefined)
               : undefined,

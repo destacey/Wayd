@@ -21,7 +21,7 @@ public sealed record UpdateOidcProviderCommand(
     int ClockSkewSeconds,
     bool IsEnabled,
     bool AllowAutoRegistration,
-    bool RequireEmployeeRecord,
+    bool? RequireEmployeeRecord,
     string? DefaultRoleId) : ICommand;
 
 public sealed class UpdateOidcProviderCommandValidator : CustomValidator<UpdateOidcProviderCommand>

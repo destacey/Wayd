@@ -105,10 +105,15 @@ public sealed class RegistrationPolicy
     /// (commands). This is the one place the loose external shape is translated into
     /// the strict domain shape: when auto-registration is off the dependent inputs are
     /// irrelevant and dropped; when on they are required and validated by the ctor.
+    /// The employee-record gate is nullable on the way in — null is only legal when
+    /// auto-registration is disabled, and is rejected when enabled.
     /// </summary>
-    public static RegistrationPolicy FromFlat(bool allowAutoRegistration, bool requireEmployeeRecord, string? defaultRoleId) =>
+    public static RegistrationPolicy FromFlat(bool allowAutoRegistration, bool? requireEmployeeRecord, string? defaultRoleId) =>
         allowAutoRegistration
-            ? Enabled(requireEmployeeRecord, Guard.Against.NullOrWhiteSpace(defaultRoleId, nameof(defaultRoleId),
-                "A default role is required when auto-registration is enabled."))
+            ? Enabled(
+                Guard.Against.Null(requireEmployeeRecord, nameof(requireEmployeeRecord),
+                    "The employee-record gate is required when auto-registration is enabled."),
+                Guard.Against.NullOrWhiteSpace(defaultRoleId, nameof(defaultRoleId),
+                    "A default role is required when auto-registration is enabled."))
             : Disabled();
 }

@@ -47,11 +47,7 @@ internal class ApplicationDbSeeder
             }
 
             // Assign permissions
-            if (roleName == ApplicationRoles.Basic)
-            {
-                await AssignPermissionsToRole(dbContext, ApplicationPermissions.Basic, role);
-            }
-            else if (roleName == ApplicationRoles.Admin)
+            if (roleName == ApplicationRoles.Admin)
             {
                 await AssignPermissionsToRole(dbContext, ApplicationPermissions.Admin, role);
             }

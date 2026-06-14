@@ -25,7 +25,7 @@ const DeleteRoleForm = ({
 
   const [deleteRoleMutation] = useDeleteRoleMutation()
 
-  const editableRole = role && role.name !== 'Admin' && role.name !== 'Basic'
+  const editableRole = role && role.name !== 'Admin'
 
   const { data: countData } = useGetRoleUsersCountQuery(role.id, {
     skip: !role?.id,

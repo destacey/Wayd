@@ -28900,7 +28900,6 @@ export interface ApplicationPermission {
     action: string;
     resource: string;
     category: string;
-    isBasic: boolean;
     isRoot: boolean;
     name: string;
 }
@@ -29042,6 +29041,7 @@ export interface CreateUserRequest {
     employeeId?: string | undefined;
     loginProvider: string;
     password?: string | undefined;
+    roleNames: string[];
 }
 
 export interface UpdateUserRequest {

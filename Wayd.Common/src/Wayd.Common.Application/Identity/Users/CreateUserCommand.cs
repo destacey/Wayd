@@ -1,20 +1,23 @@
-﻿namespace Wayd.Common.Application.Identity.Users;
+﻿using Wayd.Common.Application.Identity.Roles;
+
+namespace Wayd.Common.Application.Identity.Users;
 
 public sealed record CreateUserCommand
 {
-    public string FirstName { get; set; } = null!;
-    public string LastName { get; set; } = null!;
-    public string Email { get; set; } = null!;
+    public required string FirstName { get; set; }
+    public required string LastName { get; set; }
+    public required string Email { get; set; }
     public string? PhoneNumber { get; set; }
     public Guid? EmployeeId { get; set; }
-    public string LoginProvider { get; set; } = null!;
+    public required string LoginProvider { get; set; }
     public string? Password { get; set; }
     public bool MustChangePassword { get; set; } = true;
+    public List<string> RoleNames { get; set; } = [];
 }
 
 public sealed class CreateUserCommandValidator : CustomValidator<CreateUserCommand>
 {
-    public CreateUserCommandValidator(IUserService userService)
+    public CreateUserCommandValidator(IUserService userService, IRoleService roleService)
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
@@ -60,5 +63,13 @@ public sealed class CreateUserCommandValidator : CustomValidator<CreateUserComma
             .Null()
                 .WithMessage("Password must not be provided for non-Wayd accounts.")
             .When(u => u.LoginProvider != LoginProviders.Wayd);
+
+        RuleFor(u => u.RoleNames)
+            .NotEmpty()
+                .WithMessage("At least one role must be assigned.");
+
+        RuleForEach(u => u.RoleNames)
+            .MustAsync(async (roleName, _) => await roleService.Exists(roleName, null))
+                .WithMessage((_, roleName) => string.Format("Role {0} does not exist.", roleName));
     }
 }

@@ -124,7 +124,7 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 |------|-----------|
 | **Identity Provider (OIDC Provider)** | A configured single sign-on source (Microsoft Entra ID or a generic OIDC issuer), stored as a row in `Identity.OidcProviders`. The database is the sole source of truth; providers are managed via Settings → Identity Providers. |
 | **UserIdentity** | The link between an `ApplicationUser` and a login provider, keyed by `(Provider, ProviderTenantId, ProviderSubject)`. At most one active row per user; every authentication path resolves through this table. |
-| **Role** | A named permission group assigned to users. Two system roles (`Admin`, `Basic`) are seeded and protected; admins can create custom roles. |
+| **Role** | A named permission group assigned to users. One system role (`Admin`) is seeded and protected; admins can create custom roles. |
 | **Auto-Registration (JIT Provisioning)** | Creating a Wayd account automatically the first time an unknown user signs in through an identity provider. Governed by a per-provider registration policy; **off by default** (secure by default). |
 | **Registration Policy** | The per-provider settings that govern auto-registration: `AllowAutoRegistration` (master switch), `RequireEmployeeRecord` (employee-match gate), and `DefaultRoleId` (role for new users). Modeled as a `RegistrationPolicy` value object whose dependent fields are only meaningful while auto-registration is enabled. |
 | **Employee-Record Gate** | The `RequireEmployeeRecord` policy: when on, auto-registration is restricted to users whose email matches an existing `Employee`. Turning it off grants accounts to anyone who can authenticate through the provider. |

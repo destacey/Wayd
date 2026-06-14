@@ -5,7 +5,6 @@ import { toFormErrors } from '@/src/utils'
 import {
   useCreateUserMutation,
   useGetUsersQuery,
-  useManageUserRolesMutation,
 } from '@/src/store/features/user-management/users-api'
 import { useGetRolesQuery } from '@/src/store/features/user-management/roles-api'
 import { useGetEmployeesQuery } from '@/src/store/features/organizations/employee-api'
@@ -41,7 +40,6 @@ const CreateUserForm = ({
 }: CreateUserFormProps) => {
   const messageApi = useMessage()
   const [createUser] = useCreateUserMutation()
-  const [manageUserRoles] = useManageUserRolesMutation()
   const { data: rolesData, isLoading: rolesLoading } = useGetRolesQuery()
   const { data: employeesData, isLoading: employeesLoading } =
     useGetEmployeesQuery(false)
@@ -79,32 +77,11 @@ const CreateUserForm = ({
                 values.loginProvider === 'Wayd'
                   ? values.password
                   : undefined,
+              roleNames: values.roles ?? [],
             })
 
             if (response.error) {
               throw response.error
-            }
-
-            // Assign roles if any were selected (Basic is always assigned by the backend)
-            const selectedRoles = values.roles ?? []
-            if (selectedRoles.length > 0) {
-              const userId = response.data!
-              const roleNames = selectedRoles.includes('Basic')
-                ? selectedRoles
-                : ['Basic', ...selectedRoles]
-
-              const rolesResponse = await manageUserRoles({
-                userId,
-                roleNames,
-              })
-
-              if (rolesResponse.error) {
-                messageApi.warning(
-                  'User created, but role assignment failed. Please assign roles manually.',
-                )
-                onFormCreate()
-                return false
-              }
             }
 
             messageApi.success('Successfully created user.')
@@ -230,12 +207,16 @@ const CreateUserForm = ({
           />
         </Item>
 
-        <Item label="Roles" name="roles">
+        <Item
+          label="Roles"
+          name="roles"
+          rules={[{ required: true, message: 'At least one role is required' }]}
+        >
           <Select
             mode="multiple"
             options={roleOptions}
             loading={rolesLoading}
-            placeholder="Select roles (Basic is always assigned)"
+            placeholder="Select one or more roles"
           />
         </Item>
       </Form>

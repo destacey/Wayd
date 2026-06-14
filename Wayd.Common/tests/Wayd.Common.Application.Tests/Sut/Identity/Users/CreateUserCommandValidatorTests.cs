@@ -1,5 +1,6 @@
 ﻿using FluentValidation.TestHelper;
 using Wayd.Common.Application.Identity;
+using Wayd.Common.Application.Identity.Roles;
 using Wayd.Common.Application.Identity.Users;
 
 namespace Wayd.Common.Application.Tests.Sut.Identity.Users;
@@ -7,6 +8,7 @@ namespace Wayd.Common.Application.Tests.Sut.Identity.Users;
 public class CreateUserCommandValidatorTests
 {
     private readonly Mock<IUserService> _mockUserService;
+    private readonly Mock<IRoleService> _mockRoleService;
     private readonly CreateUserCommandValidator _sut;
 
     public CreateUserCommandValidatorTests()
@@ -16,7 +18,10 @@ public class CreateUserCommandValidatorTests
         _mockUserService.Setup(x => x.ExistsWithNameAsync(It.IsAny<string>())).ReturnsAsync(false);
         _mockUserService.Setup(x => x.ExistsWithPhoneNumberAsync(It.IsAny<string>(), null)).ReturnsAsync(false);
 
-        _sut = new CreateUserCommandValidator(_mockUserService.Object);
+        _mockRoleService = new Mock<IRoleService>();
+        _mockRoleService.Setup(x => x.Exists(It.IsAny<string>(), null)).ReturnsAsync(true);
+
+        _sut = new CreateUserCommandValidator(_mockUserService.Object, _mockRoleService.Object);
     }
 
     private static CreateUserCommand CreateValidWaydCommand() => new()
@@ -26,6 +31,7 @@ public class CreateUserCommandValidatorTests
         Email = "john.doe@example.com",
         LoginProvider = LoginProviders.Wayd,
         Password = "Password123!",
+        RoleNames = ["Contributor"],
     };
 
     private static CreateUserCommand CreateValidEntraIdCommand() => new()
@@ -35,6 +41,7 @@ public class CreateUserCommandValidatorTests
         Email = "jane.doe@example.com",
         LoginProvider = LoginProviders.MicrosoftEntraId,
         Password = null,
+        RoleNames = ["Contributor"],
     };
 
     #region Valid Commands
@@ -318,6 +325,71 @@ public class CreateUserCommandValidatorTests
 
         // Assert
         result.ShouldHaveValidationErrorFor(x => x.PhoneNumber);
+    }
+
+    #endregion
+
+    #region Roles Validation
+
+    [Fact]
+    public async Task Validate_ShouldFail_WhenNoRolesAssigned()
+    {
+        // Arrange
+        var command = CreateValidWaydCommand();
+        command.RoleNames = [];
+
+        // Act
+        var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.RoleNames)
+            .WithErrorMessage("At least one role must be assigned.");
+    }
+
+    [Fact]
+    public async Task Validate_ShouldFail_WhenRoleDoesNotExist()
+    {
+        // Arrange
+        var command = CreateValidWaydCommand();
+        command.RoleNames = ["Ghost"];
+        _mockRoleService.Setup(x => x.Exists("Ghost", null)).ReturnsAsync(false);
+
+        // Act
+        var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor("RoleNames[0]")
+            .WithErrorMessage("Role Ghost does not exist.");
+    }
+
+    [Fact]
+    public async Task Validate_ShouldFailGracefully_WhenRoleNamesIsNull()
+    {
+        // Arrange — a `roleNames: null` payload must surface as a validation failure,
+        // not an unhandled NullReferenceException (500).
+        var command = CreateValidWaydCommand();
+        command.RoleNames = null!;
+
+        // Act
+        var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.RoleNames)
+            .WithErrorMessage("At least one role must be assigned.");
+    }
+
+    [Fact]
+    public async Task Validate_ShouldPass_WhenMultipleExistingRolesAssigned()
+    {
+        // Arrange
+        var command = CreateValidWaydCommand();
+        command.RoleNames = ["Contributor", "ProjectManager"];
+
+        // Act
+        var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.RoleNames);
     }
 
     #endregion

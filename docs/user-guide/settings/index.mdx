@@ -32,6 +32,18 @@ User accounts control access to Wayd. Each user has:
 
 Local users created by an administrator have a **Must Change Password** flag that requires them to set a new password on first login.
 
+#### Creating users
+
+Administrators create accounts from **Settings → User Management → Users → Create User**. This is the path for provisioning a user before their first sign-in — for example when a provider's auto-registration is off, or for local (Wayd) accounts.
+
+The form captures the user's details, their **Login Provider** (set here and immutable afterward), a password for local accounts, and their **Roles**.
+
+**Things to know:**
+
+- **At least one role is required.** You must assign one or more roles when creating a user — there is no default role applied automatically. A user with no roles has no permissions, so the form won't submit until at least one is selected.
+- **Login provider is permanent.** The provider chosen at creation can't be changed later through editing; use **Change Identity Provider** to move a user between providers.
+- Roles can be adjusted any time afterward from the user's detail page.
+
 #### Tenant migration
 
 When your organization moves users from one Microsoft Entra ID tenant to another, you can pre-stage the migration on a per-user basis. The rebind completes automatically the next time the user signs in from the new tenant — they don't need to do anything special, and their `UserId`, permissions, and links to other records (work items, audit history, etc.) are all preserved.

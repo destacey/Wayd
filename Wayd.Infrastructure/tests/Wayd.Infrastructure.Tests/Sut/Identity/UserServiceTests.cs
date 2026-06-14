@@ -205,6 +205,40 @@ public class UserServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_ShouldReturnFailureAndNotWriteIdentity_WhenRoleAssignmentFails()
+    {
+        // Arrange — role assignment runs inside the create transaction; a failure
+        // there must roll the whole thing back, not leave a roleless user.
+        var command = new CreateUserCommand
+        {
+            FirstName = "John",
+            LastName = "Doe",
+            Email = "john@example.com",
+            LoginProvider = LoginProviders.Wayd,
+            Password = "Password123!",
+            RoleNames = ["Contributor"],
+        };
+
+        _mockUserManager
+            .Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), "Password123!"))
+            .ReturnsAsync(IdentityResult.Success);
+        _mockUserManager
+            .Setup(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Role assignment failed." }));
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.CreateAsync(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("Role assignment failed.");
+        _mockUserIdentityStore.Verify(s => s.Add(It.IsAny<UserIdentity>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserCreatedEvent>()), Times.Never);
+    }
+
+    [Fact]
     public async Task CreateAsync_ShouldWriteActiveWaydIdentity_WhenLocalUserCreated()
     {
         // Arrange

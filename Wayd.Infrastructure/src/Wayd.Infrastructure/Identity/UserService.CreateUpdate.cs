@@ -558,7 +558,14 @@ internal partial class UserService
                     throw new UserCreationRollbackException();
                 }
 
-                await _userManager.AddToRolesAsync(user, command.RoleNames);
+                result = await _userManager.AddToRolesAsync(user, command.RoleNames);
+                if (!result.Succeeded)
+                {
+                    // Same rollback contract as the create failure above: throw the
+                    // sentinel so the transaction unwinds and the user isn't left
+                    // persisted without roles. `result` carries the errors back.
+                    throw new UserCreationRollbackException();
+                }
 
                 // Wayd (local) users get an identity row immediately, keyed by the
                 // stable ApplicationUser.Id (usernames are mutable). Entra users

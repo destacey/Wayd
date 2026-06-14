@@ -70,7 +70,6 @@ public sealed class CreateUserCommandValidator : CustomValidator<CreateUserComma
 
         RuleForEach(u => u.RoleNames)
             .MustAsync(async (roleName, _) => await roleService.Exists(roleName, null))
-                .WithMessage((_, roleName) => string.Format("Role {0} does not exist.", roleName))
-            .When(u => u.RoleNames.Count > 0);
+                .WithMessage((_, roleName) => string.Format("Role {0} does not exist.", roleName));
     }
 }

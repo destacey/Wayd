@@ -363,6 +363,22 @@ public class CreateUserCommandValidatorTests
     }
 
     [Fact]
+    public async Task Validate_ShouldFailGracefully_WhenRoleNamesIsNull()
+    {
+        // Arrange — a `roleNames: null` payload must surface as a validation failure,
+        // not an unhandled NullReferenceException (500).
+        var command = CreateValidWaydCommand();
+        command.RoleNames = null!;
+
+        // Act
+        var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.RoleNames)
+            .WithErrorMessage("At least one role must be assigned.");
+    }
+
+    [Fact]
     public async Task Validate_ShouldPass_WhenMultipleExistingRolesAssigned()
     {
         // Arrange

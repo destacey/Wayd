@@ -42,6 +42,7 @@ const ProjectHealthReportGrid = ({
         field: 'note',
         width: 400,
         autoHeight: true,
+        wrapText: true,
         cellRenderer: MarkdownCellRenderer,
       },
       {

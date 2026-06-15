@@ -5,7 +5,7 @@ import {
   LifecycleStatusTagCellRenderer,
   PortfolioLinkCellRenderer,
   ProgramLinkCellRenderer,
-  ProjectHealthCheckStatusCellRenderer,
+  NestedProjectHealthCheckStatusCellRenderer,
   ProjectLinkCellRenderer,
 } from '@/src/components/common/wayd-grid-cell-renderers'
 import { ProjectListDto } from '@/src/services/wayd-api'
@@ -54,7 +54,7 @@ const ProjectsGrid: FC<ProjectsGridProps> = (props: ProjectsGridProps) => {
         field: 'healthCheck.status.name',
         headerName: 'Health',
         width: 125,
-        cellRenderer: ProjectHealthCheckStatusCellRenderer,
+        cellRenderer: NestedProjectHealthCheckStatusCellRenderer,
       },
       {
         field: 'portfolio.name',

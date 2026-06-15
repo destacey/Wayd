@@ -67,6 +67,20 @@ public sealed class StageBulkTenantMigrationRequestValidatorTests
     }
 
     [Fact]
+    public void Validate_ShouldFailCleanly_WhenUserIdsIsNull()
+    {
+        // Arrange — a null list must fail cleanly rather than throw on the count check
+        // (which would surface as a 500 instead of a 422).
+        var request = ValidRequest() with { UserIds = null! };
+
+        // Act — must not throw; the per-property Stop cascade short-circuits after NotEmpty.
+        var result = _sut.TestValidate(request);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(r => r.UserIds);
+    }
+
+    [Fact]
     public void Validate_ShouldFail_WhenUserIdsExceedsCap()
     {
         // Arrange

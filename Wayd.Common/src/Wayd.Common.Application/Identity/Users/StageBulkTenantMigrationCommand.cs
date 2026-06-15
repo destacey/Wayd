@@ -35,6 +35,10 @@ public sealed class StageBulkTenantMigrationCommandValidator : CustomValidator<S
 
     public StageBulkTenantMigrationCommandValidator()
     {
+        // Stop after the first failing rule per property so a NotEmpty failure (e.g. a
+        // null UserIds list) short-circuits before later predicates dereference it.
+        RuleLevelCascadeMode = CascadeMode.Stop;
+
         RuleFor(c => c.ProviderId)
             .NotEmpty();
 

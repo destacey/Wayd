@@ -94,6 +94,20 @@ public class StageBulkTenantMigrationCommandValidatorTests
     }
 
     [Fact]
+    public void Validate_ShouldFailCleanly_WhenUserIdsIsNull()
+    {
+        // Arrange — a null list must produce a clean validation failure, not throw on
+        // the subsequent count check (which would surface as a 500 instead of a 422).
+        var command = CreateValidCommand() with { UserIds = null! };
+
+        // Act — must not throw; the per-property Stop cascade short-circuits after NotEmpty.
+        var result = _sut.TestValidate(command);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(c => c.UserIds);
+    }
+
+    [Fact]
     public void Validate_ShouldFail_WhenUserIdsExceedsCap()
     {
         // Arrange — one over the 500 limit.

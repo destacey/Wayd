@@ -279,6 +279,11 @@ internal partial class UserService(
         if (provider.ProviderType != OidcProviderType.MicrosoftEntraId)
             return Result.Failure<IReadOnlyList<TenantMigrationCandidateDto>>("Tenant migration is only available for Microsoft Entra ID providers.");
 
+        // Source must be a tenant this provider actually accepts — keeps the candidate
+        // query consistent with StageBulkTenantMigration, which allowlists both tenants.
+        if (!(provider.AllowedTenantIds ?? []).Contains(sourceTenantId, StringComparer.OrdinalIgnoreCase))
+            return Result.Failure<IReadOnlyList<TenantMigrationCandidateDto>>("Source tenant is not configured on this provider.");
+
         // Users with an active Entra identity on the source tenant and no pending
         // migration. Joining through UserIdentities scopes to "currently on this
         // tenant" — a pre-provisioned user with zero active identities correctly

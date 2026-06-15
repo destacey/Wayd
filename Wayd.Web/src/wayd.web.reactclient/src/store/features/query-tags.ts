@@ -122,6 +122,8 @@ export enum QueryTags {
 
   // USER MANAGEMENT
   OidcProvider = 'UserManagement.OidcProvider',
+  TenantMigrationCandidates = 'UserManagement.TenantMigrationCandidates',
+  PendingTenantMigrations = 'UserManagement.PendingTenantMigrations',
   User = 'UserManagement.User',
   UserIdentityHistory = 'UserManagement.UserIdentityHistory',
   UserPermission = 'UserManagement.UserPermission',

@@ -56,7 +56,7 @@ export const PiObjectiveHealthCheckStatusCellRenderer = (
   return <PiObjectiveHealthCheckTag healthCheck={data} />
 }
 
-export const ProjectHealthCheckStatusCellRenderer = <
+export const NestedProjectHealthCheckStatusCellRenderer = <
   T extends {
     id: string
     healthCheck?: (HealthCheckStatusTagData & { id: string }) | null
@@ -72,6 +72,14 @@ export const ProjectHealthCheckStatusCellRenderer = <
       projectId={data.id}
     />
   )
+}
+
+export const ProjectHealthCheckStatusCellRenderer = (
+  props: CustomCellRendererProps<HealthCheckStatusTagData & { id: string }>,
+) => {
+  const { data } = props
+  if (!data) return null
+  return <ProjectHealthCheckTag healthCheck={data} />
 }
 
 export const WorkStatusTagCellRenderer = <

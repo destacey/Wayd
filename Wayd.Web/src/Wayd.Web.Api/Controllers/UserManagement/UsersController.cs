@@ -166,23 +166,9 @@ public class UsersController(IUserService userService) : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
-    [HttpPut("{id}/stage-migration")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Users)]
-    [OpenApiOperation("Stage a tenant migration for an Entra user. The rebind completes on the user's next sign-in from the target tenant.", "")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult> StageTenantMigration(string id, StageTenantMigrationRequest request, CancellationToken cancellationToken)
-    {
-        var result = await _userService.StageTenantMigration(
-            new StageTenantMigrationCommand(id, request.TargetTenantId),
-            cancellationToken);
-
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
-    }
+    // Staging a tenant migration moved to the provider page as a bulk action; see
+    // OidcProvidersController. Cancelling a single user's pending migration stays here —
+    // there is no bulk-cancel equivalent.
 
     [HttpDelete("{id}/stage-migration")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Users)]

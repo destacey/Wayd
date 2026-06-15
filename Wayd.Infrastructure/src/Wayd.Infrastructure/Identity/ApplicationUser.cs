@@ -23,6 +23,13 @@ public class ApplicationUser : IdentityUser
     public string? PendingMigrationTenantId { get; set; }
 
     /// <summary>
+    /// When the pending tenant migration was staged. Surfaced on the provider's
+    /// "Active migrations" view. Set whenever <see cref="PendingMigrationTenantId"/>
+    /// is set and cleared whenever it is cleared, so the two always move together.
+    /// </summary>
+    public Instant? PendingMigrationStagedAt { get; set; }
+
+    /// <summary>
     /// Staged cross-provider migration target. When set, the user's next login via
     /// the named provider triggers a transactional rebind: the active
     /// <see cref="UserIdentity"/> row is deactivated and a new row for the target

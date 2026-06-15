@@ -1,6 +1,7 @@
 using Wayd.Common.Application.Identity.OidcProviders.Commands;
 using Wayd.Common.Application.Identity.OidcProviders.Dtos;
 using Wayd.Common.Application.Identity.OidcProviders.Queries;
+using Wayd.Common.Application.Identity.Users;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.UserManagement.OidcProviders;
 
@@ -16,9 +17,10 @@ namespace Wayd.Web.Api.Controllers.UserManagement;
 [Route("api/user-management/oidc-providers")]
 [ApiVersionNeutral]
 [ApiController]
-public class OidcProvidersController(ISender sender) : ControllerBase
+public class OidcProvidersController(ISender sender, IUserService userService) : ControllerBase
 {
     private readonly ISender _sender = sender;
+    private readonly IUserService _userService = userService;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.OidcProviders)]
@@ -138,6 +140,54 @@ public class OidcProvidersController(ISender sender) : ControllerBase
         // with Success=false. The 400 path is reserved for the request being
         // structurally bad (e.g. unknown id) — see DeleteOidcProviderResult
         // for the same distinction.
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpGet("{id:guid}/migration-candidates")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Users)]
+    [OpenApiOperation("List Entra users on the given source tenant with no pending migration — the candidates for a bulk tenant migration.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IReadOnlyList<TenantMigrationCandidateDto>>> GetMigrationCandidates(
+        Guid id, [FromQuery] string sourceTenantId, CancellationToken cancellationToken)
+    {
+        var result = await _userService.GetTenantMigrationCandidates(id, sourceTenantId, cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpGet("{id:guid}/pending-migrations")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Users)]
+    [OpenApiOperation("List users on the given provider with a staged-but-incomplete tenant migration.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IReadOnlyList<PendingTenantMigrationDto>>> GetPendingMigrations(
+        Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _userService.GetPendingTenantMigrations(id, cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("{id:guid}/stage-tenant-migration")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Users)]
+    [OpenApiOperation("Stage a tenant migration for multiple Entra users. Each rebind completes on that user's next sign-in from the target tenant.", "")]
+    [ProducesResponseType(typeof(BulkTenantMigrationResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<BulkTenantMigrationResult>> StageBulkTenantMigration(
+        Guid id, [FromBody] StageBulkTenantMigrationRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _userService.StageBulkTenantMigration(
+            new StageBulkTenantMigrationCommand(id, request.SourceTenantId, request.TargetTenantId, request.UserIds),
+            cancellationToken);
+
         return result.IsSuccess
             ? Ok(result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));

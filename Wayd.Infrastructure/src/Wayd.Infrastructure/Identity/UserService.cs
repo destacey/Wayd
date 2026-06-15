@@ -65,7 +65,7 @@ internal partial class UserService(
     }
 
     public Task<int> GetCountAsync(CancellationToken cancellationToken) =>
-        _userManager.Users.AsNoTracking().CountAsync(cancellationToken);
+        _userManager.Users.CountAsync(cancellationToken);
 
     public async Task<UserDetailsDto?> GetAsync(string userId, CancellationToken cancellationToken)
     {
@@ -142,37 +142,6 @@ internal partial class UserService(
         return Result.Success();
     }
 
-    public async Task<Result> StageTenantMigration(StageTenantMigrationCommand command, CancellationToken cancellationToken)
-    {
-        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == command.UserId, cancellationToken);
-        if (user is null)
-            throw new NotFoundException("User Not Found.");
-
-        if (user.LoginProvider != LoginProviders.MicrosoftEntraId)
-            return Result.Failure("Tenant migration is only available for Microsoft Entra ID users.");
-
-        if (!await _userIdentityStore.ExistsActive(user.Id, LoginProviders.MicrosoftEntraId, cancellationToken))
-            return Result.Failure("User has no active Microsoft Entra ID identity to migrate.");
-
-        // Last-write-wins. Re-staging silently overwrites the previous target — admin's
-        // most recent decision is the one we honor, matching the spec's stated semantics.
-        user.PendingMigrationTenantId = command.TargetTenantId;
-        var result = await _userManager.UpdateAsync(user);
-        if (!result.Succeeded)
-        {
-            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            _logger.LogError("Failed to stage tenant migration for user {UserId}: {Errors}", user.Id, errors);
-            return Result.Failure(errors);
-        }
-
-        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, _dateTimeProvider.Now));
-
-        _logger.LogInformation(
-            "Tenant migration staged for user {UserId}: target tenant {TenantId}.",
-            user.Id, command.TargetTenantId);
-        return Result.Success();
-    }
-
     public async Task<Result> CancelTenantMigration(string userId, CancellationToken cancellationToken)
     {
         var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
@@ -188,6 +157,7 @@ internal partial class UserService(
         }
 
         user.PendingMigrationTenantId = null;
+        user.PendingMigrationStagedAt = null;
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
         {
@@ -200,6 +170,179 @@ internal partial class UserService(
 
         _logger.LogInformation("Tenant migration canceled for user {UserId}.", user.Id);
         return Result.Success();
+    }
+
+    public async Task<Result<BulkTenantMigrationResult>> StageBulkTenantMigration(
+        StageBulkTenantMigrationCommand command, CancellationToken cancellationToken)
+    {
+        var provider = await _db.OidcProviders
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == command.ProviderId, cancellationToken);
+        if (provider is null)
+            return Result.Failure<BulkTenantMigrationResult>("Provider not found.");
+
+        if (provider.ProviderType != OidcProviderType.MicrosoftEntraId)
+            return Result.Failure<BulkTenantMigrationResult>("Tenant migration is only available for Microsoft Entra ID providers.");
+
+        // Both tenants must be in the provider's allowlist — a target the validator
+        // can never accept at login would strand every staged user.
+        var allowed = provider.AllowedTenantIds ?? [];
+        if (!allowed.Contains(command.SourceTenantId, StringComparer.OrdinalIgnoreCase))
+            return Result.Failure<BulkTenantMigrationResult>("Source tenant is not configured on this provider.");
+        if (!allowed.Contains(command.TargetTenantId, StringComparer.OrdinalIgnoreCase))
+            return Result.Failure<BulkTenantMigrationResult>("Target tenant is not configured on this provider.");
+
+        // Snapshot of who actually sits on the source tenant right now, keyed by user.
+        // Re-validating here (rather than trusting the client's userIds) closes the
+        // TOCTOU gap between the candidate query and submit — a user may have signed
+        // in, migrated, or had a migration staged in the interim.
+        var requested = command.UserIds.Distinct().ToList();
+        var onSourceTenantSet = (await _userIdentityStore.GetActiveUserIdsOnTenant(
+            LoginProviders.MicrosoftEntraId, command.SourceTenantId, requested, cancellationToken)).ToHashSet();
+
+        var users = await _userManager.Users
+            .Where(u => requested.Contains(u.Id))
+            .ToListAsync(cancellationToken);
+        var usersById = users.ToDictionary(u => u.Id);
+
+        var staged = new List<string>();
+        var skipped = new List<SkippedUser>();
+        var now = _dateTimeProvider.Now;
+
+        // One transaction for the whole batch: either every qualifying user is staged
+        // or none are. A staging failure mid-loop must not leave a partial batch.
+        await _userIdentityStore.ExecuteInTransaction(async ct =>
+        {
+            foreach (var userId in requested)
+            {
+                if (!usersById.TryGetValue(userId, out var user))
+                {
+                    skipped.Add(new SkippedUser(userId, "User not found."));
+                    continue;
+                }
+
+                if (user.LoginProvider != LoginProviders.MicrosoftEntraId)
+                {
+                    skipped.Add(new SkippedUser(userId, "Not a Microsoft Entra ID user."));
+                    continue;
+                }
+
+                if (user.PendingMigrationTenantId is not null)
+                {
+                    skipped.Add(new SkippedUser(userId, "A migration is already in progress."));
+                    continue;
+                }
+
+                if (!onSourceTenantSet.Contains(userId))
+                {
+                    skipped.Add(new SkippedUser(userId, "User is no longer on the source tenant."));
+                    continue;
+                }
+
+                user.PendingMigrationTenantId = command.TargetTenantId;
+                user.PendingMigrationStagedAt = now;
+                var updateResult = await _userManager.UpdateAsync(user);
+                if (!updateResult.Succeeded)
+                {
+                    // Throw to roll the whole batch back — a partial stage is worse than none.
+                    var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
+                    throw new InternalServerException(
+                        $"Failed to stage tenant migration for user {userId}: {errors}");
+                }
+
+                staged.Add(userId);
+            }
+        }, cancellationToken);
+
+        // Publish after commit so subscribers don't react to a rolled-back batch.
+        foreach (var userId in staged)
+        {
+            await _events.PublishAsync(new ApplicationUserUpdatedEvent(userId, now));
+        }
+
+        _logger.LogInformation(
+            "Bulk tenant migration staged for provider {ProviderId}: {StagedCount} staged, {SkippedCount} skipped (source {SourceTenant} → target {TargetTenant}).",
+            command.ProviderId, staged.Count, skipped.Count, command.SourceTenantId, command.TargetTenantId);
+
+        return Result.Success(new BulkTenantMigrationResult(staged, skipped));
+    }
+
+    public async Task<Result<IReadOnlyList<TenantMigrationCandidateDto>>> GetTenantMigrationCandidates(
+        Guid providerId, string sourceTenantId, CancellationToken cancellationToken)
+    {
+        var provider = await _db.OidcProviders
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == providerId, cancellationToken);
+        if (provider is null)
+            return Result.Failure<IReadOnlyList<TenantMigrationCandidateDto>>("Provider not found.");
+
+        if (provider.ProviderType != OidcProviderType.MicrosoftEntraId)
+            return Result.Failure<IReadOnlyList<TenantMigrationCandidateDto>>("Tenant migration is only available for Microsoft Entra ID providers.");
+
+        // Users with an active Entra identity on the source tenant and no pending
+        // migration. Joining through UserIdentities scopes to "currently on this
+        // tenant" — a pre-provisioned user with zero active identities correctly
+        // drops out (nothing to migrate from).
+        var candidates = await _db.UserIdentities
+            .AsNoTracking()
+            .Where(ui => ui.IsActive
+                && ui.Provider == LoginProviders.MicrosoftEntraId
+                && ui.ProviderTenantId == sourceTenantId)
+            .Join(
+                _db.Users.Where(u => u.PendingMigrationTenantId == null),
+                ui => ui.UserId,
+                u => u.Id,
+                (ui, u) => new TenantMigrationCandidateDto
+                {
+                    UserId = u.Id,
+                    UserName = u.UserName,
+                    Email = u.Email,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    IsActive = u.IsActive,
+                })
+            .OrderBy(c => c.UserName)
+            .ToListAsync(cancellationToken);
+
+        return Result.Success<IReadOnlyList<TenantMigrationCandidateDto>>(candidates);
+    }
+
+    public async Task<Result<IReadOnlyList<PendingTenantMigrationDto>>> GetPendingTenantMigrations(
+        Guid providerId, CancellationToken cancellationToken)
+    {
+        var provider = await _db.OidcProviders
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == providerId, cancellationToken);
+        if (provider is null)
+            return Result.Failure<IReadOnlyList<PendingTenantMigrationDto>>("Provider not found.");
+
+        if (provider.ProviderType != OidcProviderType.MicrosoftEntraId)
+            return Result.Failure<IReadOnlyList<PendingTenantMigrationDto>>("Tenant migration is only available for Microsoft Entra ID providers.");
+
+        // Users on this Entra provider with a staged tenant migration. The current
+        // (source) tenant comes from the active identity row; correlated subquery so
+        // a user with no active row still shows (source null) rather than disappearing.
+        var pending = await _db.Users
+            .Where(u => u.LoginProvider == LoginProviders.MicrosoftEntraId
+                && u.PendingMigrationTenantId != null)
+            .Select(u => new PendingTenantMigrationDto
+            {
+                UserId = u.Id,
+                UserName = u.UserName,
+                Email = u.Email,
+                SourceTenantId = _db.UserIdentities
+                    .Where(ui => ui.IsActive
+                        && ui.UserId == u.Id
+                        && ui.Provider == LoginProviders.MicrosoftEntraId)
+                    .Select(ui => ui.ProviderTenantId)
+                    .FirstOrDefault(),
+                TargetTenantId = u.PendingMigrationTenantId!,
+                StagedAt = u.PendingMigrationStagedAt,
+            })
+            .OrderBy(p => p.UserName)
+            .ToListAsync(cancellationToken);
+
+        return Result.Success<IReadOnlyList<PendingTenantMigrationDto>>(pending);
     }
 
     public async Task<Result> StageProviderMigration(StageProviderMigrationCommand command, CancellationToken cancellationToken)
@@ -347,7 +490,6 @@ internal partial class UserService(
             throw new NotFoundException("User Not Found.");
 
         return await _db.UserIdentities
-            .AsNoTracking()
             .Where(ui => ui.UserId == userId)
             .OrderByDescending(ui => ui.IsActive)
             .ThenByDescending(ui => ui.LinkedAt)

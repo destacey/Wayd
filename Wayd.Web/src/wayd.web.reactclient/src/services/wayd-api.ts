@@ -1217,6 +1217,205 @@ export class OidcProvidersClient {
         }
         return Promise.resolve<TestOidcProviderDiscoveryResult>(null as any);
     }
+
+    /**
+     * List Entra users on the given source tenant with no pending migration — the candidates for a bulk tenant migration.
+     * @param sourceTenantId (optional) 
+     */
+    getMigrationCandidates(id: string, sourceTenantId?: string | undefined, cancelToken?: CancelToken): Promise<TenantMigrationCandidateDto[]> {
+        let url_ = this.baseUrl + "/api/user-management/oidc-providers/{id}/migration-candidates?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (sourceTenantId === null)
+            throw new globalThis.Error("The parameter 'sourceTenantId' cannot be null.");
+        else if (sourceTenantId !== undefined)
+            url_ += "sourceTenantId=" + encodeURIComponent("" + sourceTenantId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetMigrationCandidates(_response);
+        });
+    }
+
+    protected processGetMigrationCandidates(response: AxiosResponse): Promise<TenantMigrationCandidateDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TenantMigrationCandidateDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TenantMigrationCandidateDto[]>(null as any);
+    }
+
+    /**
+     * List users on the given provider with a staged-but-incomplete tenant migration.
+     */
+    getPendingMigrations(id: string, cancelToken?: CancelToken): Promise<PendingTenantMigrationDto[]> {
+        let url_ = this.baseUrl + "/api/user-management/oidc-providers/{id}/pending-migrations";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetPendingMigrations(_response);
+        });
+    }
+
+    protected processGetPendingMigrations(response: AxiosResponse): Promise<PendingTenantMigrationDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PendingTenantMigrationDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PendingTenantMigrationDto[]>(null as any);
+    }
+
+    /**
+     * Stage a tenant migration for multiple Entra users. Each rebind completes on that user's next sign-in from the target tenant.
+     */
+    stageBulkTenantMigration(id: string, request: StageBulkTenantMigrationRequest, cancelToken?: CancelToken): Promise<BulkTenantMigrationResult> {
+        let url_ = this.baseUrl + "/api/user-management/oidc-providers/{id}/stage-tenant-migration";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processStageBulkTenantMigration(_response);
+        });
+    }
+
+    protected processStageBulkTenantMigration(response: AxiosResponse): Promise<BulkTenantMigrationResult> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<BulkTenantMigrationResult>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<BulkTenantMigrationResult>(null as any);
+    }
 }
 
 export class PermissionsClient {
@@ -3505,81 +3704,6 @@ export class UsersClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("A server side error occurred.", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Stage a tenant migration for an Entra user. The rebind completes on the user's next sign-in from the target tenant.
-     */
-    stageTenantMigration(id: string, request: StageTenantMigrationRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/user-management/users/{id}/stage-migration";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processStageTenantMigration(_response);
-        });
-    }
-
-    protected processStageTenantMigration(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
-
-        } else if (status === 422) {
-            const _responseText = response.data;
-            let result422: any = null;
-            let resultData422  = _responseText;
-            result422 = resultData422;
-            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -28895,6 +29019,48 @@ export interface TestOidcProviderDiscoveryResult {
     error?: string | undefined;
 }
 
+export interface TenantMigrationCandidateDto {
+    userId: string;
+    userName?: string | undefined;
+    email?: string | undefined;
+    firstName?: string | undefined;
+    lastName?: string | undefined;
+    isActive: boolean;
+}
+
+export interface PendingTenantMigrationDto {
+    userId: string;
+    userName?: string | undefined;
+    email?: string | undefined;
+    sourceTenantId?: string | undefined;
+    targetTenantId: string;
+    stagedAt?: Date | undefined;
+}
+
+export interface BulkTenantMigrationResult {
+    stagedUserIds: string[];
+    skipped: SkippedUser[];
+    stagedCount: number;
+}
+
+export interface SkippedUser {
+    userId: string;
+    reason: string;
+}
+
+export interface HttpValidationProblemDetails extends ProblemDetails {
+    errors?: { [key: string]: string[]; };
+
+    [key: string]: any;
+}
+
+/** Bulk tenant migration payload. The provider id comes from the route; this body carries the source/target tenants and the selected users. */
+export interface StageBulkTenantMigrationRequest {
+    sourceTenantId: string;
+    targetTenantId: string;
+    userIds: string[];
+}
+
 export interface ApplicationPermission {
     description: string;
     action: string;
@@ -28921,12 +29087,6 @@ export interface CreatePersonalAccessTokenResult {
     name: string;
     token: string;
     expiresAt: Date;
-}
-
-export interface HttpValidationProblemDetails extends ProblemDetails {
-    errors?: { [key: string]: string[]; };
-
-    [key: string]: any;
 }
 
 export interface CreatePersonalAccessTokenRequest {
@@ -29073,10 +29233,6 @@ export interface ManageRoleUsersRequest {
 
 export interface ResetPasswordRequest {
     newPassword: string;
-}
-
-export interface StageTenantMigrationRequest {
-    targetTenantId: string;
 }
 
 export interface ConvertToLocalAccountRequest {

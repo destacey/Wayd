@@ -25,6 +25,8 @@ public class ApplicationUserConfig : IEntityTypeConfiguration<ApplicationUser>
 
         builder.Property(u => u.PendingMigrationTenantId).HasMaxLength(100);
 
+        builder.Property(u => u.PendingMigrationStagedAt);
+
         builder.Property(u => u.PendingMigrationProviderId).HasMaxLength(50);
 
         builder.Property(u => u.MustChangePassword).HasDefaultValue(false);

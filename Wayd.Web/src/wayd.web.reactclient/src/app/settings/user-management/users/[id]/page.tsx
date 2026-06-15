@@ -22,7 +22,6 @@ import {
   ManageUserRolesForm,
   ResetPasswordForm,
   StageProviderMigrationForm,
-  StageTenantMigrationForm,
   useUserAccountActions,
   UserDetails,
   UserIdentityHistory,
@@ -42,7 +41,6 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
   const [openEditUserForm, setOpenEditUserForm] = useState(false)
   const [openManageUserRolesForm, setOpenManageUserRolesForm] = useState(false)
   const [openResetPasswordForm, setOpenResetPasswordForm] = useState(false)
-  const [openStageMigrationForm, setOpenStageMigrationForm] = useState(false)
   const [openStageProviderMigrationForm, setOpenStageProviderMigrationForm] =
     useState(false)
   const [openConvertToLocalForm, setOpenConvertToLocalForm] = useState(false)
@@ -113,43 +111,36 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
         onClick: () => setOpenResetPasswordForm(true),
       })
     }
-    if (canUpdateUser && isEntraUser) {
+    // Staging a tenant migration is a bulk action on the provider page. Cancelling a
+    // single user's pending migration stays here, where the pending state is visible.
+    if (canUpdateUser && isEntraUser && hasPendingMigration) {
       secondaryItems.push({
-        key: 'stage-migration',
-        label: hasPendingMigration
-          ? 'Replace Pending Migration'
-          : 'Migrate to New Tenant',
-        onClick: () => setOpenStageMigrationForm(true),
-      })
-      if (hasPendingMigration) {
-        secondaryItems.push({
-          key: 'cancel-migration',
-          label: 'Cancel Pending Migration',
-          onClick: () => {
-            modal.confirm({
-              title: 'Cancel Pending Migration',
-              content: `Cancel the pending tenant migration for ${fullName}?`,
-              okText: 'Cancel Migration',
-              okButtonProps: { danger: true },
-              cancelText: 'Keep Pending',
-              onOk: async () => {
-                try {
-                  const result = await cancelTenantMigration(userData.id)
-                  if ('error' in result) {
-                    throw result.error
-                  }
-                  messageApi.success('Pending migration canceled.')
-                } catch (err: any) {
-                  messageApi.error(
-                    err?.data?.detail ??
-                      'Failed to cancel the pending migration.',
-                  )
+        key: 'cancel-migration',
+        label: 'Cancel Pending Migration',
+        onClick: () => {
+          modal.confirm({
+            title: 'Cancel Pending Migration',
+            content: `Cancel the pending tenant migration for ${fullName}?`,
+            okText: 'Cancel Migration',
+            okButtonProps: { danger: true },
+            cancelText: 'Keep Pending',
+            onOk: async () => {
+              try {
+                const result = await cancelTenantMigration(userData.id)
+                if ('error' in result) {
+                  throw result.error
                 }
-              },
-            })
-          },
-        })
-      }
+                messageApi.success('Pending migration canceled.')
+              } catch (err: any) {
+                messageApi.error(
+                  err?.data?.detail ??
+                    'Failed to cancel the pending migration.',
+                )
+              }
+            },
+          })
+        },
+      })
     }
     if (canUpdateUser && canChangeProvider) {
       secondaryItems.push({
@@ -280,15 +271,6 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
           userName={fullName}
           onFormComplete={() => setOpenResetPasswordForm(false)}
           onFormCancel={() => setOpenResetPasswordForm(false)}
-        />
-      )}
-      {openStageMigrationForm && (
-        <StageTenantMigrationForm
-          userId={userData.id}
-          userName={fullName}
-          currentPendingTenantId={userData.pendingMigrationTenantId}
-          onFormComplete={() => setOpenStageMigrationForm(false)}
-          onFormCancel={() => setOpenStageMigrationForm(false)}
         />
       )}
       {openStageProviderMigrationForm && (

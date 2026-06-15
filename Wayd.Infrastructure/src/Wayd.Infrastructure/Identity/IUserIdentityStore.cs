@@ -20,6 +20,16 @@ internal interface IUserIdentityStore : IScopedService
     Task<bool> ExistsActive(string userId, string provider, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// From <paramref name="userIds"/>, returns the subset that currently have an
+    /// active identity on (<paramref name="provider"/>, <paramref name="tenantId"/>).
+    /// Used by bulk tenant migration to re-confirm — at submit time — which selected
+    /// users are still on the source tenant, closing the gap since the candidate list
+    /// was fetched.
+    /// </summary>
+    Task<IReadOnlyCollection<string>> GetActiveUserIdsOnTenant(
+        string provider, string tenantId, IReadOnlyCollection<string> userIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Counts active identities for a given provider. Used when validating whether
     /// an <see cref="OidcProvider"/> row can be deleted — deletion is blocked while
     /// any user is still actively bound to the provider.

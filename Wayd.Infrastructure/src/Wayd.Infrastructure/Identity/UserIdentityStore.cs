@@ -51,6 +51,22 @@ internal sealed class UserIdentityStore(WaydDbContext db, ILogger<UserIdentitySt
             cancellationToken);
     }
 
+    public async Task<IReadOnlyCollection<string>> GetActiveUserIdsOnTenant(
+        string provider, string tenantId, IReadOnlyCollection<string> userIds, CancellationToken cancellationToken = default)
+    {
+        if (userIds.Count == 0)
+            return [];
+
+        return await _db.UserIdentities
+            .Where(ui =>
+                ui.IsActive &&
+                ui.Provider == provider &&
+                ui.ProviderTenantId == tenantId &&
+                userIds.Contains(ui.UserId))
+            .Select(ui => ui.UserId)
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<int> CountActiveByProvider(string provider, CancellationToken cancellationToken = default)
     {
         return _db.UserIdentities.CountAsync(ui =>
@@ -67,7 +83,6 @@ internal sealed class UserIdentityStore(WaydDbContext db, ILogger<UserIdentitySt
         // slips through. Duplicates are logged and the latest-linked row wins,
         // so a batch sync can complete on otherwise-healthy users.
         var rows = await _db.UserIdentities
-            .AsNoTracking()
             .Where(ui => ui.IsActive && ui.Provider == provider)
             .Select(ui => new { ui.UserId, ui.ProviderSubject, ui.LinkedAt })
             .ToListAsync(cancellationToken);

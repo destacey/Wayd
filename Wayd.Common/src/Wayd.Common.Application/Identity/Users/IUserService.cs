@@ -73,8 +73,29 @@ public interface IUserService : ITransientService
 
     Task<Result> UpdateThemeConfig(string userId, UserThemeConfigDto? themeConfig, CancellationToken cancellationToken);
 
-    Task<Result> StageTenantMigration(StageTenantMigrationCommand command, CancellationToken cancellationToken);
+    /// <summary>
+    /// Stages an Entra tenant migration for multiple users in one transaction. Users
+    /// are re-validated server-side (still Entra, still on the source tenant, no
+    /// pending migration) so a stale client list can't stage the wrong users; the
+    /// result reports which were staged and which were skipped.
+    /// </summary>
+    Task<Result<BulkTenantMigrationResult>> StageBulkTenantMigration(StageBulkTenantMigrationCommand command, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Lists users bound to the given provider via an active identity on the given
+    /// source tenant, excluding any with a migration already pending — the selectable
+    /// candidates for a bulk migration off that tenant.
+    /// </summary>
+    Task<Result<IReadOnlyList<TenantMigrationCandidateDto>>> GetTenantMigrationCandidates(Guid providerId, string sourceTenantId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Lists users on the given provider with a staged-but-incomplete tenant migration.
+    /// </summary>
+    Task<Result<IReadOnlyList<PendingTenantMigrationDto>>> GetPendingTenantMigrations(Guid providerId, CancellationToken cancellationToken);
+
+    // Staging a tenant migration is now a bulk, provider-page action
+    // (StageBulkTenantMigration). Cancelling a single user's pending migration remains
+    // available — there is no bulk-cancel equivalent.
     Task<Result> CancelTenantMigration(string userId, CancellationToken cancellationToken);
 
     Task<Result> StageProviderMigration(StageProviderMigrationCommand command, CancellationToken cancellationToken);

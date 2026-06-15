@@ -917,122 +917,29 @@ public class UserServiceTests
 
     #endregion
 
-    #region StageTenantMigration
-
-    [Fact]
-    public async Task StageTenantMigration_ShouldSetPendingTenant_WhenEntraUserHasActiveIdentity()
-    {
-        var user = CreateUser(loginProvider: LoginProviders.MicrosoftEntraId);
-        var targetTenant = Guid.NewGuid().ToString();
-
-        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
-        _mockUserIdentityStore.Setup(s => s.ExistsActive(user.Id, LoginProviders.MicrosoftEntraId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
-
-        var sut = CreateSut();
-
-        var result = await sut.StageTenantMigration(
-            new StageTenantMigrationCommand(user.Id, targetTenant),
-            TestContext.Current.CancellationToken);
-
-        result.IsSuccess.Should().BeTrue();
-        user.PendingMigrationTenantId.Should().Be(targetTenant);
-        _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
-        _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserUpdatedEvent>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task StageTenantMigration_ShouldOverwritePreviousTarget_WhenAlreadyStaged()
-    {
-        var user = CreateUser(loginProvider: LoginProviders.MicrosoftEntraId);
-        user.PendingMigrationTenantId = Guid.NewGuid().ToString();
-        var newTarget = Guid.NewGuid().ToString();
-
-        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
-        _mockUserIdentityStore.Setup(s => s.ExistsActive(user.Id, LoginProviders.MicrosoftEntraId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
-
-        var sut = CreateSut();
-
-        var result = await sut.StageTenantMigration(
-            new StageTenantMigrationCommand(user.Id, newTarget),
-            TestContext.Current.CancellationToken);
-
-        result.IsSuccess.Should().BeTrue();
-        user.PendingMigrationTenantId.Should().Be(newTarget);
-    }
-
-    [Fact]
-    public async Task StageTenantMigration_ShouldFail_WhenUserIsNotEntraProvider()
-    {
-        var user = CreateUser(loginProvider: LoginProviders.Wayd);
-        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
-
-        var sut = CreateSut();
-
-        var result = await sut.StageTenantMigration(
-            new StageTenantMigrationCommand(user.Id, Guid.NewGuid().ToString()),
-            TestContext.Current.CancellationToken);
-
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("Microsoft Entra ID");
-        _mockUserManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task StageTenantMigration_ShouldFail_WhenUserHasNoActiveEntraIdentity()
-    {
-        var user = CreateUser(loginProvider: LoginProviders.MicrosoftEntraId);
-        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
-        _mockUserIdentityStore.Setup(s => s.ExistsActive(user.Id, LoginProviders.MicrosoftEntraId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-
-        var sut = CreateSut();
-
-        var result = await sut.StageTenantMigration(
-            new StageTenantMigrationCommand(user.Id, Guid.NewGuid().ToString()),
-            TestContext.Current.CancellationToken);
-
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("no active");
-        _mockUserManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task StageTenantMigration_ShouldThrowNotFound_WhenUserDoesNotExist()
-    {
-        _mockUserManager.Setup(x => x.Users).Returns(Array.Empty<ApplicationUser>().AsQueryable().BuildMockDbSet().Object);
-
-        var sut = CreateSut();
-
-        var act = () => sut.StageTenantMigration(
-            new StageTenantMigrationCommand("missing", Guid.NewGuid().ToString()),
-            TestContext.Current.CancellationToken);
-
-        await act.Should().ThrowAsync<NotFoundException>();
-    }
-
-    #endregion
-
     #region CancelTenantMigration
 
     [Fact]
     public async Task CancelTenantMigration_ShouldClearPendingTenant_WhenStaged()
     {
+        // Arrange
         var user = CreateUser();
         user.PendingMigrationTenantId = Guid.NewGuid().ToString();
+        user.PendingMigrationStagedAt = _dateTimeProvider.Now;
 
         _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
         _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
 
         var sut = CreateSut();
 
+        // Act
         var result = await sut.CancelTenantMigration(user.Id, TestContext.Current.CancellationToken);
 
+        // Assert
         result.IsSuccess.Should().BeTrue();
         user.PendingMigrationTenantId.Should().BeNull();
+        // StagedAt moves together with the tenant flag — both clear on cancel.
+        user.PendingMigrationStagedAt.Should().BeNull();
         _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
         _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserUpdatedEvent>()), Times.Once);
     }
@@ -1040,6 +947,7 @@ public class UserServiceTests
     [Fact]
     public async Task CancelTenantMigration_ShouldBeIdempotent_WhenNothingStaged()
     {
+        // Arrange
         var user = CreateUser();
         user.PendingMigrationTenantId = null;
 
@@ -1047,8 +955,10 @@ public class UserServiceTests
 
         var sut = CreateSut();
 
+        // Act
         var result = await sut.CancelTenantMigration(user.Id, TestContext.Current.CancellationToken);
 
+        // Assert
         result.IsSuccess.Should().BeTrue();
         _mockUserManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
         _mockEvents.Verify(x => x.PublishAsync(It.IsAny<ApplicationUserUpdatedEvent>()), Times.Never);
@@ -1057,12 +967,15 @@ public class UserServiceTests
     [Fact]
     public async Task CancelTenantMigration_ShouldThrowNotFound_WhenUserDoesNotExist()
     {
+        // Arrange
         _mockUserManager.Setup(x => x.Users).Returns(Array.Empty<ApplicationUser>().AsQueryable().BuildMockDbSet().Object);
 
         var sut = CreateSut();
 
+        // Act
         var act = () => sut.CancelTenantMigration("missing", TestContext.Current.CancellationToken);
 
+        // Assert
         await act.Should().ThrowAsync<NotFoundException>();
     }
 
@@ -1096,6 +1009,7 @@ public class UserServiceTests
         user.NormalizedUserName = upn.ToUpperInvariant();
         user.NormalizedEmail = "ALICE@NEWTENANT.COM";
         user.PendingMigrationTenantId = newTenantId;
+        user.PendingMigrationStagedAt = _dateTimeProvider.Now;
 
         // No active identity for the new (tid, oid). No NULL-tenant backfill row either.
         _mockUserIdentityStore.Setup(s => s.FindActive(LoginProviders.MicrosoftEntraId, newTenantId, newObjectId, It.IsAny<CancellationToken>()))
@@ -1115,6 +1029,8 @@ public class UserServiceTests
 
         resolvedId.Should().Be(user.Id);
         user.PendingMigrationTenantId.Should().BeNull();
+        // StagedAt moves together with the tenant flag — both clear on a completed rebind.
+        user.PendingMigrationStagedAt.Should().BeNull();
 
         _mockUserIdentityStore.Verify(s => s.DeactivateAllActive(
             user.Id,

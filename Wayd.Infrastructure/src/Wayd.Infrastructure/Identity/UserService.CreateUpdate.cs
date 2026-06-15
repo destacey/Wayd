@@ -227,6 +227,7 @@ internal partial class UserService
             }, ct);
 
             candidate.PendingMigrationTenantId = null;
+            candidate.PendingMigrationStagedAt = null;
             var updateResult = await _userManager.UpdateAsync(candidate);
             if (!updateResult.Succeeded)
             {

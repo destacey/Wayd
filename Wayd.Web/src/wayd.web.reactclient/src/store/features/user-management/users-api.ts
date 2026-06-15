@@ -5,7 +5,6 @@ import {
   CreateUserRequest,
   ManageRoleUsersRequest,
   StageProviderMigrationRequest,
-  StageTenantMigrationRequest,
   UserDetailsDto,
   UserIdentityDto,
   UserRoleDto,
@@ -306,30 +305,9 @@ export const usersApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    stageTenantMigration: builder.mutation<
-      void,
-      { userId: string; targetTenantId: string }
-    >({
-      queryFn: async ({ userId, targetTenantId }) => {
-        try {
-          const request: StageTenantMigrationRequest = { targetTenantId }
-          const data = await getUsersClient().stageTenantMigration(
-            userId,
-            request,
-          )
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      invalidatesTags: (result, error, arg) => [
-        { type: QueryTags.User, id: arg.userId },
-        { type: QueryTags.User, id: 'LIST' },
-        { type: QueryTags.UserIdentityHistory, id: arg.userId },
-      ],
-    }),
-
+    // Staging a tenant migration is now a bulk action on the provider page (see
+    // stageBulkTenantMigration in oidc-providers-api). Cancelling a single user's
+    // pending migration stays here — there is no bulk-cancel equivalent.
     cancelTenantMigration: builder.mutation<void, string>({
       queryFn: async (userId) => {
         try {
@@ -448,7 +426,6 @@ export const {
   useDeactivateUserMutation,
   useUnlockUserMutation,
   useGetUserIdentityHistoryQuery,
-  useStageTenantMigrationMutation,
   useCancelTenantMigrationMutation,
   useStageProviderMigrationMutation,
   useCancelProviderMigrationMutation,

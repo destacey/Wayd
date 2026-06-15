@@ -2,9 +2,13 @@ import { getOidcProvidersClient } from '@/src/services/clients'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import {
+  BulkTenantMigrationResult,
   CreateOidcProviderRequest,
   OidcProviderDto,
   OidcProviderListItemDto,
+  PendingTenantMigrationDto,
+  StageBulkTenantMigrationRequest,
+  TenantMigrationCandidateDto,
   TestOidcProviderDiscoveryResult,
   UpdateOidcProviderRequest,
 } from '@/src/services/wayd-api'
@@ -92,6 +96,69 @@ export const oidcProvidersApi = apiSlice.injectEndpoints({
         }
       },
     }),
+
+    getTenantMigrationCandidates: builder.query<
+      TenantMigrationCandidateDto[],
+      { providerId: string; sourceTenantId: string }
+    >({
+      queryFn: async ({ providerId, sourceTenantId }) => {
+        try {
+          const data = await getOidcProvidersClient().getMigrationCandidates(
+            providerId,
+            sourceTenantId,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, arg) => [
+        { type: QueryTags.TenantMigrationCandidates, id: arg.providerId },
+      ],
+    }),
+
+    getPendingTenantMigrations: builder.query<PendingTenantMigrationDto[], string>({
+      queryFn: async (providerId) => {
+        try {
+          const data =
+            await getOidcProvidersClient().getPendingMigrations(providerId)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, providerId) => [
+        { type: QueryTags.PendingTenantMigrations, id: providerId },
+      ],
+    }),
+
+    stageBulkTenantMigration: builder.mutation<
+      BulkTenantMigrationResult,
+      { providerId: string; request: StageBulkTenantMigrationRequest }
+    >({
+      queryFn: async ({ providerId, request }) => {
+        try {
+          const data = await getOidcProvidersClient().stageBulkTenantMigration(
+            providerId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // Staging moves users from the candidate list onto the pending list, and
+      // changes their pendingMigrationTenantId on the user records.
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.TenantMigrationCandidates, id: arg.providerId },
+        { type: QueryTags.PendingTenantMigrations, id: arg.providerId },
+        { type: QueryTags.User, id: 'LIST' },
+        { type: QueryTags.UserOption, id: 'LIST' },
+      ],
+    }),
   }),
 })
 
@@ -102,4 +169,7 @@ export const {
   useUpdateOidcProviderMutation,
   useDeleteOidcProviderMutation,
   useTestOidcProviderDiscoveryMutation,
+  useGetTenantMigrationCandidatesQuery,
+  useGetPendingTenantMigrationsQuery,
+  useStageBulkTenantMigrationMutation,
 } = oidcProvidersApi

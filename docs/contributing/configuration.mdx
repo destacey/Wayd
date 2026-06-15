@@ -209,6 +209,7 @@ erDiagram
         string Email
         string LoginProvider "primary provider (mirrors active UserIdentity.Provider)"
         string PendingMigrationTenantId "nullable; staged Entra tenant move"
+        string PendingMigrationStagedAt "nullable; when the tenant move was staged"
         string PendingMigrationProviderId "nullable; staged cross-provider or local→OIDC move"
     }
     UserIdentity {
@@ -269,19 +270,42 @@ new user signing in via provider P
 
 The policy is enforced in `UserService.CreateOrUpdateFromPrincipalAsync`. Generic-OIDC providers do not yet provision new users at all (unknown users are rejected); the policy is currently actionable on the Entra path.
 
+### Admin-created (pre-provisioned) users
+
+Auto-registration is the *self*-service path. The other way an account comes into being is an admin creating it ahead of the user's first sign-in (**Settings → Users → Add user**). For an Entra user, a question that comes up here is: *which tenant do I assign them to?*
+
+**You don't — and can't.** When creating an Entra user there is no tenant field. For a multi-tenant Entra provider (one whose `AllowedTenantIds` lists more than one tenant), the account is **tenant-agnostic until first login**: it will accept a sign-in from **any** allowlisted tenant, and the tenant it actually binds to is recorded from **whichever tenant the user first signs in from**. You pre-create the person; their `tid` is captured on first exchange, not at creation time.
+
+What links the first sign-in to the right pre-created account is **email/UPN**, not tenant. On first login, the exchange matches the token's UPN (or email) to the existing `ApplicationUser`, then writes the `UserIdentity` row with that token's `tid` and `oid`.
+
+:::caution Same UPN in two allowlisted tenants
+Because the match is by UPN/email, if the same person genuinely exists under the same UPN in **two** allowlisted tenants, the account binds to whichever they sign in from **first**. A later sign-in from the *other* tenant presents a different `(tid, oid)` and is treated as a separate identity. What happens to that second sign-in depends on the provider's [registration policy](#user-provisioning-auto-registration):
+
+- **`AllowAutoRegistration = false`** (the secure default): the second-tenant sign-in resolves no identity and is **rejected with a 403** — no duplicate user is created.
+- **`AllowAutoRegistration = true`**: the second-tenant sign-in falls through to the create path and **provisions a second, separate `ApplicationUser`** (its own `UserId`, its own permissions/data), subject to `RequireEmployeeRecord` and `DefaultRoleId`. There is no "merge users" UI to undo this — recovery requires manual DB work.
+
+To move a user from one tenant to another deliberately, use [Entra tenant migration](#entra-tenant-migration) rather than relying on first-login binding.
+:::
+
+**Code path.** `UserService.CreateAsync` creates the `ApplicationUser` (with `LoginProvider = MicrosoftEntraId`) but **deliberately does not insert a `UserIdentity` row** for non-Wayd providers — there's no `oid`/`tid` to record yet. (Wayd/local users *do* get their row immediately, keyed by the stable `ApplicationUser.Id`.) The Entra row is created later by `EnsureEntraIdentityRowAsync` during the first token exchange, which is where `tid` and `oid` are read from the validated token. This is why a pre-provisioned Entra user has **zero** active identity rows until they first sign in — the "can have zero" case noted under [Identity model](#identity-model).
+
 ### Identity migration
 
 Wayd supports three admin-initiated identity migration workflows. In all three cases the `ApplicationUser.Id` is preserved, so all downstream FKs (permissions, work items, audit) remain intact.
 
 #### Entra tenant migration
 
-When an org moves users from one Entra tenant to another, an admin stages the migration per user. The rebind completes automatically when the user next signs in from the new tenant.
+When an org moves users from one Entra tenant to another, an admin stages the migration **in bulk from the provider page** (**Settings → Identity Providers → [provider]**). Both the **Migrate Users to New Tenant** action (in the page's **Actions** menu) and the read-only **Active Migrations** tab appear only for a `MicrosoftEntraId` provider with **two or more** `AllowedTenantIds` (there must be tenants to move between); the action additionally requires `Permissions.Users.Update` and the tab requires `Permissions.Users.View`. The action opens a modal where the admin picks a **source** and a **target** tenant (both drawn from the provider's allowlist), is shown the users currently bound to that provider+source-tenant with no migration already pending, selects up to 500, and stages them in one action. Each user's rebind completes automatically when they next sign in from the new tenant — the deferred mechanism below is unchanged. The **Active Migrations** tab lists every user with a staged-but-incomplete migration (source/target tenant and when it was staged).
 
-`PendingMigrationTenantId` is set on `ApplicationUser` to the target Entra tenant GUID. During Entra token exchange, `UserService.ResolveUserByEntraIdentity` tries lookups in order: `FindActive(provider, tid, sub)` → null-tid upgrade (one-time tenant population for backfilled rows) → **pending-migration rebind** → fall through to create-new-user (subject to the [registration policy](#user-provisioning-auto-registration)). The rebind path matches a user by `PendingMigrationTenantId == token.tid` AND `LoginProvider == MicrosoftEntraId` AND (`NormalizedUserName == token.upn` OR `NormalizedEmail == token.upn`). On match, inside one transaction:
+Staging sets `PendingMigrationTenantId` (the target Entra tenant GUID) and `PendingMigrationStagedAt` on each selected `ApplicationUser`. The bulk command (`UserService.StageBulkTenantMigration`) re-validates each user server-side — still Entra, still on the source tenant, no pending migration — so a stale selection can't stage the wrong users; it returns a per-user staged/skipped summary, and the whole batch runs in one transaction (a mid-batch failure stages nobody).
+
+A staged migration can be **cancelled per user** before it completes — `UserService.CancelTenantMigration` (`DELETE /api/user-management/users/{id}/stage-migration`, surfaced as **Cancel Pending Migration** on the user detail page) clears both `PendingMigrationTenantId` and `PendingMigrationStagedAt`. It's idempotent. There is no bulk-cancel; the provider's **Active Migrations** tab is read-only.
+
+During Entra token exchange, `UserService.ResolveUserByEntraIdentity` tries lookups in order: `FindActive(provider, tid, sub)` → null-tid upgrade (one-time tenant population for backfilled rows) → **pending-migration rebind** → fall through to create-new-user (subject to the [registration policy](#user-provisioning-auto-registration)). The rebind path matches a user by `PendingMigrationTenantId == token.tid` AND `LoginProvider == MicrosoftEntraId` AND (`NormalizedUserName == token.upn` OR `NormalizedEmail == token.upn`). On match, inside one transaction:
 
 1. Deactivate all active identity rows (`UnlinkReason = TenantMigration`).
 2. Insert a new active row with `(MicrosoftEntraId, token.tid, token.sub)`.
-3. Clear `PendingMigrationTenantId`.
+3. Clear `PendingMigrationTenantId` and `PendingMigrationStagedAt` (the two always move together).
 
 If staging is skipped and the user signs in from the new tenant first, the exchange creates a brand-new `ApplicationUser` with a separate `UserId` — there is no admin "merge users" UI to recover from this; it requires manual DB work.
 

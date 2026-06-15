@@ -26,7 +26,6 @@ User accounts control access to Wayd. Each user has:
 - **Deactivate** — Disable a user account
 - **Unlock** — Unlock an account locked due to failed login attempts
 - **Reset Password** — Admin-initiated password reset (local auth only, forces change on next login)
-- **Migrate to New Tenant** — Stage a Microsoft Entra ID tenant migration (see below)
 - **Change Identity Provider** — Stage a move to a different OIDC provider, or from a local account to an OIDC provider (see below)
 - **Convert to Local Account** — Immediately switch an OIDC user to password-based login (see below)
 
@@ -46,22 +45,25 @@ The form captures the user's details, their **Login Provider** (set here and imm
 
 #### Tenant migration
 
-When your organization moves users from one Microsoft Entra ID tenant to another, you can pre-stage the migration on a per-user basis. The rebind completes automatically the next time the user signs in from the new tenant — they don't need to do anything special, and their `UserId`, permissions, and links to other records (work items, audit history, etc.) are all preserved.
+When your organization moves users from one Microsoft Entra ID tenant to another, you stage the migration **in bulk from the provider page**. The rebind completes automatically the next time each user signs in from the new tenant — they don't need to do anything special, and their `UserId`, permissions, and links to other records (work items, audit history, etc.) are all preserved.
+
+This lives on the provider's detail page (**Settings → Identity Providers → \[provider]**), and only appears for a Microsoft Entra ID provider configured with **two or more** allowed tenants (there must be tenants to move between).
 
 **Workflow:**
 
-1. On the user detail page (**Settings → User Management → Users → \[user]**), open the **Actions** menu and pick **Migrate to New Tenant**. Enter the target tenant ID (a GUID — the new Entra directory ID) and confirm.
-2. The Actions menu now offers **Cancel Pending Migration** and **Replace Pending Migration**.
-3. Nothing else changes until the user signs in. Sign-ins from the *old* tenant continue to work normally.
-4. When the user next signs in from the new tenant, Wayd detects the staged migration and atomically swaps their identity binding. The user notices nothing.
-5. After the rebind, the **Identity History** tab shows the old binding (Inactive, reason: Tenant Migration) alongside the new active one.
+1. On the provider detail page, open the **Actions** menu and pick **Migrate Users to New Tenant**.
+2. In the dialog, choose a **source** tenant and a **target** tenant (both from the provider's allowed-tenant list). Wayd lists the users currently on the source tenant who don't already have a migration in progress.
+3. Select the ones to move (up to 500 at a time) and click **Stage migration**. Wayd reports how many were staged and, if any selected users no longer qualify, how many were skipped.
+4. The **Active Migrations** tab on the provider page lists everyone with a staged-but-incomplete migration, showing their source and target tenant and when it was staged.
+5. Nothing else changes until each user signs in. Sign-ins from the *old* tenant continue to work normally.
+6. When a user next signs in from the new tenant, Wayd detects the staged migration and atomically swaps their identity binding. The user notices nothing; afterward their **Identity History** shows the old binding (Inactive, reason: Tenant Migration) alongside the new active one.
 
 **Things to know:**
 
 - **Stage before the user signs in from the new tenant.** If you skip staging and the user signs in from the new tenant first, Wayd creates a brand-new account with a separate user ID — there's no in-app way to merge it back with the original; it requires manual database work to recover.
 - Tenant migration is **Microsoft Entra ID only**. For moving a user between different OIDC providers, use **Change Identity Provider** instead.
-- Re-staging a migration with a different target tenant silently replaces the previous one — the most recent stage wins.
-- Bulk and self-service migration are not currently supported. Migrations are staged one user at a time by an administrator.
+- The selectable list excludes users who already have a migration pending. To retarget such a user, cancel their pending migration first (below).
+- The **Active Migrations** tab is read-only. To cancel a single user's pending migration, open that user's detail page (**Settings → User Management → Users → \[user]**) and pick **Cancel Pending Migration** from the **Actions** menu. There is no bulk-cancel.
 
 #### Change Identity Provider
 

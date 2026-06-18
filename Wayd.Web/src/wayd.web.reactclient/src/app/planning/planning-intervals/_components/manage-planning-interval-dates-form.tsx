@@ -13,7 +13,7 @@ import {
 import { useEffect } from 'react'
 import { ManagePlanningIntervalDatesRequest } from '@/src/services/wayd-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import dayjs from 'dayjs'
+import dayjs, { type Dayjs } from 'dayjs'
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
@@ -37,13 +37,13 @@ interface UpsertIterationFormValues {
   iterationId?: string
   name: string
   categoryId: number
-  start: Date
-  end: Date
+  start: Dayjs
+  end: Dayjs
 }
 
 interface ManagePlanningIntervalDatesFormValues {
-  start: Date
-  end: Date
+  start: Dayjs
+  end: Dayjs
   iterations: UpsertIterationFormValues[]
 }
 
@@ -53,16 +53,16 @@ const mapToRequestValues = (
 ) => {
   return {
     id,
-    start: (values.start as any)?.format('YYYY-MM-DD'),
-    end: (values.end as any)?.format('YYYY-MM-DD'),
+    start: values.start?.format('YYYY-MM-DD'),
+    end: values.end?.format('YYYY-MM-DD'),
     iterations: values.iterations.map((iteration) => ({
       iterationId: iteration.iterationId,
       name: iteration.name,
       categoryId: iteration.categoryId,
-      start: (iteration.start as any)?.format('YYYY-MM-DD'),
-      end: (iteration.end as any)?.format('YYYY-MM-DD'),
+      start: iteration.start?.format('YYYY-MM-DD'),
+      end: iteration.end?.format('YYYY-MM-DD'),
     })),
-  } as ManagePlanningIntervalDatesRequest
+  } as unknown as ManagePlanningIntervalDatesRequest
 }
 
 const ManagePlanningIntervalDatesForm = ({

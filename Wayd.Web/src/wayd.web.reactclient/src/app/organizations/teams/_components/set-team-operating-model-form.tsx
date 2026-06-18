@@ -10,6 +10,7 @@ import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { useSetTeamOperatingModelMutation } from '@/src/store/features/organizations/team-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
+import { type Dayjs } from 'dayjs'
 
 const { Item: FormItem } = Form
 const { Group: RadioGroup } = Radio
@@ -21,7 +22,7 @@ export interface SetTeamOperatingModelFormProps {
 }
 
 interface SetTeamOperatingModelFormValues {
-  startDate: Date
+  startDate: Dayjs
   methodology: Methodology
   sizingMethod: SizingMethod
 }
@@ -40,10 +41,10 @@ const mapToRequestValues = (
   values: SetTeamOperatingModelFormValues,
 ): SetTeamOperatingModelRequest => {
   return {
-    startDate: (values.startDate as any)?.format('YYYY-MM-DD'),
+    startDate: values.startDate?.format('YYYY-MM-DD'),
     methodology: values.methodology,
     sizingMethod: values.sizingMethod,
-  } as SetTeamOperatingModelRequest
+  } as unknown as SetTeamOperatingModelRequest
 }
 
 const SetTeamOperatingModelForm = ({

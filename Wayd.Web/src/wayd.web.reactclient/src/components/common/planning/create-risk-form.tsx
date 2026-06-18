@@ -4,6 +4,7 @@ import { DatePicker, Form, Input, Modal, Radio, Select } from 'antd'
 import { useEffect } from 'react'
 import { CreateRiskRequest } from '@/src/services/wayd-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import { type Dayjs } from 'dayjs'
 import { MarkdownEditor } from '../markdown'
 import {
   useCreateRiskMutation,
@@ -32,7 +33,7 @@ interface CreateRiskFormValues {
   impactId: number
   likelihoodId: number
   assigneeId?: string | undefined
-  followUpDate?: Date | undefined
+  followUpDate?: Dayjs | undefined
   response?: string | undefined
 }
 
@@ -45,9 +46,9 @@ const mapToRequestValues = (values: CreateRiskFormValues) => {
     impactId: values.impactId,
     likelihoodId: values.likelihoodId,
     assigneeId: values.assigneeId,
-    followUpDate: (values.followUpDate as any)?.format('YYYY-MM-DD'),
+    followUpDate: values.followUpDate?.format('YYYY-MM-DD'),
     response: values.response,
-  } as CreateRiskRequest
+  } as unknown as CreateRiskRequest
 }
 
 const CreateRiskForm = ({

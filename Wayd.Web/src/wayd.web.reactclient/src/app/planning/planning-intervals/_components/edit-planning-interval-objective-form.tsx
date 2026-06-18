@@ -14,7 +14,7 @@ import {
 import { useEffect } from 'react'
 import { UpdatePlanningIntervalObjectiveRequest } from '@/src/services/wayd-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import dayjs from 'dayjs'
+import dayjs, { type Dayjs } from 'dayjs'
 import { RangePickerProps } from 'antd/es/date-picker'
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
@@ -47,8 +47,8 @@ interface EditPlanningIntervalObjectiveFormValues {
   description?: string | null
   isStretch: boolean
   progress: number
-  startDate?: Date | null
-  targetDate?: Date | null
+  startDate?: Dayjs | null
+  targetDate?: Dayjs | null
 }
 
 const mapToRequestValues = (
@@ -64,10 +64,10 @@ const mapToRequestValues = (
     description: values.description,
     statusId: values.statusId,
     progress: values.progress,
-    startDate: (values.startDate as any)?.format('YYYY-MM-DD'),
-    targetDate: (values.targetDate as any)?.format('YYYY-MM-DD'),
+    startDate: values.startDate?.format('YYYY-MM-DD'),
+    targetDate: values.targetDate?.format('YYYY-MM-DD'),
     isStretch: values.isStretch,
-  } as UpdatePlanningIntervalObjectiveRequest
+  } as unknown as UpdatePlanningIntervalObjectiveRequest
 
   return {
     request: objective,

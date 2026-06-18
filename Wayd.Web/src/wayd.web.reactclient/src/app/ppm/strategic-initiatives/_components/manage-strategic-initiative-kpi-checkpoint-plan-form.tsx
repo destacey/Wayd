@@ -27,7 +27,7 @@ import {
   Modal,
   Typography,
 } from 'antd'
-import dayjs from 'dayjs'
+import dayjs, { type Dayjs } from 'dayjs'
 import { useEffect, useRef } from 'react'
 
 type InputNumberRef = { focus: () => void } | null
@@ -47,7 +47,7 @@ interface CheckpointPlanItemFormValues {
   checkpointId?: string
   targetValue: number
   atRiskValue?: number
-  checkpointDate: Date
+  checkpointDate: Dayjs
   dateLabel: string
 }
 
@@ -68,7 +68,7 @@ const mapToRequestValues = (
         checkpointId: c.checkpointId!,
         targetValue: c.targetValue,
         atRiskValue: c.atRiskValue ?? undefined,
-        checkpointDate: (c.checkpointDate as any)?.toISOString(),
+        checkpointDate: c.checkpointDate?.toDate(),
         dateLabel: c.dateLabel,
       }),
     ),

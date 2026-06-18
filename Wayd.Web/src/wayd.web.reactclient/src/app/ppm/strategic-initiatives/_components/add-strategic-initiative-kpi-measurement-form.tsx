@@ -11,7 +11,7 @@ import {
 } from '@/src/store/features/ppm/strategic-initiatives-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { DatePicker, Descriptions, Form, InputNumber, Modal } from 'antd'
-import dayjs from 'dayjs'
+import dayjs, { type Dayjs } from 'dayjs'
 import { useEffect } from 'react'
 
 const { Item: DescriptionItem } = Descriptions
@@ -25,7 +25,7 @@ export interface AddStrategicInitiativeKpiMeasurementFormProps {
 
 interface AddStrategicInitiativeKpiMeasurementFormValues {
   actualValue: number
-  measurementDate: Date
+  measurementDate: Dayjs
   note: string
 }
 
@@ -41,7 +41,7 @@ const mapToRequestValues = (
     strategicInitiativeId: strategicInitiativeId,
     kpiId: kpiId,
     actualValue: values.actualValue,
-    measurementDate: values.measurementDate,
+    measurementDate: values.measurementDate?.toDate(),
     note: values.note,
   }
 }

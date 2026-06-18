@@ -5,6 +5,7 @@ import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { CreateProjectTaskRequest } from '@/src/services/wayd-api'
+import { type Dayjs } from 'dayjs'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import {
   useCreateProjectTaskMutation,
@@ -47,7 +48,7 @@ interface CreateProjectTaskFormValues {
   progress?: number
   parentId?: string
   plannedRange?: any[]
-  plannedDate?: Date
+  plannedDate?: Dayjs
   estimatedEffortHours?: number
 }
 
@@ -65,9 +66,9 @@ const mapToRequestValues = (
     parentId: values.parentId,
     plannedStart: (values.plannedRange?.[0] as any)?.format('YYYY-MM-DD'),
     plannedEnd: (values.plannedRange?.[1] as any)?.format('YYYY-MM-DD'),
-    plannedDate: (values.plannedDate as any)?.format('YYYY-MM-DD'),
+    plannedDate: values.plannedDate?.format('YYYY-MM-DD'),
     estimatedEffortHours: values.estimatedEffortHours,
-  } as CreateProjectTaskRequest
+  } as unknown as CreateProjectTaskRequest
 }
 
 const CreateProjectTaskForm = ({

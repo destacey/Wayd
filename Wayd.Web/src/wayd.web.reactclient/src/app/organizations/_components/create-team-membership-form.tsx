@@ -10,6 +10,7 @@ import {
 import { TeamTypeName } from '../types'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
+import { type Dayjs } from 'dayjs'
 
 const { Item: FormItem } = Form
 
@@ -22,8 +23,8 @@ export interface CreateTeamMembershipFormProps {
 
 interface CreateTeamMembershipFormValues {
   parentTeamId: string
-  start: Date
-  end: Date | null
+  start: Dayjs
+  end: Dayjs | null
 }
 
 const mapToRequestValues = (
@@ -34,9 +35,9 @@ const mapToRequestValues = (
   const membership = {
     teamId: teamId,
     parentTeamId: values.parentTeamId,
-    start: (values.start as any)?.format('YYYY-MM-DD'),
-    end: (values.end as any)?.format('YYYY-MM-DD'),
-  } as AddTeamMembershipRequest
+    start: values.start?.format('YYYY-MM-DD'),
+    end: values.end?.format('YYYY-MM-DD'),
+  } as unknown as AddTeamMembershipRequest
   return { membership, teamType }
 }
 

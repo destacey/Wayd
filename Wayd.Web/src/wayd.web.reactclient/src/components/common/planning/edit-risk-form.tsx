@@ -13,7 +13,7 @@ import {
 import { useEffect, useState } from 'react'
 import { RiskDetailsDto, UpdateRiskRequest } from '@/src/services/wayd-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import dayjs from 'dayjs'
+import dayjs, { type Dayjs } from 'dayjs'
 import { MarkdownEditor } from '../markdown'
 import {
   useGetRiskCategoryOptionsQuery,
@@ -46,7 +46,7 @@ interface EditRiskFormValues {
   impactId: number
   likelihoodId: number
   assigneeId?: string | undefined
-  followUpDate?: Date | undefined
+  followUpDate?: Dayjs | undefined
   response?: string | undefined
 }
 
@@ -61,9 +61,9 @@ const mapToRequestValues = (values: EditRiskFormValues) => {
     impactId: values.impactId,
     likelihoodId: values.likelihoodId,
     assigneeId: values.assigneeId,
-    followUpDate: (values.followUpDate as any)?.format('YYYY-MM-DD'),
+    followUpDate: values.followUpDate?.format('YYYY-MM-DD'),
     response: values.response,
-  } as UpdateRiskRequest
+  } as unknown as UpdateRiskRequest
 }
 
 const EditRiskForm = ({

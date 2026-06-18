@@ -9,6 +9,7 @@ import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { DatePicker, Form, Modal } from 'antd'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
+import { type Dayjs } from 'dayjs'
 
 const { Item } = Form
 
@@ -19,17 +20,17 @@ interface DeactivateTeamOfTeamsFormProps {
 }
 
 interface DeactivateTeamFormValues {
-  inactiveDate: Date
+  inactiveDate: Dayjs
 }
 
 const mapToRequestValues = (
   id: string,
-  inactiveDate: Date,
+  inactiveDate: Dayjs,
 ): DeactivateTeamOfTeamsRequest => {
   return {
     id,
-    inactiveDate: (inactiveDate as any)?.format('YYYY-MM-DD'),
-  } as DeactivateTeamOfTeamsRequest
+    inactiveDate: inactiveDate?.format('YYYY-MM-DD'),
+  } as unknown as DeactivateTeamOfTeamsRequest
 }
 
 const DeactivateTeamOfTeamsForm = ({

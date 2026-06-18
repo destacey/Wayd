@@ -23,7 +23,7 @@ import {
   Radio,
   TreeSelect,
 } from 'antd'
-import dayjs from 'dayjs'
+import dayjs, { type Dayjs } from 'dayjs'
 import { useEffect } from 'react'
 
 const { Item } = Form
@@ -47,7 +47,7 @@ interface EditProjectTaskFormValues {
   progress?: number
   parentId?: string
   plannedRange?: any[]
-  plannedDate?: Date
+  plannedDate?: Dayjs
   estimatedEffortHours?: number
 }
 
@@ -66,9 +66,9 @@ const mapToRequestValues = (
     parentId: values.parentId,
     plannedStart: (values.plannedRange?.[0] as any)?.format('YYYY-MM-DD'),
     plannedEnd: (values.plannedRange?.[1] as any)?.format('YYYY-MM-DD'),
-    plannedDate: (values.plannedDate as any)?.format('YYYY-MM-DD'),
+    plannedDate: values.plannedDate?.format('YYYY-MM-DD'),
     estimatedEffortHours: values.estimatedEffortHours,
-  } as UpdateProjectTaskRequest
+  } as unknown as UpdateProjectTaskRequest
 }
 
 const EditProjectTaskForm = ({

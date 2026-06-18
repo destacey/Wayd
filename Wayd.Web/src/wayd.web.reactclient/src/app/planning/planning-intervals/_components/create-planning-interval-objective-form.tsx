@@ -4,7 +4,7 @@ import { DatePicker, Form, Input, Modal, Select, Switch } from 'antd'
 import { useEffect, useState } from 'react'
 import { CreatePlanningIntervalObjectiveRequest } from '@/src/services/wayd-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import dayjs from 'dayjs'
+import dayjs, { type Dayjs } from 'dayjs'
 import { RangePickerProps } from 'antd/es/date-picker'
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
@@ -33,8 +33,8 @@ interface CreatePlanningIntervalObjectiveFormValues {
   name: string
   description?: string | null
   isStretch: boolean
-  startDate?: Date | null
-  targetDate?: Date | null
+  startDate?: Dayjs | null
+  targetDate?: Dayjs | null
 }
 
 interface PlanningIntervalTeamSelectItem {
@@ -52,10 +52,10 @@ const mapToRequestValues = (
     name: values.name,
     description: values.description ?? undefined,
     isStretch: values.isStretch,
-    startDate: (values.startDate as any)?.format('YYYY-MM-DD'),
-    targetDate: (values.targetDate as any)?.format('YYYY-MM-DD'),
+    startDate: values.startDate?.format('YYYY-MM-DD'),
+    targetDate: values.targetDate?.format('YYYY-MM-DD'),
     order: order,
-  }
+  } as unknown as CreatePlanningIntervalObjectiveRequest
 }
 
 const CreatePlanningIntervalObjectiveForm = ({

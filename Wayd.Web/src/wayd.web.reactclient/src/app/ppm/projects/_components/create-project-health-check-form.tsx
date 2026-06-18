@@ -1,7 +1,7 @@
 'use client'
 
 import { DatePicker, Form, Modal, Radio } from 'antd'
-import dayjs from 'dayjs'
+import dayjs, { type Dayjs } from 'dayjs'
 import { useMemo } from 'react'
 import { useModalForm } from '@/src/hooks'
 import { useGetHealthStatusesQuery } from '@/src/store/features/common/health-checks-api'
@@ -15,7 +15,7 @@ const { Group: RadioGroup } = Radio
 
 interface CreateProjectHealthCheckFormValues {
   status: HealthStatus
-  expiration: Date
+  expiration: Dayjs
   note?: string
 }
 
@@ -59,7 +59,7 @@ const CreateProjectHealthCheckForm = ({
           projectId,
           request: {
             status: values.status,
-            expiration: values.expiration,
+            expiration: values.expiration?.toDate(),
             note: values.note,
           },
         })

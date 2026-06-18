@@ -9,7 +9,7 @@ import {
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { useUpdateTeamMembershipMutation } from '@/src/store/features/organizations/team-api'
 import { TeamTypeName } from '../types'
-import dayjs from 'dayjs'
+import dayjs, { type Dayjs } from 'dayjs'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 
@@ -24,8 +24,8 @@ export interface UpdateTeamMembershipFormProps {
 }
 
 interface UpdateTeamMembershipFormValues {
-  start: Date
-  end: Date | null
+  start: Dayjs
+  end: Dayjs | null
 }
 
 const mapToRequestValues = (
@@ -33,12 +33,14 @@ const mapToRequestValues = (
   originalMembership: TeamMembershipDto,
   teamType: TeamTypeName,
 ) => {
+  // The generated client types start/end as Date, but the API expects
+  // date-only strings; cast through unknown to bridge the NSwag mismatch.
   const membership = {
     teamMembershipId: originalMembership.id,
     teamId: originalMembership.child.id,
-    start: (values.start as any)?.format('YYYY-MM-DD'),
-    end: (values.end as any)?.format('YYYY-MM-DD'),
-  } as UpdateTeamMembershipRequest
+    start: values.start?.format('YYYY-MM-DD'),
+    end: values.end?.format('YYYY-MM-DD'),
+  } as unknown as UpdateTeamMembershipRequest
   return {
     membership,
     parentTeamId: originalMembership.parent.id,

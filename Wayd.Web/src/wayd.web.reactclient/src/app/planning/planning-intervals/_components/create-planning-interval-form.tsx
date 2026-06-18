@@ -7,6 +7,7 @@ import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useCreatePlanningIntervalMutation } from '@/src/store/features/planning/planning-interval-api'
 import { useModalForm } from '@/src/hooks'
+import { type Dayjs } from 'dayjs'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -20,8 +21,8 @@ export interface CreatePlanningIntervalFormProps {
 interface CreatePlanningIntervalFormValues {
   name: string
   description?: string
-  start: Date
-  end: Date
+  start: Dayjs
+  end: Dayjs
   iterationWeeks: number
   iterationPrefix?: string
 }
@@ -32,11 +33,11 @@ const mapToRequestValues = (
   return {
     name: values.name,
     description: values.description,
-    start: (values.start as any)?.format('YYYY-MM-DD'),
-    end: (values.end as any)?.format('YYYY-MM-DD'),
+    start: values.start?.format('YYYY-MM-DD'),
+    end: values.end?.format('YYYY-MM-DD'),
     iterationWeeks: values.iterationWeeks,
     iterationPrefix: values.iterationPrefix,
-  }
+  } as unknown as CreatePlanningIntervalRequest
 }
 
 const CreatePlanningIntervalForm = ({

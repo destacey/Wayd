@@ -43,10 +43,26 @@ internal partial class UserService
             throw new InternalServerException("Invalid tenantId");
         }
 
-        // UPN is the signed-in-token identifier we trust for matching a staged
-        // migration. Falls back to the email claim if absent (some tokens don't
-        // emit UPN). Null means no migration rebind will be attempted.
-        string? upn = principal.FindFirstValue(ClaimTypes.Upn) ?? principal.FindFirstValue(ClaimTypes.Email);
+        // The signed-in-token identifier we trust for matching a staged migration.
+        // Null means no migration rebind will be attempted. See ResolveEntraUpn for
+        // why this isn't a single claim lookup.
+        string? upn = ResolveEntraUpn(principal);
+
+        // Diagnostic for the tenant-migration failure: trace the resolved key inputs
+        // and which identifier claims are present before identity resolution runs.
+        // Guard the level check so the claims enumeration/Join only runs when enabled.
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "Resolving Entra principal: TenantId={TenantId}, ObjectId={ObjectId}, UpnResolved={UpnResolved}. Identifier claims present: [{IdentifierClaims}].",
+                tenantId,
+                objectId,
+                !string.IsNullOrWhiteSpace(upn),
+                string.Join(", ", principal.Claims
+                    .Where(c => c.Type is "upn" or ClaimTypes.Upn or "preferred_username" or "email" or ClaimTypes.Email or "name")
+                    .Select(c => c.Type)
+                    .Distinct()));
+        }
 
         var isFirstUser = !await _userManager.Users.AnyAsync();
 
@@ -77,6 +93,29 @@ internal partial class UserService
 
         return (user.Id, user.EmployeeId?.ToString());
     }
+
+    /// <summary>
+    /// Resolves the human identifier (UPN/email) Wayd keys an Entra user on, from a
+    /// validated principal. The token validator keeps short JWT claim names
+    /// (<c>MapInboundClaims = false</c>), so the raw <c>upn</c> claim is NOT surfaced
+    /// under the <see cref="ClaimTypes.Upn"/> schema URI — both names are checked.
+    /// Tries, in order:
+    ///   1. <c>upn</c> — raw claim name and the <see cref="ClaimTypes.Upn"/> schema URI,
+    ///      covering whichever name mapping produced.
+    ///   2. <c>preferred_username</c> — the OIDC v2 standard claim. Entra reliably emits
+    ///      it (it's what <c>GetDisplayName()</c> resolves the username from too) and it
+    ///      is frequently the only usable identifier on a token from a tenant a user was
+    ///      migrated into — guest/B2B-shaped identities often carry no <c>upn</c>.
+    ///   3. <c>email</c> — raw claim name and the <see cref="ClaimTypes.Email"/> schema URI.
+    /// Without these fallbacks a staged tenant migration never rebinds and the create
+    /// path throws "Username or Email not valid".
+    /// </summary>
+    private static string? ResolveEntraUpn(ClaimsPrincipal principal) =>
+        principal.FindFirstValue("upn")
+        ?? principal.FindFirstValue(ClaimTypes.Upn)
+        ?? principal.FindFirstValue("preferred_username")
+        ?? principal.FindFirstValue("email")
+        ?? principal.FindFirstValue(ClaimTypes.Email);
 
     /// <summary>
     /// Resolves the provider's <see cref="RegistrationPolicy"/> from the registry.
@@ -120,8 +159,15 @@ internal partial class UserService
         var identity = await _userIdentityStore.FindActive(LoginProviders.MicrosoftEntraId, tenantId, objectId);
         if (identity is not null)
         {
+            _logger.LogInformation(
+                "Entra identity resolved by active (tenant, subject) for ObjectId {ObjectId} on tenant {TenantId}.",
+                objectId, tenantId);
             return identity.User;
         }
+
+        _logger.LogInformation(
+            "No active Entra identity for (tenant {TenantId}, subject {ObjectId}); checking NULL-tenant backfill and pending migration.",
+            tenantId, objectId);
 
         // One-time upgrade path: rows backfilled from ApplicationUser.ObjectId have
         // ProviderTenantId = NULL. On the user's next login, populate tenant from the
@@ -186,6 +232,9 @@ internal partial class UserService
     {
         if (string.IsNullOrWhiteSpace(upn))
         {
+            _logger.LogInformation(
+                "Pending tenant migration rebind skipped for tenant {TenantId} (subject {ObjectId}): no UPN/email resolved from token.",
+                tenantId, objectId);
             return null;
         }
 
@@ -202,6 +251,24 @@ internal partial class UserService
 
         if (candidate is null)
         {
+            // The most common silent fall-through: a UPN resolved, but no user has a
+            // migration staged for THIS token's tenant whose UserName/Email matches.
+            // Surface whether anyone is staged for this tenant at all (without their
+            // identity) vs. staged-but-UPN-mismatch, so we can tell a wrong-target-tenant
+            // from a UPN/email-shape mismatch. Falls through to the create path next.
+            // The extra CountAsync only runs when Warning logging is enabled, and the
+            // UPN is the datum being diagnosed — this matches the existing Warning-level
+            // logs in the create path that carry the identifier for operator correlation.
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
+                var stagedForTenantCount = await _userManager.Users
+                    .CountAsync(u => u.PendingMigrationTenantId == tenantId
+                        && u.LoginProvider == LoginProviders.MicrosoftEntraId);
+                _logger.LogWarning(
+                    "Pending tenant migration rebind found no match for tenant {TenantId} (subject {ObjectId}) by UPN/email {Upn}. " +
+                    "Users staged for this tenant (any UPN): {StagedForTenantCount}. Falling through to create path.",
+                    tenantId, objectId, upn, stagedForTenantCount);
+            }
             return null;
         }
 
@@ -399,13 +466,43 @@ internal partial class UserService
     {
         string principalObjectId = principal.GetObjectId() ?? throw new InternalServerException("Principal ObjectId is missing or null.");
 
-        string? email = principal.FindFirstValue(ClaimTypes.Upn);
+        // Same identifier the migration rebind keys on — tokens (especially from a
+        // migrated-into tenant) may omit `upn` or surface it under a non-schema claim
+        // name, so resolve through the shared fallback chain.
+        string? email = ResolveEntraUpn(principal);
         string? username = principal.GetDisplayName();
 
-        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(username))
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(username))
         {
-            _logger.LogError("Username {Username} or Email {Email} not valid", username, email);
+            // Diagnostic: we couldn't resolve the email/UPN or display name from the
+            // token. Log which claim TYPES are present (not their values — avoid
+            // leaking PII) so we can see the actual token shape: a missing `upn`/
+            // `preferred_username`/`email` points to a token-config/shape problem,
+            // not a code mapping bug.
+            var presentClaimTypes = string.Join(", ", principal.Claims.Select(c => c.Type).Distinct());
+            _logger.LogError(
+                "Username {Username} or Email {Email} not valid. EmailResolved={EmailResolved}, UsernameResolved={UsernameResolved}. Claim types present on token: [{ClaimTypes}].",
+                username,
+                email,
+                !string.IsNullOrWhiteSpace(email),
+                !string.IsNullOrWhiteSpace(username),
+                presentClaimTypes);
             throw new InternalServerException("Username or Email not valid.");
+        }
+
+        // Reaching here means ResolveUserByEntraIdentityAsync returned null: no active
+        // (tenant, subject) identity, no NULL-tenant upgrade, and the pending-migration
+        // rebind did not fire — either none was staged, or one was staged but didn't
+        // match this token's tenant/UPN. We're now on the link-existing-or-create path.
+        // Log it so a sign-in that *should* have rebound (but fell through to create) is
+        // distinguishable from a genuine first-time/new user.
+        // Trace control flow with stable, non-PII identifiers (ObjectId + IsFirstUser)
+        // rather than the username/email, which can land in broad log sinks.
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "Entra create/link path entered for ObjectId {ObjectId} (IsFirstUser {IsFirstUser}).",
+                principalObjectId, isFirstUser);
         }
 
         var user = await _userManager.FindByNameAsync(username);
@@ -461,10 +558,23 @@ internal partial class UserService
                 throw new ForbiddenException("Registration is restricted to users with an employee record in Wayd.");
             }
 
+            // Guest/B2B tokens (e.g. from a tenant a user was migrated into) frequently
+            // omit given_name/family_name. Guard.Against would throw an opaque
+            // ArgumentException; log the missing claim explicitly first so this failure
+            // mode is distinguishable from the email/UPN one above.
+            var firstName = principal.FindFirstValue(ClaimTypes.GivenName);
+            var lastName = principal.FindFirstValue(ClaimTypes.Surname);
+            if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+            {
+                _logger.LogError(
+                    "Cannot create Entra user {Username} ({Email}): missing name claims. GivenNamePresent={GivenNamePresent}, SurnamePresent={SurnamePresent}.",
+                    username, email, !string.IsNullOrWhiteSpace(firstName), !string.IsNullOrWhiteSpace(lastName));
+            }
+
             user = new ApplicationUser
             {
-                FirstName = Guard.Against.NullOrWhiteSpace(principal.FindFirstValue(ClaimTypes.GivenName), nameof(ClaimTypes.GivenName)),
-                LastName = Guard.Against.NullOrWhiteSpace(principal.FindFirstValue(ClaimTypes.Surname), nameof(ClaimTypes.Surname)),
+                FirstName = Guard.Against.NullOrWhiteSpace(firstName, nameof(ClaimTypes.GivenName)),
+                LastName = Guard.Against.NullOrWhiteSpace(lastName, nameof(ClaimTypes.Surname)),
                 Email = email,
                 NormalizedEmail = email.ToUpperInvariant(),
                 UserName = username,

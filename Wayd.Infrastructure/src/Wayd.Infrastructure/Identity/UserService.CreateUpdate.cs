@@ -50,15 +50,19 @@ internal partial class UserService
 
         // Diagnostic for the tenant-migration failure: trace the resolved key inputs
         // and which identifier claims are present before identity resolution runs.
-        _logger.LogInformation(
-            "Resolving Entra principal: TenantId={TenantId}, ObjectId={ObjectId}, UpnResolved={UpnResolved}. Identifier claims present: [{IdentifierClaims}].",
-            tenantId,
-            objectId,
-            !string.IsNullOrWhiteSpace(upn),
-            string.Join(", ", principal.Claims
-                .Where(c => c.Type is "upn" or ClaimTypes.Upn or "preferred_username" or "email" or ClaimTypes.Email or "name")
-                .Select(c => c.Type)
-                .Distinct()));
+        // Guard the level check so the claims enumeration/Join only runs when enabled.
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "Resolving Entra principal: TenantId={TenantId}, ObjectId={ObjectId}, UpnResolved={UpnResolved}. Identifier claims present: [{IdentifierClaims}].",
+                tenantId,
+                objectId,
+                !string.IsNullOrWhiteSpace(upn),
+                string.Join(", ", principal.Claims
+                    .Where(c => c.Type is "upn" or ClaimTypes.Upn or "preferred_username" or "email" or ClaimTypes.Email or "name")
+                    .Select(c => c.Type)
+                    .Distinct()));
+        }
 
         var isFirstUser = !await _userManager.Users.AnyAsync();
 
@@ -252,13 +256,19 @@ internal partial class UserService
             // Surface whether anyone is staged for this tenant at all (without their
             // identity) vs. staged-but-UPN-mismatch, so we can tell a wrong-target-tenant
             // from a UPN/email-shape mismatch. Falls through to the create path next.
-            var stagedForTenantCount = await _userManager.Users
-                .CountAsync(u => u.PendingMigrationTenantId == tenantId
-                    && u.LoginProvider == LoginProviders.MicrosoftEntraId);
-            _logger.LogWarning(
-                "Pending tenant migration rebind found no match for tenant {TenantId} (subject {ObjectId}) by UPN/email {Upn}. " +
-                "Users staged for this tenant (any UPN): {StagedForTenantCount}. Falling through to create path.",
-                tenantId, objectId, upn, stagedForTenantCount);
+            // The extra CountAsync only runs when Warning logging is enabled, and the
+            // UPN is the datum being diagnosed — this matches the existing Warning-level
+            // logs in the create path that carry the identifier for operator correlation.
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
+                var stagedForTenantCount = await _userManager.Users
+                    .CountAsync(u => u.PendingMigrationTenantId == tenantId
+                        && u.LoginProvider == LoginProviders.MicrosoftEntraId);
+                _logger.LogWarning(
+                    "Pending tenant migration rebind found no match for tenant {TenantId} (subject {ObjectId}) by UPN/email {Upn}. " +
+                    "Users staged for this tenant (any UPN): {StagedForTenantCount}. Falling through to create path.",
+                    tenantId, objectId, upn, stagedForTenantCount);
+            }
             return null;
         }
 
@@ -486,9 +496,14 @@ internal partial class UserService
         // match this token's tenant/UPN. We're now on the link-existing-or-create path.
         // Log it so a sign-in that *should* have rebound (but fell through to create) is
         // distinguishable from a genuine first-time/new user.
-        _logger.LogInformation(
-            "Entra create/link path entered for Username {Username} (Email {Email}, IsFirstUser {IsFirstUser}).",
-            username, email, isFirstUser);
+        // Trace control flow with stable, non-PII identifiers (ObjectId + IsFirstUser)
+        // rather than the username/email, which can land in broad log sinks.
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "Entra create/link path entered for ObjectId {ObjectId} (IsFirstUser {IsFirstUser}).",
+                principalObjectId, isFirstUser);
+        }
 
         var user = await _userManager.FindByNameAsync(username);
         if (user is not null && await _userIdentityStore.ExistsActive(user.Id, LoginProviders.MicrosoftEntraId))

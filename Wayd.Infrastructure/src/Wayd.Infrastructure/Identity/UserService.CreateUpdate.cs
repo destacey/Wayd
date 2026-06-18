@@ -43,10 +43,10 @@ internal partial class UserService
             throw new InternalServerException("Invalid tenantId");
         }
 
-        // UPN is the signed-in-token identifier we trust for matching a staged
-        // migration. Falls back to the email claim if absent (some tokens don't
-        // emit UPN). Null means no migration rebind will be attempted.
-        string? upn = principal.FindFirstValue(ClaimTypes.Upn) ?? principal.FindFirstValue(ClaimTypes.Email);
+        // The signed-in-token identifier we trust for matching a staged migration.
+        // Null means no migration rebind will be attempted. See ResolveEntraUpn for
+        // why this isn't a single claim lookup.
+        string? upn = ResolveEntraUpn(principal);
 
         var isFirstUser = !await _userManager.Users.AnyAsync();
 
@@ -77,6 +77,29 @@ internal partial class UserService
 
         return (user.Id, user.EmployeeId?.ToString());
     }
+
+    /// <summary>
+    /// Resolves the human identifier (UPN/email) Wayd keys an Entra user on, from a
+    /// validated principal. The token validator keeps short JWT claim names
+    /// (<c>MapInboundClaims = false</c>), so the raw <c>upn</c> claim is NOT surfaced
+    /// under the <see cref="ClaimTypes.Upn"/> schema URI — both names are checked.
+    /// Tries, in order:
+    ///   1. <c>upn</c> — raw claim name and the <see cref="ClaimTypes.Upn"/> schema URI,
+    ///      covering whichever name mapping produced.
+    ///   2. <c>preferred_username</c> — the OIDC v2 standard claim. Entra reliably emits
+    ///      it (it's what <c>GetDisplayName()</c> resolves the username from too) and it
+    ///      is frequently the only usable identifier on a token from a tenant a user was
+    ///      migrated into — guest/B2B-shaped identities often carry no <c>upn</c>.
+    ///   3. <c>email</c> — raw claim name and the <see cref="ClaimTypes.Email"/> schema URI.
+    /// Without these fallbacks a staged tenant migration never rebinds and the create
+    /// path throws "Username or Email not valid".
+    /// </summary>
+    private static string? ResolveEntraUpn(ClaimsPrincipal principal) =>
+        principal.FindFirstValue("upn")
+        ?? principal.FindFirstValue(ClaimTypes.Upn)
+        ?? principal.FindFirstValue("preferred_username")
+        ?? principal.FindFirstValue("email")
+        ?? principal.FindFirstValue(ClaimTypes.Email);
 
     /// <summary>
     /// Resolves the provider's <see cref="RegistrationPolicy"/> from the registry.
@@ -399,7 +422,10 @@ internal partial class UserService
     {
         string principalObjectId = principal.GetObjectId() ?? throw new InternalServerException("Principal ObjectId is missing or null.");
 
-        string? email = principal.FindFirstValue(ClaimTypes.Upn);
+        // Same identifier the migration rebind keys on — tokens (especially from a
+        // migrated-into tenant) may omit `upn` or surface it under a non-schema claim
+        // name, so resolve through the shared fallback chain.
+        string? email = ResolveEntraUpn(principal);
         string? username = principal.GetDisplayName();
 
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(username))

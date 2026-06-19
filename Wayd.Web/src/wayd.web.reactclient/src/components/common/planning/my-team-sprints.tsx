@@ -29,9 +29,13 @@ const TeamSprintProbe: FC<TeamSprintProbeProps> = ({ teamId, onResult }) => {
 
 interface MyTeamSprintsListProps {
   teamMemberships: TeamMemberDto[]
+  onHasSprintsChange?: (hasSprints: boolean) => void
 }
 
-const MyTeamSprintsList: FC<MyTeamSprintsListProps> = ({ teamMemberships }) => {
+const MyTeamSprintsList: FC<MyTeamSprintsListProps> = ({
+  teamMemberships,
+  onHasSprintsChange,
+}) => {
   const [sprintPresence, setSprintPresence] = useState<Record<string, boolean>>({})
 
   const handleResult = useCallback((teamId: string, hasSprint: boolean) => {
@@ -43,6 +47,12 @@ const MyTeamSprintsList: FC<MyTeamSprintsListProps> = ({ teamMemberships }) => {
 
   const allProbed = teamMemberships.every((m) => m.team.id in sprintPresence)
   const hasAnySprint = Object.values(sprintPresence).some(Boolean)
+
+  useEffect(() => {
+    if (allProbed) {
+      onHasSprintsChange?.(hasAnySprint)
+    }
+  }, [allProbed, hasAnySprint, onHasSprintsChange])
 
   return (
     <>
@@ -65,7 +75,11 @@ const MyTeamSprintsList: FC<MyTeamSprintsListProps> = ({ teamMemberships }) => {
   )
 }
 
-const MyTeamSprints = () => {
+interface MyTeamSprintsProps {
+  onHasSprintsChange?: (hasSprints: boolean) => void
+}
+
+const MyTeamSprints: FC<MyTeamSprintsProps> = ({ onHasSprintsChange }) => {
   const { user } = useAuth()
   const employeeId = user?.employeeId
 
@@ -79,9 +93,20 @@ const MyTeamSprints = () => {
       ?.filter((m) => m.team.type === 'Team')
       .sort((a, b) => a.team.code.localeCompare(b.team.code)) ?? []
 
+  useEffect(() => {
+    if (!employeeId || teamMemberships.length === 0) {
+      onHasSprintsChange?.(false)
+    }
+  }, [employeeId, teamMemberships.length, onHasSprintsChange])
+
   if (!employeeId || teamMemberships.length === 0) return null
 
-  return <MyTeamSprintsList teamMemberships={teamMemberships} />
+  return (
+    <MyTeamSprintsList
+      teamMemberships={teamMemberships}
+      onHasSprintsChange={onHasSprintsChange}
+    />
+  )
 }
 
 export default MyTeamSprints

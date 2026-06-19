@@ -48,4 +48,30 @@ describe('ResponsiveFlex', () => {
     )
     expect(container.firstChild).not.toHaveClass('ant-flex-vertical')
   })
+
+  it('wraps each child in a shrinkable equal-width column on large screens', () => {
+    ;(useBreakpoint as jest.Mock).mockReturnValue({ md: true })
+    const { getByText } = render(
+      <ResponsiveFlex>
+        <div>Child 1</div>
+        <div>Child 2</div>
+      </ResponsiveFlex>,
+    )
+    // Each child is wrapped so flex items can shrink below their content width
+    // (prevents collapse, e.g. antd Descriptions tables wrapping per character).
+    const wrapper = getByText('Child 1').parentElement
+    expect(wrapper).toHaveStyle({ flex: 1, minWidth: 0 })
+  })
+
+  it('does not wrap children on small screens', () => {
+    ;(useBreakpoint as jest.Mock).mockReturnValue({ md: false })
+    const { getByText, container } = render(
+      <ResponsiveFlex>
+        <div>Child 1</div>
+        <div>Child 2</div>
+      </ResponsiveFlex>,
+    )
+    // Children stack full-width directly inside the vertical Flex.
+    expect(getByText('Child 1').parentElement).toBe(container.firstChild)
+  })
 })

@@ -1,5 +1,5 @@
 import { WorkspaceListDto } from '@/src/services/wayd-api'
-import { Card, Descriptions, Space, Tag, Typography } from 'antd'
+import { Card, Descriptions, Flex, Tag, Typography } from 'antd'
 import { useRouter } from 'next/navigation'
 
 const { Item: DiscriptionItem } = Descriptions
@@ -21,7 +21,7 @@ const WorkspaceCard: React.FC<WorkspaceCardProps> = (
       hoverable
       onClick={() => router.push(`/work/workspaces/${props.workspace.key}`)}
     >
-      <Space vertical>
+      <Flex vertical gap="small">
         <Descriptions column={1} size="small">
           <DiscriptionItem label="Key">{props.workspace.key}</DiscriptionItem>
           <DiscriptionItem>
@@ -40,7 +40,7 @@ const WorkspaceCard: React.FC<WorkspaceCardProps> = (
             </Tag>
           )}
         </div>
-      </Space>
+      </Flex>
     </Card>
   )
 }

@@ -1,6 +1,7 @@
 import { AzureDevOpsConnectionDetailsDto } from '@/src/services/wayd-api'
 import { getCapabilityNames } from '@/src/types/connectors'
-import { Col, Descriptions, Row, Typography } from 'antd'
+import { ResponsiveFlex } from '@/src/components/common'
+import { Descriptions, Flex, Typography } from 'antd'
 import AzdoConnectionConfiguration from './connection-configuration'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 
@@ -14,32 +15,28 @@ interface AzdoConnectionDetailsProps {
 const AzdoConnectionDetails = ({ connection }: AzdoConnectionDetailsProps) => {
   if (!connection) return null
   return (
-    <>
-      <Row>
-        <Col xs={24} md={12}>
-          <Descriptions column={1}>
-            <Item label="System Id">{connection.systemId}</Item>
-            <Item label="Connector">{connection.connector.name}</Item>
-            <Item label="Capabilities">{getCapabilityNames(connection)}</Item>
-            <Item label="Is Active?">{connection.isActive ? 'Yes' : 'No'}</Item>
-            <Item label="Is Valid Configuration?">
-              {connection.isValidConfiguration ? 'Yes' : 'No'}
-            </Item>
-          </Descriptions>
-        </Col>
-        <Col xs={24} md={12}>
-          <Descriptions layout="vertical">
-            <Item label="Description">
-              <MarkdownRenderer markdown={connection.description} />
-            </Item>
-          </Descriptions>
-        </Col>
-      </Row>
-      <Row>
+    <Flex vertical gap="middle">
+      <ResponsiveFlex>
+        <Descriptions column={1}>
+          <Item label="System Id">{connection.systemId}</Item>
+          <Item label="Connector">{connection.connector.name}</Item>
+          <Item label="Capabilities">{getCapabilityNames(connection)}</Item>
+          <Item label="Is Active?">{connection.isActive ? 'Yes' : 'No'}</Item>
+          <Item label="Is Valid Configuration?">
+            {connection.isValidConfiguration ? 'Yes' : 'No'}
+          </Item>
+        </Descriptions>
+        <Descriptions layout="vertical">
+          <Item label="Description">
+            <MarkdownRenderer markdown={connection.description} />
+          </Item>
+        </Descriptions>
+      </ResponsiveFlex>
+      <div>
         <Title level={4}>Configuration</Title>
         <AzdoConnectionConfiguration configuration={connection.configuration} />
-      </Row>
-    </>
+      </div>
+    </Flex>
   )
 }
 

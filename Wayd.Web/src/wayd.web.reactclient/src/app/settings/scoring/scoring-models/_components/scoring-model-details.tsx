@@ -1,7 +1,7 @@
 'use client'
 
 import { ScoringModelDetailsDto } from '@/src/services/wayd-api'
-import { Descriptions, Space } from 'antd'
+import { Descriptions } from 'antd'
 
 const { Item } = Descriptions
 
@@ -15,14 +15,10 @@ const ScoringModelDetails: React.FC<ScoringModelDetailsProps> = ({
   if (!scoringModel) return null
 
   return (
-    <Space orientation="vertical">
-      <Descriptions size="small">
-        <Item label="State">{scoringModel.state?.name}</Item>
-      </Descriptions>
-      <Descriptions size="small">
-        <Item label="Description">{scoringModel.description}</Item>
-      </Descriptions>
-    </Space>
+    <Descriptions column={1} size="small">
+      <Item label="State">{scoringModel.state?.name}</Item>
+      <Item label="Description">{scoringModel.description}</Item>
+    </Descriptions>
   )
 }
 

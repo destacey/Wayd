@@ -3,7 +3,8 @@
 import { ConnectionDetailsDto } from '@/src/services/wayd-api'
 import { getCapabilityNames } from '@/src/types/connectors'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
-import { Col, Descriptions, Row, Typography } from 'antd'
+import { ResponsiveFlex } from '@/src/components/common'
+import { Descriptions, Flex, Typography } from 'antd'
 
 const { Item } = Descriptions
 const { Title } = Typography
@@ -39,41 +40,35 @@ const GenericConnectionDetails = ({
   if (!connection) return null
 
   return (
-    <>
-      <Row>
-        <Col xs={24} md={12}>
-          <Descriptions column={1}>
-            <Item label="Connector">{connection.connector?.name}</Item>
-            <Item label="Capabilities">{getCapabilityNames(connection)}</Item>
-            <Item label="Is Active?">{connection.isActive ? 'Yes' : 'No'}</Item>
-            <Item label="Is Valid Configuration?">
-              {connection.isValidConfiguration ? 'Yes' : 'No'}
-            </Item>
-          </Descriptions>
-        </Col>
-        <Col xs={24} md={12}>
-          <Descriptions layout="vertical">
-            <Item label="Description">
-              <MarkdownRenderer markdown={connection.description} />
-            </Item>
-          </Descriptions>
-        </Col>
-      </Row>
+    <Flex vertical gap="middle">
+      <ResponsiveFlex>
+        <Descriptions column={1}>
+          <Item label="Connector">{connection.connector?.name}</Item>
+          <Item label="Capabilities">{getCapabilityNames(connection)}</Item>
+          <Item label="Is Active?">{connection.isActive ? 'Yes' : 'No'}</Item>
+          <Item label="Is Valid Configuration?">
+            {connection.isValidConfiguration ? 'Yes' : 'No'}
+          </Item>
+        </Descriptions>
+        <Descriptions layout="vertical">
+          <Item label="Description">
+            <MarkdownRenderer markdown={connection.description} />
+          </Item>
+        </Descriptions>
+      </ResponsiveFlex>
       {configFields && configFields.length > 0 && (
-        <Row>
-          <Col span={24}>
-            <Title level={4}>Configuration</Title>
-            <Descriptions column={1}>
-              {configFields.map((field) => (
-                <Item key={field.label} label={field.label}>
-                  {formatValue(field.value, field.sensitive ?? false)}
-                </Item>
-              ))}
-            </Descriptions>
-          </Col>
-        </Row>
+        <div>
+          <Title level={4}>Configuration</Title>
+          <Descriptions column={1}>
+            {configFields.map((field) => (
+              <Item key={field.label} label={field.label}>
+                {formatValue(field.value, field.sensitive ?? false)}
+              </Item>
+            ))}
+          </Descriptions>
+        </div>
       )}
-    </>
+    </Flex>
   )
 }
 

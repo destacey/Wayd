@@ -21,7 +21,19 @@ const ResponsiveFlex: FC<ResponsiveFlexProps> = ({
 
   return (
     <Flex gap={gap} align={align} vertical={isSmallScreen}>
-      {children}
+      {isSmallScreen
+        ? children
+        : React.Children.map(children, (child) =>
+            // On horizontal layout, give each child an equal-width, shrinkable
+            // basis. Without `minWidth: 0`, flex items (e.g. antd Descriptions'
+            // table) refuse to shrink below their content and collapse to a
+            // single character per line.
+            child == null ? (
+              child
+            ) : (
+              <div style={{ flex: 1, minWidth: 0 }}>{child}</div>
+            ),
+          )}
     </Flex>
   )
 }

@@ -160,7 +160,6 @@ const ScoringModelCriteriaList = ({
 
       const swapIndex = direction === 'up' ? index - 1 : index + 1
       if (swapIndex < 0 || swapIndex >= ordered.length) return
-
       ;[ordered[index], ordered[swapIndex]] = [
         ordered[swapIndex],
         ordered[index],
@@ -205,12 +204,11 @@ const ScoringModelCriteriaList = ({
           return RowMenuCellRenderer({ ...params, menuItems })
         },
       },
-      { field: 'order', headerName: 'Order', width: 90, sort: 'asc' as const },
-      { field: 'name', headerName: 'Name', width: 200 },
+      { field: 'order', headerName: 'Order', width: 80, sort: 'asc' as const },
+      { field: 'name', headerName: 'Name', width: 250 },
       { field: 'token', headerName: 'Token', width: 110 },
       {
         headerName: 'Scale',
-        width: 130,
         valueGetter: (p) => {
           const scaleId = p.data?.scaleId
           if (!scaleId) return 'Free entry'
@@ -223,7 +221,7 @@ const ScoringModelCriteriaList = ({
         width: 120,
         valueFormatter: (p) => (p.value != null ? `${p.value}%` : ''),
       },
-      { field: 'description', headerName: 'Description', flex: 1 },
+      { field: 'description', headerName: 'Description', width: 300 },
     ]
   }, [
     canManage,
@@ -251,7 +249,11 @@ const ScoringModelCriteriaList = ({
         </Text>
       )}
       {canManage && (
-        <Button type="primary" size="small" onClick={() => setOpenAddForm(true)}>
+        <Button
+          type="primary"
+          size="small"
+          onClick={() => setOpenAddForm(true)}
+        >
           Add Criterion
         </Button>
       )}

@@ -30,7 +30,10 @@ interface RowMenuProps {
   sortedOutputs: ScoringModelOutputDto[]
   onEditClicked: (output: ScoringModelOutputDto) => void
   onDeleteClicked: (output: ScoringModelOutputDto) => void
-  onMoveClicked: (output: ScoringModelOutputDto, direction: 'up' | 'down') => void
+  onMoveClicked: (
+    output: ScoringModelOutputDto,
+    direction: 'up' | 'down',
+  ) => void
 }
 
 const getRowMenuItems = (props: RowMenuProps): ItemType[] => {
@@ -156,7 +159,6 @@ const ScoringModelOutputsList = ({
 
       const swapIndex = direction === 'up' ? index - 1 : index + 1
       if (swapIndex < 0 || swapIndex >= ordered.length) return
-
       ;[ordered[index], ordered[swapIndex]] = [
         ordered[swapIndex],
         ordered[index],
@@ -199,10 +201,10 @@ const ScoringModelOutputsList = ({
           return RowMenuCellRenderer({ ...params, menuItems })
         },
       },
-      { field: 'order', headerName: 'Order', width: 90, sort: 'asc' as const },
-      { field: 'name', headerName: 'Name', width: 180 },
-      { field: 'token', headerName: 'Token', width: 110 },
-      { field: 'formula', headerName: 'Formula', flex: 1 },
+      { field: 'order', width: 80, sort: 'asc' as const },
+      { field: 'name', width: 200 },
+      { field: 'token', width: 110 },
+      { field: 'formula', flex: 1 },
       {
         field: 'isPrimary',
         headerName: 'Primary',

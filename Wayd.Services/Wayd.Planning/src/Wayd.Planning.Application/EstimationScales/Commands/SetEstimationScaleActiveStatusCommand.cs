@@ -1,4 +1,4 @@
-namespace Wayd.Planning.Application.EstimationScales.Commands;
+﻿namespace Wayd.Planning.Application.EstimationScales.Commands;
 
 public sealed record SetEstimationScaleActiveStatusCommand(int Id, bool IsActive) : ICommand;
 

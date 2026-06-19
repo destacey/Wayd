@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Integrations.Abstractions;
 

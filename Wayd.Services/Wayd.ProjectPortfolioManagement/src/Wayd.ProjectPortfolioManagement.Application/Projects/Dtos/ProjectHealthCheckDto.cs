@@ -16,6 +16,6 @@ public sealed record ProjectHealthCheckDto : IMapFrom<ProjectHealthCheck>
     {
         config.NewConfig<ProjectHealthCheck, ProjectHealthCheckDto>()
             .Map(dest => dest.Status, src => SimpleNavigationDto.FromEnum(src.Status))
-            .Map(dest => dest.ReportedBy, src => NavigationDto.Create(src.ReportedBy.Id, src.ReportedBy.Key, src.ReportedBy.Name.FullName));
+            .Map(dest => dest.ReportedBy, src => NavigationDto.Create(src.ReportedBy.Id, src.ReportedBy.Key, src.ReportedBy.Name.DisplayName));
     }
 }

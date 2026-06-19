@@ -1,4 +1,4 @@
-namespace Wayd.Infrastructure.Persistence;
+﻿namespace Wayd.Infrastructure.Persistence;
 
 public class DatabaseSettings
 {

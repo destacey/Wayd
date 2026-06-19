@@ -1,4 +1,4 @@
-namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
+﻿namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
 
 /// <summary>
 /// Adds a dependency between two tasks (Finish-to-Start).

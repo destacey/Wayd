@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Persistence;
+﻿using Wayd.Common.Application.Persistence;
 namespace Wayd.Common.Application.Scoring.ScoringModels.Commands;
 
 public sealed record DeleteScoringModelCommand(Guid Id) : ICommand;

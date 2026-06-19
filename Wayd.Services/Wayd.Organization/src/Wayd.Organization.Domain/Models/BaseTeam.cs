@@ -100,10 +100,10 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
                 return Result.Failure<TeamMember>($"Members cannot be added to inactive teams. {Name} is inactive.");
 
             if (!employee.IsActive)
-                return Result.Failure<TeamMember>($"Inactive employees cannot be added to teams. {employee.Name.FullName} is inactive.");
+                return Result.Failure<TeamMember>($"Inactive employees cannot be added to teams. {employee.Name.DisplayName} is inactive.");
 
             if (_members.Any(m => m.EmployeeId == employee.Id && m.RoleId == roleId && !m.IsDeleted))
-                return Result.Failure<TeamMember>($"{employee.Name.FullName} is already a member of this team in the same role.");
+                return Result.Failure<TeamMember>($"{employee.Name.DisplayName} is already a member of this team in the same role.");
 
             var member = TeamMember.Create(Id, employee.Id, roleId);
             _members.Add(member);

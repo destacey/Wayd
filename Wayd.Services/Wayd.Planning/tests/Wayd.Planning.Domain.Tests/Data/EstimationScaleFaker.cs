@@ -1,4 +1,4 @@
-using Wayd.Planning.Domain.Models.PlanningPoker;
+﻿using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Tests.Shared.Data;
 
 namespace Wayd.Planning.Domain.Tests.Data;

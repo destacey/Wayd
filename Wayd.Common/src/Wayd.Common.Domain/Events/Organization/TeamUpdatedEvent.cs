@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Models.Organizations;
+﻿using Wayd.Common.Domain.Models.Organizations;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.Organization;

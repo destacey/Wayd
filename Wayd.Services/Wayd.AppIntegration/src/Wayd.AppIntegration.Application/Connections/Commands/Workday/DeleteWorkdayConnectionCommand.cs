@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace Wayd.AppIntegration.Application.Connections.Commands.Workday;
 

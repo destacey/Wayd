@@ -1,4 +1,4 @@
-namespace Wayd.Integrations.Abstractions;
+﻿namespace Wayd.Integrations.Abstractions;
 
 /// <summary>
 /// Counters returned from <see cref="IWorkItemSource.SyncWorkItems"/>. Sub-step failures inside

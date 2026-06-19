@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.ArchitectureTests.Helpers;
 
 namespace Wayd.ArchitectureTests.Sut;

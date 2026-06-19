@@ -1,4 +1,4 @@
-namespace Wayd.Integrations.Abstractions;
+﻿namespace Wayd.Integrations.Abstractions;
 
 /// <summary>
 /// Connector-neutral contract for pulling work items from an external system. One implementation

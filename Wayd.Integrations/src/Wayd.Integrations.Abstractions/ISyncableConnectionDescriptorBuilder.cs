@@ -1,4 +1,4 @@
-namespace Wayd.Integrations.Abstractions;
+﻿namespace Wayd.Integrations.Abstractions;
 
 /// <summary>
 /// Builds a <see cref="SyncableConnectionDescriptor"/> for a connection — i.e. loads the typed

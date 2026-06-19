@@ -1,4 +1,4 @@
-namespace Wayd.Organization.Application.TeamMemberRoles.Commands;
+﻿namespace Wayd.Organization.Application.TeamMemberRoles.Commands;
 
 public sealed record ActivateTeamMemberRoleCommand(Guid Id) : ICommand;
 

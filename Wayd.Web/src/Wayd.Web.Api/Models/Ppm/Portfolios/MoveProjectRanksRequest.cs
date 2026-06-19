@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
+﻿using Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
 
 namespace Wayd.Web.Api.Models.Ppm.Portfolios;
 

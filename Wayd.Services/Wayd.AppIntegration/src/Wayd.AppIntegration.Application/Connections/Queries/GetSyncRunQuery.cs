@@ -1,4 +1,4 @@
-using Mapster;
+﻿using Mapster;
 using Microsoft.EntityFrameworkCore;
 
 namespace Wayd.AppIntegration.Application.Connections.Queries;

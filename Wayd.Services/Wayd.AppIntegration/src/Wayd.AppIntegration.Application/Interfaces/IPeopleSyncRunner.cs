@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Enums;
+﻿using Wayd.Common.Application.Enums;
 
 namespace Wayd.AppIntegration.Application.Interfaces;
 

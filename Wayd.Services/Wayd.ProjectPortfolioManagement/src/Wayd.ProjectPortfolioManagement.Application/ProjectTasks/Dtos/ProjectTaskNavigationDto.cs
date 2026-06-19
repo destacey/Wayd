@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Domain.Models;
+﻿using Wayd.ProjectPortfolioManagement.Domain.Models;
 
 namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Dtos;
 

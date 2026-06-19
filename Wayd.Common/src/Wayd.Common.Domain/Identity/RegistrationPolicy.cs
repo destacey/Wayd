@@ -1,4 +1,4 @@
-using Ardalis.GuardClauses;
+﻿using Ardalis.GuardClauses;
 
 namespace Wayd.Common.Domain.Identity;
 

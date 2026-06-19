@@ -1,4 +1,4 @@
-namespace Wayd.Infrastructure.DataProtection;
+﻿namespace Wayd.Infrastructure.DataProtection;
 
 /// <summary>
 /// Process-wide accessor for the <see cref="ISecretProtector"/>.

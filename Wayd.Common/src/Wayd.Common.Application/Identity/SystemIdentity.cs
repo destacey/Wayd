@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Identity;
+﻿namespace Wayd.Common.Application.Identity;
 
 /// <summary>
 /// The well-known identity used for system-initiated work that has no human actor — most notably

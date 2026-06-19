@@ -1,4 +1,4 @@
-namespace Wayd.Planning.Application.PlanningIntervals.HealthChecks.Commands;
+﻿namespace Wayd.Planning.Application.PlanningIntervals.HealthChecks.Commands;
 
 public sealed record DeletePlanningIntervalObjectiveHealthCheckCommand(
     Guid PlanningIntervalObjectiveId,

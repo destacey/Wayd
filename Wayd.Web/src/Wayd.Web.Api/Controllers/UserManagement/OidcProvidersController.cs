@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Identity.OidcProviders.Commands;
+﻿using Wayd.Common.Application.Identity.OidcProviders.Commands;
 using Wayd.Common.Application.Identity.OidcProviders.Dtos;
 using Wayd.Common.Application.Identity.OidcProviders.Queries;
 using Wayd.Common.Application.Identity.Users;

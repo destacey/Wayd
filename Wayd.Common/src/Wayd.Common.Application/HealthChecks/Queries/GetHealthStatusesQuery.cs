@@ -1,4 +1,4 @@
-using Wayd.Common.Application.HealthChecks.Dtos;
+﻿using Wayd.Common.Application.HealthChecks.Dtos;
 using Wayd.Common.Domain.Enums;
 
 namespace Wayd.Common.Application.HealthChecks.Queries;

@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Tests.Infrastructure;
 using Wayd.Organization.Domain.Enums;

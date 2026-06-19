@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.Common.Domain.Enums.AppIntegrations;

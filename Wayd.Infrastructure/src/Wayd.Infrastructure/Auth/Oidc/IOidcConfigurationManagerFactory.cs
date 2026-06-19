@@ -1,4 +1,4 @@
-using Microsoft.IdentityModel.Protocols;
+﻿using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace Wayd.Infrastructure.Auth.Oidc;

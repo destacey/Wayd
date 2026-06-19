@@ -1,4 +1,4 @@
-using CSharpFunctionalExtensions;
+﻿using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Interfaces;
 using Wayd.Common.Domain.Models.HealthChecks;

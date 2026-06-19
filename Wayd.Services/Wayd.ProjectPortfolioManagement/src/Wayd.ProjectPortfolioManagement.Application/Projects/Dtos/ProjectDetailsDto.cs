@@ -175,7 +175,7 @@ public sealed record ProjectDetailsDto
                 {
                     Id = h.Id,
                     Status = SimpleNavigationDto.FromEnum(h.Status),
-                    ReportedBy = NavigationDto.Create(h.ReportedBy.Id, h.ReportedBy.Key, h.ReportedBy.Name.FullName),
+                    ReportedBy = NavigationDto.Create(h.ReportedBy.Id, h.ReportedBy.Key, h.ReportedBy.Name.DisplayName),
                     ReportedOn = h.ReportedOn,
                     Expiration = h.Expiration,
                     Note = h.Note

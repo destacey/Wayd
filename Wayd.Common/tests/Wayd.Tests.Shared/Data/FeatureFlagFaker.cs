@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.FeatureManagement;
+﻿using Wayd.Common.Domain.FeatureManagement;
 
 namespace Wayd.Tests.Shared.Data;
 

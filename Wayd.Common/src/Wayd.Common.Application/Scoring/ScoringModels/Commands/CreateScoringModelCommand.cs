@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Scoring;
+﻿using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Application.Persistence;
 
 namespace Wayd.Common.Application.Scoring.ScoringModels.Commands;

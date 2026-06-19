@@ -1,4 +1,4 @@
-using Wayd.Links.Models;
+﻿using Wayd.Links.Models;
 using Wayd.Tests.Shared.Data;
 
 namespace Wayd.Links.Tests.Data;

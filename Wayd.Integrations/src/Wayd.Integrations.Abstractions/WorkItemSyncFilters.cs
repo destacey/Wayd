@@ -1,4 +1,4 @@
-namespace Wayd.Integrations.Abstractions;
+﻿namespace Wayd.Integrations.Abstractions;
 
 /// <summary>
 /// Opaque, connector-specific filter payload travelling inside a <see cref="WorkspaceSyncTarget"/>.

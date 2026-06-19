@@ -1,4 +1,4 @@
-using Wayd.Work.Application.WorkItems.Dtos;
+﻿using Wayd.Work.Application.WorkItems.Dtos;
 using Xunit;
 
 namespace Wayd.Work.Application.Tests.Sut.WorkItems.Dtos;

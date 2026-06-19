@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Logging;
+﻿namespace Wayd.Common.Application.Logging;
 
 /// <summary>
 /// Centralized application EventIds to avoid duplicates across the solution.

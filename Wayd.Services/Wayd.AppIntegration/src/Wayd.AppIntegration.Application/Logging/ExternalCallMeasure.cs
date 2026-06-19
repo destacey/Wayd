@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Wayd.Common.Application.Logging;
 
 namespace Wayd.AppIntegration.Application.Logging;

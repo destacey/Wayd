@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Wayd.AppIntegration.Domain.Interfaces;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Integrations.Abstractions;

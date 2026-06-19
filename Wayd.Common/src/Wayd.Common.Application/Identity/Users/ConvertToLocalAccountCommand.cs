@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Identity.Users;
+﻿namespace Wayd.Common.Application.Identity.Users;
 
 public sealed record ConvertToLocalAccountCommand(string UserId, string NewPassword);
 

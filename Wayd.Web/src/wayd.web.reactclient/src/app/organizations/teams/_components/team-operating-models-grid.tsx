@@ -14,7 +14,6 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { RowMenuCellRenderer } from '@/src/components/common/wayd-grid-cell-renderers'
 import { Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import dayjs from 'dayjs'
 import EditTeamOperatingModelForm from './edit-team-operating-model-form'
 import { ColDef, ICellRendererParams } from 'ag-grid-community'
 
@@ -107,37 +106,38 @@ const TeamOperatingModelsGrid = ({
 
   const totalModelsCount = operatingModelsData?.length ?? 0
 
-  const columnDefs = useMemo<ColDef<TeamOperatingModelDetailsDto>[]>(
-    () => {
-      const handleEdit = (model: TeamOperatingModelDetailsDto) => {
-        setSelectedModelId(model.id)
-        setShowUpdateForm(true)
-      }
+  const columnDefs = useMemo<ColDef<TeamOperatingModelDetailsDto>[]>(() => {
+    const handleEdit = (model: TeamOperatingModelDetailsDto) => {
+      setSelectedModelId(model.id)
+      setShowUpdateForm(true)
+    }
 
-      const handleDelete = async (model: TeamOperatingModelDetailsDto) => {
-        try {
-          await deleteOperatingModel({
-            teamId,
-            operatingModelId: model.id,
-          }).unwrap()
-          messageApi.success('Successfully deleted operating model.')
-        } catch (error: any) {
-          messageApi.error(
-            error.detail ??
-              'An unexpected error occurred while deleting the operating model.',
-          )
-          console.error(error)
-        }
+    const handleDelete = async (model: TeamOperatingModelDetailsDto) => {
+      try {
+        await deleteOperatingModel({
+          teamId,
+          operatingModelId: model.id,
+        }).unwrap()
+        messageApi.success('Successfully deleted operating model.')
+      } catch (error: any) {
+        messageApi.error(
+          error.detail ??
+            'An unexpected error occurred while deleting the operating model.',
+        )
+        console.error(error)
       }
+    }
 
-      return [
+    return [
       {
         width: 50,
         filter: false,
         sortable: false,
         hide: !canUpdate,
         suppressHeaderMenuButton: true,
-        cellRenderer: (params: ICellRendererParams<TeamOperatingModelDetailsDto>) => {
+        cellRenderer: (
+          params: ICellRendererParams<TeamOperatingModelDetailsDto>,
+        ) => {
           const menuItems = getRowMenuItems({
             operatingModel: params.data!,
             canUpdate,
@@ -152,19 +152,13 @@ const TeamOperatingModelsGrid = ({
       {
         field: 'start',
         headerName: 'Start Date',
-        valueGetter: (params) =>
-          params.data?.start
-            ? dayjs(params.data.start).format('MMM D, YYYY')
-            : null,
+        type: 'dateOnly',
         sort: 'desc',
       },
       {
         field: 'end',
         headerName: 'End Date',
-        valueGetter: (params) =>
-          params.data?.end
-            ? dayjs(params.data.end).format('MMM D, YYYY')
-            : '-',
+        type: 'dateOnly',
       },
       {
         field: 'methodology',
@@ -183,9 +177,8 @@ const TeamOperatingModelsGrid = ({
         headerName: 'Status',
         cellRenderer: StatusCellRenderer,
       },
-    ]},
-    [canUpdate, totalModelsCount, teamId, deleteOperatingModel, messageApi],
-  )
+    ]
+  }, [canUpdate, totalModelsCount, teamId, deleteOperatingModel, messageApi])
 
   return (
     <>

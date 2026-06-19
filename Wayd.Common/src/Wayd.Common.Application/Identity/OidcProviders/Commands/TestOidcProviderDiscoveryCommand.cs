@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Identity.OidcProviders.Commands;
+﻿namespace Wayd.Common.Application.Identity.OidcProviders.Commands;
 
 /// <summary>
 /// Asks the backend to fetch the OIDC discovery document

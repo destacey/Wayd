@@ -1,4 +1,4 @@
-using Mapster;
+﻿using Mapster;
 using NodaTime;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Domain.Enums.AppIntegrations;

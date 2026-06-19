@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;

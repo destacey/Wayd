@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using FluentAssertions;
 using NodaTime;
 using Wayd.AppIntegration.Application.Connections.Queries;

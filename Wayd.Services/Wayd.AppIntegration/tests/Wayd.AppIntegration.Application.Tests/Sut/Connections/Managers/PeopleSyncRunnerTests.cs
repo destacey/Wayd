@@ -1,4 +1,4 @@
-using CSharpFunctionalExtensions;
+﻿using CSharpFunctionalExtensions;
 using FluentAssertions;
 using MediatR;
 using Microsoft.Extensions.Logging;

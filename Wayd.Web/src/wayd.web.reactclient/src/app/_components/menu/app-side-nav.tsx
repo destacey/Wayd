@@ -5,6 +5,7 @@ import useMenuToggle from '../../../components/contexts/menu-toggle'
 import useTheme from '../../../components/contexts/theme'
 import { Layout } from 'antd'
 import AppMenu from './app-menu'
+import styles from './app-side-nav.module.css'
 
 const { Sider } = Layout
 
@@ -37,7 +38,7 @@ const AppSideNav: FC<AppSideNavProps> = memo(
 
     return (
       <Sider
-        className="app-side-nav"
+        className={`app-side-nav ${styles.sideNav}`}
         theme={menuTheme}
         width={235}
         collapsedWidth={50}

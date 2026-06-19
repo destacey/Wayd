@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Auditing;
+﻿namespace Wayd.Common.Application.Auditing;
 
 public interface IAuditService : ITransientService
 {

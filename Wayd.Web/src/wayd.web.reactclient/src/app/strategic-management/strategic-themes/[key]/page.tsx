@@ -6,7 +6,7 @@ import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useAppDispatch, useDocumentTitle } from '@/src/hooks'
 import { useGetStrategicThemeQuery } from '@/src/store/features/strategic-management/strategic-themes-api'
-import { Descriptions, MenuProps, Space } from 'antd'
+import { Descriptions, Flex, MenuProps } from 'antd'
 import { notFound, usePathname, useRouter } from 'next/navigation'
 import StrategicThemeDetailsLoading from './loading'
 import { use, useEffect, useState } from 'react'
@@ -196,7 +196,7 @@ const StrategicThemeDetailsPage = (props: {
         subtitle="Strategic Theme Details"
         actions={<PageActions actionItems={actionsMenuItems} />}
       />
-      <Space vertical size="small">
+      <Flex vertical gap="small">
         <Descriptions>
           <Item label="State">{strategicThemeData.state.name}</Item>
         </Descriptions>
@@ -205,7 +205,7 @@ const StrategicThemeDetailsPage = (props: {
             <MarkdownRenderer markdown={strategicThemeData.description} />
           </Item>
         </Descriptions>
-      </Space>
+      </Flex>
 
       {openEditStrategicThemeForm && (
         <EditStrategicThemeForm

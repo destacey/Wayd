@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Enums;
+﻿using Wayd.Common.Domain.Enums;
 
 namespace Wayd.Planning.Application.PlanningIntervals.HealthChecks.Commands;
 

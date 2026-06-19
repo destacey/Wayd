@@ -26,7 +26,7 @@ public class IdentityMappingConfig : IRegister
                 .Map(dest => dest.LastActivityAt, src => src.LastActivityAt)
                 .Map(dest => dest.Employee, src => src.Employee == null
                     ? null
-                    : NavigationDto.Create(src.Employee.Id, src.Employee.Key, src.Employee.Name.FullName))
+                    : NavigationDto.Create(src.Employee.Id, src.Employee.Key, src.Employee.Name.DisplayName))
                 .Map(dest => dest.Roles, src => src.UserRoles.Select(ur => new RoleListDto
                 {
                     Id = ur.Role.Id,

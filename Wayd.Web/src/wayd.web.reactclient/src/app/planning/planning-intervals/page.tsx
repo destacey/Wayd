@@ -12,15 +12,14 @@ import { Button } from 'antd'
 import { authorizePage } from '../../../components/hoc'
 import { useGetPlanningIntervalsQuery } from '@/src/store/features/planning/planning-interval-api'
 import { PlanningIntervalListDto } from '@/src/services/wayd-api'
-import { ColDef, ICellRendererParams, ValueFormatterParams } from 'ag-grid-community'
+import { ColDef, ICellRendererParams } from 'ag-grid-community'
 
-const PlanningIntervalLinkCellRenderer = ({ value, data }: ICellRendererParams<PlanningIntervalListDto>) => {
+const PlanningIntervalLinkCellRenderer = ({
+  value,
+  data,
+}: ICellRendererParams<PlanningIntervalListDto>) => {
   return <Link href={`/planning/planning-intervals/${data!.key}`}>{value}</Link>
 }
-
-const dateOnlyValueFormatter = (
-  params: ValueFormatterParams<PlanningIntervalListDto>,
-) => params.value && dayjs(params.value).format('M/D/YYYY')
 
 const stateOrder = ['Active', 'Future', 'Completed']
 
@@ -60,11 +59,11 @@ const PlanningIntervalListPage = () => {
       },
       {
         field: 'start',
-        valueFormatter: dateOnlyValueFormatter,
+        type: 'dateOnly',
       },
       {
         field: 'end',
-        valueFormatter: dateOnlyValueFormatter,
+        type: 'dateOnly',
       },
     ],
     [],

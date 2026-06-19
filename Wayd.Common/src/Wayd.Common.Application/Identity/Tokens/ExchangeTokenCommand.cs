@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Identity.Tokens;
+﻿namespace Wayd.Common.Application.Identity.Tokens;
 
 /// <summary>
 /// Exchanges an external identity-provider token for a Wayd JWT. The frontend

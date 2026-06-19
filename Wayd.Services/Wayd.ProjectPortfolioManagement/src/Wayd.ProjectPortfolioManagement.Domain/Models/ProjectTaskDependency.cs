@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Domain.Enums;
+﻿using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using NodaTime;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Models;

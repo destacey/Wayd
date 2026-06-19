@@ -1,4 +1,4 @@
-using Ardalis.GuardClauses;
+﻿using Ardalis.GuardClauses;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Models.HealthChecks;
 using NodaTime;

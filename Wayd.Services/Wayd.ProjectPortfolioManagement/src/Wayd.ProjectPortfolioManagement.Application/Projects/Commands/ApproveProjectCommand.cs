@@ -1,4 +1,4 @@
-namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
+﻿namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 
 public sealed record ApproveProjectCommand(Guid Id) : ICommand;
 

@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NodaTime;
 using Wayd.AppIntegration.Application.Connections.Dtos;
 using Wayd.AppIntegration.Application.Connections.Queries;

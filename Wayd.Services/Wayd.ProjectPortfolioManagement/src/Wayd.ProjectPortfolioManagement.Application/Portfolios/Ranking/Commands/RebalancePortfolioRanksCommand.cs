@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Identity;
+﻿using Wayd.Common.Application.Identity;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
 

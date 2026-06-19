@@ -1,4 +1,4 @@
-using Wayd.Planning.Application.Iterations.Queries;
+﻿using Wayd.Planning.Application.Iterations.Queries;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Tests.Data;
 

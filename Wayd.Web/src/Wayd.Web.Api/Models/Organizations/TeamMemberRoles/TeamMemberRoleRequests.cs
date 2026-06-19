@@ -1,4 +1,4 @@
-namespace Wayd.Web.Api.Models.Organizations.TeamMemberRoles;
+﻿namespace Wayd.Web.Api.Models.Organizations.TeamMemberRoles;
 
 public sealed record CreateTeamMemberRoleRequest(string Name, string? Description);
 

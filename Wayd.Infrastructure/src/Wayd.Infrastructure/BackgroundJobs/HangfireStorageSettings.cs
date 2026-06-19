@@ -1,4 +1,4 @@
-namespace Wayd.Infrastructure.BackgroundJobs;
+﻿namespace Wayd.Infrastructure.BackgroundJobs;
 
 public class HangfireStorageSettings
 {

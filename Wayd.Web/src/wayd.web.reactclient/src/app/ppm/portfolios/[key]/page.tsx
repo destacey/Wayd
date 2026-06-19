@@ -122,7 +122,7 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const router = useRouter()
 
-  const { hasPermissionClaim } = useAuth()
+  const { user, hasPermissionClaim } = useAuth()
   const canUpdatePortfolio = hasPermissionClaim(
     'Permissions.ProjectPortfolios.Update',
   )
@@ -136,6 +136,17 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     error,
     refetch: refetchPortfolio,
   } = useGetPortfolioQuery(portfolioKey)
+
+  // Ranking is restricted to portfolio Owners and Managers who also hold the
+  // Update permission (per the PPM docs — drag-to-rank is Owners/Managers only).
+  const currentEmployeeId = user?.employeeId
+  const isPortfolioOwnerOrManager =
+    !!currentEmployeeId &&
+    [
+      ...(portfolioData?.portfolioOwners ?? []),
+      ...(portfolioData?.portfolioManagers ?? []),
+    ].some((e) => e.id === currentEmployeeId)
+  const canManageRanking = canUpdatePortfolio && isPortfolioOwnerOrManager
 
   const {
     data: programData,
@@ -275,7 +286,7 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             portfolioKey={portfolioKey}
             projects={rankingData ?? []}
             scoreboard={rankingScoreboard}
-            canManage={canUpdatePortfolio}
+            canManage={canManageRanking}
             isLoading={isLoadingRanking}
             refetch={refetchRanking}
             refetchScoreboard={refetchRankingScoreboard}

@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands.Kpis;
+﻿using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands.Kpis;
 
 namespace Wayd.Web.Api.Models.Ppm.StrategicInitiatives;
 

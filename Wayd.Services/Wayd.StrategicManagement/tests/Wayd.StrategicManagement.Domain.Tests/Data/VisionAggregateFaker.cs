@@ -1,4 +1,4 @@
-using Bogus;
+﻿using Bogus;
 using Wayd.StrategicManagement.Domain.Models;
 
 namespace Wayd.StrategicManagement.Domain.Tests.Data;

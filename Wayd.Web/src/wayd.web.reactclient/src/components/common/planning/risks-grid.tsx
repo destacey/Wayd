@@ -4,7 +4,6 @@ import WaydGrid from '../wayd-grid'
 import { RiskListDto } from '@/src/services/wayd-api'
 import { ItemType } from 'antd/es/menu/interface'
 import { Button } from 'antd'
-import dayjs from 'dayjs'
 import useAuth from '../../contexts/auth'
 import CreateRiskForm from './create-risk-form'
 import { EditOutlined } from '@ant-design/icons'
@@ -158,10 +157,7 @@ const RisksGrid = ({
     { field: 'exposure', width: 125 },
     {
       field: 'followUpDate',
-      valueGetter: (params) =>
-        params.data?.followUpDate
-          ? dayjs(params.data.followUpDate).format('M/D/YYYY')
-          : null,
+      type: 'dateOnly',
     },
     {
       field: 'assignee.name',
@@ -170,8 +166,7 @@ const RisksGrid = ({
     },
     {
       field: 'reportedOn',
-      valueGetter: (params) =>
-        params.data?.reportedOn ? dayjs(params.data.reportedOn).format('M/D/YYYY') : null,
+      type: 'dateOnly',
     },
   ]}, [canUpdateRisks, hideTeam, includeClosed])
 

@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Identity.PersonalAccessTokens.Commands;
+﻿using Wayd.Common.Application.Identity.PersonalAccessTokens.Commands;
 using Wayd.Common.Application.Interfaces;
 
 namespace Wayd.Web.Api.Models.UserManagement.PersonalAccessTokens;

@@ -1,4 +1,4 @@
-using Wayd.Integrations.AzureDevOps.Utils;
+﻿using Wayd.Integrations.AzureDevOps.Utils;
 
 namespace Wayd.Integrations.AzureDevOps.Tests.Sut.Utils;
 

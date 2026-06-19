@@ -1,4 +1,4 @@
-using Wayd.Planning.Application.EstimationScales.Dtos;
+﻿using Wayd.Planning.Application.EstimationScales.Dtos;
 
 namespace Wayd.Planning.Application.EstimationScales.Queries;
 

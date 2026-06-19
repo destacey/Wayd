@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Interfaces.ExternalPeople;
+﻿namespace Wayd.Common.Application.Interfaces.ExternalPeople;
 
 /// <summary>
 /// Per-connection credentials used to build a transient <see cref="Microsoft.Graph.GraphServiceClient"/>

@@ -1,6 +1,7 @@
 'use client'
 
 import './grid/ag-grid-init'
+import { waydColumnTypes } from './grid/column-types'
 import { AgGridReact, AgGridReactProps } from 'ag-grid-react'
 import {
   ChangeEvent,
@@ -64,6 +65,7 @@ const WaydGrid = forwardRef<AgGridReact, ModaGridProps>(
       gridControlMenuItems,
       toolbarActions,
       defaultColDef,
+      columnTypes,
       rowData,
       loadData,
       emptyMessage,
@@ -190,6 +192,7 @@ const WaydGrid = forwardRef<AgGridReact, ModaGridProps>(
               ref={gridRef}
               theme={agGridTheme}
               defaultColDef={defaultColDef ?? modaDefaultColDef}
+              columnTypes={{ ...waydColumnTypes, ...columnTypes }}
               onGridReady={onGridReady}
               animateRows={false} // animation has to be off for cell text selection to work correctly
               rowData={rowData}

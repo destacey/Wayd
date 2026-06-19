@@ -4,6 +4,7 @@ import { ResponsiveFlex } from '@/src/components/common'
 import LinksCard from '@/src/components/common/links/links-card'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { ProjectPortfolioDetailsDto } from '@/src/services/wayd-api'
+import useAuth from '@/src/components/contexts/auth'
 import { getSortedNames } from '@/src/utils'
 import { Descriptions, Flex } from 'antd'
 import Link from 'next/link'
@@ -17,6 +18,11 @@ export interface PortfolioDetailsProps {
 const PortfolioDetails: React.FC<PortfolioDetailsProps> = ({
   portfolio,
 }: PortfolioDetailsProps) => {
+  const { hasPermissionClaim } = useAuth()
+  const canViewScoringModel = hasPermissionClaim(
+    'Permissions.ScoringModels.View',
+  )
+
   if (!portfolio) return null
 
   const sponsorNames =
@@ -41,11 +47,15 @@ const PortfolioDetails: React.FC<PortfolioDetailsProps> = ({
           <Item label="PMs">{managerNames}</Item>
           {portfolio.scoringModel && (
             <Item label="Scoring Model">
-              <Link
-                href={`/settings/scoring/scoring-models/${portfolio.scoringModel.key}`}
-              >
-                {portfolio.scoringModel.name}
-              </Link>
+              {canViewScoringModel ? (
+                <Link
+                  href={`/settings/scoring/scoring-models/${portfolio.scoringModel.key}`}
+                >
+                  {portfolio.scoringModel.name}
+                </Link>
+              ) : (
+                portfolio.scoringModel.name
+              )}
             </Item>
           )}
         </Descriptions>

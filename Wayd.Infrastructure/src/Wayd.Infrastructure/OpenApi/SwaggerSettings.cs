@@ -1,4 +1,4 @@
-namespace Wayd.Infrastructure.OpenApi;
+﻿namespace Wayd.Infrastructure.OpenApi;
 
 public class SwaggerSettings
 {

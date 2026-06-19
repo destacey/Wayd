@@ -1,4 +1,4 @@
-using CSharpFunctionalExtensions;
+﻿using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Identity;
 using Wayd.Tests.Shared.Data;

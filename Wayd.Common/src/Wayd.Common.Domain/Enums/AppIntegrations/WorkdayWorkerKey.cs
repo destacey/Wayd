@@ -1,4 +1,4 @@
-namespace Wayd.Common.Domain.Enums.AppIntegrations;
+﻿namespace Wayd.Common.Domain.Enums.AppIntegrations;
 
 /// <summary>
 /// Which Workday worker identifier a Workday connection uses as the upsert key (and therefore as

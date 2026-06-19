@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Identity.Tokens;
+﻿namespace Wayd.Common.Application.Identity.Tokens;
 
 /// <summary>
 /// Advertises which authentication options are enabled on this deployment.

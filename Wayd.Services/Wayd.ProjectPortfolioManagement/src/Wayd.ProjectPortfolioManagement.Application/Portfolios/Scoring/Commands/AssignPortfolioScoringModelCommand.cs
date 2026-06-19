@@ -1,4 +1,4 @@
-namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Scoring.Commands;
+﻿namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Scoring.Commands;
 
 public sealed record AssignPortfolioScoringModelCommand(Guid PortfolioId, Guid ScoringModelId) : ICommand;
 

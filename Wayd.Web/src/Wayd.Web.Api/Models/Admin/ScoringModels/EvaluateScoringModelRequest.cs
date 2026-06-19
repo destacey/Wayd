@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Scoring.ScoringModels.Queries;
+﻿using Wayd.Common.Application.Scoring.ScoringModels.Queries;
 
 namespace Wayd.Web.Api.Models.Admin.ScoringModels;
 

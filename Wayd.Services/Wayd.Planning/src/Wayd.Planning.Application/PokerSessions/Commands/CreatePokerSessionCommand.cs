@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Models;
+﻿using Wayd.Common.Application.Models;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 
 namespace Wayd.Planning.Application.PokerSessions.Commands;

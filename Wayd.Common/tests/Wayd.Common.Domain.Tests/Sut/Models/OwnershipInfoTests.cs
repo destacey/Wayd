@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Enums;
+﻿using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Models;
 

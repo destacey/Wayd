@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.HealthChecks.Dtos;
+﻿namespace Wayd.Common.Application.HealthChecks.Dtos;
 
 public sealed record HealthStatusDto
 {

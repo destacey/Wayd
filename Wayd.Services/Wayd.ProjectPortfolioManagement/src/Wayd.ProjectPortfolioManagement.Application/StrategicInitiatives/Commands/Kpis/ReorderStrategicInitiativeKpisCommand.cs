@@ -1,4 +1,4 @@
-namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands.Kpis;
+﻿namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands.Kpis;
 
 public sealed record ReorderStrategicInitiativeKpisCommand(
     Guid StrategicInitiativeId,

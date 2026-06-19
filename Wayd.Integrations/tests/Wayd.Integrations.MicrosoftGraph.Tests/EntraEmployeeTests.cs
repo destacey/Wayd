@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Graph.Models;
 using Wayd.Integrations.MicrosoftGraph.Model;
 using Xunit;

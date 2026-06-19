@@ -1,4 +1,4 @@
-using Wayd.Tests.Shared.Data;
+﻿using Wayd.Tests.Shared.Data;
 using Wayd.Work.Domain.Models;
 
 namespace Wayd.Work.Domain.Tests.Data;

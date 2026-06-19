@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using CSharpFunctionalExtensions;
 
 namespace Wayd.Common.Domain.Scoring;

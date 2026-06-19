@@ -1,7 +1,7 @@
 'use client'
 
 import { ProjectLifecycleDetailsDto } from '@/src/services/wayd-api'
-import { Descriptions, Space } from 'antd'
+import { Descriptions } from 'antd'
 
 const { Item } = Descriptions
 
@@ -15,14 +15,10 @@ const ProjectLifecycleDetails: React.FC<ProjectLifecycleDetailsProps> = ({
   if (!lifecycle) return null
 
   return (
-    <Space orientation="vertical">
-      <Descriptions size="small">
-        <Item label="State">{lifecycle.state?.name}</Item>
-      </Descriptions>
-      <Descriptions size="small">
-        <Item label="Description">{lifecycle.description}</Item>
-      </Descriptions>
-    </Space>
+    <Descriptions column={1} size="small">
+      <Item label="State">{lifecycle.state?.name}</Item>
+      <Item label="Description">{lifecycle.description}</Item>
+    </Descriptions>
   )
 }
 

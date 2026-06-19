@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Identity.Users;
+﻿namespace Wayd.Common.Application.Identity.Users;
 
 public sealed record ResetPasswordCommand(string UserId, string NewPassword);
 

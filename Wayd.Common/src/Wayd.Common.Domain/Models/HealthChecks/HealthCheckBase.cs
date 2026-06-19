@@ -1,4 +1,4 @@
-using CSharpFunctionalExtensions;
+﻿using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Data;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums;

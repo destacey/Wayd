@@ -1,4 +1,4 @@
-namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
+﻿namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
 
 /// <summary>
 /// Represents a command to update the placement of a task within a project, including its parent and/or order among

@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Identity.PersonalAccessTokens.Commands;
+﻿using Wayd.Common.Application.Identity.PersonalAccessTokens.Commands;
 using Wayd.Common.Application.Identity.PersonalAccessTokens.Dtos;
 using Wayd.Common.Application.Identity.PersonalAccessTokens.Queries;
 using Wayd.Web.Api.Extensions;

@@ -1,4 +1,4 @@
-using Wayd.Planning.Domain.Models.PlanningPoker;
+﻿using Wayd.Planning.Domain.Models.PlanningPoker;
 
 namespace Wayd.Planning.Application.EstimationScales.Commands;
 

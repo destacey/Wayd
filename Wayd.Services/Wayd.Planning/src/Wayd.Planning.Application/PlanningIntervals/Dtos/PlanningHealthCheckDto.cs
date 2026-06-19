@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Dtos;
+﻿using Wayd.Common.Application.Dtos;
 
 namespace Wayd.Planning.Application.PlanningIntervals.Dtos;
 
@@ -48,7 +48,7 @@ public sealed record PlanningHealthCheckDto
         {
             Id = current.Id,
             Status = SimpleNavigationDto.FromEnum(current.Status),
-            ReportedBy = NavigationDto.Create(current.ReportedBy.Id, current.ReportedBy.Key, current.ReportedBy.Name.FullName),
+            ReportedBy = NavigationDto.Create(current.ReportedBy.Id, current.ReportedBy.Key, current.ReportedBy.Name.DisplayName),
             ReportedOn = current.ReportedOn,
             Expiration = current.Expiration,
             Note = current.Note

@@ -1,4 +1,4 @@
-namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
+﻿namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
 
 public sealed record DeleteProjectTaskCommand(Guid Id) : ICommand;
 

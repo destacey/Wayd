@@ -1,4 +1,4 @@
-using Wayd.AppIntegration.Domain.Interfaces;
+﻿using Wayd.AppIntegration.Domain.Interfaces;
 using Wayd.Common.Extensions;
 
 namespace Wayd.AppIntegration.Domain.Models.Entra;

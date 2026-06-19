@@ -1,4 +1,4 @@
-using Mapster;
+﻿using Mapster;
 using Wayd.AppIntegration.Domain.Models.Entra;
 
 namespace Wayd.AppIntegration.Application.Connections.Dtos.Entra;

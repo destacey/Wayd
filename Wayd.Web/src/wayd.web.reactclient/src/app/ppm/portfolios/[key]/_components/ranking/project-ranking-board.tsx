@@ -41,7 +41,6 @@ import {
 } from 'react'
 import styles from './project-ranking-board.module.css'
 import { buildMoveRanksPayload, RankableRow } from './ranking'
-import dayjs from 'dayjs'
 
 export interface ProjectRankingBoardProps {
   portfolioId: string
@@ -49,7 +48,7 @@ export interface ProjectRankingBoardProps {
   projects: ProjectListDto[]
   /** Current-model score breakdown per project + the model definition for criterion/output columns. */
   scoreboard?: PortfolioRankingScoreboardDto
-  /** Whether the current user may rank (portfolio Update permission). */
+  /** Whether the current user may rank (portfolio Update permission AND is a portfolio Owner or Manager). */
   canManage: boolean
   isLoading?: boolean
   refetch: () => void
@@ -347,7 +346,7 @@ const ProjectRankingBoard = ({
   const columnDefs = useMemo<ColDef<ProjectListDto>[]>(
     () => [
       {
-        width: 70,
+        width: dragEnabled ? 60 : 40,
         filter: false,
         sortable: false,
         resizable: false,
@@ -473,14 +472,12 @@ const ProjectRankingBoard = ({
       {
         field: 'start',
         width: 125,
-        valueGetter: (params) =>
-          params.data?.start && dayjs(params.data.start).format('MMM D, YYYY'),
+        type: 'dateOnly',
       },
       {
         field: 'end',
         width: 125,
-        valueGetter: (params) =>
-          params.data?.end && dayjs(params.data.end).format('MMM D, YYYY'),
+        type: 'dateOnly',
       },
       {
         field: 'projectManagers',
@@ -554,4 +551,3 @@ const ProjectRankingBoard = ({
 }
 
 export default ProjectRankingBoard
-

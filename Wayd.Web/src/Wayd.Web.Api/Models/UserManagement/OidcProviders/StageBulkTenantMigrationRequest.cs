@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Identity.Users;
+﻿using Wayd.Common.Application.Identity.Users;
 
 namespace Wayd.Web.Api.Models.UserManagement.OidcProviders;
 

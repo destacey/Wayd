@@ -1,4 +1,4 @@
-namespace Wayd.Infrastructure.SecurityHeaders;
+﻿namespace Wayd.Infrastructure.SecurityHeaders;
 
 public class SecurityHeaderSettings
 {

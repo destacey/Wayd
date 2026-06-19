@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Events;
+﻿using Wayd.Common.Application.Events;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.ProjectPortfolioManagement.Domain.Models;

@@ -1,4 +1,4 @@
-using Mapster;
+﻿using Mapster;
 using Wayd.Common.Domain.Scoring;
 
 namespace Wayd.Common.Application.Scoring.ScoringModels.Dtos;

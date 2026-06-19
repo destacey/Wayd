@@ -1,4 +1,4 @@
-namespace Wayd.Infrastructure.Common.Settings;
+﻿namespace Wayd.Infrastructure.Common.Settings;
 
 public class CorsSettings
 {

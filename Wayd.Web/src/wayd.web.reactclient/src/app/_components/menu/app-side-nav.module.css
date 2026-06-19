@@ -1,0 +1,15 @@
+/*
+ * When the side nav is collapsed, AntD renders submenu parents (items with
+ * children) differently from leaf items: a selected leaf item tints its icon
+ * with colorPrimary, but a selected submenu parent only shows a bold/active
+ * indicator. This makes the collapsed parent icon match the leaf-item
+ * treatment so an active section reads consistently regardless of whether the
+ * top-level item has children.
+ */
+.sideNav
+  :global(.ant-menu-inline-collapsed)
+  :global(.ant-menu-submenu-selected)
+  > :global(.ant-menu-submenu-title)
+  :global(.anticon) {
+  color: var(--ant-color-primary);
+}

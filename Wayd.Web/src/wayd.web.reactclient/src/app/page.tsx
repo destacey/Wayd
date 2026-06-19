@@ -28,7 +28,7 @@ const HomePage = () => {
           </Col>
         </Row>
       </Col>
-      <Col xs={24} lg={8} hidden={!hasTeamSprints}>
+      <Col xs={hasTeamSprints ? 24 : 0} lg={hasTeamSprints ? 8 : 0}>
         <MyTeamSprints onHasSprintsChange={setHasTeamSprints} />
       </Col>
     </Row>

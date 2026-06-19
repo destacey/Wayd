@@ -27,19 +27,28 @@ import type { ListItemProps, ListItemMetaProps } from 'antd/es/list'
  */
 
 const DEPRECATION_FRAGMENT = 'The `List` component is deprecated'
-
-let warningSuppressed = false
+const SUPPRESSED_FLAG = '__waydListDeprecationSuppressed__'
 
 /**
  * antd emits the deprecation via its internal `devUseWarning`, which routes to
  * `console.error`. We filter out only that exact message, once, leaving every
- * other warning intact. No-op in production (the warning isn't emitted there).
+ * other warning intact.
+ *
+ * Only patches in development — in test we want console output untouched, and
+ * in production the warning isn't emitted at all. The "already patched" flag
+ * lives on `globalThis` so it survives Next.js Fast Refresh (HMR re-evaluates
+ * this module, which would otherwise re-wrap `console.error` repeatedly).
  */
 function suppressListDeprecationWarning() {
-  if (warningSuppressed || process.env.NODE_ENV === 'production') return
-  warningSuppressed = true
+  if (process.env.NODE_ENV !== 'development') return
 
-  const originalError = console.error
+  const globalScope = globalThis as typeof globalThis & {
+    [SUPPRESSED_FLAG]?: boolean
+  }
+  if (globalScope[SUPPRESSED_FLAG]) return
+  globalScope[SUPPRESSED_FLAG] = true
+
+  const originalError = console.error.bind(console)
   console.error = (...args: unknown[]) => {
     if (
       typeof args[0] === 'string' &&

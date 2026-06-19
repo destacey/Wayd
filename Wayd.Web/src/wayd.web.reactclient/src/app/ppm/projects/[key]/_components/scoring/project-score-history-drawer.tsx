@@ -4,7 +4,8 @@ import {
   useGetProjectScoreQuery,
   useGetProjectScoresQuery,
 } from '@/src/store/features/ppm/project-scores-api'
-import { Button, Drawer, Empty, List, Spin, Tag, Typography } from 'antd'
+import { Button, Drawer, Empty, Spin, Tag, Typography } from 'antd'
+import WaydList from '@/src/components/common/wayd-list'
 import { ArrowLeftOutlined } from '@ant-design/icons'
 import { FC, useState } from 'react'
 import dayjs from 'dayjs'
@@ -70,18 +71,18 @@ const ProjectScoreHistoryDrawer: FC<ProjectScoreHistoryDrawerProps> = ({
       ) : scores.length === 0 ? (
         <Empty description="This project has not been scored yet." />
       ) : (
-        <List
+        <WaydList
           dataSource={scores}
           rowKey={(s) => s.id}
           renderItem={(score) => (
-            <List.Item
+            <WaydList.Item
               onClick={() => setSelectedScoreId(score.id)}
               style={{ cursor: 'pointer' }}
               actions={[
                 <Typography.Link key="view">View</Typography.Link>,
               ]}
             >
-              <List.Item.Meta
+              <WaydList.Item.Meta
                 title={
                   <>
                     <Text strong>{score.primaryValue}</Text>{' '}
@@ -95,7 +96,7 @@ const ProjectScoreHistoryDrawer: FC<ProjectScoreHistoryDrawerProps> = ({
                   </>
                 }
               />
-            </List.Item>
+            </WaydList.Item>
           )}
         />
       )}

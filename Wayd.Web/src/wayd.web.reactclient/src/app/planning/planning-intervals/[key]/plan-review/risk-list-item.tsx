@@ -1,11 +1,12 @@
 import EditRiskForm from '@/src/components/common/planning/edit-risk-form'
 import { RiskListDto } from '@/src/services/wayd-api'
 import { EditOutlined } from '@ant-design/icons'
-import { Button, Card, List, Space, Tag, Typography } from 'antd'
+import { Button, Card, Space, Tag, Typography } from 'antd'
+import WaydList from '@/src/components/common/wayd-list'
 import Link from 'next/link'
 import { useState } from 'react'
 
-const { Item } = List
+const { Item } = WaydList
 const { Meta } = Item
 const { Text } = Typography
 

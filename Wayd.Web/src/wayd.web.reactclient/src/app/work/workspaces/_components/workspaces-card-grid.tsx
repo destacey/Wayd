@@ -1,12 +1,12 @@
 'use client'
 
 import { WorkspaceListDto } from '@/src/services/wayd-api'
-import { Flex, List } from 'antd'
+import { Flex } from 'antd'
 import { ReactElement } from 'react'
 import { WorkspaceCard } from '.'
-import { WaydEmpty } from '@/src/components/common'
+import { WaydEmpty, WaydList } from '@/src/components/common'
 
-const { Item: ListItem } = List
+const { Item: ListItem } = WaydList
 
 export interface WorkspacesCardGridProps {
   workspaces: WorkspaceListDto[]
@@ -39,7 +39,7 @@ const WorkspacesCardGrid: React.FC<WorkspacesCardGridProps> = (
       <Flex justify="end" align="center" style={{ paddingBottom: '16px' }}>
         {props.viewSelector}
       </Flex>
-      <List
+      <WaydList
         grid={gridConfig}
         loading={{
           spinning: props.isLoading,

@@ -2,9 +2,10 @@
 
 import { PlanningIntervalObjectiveListDto } from '@/src/services/wayd-api'
 import { PlusOutlined } from '@ant-design/icons'
-import { Badge, Button, Card, List, Space } from 'antd'
+import { Badge, Button, Card, Space } from 'antd'
 import ObjectiveListItem from './objective-list-item'
 import WaydEmpty from '@/src/components/common/wayd-empty'
+import WaydList from '@/src/components/common/wayd-list'
 import { useEffect, useState } from 'react'
 import CreatePlanningIntervalObjectiveForm from '../../_components/create-planning-interval-objective-form'
 import useTheme from '@/src/components/contexts/theme'
@@ -202,7 +203,7 @@ const TeamObjectivesListCard = ({
           collisionDetection={closestCorners}
           onDragEnd={onDragEnd}
         >
-          <List
+          <WaydList
             size="small"
             dataSource={objectives}
             locale={{

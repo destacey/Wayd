@@ -5,7 +5,8 @@ import {
   AzureDevOpsWorkspaceDto,
 } from '@/src/services/wayd-api'
 import { ExportOutlined } from '@ant-design/icons'
-import { Button, Flex, List, Space, Typography } from 'antd'
+import { Button, Flex, Space, Typography } from 'antd'
+import WaydList from '@/src/components/common/wayd-list'
 import Link from 'next/link'
 import { useContext, useState } from 'react'
 import InitWorkProcessIntegrationForm from './init-work-process-integration-form'
@@ -14,7 +15,7 @@ import { AzdoConnectionContext } from './connection-context'
 import { useGetWorkProcessQuery } from '@/src/store/features/work-management/work-process-api'
 
 const { Title, Text } = Typography
-const { Item } = List
+const { Item } = WaydList
 
 interface AzdoProcessProps {
   workProcess: AzureDevOpsWorkProcessDto
@@ -58,7 +59,7 @@ const AzdoProcess = (props: AzdoProcessProps) => {
   ) => (
     <>
       <Title level={5}>Workspaces</Title>
-      <List
+      <WaydList
         grid={{
           gutter: 16,
           xs: 1,

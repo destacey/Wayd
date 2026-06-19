@@ -2,10 +2,11 @@
 
 import { WorkProcessDto } from '@/src/services/wayd-api'
 import { useGetWorkProcessSchemesQuery } from '@/src/store/features/work-management/work-process-api'
-import { Descriptions, List } from 'antd'
+import { Descriptions } from 'antd'
+import WaydList from '@/src/components/common/wayd-list'
 
 const { Item } = Descriptions
-const { Item: ListItem } = List
+const { Item: ListItem } = WaydList
 const { Meta: ListItemMeta } = ListItem
 
 interface WorkProcessDetailsProps {
@@ -27,7 +28,7 @@ const WorkProcessDetails = ({ workProcess }: WorkProcessDetailsProps) => {
       <Descriptions>
         <Item label="Description">{workProcess.description}</Item>
       </Descriptions>
-      <List
+      <WaydList
         header="Work Types and Workflows"
         size="small"
         loading={isLoadingSchemes}

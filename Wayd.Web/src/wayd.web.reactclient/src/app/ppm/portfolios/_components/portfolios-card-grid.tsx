@@ -1,12 +1,12 @@
 'use client'
 
 import { ProjectPortfolioListDto } from '@/src/services/wayd-api'
-import { Flex, List } from 'antd'
+import { Flex } from 'antd'
 import { ReactElement } from 'react'
 import PortfolioCard from './portfolio-card'
-import { WaydEmpty } from '@/src/components/common'
+import { WaydEmpty, WaydList } from '@/src/components/common'
 
-const { Item: ListItem } = List
+const { Item: ListItem } = WaydList
 
 export interface PortfoliosCardGridProps {
   portfolios: ProjectPortfolioListDto[]
@@ -44,7 +44,7 @@ const PortfoliosCardGrid: React.FC<PortfoliosCardGridProps> = (
       <Flex justify="end" align="center" style={{ paddingBottom: '16px' }}>
         {props.viewSelector}
       </Flex>
-      <List
+      <WaydList
         grid={gridConfig}
         loading={{
           spinning: props.isLoading,

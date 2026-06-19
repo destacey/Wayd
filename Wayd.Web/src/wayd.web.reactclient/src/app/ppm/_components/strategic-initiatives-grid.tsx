@@ -11,7 +11,6 @@ import {
 } from '@/src/services/wayd-api'
 import { getSortedNames } from '@/src/utils'
 import { ColDef, ICellRendererParams } from 'ag-grid-community'
-import dayjs from 'dayjs'
 import Link from 'next/link'
 import { FC, useMemo } from 'react'
 
@@ -67,14 +66,12 @@ const StrategicInitiativesGrid: FC<StrategicInitiativesGridProps> = (
     {
       field: 'start',
       width: 125,
-      valueGetter: (params) =>
-        params.data?.start && dayjs(params.data.start).format('MMM D, YYYY'),
+      type: 'dateOnly',
     },
     {
       field: 'end',
       width: 125,
-      valueGetter: (params) =>
-        params.data?.end && dayjs(params.data.end).format('MMM D, YYYY'),
+      type: 'dateOnly',
     },
     {
       field: 'strategicInitiativeSponsors',

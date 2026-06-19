@@ -11,7 +11,6 @@ import {
 import { ProjectListDto } from '@/src/services/wayd-api'
 import { getSortedNames } from '@/src/utils'
 import { ColDef, ICellRendererParams } from 'ag-grid-community'
-import dayjs from 'dayjs'
 import { FC, ReactNode, useMemo } from 'react'
 
 export interface ProjectsGridProps {
@@ -32,7 +31,8 @@ const ProjectsGrid: FC<ProjectsGridProps> = (props: ProjectsGridProps) => {
       {
         field: 'position',
         headerName: 'Rank',
-        headerTooltip: 'Rank based on the project\'s portfolio and the current context.',
+        headerTooltip:
+          "Rank based on the project's portfolio and the current context.",
         width: 90,
         valueFormatter: (params) =>
           params.value == null ? '—' : String(params.value),
@@ -63,7 +63,10 @@ const ProjectsGrid: FC<ProjectsGridProps> = (props: ProjectsGridProps) => {
         hide: props.hidePortfolio,
         cellRenderer: (params: ICellRendererParams<ProjectListDto>) => {
           if (!params.data) return null
-          return PortfolioLinkCellRenderer({ ...(params as any), data: params.data.portfolio })
+          return PortfolioLinkCellRenderer({
+            ...(params as any),
+            data: params.data.portfolio,
+          })
         },
       },
       {
@@ -73,40 +76,45 @@ const ProjectsGrid: FC<ProjectsGridProps> = (props: ProjectsGridProps) => {
         hide: props.hideProgram,
         cellRenderer: (params: ICellRendererParams<ProjectListDto>) =>
           params.data?.program
-            ? ProgramLinkCellRenderer({ ...(params as any), data: params.data.program })
+            ? ProgramLinkCellRenderer({
+                ...(params as any),
+                data: params.data.program,
+              })
             : null,
       },
       {
         field: 'start',
         width: 125,
-        valueGetter: (params) =>
-          params.data?.start && dayjs(params.data.start).format('MMM D, YYYY'),
+        type: 'dateOnly',
       },
       {
         field: 'end',
         width: 125,
-        valueGetter: (params) =>
-          params.data?.end && dayjs(params.data.end).format('MMM D, YYYY'),
+        type: 'dateOnly',
       },
       {
         field: 'projectManagers',
         headerName: 'PMs',
-        valueGetter: (params) => getSortedNames(params.data?.projectManagers ?? []),
+        valueGetter: (params) =>
+          getSortedNames(params.data?.projectManagers ?? []),
       },
       {
         field: 'projectOwners',
         headerName: 'Owners',
-        valueGetter: (params) => getSortedNames(params.data?.projectOwners ?? []),
+        valueGetter: (params) =>
+          getSortedNames(params.data?.projectOwners ?? []),
       },
       {
         field: 'projectSponsors',
         headerName: 'Sponsors',
-        valueGetter: (params) => getSortedNames(params.data?.projectSponsors ?? []),
+        valueGetter: (params) =>
+          getSortedNames(params.data?.projectSponsors ?? []),
       },
       {
         field: 'strategicThemes',
         headerName: 'Strategic Themes',
-        valueGetter: (params) => getSortedNames(params.data?.strategicThemes ?? []),
+        valueGetter: (params) =>
+          getSortedNames(params.data?.strategicThemes ?? []),
       },
       {
         field: 'projectLifecycle.name',

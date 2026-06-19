@@ -8,7 +8,6 @@ import { MenuProps, Progress } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import useAuth from '../../../../components/contexts/auth'
 import EditPlanningIntervalObjectiveForm from '@/src/app/planning/planning-intervals/_components/edit-planning-interval-objective-form'
-import dayjs from 'dayjs'
 import CreateHealthCheckForm from './create-pi-objective-health-check-form'
 import {
   NestedPiObjectiveHealthCheckStatusCellRenderer,
@@ -194,17 +193,11 @@ const PlanningIntervalObjectivesGrid = ({
       { field: 'progress', width: 250, cellRenderer: ProgressCellRenderer },
       {
         field: 'startDate',
-        valueGetter: (params) =>
-          params.data?.startDate
-            ? dayjs(params.data.startDate).format('M/D/YYYY')
-            : null,
+        type: 'dateOnly',
       },
       {
         field: 'targetDate',
-        valueGetter: (params) =>
-          params.data?.targetDate
-            ? dayjs(params.data.targetDate).format('M/D/YYYY')
-            : null,
+        type: 'dateOnly',
       },
       {
         field: 'order',

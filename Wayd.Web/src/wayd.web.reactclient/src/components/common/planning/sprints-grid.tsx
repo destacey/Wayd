@@ -31,9 +31,12 @@ const sprintLinkCellRenderer = (params: ICellRendererParams<SprintListDto>) => {
 const teamCellRenderer = (params: ICellRendererParams<SprintListDto>) =>
   renderTeamLinkHelper(params.data?.team)
 
+const formatUtcCalendarDate = (value: unknown) =>
+  value ? dayjs.utc(value as Date).format('MMM D, YYYY') : ''
+
 const utcAsCalendarDateValueFormatter = (
   params: ValueFormatterParams<SprintListDto>,
-) => params.value && dayjs.utc(params.value).format('M/D/YYYY')
+) => formatUtcCalendarDate(params.value)
 
 const SprintsGrid: FC<SprintsGridProps> = (props: SprintsGridProps) => {
   const { refetch, sprints = [] } = props
@@ -59,6 +62,7 @@ const SprintsGrid: FC<SprintsGridProps> = (props: SprintsGridProps) => {
         includeTime: false,
       },
       valueFormatter: utcAsCalendarDateValueFormatter,
+      getQuickFilterText: (params) => formatUtcCalendarDate(params.value),
     },
     {
       field: 'end',
@@ -69,6 +73,7 @@ const SprintsGrid: FC<SprintsGridProps> = (props: SprintsGridProps) => {
         includeTime: false,
       },
       valueFormatter: utcAsCalendarDateValueFormatter,
+      getQuickFilterText: (params) => formatUtcCalendarDate(params.value),
     },
   ], [props.hideTeam])
 

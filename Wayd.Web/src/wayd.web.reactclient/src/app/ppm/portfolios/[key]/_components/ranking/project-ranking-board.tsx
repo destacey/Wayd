@@ -41,7 +41,6 @@ import {
 } from 'react'
 import styles from './project-ranking-board.module.css'
 import { buildMoveRanksPayload, RankableRow } from './ranking'
-import dayjs from 'dayjs'
 
 export interface ProjectRankingBoardProps {
   portfolioId: string
@@ -473,14 +472,12 @@ const ProjectRankingBoard = ({
       {
         field: 'start',
         width: 125,
-        valueGetter: (params) =>
-          params.data?.start && dayjs(params.data.start).format('MMM D, YYYY'),
+        type: 'dateOnly',
       },
       {
         field: 'end',
         width: 125,
-        valueGetter: (params) =>
-          params.data?.end && dayjs(params.data.end).format('MMM D, YYYY'),
+        type: 'dateOnly',
       },
       {
         field: 'projectManagers',

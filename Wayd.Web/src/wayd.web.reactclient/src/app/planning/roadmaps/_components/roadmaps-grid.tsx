@@ -2,8 +2,7 @@
 
 import { WaydGrid } from '@/src/components/common'
 import { RoadmapListDto } from '@/src/services/wayd-api'
-import { ColDef, ICellRendererParams, ValueFormatterParams } from 'ag-grid-community'
-import dayjs from 'dayjs'
+import { ColDef, ICellRendererParams } from 'ag-grid-community'
 import Link from 'next/link'
 import { FC, ReactNode, useMemo } from 'react'
 
@@ -24,9 +23,6 @@ const RoadmapCellRenderer = ({ value, data }: ICellRendererParams<RoadmapGridRow
   return <Link href={`/planning/roadmaps/${data!.key}`}>{value}</Link>
 }
 
-const dateOnlyValueFormatter = (params: ValueFormatterParams<RoadmapGridRow>) =>
-  params.value && dayjs(params.value).format('M/D/YYYY')
-
 const RoadmapsGrid: FC<RoadmapsGridProps> = (props: RoadmapsGridProps) => {
   const rowData: RoadmapGridRow[] = props.roadmapsData.map((roadmap) => ({
     ...roadmap,
@@ -44,12 +40,12 @@ const RoadmapsGrid: FC<RoadmapsGridProps> = (props: RoadmapsGridProps) => {
       {
         field: 'start',
         width: 150,
-        valueFormatter: dateOnlyValueFormatter,
+        type: 'dateOnly',
       },
       {
         field: 'end',
         width: 150,
-        valueFormatter: dateOnlyValueFormatter,
+        type: 'dateOnly',
       },
       {
         field: 'roadmapManagersDisplay',

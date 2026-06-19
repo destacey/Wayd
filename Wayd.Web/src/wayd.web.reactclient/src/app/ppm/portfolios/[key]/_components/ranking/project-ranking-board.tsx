@@ -48,7 +48,7 @@ export interface ProjectRankingBoardProps {
   projects: ProjectListDto[]
   /** Current-model score breakdown per project + the model definition for criterion/output columns. */
   scoreboard?: PortfolioRankingScoreboardDto
-  /** Whether the current user may rank (portfolio Update permission). */
+  /** Whether the current user may rank (portfolio Update permission AND is a portfolio Owner or Manager). */
   canManage: boolean
   isLoading?: boolean
   refetch: () => void
@@ -346,7 +346,7 @@ const ProjectRankingBoard = ({
   const columnDefs = useMemo<ColDef<ProjectListDto>[]>(
     () => [
       {
-        width: 70,
+        width: dragEnabled ? 60 : 40,
         filter: false,
         sortable: false,
         resizable: false,
@@ -551,4 +551,3 @@ const ProjectRankingBoard = ({
 }
 
 export default ProjectRankingBoard
-

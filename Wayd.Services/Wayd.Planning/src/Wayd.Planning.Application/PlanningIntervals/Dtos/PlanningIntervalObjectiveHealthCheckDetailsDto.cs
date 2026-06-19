@@ -1,4 +1,4 @@
-using Mapster;
+﻿using Mapster;
 using Wayd.Common.Application.Dtos;
 using Wayd.Planning.Domain.Models;
 
@@ -45,6 +45,6 @@ public sealed record PlanningIntervalObjectiveHealthCheckDetailsDto : IMapFrom<P
     {
         config.NewConfig<PlanningIntervalObjectiveHealthCheck, PlanningIntervalObjectiveHealthCheckDetailsDto>()
             .Map(dest => dest.Status, src => SimpleNavigationDto.FromEnum(src.Status))
-            .Map(dest => dest.ReportedBy, src => NavigationDto.Create(src.ReportedBy.Id, src.ReportedBy.Key, src.ReportedBy.Name.FullName));
+            .Map(dest => dest.ReportedBy, src => NavigationDto.Create(src.ReportedBy.Id, src.ReportedBy.Key, src.ReportedBy.Name.DisplayName));
     }
 }

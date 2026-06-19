@@ -1,4 +1,4 @@
-namespace Wayd.Infrastructure.DataProtection;
+﻿namespace Wayd.Infrastructure.DataProtection;
 
 public sealed class DataProtectionSettings
 {

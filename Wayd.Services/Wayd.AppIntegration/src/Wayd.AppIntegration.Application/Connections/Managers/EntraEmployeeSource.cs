@@ -1,4 +1,4 @@
-using Wayd.AppIntegration.Domain.Models.Entra;
+﻿using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Integrations.Abstractions;

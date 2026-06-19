@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Identity;
+﻿using Wayd.Common.Domain.Identity;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Data;
 using NodaTime.Extensions;

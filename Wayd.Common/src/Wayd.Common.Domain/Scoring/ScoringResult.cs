@@ -1,4 +1,4 @@
-namespace Wayd.Common.Domain.Scoring;
+﻿namespace Wayd.Common.Domain.Scoring;
 
 /// <summary>
 /// The outcome of evaluating a scoring model against a set of rated criteria: the primary score plus

@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Persistence;
+﻿using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.Identity;
 
 namespace Wayd.Common.Application.Identity.PersonalAccessTokens.Commands;

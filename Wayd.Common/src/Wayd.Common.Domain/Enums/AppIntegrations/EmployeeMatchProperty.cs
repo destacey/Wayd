@@ -1,4 +1,4 @@
-namespace Wayd.Common.Domain.Enums.AppIntegrations;
+﻿namespace Wayd.Common.Domain.Enums.AppIntegrations;
 
 /// <summary>
 /// Which uniquely-indexed field on <c>Employee</c> a PeopleSync connection uses to find an

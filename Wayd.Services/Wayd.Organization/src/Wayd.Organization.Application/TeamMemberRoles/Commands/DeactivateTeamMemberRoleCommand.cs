@@ -1,4 +1,4 @@
-namespace Wayd.Organization.Application.TeamMemberRoles.Commands;
+﻿namespace Wayd.Organization.Application.TeamMemberRoles.Commands;
 
 public sealed record DeactivateTeamMemberRoleCommand(Guid Id) : ICommand;
 

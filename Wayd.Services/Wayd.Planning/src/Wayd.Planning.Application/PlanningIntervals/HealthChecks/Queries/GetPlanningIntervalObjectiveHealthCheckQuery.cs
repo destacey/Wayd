@@ -1,4 +1,4 @@
-using Wayd.Planning.Application.PlanningIntervals.Dtos;
+﻿using Wayd.Planning.Application.PlanningIntervals.Dtos;
 
 namespace Wayd.Planning.Application.PlanningIntervals.HealthChecks.Queries;
 

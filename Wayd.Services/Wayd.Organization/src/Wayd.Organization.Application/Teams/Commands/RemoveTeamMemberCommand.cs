@@ -1,4 +1,4 @@
-namespace Wayd.Organization.Application.Teams.Commands;
+﻿namespace Wayd.Organization.Application.Teams.Commands;
 
 public sealed record RemoveTeamMemberCommand(Guid TeamId, Guid EmployeeId) : ICommand;
 

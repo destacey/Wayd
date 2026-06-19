@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;

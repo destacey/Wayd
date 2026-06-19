@@ -1,4 +1,4 @@
-using FluentValidation.TestHelper;
+﻿using FluentValidation.TestHelper;
 using Wayd.Common.Application.Identity.OidcProviders.Commands;
 using Wayd.Common.Application.Identity.Roles;
 

@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Dtos;
+﻿using Wayd.Common.Application.Dtos;
 using Wayd.Work.Application.WorkItems.Dtos;
 
 namespace Wayd.Web.Api.Models.Planning.PlanningIntervals;

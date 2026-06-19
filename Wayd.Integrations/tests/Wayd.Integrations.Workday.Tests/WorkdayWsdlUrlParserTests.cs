@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.AppIntegration.Domain.Models.Workday;
 using Xunit;
 

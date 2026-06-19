@@ -1,4 +1,4 @@
-namespace Wayd.Web.Api.Models.Admin;
+﻿namespace Wayd.Web.Api.Models.Admin;
 
 public class ToggleFeatureFlagRequest
 {

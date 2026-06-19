@@ -1,4 +1,4 @@
-using Wayd.AppIntegration.Application.Connections.Commands.AzureOpenAI;
+﻿using Wayd.AppIntegration.Application.Connections.Commands.AzureOpenAI;
 
 namespace Wayd.Web.Api.Models.AppIntegrations.Connections;
 

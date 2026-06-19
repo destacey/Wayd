@@ -1,4 +1,4 @@
-namespace Wayd.Common.Domain.Enums.AppIntegrations;
+﻿namespace Wayd.Common.Domain.Enums.AppIntegrations;
 
 public static class ConnectorExtensions
 {

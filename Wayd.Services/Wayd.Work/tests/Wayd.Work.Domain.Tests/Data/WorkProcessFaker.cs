@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Enums;
+﻿using Wayd.Common.Domain.Enums;
 using Wayd.Tests.Shared.Data;
 using Wayd.Work.Domain.Models;
 

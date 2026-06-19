@@ -1,4 +1,4 @@
-using Wayd.Common.Application.HealthChecks.Dtos;
+﻿using Wayd.Common.Application.HealthChecks.Dtos;
 using Wayd.Common.Application.HealthChecks.Queries;
 
 namespace Wayd.Web.Api.Controllers.HealthChecks;

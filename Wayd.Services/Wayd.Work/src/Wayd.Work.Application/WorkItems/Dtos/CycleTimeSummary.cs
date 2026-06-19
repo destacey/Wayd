@@ -1,4 +1,4 @@
-namespace Wayd.Work.Application.WorkItems.Dtos;
+﻿namespace Wayd.Work.Application.WorkItems.Dtos;
 
 /// <summary>
 /// Cycle-time rollup over a set of completed work items.

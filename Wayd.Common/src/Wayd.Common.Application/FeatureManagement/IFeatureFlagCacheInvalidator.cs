@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.FeatureManagement;
+﻿namespace Wayd.Common.Application.FeatureManagement;
 
 public interface IFeatureFlagCacheInvalidator
 {

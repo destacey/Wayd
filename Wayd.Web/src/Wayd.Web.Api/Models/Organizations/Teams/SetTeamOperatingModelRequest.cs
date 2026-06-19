@@ -1,4 +1,4 @@
-using Wayd.Organization.Application.Teams.Commands;
+﻿using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Domain.Enums;
 
 namespace Wayd.Web.Api.Models.Organizations.Teams;

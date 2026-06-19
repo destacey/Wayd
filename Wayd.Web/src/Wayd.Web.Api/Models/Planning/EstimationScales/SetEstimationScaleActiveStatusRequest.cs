@@ -1,4 +1,4 @@
-namespace Wayd.Web.Api.Models.Planning.EstimationScales;
+﻿namespace Wayd.Web.Api.Models.Planning.EstimationScales;
 
 public class SetEstimationScaleActiveStatusRequest
 {

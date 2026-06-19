@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using Wayd.Common.Application.Identity.Bootstrap;
 
 namespace Wayd.Infrastructure.Auth.Bootstrap;

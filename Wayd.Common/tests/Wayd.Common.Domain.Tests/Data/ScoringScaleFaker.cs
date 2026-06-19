@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Scoring;
+﻿using Wayd.Common.Domain.Scoring;
 using Wayd.Tests.Shared.Data;
 
 namespace Wayd.Common.Domain.Tests.Data;

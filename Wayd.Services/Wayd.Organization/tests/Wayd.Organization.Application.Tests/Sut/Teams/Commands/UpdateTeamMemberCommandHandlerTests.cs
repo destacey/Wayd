@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Moq;
 using Wayd.Common.Domain.Tests.Data;
 using Wayd.Organization.Application.Teams.Commands;

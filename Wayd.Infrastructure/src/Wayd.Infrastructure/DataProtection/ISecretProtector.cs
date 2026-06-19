@@ -1,4 +1,4 @@
-namespace Wayd.Infrastructure.DataProtection;
+﻿namespace Wayd.Infrastructure.DataProtection;
 
 /// <summary>
 /// Encrypts and decrypts short string secrets (PATs, API keys) for at-rest storage.

@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Enums.StrategicManagement;
+﻿using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.StrategicManagement.Domain.Models;
 using Wayd.Tests.Shared.Data;
 

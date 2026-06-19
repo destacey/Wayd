@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication;
+﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Wayd.Infrastructure.Auth.PersonalAccessToken;

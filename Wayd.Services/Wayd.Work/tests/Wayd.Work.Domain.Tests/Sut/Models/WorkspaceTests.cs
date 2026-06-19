@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.Tests.Shared;
 using Wayd.Work.Domain.Tests.Data;
 

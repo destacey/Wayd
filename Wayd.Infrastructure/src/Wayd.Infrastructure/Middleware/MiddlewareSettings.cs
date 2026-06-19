@@ -1,4 +1,4 @@
-namespace Wayd.Infrastructure.Middleware;
+﻿namespace Wayd.Infrastructure.Middleware;
 
 public class MiddlewareSettings
 {

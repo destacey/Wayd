@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.Integrations.Workday.Soap;
 using Xunit;
 

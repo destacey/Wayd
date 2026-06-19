@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Identity.Bootstrap;
+﻿namespace Wayd.Common.Application.Identity.Bootstrap;
 
 /// <summary>
 /// Manages the one-time bootstrap token used to create the first admin user.

@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Identity.Users;
+﻿namespace Wayd.Common.Application.Identity.Users;
 
 /// <summary>
 /// A user eligible to be bulk-migrated off a given source tenant: bound to the

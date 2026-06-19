@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
+﻿using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Queries;

@@ -1,4 +1,4 @@
-using Mapster;
+﻿using Mapster;
 using Wayd.Common.Domain.FeatureManagement;
 
 namespace Wayd.Common.Application.FeatureManagement.Dtos;

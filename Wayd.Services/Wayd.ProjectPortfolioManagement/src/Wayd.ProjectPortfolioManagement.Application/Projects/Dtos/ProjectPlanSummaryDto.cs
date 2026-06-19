@@ -1,4 +1,4 @@
-namespace Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
+﻿namespace Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 
 /// <summary>
 /// Summary metrics for a project's plan, computed from leaf tasks.

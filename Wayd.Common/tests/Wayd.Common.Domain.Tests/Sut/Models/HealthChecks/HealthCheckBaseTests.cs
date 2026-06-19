@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Enums;
+﻿using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Tests.Data.Models;
 
 namespace Wayd.Common.Domain.Tests.Sut.Models.HealthChecks;

@@ -1,4 +1,4 @@
-namespace Wayd.AppIntegration.Domain.Interfaces;
+﻿namespace Wayd.AppIntegration.Domain.Interfaces;
 
 /// <summary>
 /// Implemented by every connection that participates in a sync runner — work-sync (AzDO),

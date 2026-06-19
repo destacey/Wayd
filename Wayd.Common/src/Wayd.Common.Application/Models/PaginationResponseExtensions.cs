@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Models;
+﻿namespace Wayd.Common.Application.Models;
 
 public static class PaginationResponseExtensions
 {

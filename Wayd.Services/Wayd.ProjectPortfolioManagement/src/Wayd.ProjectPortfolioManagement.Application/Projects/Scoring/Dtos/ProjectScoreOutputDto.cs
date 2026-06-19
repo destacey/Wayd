@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Dtos;
+﻿using Wayd.Common.Application.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Scoring.Dtos;

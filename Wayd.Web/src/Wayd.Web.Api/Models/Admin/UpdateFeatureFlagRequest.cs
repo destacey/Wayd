@@ -1,4 +1,4 @@
-using Wayd.Common.Application.FeatureManagement.Commands;
+﻿using Wayd.Common.Application.FeatureManagement.Commands;
 
 namespace Wayd.Web.Api.Models.Admin;
 

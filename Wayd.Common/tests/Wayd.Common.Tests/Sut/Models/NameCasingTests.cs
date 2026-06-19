@@ -1,4 +1,4 @@
-using Wayd.Common.Models;
+﻿using Wayd.Common.Models;
 
 namespace Wayd.Common.Tests.Sut.Models;
 

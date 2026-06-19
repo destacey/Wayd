@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Identity.Tokens;
+﻿namespace Wayd.Common.Application.Identity.Tokens;
 
 public interface ITokenService : ITransientService
 {

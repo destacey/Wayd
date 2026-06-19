@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Wayd.Common.Application.Search;
 using Wayd.Common.Application.Search.Dtos;
 using Wayd.Web.Api.Extensions;

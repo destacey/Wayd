@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 

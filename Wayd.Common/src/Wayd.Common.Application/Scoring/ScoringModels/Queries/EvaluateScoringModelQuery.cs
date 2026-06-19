@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Persistence;
+﻿using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.Scoring.ScoringModels.Dtos;
 
 namespace Wayd.Common.Application.Scoring.ScoringModels.Queries;

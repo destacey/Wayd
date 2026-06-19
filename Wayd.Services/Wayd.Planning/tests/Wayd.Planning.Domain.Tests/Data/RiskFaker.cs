@@ -1,4 +1,4 @@
-using Wayd.Planning.Domain.Enums;
+﻿using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models;
 using Wayd.Tests.Shared.Data;
 using NodaTime.Extensions;

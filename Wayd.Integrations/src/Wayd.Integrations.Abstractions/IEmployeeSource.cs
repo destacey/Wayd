@@ -1,4 +1,4 @@
-namespace Wayd.Integrations.Abstractions;
+﻿namespace Wayd.Integrations.Abstractions;
 
 /// <summary>
 /// Connector-neutral contract for pulling employees from an external people system. One

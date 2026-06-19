@@ -1,4 +1,4 @@
-namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
+﻿namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
 
 public sealed record MoveProjectRanksCommand(
     Guid PortfolioId,

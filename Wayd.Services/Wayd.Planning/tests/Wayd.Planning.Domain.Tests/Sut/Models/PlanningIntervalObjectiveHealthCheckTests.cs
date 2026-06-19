@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Enums;
+﻿using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models;

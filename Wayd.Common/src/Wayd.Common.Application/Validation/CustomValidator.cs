@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Validation;
+﻿namespace Wayd.Common.Application.Validation;
 
 public class CustomValidator<T> : AbstractValidator<T>
 {

@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.ArchitectureTests.Helpers;
 using static Wayd.ArchitectureTests.Helpers.FileSystemHelper;
 

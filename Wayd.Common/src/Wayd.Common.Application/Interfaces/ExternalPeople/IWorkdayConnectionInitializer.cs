@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Interfaces.ExternalPeople;
+﻿namespace Wayd.Common.Application.Interfaces.ExternalPeople;
 
 /// <summary>
 /// Runs a small probe against a Workday tenant to validate that the connection can authenticate

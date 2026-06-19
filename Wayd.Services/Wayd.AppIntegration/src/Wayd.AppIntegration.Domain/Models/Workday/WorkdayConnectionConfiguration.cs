@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Wayd.Common.Domain.DataProtection;

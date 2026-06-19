@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Wayd.Common.Application.Requests.Goals.Commands;
 using Wayd.Common.Application.Requests.Goals.Queries;
 

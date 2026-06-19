@@ -1,4 +1,4 @@
-using Wayd.AppIntegration.Domain.Models.Entra;
+﻿using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 
 namespace Wayd.AppIntegration.Application.Connections.Dtos.Entra;

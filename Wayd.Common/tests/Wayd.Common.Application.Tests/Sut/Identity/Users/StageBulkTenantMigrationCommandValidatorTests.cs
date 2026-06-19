@@ -1,4 +1,4 @@
-using FluentValidation.TestHelper;
+﻿using FluentValidation.TestHelper;
 using Wayd.Common.Application.Identity.Users;
 
 namespace Wayd.Common.Application.Tests.Sut.Identity.Users;

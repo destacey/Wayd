@@ -1,4 +1,4 @@
-using Wayd.Planning.Application.EstimationScales.Commands;
+﻿using Wayd.Planning.Application.EstimationScales.Commands;
 
 namespace Wayd.Web.Api.Models.Planning.EstimationScales;
 

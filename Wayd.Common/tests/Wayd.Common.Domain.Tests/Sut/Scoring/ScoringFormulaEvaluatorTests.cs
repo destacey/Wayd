@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.Common.Domain.Scoring;
 
 namespace Wayd.Common.Domain.Tests.Sut.Scoring;

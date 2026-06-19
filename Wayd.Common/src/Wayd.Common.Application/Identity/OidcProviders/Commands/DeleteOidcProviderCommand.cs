@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Identity.OidcProviders.Commands;
+﻿namespace Wayd.Common.Application.Identity.OidcProviders.Commands;
 
 /// <summary>
 /// Deletes an OIDC provider configuration. The handler refuses if any user

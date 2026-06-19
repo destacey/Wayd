@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Dtos;
+﻿using Wayd.Common.Application.Dtos;
 
 namespace Wayd.Common.Application.Requests.AppIntegration;
 

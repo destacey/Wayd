@@ -1,4 +1,4 @@
-using Mapster;
+﻿using Mapster;
 using Wayd.Organization.Application.Teams.Dtos;
 
 namespace Wayd.Organization.Application.Teams.Queries;

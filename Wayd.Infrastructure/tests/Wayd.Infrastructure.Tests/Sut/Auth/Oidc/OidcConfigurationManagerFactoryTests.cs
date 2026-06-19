@@ -1,4 +1,4 @@
-using Wayd.Infrastructure.Auth.Oidc;
+﻿using Wayd.Infrastructure.Auth.Oidc;
 
 namespace Wayd.Infrastructure.Tests.Sut.Auth.Oidc;
 

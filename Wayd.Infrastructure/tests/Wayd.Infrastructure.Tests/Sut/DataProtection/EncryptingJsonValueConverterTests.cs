@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Wayd.Common.Domain.DataProtection;

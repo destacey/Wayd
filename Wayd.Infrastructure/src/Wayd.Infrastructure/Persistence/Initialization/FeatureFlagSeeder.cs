@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Domain.FeatureManagement;
 

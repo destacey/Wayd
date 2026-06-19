@@ -1,4 +1,4 @@
-using FluentValidation.TestHelper;
+﻿using FluentValidation.TestHelper;
 using Wayd.Common.Domain.Identity;
 using Wayd.Web.Api.Models.UserManagement.OidcProviders;
 

@@ -1,4 +1,4 @@
-using Wayd.Planning.Domain.Enums;
+﻿using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Tests.Shared.Data;
 

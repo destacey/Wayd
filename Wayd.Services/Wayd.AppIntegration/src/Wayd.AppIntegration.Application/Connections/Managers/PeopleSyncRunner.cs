@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.Json;
 using MediatR;
 using Wayd.AppIntegration.Application.Interfaces;

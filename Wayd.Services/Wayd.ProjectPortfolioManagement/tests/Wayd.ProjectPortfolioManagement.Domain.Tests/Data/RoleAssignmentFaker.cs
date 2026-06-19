@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Domain.Models;
+﻿using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.Tests.Shared.Data;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Data;

@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Scoring.ScoringModels.Dtos;
+﻿namespace Wayd.Common.Application.Scoring.ScoringModels.Dtos;
 
 /// <summary>
 /// The result of evaluating a scoring model against a set of supplied criterion values. Carries every

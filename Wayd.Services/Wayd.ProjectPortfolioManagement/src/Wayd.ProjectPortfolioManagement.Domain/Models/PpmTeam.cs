@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Enums.Organization;
+﻿using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Interfaces.Organization;
 using Wayd.Common.Domain.Models.Organizations;

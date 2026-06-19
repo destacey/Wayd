@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Scoring;
+﻿using Wayd.Common.Domain.Scoring;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Scoring.Commands;
 

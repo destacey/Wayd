@@ -1,4 +1,4 @@
-using Ardalis.GuardClauses;
+﻿using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Data;
 

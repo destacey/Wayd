@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Identity.Users;
+﻿namespace Wayd.Common.Application.Identity.Users;
 
 /// <summary>
 /// A user on the provider with a staged-but-not-yet-completed tenant migration.

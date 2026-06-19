@@ -1,4 +1,4 @@
-using Wayd.Planning.Application.PokerSessions.Interfaces;
+﻿using Wayd.Planning.Application.PokerSessions.Interfaces;
 
 namespace Wayd.Planning.Application.PokerSessions.Commands;
 

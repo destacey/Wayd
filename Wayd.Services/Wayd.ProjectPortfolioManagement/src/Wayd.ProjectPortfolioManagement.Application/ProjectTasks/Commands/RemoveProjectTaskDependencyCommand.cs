@@ -1,4 +1,4 @@
-namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
+﻿namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
 
 /// <summary>
 /// Removes (soft deletes) a dependency between two tasks.

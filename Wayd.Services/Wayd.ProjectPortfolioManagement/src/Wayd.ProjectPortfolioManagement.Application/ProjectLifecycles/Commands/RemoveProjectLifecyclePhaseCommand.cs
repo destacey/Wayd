@@ -1,4 +1,4 @@
-namespace Wayd.ProjectPortfolioManagement.Application.ProjectLifecycles.Commands;
+﻿namespace Wayd.ProjectPortfolioManagement.Application.ProjectLifecycles.Commands;
 
 public sealed record RemoveProjectLifecyclePhaseCommand(
     Guid LifecycleId,

@@ -1,4 +1,4 @@
-namespace Wayd.Integrations.Abstractions;
+﻿namespace Wayd.Integrations.Abstractions;
 
 /// <summary>
 /// Connector-neutral snapshot of a syncable connection handed to an <see cref="IWorkItemSource"/>

@@ -1,4 +1,4 @@
-namespace Wayd.Planning.Application.EstimationScales.Commands;
+﻿namespace Wayd.Planning.Application.EstimationScales.Commands;
 
 public sealed record UpdateEstimationScaleCommand(int Id, string Name, string? Description, List<string> Values) : ICommand;
 

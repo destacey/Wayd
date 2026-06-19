@@ -1,4 +1,4 @@
-namespace Wayd.Common.Domain.DataProtection;
+﻿namespace Wayd.Common.Domain.DataProtection;
 
 /// <summary>
 /// Marks a string property whose value must be encrypted at rest when its containing

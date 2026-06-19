@@ -1,4 +1,4 @@
-using Microsoft.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
 
 namespace Wayd.Infrastructure.Persistence.ConnectionString;

@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Requests.Goals.Dtos;
+﻿using Wayd.Common.Application.Requests.Goals.Dtos;
 using Wayd.Common.Application.Requests.Goals.Queries;
 using Wayd.Goals.Application.Persistence;
 

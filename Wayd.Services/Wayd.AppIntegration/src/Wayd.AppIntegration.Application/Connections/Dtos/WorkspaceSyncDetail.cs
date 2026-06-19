@@ -1,4 +1,4 @@
-using Wayd.Integrations.Abstractions;
+﻿using Wayd.Integrations.Abstractions;
 
 namespace Wayd.AppIntegration.Application.Connections.Dtos;
 

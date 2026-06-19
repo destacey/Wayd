@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Requests.WorkManagement.Commands;
+﻿using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.Workspaces.Commands;

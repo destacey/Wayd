@@ -1,4 +1,4 @@
-namespace Wayd.Web.Api.Models.Ppm.Portfolios;
+﻿namespace Wayd.Web.Api.Models.Ppm.Portfolios;
 
 public sealed record AssignPortfolioScoringModelRequest
 {

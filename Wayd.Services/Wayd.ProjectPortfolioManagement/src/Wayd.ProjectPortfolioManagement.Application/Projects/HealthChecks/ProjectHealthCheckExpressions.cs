@@ -1,4 +1,4 @@
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.HealthChecks;

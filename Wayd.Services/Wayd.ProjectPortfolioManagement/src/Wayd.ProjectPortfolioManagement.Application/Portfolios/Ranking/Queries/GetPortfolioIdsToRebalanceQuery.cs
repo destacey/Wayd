@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Queries;

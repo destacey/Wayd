@@ -1,4 +1,4 @@
-namespace Wayd.ArchitectureTests.Helpers;
+﻿namespace Wayd.ArchitectureTests.Helpers;
 
 /// <summary>
 /// Provides helper methods for loading and accessing assemblies in architecture tests.

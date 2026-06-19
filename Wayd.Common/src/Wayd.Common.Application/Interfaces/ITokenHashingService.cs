@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Interfaces;
+﻿namespace Wayd.Common.Application.Interfaces;
 
 /// <summary>
 /// Service for securely hashing and validating personal access tokens.

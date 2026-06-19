@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Interfaces.ExternalPeople;
+﻿using Wayd.Common.Application.Interfaces.ExternalPeople;
 
 namespace Wayd.Integrations.Abstractions;
 

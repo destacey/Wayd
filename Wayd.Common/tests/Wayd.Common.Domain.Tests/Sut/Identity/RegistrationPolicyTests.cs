@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Identity;
+﻿using Wayd.Common.Domain.Identity;
 
 namespace Wayd.Common.Domain.Tests.Sut.Identity;
 

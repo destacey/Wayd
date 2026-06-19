@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Interfaces.ExternalPeople;
+﻿namespace Wayd.Common.Application.Interfaces.ExternalPeople;
 
 /// <summary>
 /// Fetches workers from a specific Workday tenant identified by the supplied

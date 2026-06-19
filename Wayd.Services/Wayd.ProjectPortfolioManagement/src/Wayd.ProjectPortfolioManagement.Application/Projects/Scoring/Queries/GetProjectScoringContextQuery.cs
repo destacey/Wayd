@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Scoring.ScoringModels.Dtos;
+﻿using Wayd.Common.Application.Scoring.ScoringModels.Dtos;
 using Wayd.Common.Domain.Scoring.Enums;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Scoring.Dtos;
 

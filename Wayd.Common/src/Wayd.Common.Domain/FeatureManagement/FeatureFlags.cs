@@ -1,4 +1,4 @@
-namespace Wayd.Common.Domain.FeatureManagement;
+﻿namespace Wayd.Common.Domain.FeatureManagement;
 
 /// <summary>
 /// Defines all known feature flag names used in the application.

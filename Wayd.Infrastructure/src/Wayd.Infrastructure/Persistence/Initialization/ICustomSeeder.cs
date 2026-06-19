@@ -1,4 +1,4 @@
-namespace Wayd.Infrastructure.Persistence.Initialization;
+﻿namespace Wayd.Infrastructure.Persistence.Initialization;
 
 public interface ICustomSeeder
 {

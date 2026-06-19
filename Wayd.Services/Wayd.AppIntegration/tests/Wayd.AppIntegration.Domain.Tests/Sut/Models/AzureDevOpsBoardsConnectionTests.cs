@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.AppIntegration.Domain.Interfaces;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Domain.Models;

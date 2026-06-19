@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using NodaTime;

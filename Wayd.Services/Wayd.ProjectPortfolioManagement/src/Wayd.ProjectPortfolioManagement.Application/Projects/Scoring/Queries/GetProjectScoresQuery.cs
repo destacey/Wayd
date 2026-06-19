@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Application.Projects.Scoring.Dtos;
+﻿using Wayd.ProjectPortfolioManagement.Application.Projects.Scoring.Dtos;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Scoring.Queries;
 

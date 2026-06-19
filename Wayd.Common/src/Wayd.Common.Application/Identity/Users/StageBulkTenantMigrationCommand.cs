@@ -1,4 +1,4 @@
-namespace Wayd.Common.Application.Identity.Users;
+﻿namespace Wayd.Common.Application.Identity.Users;
 
 /// <summary>
 /// Stages an Entra tenant migration for multiple users at once, initiated from the

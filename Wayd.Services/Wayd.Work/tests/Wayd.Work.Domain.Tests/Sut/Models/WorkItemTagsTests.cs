@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NodaTime;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Work.Domain.Models;

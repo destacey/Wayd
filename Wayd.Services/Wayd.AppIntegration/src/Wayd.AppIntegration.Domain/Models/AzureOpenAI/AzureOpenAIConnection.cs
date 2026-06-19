@@ -1,4 +1,4 @@
-using Wayd.Common.Extensions;
+﻿using Wayd.Common.Extensions;
 
 namespace Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 

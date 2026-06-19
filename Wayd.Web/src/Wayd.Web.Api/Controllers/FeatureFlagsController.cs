@@ -1,4 +1,4 @@
-using Wayd.Common.Application.FeatureManagement.Dtos;
+﻿using Wayd.Common.Application.FeatureManagement.Dtos;
 using Wayd.Common.Application.FeatureManagement.Queries;
 
 namespace Wayd.Web.Api.Controllers;

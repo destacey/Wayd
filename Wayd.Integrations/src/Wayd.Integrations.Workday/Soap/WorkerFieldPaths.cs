@@ -1,4 +1,4 @@
-namespace Wayd.Integrations.Workday.Soap;
+﻿namespace Wayd.Integrations.Workday.Soap;
 
 /// <summary>
 /// Centralized XPath expressions for the Worker fields Wayd consumes. Used by both the bulk-sync

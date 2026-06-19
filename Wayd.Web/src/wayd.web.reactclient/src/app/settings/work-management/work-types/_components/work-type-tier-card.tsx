@@ -1,6 +1,6 @@
-import { WaydEmpty } from '@/src/components/common'
+import { WaydEmpty, WaydList } from '@/src/components/common'
 import { WorkTypeLevelDto, WorkTypeTierDto } from '@/src/services/wayd-api'
-import { Button, Card, List, Typography } from 'antd'
+import { Button, Card, Typography } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { CreateWorkTypeLevelForm, WorkTypeLevelCard } from '.'
 import { PlusOutlined } from '@ant-design/icons'
@@ -135,7 +135,7 @@ const WorkTypeTierCard = (props: WorkTypeTierCardProps) => {
           collisionDetection={closestCorners}
           onDragEnd={onDragEnd}
         >
-          <List
+          <WaydList
             size="small"
             style={{ width: '100%' }}
             dataSource={orderedLevels}

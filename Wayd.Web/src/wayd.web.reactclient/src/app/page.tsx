@@ -1,6 +1,7 @@
 'use client'
 
 import { Col, Divider, Row } from 'antd'
+import { useState } from 'react'
 import ActivePlanningIntervals from '../components/common/planning/active-planning-intervals'
 import MyAssignedRisks from '../components/common/planning/my-assigned-risks'
 import MyTeamSprints from '../components/common/planning/my-team-sprints'
@@ -10,10 +11,12 @@ import { useDocumentTitle } from '../hooks/use-document-title'
 const HomePage = () => {
   useDocumentTitle('Home')
 
+  const [hasTeamSprints, setHasTeamSprints] = useState(false)
+
   // TODO: have these load after the page is loaded
   return (
     <Row gutter={[16, 16]}>
-      <Col xs={24} lg={16}>
+      <Col xs={24} lg={hasTeamSprints ? 16 : 24}>
         <ActivePlanningIntervals />
         <Divider />
         <Row gutter={[16, 16]}>
@@ -25,8 +28,8 @@ const HomePage = () => {
           </Col>
         </Row>
       </Col>
-      <Col xs={24} lg={8}>
-        <MyTeamSprints />
+      <Col xs={hasTeamSprints ? 24 : 0} lg={hasTeamSprints ? 8 : 0}>
+        <MyTeamSprints onHasSprintsChange={setHasTeamSprints} />
       </Col>
     </Row>
   )

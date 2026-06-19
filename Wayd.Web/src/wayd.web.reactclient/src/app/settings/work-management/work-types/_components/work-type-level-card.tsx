@@ -1,5 +1,6 @@
 import { WorkTypeLevelDto } from '@/src/services/wayd-api'
-import { Button, Card, List } from 'antd'
+import { Button, Card } from 'antd'
+import WaydList from '@/src/components/common/wayd-list'
 import { EditWorkTypeLevelForm } from '.'
 import { useState } from 'react'
 import { EditOutlined, HolderOutlined } from '@ant-design/icons'
@@ -7,7 +8,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 
-const { Item } = List
+const { Item } = WaydList
 const { Meta } = Item
 
 interface WorkTypeLevelCardProps {

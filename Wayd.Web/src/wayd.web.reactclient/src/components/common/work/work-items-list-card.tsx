@@ -1,6 +1,6 @@
 import { WorkItemListDto } from '@/src/services/wayd-api'
 import WaydEmpty from '../wayd-empty'
-import { List } from 'antd'
+import WaydList from '../wayd-list'
 import WorkItemListItem from './work-item-list-item'
 
 export interface WorkItemsListCardProps {
@@ -13,7 +13,7 @@ const WorkItemsListCard = ({
   isLoading,
 }: WorkItemsListCardProps) => {
   return (
-    <List
+    <WaydList
       size="small"
       loading={isLoading}
       dataSource={workItems}

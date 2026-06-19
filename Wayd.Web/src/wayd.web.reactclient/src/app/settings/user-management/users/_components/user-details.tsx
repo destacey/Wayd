@@ -2,14 +2,15 @@
 
 import { UserDetailsDto } from '@/src/services/wayd-api'
 import { InfoCircleOutlined } from '@ant-design/icons'
-import { Alert, Card, Descriptions, Flex, List, Tag, Typography } from 'antd'
+import { Alert, Card, Descriptions, Flex, Tag, Typography } from 'antd'
+import WaydList from '@/src/components/common/wayd-list'
 import dayjs from 'dayjs'
 import Link from 'next/link'
 
 const { Text } = Typography
 
 const { Item } = Descriptions
-const { Item: ListItem } = List
+const { Item: ListItem } = WaydList
 
 interface UserDetailsProps {
   user: UserDetailsDto
@@ -71,7 +72,7 @@ const UserDetails = (props: UserDetailsProps) => {
         )}
       </Descriptions>
       <Card size="small" title="Roles" style={{ width: 300 }}>
-        <List
+        <WaydList
           size="small"
           dataSource={user.roles}
           renderItem={(item) => (

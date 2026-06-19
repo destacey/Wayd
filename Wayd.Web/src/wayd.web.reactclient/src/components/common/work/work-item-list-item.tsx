@@ -1,12 +1,13 @@
 import { WorkItemListDto } from '@/src/services/wayd-api'
-import { Flex, List, Space, Tag, Typography } from 'antd'
+import { Flex, Space, Tag, Typography } from 'antd'
 import Link from 'next/link'
 import ExternalIconLink from '../external-icon-link'
+import WaydList from '../wayd-list'
 import { getWorkStatusCategoryColor } from '@/src/utils'
 import SprintLink from '../planning/sprint-link'
 import { WorkTypeTier } from '../../types'
 
-const { Item } = List
+const { Item } = WaydList
 const { Meta } = Item
 const { Text } = Typography
 

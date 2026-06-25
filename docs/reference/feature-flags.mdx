@@ -12,7 +12,7 @@ Wayd uses Microsoft.FeatureManagement to control feature visibility. Feature fla
 ## How It Works
 
 1. Flags are **defined in code** (`FeatureFlags.cs`)
-2. On startup, the **seeder** creates any new flags in the database (disabled by default)
+2. On startup, the **seeder** creates any new flags in the database. New flags are seeded **disabled by default**, unless the definition sets `DefaultEnabled: true`. The seeder only sets the initial state on first creation — it never overwrites an existing flag's state, so admin toggles are preserved across deploys.
 3. Admins **enable/disable** flags through the Settings UI
 4. A **database-backed provider** serves flag state with caching
 
@@ -28,9 +28,14 @@ public static class FeatureFlags
     public static readonly FeatureFlagDefinition MyNewFeature =
         new(Names.MyNewFeature, "My New Feature", "Description of what this feature does.");
 
+    // Seed a flag as ENABLED by default (e.g. rolling out a replacement UI):
+    public static readonly FeatureFlagDefinition MyDefaultOnFeature =
+        new(Names.MyDefaultOnFeature, "My Default-On Feature", "Enabled on first seed.", DefaultEnabled: true);
+
     public static class Names
     {
         public const string MyNewFeature = "my-new-feature";
+        public const string MyDefaultOnFeature = "my-default-on-feature";
     }
 }
 ```
@@ -54,13 +59,16 @@ if (!await _featureManager.IsEnabledAsync(FeatureFlags.Names.MyNewFeature))
 
 Page-level gate:
 ```typescript
-export default requireFeatureFlag('MyNewFeature')(MyPage)
+export default requireFeatureFlag('my-new-feature')(MyPage)
 ```
 
-Conditional rendering:
+Conditional rendering (the hook returns `{ isEnabled, isLoading }` and takes the
+kebab-case flag name):
 ```typescript
-const isEnabled = useFeatureFlag('MyNewFeature')
-if (!isEnabled) return null
+const { isEnabled, isLoading } = useFeatureFlag('my-new-feature')
+if (isLoading) return <Spin />
+if (!isEnabled) return <LegacyView />
+return <NewView />
 ```
 
 ### 4. Gate Menus

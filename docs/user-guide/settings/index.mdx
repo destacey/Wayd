@@ -148,7 +148,7 @@ Wayd uses **feature flags** to control the visibility of features across the app
 ### How Feature Flags Work
 
 1. Flags are **defined in code** by developers
-2. On application startup, new flags are **automatically seeded** into the database (disabled by default)
+2. On application startup, new flags are **automatically seeded** into the database — usually disabled, though some (such as replacement UIs being rolled out) are seeded enabled. Seeding only sets a flag's **initial** state; your enable/disable choices are preserved across updates
 3. Administrators **enable or disable** flags through the Settings UI
 4. The application checks flag state to **show or hide** features
 

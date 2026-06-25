@@ -56,8 +56,9 @@ export function resolveLevel<T, G>(
   level: number,
 ): { items: TimelineItem<T>[]; groups: TimelineGroup<G>[] } {
   const byId = new Map(groups.map((g) => [g.id, g]))
+  const depths = groupDepths(groups)
   const groupLevel = (g: TimelineGroup<G>) =>
-    g.treeLevel ?? (groupDepths(groups).get(g.id) ?? 0) + 1
+    g.treeLevel ?? (depths.get(g.id) ?? 0) + 1
 
   // Deepest level present (consider both groups and items).
   let maxLevel = 1

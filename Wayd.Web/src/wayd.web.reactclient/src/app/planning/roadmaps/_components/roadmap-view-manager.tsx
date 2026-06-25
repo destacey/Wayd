@@ -64,7 +64,7 @@ const RoadmapViewManager = (props: RoadmapViewManagerProps) => {
   // so confirm the action here. We await the refetch so the toast lands after it
   // settles. Failures surface through the query's own error state, not a throw.
   const refreshTimelineWithFeedback = async () => {
-    await Promise.resolve(props.refreshRoadmapItems())
+    await props.refreshRoadmapItems()
     messageApi.success('Timeline refreshed.')
   }
 

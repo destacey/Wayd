@@ -1,7 +1,7 @@
 'use client'
 
 import { useGetPlanningIntervalObjectiveQuery } from '@/src/store/features/planning/planning-interval-api'
-import { Button, Descriptions, Drawer, Flex } from 'antd'
+import { Button, Descriptions, Drawer, Flex, Progress } from 'antd'
 import Link from 'next/link'
 import dayjs from 'dayjs'
 import PlanningIntervalObjectiveWorkItemsCard from '../[key]/objectives/[objectiveKey]/_components/planning-interval-objective-work-items-card'
@@ -118,6 +118,19 @@ const PlanningIntervalObjectiveDetailsDrawer: FC<
                 <MarkdownRenderer markdown={objectiveData?.description} />
               </DescriptionsItem>
             </Descriptions>
+            {objectiveData?.status?.name !== 'Not Started' && (
+              <Progress
+                percent={objectiveData?.progress}
+                size="small"
+                status={
+                  ['Canceled', 'Missed'].includes(
+                    objectiveData?.status?.name ?? '',
+                  )
+                    ? 'exception'
+                    : undefined
+                }
+              />
+            )}
           </Flex>
           <PlanningIntervalObjectiveWorkItemsCard
             planningIntervalKey={props.planningIntervalKey}

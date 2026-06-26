@@ -26,6 +26,8 @@ interface PlanningIntervalObjectivesTimelineProps {
   enableGroups?: boolean
   teamNames?: string[]
   viewSelector?: React.ReactNode
+  onObjectiveClick?: (objectiveKey: number) => void
+  onRefresh?: () => void
 }
 
 interface ObjectiveDataItem extends WaydDataItem<

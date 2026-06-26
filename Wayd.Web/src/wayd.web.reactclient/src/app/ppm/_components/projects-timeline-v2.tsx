@@ -36,8 +36,8 @@ function mapProjects(
 } {
   const dated = projects.filter((p) => p.start && p.end)
 
-  let minMs = dayjs().valueOf()
-  let maxMs = dayjs().valueOf()
+  let minMs = dated.length > 0 ? ms(dated[0].start!) : dayjs().valueOf()
+  let maxMs = dated.length > 0 ? ms(dated[0].end!) : dayjs().valueOf()
 
   const items: TimelineItem<ProjectPayload>[] = dated.map((p, idx) => {
     const start = ms(p.start!)
@@ -101,7 +101,7 @@ const ProjectsTimelineV2: FC<ProjectsTimelineV2Props> = ({
     token,
   )
 
-  const noDatesCount = projects.filter((p) => !p.start).length
+  const noDatesCount = projects.filter((p) => !p.start || !p.end).length
 
   return (
     <>

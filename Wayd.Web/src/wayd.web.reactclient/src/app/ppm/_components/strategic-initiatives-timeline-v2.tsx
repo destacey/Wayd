@@ -33,8 +33,8 @@ function mapStrategicInitiatives(
 } {
   const dated = initiatives.filter((i) => i.start && i.end)
 
-  let minMs = dayjs().valueOf()
-  let maxMs = dayjs().valueOf()
+  let minMs = dated.length > 0 ? ms(dated[0].start!) : dayjs().valueOf()
+  let maxMs = dated.length > 0 ? ms(dated[0].end!) : dayjs().valueOf()
 
   const items: TimelineItem<StrategicInitiativePayload>[] = dated.map(
     (i, idx) => {

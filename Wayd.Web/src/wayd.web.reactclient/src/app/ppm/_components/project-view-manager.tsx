@@ -5,8 +5,7 @@ import {
   BuildOutlined,
   MenuOutlined,
 } from '@ant-design/icons'
-import { Segmented } from 'antd'
-import { Spin } from 'antd'
+import { Segmented, Spin } from 'antd'
 import { memo, useState } from 'react'
 import { ProjectListDto } from '@/src/services/wayd-api'
 import dynamic from 'next/dynamic'

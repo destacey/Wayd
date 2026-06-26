@@ -33,8 +33,8 @@ function mapPrograms(
 } {
   const dated = programs.filter((p) => p.start && p.end)
 
-  let minMs = dayjs().valueOf()
-  let maxMs = dayjs().valueOf()
+  let minMs = dated.length > 0 ? ms(dated[0].start!) : dayjs().valueOf()
+  let maxMs = dated.length > 0 ? ms(dated[0].end!) : dayjs().valueOf()
 
   const items: TimelineItem<ProgramPayload>[] = dated.map((p, idx) => {
     const start = ms(p.start!)

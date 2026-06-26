@@ -20,7 +20,7 @@ import { WaydTimeline2 } from '@/src/components/common/timeline2'
 import type { TimelineItem, TimelineGroup } from '@/src/components/common/timeline2'
 
 
-const ms = (d: unknown) => dayjs(d as string).valueOf()
+const ms = (d: dayjs.ConfigType) => dayjs(d).valueOf()
 
 interface PiObjectivesPayload {
   dto: PlanningIntervalObjectiveListDto

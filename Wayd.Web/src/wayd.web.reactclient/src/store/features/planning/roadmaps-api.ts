@@ -320,7 +320,7 @@ export const roadmapApi = apiSlice.injectEndpoints({
             }
           }
 
-          return { data: undefined as void }
+          return { data: null as unknown as void }
         } catch (error: any) {
           console.error('API Error:', error)
           return {

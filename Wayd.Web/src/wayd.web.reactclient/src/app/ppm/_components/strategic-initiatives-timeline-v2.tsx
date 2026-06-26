@@ -1,0 +1,113 @@
+'use client'
+
+import { FC, ReactNode, useState } from 'react'
+import dayjs from 'dayjs'
+import { theme } from 'antd'
+import { StrategicInitiativeListDto } from '@/src/services/wayd-api'
+import { WaydTimeline2 } from '@/src/components/common/timeline2'
+import type { TimelineItem } from '@/src/components/common/timeline2'
+import { getLifecyclePhaseColorFromStatus } from '@/src/utils'
+import { StrategicInitiativeDrawer } from '.'
+
+const ms = (d: dayjs.ConfigType) => dayjs(d).valueOf()
+
+interface StrategicInitiativePayload {
+  dto: StrategicInitiativeListDto
+}
+
+export interface StrategicInitiativesTimelineV2Props {
+  strategicInitiatives: StrategicInitiativeListDto[]
+  isLoading: boolean
+  refetch: () => void
+  viewSelector?: ReactNode
+  onRefresh?: () => void
+}
+
+function mapStrategicInitiatives(
+  initiatives: StrategicInitiativeListDto[],
+  token: ReturnType<typeof theme.useToken>['token'],
+): {
+  items: TimelineItem<StrategicInitiativePayload>[]
+  windowStart: number
+  windowEnd: number
+} {
+  const dated = initiatives.filter((i) => i.start && i.end)
+
+  let minMs = dayjs().valueOf()
+  let maxMs = dayjs().valueOf()
+
+  const items: TimelineItem<StrategicInitiativePayload>[] = dated.map(
+    (i, idx) => {
+      const start = ms(i.start!)
+      const end = ms(i.end!)
+      if (start < minMs) minMs = start
+      if (end > maxMs) maxMs = end
+      return {
+        id: String(i.id),
+        kind: 'range',
+        label: i.name ?? '',
+        color: getLifecyclePhaseColorFromStatus(i.status, token),
+        start,
+        end,
+        order: idx,
+        data: { dto: i },
+      }
+    },
+  )
+
+  const windowStart = dayjs(minMs).subtract(14, 'days').valueOf()
+  const windowEnd = dayjs(maxMs).add(1, 'month').valueOf()
+
+  return { items, windowStart, windowEnd }
+}
+
+const StrategicInitiativesTimelineV2: FC<StrategicInitiativesTimelineV2Props> =
+  ({ strategicInitiatives, isLoading, viewSelector, onRefresh }) => {
+    const [drawerOpen, setDrawerOpen] = useState(false)
+    const [selectedKey, setSelectedKey] = useState<number | null>(null)
+    const { token } = theme.useToken()
+
+    const { items, windowStart, windowEnd } = mapStrategicInitiatives(
+      isLoading ? [] : strategicInitiatives,
+      token,
+    )
+
+    return (
+      <>
+        <WaydTimeline2<StrategicInitiativePayload>
+          variant="timeline"
+          items={items}
+          windowStart={windowStart}
+          windowEnd={windowEnd}
+          minDate={windowStart}
+          maxDate={windowEnd}
+          storageKey="ppm-strategic-initiatives"
+          height={650}
+          editable={false}
+          isLoading={isLoading}
+          allowFullScreen
+          allowSaveAsImage
+          saveImageFileName="Strategic Initiatives Timeline"
+          onRefresh={onRefresh}
+          toolbarRightSlot={viewSelector}
+          onItemClick={(item) => {
+            if (!item.data) return
+            setSelectedKey(item.data.dto.key)
+            setDrawerOpen(true)
+          }}
+        />
+        {selectedKey !== null && (
+          <StrategicInitiativeDrawer
+            strategicInitiativeKey={selectedKey}
+            drawerOpen={drawerOpen}
+            onDrawerClose={() => {
+              setDrawerOpen(false)
+              setSelectedKey(null)
+            }}
+          />
+        )}
+      </>
+    )
+  }
+
+export default StrategicInitiativesTimelineV2

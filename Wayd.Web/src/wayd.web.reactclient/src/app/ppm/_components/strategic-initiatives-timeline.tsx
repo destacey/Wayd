@@ -24,6 +24,7 @@ export interface StrategicInitiativesTimelineProps {
   isLoading: boolean
   refetch: () => void
   viewSelector?: ReactNode
+  onRefresh?: () => void
 }
 
 interface StrategicInitiativeTimelineItem extends WaydDataItem<

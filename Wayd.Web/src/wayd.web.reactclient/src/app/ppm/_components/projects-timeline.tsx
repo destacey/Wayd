@@ -26,6 +26,7 @@ export interface ProjectsTimelineProps {
   refetch: () => void
   viewSelector?: ReactNode
   groupByProgram?: boolean
+  onRefresh?: () => void
 }
 
 interface ProjectTimelineItem extends WaydDataItem<ProjectListDto, string> {

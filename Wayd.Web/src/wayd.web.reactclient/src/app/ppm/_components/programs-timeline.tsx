@@ -24,6 +24,7 @@ export interface ProgramsTimelineProps {
   isLoading: boolean
   refetch: () => void
   viewSelector?: ReactNode
+  onRefresh?: () => void
 }
 
 interface ProgramTimelineItem extends WaydDataItem<ProgramListDto, string> {

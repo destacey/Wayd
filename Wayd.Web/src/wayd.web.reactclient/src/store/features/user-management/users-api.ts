@@ -138,7 +138,7 @@ export const usersApi = apiSlice.injectEndpoints({
               },
             }
           }
-          return { data: undefined as void }
+          return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -190,7 +190,7 @@ export const usersApi = apiSlice.injectEndpoints({
               },
             }
           }
-          return { data: undefined as void }
+          return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -218,7 +218,7 @@ export const usersApi = apiSlice.injectEndpoints({
               },
             }
           }
-          return { data: undefined as void }
+          return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -247,7 +247,7 @@ export const usersApi = apiSlice.injectEndpoints({
               },
             }
           }
-          return { data: undefined as void }
+          return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -278,7 +278,7 @@ export const usersApi = apiSlice.injectEndpoints({
               },
             }
           }
-          return { data: undefined as void }
+          return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
           return { error }

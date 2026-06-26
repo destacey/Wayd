@@ -5,7 +5,10 @@ import { useDocumentTitle } from '@/src/hooks'
 import { BuildOutlined, MenuOutlined } from '@ant-design/icons'
 import Segmented, { SegmentedLabeledOption } from 'antd/es/segmented'
 import { use, useState } from 'react'
-import { CreatePlanningIntervalObjectiveForm } from '../../_components'
+import {
+  CreatePlanningIntervalObjectiveForm,
+  PlanningIntervalObjectiveDetailsDrawer,
+} from '../../_components'
 import { PageTitle } from '@/src/components/common'
 import { notFound } from 'next/navigation'
 import { Button, Spin } from 'antd'
@@ -14,7 +17,7 @@ import { authorizePage } from '@/src/components/hoc'
 import dynamic from 'next/dynamic'
 
 const PlanningIntervalObjectivesTimeline = dynamic(
-  () => import('../../_components/planning-interval-objectives-timeline'),
+  () => import('../../_components/planning-interval-objectives-view-manager'),
   {
     ssr: false,
     loading: () => <Spin />,
@@ -48,6 +51,7 @@ const PlanningIntervalObjectivesPage = (props: {
   const [currentView, setCurrentView] = useState<string | number>('List')
   const [openCreateObjectiveForm, setOpenCreateObjectiveForm] =
     useState<boolean>(false)
+  const [drawerObjectiveKey, setDrawerObjectiveKey] = useState<number | null>(null)
 
   const { data: planningIntervalData, isLoading } =
     useGetPlanningIntervalQuery(piKey)
@@ -131,6 +135,17 @@ const PlanningIntervalObjectivesPage = (props: {
             ?.filter((t) => t.type == 'Team')
             .map((t) => t.name)}
           viewSelector={viewSelector}
+          onObjectiveClick={setDrawerObjectiveKey}
+          onRefresh={refectObjectives}
+        />
+      )}
+      {drawerObjectiveKey !== null && (
+        <PlanningIntervalObjectiveDetailsDrawer
+          planningIntervalKey={piKey}
+          objectiveKey={drawerObjectiveKey}
+          drawerOpen={drawerObjectiveKey !== null}
+          onDrawerClose={() => setDrawerObjectiveKey(null)}
+          canManageObjectives={!!canManageObjectives}
         />
       )}
       {openCreateObjectiveForm && (

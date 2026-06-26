@@ -22,7 +22,7 @@ export const featureFlagsApi = apiSlice.injectEndpoints({
           return { data }
         } catch (error) {
           console.error('API Error:', error)
-          return { error }
+          return { error: error ?? new Error('Unknown error loading feature flags') }
         }
       },
       providesTags: (result) =>
@@ -43,7 +43,7 @@ export const featureFlagsApi = apiSlice.injectEndpoints({
           return { data }
         } catch (error) {
           console.error('API Error:', error)
-          return { error }
+          return { error: error ?? new Error('Unknown error loading feature flag') }
         }
       },
       providesTags: (_result, _error, id) => [
@@ -54,10 +54,10 @@ export const featureFlagsApi = apiSlice.injectEndpoints({
       queryFn: async (request) => {
         try {
           await getFeatureFlagsClient().update(request.id, request)
-          return { data: undefined as void }
+          return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
-          return { error }
+          return { error: error ?? new Error('Unknown error updating feature flag') }
         }
       },
       invalidatesTags: (_result, _error, { id }) => [
@@ -69,10 +69,10 @@ export const featureFlagsApi = apiSlice.injectEndpoints({
       queryFn: async (request) => {
         try {
           await getFeatureFlagsClient().toggle(request.id, request)
-          return { data: undefined as void }
+          return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
-          return { error }
+          return { error: error ?? new Error('Unknown error toggling feature flag') }
         }
       },
       invalidatesTags: (_result, _error, { id }) => [
@@ -85,10 +85,10 @@ export const featureFlagsApi = apiSlice.injectEndpoints({
       queryFn: async (id) => {
         try {
           await getFeatureFlagsClient().archive(id)
-          return { data: undefined as void }
+          return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
-          return { error }
+          return { error: error ?? new Error('Unknown error archiving feature flag') }
         }
       },
       invalidatesTags: [QueryTags.FeatureFlag, QueryTags.ClientFeatureFlag],

@@ -20,7 +20,7 @@ import { GroupColumn } from './render/group-column'
 import { Axis } from './render/axis'
 import TimelineToolbar from './render/timeline-toolbar'
 import DrillControl from './render/drill-control'
-import { resolveLevel, maxGroupDepth } from './core/depth'
+import { resolveLevel } from './core/depth'
 import { growRowsForLabels, type GeometryConfig } from './core/geometry'
 import { getVisibleRange } from './core/virtualization'
 import type { TimelineGroup } from './core/types'
@@ -94,17 +94,30 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
 
   const hasGroups = !!groups && groups.length > 0
 
-  // Drill-through level (1-based, matches treeLevel): at level L, activities at
-  // treeLevel L render as bars and shallower tiers become groups.
-  //  level 1 = flat (top activities are bars, no groups); level 2 = top tier as
-  //  groups + their children as bars; deeper = drill further.
-  // maxLevel = deepest activity tier (group depth is 0-based → +1 for 1-based).
-  const maxDepth = hasGroups ? maxGroupDepth(groups!) : 0
-  const maxLevel = maxDepth + 1
+  // The drill-level model is opt-in: an adapter signals it by setting explicit
+  // `treeLevel` values on items or groups. This is distinct from structural
+  // hierarchy (parentId on groups, which Gantt will also use) — a Gantt tree is
+  // hierarchical but every item still gets its own row with no level filtering.
+  // Flat peer groups (PI objectives) and future Gantt consumers never set
+  // treeLevel, so they bypass resolveLevel and the drill controls entirely.
+  const usesDrillLevel =
+    hasGroups &&
+    (groups!.some((g) => g.treeLevel != null) ||
+      items.some((i) => i.treeLevel != null))
+
+  // Drill-through level (1-based). Only meaningful when usesDrillLevel is true.
+  // maxLevel = deepest treeLevel present across groups and items.
+  const maxLevel = usesDrillLevel
+    ? Math.max(
+        1,
+        ...groups!.map((g) => g.treeLevel ?? 0),
+        ...items.map((i) => i.treeLevel ?? 0),
+      )
+    : 1
   const [userLevel, setUserLevel] = useState<number | undefined>(undefined)
   const level = Math.min(userLevel ?? defaultDrillLevel, maxLevel)
 
-  const hasDrill = hasGroups && maxLevel > 1
+  const hasDrill = usesDrillLevel && maxLevel > 1
   const hasToolbar =
     allowFullScreen ||
     allowSaveAsImage ||
@@ -264,7 +277,7 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
   // gantt keeps one row per record.) Backgrounds are split AFTER remapping so a
   // row-scoped timebox follows its reassigned group.
   const resolved =
-    hasGroups && variant === 'timeline'
+    usesDrillLevel && variant === 'timeline'
       ? resolveLevel(items, groups!, level)
       : { items, groups: groups ?? [] }
 

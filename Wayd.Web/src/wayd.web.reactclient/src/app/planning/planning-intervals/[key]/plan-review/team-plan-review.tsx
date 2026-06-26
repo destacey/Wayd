@@ -22,7 +22,7 @@ import useAuth from '@/src/components/contexts/auth'
 import dynamic from 'next/dynamic'
 
 const PlanningIntervalObjectivesTimeline = dynamic(
-  () => import('../../_components/planning-interval-objectives-timeline'),
+  () => import('../../_components/planning-interval-objectives-view-manager'),
   {
     ssr: false,
     loading: () => <Spin />,
@@ -176,6 +176,8 @@ const TeamPlanReview = ({
         <PlanningIntervalObjectivesTimeline
           objectivesData={objectivesData ?? []}
           planningIntervalCalendar={calendarData!}
+          onObjectiveClick={onObjectiveClick}
+          onRefresh={refetchObjectives}
         />
       )}
       {planningInterval?.key && selectedObjectiveKey && (

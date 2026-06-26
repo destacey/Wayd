@@ -120,10 +120,10 @@ export const projectHealthChecksApi = apiSlice.injectEndpoints({
       queryFn: async ({ projectId, healthCheckId }) => {
         try {
           await getProjectHealthChecksClient().deleteHealthCheck(projectId, healthCheckId)
-          return { data: undefined }
+          return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
-          return { error }
+          return { error: error ?? new Error('Unknown error deleting health check') }
         }
       },
       invalidatesTags: (_result, _error, { projectId, healthCheckId }) => [

@@ -35,7 +35,7 @@ export const profileApi = apiSlice.injectEndpoints({
       queryFn: async (preferences) => {
         try {
           await getProfileClient().updatePreferences(preferences)
-          return { data: undefined as void }
+          return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -47,7 +47,7 @@ export const profileApi = apiSlice.injectEndpoints({
       queryFn: async (args) => {
         try {
           await getProfileClient().changePassword(args)
-          return { data: undefined as void }
+          return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
           return { error }

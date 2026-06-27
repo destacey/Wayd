@@ -98,7 +98,14 @@ export const ItemBar: FC<ItemBarProps> = ({
 
       <span
         className={styles.barLabel}
-        style={labelOffset ? { marginLeft: labelOffset } : undefined}
+        style={{
+          ...(labelOffset ? { marginLeft: labelOffset } : undefined),
+          // Scale font to fit the bar height so text never clips vertically.
+          // Use lineHeight 1.2 to give descenders (g, p, y) room.
+          // Cap at 13px (default); floor at 9px for legibility.
+          fontSize: Math.max(9, Math.min(Math.floor(height / 1.2), 13)),
+          lineHeight: 1.2,
+        }}
       >
         {Renderer ? (
           <Renderer

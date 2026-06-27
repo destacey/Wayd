@@ -129,3 +129,46 @@ describe('createTimeScale — tiers', () => {
     expect(upper[upper.length - 1].endMs).toBe(midMonth + 90 * DAY)
   })
 })
+
+describe('createTimeScale — weekends', () => {
+  // 2026-01-05 is a Monday — gives a clean Mon–Sun week to test against.
+  const monday = dayjs('2026-01-05').startOf('day').valueOf()
+
+  it('returns Sat and Sun boxes when zoomed in (pxPerDay >= 6)', () => {
+    // Arrange — 7-day domain, 70px total (10px/day >= 6 threshold).
+    const scale = createTimeScale(monday, monday + 7 * DAY, 70)
+    // Act
+    const weekends = scale.weekends()
+    // Assert — exactly two boxes: Saturday (day 5) and Sunday (day 6).
+    expect(weekends).toHaveLength(2)
+    expect(weekends[0].left).toBeCloseTo(50) // 5 days * 10px
+    expect(weekends[0].width).toBeCloseTo(10)
+    expect(weekends[1].left).toBeCloseTo(60) // 6 days * 10px
+    expect(weekends[1].width).toBeCloseTo(10)
+  })
+
+  it('returns an empty array when zoomed out (pxPerDay < 6)', () => {
+    // Arrange — 30-day domain, 30px total (1px/day < 6 threshold).
+    const scale = createTimeScale(monday, monday + 30 * DAY, 30)
+    // Act / Assert
+    expect(scale.weekends()).toHaveLength(0)
+  })
+
+  it('clamps weekend boxes to the domain boundaries', () => {
+    // Arrange — domain starts mid-Saturday noon, ends mid-Sunday noon.
+    const satNoon = dayjs('2026-01-10').startOf('day').valueOf() + 12 * 3_600_000
+    const sunNoon = satNoon + DAY
+    const scale = createTimeScale(satNoon, sunNoon, 24 * 10) // 10px/hr
+    // Act
+    const weekends = scale.weekends()
+    // Assert — Saturday box is clamped to domain start (left = 0).
+    expect(weekends[0].left).toBeCloseTo(0)
+  })
+
+  it('returns no boxes for a domain with no weekend days', () => {
+    // Arrange — Mon–Fri only (5 days starting from monday).
+    const scale = createTimeScale(monday, monday + 5 * DAY, 50)
+    // Act / Assert
+    expect(scale.weekends()).toHaveLength(0)
+  })
+})

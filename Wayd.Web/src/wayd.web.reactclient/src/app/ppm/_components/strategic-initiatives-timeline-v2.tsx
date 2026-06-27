@@ -30,6 +30,8 @@ function mapStrategicInitiatives(
   items: TimelineItem<StrategicInitiativePayload>[]
   windowStart: number
   windowEnd: number
+  minDate: number
+  maxDate: number
 } {
   const dated = initiatives.filter((i) => i.start && i.end)
 
@@ -55,10 +57,12 @@ function mapStrategicInitiatives(
     },
   )
 
-  const windowStart = dayjs(minMs).subtract(14, 'days').valueOf()
-  const windowEnd = dayjs(maxMs).add(1, 'month').valueOf()
+  const windowStart = dayjs().subtract(6, 'months').valueOf()
+  const windowEnd = dayjs().add(6, 'months').valueOf()
+  const minDate = dayjs(minMs).subtract(1, 'month').valueOf()
+  const maxDate = dayjs(maxMs).add(1, 'month').valueOf()
 
-  return { items, windowStart, windowEnd }
+  return { items, windowStart, windowEnd, minDate, maxDate }
 }
 
 const StrategicInitiativesTimelineV2: FC<StrategicInitiativesTimelineV2Props> =
@@ -67,7 +71,7 @@ const StrategicInitiativesTimelineV2: FC<StrategicInitiativesTimelineV2Props> =
     const [selectedKey, setSelectedKey] = useState<number | null>(null)
     const { token } = theme.useToken()
 
-    const { items, windowStart, windowEnd } = mapStrategicInitiatives(
+    const { items, windowStart, windowEnd, minDate, maxDate } = mapStrategicInitiatives(
       isLoading ? [] : strategicInitiatives,
       token,
     )
@@ -79,8 +83,8 @@ const StrategicInitiativesTimelineV2: FC<StrategicInitiativesTimelineV2Props> =
           items={items}
           windowStart={windowStart}
           windowEnd={windowEnd}
-          minDate={windowStart}
-          maxDate={windowEnd}
+          minDate={minDate}
+          maxDate={maxDate}
           storageKey="ppm-strategic-initiatives"
           height={650}
           editable={false}

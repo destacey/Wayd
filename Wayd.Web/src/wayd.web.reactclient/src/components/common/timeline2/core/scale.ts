@@ -26,6 +26,12 @@ export interface TimeScale {
   ticks: (count?: number) => number[]
   /** Two-tier header segments (upper = month/year, lower = week/day), span-aware. */
   tiers: () => { upper: ScaleSegment[]; lower: ScaleSegment[] }
+  /**
+   * Pixel boxes for each weekend day (Sat + Sun) in the domain. Returns an
+   * empty array when the zoom level is too coarse for weekend shading to be
+   * meaningful (less than 6px/day — matches the week-level tier threshold).
+   */
+  weekends: () => Array<{ left: number; width: number }>
 }
 
 /** A labeled header cell spanning [startMs, endMs). */
@@ -134,6 +140,27 @@ export function createTimeScale(
         out.push(cursor.valueOf())
         cursor = addStep(cursor, chosen.unit, chosen.step)
         guard += 1
+      }
+      return out
+    },
+    weekends: () => {
+      const pxPerDay = pxPerMs * DAY
+      // Below the week-tier threshold columns are too narrow for shading to read.
+      if (pxPerDay < 6) return []
+      const out: Array<{ left: number; width: number }> = []
+      let cursor = dayjs(startMs).startOf('day')
+      const daySpan = Math.ceil((safeEnd - startMs) / DAY) + 1
+      let guard = 0
+      while (cursor.valueOf() < safeEnd && guard < daySpan) {
+        const dow = cursor.day() // 0 = Sun, 6 = Sat
+        if (dow === 0 || dow === 6) {
+          const dayStart = Math.max(cursor.valueOf(), startMs)
+          const dayEnd = Math.min(cursor.add(1, 'day').valueOf(), safeEnd)
+          const left = (dayStart - startMs) * pxPerMs
+          out.push({ left, width: (dayEnd - startMs) * pxPerMs - left })
+        }
+        cursor = cursor.add(1, 'day')
+        guard++
       }
       return out
     },

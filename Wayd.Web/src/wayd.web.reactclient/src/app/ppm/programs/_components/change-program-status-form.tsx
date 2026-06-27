@@ -123,7 +123,7 @@ const ChangeProgramStatusForm = ({
         <div>
           {program?.key} - {program?.name}
         </div>
-        <Alert message="This action cannot be undone." type="warning" showIcon />
+        <Alert title="This action cannot be undone." type="warning" showIcon />
       </Space>
     </Modal>
   )

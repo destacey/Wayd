@@ -44,6 +44,18 @@ describe('itemBox', () => {
     expect(box.height).toBe(32)
   })
 
+  it('shifts top down by half rowPadding so bars are vertically centred', () => {
+    // Arrange — rowPadding = 6 means 3px added above the bar area.
+    const item: TimelineItem = { id: 'a', kind: 'range', start: day(0), end: day(1) }
+    const configWithPad = { laneHeight: 40, lanePadding: 4, rowPadding: 6 }
+    // Act
+    const box = itemBox(item, 0, row(0), scale, configWithPad)
+    // Assert — top = 0 + 0 (topInset) + 3 (halfRowPad) + 0 (lane 0) + 4 (lanePadding).
+    expect(box.top).toBe(7)
+    // Height is unaffected by rowPadding.
+    expect(box.height).toBe(32)
+  })
+
   it('enforces a minimum width for zero-duration ranges', () => {
     // Arrange — start === end.
     const item: TimelineItem = { id: 'a', kind: 'range', start: day(3), end: day(3) }

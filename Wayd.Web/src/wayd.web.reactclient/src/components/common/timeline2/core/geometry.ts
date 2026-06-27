@@ -25,6 +25,9 @@ export interface GeometryConfig {
   laneHeight: number
   /** Inset within a lane so bars don't touch lane edges, px. */
   lanePadding: number
+  /** Padding added below the bar area in each row (from the layout). Half of
+   *  this is also added above so bars are vertically centred in the row. */
+  rowPadding?: number
 }
 
 /**
@@ -39,9 +42,12 @@ export function itemBox(
   scale: TimeScale,
   config: GeometryConfig,
 ): ItemBox {
-  // Offset bars below any reserved headroom (e.g. a timebox label band).
+  // Offset bars below any reserved headroom (e.g. a timebox label band), plus
+  // half the row padding so bars are vertically centred (the other half sits
+  // below the bar area as breathing room between rows).
+  const halfRowPad = (config.rowPadding ?? 0) / 2
   const top =
-    row.top + (row.topInset ?? 0) + lane * config.laneHeight + config.lanePadding
+    row.top + (row.topInset ?? 0) + halfRowPad + lane * config.laneHeight + config.lanePadding
   const height = config.laneHeight - config.lanePadding * 2
 
   if (item.kind === 'milestone') {

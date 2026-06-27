@@ -13,7 +13,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Spin, Splitter } from 'antd'
 import { captureTimeline } from './render/capture-timeline'
 import { createTimeScale } from './core/scale'
-import { clampZoom, maxZoom, anchoredScrollLeft } from './core/zoom'
+import { clampZoom, maxZoom, anchoredScrollLeft, initialScrollLeft } from './core/zoom'
 import { getLayoutStrategy } from './layout'
 import { ChartCanvas, type ChartCanvasProps } from './render/chart-canvas'
 import { GroupColumn } from './render/group-column'
@@ -30,6 +30,7 @@ import styles from './render/timeline.module.css'
 const AXIS_HEIGHT = 48
 const DEFAULT_HEIGHT = 600
 const DEFAULT_LANE_HEIGHT = 28
+const COMPACT_LANE_HEIGHT = 20
 const DEFAULT_GROUP_COLUMN_WIDTH = 220
 const MIN_GROUP_COLUMN_WIDTH = 120
 const LANE_PADDING = 3
@@ -135,6 +136,13 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
 
   // User-togglable current-time line (settings menu); seeded from the prop.
   const [showCurrentTime, setShowCurrentTime] = useState(showCurrentTimeDefault)
+  // User-togglable vertical gridlines (settings menu); default on.
+  const [showVerticalGridlines, setShowVerticalGridlines] = useState(true)
+  // User-togglable weekend shading (settings menu); default off.
+  const [showWeekends, setShowWeekends] = useState(false)
+  // User-togglable compact mode (settings menu); default off.
+  const [isCompact, setIsCompact] = useState(false)
+  const effectiveLaneHeight = isCompact ? COMPACT_LANE_HEIGHT : laneHeight
 
   // Group-column width. Self-persisted per instance when `storageKey` is set, so
   // a user's splitter resize survives reloads with no consumer wiring; otherwise
@@ -272,6 +280,35 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
     allowZoom: true,
   })
 
+  // While true, every resize re-locks the scroll to windowStart (the "home" view).
+  // Set to false the first time the user pans or zooms.
+  // Ref for synchronous reads in hot-path handlers (scroll, pan, zoom).
+  // State mirrors it for the render (canReset prop).
+  const isInitialViewRef = useRef(true)
+  const [isInitialView, setIsInitialView] = useState(true)
+  // Reset to the home view whenever the storageKey changes (different timeline
+  // instance). Uses the state-during-render pattern (same as prevWidthKey above)
+  // so React can bail out without a double-render from an effect.
+  const [prevStorageKey, setPrevStorageKey] = useState(storageKey)
+  if (prevStorageKey !== storageKey) {
+    setPrevStorageKey(storageKey)
+    setIsInitialView(true)
+  }
+  // The isInitialViewRef mutation must stay in an effect — refs can't be written
+  // during render. Keep it in sync with the state transition above.
+  const prevStorageKeyRef = useRef(storageKey)
+  useLayoutEffect(() => {
+    if (prevStorageKeyRef.current !== storageKey) {
+      prevStorageKeyRef.current = storageKey
+      isInitialViewRef.current = true
+    }
+  }, [storageKey])
+
+  // Latest domain/window geometry — updated in a layout effect each render so
+  // the (stable) scroll/reset callbacks always read current props without a
+  // stale closure.
+  const windowGeomRef = useRef({ domainStart: 0, domainMs: 1, windowStart: 0, windowMs: 1 })
+
   // Resolve the drill level: which activities stay groups vs. demote to bars,
   // remapping every item to its nearest surviving group. (timeline variant only;
   // gantt keeps one row per record.) Backgrounds are split AFTER remapping so a
@@ -287,16 +324,23 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
   // the axis matches the consumer's bounds exactly (e.g. the roadmap dates).
   // Items extending past the bounds are clipped at the canvas edge; we do NOT
   // widen the domain to fit them.
-  const domainStart = minDate ?? windowStart
-  const domainEnd = Math.max(domainStart + 1, maxDate ?? windowEnd)
+  // Domain must fully contain the window so the canvas is always wide enough to
+  // scroll windowStart to the left edge with windowEnd visible at the right.
+  const domainStart = Math.min(minDate ?? windowStart, windowStart)
+  const domainEnd = Math.max(domainStart + 1, maxDate ?? windowEnd, windowEnd)
   const domainMs = domainEnd - domainStart
-  const spanDays = Math.max(1, domainMs / DAY_MS)
-  // Base width fits the whole domain into the viewport (or a per-day minimum).
-  // Zoom scales it up; pan is native horizontal scroll over the widened content.
-  const baseWidth = Math.max(viewportWidth, spanDays * MIN_PX_PER_DAY)
-  // Cap zoom-in so the viewport never spans less than ZOOM_MIN_MS (1 day),
-  // matching the legacy timeline's `zoomMin`.
-  const zoomMin = 1
+  const windowMs = Math.max(1, windowEnd - windowStart)
+  // Base width is defined so that zoom=1 shows exactly the window
+  // (windowStart→windowEnd) in the viewport. The full canvas is wider by the
+  // domain/window ratio so the user can pan into minDate/maxDate on either side.
+  // We do NOT apply a per-day minimum here — that would make multi-year windows
+  // wider than the viewport at zoom=1. Users zoom in if they need finer detail.
+  const baseWidth = Math.max(viewportWidth, 1) * (domainMs / windowMs)
+  // zoomMin: the factor that fits the entire domain into the viewport (zoom out
+  // floor). At this zoom, chartWidth === viewportWidth and the user can see
+  // minDate→maxDate without scrolling. Always <= 1 since baseWidth >= viewportWidth.
+  const zoomMin = domainMs > 0 ? windowMs / domainMs : 1
+  // zoomMax: cap zoom-in so the viewport never spans less than ZOOM_MIN_MS (1 day).
   const zoomMax = maxZoom(baseWidth, viewportWidth, domainMs, ZOOM_MIN_MS)
   const effectiveZoom = clampZoom(zoom, { min: zoomMin, max: zoomMax })
   const chartWidth = baseWidth * effectiveZoom
@@ -311,6 +355,7 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
     const measure = () => {
       setViewportWidth(el.clientWidth)
       setViewportHeight(el.clientHeight)
+      // Initial scroll is handled by the useLayoutEffect that watches viewportWidth.
     }
     measure()
     requestAnimationFrame(measure)
@@ -350,6 +395,7 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
   // so the user never sees an intermediate (mis-scrolled) frame. Also syncs the
   // axis viewport (it mirrors chart scroll).
   useLayoutEffect(() => {
+    windowGeomRef.current = { domainStart, domainMs, windowStart, windowMs }
     zoomGeomRef.current = {
       zoom: effectiveZoom,
       baseWidth,
@@ -366,7 +412,25 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
       if (axisViewportRef.current) axisViewportRef.current.scrollLeft = pending
       setScrollLeft(pending)
     }
-  }, [effectiveZoom, baseWidth, chartWidth, zoomMin, zoomMax, allowZoom])
+  }, [effectiveZoom, baseWidth, chartWidth, zoomMin, zoomMax, allowZoom, domainStart, domainMs, windowStart, windowMs])
+
+  // While in the initial view (no user pan/zoom), lock scroll to windowStart
+  // on every render where the viewport is measured. Runs in useLayoutEffect so
+  // it applies before paint — no flash of wrong position.
+  useLayoutEffect(() => {
+    if (!isInitialViewRef.current) return
+    const chart = chartRef.current
+    if (!chart) return
+    if (chart.clientWidth <= 0) return
+    const offset = initialScrollLeft(domainStart, domainMs, windowStart, baseWidth)
+    // Only apply if the canvas is wide enough to scroll to this offset.
+    if (chart.scrollWidth <= offset) return
+    chart.scrollLeft = offset
+    if (axisViewportRef.current) axisViewportRef.current.scrollLeft = offset
+    // Defer state update to avoid setState-in-effect lint error; bar labels
+    // tolerate a one-frame lag after a programmatic scroll to windowStart.
+    requestAnimationFrame(() => setScrollLeft(offset))
+  }, [viewportWidth, domainStart, domainMs, windowStart, baseWidth, chartWidth])
 
   // Chart scroll drives: axis horizontal sync + group-column vertical sync, and
   // a debounced scrollLeft state so bar labels can stick to the visible left
@@ -374,6 +438,13 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
   const onChartScroll = () => {
     const chart = chartRef.current
     if (!chart) return
+    // Any scroll (including Shift+wheel / trackpad horizontal pan) means the user
+    // has navigated away from the default window — clear the initial-view lock so
+    // a later viewport resize doesn't snap back to windowStart.
+    if (isInitialViewRef.current) {
+      isInitialViewRef.current = false
+      setIsInitialView(false)
+    }
     if (axisViewportRef.current) {
       axisViewportRef.current.scrollLeft = chart.scrollLeft
     }
@@ -415,6 +486,8 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
     // Primary button only; ignore clicks that land on an interactive item.
     if (e.button !== 0) return
     if ((e.target as HTMLElement).closest('[data-timeline-item]')) return
+    isInitialViewRef.current = false
+    setIsInitialView(false)
     const chart = chartRef.current
     if (!chart) return
     // Nothing to pan if content fits the viewport in both axes.
@@ -462,6 +535,8 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
   // fixed. Reads current geometry from the ref so it's safe to call from both the
   // wheel listener and the toolbar buttons. Stages the post-paint scrollLeft.
   const requestZoom = (nextZoomRaw: number, anchorX: number) => {
+    isInitialViewRef.current = false
+    setIsInitialView(false)
     const geom = zoomGeomRef.current
     const next = clampZoom(nextZoomRaw, geom.bounds)
     if (next === geom.zoom) return
@@ -483,9 +558,25 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
     requestZoom(geom.zoom * factor, centre)
   }
 
-  // Reset View: back to fit-the-window (zoom 1) and scrolled to the start.
+  // Reset View: zoom=1 (window fills viewport) and scroll to windowStart.
   const resetView = () => {
-    pendingScrollLeftRef.current = 0
+    isInitialViewRef.current = true
+    setIsInitialView(true)
+    const g = windowGeomRef.current
+    const chart = chartRef.current
+    const w = chart?.clientWidth ?? viewportWidth
+    const offset = g.windowMs > 0 ? ((g.windowStart - g.domainStart) / g.windowMs) * w : 0
+    // Always apply the scroll immediately via DOM refs so panning-only resets
+    // work even when zoom is already 1 (setZoom(1) would be a no-op → no
+    // layout effect → pendingScrollLeftRef never consumed).
+    if (chart) {
+      chart.scrollLeft = offset
+      if (axisViewportRef.current) axisViewportRef.current.scrollLeft = offset
+      setScrollLeft(offset)
+    }
+    // Also stage via pendingScrollLeftRef as a fallback for when the zoom
+    // changes (layout effect fires on the next paint and re-applies it).
+    pendingScrollLeftRef.current = offset
     setZoom(1)
   }
 
@@ -528,7 +619,7 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
     groups: resolved.groups,
     backgroundGroupIds,
     hasChartBackground,
-    config: { laneHeight, rowPadding: ROW_PADDING },
+    config: { laneHeight: effectiveLaneHeight, rowPadding: ROW_PADDING },
   })
 
   // Grow rows whose wrapped group label is taller than the lane-based height,
@@ -548,7 +639,7 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
       : rows.slice(visibleRange.startIndex, visibleRange.endIndex + 1)
 
   const scale = createTimeScale(domainStart, domainEnd, chartWidth)
-  const geometry: GeometryConfig = { laneHeight, lanePadding: LANE_PADDING }
+  const geometry: GeometryConfig = { laneHeight: effectiveLaneHeight, lanePadding: LANE_PADDING, rowPadding: ROW_PADDING }
   const groupsById = new Map<string, TimelineGroup>(
     resolved.groups.map((g) => [g.id, g]),
   )
@@ -585,6 +676,8 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
             onItemDateChange={onItemDateChange}
             onItemProgressChange={onItemProgressChange}
             showCurrentTime={showCurrentTime}
+            showGridlines={showVerticalGridlines}
+            showWeekends={showWeekends}
             canPan={
               chartWidth > viewportWidth + 1 || totalHeight > viewportHeight + 1
             }
@@ -622,7 +715,7 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
           onResetView={resetView}
           canZoomIn={effectiveZoom < zoomMax - 1e-6}
           canZoomOut={effectiveZoom > zoomMin + 1e-6}
-          canReset={effectiveZoom > 1 + 1e-6 || scrollLeft > 0.5}
+          canReset={Math.abs(effectiveZoom - 1) > 1e-6 || !isInitialView}
           allowSaveAsImage={allowSaveAsImage}
           onSaveAsImage={saveImage}
           allowFullScreen={allowFullScreen}
@@ -631,7 +724,14 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
           allowSettings={allowToggleCurrentTime}
           showCurrentTime={showCurrentTime}
           onToggleCurrentTime={setShowCurrentTime}
+          showVerticalGridlines={showVerticalGridlines}
+          onToggleVerticalGridlines={setShowVerticalGridlines}
+          showWeekends={showWeekends}
+          onToggleWeekends={setShowWeekends}
+          isCompact={isCompact}
+          onToggleCompact={setIsCompact}
           onRefresh={onRefresh}
+          editable={editable}
         />
       )}
       <div
@@ -679,6 +779,7 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
                       >['groupRenderer']
                     }
                     onMeasure={onMeasureLabels}
+                    laneHeight={effectiveLaneHeight}
                   />
                 </div>
               </div>

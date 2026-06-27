@@ -6,7 +6,7 @@
 // date math itself lives in core/interaction.ts (pure, tested) — this hook only
 // captures pointer geometry and drives it.
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { applyDrag, type DragMode, type DragResult } from '../core/interaction'
 import { suppressNextClick } from './suppress-next-click'
 import type { TimelineItem } from '../core/types'
@@ -53,6 +53,28 @@ export function useBarDrag(options: UseBarDragOptions): UseBarDrag {
     move: (e: PointerEvent) => void
     up: () => void
   } | null>(null)
+
+  // Escape cancels an in-progress drag: removes listeners, reverts to the
+  // original position, and suppresses the click that follows pointer release.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      const s = session.current
+      if (!s) return
+      // Stop propagation so parent modals/drawers don't also close on the same Esc.
+      e.preventDefault()
+      e.stopPropagation()
+      window.removeEventListener('pointermove', s.move)
+      window.removeEventListener('pointerup', s.up)
+      session.current = null
+      setActive(null)
+      // The pointer is still down — when the user releases it a click fires.
+      // Suppress it so the item drawer doesn't open after a cancelled drag.
+      suppressNextClick()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   // Pixels the pointer must travel before it counts as a drag (vs. a click).
   const DRAG_THRESHOLD = 3

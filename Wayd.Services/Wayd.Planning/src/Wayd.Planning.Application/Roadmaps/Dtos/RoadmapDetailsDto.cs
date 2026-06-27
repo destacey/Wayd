@@ -49,6 +49,11 @@ public sealed record RoadmapDetailsDto : IMapFrom<Roadmap>
     /// </summary>
     public required List<EmployeeNavigationDto> RoadmapManagers { get; set; }
 
+    /// <summary>
+    /// The colors configured on the Roadmap, ordered by their configured order.
+    /// </summary>
+    public required List<RoadmapColorDto> Colors { get; set; }
+
     public void ConfigureMapping(TypeAdapterConfig config)
     {
         config.NewConfig<Roadmap, RoadmapDetailsDto>()
@@ -56,6 +61,7 @@ public sealed record RoadmapDetailsDto : IMapFrom<Roadmap>
             .Map(dest => dest.End, src => src.DateRange.End)
             .Map(dest => dest.Visibility, src => SimpleNavigationDto.FromEnum(src.Visibility))
             .Map(dest => dest.State, src => SimpleNavigationDto.FromEnum(src.State))
-            .Map(dest => dest.RoadmapManagers, src => src.RoadmapManagers.Select(m => EmployeeNavigationDto.From(m.Manager!)));
+            .Map(dest => dest.RoadmapManagers, src => src.RoadmapManagers.Select(m => EmployeeNavigationDto.From(m.Manager!)))
+            .Map(dest => dest.Colors, src => src.Colors.OrderBy(c => c.Order));
     }
 }

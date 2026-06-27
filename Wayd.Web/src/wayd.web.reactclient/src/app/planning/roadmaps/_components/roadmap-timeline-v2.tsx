@@ -187,6 +187,14 @@ const RoadmapTimelineV2: FC<RoadmapTimelineV2Props> = (props) => {
   const windowStart = ms(props.roadmap.start)
   const windowEnd = ms(props.roadmap.end)
 
+  const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000
+  const itemStarts = items.map((i) => i.start)
+  const itemEnds = items.map((i) => i.end)
+  const earliestItem = itemStarts.length ? Math.min(...itemStarts) : windowStart
+  const latestItem = itemEnds.length ? Math.max(...itemEnds) : windowEnd
+  const minDate = earliestItem - ONE_YEAR_MS
+  const maxDate = latestItem + ONE_YEAR_MS
+
   const onItemDateChange = async (change: ItemDateChange) => {
     const source = items.find((i) => i.id === change.id)
     const dto = source?.data?.dto
@@ -220,11 +228,8 @@ const RoadmapTimelineV2: FC<RoadmapTimelineV2Props> = (props) => {
       groups={groups}
       windowStart={windowStart}
       windowEnd={windowEnd}
-      // Roadmaps hard-bound the timeline to the roadmap's own dates (matching the
-      // legacy timeline's min/max == start/end): the axis spans exactly the
-      // roadmap window and you can't pan/zoom outside it.
-      minDate={windowStart}
-      maxDate={windowEnd}
+      minDate={minDate}
+      maxDate={maxDate}
       storageKey={`roadmap-${props.roadmap.id}`}
       onRefresh={props.refreshRoadmapItems}
       height={650}

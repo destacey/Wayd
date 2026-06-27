@@ -20,19 +20,17 @@ internal sealed class SearchWorkItemsQueryHandler(IWorkDbContext workDbContext, 
             return Result.Failure<IReadOnlyCollection<WorkItemListDto>>("No search term provided.");
         }
 
-        var workitems = await _workDbContext.WorkItems
+        // ORDER BY uses the KeyPrefix/KeyNumber persisted computed columns so SQL Server
+        // The ParentId covering index (IX_WorkItems_ParentId_Key) makes the self-join a seek.
+        return await _workDbContext.WorkItems
             .Where(e => e.Title.Contains(request.SearchTerm)
                 || ((string)e.Key).Contains(request.SearchTerm)
                 || (e.ParentId.HasValue && ((string)e.Parent!.Key).Contains(request.SearchTerm)))
+            .OrderBy(e => EF.Property<string>(e, "KeyPrefix"))
+            .ThenBy(e => EF.Property<int>(e, "KeyNumber"))
+            .Take(request.Top)
             .ProjectToType<WorkItemListDto>()
             .ToArrayAsync(cancellationToken);
-
-        // TODO: This is a temporary solution to sort the work items by key.  Need to link the STRING_SPLIT function in the OrderBy clause.
-
-        return workitems
-            .OrderByKey(true)
-            .Take(request.Top)
-            .ToArray();
     }
 }
 

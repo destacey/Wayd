@@ -30,6 +30,12 @@ const { Text } = Typography
 const { useToken } = theme
 
 /**
+ * The maximum number of colors a roadmap may have. Mirrors the domain's `Roadmap.MaxColors`,
+ * which the API also enforces — kept in sync so the UI blocks the limit before a request is sent.
+ */
+export const MAX_ROADMAP_COLORS = 30
+
+/**
  * A single configurable color on the roadmap. `key` is a stable client-side identifier
  * used for list rendering and drag reordering only; it is not persisted (the color hex is
  * the natural key on the server).
@@ -41,9 +47,11 @@ export interface RoadmapColorConfigEntry {
   isDefault: boolean
 }
 
-/** Per-row validation errors, keyed by entry key, plus an overall flag. */
+/** Per-row validation errors, keyed by entry key, plus overall flags. */
 export interface RoadmapColorConfigErrors {
   hasErrors: boolean
+  /** True when the palette exceeds the maximum allowed number of colors. */
+  tooMany: boolean
   byKey: Record<string, { color?: string; name?: string }>
 }
 
@@ -81,7 +89,13 @@ export const validateColorEntries = (
     }
   }
 
-  return { hasErrors: Object.keys(byKey).length > 0, byKey }
+  const tooMany = entries.length > MAX_ROADMAP_COLORS
+
+  return {
+    hasErrors: tooMany || Object.keys(byKey).length > 0,
+    tooMany,
+    byKey,
+  }
 }
 
 export interface RoadmapColorConfigProps {
@@ -281,10 +295,17 @@ const RoadmapColorConfig = ({
         size="small"
         icon={<PlusOutlined />}
         onClick={addEntry}
+        disabled={value.length >= MAX_ROADMAP_COLORS}
         style={{ width: '100%', color: token.colorTextSecondary }}
       >
         Add color
       </Button>
+
+      {value.length >= MAX_ROADMAP_COLORS && (
+        <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+          {`A roadmap can have at most ${MAX_ROADMAP_COLORS} colors.`}
+        </Text>
+      )}
     </Space>
   )
 }

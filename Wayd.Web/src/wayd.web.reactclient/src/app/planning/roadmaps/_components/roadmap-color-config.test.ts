@@ -1,4 +1,5 @@
 import {
+  MAX_ROADMAP_COLORS,
   validateColorEntries,
   type RoadmapColorConfigEntry,
 } from './roadmap-color-config'
@@ -94,5 +95,27 @@ describe('validateColorEntries', () => {
 
     expect(result.byKey[target.key]?.color).toBeDefined()
     expect(result.byKey[target.key]?.name).toBeDefined()
+  })
+
+  it('flags exceeding the maximum number of colors', () => {
+    const entries = Array.from({ length: MAX_ROADMAP_COLORS + 1 }, (_, i) =>
+      entry({ color: `#${i.toString(16).padStart(6, '0')}`, name: `Color ${i}` }),
+    )
+
+    const result = validateColorEntries(entries)
+
+    expect(result.tooMany).toBe(true)
+    expect(result.hasErrors).toBe(true)
+  })
+
+  it('does not flag a palette at exactly the maximum', () => {
+    const entries = Array.from({ length: MAX_ROADMAP_COLORS }, (_, i) =>
+      entry({ color: `#${i.toString(16).padStart(6, '0')}`, name: `Color ${i}` }),
+    )
+
+    const result = validateColorEntries(entries)
+
+    expect(result.tooMany).toBe(false)
+    expect(result.hasErrors).toBe(false)
   })
 })

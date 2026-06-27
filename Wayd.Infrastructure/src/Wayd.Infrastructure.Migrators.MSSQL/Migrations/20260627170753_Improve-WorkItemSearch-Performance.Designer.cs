@@ -13,7 +13,7 @@ using Wayd.Infrastructure.Persistence.Context;
 namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 {
     [DbContext(typeof(WaydDbContext))]
-    [Migration("20260627162207_Improve-WorkItemSearch-Performance")]
+    [Migration("20260627170753_Improve-WorkItemSearch-Performance")]
     partial class ImproveWorkItemSearchPerformance
     {
         /// <inheritdoc />

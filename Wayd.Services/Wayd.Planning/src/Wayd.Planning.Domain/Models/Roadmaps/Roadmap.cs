@@ -12,9 +12,16 @@ namespace Wayd.Planning.Domain.Models.Roadmaps;
 
 public sealed class Roadmap : BaseAuditableEntity, ILocalSchedule, IHasIdAndKey
 {
+    /// <summary>
+    /// The maximum number of colors that can be configured on a Roadmap. Colors are persisted as a
+    /// JSON column, so this guards against an unbounded payload.
+    /// </summary>
+    public const int MaxColors = 30;
+
     private readonly bool _objectConstruction = false;
     private readonly List<RoadmapManager> _roadmapManagers = [];
     private readonly List<BaseRoadmapItem> _items = [];
+    private readonly List<RoadmapColor> _colors = [];
 
     private Roadmap() { }
 
@@ -90,6 +97,12 @@ public sealed class Roadmap : BaseAuditableEntity, ILocalSchedule, IHasIdAndKey
     /// </summary>
     public IReadOnlyList<BaseRoadmapItem> Items => _items.AsReadOnly();
 
+    /// <summary>
+    /// The configured colors for the Roadmap. These define the named colors available when
+    /// coloring activities, and drive the timeline legend.
+    /// </summary>
+    public IReadOnlyList<RoadmapColor> Colors => _colors.AsReadOnly();
+
     private IReadOnlyList<RoadmapActivity> RootActivities => [.. _items.OfType<RoadmapActivity>().Where(x => x.ParentId is null).OrderBy(x => x.Order)];
 
     /// <summary>
@@ -131,7 +144,7 @@ public sealed class Roadmap : BaseAuditableEntity, ILocalSchedule, IHasIdAndKey
 
     private Result SyncManagers(IEnumerable<Guid> roadmapManagerIds, Guid currentUserEmployeeId)
     {
-        // TODO: This is a temporary solution to sync managers. 
+        // TODO: This is a temporary solution to sync managers.
         var managerIdsToAdd = roadmapManagerIds.Where(x => !_roadmapManagers.Any(y => y.ManagerId == x)).ToArray();
         var managerIdsToRemove = _roadmapManagers.Where(x => !roadmapManagerIds.Contains(x.ManagerId)).Select(x => x.ManagerId).ToArray();
 
@@ -143,6 +156,53 @@ public sealed class Roadmap : BaseAuditableEntity, ILocalSchedule, IHasIdAndKey
         foreach (var managerId in managerIdsToRemove)
         {
             RemoveManager(managerId, currentUserEmployeeId);
+        }
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Replaces the Roadmap's configured colors with the provided set. Colors are managed as a
+    /// whole: the existing set is discarded and rebuilt from the input. Colors must be distinct by
+    /// hex (the color is the natural key), and at most one may be marked as the default.
+    /// </summary>
+    /// <param name="colors">The desired set of colors.</param>
+    /// <param name="currentUserEmployeeId">The employee performing the update.</param>
+    public Result UpdateColors(IEnumerable<IUpsertRoadmapColor> colors, Guid currentUserEmployeeId)
+    {
+        var isManagerResult = CanModify(currentUserEmployeeId);
+        if (isManagerResult.IsFailure)
+        {
+            return isManagerResult;
+        }
+
+        var incoming = colors.ToArray();
+
+        if (incoming.Length > MaxColors)
+        {
+            return Result.Failure($"A Roadmap cannot have more than {MaxColors} colors.");
+        }
+
+        if (incoming.Count(x => x.IsDefault) > 1)
+        {
+            return Result.Failure("Only one color can be marked as the default.");
+        }
+
+        var normalizedColors = incoming
+            .Select(x => x.Color?.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!.ToUpperInvariant())
+            .ToArray();
+
+        if (normalizedColors.Length != normalizedColors.Distinct().Count())
+        {
+            return Result.Failure("A Roadmap cannot have two colors with the same value.");
+        }
+
+        _colors.Clear();
+        foreach (var color in incoming)
+        {
+            _colors.Add(new RoadmapColor(color.Color, color.Name, color.Order, color.IsDefault));
         }
 
         return Result.Success();

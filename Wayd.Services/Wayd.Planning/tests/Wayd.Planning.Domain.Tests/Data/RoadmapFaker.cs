@@ -69,6 +69,45 @@ public static class RoadmapFakerExtensions
         return faker;
     }
 
+    public static RoadmapFaker WithColors(this RoadmapFaker faker, IEnumerable<RoadmapColor> colors)
+    {
+        var colorList = colors.ToList();
+
+        if (colorList.Count(c => c.IsDefault) > 1)
+        {
+            throw new ArgumentException("Only one color can be marked as the default.", nameof(colors));
+        }
+
+        var distinctColorCount = colorList
+            .Select(c => c.Color.Trim().ToUpperInvariant())
+            .Distinct()
+            .Count();
+
+        if (distinctColorCount != colorList.Count)
+        {
+            throw new ArgumentException("A Roadmap cannot have two colors with the same value.", nameof(colors));
+        }
+
+        faker.RuleFor("_colors", f => colorList);
+
+        return faker;
+    }
+
+    public static RoadmapFaker WithColors(this RoadmapFaker faker, int count)
+    {
+        var colorFaker = new RoadmapColorFaker();
+
+        var colors = Enumerable.Range(0, count)
+            .Select(i => colorFaker
+                .WithColor($"#{i:X6}") // distinct, since color is the natural key
+                .WithOrder(i + 1)
+                .WithIsDefault(i == 0) // exactly one default
+                .Generate())
+            .ToList();
+
+        return faker.WithColors(colors);
+    }
+
     //public static Roadmap WithChildren(this RoadmapFaker faker, int childrenCount)
     //{
     //    var roadmapId = Guid.NewGuid();

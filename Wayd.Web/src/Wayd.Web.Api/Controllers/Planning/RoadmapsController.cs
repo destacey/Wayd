@@ -114,6 +114,24 @@ public class RoadmapsController : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPut("{id}/colors")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
+    [OpenApiOperation("Update the configured colors for a roadmap.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> UpdateColors(Guid id, [FromBody] UpdateRoadmapColorsRequest request, CancellationToken cancellationToken)
+    {
+        if (id != request.RoadmapId)
+            return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
+
+        var result = await _sender.Send(request.ToUpdateRoadmapColorsCommand(), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Roadmaps)]
     [OpenApiOperation("Delete a roadmap.", "")]

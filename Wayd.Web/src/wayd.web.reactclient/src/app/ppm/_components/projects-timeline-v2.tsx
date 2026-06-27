@@ -33,6 +33,8 @@ function mapProjects(
   groups: TimelineGroup[]
   windowStart: number
   windowEnd: number
+  minDate: number
+  maxDate: number
 } {
   const dated = projects.filter((p) => p.start && p.end)
 
@@ -78,10 +80,12 @@ function mapProjects(
     }
   }
 
-  const windowStart = dayjs(minMs).subtract(14, 'days').valueOf()
-  const windowEnd = dayjs(maxMs).add(1, 'month').valueOf()
+  const windowStart = dayjs().subtract(6, 'months').valueOf()
+  const windowEnd = dayjs().add(6, 'months').valueOf()
+  const minDate = dayjs(minMs).subtract(1, 'month').valueOf()
+  const maxDate = dayjs(maxMs).add(1, 'month').valueOf()
 
-  return { items, groups, windowStart, windowEnd }
+  return { items, groups, windowStart, windowEnd, minDate, maxDate }
 }
 
 const ProjectsTimelineV2: FC<ProjectsTimelineV2Props> = ({
@@ -95,7 +99,7 @@ const ProjectsTimelineV2: FC<ProjectsTimelineV2Props> = ({
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const { token } = theme.useToken()
 
-  const { items, groups, windowStart, windowEnd } = mapProjects(
+  const { items, groups, windowStart, windowEnd, minDate, maxDate } = mapProjects(
     isLoading ? [] : projects,
     groupByProgram,
     token,
@@ -111,8 +115,8 @@ const ProjectsTimelineV2: FC<ProjectsTimelineV2Props> = ({
         groups={groups.length > 0 ? groups : undefined}
         windowStart={windowStart}
         windowEnd={windowEnd}
-        minDate={windowStart}
-        maxDate={windowEnd}
+        minDate={minDate}
+        maxDate={maxDate}
         storageKey="ppm-projects"
         height={650}
         editable={false}

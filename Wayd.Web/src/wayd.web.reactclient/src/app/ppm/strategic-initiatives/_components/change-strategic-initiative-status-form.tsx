@@ -136,7 +136,7 @@ const ChangeStrategicInitiativeStatusForm = ({
         <div>
           {strategicInitiative?.key} - {strategicInitiative?.name}
         </div>
-        <Alert message="This action cannot be undone." type="warning" showIcon />
+        <Alert title="This action cannot be undone." type="warning" showIcon />
       </Space>
     </Modal>
   )

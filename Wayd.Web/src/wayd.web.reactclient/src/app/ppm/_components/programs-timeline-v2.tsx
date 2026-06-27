@@ -30,6 +30,8 @@ function mapPrograms(
   items: TimelineItem<ProgramPayload>[]
   windowStart: number
   windowEnd: number
+  minDate: number
+  maxDate: number
 } {
   const dated = programs.filter((p) => p.start && p.end)
 
@@ -53,10 +55,12 @@ function mapPrograms(
     }
   })
 
-  const windowStart = dayjs(minMs).subtract(14, 'days').valueOf()
-  const windowEnd = dayjs(maxMs).add(1, 'month').valueOf()
+  const windowStart = dayjs().subtract(6, 'months').valueOf()
+  const windowEnd = dayjs().add(6, 'months').valueOf()
+  const minDate = dayjs(minMs).subtract(1, 'month').valueOf()
+  const maxDate = dayjs(maxMs).add(1, 'month').valueOf()
 
-  return { items, windowStart, windowEnd }
+  return { items, windowStart, windowEnd, minDate, maxDate }
 }
 
 const ProgramsTimelineV2: FC<ProgramsTimelineV2Props> = ({
@@ -69,7 +73,7 @@ const ProgramsTimelineV2: FC<ProgramsTimelineV2Props> = ({
   const [selectedKey, setSelectedKey] = useState<number | null>(null)
   const { token } = theme.useToken()
 
-  const { items, windowStart, windowEnd } = mapPrograms(
+  const { items, windowStart, windowEnd, minDate, maxDate } = mapPrograms(
     isLoading ? [] : programs,
     token,
   )
@@ -81,8 +85,8 @@ const ProgramsTimelineV2: FC<ProgramsTimelineV2Props> = ({
         items={items}
         windowStart={windowStart}
         windowEnd={windowEnd}
-        minDate={windowStart}
-        maxDate={windowEnd}
+        minDate={minDate}
+        maxDate={maxDate}
         storageKey="ppm-programs"
         height={650}
         editable={false}

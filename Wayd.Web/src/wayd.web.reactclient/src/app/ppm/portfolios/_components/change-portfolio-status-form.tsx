@@ -112,7 +112,7 @@ const ChangePortfolioStatusForm = ({
         <div>
           {portfolio?.key} - {portfolio?.name}
         </div>
-        <Alert message="This action cannot be undone." type="warning" showIcon />
+        <Alert title="This action cannot be undone." type="warning" showIcon />
       </Space>
     </Modal>
   )

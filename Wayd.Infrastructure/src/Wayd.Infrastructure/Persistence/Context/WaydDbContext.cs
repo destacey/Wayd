@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
@@ -33,6 +34,8 @@ namespace Wayd.Infrastructure.Persistence.Context;
 
 public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureManagementDbContext, IGoalsDbContext, ILinksDbContext, IOrganizationDbContext, IPlanningDbContext, IProjectPortfolioManagementDbContext, IStrategicManagementDbContext, IWorkDbContext
 {
+    private static readonly ConcurrentDictionary<string, bool> _ftsAvailabilityCache = new();
+
     public WaydDbContext(DbContextOptions options, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, IOptions<DatabaseSettings> dbSettings, IEventPublisher events, IRequestCorrelationIdProvider requestCorrelationIdProvider)
         : base(options, currentUser, dateTimeProvider, dbSettings, events, requestCorrelationIdProvider)
     {
@@ -146,6 +149,35 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<WorkTeam> WorkTeams => Set<WorkTeam>();
     public DbSet<WorkType> WorkTypes => Set<WorkType>();
 
+    public IQueryable<WorkItem> SearchWorkItems(string searchTerm, int top)
+    {
+        var query = IsFtsAvailable()
+            ? SearchWorkItemsFts(searchTerm)
+            : SearchWorkItemsLike(searchTerm);
+
+        return query
+            .OrderBy(e => EF.Property<string>(e, "KeyPrefix"))
+            .ThenBy(e => EF.Property<int>(e, "KeyNumber"))
+            .Take(top);
+    }
+
+    private IQueryable<WorkItem> SearchWorkItemsFts(string searchTerm)
+    {
+        var ftsTerm = $"\"{searchTerm}*\"";
+        return WorkItems
+            .Where(e => EF.Functions.Contains(e.Title, ftsTerm)
+                || EF.Functions.Contains((string)(object)e.Key, ftsTerm)
+                || (e.ParentId.HasValue && EF.Functions.Contains((string)(object)e.Parent!.Key, ftsTerm)));
+    }
+
+    private IQueryable<WorkItem> SearchWorkItemsLike(string searchTerm)
+    {
+        return WorkItems
+            .Where(e => e.Title.Contains(searchTerm)
+                || ((string)e.Key).Contains(searchTerm)
+                || (e.ParentId.HasValue && ((string)e.Parent!.Key).Contains(searchTerm)));
+    }
+
     #endregion IWork
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -235,4 +267,12 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     }
 
     #endregion Graph Table Sync
+
+    private bool IsFtsAvailable()
+    {
+        if (!Database.IsSqlServer()) return false;
+        var connectionString = Database.GetConnectionString() ?? string.Empty;
+        return _ftsAvailabilityCache.GetOrAdd(connectionString, _ =>
+            Database.SqlQuery<int>($"SELECT FULLTEXTSERVICEPROPERTY('IsFullTextInstalled') AS Value").FirstOrDefault() == 1);
+    }
 }

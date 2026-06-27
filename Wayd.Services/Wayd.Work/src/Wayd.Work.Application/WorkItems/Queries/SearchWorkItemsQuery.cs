@@ -20,15 +20,7 @@ internal sealed class SearchWorkItemsQueryHandler(IWorkDbContext workDbContext, 
             return Result.Failure<IReadOnlyCollection<WorkItemListDto>>("No search term provided.");
         }
 
-        // ORDER BY uses the KeyPrefix/KeyNumber persisted computed columns so SQL Server
-        // The ParentId covering index (IX_WorkItems_ParentId_Key) makes the self-join a seek.
-        return await _workDbContext.WorkItems
-            .Where(e => e.Title.Contains(request.SearchTerm)
-                || ((string)e.Key).Contains(request.SearchTerm)
-                || (e.ParentId.HasValue && ((string)e.Parent!.Key).Contains(request.SearchTerm)))
-            .OrderBy(e => EF.Property<string>(e, "KeyPrefix"))
-            .ThenBy(e => EF.Property<int>(e, "KeyNumber"))
-            .Take(request.Top)
+        return await _workDbContext.SearchWorkItems(request.SearchTerm, request.Top)
             .ProjectToType<WorkItemListDto>()
             .ToArrayAsync(cancellationToken);
     }

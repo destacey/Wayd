@@ -50,6 +50,10 @@ export interface ChartCanvasProps {
    *  domain when omitted. */
   dragMin?: number
   dragMax?: number
+  /** When false, vertical gridlines are hidden. Default true. */
+  showGridlines?: boolean
+  /** When true, Saturday and Sunday columns are shaded. Default false. */
+  showWeekends?: boolean
 }
 
 export const ChartCanvas: FC<ChartCanvasProps> = ({
@@ -72,8 +76,13 @@ export const ChartCanvas: FC<ChartCanvasProps> = ({
   canPan,
   dragMin,
   dragMax,
+  showGridlines = true,
+  showWeekends = false,
 }) => {
-  const tickLines = scale.ticks(10)
+  // Use the lower-tier axis segments as gridline positions so lines align with
+  // every visible axis tick (month when zoomed out, week/day when zoomed in).
+  const tickLines = scale.tiers().lower.map((s) => s.startMs)
+  const weekendBoxes = showWeekends ? scale.weekends() : []
   // `Date.now()` is impure; read it once on mount (a current-time line that's
   // accurate to mount time is fine — re-render with a fresh `nowMs` prop to move
   // it). Lazy initializer keeps render pure.
@@ -155,8 +164,17 @@ export const ChartCanvas: FC<ChartCanvasProps> = ({
       className={`${styles.canvas} ${canPan ? styles.canvasPannable : ''}`}
       style={{ width: scale.width, height: totalHeight }}
     >
+      {/* Weekend shading — behind gridlines and rows */}
+      {weekendBoxes.map((box, i) => (
+        <div
+          key={`we-${i}`}
+          className={styles.weekend}
+          style={{ left: box.left, width: box.width }}
+        />
+      ))}
+
       {/* Vertical gridlines */}
-      {tickLines.map((ms) => (
+      {showGridlines && tickLines.map((ms) => (
         <div key={`gl-${ms}`} className={styles.gridline} style={{ left: scale.toX(ms) }} />
       ))}
 

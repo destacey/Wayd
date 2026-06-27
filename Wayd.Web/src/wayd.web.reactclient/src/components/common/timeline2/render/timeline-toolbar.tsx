@@ -6,11 +6,12 @@
 // will live; the built-in right-side actions are save-as-image and fullscreen.
 
 import { ReactNode } from 'react'
-import { Button, Dropdown, Space, Switch, type MenuProps } from 'antd'
+import { Button, Dropdown, Popover, Space, Switch, Typography, type MenuProps } from 'antd'
 import {
   FileImageOutlined,
   FullscreenExitOutlined,
   FullscreenOutlined,
+  QuestionCircleOutlined,
   ReloadOutlined,
   SettingOutlined,
   UndoOutlined,
@@ -42,8 +43,16 @@ export interface TimelineToolbarProps {
   allowSettings?: boolean
   showCurrentTime?: boolean
   onToggleCurrentTime?: (checked: boolean) => void
+  showVerticalGridlines?: boolean
+  onToggleVerticalGridlines?: (checked: boolean) => void
+  showWeekends?: boolean
+  onToggleWeekends?: (checked: boolean) => void
+  isCompact?: boolean
+  onToggleCompact?: (checked: boolean) => void
   /** Refresh action — shown (ReloadOutlined) only when provided, like WaydGrid. */
   onRefresh?: () => void
+  /** When true, the help popover includes drag/edit shortcuts. */
+  editable?: boolean
 }
 
 const TimelineToolbar = ({
@@ -64,21 +73,107 @@ const TimelineToolbar = ({
   allowSettings,
   showCurrentTime,
   onToggleCurrentTime,
+  showVerticalGridlines,
+  onToggleVerticalGridlines,
+  showWeekends,
+  onToggleWeekends,
+  isCompact,
+  onToggleCompact,
   onRefresh,
+  editable,
 }: TimelineToolbarProps) => {
-  // Settings menu: keep the dropdown open while toggling the switch (stopPropagation
-  // on the row), matching the legacy timeline's control menu behaviour.
+  const helpRows: Array<{ keys: string; action: string }> = [
+    { keys: 'Scroll', action: 'Pan vertically' },
+    { keys: 'Shift + Scroll', action: 'Pan horizontally' },
+    { keys: 'Click + Drag', action: 'Pan' },
+    ...(allowZoom
+      ? [
+          { keys: 'Ctrl + Scroll', action: 'Zoom in / out' },
+          { keys: '+  /  −', action: 'Zoom in / out' },
+        ]
+      : []),
+    ...(editable
+      ? [
+          { keys: 'Drag bar', action: 'Move item' },
+          { keys: 'Drag handle', action: 'Resize item' },
+          { keys: 'Esc', action: 'Cancel drag' },
+        ]
+      : []),
+  ]
+
+  const helpContent = (
+    <div style={{ minWidth: 240 }}>
+      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+        Keyboard &amp; mouse controls
+      </Typography.Text>
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 8 }}>
+        <tbody>
+          {helpRows.map(({ keys, action }) => (
+            <tr key={keys}>
+              <td style={{ paddingBottom: 4, paddingRight: 16, whiteSpace: 'nowrap' }}>
+                <Typography.Text keyboard style={{ fontSize: 12 }}>{keys}</Typography.Text>
+              </td>
+              <td style={{ paddingBottom: 4, fontSize: 12 }}>{action}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+
+  // Settings menu: each item's onClick toggles the value and keeps the dropdown
+  // open (by stopping the event before antd closes it). The Switch is purely
+  // visual — the row click does the actual toggle so clicking the label works too.
   const settingsItems: MenuProps['items'] = [
     {
       key: 'show-current-time',
+      onClick: ({ domEvent }) => {
+        domEvent.stopPropagation()
+        onToggleCurrentTime?.(!showCurrentTime)
+      },
       label: (
-        <Space onClick={(e) => e.stopPropagation()}>
-          <Switch
-            size="small"
-            checked={showCurrentTime}
-            onChange={(checked) => onToggleCurrentTime?.(checked)}
-          />
+        <Space>
+          <Switch size="small" checked={showCurrentTime} />
           Show Current Time
+        </Space>
+      ),
+    },
+    {
+      key: 'show-vertical-gridlines',
+      onClick: ({ domEvent }) => {
+        domEvent.stopPropagation()
+        onToggleVerticalGridlines?.(!showVerticalGridlines)
+      },
+      label: (
+        <Space>
+          <Switch size="small" checked={showVerticalGridlines} />
+          Show Vertical Gridlines
+        </Space>
+      ),
+    },
+    {
+      key: 'show-weekends',
+      onClick: ({ domEvent }) => {
+        domEvent.stopPropagation()
+        onToggleWeekends?.(!showWeekends)
+      },
+      label: (
+        <Space>
+          <Switch size="small" checked={showWeekends} />
+          Highlight Weekends
+        </Space>
+      ),
+    },
+    {
+      key: 'compact-mode',
+      onClick: ({ domEvent }) => {
+        domEvent.stopPropagation()
+        onToggleCompact?.(!isCompact)
+      },
+      label: (
+        <Space>
+          <Switch size="small" checked={isCompact} />
+          Compact Mode
         </Space>
       ),
     },
@@ -162,6 +257,15 @@ const TimelineToolbar = ({
             />
           </WaydTooltip>
         )}
+        <Popover
+          content={helpContent}
+          trigger="click"
+          placement="bottomRight"
+        >
+          <WaydTooltip title="Help">
+            <Button type="text" shape="circle" icon={<QuestionCircleOutlined />} />
+          </WaydTooltip>
+        </Popover>
         {allowSettings && (
           <Dropdown
             menu={{ items: settingsItems }}

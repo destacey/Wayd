@@ -188,7 +188,14 @@
 /* Chart scroll body — both axes; drives axis + group-column sync. */
 .chartScroll {
   flex: 1 1 auto;
-  overflow: auto;
+  overflow: scroll;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+
+.chartScroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 /* Inner sized to full content height so the scrollbar reflects all rows. */
@@ -204,6 +211,15 @@
 
 .canvasPannable:active {
   cursor: grabbing;
+}
+
+/* Weekend column shading (Sat + Sun), behind gridlines and rows. */
+.weekend {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background-color: var(--ant-color-fill-quaternary);
+  pointer-events: none;
 }
 
 /* Vertical gridlines aligned with axis ticks, behind everything. */
@@ -275,8 +291,6 @@
   background-color: var(--ant-color-primary);
   color: var(--ant-color-white);
   font-size: var(--ant-font-size-sm);
-  /* Use the theme line-height (not 1) so descenders (g, y, p) aren't clipped. */
-  line-height: var(--ant-line-height, 1.5);
   cursor: default;
 }
 

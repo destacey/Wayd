@@ -6,6 +6,28 @@
 // owns ZOOM: clamping the factor and recomputing scrollLeft so a chosen anchor
 // point (cursor or viewport centre) stays fixed under the time axis as we zoom.
 
+/**
+ * Initial scrollLeft so the timeline opens with `windowStart` at the left edge
+ * of the viewport. Used on first mount when the domain is wider than the window
+ * (e.g. minDate/maxDate extend beyond the roadmap's own start/end).
+ *
+ * At zoom=1 the full domain maps to `chartWidth` pixels. The pixel offset of
+ * `windowStart` within the domain is:
+ *   (windowStart - domainStart) / domainMs * chartWidth
+ *
+ * Clamped to [0, chartWidth] so it's always a valid scrollLeft value.
+ */
+export function initialScrollLeft(
+  domainStart: number,
+  domainMs: number,
+  windowStart: number,
+  chartWidth: number,
+): number {
+  if (domainMs <= 0 || chartWidth <= 0) return 0
+  const offset = ((windowStart - domainStart) / domainMs) * chartWidth
+  return Math.min(chartWidth, Math.max(0, offset))
+}
+
 /** Bounds for the zoom factor (multiplier over the base, fit-to-window width). */
 export interface ZoomBounds {
   /** Smallest factor — fully zoomed out. Usually 1 (base = fit the window). */

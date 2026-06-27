@@ -38,16 +38,51 @@ export async function captureTimeline(
     scale,
     width,
     height,
+    // windowHeight must be >= height so html2canvas doesn't clip the render to
+    // the live element's viewport-constrained bounds.
     windowWidth: width,
-    windowHeight: height,
-    onclone: (_doc: Document, clonedRoot: HTMLElement) => {
-      // Un-clip vertical scrolling so all rows render; keep horizontal as-is so
-      // only the visible time window is captured. Let the container grow tall.
+    windowHeight: Math.max(height, window.innerHeight),
+    // Neutralise any page scroll offset so the capture starts at the element.
+    scrollY: -window.scrollY,
+    scrollX: -window.scrollX,
+    onclone: (doc: Document, clonedRoot: HTMLElement) => {
+      // Give the cloned document body enough room so absolutely/flex positioned
+      // descendants can expand to the full content height without clipping.
+      doc.body.style.height = `${height}px`
+      doc.body.style.minHeight = `${height}px`
+      doc.documentElement.style.height = `${height}px`
+
+      // Set the root to exactly the content height — no blank space below the
+      // last row, and no clipping if content is taller than the live element.
       clonedRoot.style.height = `${height}px`
+      clonedRoot.style.minHeight = 'unset'
+      clonedRoot.style.maxHeight = 'unset'
+      clonedRoot.style.overflow = 'visible'
+
+      // Un-clip vertical scrolling so all rows render.
       clonedRoot.querySelectorAll<HTMLElement>('*').forEach((node) => {
         const o = getComputedStyle(node)
         if (o.overflowY !== 'visible') node.style.overflowY = 'visible'
       })
+
+      // Walk every ancestor up to <body> and remove height constraints so the
+      // flex/fixed parent chain can't clip the root to the live element height.
+      let ancestor = clonedRoot.parentElement
+      while (ancestor && ancestor !== doc.body) {
+        ancestor.style.height = `${height}px`
+        ancestor.style.minHeight = 'unset'
+        ancestor.style.maxHeight = 'unset'
+        ancestor.style.overflow = 'visible'
+        // In fullscreen the .wrapper is position:fixed — reset to static so
+        // html2canvas doesn't offset the capture from the document origin.
+        if (getComputedStyle(ancestor).position === 'fixed') {
+          ancestor.style.position = 'static'
+          ancestor.style.inset = 'unset'
+          ancestor.style.zIndex = 'unset'
+          ancestor.style.width = `${width}px`
+        }
+        ancestor = ancestor.parentElement
+      }
 
       // Re-pin the group-label column to its live width so the clone wraps labels
       // exactly like the on-screen view (the Splitter's JS-computed widths are

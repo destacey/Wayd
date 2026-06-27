@@ -22,6 +22,8 @@ export interface GroupColumnProps {
   groupRenderer?: FC<GroupRenderProps>
   /** Reports measured label heights (incl. cell padding) keyed by groupId. */
   onMeasure?: (heights: Map<string, number>) => void
+  /** Current lane height — used to scale the label font in compact mode. */
+  laneHeight?: number
 }
 
 const INDENT_PER_DEPTH = 14
@@ -35,7 +37,10 @@ export const GroupColumn: FC<GroupColumnProps> = ({
   groupsById,
   groupRenderer: Renderer,
   onMeasure,
+  laneHeight,
 }) => {
+  // Scale label font to match the lane height, capped at 13px (default size).
+  const labelFontSize = laneHeight ? Math.max(9, Math.min(Math.floor(laneHeight / 1.2), 13)) : undefined
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Measure each label's natural height after layout (and on column resize) and
@@ -78,7 +83,10 @@ export const GroupColumn: FC<GroupColumnProps> = ({
             <span
               className={styles.groupLabel}
               data-row-key={row.rowKey ?? row.groupId}
-              style={{ paddingLeft: row.depth * INDENT_PER_DEPTH }}
+              style={{
+                paddingLeft: row.depth * INDENT_PER_DEPTH,
+                ...(labelFontSize ? { fontSize: labelFontSize } : undefined),
+              }}
             >
               {Renderer && group ? (
                 <Renderer

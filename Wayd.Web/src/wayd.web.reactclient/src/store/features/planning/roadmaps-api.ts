@@ -21,6 +21,7 @@ import {
   CreateRoadmapRequest,
   RoadmapDetailsDto,
   RoadmapListDto,
+  UpdateRoadmapColorsRequest,
   UpdateRoadmapRequest,
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
@@ -166,6 +167,28 @@ export const roadmapApi = apiSlice.injectEndpoints({
           { type: QueryTags.Roadmap, id: arg.cacheKey },
         ]
       },
+    }),
+    updateRoadmapColors: builder.mutation<
+      void,
+      {
+        roadmapId: string
+        request: UpdateRoadmapColorsRequest
+        cacheKey: number
+      }
+    >({
+      queryFn: async ({ roadmapId, request }) => {
+        try {
+          const data = await getRoadmapsClient().updateColors(roadmapId, request)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, { cacheKey }) => [
+        { type: QueryTags.Roadmap, id: 'LIST' },
+        { type: QueryTags.Roadmap, id: cacheKey },
+      ],
     }),
     deleteRoadmap: builder.mutation<void, string>({
       queryFn: async (roadmapId) => {
@@ -521,6 +544,7 @@ export const {
   useCreateRoadmapMutation,
   useCopyRoadmapMutation,
   useUpdateRoadmapMutation,
+  useUpdateRoadmapColorsMutation,
   useDeleteRoadmapMutation,
   useArchiveRoadmapMutation,
   useActivateRoadmapMutation,

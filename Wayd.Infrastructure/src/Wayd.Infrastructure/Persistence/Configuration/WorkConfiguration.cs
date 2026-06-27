@@ -141,6 +141,12 @@ public class WorkItemConfig : IEntityTypeConfiguration<WorkItem>
             })
             .HasFilter("[ExternalId] IS NOT NULL");
 
+        // Covering index on ParentId including Key for the search self-join
+        builder.HasIndex(w => w.ParentId)
+            .IncludeProperties(w => new { w.Key })
+            .HasFilter("[ParentId] IS NOT NULL")
+            .HasDatabaseName("IX_WorkItems_ParentId_Key");
+
         // Composite index for ProjectId and ParentProjectId
         builder.HasIndex(w => new { w.ProjectId, w.ParentProjectId });
 
@@ -174,6 +180,17 @@ public class WorkItemConfig : IEntityTypeConfiguration<WorkItem>
         builder.Property(w => w.LastModified);
         builder.Property(w => w.ActivatedTimestamp);
         builder.Property(w => w.DoneTimestamp);
+
+        // Persisted computed columns used for server-side key ordering in search
+        builder.Property<string>("KeyPrefix")
+            .HasComputedColumnSql("LEFT([Key], CHARINDEX('-', [Key]) - 1)", stored: true)
+            .HasMaxLength(20);
+        builder.Property<int>("KeyNumber")
+            .HasComputedColumnSql("CAST(SUBSTRING([Key], CHARINDEX('-', [Key]) + 1, LEN([Key])) AS int)", stored: true);
+
+        builder.HasIndex("KeyPrefix", "KeyNumber")
+            .IncludeProperties(w => new { w.Id })
+            .HasDatabaseName("IX_WorkItems_KeyPrefix_KeyNumber");
 
         builder.OwnsMany(w => w.Tags, t =>
         {

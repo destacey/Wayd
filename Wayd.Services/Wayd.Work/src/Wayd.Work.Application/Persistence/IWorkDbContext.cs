@@ -15,4 +15,10 @@ public interface IWorkDbContext : IWaydDbContext
     DbSet<WorkStatus> WorkStatuses { get; }
     DbSet<WorkTeam> WorkTeams { get; }
     DbSet<WorkType> WorkTypes { get; }
+
+    /// <summary>
+    /// Returns work items matching the search term using full-text search when available,
+    /// ordered by key prefix then key number, limited to <paramref name="top"/> results.
+    /// </summary>
+    IQueryable<WorkItem> SearchWorkItems(string searchTerm, int top);
 }

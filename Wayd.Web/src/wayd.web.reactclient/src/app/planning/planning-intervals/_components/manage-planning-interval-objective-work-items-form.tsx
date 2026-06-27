@@ -11,7 +11,7 @@ import {
   useManageObjectiveWorkItemsMutation,
 } from '@/src/store/features/planning/planning-interval-api'
 import { useSearchWorkItemsQuery } from '@/src/store/features/work-management/workspace-api'
-import { SearchOutlined } from '@ant-design/icons'
+import { LoadingOutlined, SearchOutlined } from '@ant-design/icons'
 import { Flex, Input, Modal, Typography } from 'antd'
 import { ChangeEvent, useState } from 'react'
 import { ColDef } from 'ag-grid-community'
@@ -127,7 +127,7 @@ const ManagePlanningIntervalObjectiveWorkItemsForm = ({
   })
 
   const debounceSearchQuery = useDebounce(searchQuery, 500)
-  const { data: searchResult } = useSearchWorkItemsQuery(debounceSearchQuery, {
+  const { data: searchResult, isFetching: isSearching } = useSearchWorkItemsQuery(debounceSearchQuery, {
     skip: debounceSearchQuery === '',
   })
 
@@ -233,7 +233,7 @@ const ManagePlanningIntervalObjectiveWorkItemsForm = ({
             placeholder="Search for work items by key, title, or parent key"
             allowClear
             onChange={handleSearch}
-            suffix={<SearchOutlined />}
+            suffix={isSearching ? <LoadingOutlined spin /> : <SearchOutlined />}
           />
           <AgGridTransfer
             leftGridData={sourceWorkItems}

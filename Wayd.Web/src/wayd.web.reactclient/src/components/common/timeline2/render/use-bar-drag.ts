@@ -61,6 +61,9 @@ export function useBarDrag(options: UseBarDragOptions): UseBarDrag {
       if (e.key !== 'Escape') return
       const s = session.current
       if (!s) return
+      // Stop propagation so parent modals/drawers don't also close on the same Esc.
+      e.preventDefault()
+      e.stopPropagation()
       window.removeEventListener('pointermove', s.move)
       window.removeEventListener('pointerup', s.up)
       session.current = null

@@ -13,7 +13,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Spin, Splitter } from 'antd'
 import { captureTimeline } from './render/capture-timeline'
 import { createTimeScale } from './core/scale'
-import { clampZoom, maxZoom, anchoredScrollLeft } from './core/zoom'
+import { clampZoom, maxZoom, anchoredScrollLeft, initialScrollLeft } from './core/zoom'
 import { getLayoutStrategy } from './layout'
 import { ChartCanvas, type ChartCanvasProps } from './render/chart-canvas'
 import { GroupColumn } from './render/group-column'
@@ -282,9 +282,20 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
 
   // While true, every resize re-locks the scroll to windowStart (the "home" view).
   // Set to false the first time the user pans or zooms.
+  // Ref for synchronous reads in hot-path handlers (scroll, pan, zoom).
+  // State mirrors it for the render (canReset prop).
   const isInitialViewRef = useRef(true)
+  const [isInitialView, setIsInitialView] = useState(true)
   // Reset to the home view whenever the storageKey changes (different timeline
-  // instance). Done in a layout effect so refs aren't mutated during render.
+  // instance). Uses the state-during-render pattern (same as prevWidthKey above)
+  // so React can bail out without a double-render from an effect.
+  const [prevStorageKey, setPrevStorageKey] = useState(storageKey)
+  if (prevStorageKey !== storageKey) {
+    setPrevStorageKey(storageKey)
+    setIsInitialView(true)
+  }
+  // The isInitialViewRef mutation must stay in an effect — refs can't be written
+  // during render. Keep it in sync with the state transition above.
   const prevStorageKeyRef = useRef(storageKey)
   useLayoutEffect(() => {
     if (prevStorageKeyRef.current !== storageKey) {
@@ -293,8 +304,9 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
     }
   }, [storageKey])
 
-  // Latest domain/window geometry — updated synchronously during render so the
-  // measure/resize callback always reads current props without a stale closure.
+  // Latest domain/window geometry — updated in a layout effect each render so
+  // the (stable) scroll/reset callbacks always read current props without a
+  // stale closure.
   const windowGeomRef = useRef({ domainStart: 0, domainMs: 1, windowStart: 0, windowMs: 1 })
 
   // Resolve the drill level: which activities stay groups vs. demote to bars,
@@ -405,15 +417,12 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
   // While in the initial view (no user pan/zoom), lock scroll to windowStart
   // on every render where the viewport is measured. Runs in useLayoutEffect so
   // it applies before paint — no flash of wrong position.
-  // We use chart.clientWidth (live DOM) instead of viewportWidth (React state)
-  // so the offset is always computed against the actual rendered canvas size.
   useLayoutEffect(() => {
     if (!isInitialViewRef.current) return
     const chart = chartRef.current
     if (!chart) return
-    const liveWidth = chart.clientWidth
-    if (liveWidth <= 0) return
-    const offset = windowMs > 0 ? ((windowStart - domainStart) / windowMs) * liveWidth : 0
+    if (chart.clientWidth <= 0) return
+    const offset = initialScrollLeft(domainStart, domainMs, windowStart, baseWidth)
     // Only apply if the canvas is wide enough to scroll to this offset.
     if (chart.scrollWidth <= offset) return
     chart.scrollLeft = offset
@@ -421,7 +430,7 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
     // Defer state update to avoid setState-in-effect lint error; bar labels
     // tolerate a one-frame lag after a programmatic scroll to windowStart.
     requestAnimationFrame(() => setScrollLeft(offset))
-  }, [viewportWidth, domainStart, windowStart, windowMs, chartWidth])
+  }, [viewportWidth, domainStart, domainMs, windowStart, baseWidth, chartWidth])
 
   // Chart scroll drives: axis horizontal sync + group-column vertical sync, and
   // a debounced scrollLeft state so bar labels can stick to the visible left
@@ -429,6 +438,13 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
   const onChartScroll = () => {
     const chart = chartRef.current
     if (!chart) return
+    // Any scroll (including Shift+wheel / trackpad horizontal pan) means the user
+    // has navigated away from the default window — clear the initial-view lock so
+    // a later viewport resize doesn't snap back to windowStart.
+    if (isInitialViewRef.current) {
+      isInitialViewRef.current = false
+      setIsInitialView(false)
+    }
     if (axisViewportRef.current) {
       axisViewportRef.current.scrollLeft = chart.scrollLeft
     }
@@ -471,6 +487,7 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
     if (e.button !== 0) return
     if ((e.target as HTMLElement).closest('[data-timeline-item]')) return
     isInitialViewRef.current = false
+    setIsInitialView(false)
     const chart = chartRef.current
     if (!chart) return
     // Nothing to pan if content fits the viewport in both axes.
@@ -519,6 +536,7 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
   // wheel listener and the toolbar buttons. Stages the post-paint scrollLeft.
   const requestZoom = (nextZoomRaw: number, anchorX: number) => {
     isInitialViewRef.current = false
+    setIsInitialView(false)
     const geom = zoomGeomRef.current
     const next = clampZoom(nextZoomRaw, geom.bounds)
     if (next === geom.zoom) return
@@ -543,6 +561,7 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
   // Reset View: zoom=1 (window fills viewport) and scroll to windowStart.
   const resetView = () => {
     isInitialViewRef.current = true
+    setIsInitialView(true)
     const g = windowGeomRef.current
     const chart = chartRef.current
     const w = chart?.clientWidth ?? viewportWidth
@@ -696,7 +715,7 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
           onResetView={resetView}
           canZoomIn={effectiveZoom < zoomMax - 1e-6}
           canZoomOut={effectiveZoom > zoomMin + 1e-6}
-          canReset={Math.abs(effectiveZoom - 1) > 1e-6 || !isInitialViewRef.current}
+          canReset={Math.abs(effectiveZoom - 1) > 1e-6 || !isInitialView}
           allowSaveAsImage={allowSaveAsImage}
           onSaveAsImage={saveImage}
           allowFullScreen={allowFullScreen}

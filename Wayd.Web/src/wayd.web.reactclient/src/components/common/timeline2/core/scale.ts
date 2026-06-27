@@ -149,8 +149,9 @@ export function createTimeScale(
       if (pxPerDay < 6) return []
       const out: Array<{ left: number; width: number }> = []
       let cursor = dayjs(startMs).startOf('day')
+      const daySpan = Math.ceil((safeEnd - startMs) / DAY) + 1
       let guard = 0
-      while (cursor.valueOf() < safeEnd && guard < 800) {
+      while (cursor.valueOf() < safeEnd && guard < daySpan) {
         const dow = cursor.day() // 0 = Sun, 6 = Sat
         if (dow === 0 || dow === 6) {
           const dayStart = Math.max(cursor.valueOf(), startMs)

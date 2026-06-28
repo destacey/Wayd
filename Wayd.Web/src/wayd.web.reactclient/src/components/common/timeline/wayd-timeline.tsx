@@ -1,6 +1,6 @@
 'use client'
 
-// timeline2/wayd-timeline2.tsx — public component. Variant-driven; wires the
+// timeline/wayd-timeline.tsx — public component. Variant-driven; wires the
 // scale + layout strategy + render layer. Built in parallel to the existing
 // WaydTimeline (no facade swap) so pages migrate one at a time.
 //
@@ -30,7 +30,7 @@ import { growRowsForLabels, type GeometryConfig } from './core/geometry'
 import { truncateOneDayLabel } from './core/labels'
 import { getVisibleRange } from './core/virtualization'
 import type { TimelineGroup, TimelineItem } from './core/types'
-import type { WaydTimeline2Props } from './types'
+import type { WaydTimelineProps } from './types'
 import styles from './render/timeline.module.css'
 
 const AXIS_HEIGHT = 48
@@ -66,8 +66,8 @@ function readPersistedWidth(key: string | null, fallback: number): number {
   }
 }
 
-export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
-  props: WaydTimeline2Props<TItem, TGroup>,
+export function WaydTimeline<TItem = unknown, TGroup = unknown>(
+  props: WaydTimelineProps<TItem, TGroup>,
 ) {
   const {
     variant = 'timeline',
@@ -157,7 +157,7 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
   // it's plain ephemeral state seeded from the prop default. When there's no
   // storageKey we never touch localStorage at all (no shared/`__none__` key).
   const widthStorageKey = storageKey
-    ? `wayd-timeline2:groupWidth:${storageKey}`
+    ? `wayd-timeline:groupWidth:${storageKey}`
     : null
   const [columnWidth, setColumnWidthState] = useState(() =>
     readPersistedWidth(widthStorageKey, groupColumnWidth),
@@ -856,4 +856,4 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
   )
 }
 
-export default WaydTimeline2
+export default WaydTimeline

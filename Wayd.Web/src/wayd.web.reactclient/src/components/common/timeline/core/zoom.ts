@@ -1,4 +1,4 @@
-// timeline2/core/zoom.ts
+// timeline/core/zoom.ts
 // Hand-rolled pan/zoom transform (decision D-2). Pure math, no DOM/React.
 //
 // The chart's horizontal extent is `baseWidth * zoom` pixels mapping the full

@@ -1,4 +1,4 @@
-// timeline2/core/depth.ts
+// timeline/core/depth.ts
 // Drill-through level helpers (pure). A "drill level" is a global expand depth:
 // groups at depth < level stay expanded; groups at depth >= level are collapsed
 // (their descendants fold onto their lane). Level 1 = only top-level groups

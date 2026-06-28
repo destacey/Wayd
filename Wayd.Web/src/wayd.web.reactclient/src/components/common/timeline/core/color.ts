@@ -1,4 +1,4 @@
-// timeline2/core/color.ts
+// timeline/core/color.ts
 // Tiny contrast helper: choose readable text color for a given bar background.
 // Pure, no deps. Matches the luminance approach the legacy timeline used.
 

@@ -1,6 +1,6 @@
 'use client'
 
-// timeline2/render/timeline-toolbar.tsx — the timeline's action bar, following
+// timeline/render/timeline-toolbar.tsx — the timeline's action bar, following
 // the tree-grid toolbar pattern (WaydTooltip + text/circle icon buttons +
 // leftSlot/rightSlot + dividers). leftSlot is where drill-through +/- controls
 // will live; the built-in right-side actions are save-as-image and fullscreen.

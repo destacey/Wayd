@@ -1,4 +1,4 @@
-// timeline2/layout/gantt-layout.ts
+// timeline/layout/gantt-layout.ts
 // Gantt variant: ONE row per record, no lane-packing. Groups render as tree
 // rows (children are their own rows, indented by depth). Minimal v1 — dependency
 // arrows and the multi-column grid-left panel are deferred, additive layers

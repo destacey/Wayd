@@ -1,6 +1,6 @@
 'use client'
 
-// timeline2/render/drill-control.tsx — drill-through level -/+ buttons.
+// timeline/render/drill-control.tsx — drill-through level -/+ buttons.
 // Collapse (-) reduces the expand level (fold deeper groups onto parent lanes);
 // expand (+) increases it. Lives in the toolbar's left slot. Mirrors the legacy
 // roadmap timeline's drill control.

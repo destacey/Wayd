@@ -1,4 +1,4 @@
-// timeline2/core/geometry.ts
+// timeline/core/geometry.ts
 // Pure pixel-box computation: given a TimeScale, a resolved row, and lane sizing,
 // produce absolute {left, top, width, height} boxes for items and backgrounds.
 // No React, no DOM. Consumed by the render layer.

@@ -1,4 +1,4 @@
-// timeline2/core/scale.ts
+// timeline/core/scale.ts
 // Date<->pixel mapping + calendar-aware tick generation. Pure, no DOM/React.
 //
 // Originally planned on d3-scale (decision D-2), but d3's ESM-only packaging

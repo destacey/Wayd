@@ -1,4 +1,4 @@
-// timeline2/core/virtualization.ts
+// timeline/core/virtualization.ts
 // Visible-row windowing (NFR-3, REQUIRED). Pure function: given rows laid out
 // with top/height, a scroll offset, and a viewport height, return the index
 // range of rows that intersect the viewport (plus overscan). Variant-agnostic —

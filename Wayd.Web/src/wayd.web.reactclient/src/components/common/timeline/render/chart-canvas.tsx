@@ -1,6 +1,6 @@
 'use client'
 
-// timeline2/render/chart-canvas.tsx — the variant-agnostic chart body.
+// timeline/render/chart-canvas.tsx — the variant-agnostic chart body.
 // Consumes ResolvedRow[] (from any layout strategy) + a TimeScale and draws
 // backgrounds, rows, and item bars. Variant never reaches here. Owns the drag
 // interaction (move/resize via useBarDrag; progress via a pointer handler),

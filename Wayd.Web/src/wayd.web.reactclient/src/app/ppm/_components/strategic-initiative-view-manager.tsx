@@ -9,8 +9,8 @@ import dynamic from 'next/dynamic'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { StrategicInitiativesGrid } from '.'
 
-const TimelineV2 = dynamic(
-  () => import('./strategic-initiatives-timeline-v2'),
+const Timeline = dynamic(
+  () => import('./strategic-initiatives-timeline'),
   {
     ssr: false,
     loading: () => <Spin />,
@@ -67,7 +67,7 @@ const StrategicInitiativeViewManager = (
         />
       )}
       {currentView === 'Timeline' && (
-        <TimelineV2
+        <Timeline
           strategicInitiatives={props.strategicInitiatives}
           isLoading={props.isLoading}
           refetch={props.refetch}

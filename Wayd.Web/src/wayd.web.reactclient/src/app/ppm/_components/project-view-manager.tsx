@@ -14,7 +14,7 @@ import ProjectsGrid from './projects-grid'
 import ProjectsCardView from './projects-card-view'
 import ProjectDrawer from './project-drawer'
 
-const TimelineV2 = dynamic(() => import('./projects-timeline-v2'), {
+const Timeline = dynamic(() => import('./projects-timeline'), {
   ssr: false,
   loading: () => <Spin />,
 })
@@ -97,7 +97,7 @@ const ProjectViewManager = (props: ProjectViewManagerProps) => {
         />
       )}
       {currentView === 'Timeline' && (
-        <TimelineV2
+        <Timeline
           projects={props.projects}
           isLoading={props.isLoading}
           refetch={props.refetch}

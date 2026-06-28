@@ -4,8 +4,8 @@ import { FC, ReactNode, useState } from 'react'
 import dayjs from 'dayjs'
 import { theme } from 'antd'
 import { ProjectListDto } from '@/src/services/wayd-api'
-import { WaydTimeline2 } from '@/src/components/common/timeline2'
-import type { TimelineItem, TimelineGroup } from '@/src/components/common/timeline2'
+import { WaydTimeline } from '@/src/components/common/timeline'
+import type { TimelineItem, TimelineGroup } from '@/src/components/common/timeline'
 import { getLifecyclePhaseColorFromStatus } from '@/src/utils'
 import { ProjectDrawer } from '.'
 
@@ -15,7 +15,7 @@ interface ProjectPayload {
   dto: ProjectListDto
 }
 
-export interface ProjectsTimelineV2Props {
+export interface ProjectsTimelineProps {
   projects: ProjectListDto[]
   isLoading: boolean
   refetch: () => void
@@ -88,7 +88,7 @@ function mapProjects(
   return { items, groups, windowStart, windowEnd, minDate, maxDate }
 }
 
-const ProjectsTimelineV2: FC<ProjectsTimelineV2Props> = ({
+const ProjectsTimeline: FC<ProjectsTimelineProps> = ({
   projects,
   isLoading,
   viewSelector,
@@ -109,7 +109,7 @@ const ProjectsTimelineV2: FC<ProjectsTimelineV2Props> = ({
 
   return (
     <>
-      <WaydTimeline2<ProjectPayload>
+      <WaydTimeline<ProjectPayload>
         variant="timeline"
         items={items}
         groups={groups.length > 0 ? groups : undefined}
@@ -151,4 +151,4 @@ const ProjectsTimelineV2: FC<ProjectsTimelineV2Props> = ({
   )
 }
 
-export default ProjectsTimelineV2
+export default ProjectsTimeline

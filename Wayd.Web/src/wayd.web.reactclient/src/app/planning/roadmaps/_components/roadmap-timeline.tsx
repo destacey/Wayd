@@ -1,6 +1,6 @@
 'use client'
 
-// roadmap-timeline-v2.tsx — adapter that feeds roadmap data into WaydTimeline2.
+// roadmap-timeline.tsx — adapter that feeds roadmap data into WaydTimeline.
 // Maps the roadmap item tree to the component's TimelineItem/TimelineGroup shape
 // (epoch-ms bounds).
 //
@@ -17,18 +17,18 @@ import {
   RoadmapMilestoneListDto,
   RoadmapTimeboxListDto,
 } from '@/src/services/wayd-api'
-import { WaydTimeline2 } from '@/src/components/common/timeline2'
+import { WaydTimeline } from '@/src/components/common/timeline'
 import type {
   TimelineItem,
   TimelineGroup,
   ItemDateChange,
-} from '@/src/components/common/timeline2'
+} from '@/src/components/common/timeline'
 import { useUpdateRoadmapItemDatesMutation } from '@/src/store/features/planning/roadmaps-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { isApiError, type ApiError } from '@/src/utils'
 import RoadmapColorLegend from './roadmap-color-legend'
 
-export interface RoadmapTimelineV2Props {
+export interface RoadmapTimelineProps {
   roadmap: RoadmapDetailsDto
   roadmapItems: RoadmapItemListDto[]
   isRoadmapItemsLoading: boolean
@@ -61,10 +61,10 @@ interface RoadmapPayload {
   openDrawer: (id: string) => void
 }
 
-// Walk the roadmap item tree -> flat TimelineItems + Groups for WaydTimeline2.
+// Walk the roadmap item tree -> flat TimelineItems + Groups for WaydTimeline.
 // EVERY activity is emitted as BOTH a group (potential left-column row) AND a
 // range item assigned to its own group. The drill level (resolved inside
-// WaydTimeline2) then decides which activities stay groups vs. demote to bars in
+// WaydTimeline) then decides which activities stay groups vs. demote to bars in
 // an ancestor row — so the adapter just exposes the full tree, no level logic.
 // Synthetic group for the roadmap-root band — holds root-level timeboxes /
 // milestones (attached to the roadmap itself, not an activity), like the legacy
@@ -191,7 +191,7 @@ function mapRoadmap(
   return { items: out, groups }
 }
 
-const RoadmapTimelineV2: FC<RoadmapTimelineV2Props> = (props) => {
+const RoadmapTimeline: FC<RoadmapTimelineProps> = (props) => {
   const messageApi = useMessage()
   const [updateRoadmapItemDates] = useUpdateRoadmapItemDatesMutation()
   const [updatingId, setUpdatingId] = useState<string | null>(null)
@@ -245,7 +245,7 @@ const RoadmapTimelineV2: FC<RoadmapTimelineV2Props> = (props) => {
 
   return (
     <>
-      <WaydTimeline2<RoadmapPayload>
+      <WaydTimeline<RoadmapPayload>
         variant="timeline"
         items={items}
         groups={groups}
@@ -271,4 +271,4 @@ const RoadmapTimelineV2: FC<RoadmapTimelineV2Props> = (props) => {
   )
 }
 
-export default RoadmapTimelineV2
+export default RoadmapTimeline

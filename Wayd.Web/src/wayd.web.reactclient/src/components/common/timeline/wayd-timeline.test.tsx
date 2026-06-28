@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { WaydTimeline2 } from './wayd-timeline2'
+import { WaydTimeline } from './wayd-timeline'
 import type { TimelineItem } from './core/types'
 
 // jsdom has no ResizeObserver; the chart body's callback ref constructs one.
@@ -25,11 +25,11 @@ const item = (id: string): TimelineItem => ({
   end: 5 * DAY,
 })
 
-describe('WaydTimeline2 — loading & empty states', () => {
+describe('WaydTimeline — loading & empty states', () => {
   it('renders a spinner while loading with no data', () => {
     // Arrange / Act
     const { container } = render(
-      <WaydTimeline2
+      <WaydTimeline
         items={[]}
         windowStart={windowStart}
         windowEnd={windowEnd}
@@ -43,7 +43,7 @@ describe('WaydTimeline2 — loading & empty states', () => {
   it('renders the empty message when not loading and there are no items', () => {
     // Arrange / Act
     render(
-      <WaydTimeline2
+      <WaydTimeline
         items={[]}
         windowStart={windowStart}
         windowEnd={windowEnd}
@@ -57,7 +57,7 @@ describe('WaydTimeline2 — loading & empty states', () => {
   it('does not show the spinner once items are present, even while loading', () => {
     // Arrange / Act — loading is true but data has arrived (refetch case).
     const { container } = render(
-      <WaydTimeline2
+      <WaydTimeline
         items={[item('a')]}
         windowStart={windowStart}
         windowEnd={windowEnd}

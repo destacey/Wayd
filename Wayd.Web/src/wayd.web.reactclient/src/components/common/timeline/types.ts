@@ -1,5 +1,5 @@
-// timeline2/types.ts
-// Public, React-facing types for WaydTimeline2 (distinct from core/types.ts,
+// timeline/types.ts
+// Public, React-facing types for WaydTimeline (distinct from core/types.ts,
 // which is the pure-math domain model).
 
 import type { FC, ReactNode } from 'react'
@@ -41,7 +41,7 @@ export interface ItemProgressChange {
   progress: number
 }
 
-export interface WaydTimeline2Props<TItem = unknown, TGroup = unknown> {
+export interface WaydTimelineProps<TItem = unknown, TGroup = unknown> {
   variant?: TimelineVariant
   items: TimelineItem<TItem>[]
   groups?: TimelineGroup<TGroup>[]

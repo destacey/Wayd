@@ -1,4 +1,4 @@
-// timeline2/layout — the variant seam. Pick a strategy by variant.
+// timeline/layout — the variant seam. Pick a strategy by variant.
 
 import type { TimelineVariant } from '../core/types'
 import type { LayoutStrategy } from './layout-strategy'

@@ -9,8 +9,8 @@ import {
   PlanningIntervalObjectiveListDto,
 } from '@/src/services/wayd-api'
 
-const TimelineV2 = dynamic(
-  () => import('./planning-interval-objectives-timeline-v2'),
+const Timeline = dynamic(
+  () => import('./planning-interval-objectives-timeline'),
   { ssr: false, loading: () => <Spin /> },
 )
 
@@ -36,7 +36,7 @@ const PlanningIntervalObjectivesViewManager = (
       }
     : undefined
 
-  return <TimelineV2 {...props} onRefresh={refreshWithFeedback} />
+  return <Timeline {...props} onRefresh={refreshWithFeedback} />
 }
 
 export default PlanningIntervalObjectivesViewManager

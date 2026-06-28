@@ -1,6 +1,6 @@
 'use client'
 
-// timeline2/render/group-column.tsx — the left label column. Renders one cell
+// timeline/render/group-column.tsx — the left label column. Renders one cell
 // per resolved row, aligned to the row's top/height, indented by depth. Scrolls
 // vertically in sync with the chart body (the parent keeps them aligned).
 //

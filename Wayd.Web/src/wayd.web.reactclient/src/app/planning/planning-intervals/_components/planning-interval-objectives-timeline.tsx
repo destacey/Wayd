@@ -1,7 +1,7 @@
 'use client'
 
-// planning-interval-objectives-timeline-v2.tsx — adapter feeding PI objectives
-// data into WaydTimeline2.
+// planning-interval-objectives-timeline.tsx — adapter feeding PI objectives
+// data into WaydTimeline.
 //
 // iteration schedule -> kind 'background'  (scoped to a synthetic root band when
 //                                           groups are shown, so the label has headroom)
@@ -14,8 +14,8 @@ import {
   PlanningIntervalCalendarDto,
   PlanningIntervalObjectiveListDto,
 } from '@/src/services/wayd-api'
-import { WaydTimeline2 } from '@/src/components/common/timeline2'
-import type { TimelineItem, TimelineGroup } from '@/src/components/common/timeline2'
+import { WaydTimeline } from '@/src/components/common/timeline'
+import type { TimelineItem, TimelineGroup } from '@/src/components/common/timeline'
 
 
 const ms = (d: dayjs.ConfigType) => dayjs(d).valueOf()
@@ -24,7 +24,7 @@ interface PiObjectivesPayload {
   dto: PlanningIntervalObjectiveListDto
 }
 
-export interface PlanningIntervalObjectivesTimelineV2Props {
+export interface PlanningIntervalObjectivesTimelineProps {
   objectivesData: PlanningIntervalObjectiveListDto[]
   planningIntervalCalendar: PlanningIntervalCalendarDto
   enableGroups?: boolean
@@ -119,8 +119,8 @@ function mapObjectives(
   return { items: [...backgrounds, ...bars], groups }
 }
 
-const PlanningIntervalObjectivesTimelineV2: FC<
-  PlanningIntervalObjectivesTimelineV2Props
+const PlanningIntervalObjectivesTimeline: FC<
+  PlanningIntervalObjectivesTimelineProps
 > = ({
   objectivesData,
   planningIntervalCalendar,
@@ -146,7 +146,7 @@ const PlanningIntervalObjectivesTimelineV2: FC<
   const piKey = planningIntervalCalendar.key
 
   return (
-    <WaydTimeline2<PiObjectivesPayload>
+    <WaydTimeline<PiObjectivesPayload>
       variant="timeline"
       items={items}
       groups={groups.length > 0 ? groups : undefined}
@@ -178,4 +178,4 @@ const PlanningIntervalObjectivesTimelineV2: FC<
   )
 }
 
-export default PlanningIntervalObjectivesTimelineV2
+export default PlanningIntervalObjectivesTimeline

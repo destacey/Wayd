@@ -4,8 +4,8 @@ import { FC, ReactNode, useState } from 'react'
 import dayjs from 'dayjs'
 import { theme } from 'antd'
 import { StrategicInitiativeListDto } from '@/src/services/wayd-api'
-import { WaydTimeline2 } from '@/src/components/common/timeline2'
-import type { TimelineItem } from '@/src/components/common/timeline2'
+import { WaydTimeline } from '@/src/components/common/timeline'
+import type { TimelineItem } from '@/src/components/common/timeline'
 import { getLifecyclePhaseColorFromStatus } from '@/src/utils'
 import { StrategicInitiativeDrawer } from '.'
 
@@ -15,7 +15,7 @@ interface StrategicInitiativePayload {
   dto: StrategicInitiativeListDto
 }
 
-export interface StrategicInitiativesTimelineV2Props {
+export interface StrategicInitiativesTimelineProps {
   strategicInitiatives: StrategicInitiativeListDto[]
   isLoading: boolean
   refetch: () => void
@@ -65,7 +65,7 @@ function mapStrategicInitiatives(
   return { items, windowStart, windowEnd, minDate, maxDate }
 }
 
-const StrategicInitiativesTimelineV2: FC<StrategicInitiativesTimelineV2Props> =
+const StrategicInitiativesTimeline: FC<StrategicInitiativesTimelineProps> =
   ({ strategicInitiatives, isLoading, viewSelector, onRefresh }) => {
     const [drawerOpen, setDrawerOpen] = useState(false)
     const [selectedKey, setSelectedKey] = useState<number | null>(null)
@@ -78,7 +78,7 @@ const StrategicInitiativesTimelineV2: FC<StrategicInitiativesTimelineV2Props> =
 
     return (
       <>
-        <WaydTimeline2<StrategicInitiativePayload>
+        <WaydTimeline<StrategicInitiativePayload>
           variant="timeline"
           items={items}
           windowStart={windowStart}
@@ -114,4 +114,4 @@ const StrategicInitiativesTimelineV2: FC<StrategicInitiativesTimelineV2Props> =
     )
   }
 
-export default StrategicInitiativesTimelineV2
+export default StrategicInitiativesTimeline

@@ -1,4 +1,4 @@
-// timeline2/layout/layout-strategy.ts
+// timeline/layout/layout-strategy.ts
 // The ONLY variant-aware seam (per spec architecture). A layout strategy turns
 // items + groups into ResolvedRow[] (top/height/lanes). Everything downstream
 // (render, virtualization, interaction) is variant-agnostic and consumes rows.

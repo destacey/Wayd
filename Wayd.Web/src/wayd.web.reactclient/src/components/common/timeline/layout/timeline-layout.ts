@@ -1,4 +1,4 @@
-// timeline2/layout/timeline-layout.ts
+// timeline/layout/timeline-layout.ts
 // Timeline variant: lane-packing + collapse-to-lane. Pure function.
 //
 //  - Ungrouped: one packed row containing all items.

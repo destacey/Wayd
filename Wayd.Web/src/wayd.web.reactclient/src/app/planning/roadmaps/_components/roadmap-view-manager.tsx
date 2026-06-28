@@ -9,7 +9,7 @@ import { Spin } from 'antd'
 import { useMessage } from '@/src/components/contexts/messaging'
 import RoadmapItemsGrid from './roadmap-items-grid'
 
-const RoadmapTimelineV2 = dynamic(() => import('./roadmap-timeline-v2'), {
+const RoadmapTimeline = dynamic(() => import('./roadmap-timeline'), {
   ssr: false,
   loading: () => <Spin />,
 })
@@ -59,7 +59,7 @@ const RoadmapViewManager = (props: RoadmapViewManagerProps) => {
   return (
     <>
       {currentView === 'Timeline' && (
-        <RoadmapTimelineV2
+        <RoadmapTimeline
           roadmap={props.roadmap}
           roadmapItems={props.roadmapItems}
           isRoadmapItemsLoading={props.isRoadmapItemsLoading}

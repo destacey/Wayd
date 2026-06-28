@@ -1,6 +1,6 @@
 'use client'
 
-// timeline2/render/item-bar.tsx — a single range bar or milestone diamond.
+// timeline/render/item-bar.tsx — a single range bar or milestone diamond.
 // Variant-agnostic: it just draws a box. Move/resize/progress handles are
 // layered on later (FR-5); this is the static visual + click handling.
 

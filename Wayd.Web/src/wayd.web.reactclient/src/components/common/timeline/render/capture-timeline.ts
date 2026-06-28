@@ -1,4 +1,4 @@
-// timeline2/render/capture-timeline.ts
+// timeline/render/capture-timeline.ts
 // Save-as-image. We capture the CURRENT horizontal viewport (no off-screen time)
 // but the FULL vertical extent (all rows, as if there were no vertical scroll).
 // Because we don't expand horizontally, the Splitter/flex layout stays valid, so

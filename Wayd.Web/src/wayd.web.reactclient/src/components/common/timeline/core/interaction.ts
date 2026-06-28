@@ -1,4 +1,4 @@
-// timeline2/core/interaction.ts
+// timeline/core/interaction.ts
 // Pure drag math: translate a horizontal pixel delta into a date change, with
 // day-snapping and domain clamping. No DOM, no React — the testable core of
 // move / resize-start / resize-end (FR-5). The hook (useBarDrag) handles pointer

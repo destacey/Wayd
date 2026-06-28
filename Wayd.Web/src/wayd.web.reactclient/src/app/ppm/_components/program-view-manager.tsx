@@ -9,7 +9,7 @@ import dynamic from 'next/dynamic'
 import { useMessage } from '@/src/components/contexts/messaging'
 import ProgramsGrid from './programs-grid'
 
-const TimelineV2 = dynamic(() => import('./programs-timeline-v2'), {
+const Timeline = dynamic(() => import('./programs-timeline'), {
   ssr: false,
   loading: () => <Spin />,
 })
@@ -61,7 +61,7 @@ const ProgramViewManager = (props: ProgramViewManagerProps) => {
         />
       )}
       {currentView === 'Timeline' && (
-        <TimelineV2
+        <Timeline
           programs={props.programs}
           isLoading={props.isLoading}
           refetch={props.refetch}

@@ -1,6 +1,6 @@
 'use client'
 
-// timeline2/render/axis.tsx — two-tier timescale header (upper: month/year,
+// timeline/render/axis.tsx — two-tier timescale header (upper: month/year,
 // lower: week/day), span-aware via scale.tiers(). Segments are positioned and
 // sized in pixels from the scale.
 

@@ -1,5 +1,5 @@
-// timeline2/core/types.ts
-// Shared, variant-agnostic domain types for WaydTimeline2.
+// timeline/core/types.ts
+// Shared, variant-agnostic domain types for WaydTimeline.
 // These describe DATA and GEOMETRY only — no React, no app/domain coupling.
 // See docs/contributing/specs/custom-timeline-requirements.md.
 

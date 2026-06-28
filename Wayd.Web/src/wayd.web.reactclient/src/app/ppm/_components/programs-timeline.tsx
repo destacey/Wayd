@@ -4,8 +4,8 @@ import { FC, ReactNode, useState } from 'react'
 import dayjs from 'dayjs'
 import { theme } from 'antd'
 import { ProgramListDto } from '@/src/services/wayd-api'
-import { WaydTimeline2 } from '@/src/components/common/timeline2'
-import type { TimelineItem } from '@/src/components/common/timeline2'
+import { WaydTimeline } from '@/src/components/common/timeline'
+import type { TimelineItem } from '@/src/components/common/timeline'
 import { getLifecyclePhaseColorFromStatus } from '@/src/utils'
 import { ProgramDrawer } from '.'
 
@@ -15,7 +15,7 @@ interface ProgramPayload {
   dto: ProgramListDto
 }
 
-export interface ProgramsTimelineV2Props {
+export interface ProgramsTimelineProps {
   programs: ProgramListDto[]
   isLoading: boolean
   refetch: () => void
@@ -63,7 +63,7 @@ function mapPrograms(
   return { items, windowStart, windowEnd, minDate, maxDate }
 }
 
-const ProgramsTimelineV2: FC<ProgramsTimelineV2Props> = ({
+const ProgramsTimeline: FC<ProgramsTimelineProps> = ({
   programs,
   isLoading,
   viewSelector,
@@ -80,7 +80,7 @@ const ProgramsTimelineV2: FC<ProgramsTimelineV2Props> = ({
 
   return (
     <>
-      <WaydTimeline2<ProgramPayload>
+      <WaydTimeline<ProgramPayload>
         variant="timeline"
         items={items}
         windowStart={windowStart}
@@ -116,4 +116,4 @@ const ProgramsTimelineV2: FC<ProgramsTimelineV2Props> = ({
   )
 }
 
-export default ProgramsTimelineV2
+export default ProgramsTimeline

@@ -1,6 +1,6 @@
 'use client'
 
-// timeline2/render/use-bar-drag.ts
+// timeline/render/use-bar-drag.ts
 // Pointer-event plumbing for bar move / endpoint-resize. Tracks a live draft
 // (so the bar follows the pointer) and commits on release via onCommit. The
 // date math itself lives in core/interaction.ts (pure, tested) — this hook only

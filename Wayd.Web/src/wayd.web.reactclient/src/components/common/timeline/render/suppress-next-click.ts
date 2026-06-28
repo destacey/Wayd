@@ -1,4 +1,4 @@
-// timeline2/render/suppress-next-click.ts
+// timeline/render/suppress-next-click.ts
 // After a drag, the browser still fires a synthetic `click` on pointer-up.
 // Call this on drag end to swallow exactly that one click (capture phase) so it
 // doesn't trigger the item's onClick (e.g. opening a drawer).

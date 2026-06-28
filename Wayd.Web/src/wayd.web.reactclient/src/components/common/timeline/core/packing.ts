@@ -1,4 +1,4 @@
-// timeline2/core/packing.ts
+// timeline/core/packing.ts
 // HAND-ROLLED interval lane-packing (decision D-2): assign non-overlapping
 // items to the fewest horizontal lanes — the defining timeline behavior.
 // Pure function, the primary unit-test target (NFR-7).

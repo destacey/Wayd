@@ -66,12 +66,16 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
     public DatabaseFacade Database => throw new NotImplementedException("Database operations are not supported in FakeWorkDbContext. Use integration tests with a real DbContext for database-specific functionality.");
 
     public IQueryable<WorkItem> SearchWorkItems(string searchTerm, int top) =>
-        _workItems
-            .Where(e => e.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
-                || ((string)e.Key).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
-                || (e.ParentId.HasValue && ((string)e.Parent!.Key).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
-            .Take(top)
-            .AsQueryable();
+        new TestAsyncEnumerable<WorkItem>(
+            _workItems
+                .Where(e => e.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                    || ((string)e.Key).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                    || (e.ParentId.HasValue && ((string)e.Parent!.Key).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
+                // Mirror the real context's ordering (by the KeyPrefix/KeyNumber computed columns)
+                // so Take(top) selects the same subset when matches exceed the limit.
+                .OrderBy(e => e.Key.WorkspaceKey)
+                .ThenBy(e => e.Key.WorkItemNumber)
+                .Take(top));
 
     /// <summary>
     /// Gets the number of times SaveChangesAsync has been called.

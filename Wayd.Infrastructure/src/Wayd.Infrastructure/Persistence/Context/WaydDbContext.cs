@@ -164,10 +164,13 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     private IQueryable<WorkItem> SearchWorkItemsFts(string searchTerm)
     {
         var ftsTerm = $"\"{searchTerm}*\"";
+        // Full-text search applies to Title only. Key is a value-converted value object,
+        // which the FTS translator cannot reference; search it (and the parent's key) with
+        // LIKE against the indexed varchar column instead.
         return WorkItems
             .Where(e => EF.Functions.Contains(e.Title, ftsTerm)
-                || EF.Functions.Contains((string)(object)e.Key, ftsTerm)
-                || (e.ParentId.HasValue && EF.Functions.Contains((string)(object)e.Parent!.Key, ftsTerm)));
+                || ((string)e.Key).Contains(searchTerm)
+                || (e.ParentId.HasValue && ((string)e.Parent!.Key).Contains(searchTerm)));
     }
 
     private IQueryable<WorkItem> SearchWorkItemsLike(string searchTerm)
@@ -272,7 +275,12 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     {
         if (!Database.IsSqlServer()) return false;
         var connectionString = Database.GetConnectionString() ?? string.Empty;
+        // The engine being installed is not enough: the conditional migration may have skipped
+        // index creation (e.g. migrated on a non-FTS instance, later moved to an FTS-enabled one).
+        // Require the physical full-text index to exist, otherwise fall back to LIKE.
         return _ftsAvailabilityCache.GetOrAdd(connectionString, _ =>
-            Database.SqlQuery<int>($"SELECT FULLTEXTSERVICEPROPERTY('IsFullTextInstalled') AS Value").FirstOrDefault() == 1);
+            Database.SqlQuery<int>($@"SELECT CASE WHEN FULLTEXTSERVICEPROPERTY('IsFullTextInstalled') = 1
+                AND EXISTS (SELECT 1 FROM sys.fulltext_indexes WHERE object_id = OBJECT_ID('Work.WorkItems'))
+                THEN 1 ELSE 0 END AS Value").FirstOrDefault() == 1);
     }
 }

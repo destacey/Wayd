@@ -24,6 +24,8 @@ import {
   useTreeGridDragHandle,
 } from '@/src/components/common/tree-grid'
 import type { RoadmapItemTreeNode } from './roadmap-items-grid'
+import type { RoadmapColorDto } from '@/src/services/wayd-api'
+import RoadmapColorPicker from './roadmap-color-picker'
 
 const { Item: FormItem } = Form
 const DATE_FORMAT = 'MMM D, YYYY'
@@ -84,6 +86,7 @@ interface FocusableColorPickerFieldProps {
   value?: string
   onChange?: (value: string | undefined) => void
   rowId: string
+  roadmapColors: RoadmapColorDto[]
   handleKeyDown: (
     e: React.KeyboardEvent,
     rowId: string,
@@ -95,9 +98,48 @@ function FocusableColorPickerField({
   value,
   onChange,
   rowId,
+  roadmapColors,
   handleKeyDown,
 }: FocusableColorPickerFieldProps) {
   const focusTargetRef = useRef<HTMLDivElement | null>(null)
+  const isDropdownOpenRef = useRef(false)
+
+  // When the roadmap has a color palette, constrain inline editing to it (same
+  // as the create/edit forms); otherwise fall back to the freeform picker.
+  if (roadmapColors.length > 0) {
+    return (
+      <div
+        onKeyDown={(e) => {
+          // Tab / Shift+Tab always navigate the grid (and save the row), matching
+          // the freeform picker. Escape cancels the edit when the dropdown is
+          // closed; when it's open, let the Select handle Escape (close dropdown)
+          // and its own arrow/Enter selection.
+          if (e.key === 'Tab') {
+            void handleKeyDown(e, rowId, 'color')
+            return
+          }
+          if (isDropdownOpenRef.current) {
+            return
+          }
+          void handleKeyDown(e, rowId, 'color')
+        }}
+      >
+        {/* The Select keeps focus on its own combobox after a selection, so no
+            manual refocus is needed here (unlike the freeform picker below). */}
+        <RoadmapColorPicker
+          entries={roadmapColors}
+          value={value}
+          onChange={(nextValue) => onChange?.(nextValue)}
+          onOpenChange={(open) => {
+            isDropdownOpenRef.current = open
+          }}
+        />
+      </div>
+    )
+  }
+
+  // The freeform picker opens a popover that steals focus; pull it back to this
+  // wrapper after a change so the grid's keyboard navigation keeps working.
   const onColorChange = (nextValue: string | undefined) => {
     onChange?.(nextValue)
     setTimeout(() => {
@@ -157,6 +199,26 @@ interface RoadmapItemsGridColumnsParams {
   canCreateItems?: boolean
   createTypeOptions?: Array<{ label: string; value: string }>
   isSelectedDraftActivity?: boolean
+  roadmapColors: RoadmapColorDto[]
+}
+
+/**
+ * The text shown for an item's color in the grid (also used for sort, filter, and export):
+ * the palette caption when the color matches a configured entry (case-insensitive), the
+ * uppercased hex when it doesn't, and an empty string when the item has no color of its own.
+ *
+ * Note: this intentionally ignores the roadmap's default color — the default colors the
+ * timeline at display time but is not a value, so an uncolored item shows nothing here.
+ */
+export const roadmapColorDisplayText = (
+  color: string | null | undefined,
+  roadmapColors: RoadmapColorDto[],
+): string => {
+  if (!color) return ''
+  const match = roadmapColors.find(
+    (c) => c.color.toUpperCase() === color.toUpperCase(),
+  )
+  return match?.name ?? color.toUpperCase()
 }
 
 export const getRoadmapItemsGridColumns = ({
@@ -175,7 +237,10 @@ export const getRoadmapItemsGridColumns = ({
   canCreateItems = true,
   createTypeOptions = [],
   isSelectedDraftActivity = true,
+  roadmapColors,
 }: RoadmapItemsGridColumnsParams): ColumnDef<RoadmapItemTreeNode>[] => {
+  const colorDisplayText = (color: string | null | undefined): string =>
+    roadmapColorDisplayText(color, roadmapColors)
   return [
     ...(isRoadmapManager
       ? [
@@ -496,7 +561,7 @@ export const getRoadmapItemsGridColumns = ({
     },
     {
       id: 'color',
-      accessorFn: (row) => row.color ?? 'Transparent',
+      accessorFn: (row) => colorDisplayText(row.color),
       header: 'Color',
       size: 100,
       enableSorting: false,
@@ -506,7 +571,7 @@ export const getRoadmapItemsGridColumns = ({
       meta: {
         exportFormatter: (_value, row) => {
           if (row.type === 'Timebox') return ''
-          return row.color ?? 'Transparent'
+          return colorDisplayText(row.color)
         },
       } satisfies TreeGridColumnMeta,
       cell: ({ row }: { row: any }) => {
@@ -527,35 +592,26 @@ export const getRoadmapItemsGridColumns = ({
             <FormItem name="color" style={{ margin: 0 }}>
               <FocusableColorPickerField
                 rowId={item.id}
+                roadmapColors={roadmapColors}
                 handleKeyDown={handleKeyDown}
               />
             </FormItem>
           )
         }
 
-        const value = item.color
-        if (!value) {
-          return (
-            <Flex align="center" gap={6}>
-              <span
-                aria-hidden
-                style={{
-                  ...COLOR_SWATCH_STYLE,
-                  backgroundColor: 'transparent',
-                }}
-              />
-              <span>Transparent</span>
-            </Flex>
-          )
+        // Only the item's own color is shown. An item with no color renders an
+        // empty cell — the roadmap default colors the timeline, not this value.
+        if (!item.color) {
+          return null
         }
 
         return (
           <Flex align="center" gap={6}>
             <span
               aria-hidden
-              style={{ ...COLOR_SWATCH_STYLE, backgroundColor: value }}
+              style={{ ...COLOR_SWATCH_STYLE, backgroundColor: item.color }}
             />
-            <span>{value.toUpperCase()}</span>
+            <span>{colorDisplayText(item.color)}</span>
           </Flex>
         )
       },

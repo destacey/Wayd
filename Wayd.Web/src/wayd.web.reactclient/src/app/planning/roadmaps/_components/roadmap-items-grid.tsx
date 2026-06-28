@@ -24,6 +24,7 @@ import {
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
   useCreateRoadmapItemMutation,
+  useGetRoadmapQuery,
   usePatchRoadmapItemMutation,
   useUpdateRoadmapActivityPlacementMutation,
 } from '@/src/store/features/planning/roadmaps-api'
@@ -127,6 +128,9 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
   const [form] = Form.useForm()
   const selectedDraftItemType = Form.useWatch('itemType', form)
   const messageApi = useMessage()
+
+  const { data: roadmap } = useGetRoadmapQuery(roadmapId)
+  const roadmapColors = useMemo(() => roadmap?.colors ?? [], [roadmap?.colors])
 
   const [openUpdateRoadmapActivityForm, setOpenUpdateRoadmapActivityForm] =
     useState(false)
@@ -582,6 +586,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
         canCreateItems: ctx.canCreateDraft,
         createTypeOptions: CREATE_TYPE_OPTIONS,
         isSelectedDraftActivity: selectedDraftItemType !== 'timebox',
+        roadmapColors,
       }),
     [
       isRoadmapManager,
@@ -591,6 +596,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
       handleSaveRoadmapItem,
       enableDragAndDrop,
       selectedDraftItemType,
+      roadmapColors,
     ],
   )
 

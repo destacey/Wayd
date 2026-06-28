@@ -340,6 +340,16 @@ public class RoadmapConfig : IEntityTypeConfiguration<Roadmap>
             options.Property(d => d.End).HasColumnName("End").IsRequired();
         });
 
+        // Colors are managed as a whole and never queried independently, so they are stored as a
+        // JSON column on the Roadmap rather than a separate table.
+        builder.OwnsMany(r => r.Colors, c =>
+        {
+            c.ToJson();
+            c.UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+        builder.Navigation(r => r.Colors)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
         // Relationships
         builder.HasMany(r => r.RoadmapManagers)
             .WithOne()

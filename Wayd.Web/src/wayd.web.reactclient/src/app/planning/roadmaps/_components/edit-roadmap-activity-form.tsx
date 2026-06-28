@@ -9,6 +9,7 @@ import {
 import {
   useGetRoadmapActivitiesQuery,
   useGetRoadmapItemQuery,
+  useGetRoadmapQuery,
   useUpdateRoadmapItemMutation,
 } from '@/src/store/features/planning/roadmaps-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
@@ -18,6 +19,7 @@ import dayjs from 'dayjs'
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
+import RoadmapColorPicker from './roadmap-color-picker'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -98,6 +100,9 @@ const EditRoadmapActivityForm = ({
     isLoading: activitiesIsLoading,
     error: activitiesError,
   } = useGetRoadmapActivitiesQuery(roadmapId)
+
+  const { data: roadmap } = useGetRoadmapQuery(roadmapId)
+  const roadmapColors = roadmap?.colors ?? []
 
   const [updateRoadmapActivity] = useUpdateRoadmapItemMutation()
 
@@ -239,7 +244,11 @@ const EditRoadmapActivityForm = ({
           <RangePicker />
         </Item>
         <Item name="color" label="Color">
-          <WaydColorPicker />
+          {roadmapColors.length > 0 ? (
+            <RoadmapColorPicker entries={roadmapColors} />
+          ) : (
+            <WaydColorPicker />
+          )}
         </Item>
       </Form>
     </Modal>

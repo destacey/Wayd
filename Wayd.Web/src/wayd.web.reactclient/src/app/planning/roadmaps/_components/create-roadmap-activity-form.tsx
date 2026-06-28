@@ -6,10 +6,12 @@ import { CreateRoadmapActivityRequest } from '@/src/services/wayd-api'
 import {
   useCreateRoadmapItemMutation,
   useGetRoadmapActivitiesQuery,
+  useGetRoadmapQuery,
 } from '@/src/store/features/planning/roadmaps-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { DatePicker, Form, Input, Modal, TreeSelect } from 'antd'
 import { useEffect } from 'react'
+import RoadmapColorPicker from './roadmap-color-picker'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -56,6 +58,9 @@ const CreateRoadmapActivityForm = ({
     data: activities,
     error: activitiesError,
   } = useGetRoadmapActivitiesQuery(roadmapId)
+
+  const { data: roadmap } = useGetRoadmapQuery(roadmapId)
+  const roadmapColors = roadmap?.colors ?? []
 
   const [createRoadmapActivity] = useCreateRoadmapItemMutation()
 
@@ -181,7 +186,11 @@ const CreateRoadmapActivityForm = ({
           <RangePicker />
         </Item>
         <Item name="color" label="Color">
-          <WaydColorPicker />
+          {roadmapColors.length > 0 ? (
+            <RoadmapColorPicker entries={roadmapColors} />
+          ) : (
+            <WaydColorPicker />
+          )}
         </Item>
       </Form>
     </Modal>

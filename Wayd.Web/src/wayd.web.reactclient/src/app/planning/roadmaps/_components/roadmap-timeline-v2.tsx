@@ -28,6 +28,7 @@ import type {
 import { useUpdateRoadmapItemDatesMutation } from '@/src/store/features/planning/roadmaps-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { isApiError, type ApiError } from '@/src/utils'
+import RoadmapColorLegend from './roadmap-color-legend'
 
 export interface RoadmapTimelineV2Props {
   roadmap: RoadmapDetailsDto
@@ -66,6 +67,10 @@ const ROOT_GROUP_ID = '__roadmap_root__'
 function mapRoadmap(
   items: RoadmapItemListDto[],
   openDrawer: (id: string) => void,
+  // The roadmap's default color, applied at display time to activities that have
+  // no color of their own. Undefined when no default is configured (falls through
+  // to the timeline's theme color).
+  defaultActivityColor: string | undefined,
 ): { items: TimelineItem<RoadmapPayload>[]; groups: TimelineGroup[] } {
   const out: TimelineItem<RoadmapPayload>[] = []
   const groups: TimelineGroup[] = []
@@ -111,7 +116,9 @@ function mapRoadmap(
             id,
             kind: 'range',
             label: a.name,
-            color: a.color,
+            // Activities with no color of their own fall back to the roadmap's
+            // configured default color (display-time only; nothing is stored).
+            color: a.color ?? defaultActivityColor,
             start: ms(a.start),
             end: ms(a.end),
             groupId: id,
@@ -179,9 +186,13 @@ const RoadmapTimelineV2: FC<RoadmapTimelineV2Props> = (props) => {
   const [updateRoadmapItemDates] = useUpdateRoadmapItemDatesMutation()
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
+  const defaultActivityColor = props.roadmap.colors.find((c) => c.isDefault)
+    ?.color
+
   const { items, groups } = mapRoadmap(
     props.roadmapItems,
     props.openRoadmapItemDrawer,
+    defaultActivityColor,
   )
 
   const windowStart = ms(props.roadmap.start)
@@ -222,27 +233,30 @@ const RoadmapTimelineV2: FC<RoadmapTimelineV2Props> = (props) => {
   }
 
   return (
-    <WaydTimeline2<RoadmapPayload>
-      variant="timeline"
-      items={items}
-      groups={groups}
-      windowStart={windowStart}
-      windowEnd={windowEnd}
-      minDate={minDate}
-      maxDate={maxDate}
-      storageKey={`roadmap-${props.roadmap.id}`}
-      onRefresh={props.refreshRoadmapItems}
-      height={650}
-      isLoading={props.isRoadmapItemsLoading || updatingId !== null}
-      editable={props.isRoadmapManager}
-      allowFullScreen
-      allowSaveAsImage
-      saveImageFileName={props.roadmap.name}
-      // The view selector (Timeline/List) renders inside the toolbar, like WaydGrid.
-      toolbarRightSlot={props.viewSelector}
-      onItemDateChange={onItemDateChange}
-      onItemClick={(item) => item.data?.openDrawer(item.id)}
-    />
+    <>
+      <WaydTimeline2<RoadmapPayload>
+        variant="timeline"
+        items={items}
+        groups={groups}
+        windowStart={windowStart}
+        windowEnd={windowEnd}
+        minDate={minDate}
+        maxDate={maxDate}
+        storageKey={`roadmap-${props.roadmap.id}`}
+        onRefresh={props.refreshRoadmapItems}
+        height={650}
+        isLoading={props.isRoadmapItemsLoading || updatingId !== null}
+        editable={props.isRoadmapManager}
+        allowFullScreen
+        allowSaveAsImage
+        saveImageFileName={props.roadmap.name}
+        // The view selector (Timeline/List) renders inside the toolbar, like WaydGrid.
+        toolbarRightSlot={props.viewSelector}
+        onItemDateChange={onItemDateChange}
+        onItemClick={(item) => item.data?.openDrawer(item.id)}
+      />
+      <RoadmapColorLegend colors={props.roadmap.colors} />
+    </>
   )
 }
 

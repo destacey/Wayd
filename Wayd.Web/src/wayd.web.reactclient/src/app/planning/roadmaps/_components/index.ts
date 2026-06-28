@@ -1,4 +1,5 @@
 export { default as ChangeRoadmapStateForm } from './change-roadmap-state-form'
+export { default as ConfigureRoadmapColorsForm } from './configure-roadmap-colors-form'
 export { default as CreateRoadmapForm } from './create-roadmap-form'
 export { default as CopyRoadmapForm } from './copy-roadmap-form'
 export { default as DeleteRoadmapForm } from './delete-roadmap-form'

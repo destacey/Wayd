@@ -42,7 +42,7 @@ graph TD
 - **Milestone** — A point-in-time marker representing a key date or achievement.
 - **Timebox** — A time-bounded period (e.g., a sprint or phase).
 
-All items support an optional **Color** property for visual differentiation.
+All items support an optional **Color** property for visual differentiation. When a roadmap has a [color palette](#roadmap-colors) configured, activities are colored by choosing from those named colors; otherwise any color can be picked freely.
 
 ## Roadmap Detail Page
 
@@ -56,11 +56,38 @@ Clicking an item opens a **drawer** with full details, edit, and delete actions.
 
 **Actions (for managers):**
 - Edit Roadmap (name, description, dates, visibility, managers)
+- Configure Colors (define the roadmap's named color palette — see [Roadmap Colors](#roadmap-colors))
 - Create Activity, Create Timebox
 - Copy Roadmap (creates a deep copy with new name and managers)
 - Delete Roadmap
 
 Roadmaps can be **copied** to create new versions, preserving the full hierarchy of items.
+
+## Roadmap Colors
+
+By default, activity colors are picked freely and mean whatever each person intends — which makes it hard to read a roadmap at a glance. To give colors a shared meaning, managers can define a **color palette** for the roadmap: an ordered list of named colors (for example, *Platform Team*, *At Risk*, *Customer Commitment*).
+
+Open **Actions → Configure Colors** to manage the palette:
+
+- **Add a color** — pick a color and give it a caption describing what it represents.
+- **Reorder** — drag colors to change the order they appear in the picker and the legend.
+- **Set a default** — mark one color (★) as the default. Activities that have no color of their own are shown in this color.
+- **Remove** — delete a color from the palette.
+
+Each color must have a caption, and a color can only be used once per roadmap.
+
+### How the palette is used
+
+Once a palette is configured:
+
+- **Activity colors** are chosen from the palette's named colors instead of a free color picker. Leaving an activity's color empty lets it fall back to the roadmap's default color.
+- A **legend** appears beneath the timeline, showing each color and its caption so viewers can interpret the roadmap at a glance.
+
+The default color is applied when the timeline is displayed — it is not written onto the activities. Changing the default (or any color in the palette) instantly updates every activity that relies on it, with no need to edit items individually.
+
+:::note
+Color palettes apply to **activities**. Milestones and timeboxes still use their own colors. If a roadmap has no palette configured, activities use the standard free color picker and no legend is shown.
+:::
 
 ## Timeline Controls
 

@@ -14813,6 +14813,71 @@
         ]
       }
     },
+    "/api/planning/roadmaps/{id}/colors": {
+      "put": {
+        "tags": [
+          "Roadmaps"
+        ],
+        "summary": "Update the configured colors for a roadmap.",
+        "operationId": "Roadmaps_UpdateColors",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoadmapColorsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/planning/roadmaps/{id}/archive": {
       "post": {
         "tags": [
@@ -34000,6 +34065,7 @@
           "visibility",
           "state",
           "roadmapManagers",
+          "colors",
           "id",
           "key"
         ],
@@ -34040,6 +34106,37 @@
             "items": {
               "$ref": "#/components/schemas/EmployeeNavigationDto"
             }
+          },
+          "colors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoadmapColorDto"
+            }
+          }
+        }
+      },
+      "RoadmapColorDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "color",
+          "name",
+          "order",
+          "isDefault"
+        ],
+        "properties": {
+          "color": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isDefault": {
+            "type": "boolean"
           }
         }
       },
@@ -34205,6 +34302,61 @@
             "type": "integer",
             "description": "The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap.",
             "format": "int32"
+          }
+        }
+      },
+      "UpdateRoadmapColorsRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "roadmapId",
+          "colors"
+        ],
+        "properties": {
+          "roadmapId": {
+            "type": "string",
+            "description": "The unique identifier of the Roadmap.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "colors": {
+            "type": "array",
+            "description": "The colors to configure on the Roadmap. The provided set fully replaces the existing colors.",
+            "nullable": false,
+            "items": {
+              "$ref": "#/components/schemas/UpsertRoadmapColorRequest"
+            }
+          }
+        }
+      },
+      "UpsertRoadmapColorRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "color",
+          "name",
+          "order",
+          "isDefault"
+        ],
+        "properties": {
+          "color": {
+            "type": "string",
+            "description": "The color, as a hex code (e.g. \"#4096FF\")."
+          },
+          "name": {
+            "type": "string",
+            "description": "The caption describing what the color represents on this Roadmap."
+          },
+          "order": {
+            "type": "integer",
+            "description": "The order of the color within the Roadmap's configured colors.",
+            "format": "int32"
+          },
+          "isDefault": {
+            "type": "boolean",
+            "description": "Whether this is the default color applied to activities that have no color of their own."
           }
         }
       },

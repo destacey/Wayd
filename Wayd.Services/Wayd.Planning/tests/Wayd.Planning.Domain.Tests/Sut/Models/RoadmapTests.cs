@@ -1195,6 +1195,242 @@ public class RoadmapTests
 
     #endregion Update Item Dates Tests
 
+    #region Update Colors Tests
+
+    [Fact]
+    public void UpdateColors_WhenValidColors_ShouldReplaceColors()
+    {
+        // Arrange
+        var fakeRoadmap = _faker.Generate();
+        var managerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId]).Value;
+
+        var colors = new[]
+        {
+            new TestUpsertRoadmapColor { Color = "#FF0000", Name = "At Risk", Order = 1, IsDefault = true },
+            new TestUpsertRoadmapColor { Color = "#00FF00", Name = "On Track", Order = 2, IsDefault = false },
+        };
+
+        // Act
+        var result = roadmap.UpdateColors(colors, managerId);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        roadmap.Colors.Should().HaveCount(2);
+        roadmap.Colors.Should().ContainSingle(c => c.Color == "#FF0000" && c.Name == "At Risk" && c.Order == 1 && c.IsDefault);
+        roadmap.Colors.Should().ContainSingle(c => c.Color == "#00FF00" && c.Name == "On Track" && c.Order == 2 && !c.IsDefault);
+    }
+
+    [Fact]
+    public void UpdateColors_WhenRoadmapHasExistingColors_ShouldReplaceThemEntirely()
+    {
+        // Arrange
+        var fakeRoadmap = _faker.Generate();
+        var managerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId]).Value;
+
+        roadmap.UpdateColors(
+            [new TestUpsertRoadmapColor { Color = "#111111", Name = "Old", Order = 1, IsDefault = false }],
+            managerId);
+
+        var newColors = new[]
+        {
+            new TestUpsertRoadmapColor { Color = "#222222", Name = "New", Order = 1, IsDefault = false },
+        };
+
+        // Act
+        var result = roadmap.UpdateColors(newColors, managerId);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        roadmap.Colors.Should().ContainSingle();
+        roadmap.Colors.Should().ContainSingle(c => c.Color == "#222222");
+        roadmap.Colors.Should().NotContain(c => c.Color == "#111111");
+    }
+
+    [Fact]
+    public void UpdateColors_WhenEmptyCollection_ShouldClearColors()
+    {
+        // Arrange
+        var fakeRoadmap = _faker.Generate();
+        var managerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId]).Value;
+
+        roadmap.UpdateColors(
+            [new TestUpsertRoadmapColor { Color = "#111111", Name = "Old", Order = 1, IsDefault = false }],
+            managerId);
+
+        // Act
+        var result = roadmap.UpdateColors([], managerId);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        roadmap.Colors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void UpdateColors_WhenMoreThanOneDefault_ShouldReturnFailure()
+    {
+        // Arrange
+        var fakeRoadmap = _faker.Generate();
+        var managerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId]).Value;
+
+        var colors = new[]
+        {
+            new TestUpsertRoadmapColor { Color = "#FF0000", Name = "At Risk", Order = 1, IsDefault = true },
+            new TestUpsertRoadmapColor { Color = "#00FF00", Name = "On Track", Order = 2, IsDefault = true },
+        };
+
+        // Act
+        var result = roadmap.UpdateColors(colors, managerId);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only one color can be marked as the default.");
+    }
+
+    [Fact]
+    public void UpdateColors_WhenDuplicateColors_ShouldReturnFailure()
+    {
+        // Arrange
+        var fakeRoadmap = _faker.Generate();
+        var managerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId]).Value;
+
+        var colors = new[]
+        {
+            new TestUpsertRoadmapColor { Color = "#FF0000", Name = "At Risk", Order = 1, IsDefault = false },
+            new TestUpsertRoadmapColor { Color = "#FF0000", Name = "Blocked", Order = 2, IsDefault = false },
+        };
+
+        // Act
+        var result = roadmap.UpdateColors(colors, managerId);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A Roadmap cannot have two colors with the same value.");
+    }
+
+    [Fact]
+    public void UpdateColors_WhenDuplicateColorsDifferByCase_ShouldReturnFailure()
+    {
+        // Arrange
+        var fakeRoadmap = _faker.Generate();
+        var managerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId]).Value;
+
+        var colors = new[]
+        {
+            new TestUpsertRoadmapColor { Color = "#abc123", Name = "Lower", Order = 1, IsDefault = false },
+            new TestUpsertRoadmapColor { Color = "#ABC123", Name = "Upper", Order = 2, IsDefault = false },
+        };
+
+        // Act
+        var result = roadmap.UpdateColors(colors, managerId);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A Roadmap cannot have two colors with the same value.");
+    }
+
+    [Fact]
+    public void UpdateColors_WhenExceedingMaxColors_ShouldReturnFailure()
+    {
+        // Arrange
+        var fakeRoadmap = _faker.Generate();
+        var managerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId]).Value;
+
+        var colors = Enumerable.Range(0, Roadmap.MaxColors + 1)
+            .Select(i => new TestUpsertRoadmapColor
+            {
+                Color = $"#{i:X6}",
+                Name = $"Color {i}",
+                Order = i + 1,
+                IsDefault = false,
+            })
+            .ToArray();
+
+        // Act
+        var result = roadmap.UpdateColors(colors, managerId);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be($"A Roadmap cannot have more than {Roadmap.MaxColors} colors.");
+    }
+
+    [Fact]
+    public void UpdateColors_WhenAtMaxColors_ShouldReturnSuccess()
+    {
+        // Arrange
+        var fakeRoadmap = _faker.Generate();
+        var managerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId]).Value;
+
+        var colors = Enumerable.Range(0, Roadmap.MaxColors)
+            .Select(i => new TestUpsertRoadmapColor
+            {
+                Color = $"#{i:X6}",
+                Name = $"Color {i}",
+                Order = i + 1,
+                IsDefault = false,
+            })
+            .ToArray();
+
+        // Act
+        var result = roadmap.UpdateColors(colors, managerId);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        roadmap.Colors.Should().HaveCount(Roadmap.MaxColors);
+    }
+
+    [Fact]
+    public void UpdateColors_WhenNotManager_ShouldReturnFailure()
+    {
+        // Arrange
+        var fakeRoadmap = _faker.Generate();
+        var managerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId]).Value;
+
+        var colors = new[]
+        {
+            new TestUpsertRoadmapColor { Color = "#FF0000", Name = "At Risk", Order = 1, IsDefault = false },
+        };
+
+        // Act
+        var result = roadmap.UpdateColors(colors, Guid.NewGuid());
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("User is not a roadmap manager of this roadmap.");
+    }
+
+    [Fact]
+    public void UpdateColors_WhenArchived_ShouldReturnFailure()
+    {
+        // Arrange
+        var fakeRoadmap = _faker.Generate();
+        var managerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId]).Value;
+        roadmap.Archive(managerId);
+
+        var colors = new[]
+        {
+            new TestUpsertRoadmapColor { Color = "#FF0000", Name = "At Risk", Order = 1, IsDefault = false },
+        };
+
+        // Act
+        var result = roadmap.UpdateColors(colors, managerId);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Archived roadmaps cannot be modified.");
+    }
+
+    #endregion Update Colors Tests
+
     //[Fact]
     //public void SetChildrenOrder_ForAll_WhenValidChildrenProvided_ShouldReturnSuccess()
     //{

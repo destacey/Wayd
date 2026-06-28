@@ -18,6 +18,7 @@ import { Descriptions, Divider, MenuProps, Space, Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import {
   ChangeRoadmapStateForm,
+  ConfigureRoadmapColorsForm,
   CopyRoadmapForm,
   DeleteRoadmapForm,
   EditRoadmapForm,
@@ -44,6 +45,8 @@ const RoadmapDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [openCreateTimeboxForm, setOpenCreateTimeboxForm] =
     useState<boolean>(false)
   const [openEditRoadmapForm, setOpenEditRoadmapForm] = useState<boolean>(false)
+  const [openConfigureColorsForm, setOpenConfigureColorsForm] =
+    useState<boolean>(false)
   const [openCopyRoadmapForm, setOpenCopyRoadmapForm] = useState<boolean>(false)
   const [openDeleteRoadmapForm, setOpenDeleteRoadmapForm] =
     useState<boolean>(false)
@@ -120,46 +123,64 @@ const RoadmapDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const actionsMenuItems: MenuProps['items'] = (() => {
     const items: ItemType[] = []
 
-    // Copy is available to anyone who can view the roadmap and create roadmaps
+    // First section: roadmap-management actions (managers only).
+    if (isRoadmapManager) {
+      if (canUpdateRoadmap && !isArchived) {
+        items.push({
+          key: 'edit',
+          label: 'Edit',
+          onClick: () => setOpenEditRoadmapForm(true),
+        })
+      }
+      if (canUpdateRoadmap && !isArchived) {
+        items.push({
+          key: 'archive',
+          label: 'Archive',
+          onClick: () => setOpenChangeStateForm(RoadmapStateAction.Archive),
+        })
+      }
+      if (canDeleteRoadmap && !isArchived) {
+        items.push({
+          key: 'delete',
+          label: 'Delete',
+          onClick: () => setOpenDeleteRoadmapForm(true),
+        })
+      }
+      if (canUpdateRoadmap && isArchived) {
+        items.push({
+          key: 'activate',
+          label: 'Activate',
+          onClick: () => setOpenChangeStateForm(RoadmapStateAction.Activate),
+        })
+      }
+    }
+
+    // Second section: configure colors (managers only) and copy (anyone who can
+    // create roadmaps).
+    const secondSection: ItemType[] = []
+    if (isRoadmapManager && canUpdateRoadmap && !isArchived) {
+      secondSection.push({
+        key: 'configure-colors',
+        label: 'Configure Colors',
+        onClick: () => setOpenConfigureColorsForm(true),
+      })
+    }
     if (canCreateRoadmap) {
-      items.push({
+      secondSection.push({
         key: 'copy',
         label: 'Copy',
         onClick: () => setOpenCopyRoadmapForm(true),
       })
     }
+    if (secondSection.length > 0) {
+      if (items.length > 0) {
+        items.push({ key: 'second-section-divider', type: 'divider' })
+      }
+      items.push(...secondSection)
+    }
 
-    if (!isRoadmapManager) return items
-
-    if (canUpdateRoadmap && !isArchived) {
-      items.push({
-        key: 'edit',
-        label: 'Edit',
-        onClick: () => setOpenEditRoadmapForm(true),
-      })
-    }
-    if (canUpdateRoadmap && !isArchived) {
-      items.push({
-        key: 'archive',
-        label: 'Archive',
-        onClick: () => setOpenChangeStateForm(RoadmapStateAction.Archive),
-      })
-    }
-    if (canDeleteRoadmap && !isArchived) {
-      items.push({
-        key: 'delete',
-        label: 'Delete',
-        onClick: () => setOpenDeleteRoadmapForm(true),
-      })
-    }
-    if (canUpdateRoadmap && isArchived) {
-      items.push({
-        key: 'activate',
-        label: 'Activate',
-        onClick: () => setOpenChangeStateForm(RoadmapStateAction.Activate),
-      })
-    }
-    if (canUpdateRoadmap && !isArchived) {
+    // Third section: create actions (managers only).
+    if (isRoadmapManager && canUpdateRoadmap && !isArchived) {
       items.push(
         {
           key: 'create-divider',
@@ -183,6 +204,13 @@ const RoadmapDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const onEditRoadmapFormClosed = (wasSaved: boolean) => {
     setOpenEditRoadmapForm(false)
+    if (wasSaved) {
+      refetchRoadmap()
+    }
+  }
+
+  const onConfigureColorsFormClosed = (wasSaved: boolean) => {
+    setOpenConfigureColorsForm(false)
     if (wasSaved) {
       refetchRoadmap()
     }
@@ -294,6 +322,13 @@ const RoadmapDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           roadmapKey={roadmapKey}
           onFormComplete={() => onEditRoadmapFormClosed(true)}
           onFormCancel={() => onEditRoadmapFormClosed(false)}
+        />
+      )}
+      {openConfigureColorsForm && (
+        <ConfigureRoadmapColorsForm
+          roadmap={roadmapData}
+          onFormComplete={() => onConfigureColorsFormClosed(true)}
+          onFormCancel={() => onConfigureColorsFormClosed(false)}
         />
       )}
       {openCopyRoadmapForm && (

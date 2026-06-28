@@ -374,8 +374,6 @@ public class RoadmapManagerConfiguration : IEntityTypeConfiguration<RoadmapManag
         builder.HasIndex(rm => rm.RoadmapId)
             .IncludeProperties(rm => new { rm.ManagerId });
 
-        builder.HasIndex(rm => new { rm.RoadmapId, rm.ManagerId });
-
         builder.Property(rm => rm.RoadmapId)
             .IsRequired();
 

@@ -43,9 +43,6 @@ function mapObjectives(
   items: TimelineItem<PiObjectivesPayload>[]
   groups: TimelineGroup[]
 } {
-  const calStart = ms(planningIntervalCalendar.start)
-  const calEnd = ms(planningIntervalCalendar.end)
-
   // Synthetic root group id — hosts iteration backgrounds when team groups are
   // shown, so the band label gets a dedicated headroom row above the team rows
   // rather than floating over the first team's bars.

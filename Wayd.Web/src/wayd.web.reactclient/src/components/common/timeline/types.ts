@@ -48,7 +48,8 @@ export interface WaydTimelineProps<TItem = unknown, TGroup = unknown> {
 
   /**
    * Default visible window on load, epoch ms — the initial view the user sees.
-   * Must fall within [minDate, maxDate].
+   * If this window extends outside [minDate, maxDate], the timeline defensively
+   * expands the domain boundaries to ensure the window remains fully visible.
    */
   windowStart: number
   windowEnd: number
@@ -56,7 +57,8 @@ export interface WaydTimelineProps<TItem = unknown, TGroup = unknown> {
    * Hard bounds for the rendered time domain AND pan/zoom limits, epoch ms.
    * Items are clamped to this range (anything past it is clipped at the edge),
    * and the user cannot pan/zoom outside it. Defaults to windowStart/windowEnd
-   * when omitted.
+   * when omitted. Note that the timeline will defensively expand these bounds
+   * if they do not contain the initial view window.
    */
   minDate?: number
   maxDate?: number

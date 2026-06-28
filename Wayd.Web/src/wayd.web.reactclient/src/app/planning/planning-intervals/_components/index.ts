@@ -18,7 +18,6 @@ export { default as PlanningIntervalIterationsListItem } from './planning-interv
 export { default as PlanningIntervalIterationsList } from './planning-interval-iterations-list'
 export { default as PlanningIntervalObjectiveDetailsDrawer } from './planning-interval-objectives-drawer'
 export { default as PlanningIntervalObjectivesGrid } from './planning-interval-objectives-grid'
-export { default as PlanningIntervalObjectivesTimeline } from './planning-interval-objectives-timeline'
 export { default as PlanningIntervalObjectivesViewManager } from './planning-interval-objectives-view-manager'
 export { default as PlanningIntervalTeamSprintMappings } from './planning-interval-team-sprint-mappings'
 export { default as TeamPredictabilityRadarChart } from './team-predictability-radar-chart'

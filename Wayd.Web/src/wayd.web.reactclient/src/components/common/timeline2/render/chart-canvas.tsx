@@ -138,9 +138,7 @@ export const ChartCanvas: FC<ChartCanvasProps> = ({
   // for teardown without a declaration cycle.
   const canvasRef = useRef<HTMLDivElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
-  const tooltipTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(
-    null,
-  )
+  const tooltipTimerRef = useRef<number | null>(null)
   const pendingTooltipRef = useRef<CanvasTooltip | null>(null)
   const pendingTooltipTargetRef = useRef<HTMLElement | null>(null)
   const [progressDraft, setProgressDraft] = useState<{

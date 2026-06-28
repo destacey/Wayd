@@ -29,7 +29,7 @@ import { resolveLevel } from './core/depth'
 import { growRowsForLabels, type GeometryConfig } from './core/geometry'
 import { truncateOneDayLabel } from './core/labels'
 import { getVisibleRange } from './core/virtualization'
-import type { TimelineGroup } from './core/types'
+import type { TimelineGroup, TimelineItem } from './core/types'
 import type { WaydTimeline2Props } from './types'
 import styles from './render/timeline.module.css'
 
@@ -652,7 +652,7 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
   )
   const estimateOneDayLabelWidth = (label: string) =>
     label.length * oneDayLabelFontSize * 0.58 + ONE_DAY_LABEL_EXTRA_PX
-  const getCollisionEnd = (item: (typeof layoutItems)[number]) => {
+  const getCollisionEnd = (item: TimelineItem) => {
     if (item.kind !== 'range' || item.end - item.start > DAY_MS) {
       return item.kind === 'milestone' ? item.start : item.end
     }

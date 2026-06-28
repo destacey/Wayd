@@ -45,6 +45,8 @@ public sealed class RoadmapMilestone : BaseRoadmapItem
         Date = roadmapMilestone.Date;
         Color = roadmapMilestone.Color;
 
+        Parent?.RecalculateDateRangeFromChildren();
+
         return Result.Success();
     }
 
@@ -56,7 +58,23 @@ public sealed class RoadmapMilestone : BaseRoadmapItem
     internal Result UpdateDate(IUpsertRoadmapMilestoneDate date)
     {
         Date = date.Date;
+        Parent?.RecalculateDateRangeFromChildren();
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Shifts the Milestone's date by the given number of days (negative shifts earlier). Used when
+    /// an ancestor Activity is moved as a whole and the entire subtree shifts with it.
+    /// </summary>
+    /// <param name="days"></param>
+    internal void ShiftDate(int days)
+    {
+        if (days == 0)
+        {
+            return;
+        }
+
+        Date = Date.PlusDays(days);
     }
 
     /// <summary>

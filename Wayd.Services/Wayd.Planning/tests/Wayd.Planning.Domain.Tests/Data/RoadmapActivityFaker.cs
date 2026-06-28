@@ -90,6 +90,12 @@ public static class RoadmapActivityFakerExtensions
         return faker;
     }
 
+    /// <summary>
+    /// Generates an Activity with <paramref name="childrenCount"/> child Activities already attached,
+    /// in a valid rolled-up state: every child's date range falls within the parent's date range.
+    /// The parent's range is recalculated to contain its children so the returned aggregate honors
+    /// the date-rollup invariant enforced by the domain.
+    /// </summary>
     public static RoadmapActivity WithChildren(this RoadmapActivityFaker faker, int childrenCount)
     {
         var activity = faker.Generate();
@@ -104,6 +110,9 @@ public static class RoadmapActivityFakerExtensions
         }
 
         typeof(RoadmapActivity).GetField("_children", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(activity, children);
+
+        // Grow the parent to contain its children so the aggregate starts in a valid rolled-up state.
+        activity.RecalculateDateRangeFromChildren();
 
         return activity;
     }

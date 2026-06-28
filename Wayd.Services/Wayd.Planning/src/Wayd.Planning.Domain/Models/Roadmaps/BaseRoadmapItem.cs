@@ -85,4 +85,17 @@ public abstract class BaseRoadmapItem : BaseAuditableEntity
         Parent = newParentActivity;
         newParentActivity?.AddChild(this);
     }
+
+    /// <summary>
+    /// Links this item's parent navigation to the given Activity without modifying the parent's
+    /// children collection. Used when the item is created already inside the parent's children
+    /// (e.g. <see cref="RoadmapActivity.CreateChildActivity" />) so the in-memory parent chain is
+    /// established for date rollup, independent of EF relationship fixup.
+    /// </summary>
+    /// <param name="parentActivity">The parent activity to link to.</param>
+    internal void LinkParent(RoadmapActivity parentActivity)
+    {
+        ParentId = parentActivity.Id;
+        Parent = parentActivity;
+    }
 }

@@ -1,966 +1,867 @@
 'use client'
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createRoot } from 'react-dom/client'
-import { DataSet } from 'vis-data'
-import { Timeline, TimelineOptions } from 'vis-timeline/standalone'
-import { TimelineOptionsTemplateFunction } from '@/src/lib/vis-timeline'
-import { Button, Dropdown, MenuProps, Spin } from 'antd'
-import useTheme from '../../contexts/theme'
-import { WaydEmpty } from '..'
-import './wayd-timeline.css'
-import {
-  DefaultTimeLineColors,
-  getDefaultTemplate,
-  groupsStructurallyEqual,
-  itemsVisuallyEqual,
-} from './wayd-timeline.utils'
-import {
-  WaydDataGroup,
-  WaydDataItem,
-  WaydTimelineProps,
-  TimelineTemplate,
-} from '.'
-import {
-  FileImageOutlined,
-  FullscreenExitOutlined,
-  FullscreenOutlined,
-  MoreOutlined,
-  UndoOutlined,
-} from '@ant-design/icons'
-import { saveElementAsImage } from '@/src/utils'
-import { TimelineOptionsItemCallbackFunction } from 'vis-timeline'
-import dayjs from 'dayjs'
+// timeline/wayd-timeline.tsx — public component. Variant-driven; wires the
+// scale + layout strategy + render layer. Built in parallel to the existing
+// WaydTimeline (no facade swap) so pages migrate one at a time.
+//
+// Layout: an antd Splitter divides a left pane (group labels) from a right pane
+// (axis + chart). Users drag the splitter to resize the label column — no
+// separate "group width" control needed. Each pane is a vertical stack
+// [header | scroll body]; the two bodies' vertical scroll is kept in sync.
 
-const WaydTimeline = <TItem extends WaydDataItem, TGroup extends WaydDataGroup>(
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Spin, Splitter } from 'antd'
+import { captureTimeline } from './render/capture-timeline'
+import { createTimeScale } from './core/scale'
+import {
+  clampZoom,
+  maxZoom,
+  anchoredScrollLeft,
+  initialScrollLeft,
+} from './core/zoom'
+import { getLayoutStrategy } from './layout'
+import { ChartCanvas, type ChartCanvasProps } from './render/chart-canvas'
+import { GroupColumn } from './render/group-column'
+import { Axis } from './render/axis'
+import TimelineToolbar from './render/timeline-toolbar'
+import DrillControl from './render/drill-control'
+import { resolveLevel } from './core/depth'
+import { growRowsForLabels, type GeometryConfig } from './core/geometry'
+import { truncateOneDayLabel } from './core/labels'
+import { getVisibleRange } from './core/virtualization'
+import type { TimelineGroup, TimelineItem } from './core/types'
+import type { WaydTimelineProps } from './types'
+import styles from './render/timeline.module.css'
+
+const AXIS_HEIGHT = 48
+const DEFAULT_HEIGHT = 600
+const DEFAULT_LANE_HEIGHT = 28
+const COMPACT_LANE_HEIGHT = 20
+const DEFAULT_GROUP_COLUMN_WIDTH = 220
+const MIN_GROUP_COLUMN_WIDTH = 120
+const LANE_PADDING = 3
+const ROW_PADDING = 6
+const MIN_PX_PER_DAY = 3
+const DAY_MS = 86_400_000
+const ONE_DAY_LABEL_GAP = 4
+const ONE_DAY_LABEL_EXTRA_PX = 8
+// Minimum visible time span when fully zoomed in (1 day), matching the legacy
+// timeline's `zoomMin`.
+const ZOOM_MIN_MS = DAY_MS
+// Multiplier applied per zoom-in/out step (buttons) and per wheel notch.
+const ZOOM_STEP = 1.2
+const ZOOM_WHEEL_STEP = 1.0015
+
+/** Read a persisted group-column width, or fall back to the default. Returns the
+ *  default (no read) when there's no key or storage isn't available. */
+function readPersistedWidth(key: string | null, fallback: number): number {
+  if (!key || typeof window === 'undefined') return fallback
+  try {
+    const raw = window.localStorage.getItem(key)
+    if (raw == null) return fallback
+    const parsed = Number(JSON.parse(raw))
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+  } catch {
+    return fallback
+  }
+}
+
+export function WaydTimeline<TItem = unknown, TGroup = unknown>(
   props: WaydTimelineProps<TItem, TGroup>,
-) => {
-  const BACKGROUND_TOP_PADDING_ROWS = 2
-  const BACKGROUND_BOTTOM_PADDING_ROWS = 1
-  const BACKGROUND_SPACER_DAYS = 1
+) {
+  const {
+    variant = 'timeline',
+    items,
+    groups,
+    windowStart,
+    windowEnd,
+    minDate,
+    maxDate,
+    height = DEFAULT_HEIGHT,
+    laneHeight = DEFAULT_LANE_HEIGHT,
+    groupColumnWidth = DEFAULT_GROUP_COLUMN_WIDTH,
+    storageKey,
+    defaultDrillLevel = 2,
+    showCurrentTime: showCurrentTimeDefault = true,
+    allowToggleCurrentTime = true,
+    allowFullScreen = false,
+    allowSaveAsImage = false,
+    allowZoom = true,
+    saveImageFileName = 'timeline',
+    footerSlot,
+    toolbarLeftSlot,
+    toolbarRightSlot,
+    onRefresh,
+    itemRenderer,
+    groupRenderer,
+    onItemClick,
+    editable = false,
+    onItemDateChange,
+    onItemProgressChange,
+    isLoading,
+    emptyMessage = 'No items to display',
+  } = props
 
-  const withBackgroundGroupSpacers = useCallback((items: TItem[]): TItem[] => {
-    const groupKey = (group: unknown) =>
-      group === undefined || group === null ? '__ungrouped__' : String(group)
+  const hasGroups = !!groups && groups.length > 0
 
-    const backgroundGroups = new Set(
-      items
-        .filter((item) => item.type === 'background')
-        .map((item) => groupKey(item.group)),
-    )
+  // The drill-level model is opt-in: an adapter signals it by setting explicit
+  // `treeLevel` values on items or groups. This is distinct from structural
+  // hierarchy (parentId on groups, which Gantt will also use) — a Gantt tree is
+  // hierarchical but every item still gets its own row with no level filtering.
+  // Flat peer groups (PI objectives) and future Gantt consumers never set
+  // treeLevel, so they bypass resolveLevel and the drill controls entirely.
+  const usesDrillLevel =
+    hasGroups &&
+    (groups!.some((g) => g.treeLevel != null) ||
+      items.some((i) => i.treeLevel != null))
 
-    if (backgroundGroups.size === 0) return items
+  // Drill-through level (1-based). Only meaningful when usesDrillLevel is true.
+  // maxLevel = deepest treeLevel present across groups and items.
+  const maxLevel = usesDrillLevel
+    ? Math.max(
+        1,
+        ...groups!.map((g) => g.treeLevel ?? 0),
+        ...items.map((i) => i.treeLevel ?? 0),
+      )
+    : 1
+  const [userLevel, setUserLevel] = useState<number | undefined>(undefined)
+  const level = Math.min(userLevel ?? defaultDrillLevel, maxLevel)
 
-    const topSpacers: TItem[] = []
-    const bottomSpacers: TItem[] = []
+  const hasDrill = usesDrillLevel && maxLevel > 1
+  const hasToolbar =
+    allowFullScreen ||
+    allowSaveAsImage ||
+    allowZoom ||
+    hasDrill ||
+    !!onRefresh ||
+    !!toolbarLeftSlot ||
+    !!toolbarRightSlot
 
-    backgroundGroups.forEach((groupId) => {
-      const groupItems = items.filter((item) => groupKey(item.group) === groupId)
-      if (groupItems.length === 0) return
-
-      const starts = groupItems
-        .map((item) => dayjs(item.start))
-        .filter((d) => d.isValid())
-      const ends = groupItems
-        .map((item) => dayjs(item.end ?? item.start))
-        .filter((d) => d.isValid())
-
-      if (starts.length === 0 || ends.length === 0) return
-
-      const earliestStart = starts.reduce((min, d) => (d.isBefore(min) ? d : min))
-      const latestEnd = ends.reduce((max, d) => (d.isAfter(max) ? d : max))
-      const baseItem = groupItems[0]
-
-      for (let i = 0; i < BACKGROUND_TOP_PADDING_ROWS; i += 1) {
-        topSpacers.push({
-          ...baseItem,
-          id: `${groupId}__background_padding_top_${i}`,
-          type: 'range',
-          content: '',
-          title: '',
-          start: earliestStart.toDate(),
-          end: earliestStart.add(BACKGROUND_SPACER_DAYS, 'day').toDate(),
-          group: groupId === '__ungrouped__' ? undefined : groupItems[0].group,
-          className: 'timeline-background-spacer timeline-background-spacer-top',
-          order: -100000 + i,
-        })
-      }
-
-      for (let i = 0; i < BACKGROUND_BOTTOM_PADDING_ROWS; i += 1) {
-        bottomSpacers.push({
-          ...baseItem,
-          id: `${groupId}__background_padding_bottom_${i}`,
-          type: 'range',
-          content: '',
-          title: '',
-          start: latestEnd.subtract(BACKGROUND_SPACER_DAYS, 'day').toDate(),
-          end: latestEnd.toDate(),
-          group: groupId === '__ungrouped__' ? undefined : groupItems[0].group,
-          className: 'timeline-background-spacer timeline-background-spacer-bottom',
-          order: 100000 + i,
-        })
-      }
-    })
-
-    return [...topSpacers, ...items, ...bottomSpacers]
-  }, [])
-
-  const [isTimelineLoading, setIsTimelineLoading] = useState(false)
+  // wrapperRef = toolbar + chart (fullscreen target). chartRootRef = just the
+  // bordered chart container (save-as-image target, so the toolbar is excluded).
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const chartRootRef = useRef<HTMLDivElement>(null)
+  const footerRef = useRef<HTMLDivElement>(null)
   const [isFullScreen, setIsFullScreen] = useState(false)
-  const [reinitTrigger, setReinitTrigger] = useState(0)
 
-  // Store both container and root for cleanup
-  const elementMapRef = useRef<
-    Record<
-      string | number,
-      { container: HTMLElement; root: ReturnType<typeof createRoot> }
-    >
-  >({})
-  const timelineRef = useRef<HTMLDivElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const timelineInstanceRef = useRef<Timeline | null>(null)
-  const datasetItemsRef = useRef<DataSet<TItem> | null>(null)
-  const datasetGroupsRef = useRef<DataSet<TGroup> | null>(null)
-  const initialWindowRef = useRef<{ start: Date; end: Date } | null>(null)
-  const preservedWindowRef = useRef<{ start: Date; end: Date } | null>(null)
-  const isInitializedRef = useRef(false)
-  const dynamicOptionsRef = useRef<TimelineOptions>({})
-  const prevWindowBoundsRef = useRef<{ start: Date; end: Date } | null>(null)
-  // Snapshot of the option values last applied via setOptions(), so we can skip
-  // calling it again when only object/function identity changed (e.g. a refetch
-  // produced a fresh Date with the same instant). setOptions() triggers a redraw
-  // even for a no-op change, which the user perceives as a section-wide flicker.
-  const prevAppliedOptionsRef = useRef<{
-    maxHeight: number | undefined
-    showCurrentTime: boolean | undefined
-    groupOrder: string | undefined
-    minTime: number | undefined
-    maxTime: number | undefined
-    editableUpdateTime: boolean
-    template: unknown
-  } | null>(null)
-  const propsDataRef = useRef(props.data)
-  propsDataRef.current = props.data
-  const propsGroupsRef = useRef(props.groups)
-  propsGroupsRef.current = props.groups
-  const propsRef = useRef(props)
-  propsRef.current = props
+  // User-togglable current-time line (settings menu); seeded from the prop.
+  const [showCurrentTime, setShowCurrentTime] = useState(showCurrentTimeDefault)
+  // User-togglable vertical gridlines (settings menu); default on.
+  const [showVerticalGridlines, setShowVerticalGridlines] = useState(true)
+  // User-togglable weekend shading (settings menu); default off.
+  const [showWeekends, setShowWeekends] = useState(false)
+  // User-togglable compact mode (settings menu); default off.
+  const [isCompact, setIsCompact] = useState(false)
+  const effectiveLaneHeight = isCompact ? COMPACT_LANE_HEIGHT : laneHeight
 
-  const { currentThemeName, token } = useTheme()
-
-  const enableFullScreenToggle = props.allowFullScreen ?? false
-  const enableSaveAsImage = props.allowSaveAsImage ?? false
-
-  const colors = DefaultTimeLineColors[currentThemeName]
-  const colorsRef = useRef(colors)
-  colorsRef.current = colors
-
-  const itemTemplateManager: TimelineOptionsTemplateFunction<TItem> =
-    useCallback(
-      (item, element, _) => {
-        if (!item) return ''
-
-        const mapId = item.id ?? 0
-        if (elementMapRef.current?.[mapId])
-          return elementMapRef.current[mapId].container
-
-        // Create a container for the React element (prevents DOM node errors)
-        const container = document.createElement('div')
-        if (element) element.appendChild(container)
-        const root = createRoot(container)
-
-        // Unfortunately, typescript doesn't seem to handle nested constrained generics very well (see: https://github.com/microsoft/TypeScript/issues/23132)
-        //  so we must add the type annotation here to avoid the error
-        const Template: TimelineTemplate<WaydDataItem> = getDefaultTemplate(
-          item.type,
-          propsRef.current,
-        )
-
-        if (Template)
-          root.render(
-            <Template
-              item={item}
-              fontColor={colorsRef.current.item.font}
-              foregroundColor={colorsRef.current.item.foreground}
-            />,
-          )
-
-        // Store the rendered element container and root to reference later
-        elementMapRef.current[mapId] = { container, root }
-
-        // Return the new container
-        return container
-      },
-      [],
-    )
-
-  const groupTemplateManager: TimelineOptionsTemplateFunction<TGroup> =
-    useCallback(
-      (item, element, _) => {
-        if (!item) return ''
-
-        const mapId = item.id ?? 0
-        if (elementMapRef.current?.[mapId])
-          return elementMapRef.current[mapId].container
-
-        // Create a container for the react element (prevents DOM node errors)
-        const container = document.createElement('div')
-        element?.appendChild(container)
-        const root = createRoot(container)
-
-        // Unfortunately, typescript doesn't seem to handle nested constrained generics very well (see: https://github.com/microsoft/TypeScript/issues/23132)
-        //  so we must add the type annotation here to avoid the error
-        const Template: TimelineTemplate<WaydDataGroup> = getDefaultTemplate(
-          'group',
-          propsRef.current,
-        )
-
-        if (Template) {
-          root.render(
-            <Template
-              item={item}
-              fontColor={colorsRef.current.item.font}
-              foregroundColor={colorsRef.current.item.foreground}
-              parentElement={element}
-            />,
-          )
-        }
-
-        // Store the rendered element container and root to reference later
-        elementMapRef.current[mapId] = { container, root }
-
-        // Return the new container
-        return container
-      },
-      [],
-    )
-
-  const onMoveProp = props.onMove
-  const onMove: TimelineOptionsItemCallbackFunction = useCallback(
-    (item, callback) => {
-      const original = datasetItemsRef.current?.get(item.id)
-
-      if (!original) return
-
-      if (
-        dayjs(original.end).isSame(dayjs(item.end)) &&
-        dayjs(original.start).isSame(dayjs(item.start))
-      )
-        return
-
-      // TODO: Account for total days in a month when moving months
-
-      // Call callback to confirm the move visually
-      callback(item)
-
-      // Notify parent if they have a handler
-      onMoveProp?.(item)
-    },
-    [onMoveProp],
+  // Group-column width. Self-persisted per instance when `storageKey` is set, so
+  // a user's splitter resize survives reloads with no consumer wiring; otherwise
+  // it's plain ephemeral state seeded from the prop default. When there's no
+  // storageKey we never touch localStorage at all (no shared/`__none__` key).
+  const widthStorageKey = storageKey
+    ? `wayd-timeline:groupWidth:${storageKey}`
+    : null
+  const [columnWidth, setColumnWidthState] = useState(() =>
+    readPersistedWidth(widthStorageKey, groupColumnWidth),
   )
+  // Re-read when the instance key changes without a remount (state-during-render
+  // pattern), so switching roadmaps applies the new instance's saved width.
+  const [prevWidthKey, setPrevWidthKey] = useState(widthStorageKey)
+  if (prevWidthKey !== widthStorageKey) {
+    setPrevWidthKey(widthStorageKey)
+    setColumnWidthState(readPersistedWidth(widthStorageKey, groupColumnWidth))
+  }
+  const setColumnWidth = (width: number) => {
+    setColumnWidthState(width)
+    if (widthStorageKey) {
+      try {
+        window.localStorage.setItem(widthStorageKey, JSON.stringify(width))
+      } catch {
+        // Ignore quota/availability errors — width just won't persist.
+      }
+    }
+  }
 
-  const baseOptions = useMemo<TimelineOptions>(
-    () => ({
-      editable: {
-        updateTime: onMoveProp ? true : false,
-        updateGroup: false,
-        remove: false,
-        add: false,
-        overrideItems: false,
-      },
-      onMove,
-      selectable: true,
-      orientation: 'top',
-      maxHeight: props.options.maxHeight ?? 650,
-      minHeight: 200,
-      moveable: true,
-      showCurrentTime: props.options.showCurrentTime ?? true,
-      verticalScroll: true,
-      zoomKey: 'ctrlKey',
-      // Day-level precision: snap items to day boundaries when dragging
-      snap: (date) => {
-        const d = new Date(date)
-        d.setHours(0, 0, 0, 0)
-        return d
-      },
-      // Prevent zooming to time level (minimum 1 day)
-      zoomMin: 86400000,
-      // Format axis to show only dates, not times
-      format: {
-        minorLabels: {
-          day: 'D',
-          weekday: 'ddd D',
-          month: 'MMM',
-          year: 'YYYY',
-        },
-        majorLabels: {
-          day: 'MMMM YYYY',
-          weekday: 'MMMM YYYY',
-          month: 'YYYY',
-          year: '',
-        },
-      },
-      start: props.options.start,
-      end: props.options.end,
-      min: props.options.min,
-      max: props.options.max,
-      groupOrder: props.options.groupOrder ?? 'order',
-      groupHeightMode: 'auto',
-      xss: { disabled: false },
-      template: props.options.template ?? itemTemplateManager,
-      groupTemplate: groupTemplateManager,
-    }),
-    [
-      onMove,
-      onMoveProp,
-      props.options.maxHeight,
-      props.options.showCurrentTime,
-      props.options.start,
-      props.options.end,
-      props.options.min,
-      props.options.max,
-      props.options.groupOrder,
-      props.options.template,
-      itemTemplateManager,
-      groupTemplateManager,
-    ],
+  // Measured group-label heights (by groupId) → rows grow to fit wrapped labels.
+  const [labelHeights, setLabelHeights] = useState<Map<string, number>>(
+    () => new Map(),
   )
-
-  useEffect(() => {
-    // Always update dynamicOptionsRef based on fullscreen state
-    const FULLSCREEN_VERTICAL_OFFSET = 40 // Space for header and padding
-    const maxHeight = isFullScreen
-      ? window.innerHeight - FULLSCREEN_VERTICAL_OFFSET
-      : baseOptions.maxHeight
-    const updatedOptions = {
-      ...baseOptions,
-      maxHeight,
-    }
-    dynamicOptionsRef.current = updatedOptions
-
-    // Update existing timeline instance if already initialized
-    if (timelineInstanceRef.current && isInitializedRef.current) {
-      // Check if window bounds (start/end) have changed
-      const currentStart = updatedOptions.start
-        ? new Date(updatedOptions.start)
-        : null
-      const currentEnd = updatedOptions.end
-        ? new Date(updatedOptions.end)
-        : null
-
-      const startChanged =
-        !prevWindowBoundsRef.current ||
-        !currentStart ||
-        prevWindowBoundsRef.current.start.getTime() !== currentStart.getTime()
-      const endChanged =
-        !prevWindowBoundsRef.current ||
-        !currentEnd ||
-        prevWindowBoundsRef.current.end.getTime() !== currentEnd.getTime()
-
-      if (startChanged || endChanged) {
-        // Window bounds changed - update the visible window
-        if (currentStart && currentEnd) {
-          timelineInstanceRef.current.setWindow(currentStart, currentEnd, {
-            animation: true,
-          })
-          prevWindowBoundsRef.current = {
-            start: currentStart,
-            end: currentEnd,
-          }
+  const onMeasureLabels = (heights: Map<string, number>) => {
+    setLabelHeights((prev) => {
+      // Merge (don't replace): keep previously-measured heights and overlay the
+      // new readings so a partial measurement never drops a row's grown height.
+      let changed = false
+      for (const [k, v] of heights) {
+        if (prev.get(k) !== v) {
+          changed = true
+          break
         }
       }
-
-      // Only call setOptions when an option value actually changed. baseOptions
-      // is re-created on every render because consumers pass fresh Date instances
-      // (e.g. dayjs().toDate() in roadmap timeline) — without this short-circuit,
-      // setOptions() fires every refetch and the user sees a section-wide flicker.
-      const nextSnapshot = {
-        maxHeight:
-          typeof updatedOptions.maxHeight === 'number'
-            ? updatedOptions.maxHeight
-            : undefined,
-        showCurrentTime: updatedOptions.showCurrentTime,
-        groupOrder:
-          typeof updatedOptions.groupOrder === 'string'
-            ? updatedOptions.groupOrder
-            : undefined,
-        minTime: updatedOptions.min ? new Date(updatedOptions.min).getTime() : undefined,
-        maxTime: updatedOptions.max ? new Date(updatedOptions.max).getTime() : undefined,
-        editableUpdateTime:
-          typeof updatedOptions.editable === 'object' &&
-          updatedOptions.editable !== null
-            ? !!updatedOptions.editable.updateTime
-            : false,
-        // Track the consumer-provided template reference so we re-apply options
-        // when the consumer swaps it out. Consumers are expected to memoize this
-        // reference; if they don't, every render will count as a template change
-        // and re-apply options, which is the correct safe-side behavior.
-        template: propsRef.current.options.template,
-      }
-      const prev = prevAppliedOptionsRef.current
-      const optionsChanged =
-        !prev ||
-        prev.maxHeight !== nextSnapshot.maxHeight ||
-        prev.showCurrentTime !== nextSnapshot.showCurrentTime ||
-        prev.groupOrder !== nextSnapshot.groupOrder ||
-        prev.minTime !== nextSnapshot.minTime ||
-        prev.maxTime !== nextSnapshot.maxTime ||
-        prev.editableUpdateTime !== nextSnapshot.editableUpdateTime ||
-        prev.template !== nextSnapshot.template
-
-      if (optionsChanged) {
-        const { start, end, ...optionsWithoutWindow } = updatedOptions
-        timelineInstanceRef.current.setOptions(optionsWithoutWindow)
-        prevAppliedOptionsRef.current = nextSnapshot
-      }
-    }
-
-    // Add resize listener when in fullscreen
-    if (isFullScreen) {
-      const handleResize = () => {
-        if (!timelineInstanceRef.current || !isInitializedRef.current) return
-        const newMaxHeight = window.innerHeight - 100
-        const resizedOptions = {
-          ...baseOptions,
-          maxHeight: newMaxHeight,
-        }
-        dynamicOptionsRef.current = resizedOptions
-        // Exclude start/end to prevent window reset during resize
-        const { start, end, ...optionsWithoutWindow } = resizedOptions
-        timelineInstanceRef.current.setOptions(optionsWithoutWindow)
-      }
-
-      window.addEventListener('resize', handleResize)
-      return () => {
-        window.removeEventListener('resize', handleResize)
-      }
-    }
-  }, [isFullScreen, baseOptions])
-
-  // Initialize or reinitialize timeline when structure changes (item count or group count)
-  useEffect(() => {
-    // Don't initialize if loading or no data
-    if (props.isLoading) return
-    if (!timelineRef.current) return
-    if (Object.keys(dynamicOptionsRef.current).length === 0) return
-
-    // Don't initialize if no data
-    if (props.data.length === 0) return
-
-    // If already initialized, don't reinitialize - use DataSet updates instead
-    if (isInitializedRef.current) return
-
-    setIsTimelineLoading(true)
-
-    // Read current data/groups from refs to avoid depending on the full arrays
-    const data = withBackgroundGroupSpacers(propsDataRef.current)
-    const groups = propsGroupsRef.current
-
-    const datasetItems = new DataSet([] as TItem[])
-    data.forEach((item) => {
-      const backgroundColor = item.itemColor ?? colorsRef.current.item.background
-      const itemRadiusPx = `${token.borderRadiusSM}px`
-      const newItem: TItem = {
-        ...item,
-        itemColor: backgroundColor,
-        style: item.style
-          ? item.style
-          : item.type === 'range'
-            ? `background: ${backgroundColor}; border-color: ${backgroundColor}; border-radius: ${itemRadiusPx};`
-            : item.type === 'background'
-              ? `background: ${colorsRef.current.background.background}; border-style: inset; border-width: 1px; border-radius: ${itemRadiusPx};`
-              : undefined,
-      }
-      datasetItems.add(newItem)
+      if (!changed) return prev
+      const next = new Map(prev)
+      for (const [k, v] of heights) next.set(k, v)
+      return next
     })
+  }
 
-    datasetItemsRef.current = datasetItems
+  // "Fullscreen" here means fill the browser's current viewport (not the OS
+  // monitor) — a CSS fixed-position overlay, matching the legacy timeline.
+  // Native requestFullscreen would take over the whole monitor, which isn't
+  // what we want. Esc exits.
+  const toggleFullScreen = () => setIsFullScreen((v) => !v)
 
-    if (groups?.length && groups.length > 0) {
-      const datasetGroups = new DataSet(groups)
-      datasetGroupsRef.current = datasetGroups
-      timelineInstanceRef.current = new Timeline(
-        timelineRef.current,
-        datasetItems,
-        datasetGroups,
-        dynamicOptionsRef.current,
-      )
-    } else {
-      timelineInstanceRef.current = new Timeline(
-        timelineRef.current,
-        datasetItems,
-        dynamicOptionsRef.current,
-      )
-    }
-
-    // Store initial window for reset functionality
-    const opts = dynamicOptionsRef.current
-    if (opts.start && opts.end) {
-      const startDate = new Date(opts.start)
-      const endDate = new Date(opts.end)
-
-      initialWindowRef.current = {
-        start: startDate,
-        end: endDate,
-      }
-      // Also track as previous bounds for conditional updates
-      prevWindowBoundsRef.current = {
-        start: startDate,
-        end: endDate,
-      }
-    }
-
-    isInitializedRef.current = true
-
-    // Restore window if a theme-change reinit preserved it
-    if (preservedWindowRef.current) {
-      timelineInstanceRef.current.setWindow(
-        preservedWindowRef.current.start,
-        preservedWindowRef.current.end,
-        { animation: false },
-      )
-      preservedWindowRef.current = null
-    }
-
-    setTimeout(() => {
-      setIsTimelineLoading(false)
-    }, 800)
-  }, [
-    props.isLoading,
-    props.data.length, // Reinit when item count changes
-    props.groups?.length, // Reinit when group count changes
-    reinitTrigger, // Reinit when explicitly triggered (e.g., groups removed)
-    colors.item.background,
-    colors.background.background,
-    token.borderRadiusSM,
-    withBackgroundGroupSpacers,
-  ])
-
-  // Update data when it changes (after initialization)
   useEffect(() => {
-    if (!isInitializedRef.current || !datasetItemsRef.current) return
-
-    const processedItems = withBackgroundGroupSpacers(props.data).map((item) => {
-      const backgroundColor = item.itemColor ?? colorsRef.current.item.background
-      const itemRadiusPx = `${token.borderRadiusSM}px`
-      return {
-        ...item,
-        itemColor: backgroundColor,
-        style: item.style
-          ? item.style
-          : item.type === 'range'
-            ? `background: ${backgroundColor}; border-color: ${backgroundColor}; border-radius: ${itemRadiusPx};`
-            : item.type === 'background'
-              ? `background: ${colorsRef.current.background.background}; border-style: inset; border-width: 1px; border-radius: ${itemRadiusPx};`
-              : undefined,
-      } as TItem
-    })
-
-    const currentIds = datasetItemsRef.current.getIds()
-    const newIds = processedItems.map((item) => item.id)
-
-    const toRemove = currentIds.filter((id) => !newIds.includes(id))
-    if (toRemove.length > 0) {
-      datasetItemsRef.current.remove(toRemove)
-      toRemove.forEach((id) => {
-        if (elementMapRef.current[id]) {
-          const { root } = elementMapRef.current[id]
-          setTimeout(() => {
-            try {
-              root.unmount()
-            } catch (error) {
-              console.error('Error unmounting root:', error)
-            }
-          }, 0)
-          delete elementMapRef.current[id]
-        }
-      })
+    if (!isFullScreen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsFullScreen(false)
     }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [isFullScreen])
 
-    processedItems.forEach((item) => {
-      const existing = item.id !== undefined ? datasetItemsRef.current!.get(item.id) : undefined
-      if (!existing) {
-        datasetItemsRef.current!.add(item as any)
-        return
-      }
-
-      // Skip when nothing the template or vis-timeline cares about has changed.
-      // RTK Query returns a fresh array on every refetch, so without this check
-      // every item would re-mount on every refetch and the whole timeline would
-      // flicker after editing a single activity.
-      if (itemsVisuallyEqual(existing as TItem, item)) return
-
-      // Clear cached template so it re-renders with updated data
-      const mapId = item.id ?? 0
-      if (elementMapRef.current[mapId]) {
-        const { container, root } = elementMapRef.current[mapId]
-        container.remove()
-        setTimeout(() => {
-          try {
-            root.unmount()
-          } catch (error) {
-            console.error('Error unmounting root:', error)
-          }
-        }, 0)
-        delete elementMapRef.current[mapId]
-      }
-      datasetItemsRef.current!.update(item as any)
-    })
-  }, [
-    props.data,
-    colors.item.background,
-    colors.background.background,
-    token.borderRadiusSM,
-    withBackgroundGroupSpacers,
-  ])
-
-  // Fully reinitialize the timeline when the theme changes so group/item templates
-  // re-render with the correct font colors (they use inline styles, not CSS).
-  useEffect(() => {
-    if (!isInitializedRef.current || !timelineInstanceRef.current) return
-
-    // Preserve the current window before destroying
-    const currentWindow = timelineInstanceRef.current.getWindow()
-
-    // Clear the cache immediately so templates don't reuse old containers,
-    // then unmount the React roots async to avoid unmounting during render.
-    const oldElements = elementMapRef.current
-    elementMapRef.current = {}
-    setTimeout(() => {
-      Object.values(oldElements).forEach(({ root }) => {
-        try { root.unmount() } catch { /* ignore */ }
-      })
-    }, 0)
-
-    // Destroy the timeline instance so init effect rebuilds it
-    timelineInstanceRef.current.destroy()
-    timelineInstanceRef.current = null
-    datasetItemsRef.current = null
-    datasetGroupsRef.current = null
-    isInitializedRef.current = false
-    // Force the options-effect to apply on the next render after reinit,
-    // since the new Timeline instance starts with no options applied.
-    prevAppliedOptionsRef.current = null
-
-    // Stash the current window so it can be restored after reinit
-    if (currentWindow) {
-      preservedWindowRef.current = { start: currentWindow.start, end: currentWindow.end }
-    }
-
-    setReinitTrigger((prev) => prev + 1)
-  }, [currentThemeName])
-
-  // Update groups when they change (after initialization)
-  useEffect(() => {
-    if (!isInitializedRef.current || !timelineInstanceRef.current) return
-
-    // Don't reinitialize if we're just loading - wait for data to arrive
-    if (props.isLoading) return
-
-    // Groups removed - need to reinitialize without groups
-    if (
-      (!props.groups || props.groups.length === 0) &&
-      datasetGroupsRef.current
-    ) {
-      if (timelineInstanceRef.current) {
-        timelineInstanceRef.current.destroy()
-        timelineInstanceRef.current = null
-      }
-
-      datasetItemsRef.current = null
-      datasetGroupsRef.current = null
-      isInitializedRef.current = false
-
-      // Trigger reinit by updating state
-      setReinitTrigger((prev) => prev + 1)
-      return
-    }
-
-    // Groups arrived but we initialized without them - add groups to existing timeline
-    if (props.groups && props.groups.length > 0 && !datasetGroupsRef.current) {
-      const datasetGroups = new DataSet(props.groups)
-      datasetGroupsRef.current = datasetGroups
-      timelineInstanceRef.current.setGroups(datasetGroups)
-
-      // Re-apply options to ensure they're still set correctly after adding groups
-      // Exclude start/end to prevent window reset
-      const { start, end, ...optionsWithoutWindow } = dynamicOptionsRef.current
-      timelineInstanceRef.current.setOptions(optionsWithoutWindow)
-
-      // Force redraw to ensure items render correctly with newly added groups
-      timelineInstanceRef.current.redraw()
-      return
-    }
-
-    if (!datasetGroupsRef.current || !props.groups) return
-    const nextGroups = props.groups
-
-    // When the group hierarchy is structurally unchanged, skip the destructive
-    // setGroups() — it rebuilds the group DOM and leaves orphaned item containers
-    // from the template cache. But we still need to refresh the rendered group
-    // templates when fields the template reads (e.g. `content`) have changed, so
-    // an edited activity name shows up without a full refetch/rebuild. Re-render
-    // into the existing cached container in place — do NOT remove the container
-    // or unmount the root, since vis-timeline has already attached that DOM node
-    // and won't re-invoke `groupTemplate` for an existing group id.
-    const prevGroups = datasetGroupsRef.current.get() as TGroup[]
-    if (groupsStructurallyEqual(prevGroups, nextGroups!)) {
-      const prevById = new Map<string | number, TGroup>()
-      prevGroups.forEach((g) => {
-        if (g.id !== undefined) prevById.set(g.id, g)
-      })
-      const Template: TimelineTemplate<WaydDataGroup> = getDefaultTemplate(
-        'group',
-        propsRef.current,
-      )
-      // vis-timeline orders group rows by the field named by `groupOrder`
-      // (default 'order'). If a consumer mutates that field on an existing
-      // group, the row layout must change — include it in the equality check
-      // so we don't get stuck with stale ordering.
-      const groupOrderField =
-        (typeof propsRef.current.options.groupOrder === 'string'
-          ? propsRef.current.options.groupOrder
-          : undefined) ?? 'order'
-      const changedGroups: TGroup[] = []
-      nextGroups!.forEach((next) => {
-        if (next.id === undefined) return
-        const prev = prevById.get(next.id)
-        if (
-          prev &&
-          prev.content === next.content &&
-          prev.className === next.className &&
-          prev.style === next.style &&
-          prev.treeLevel === next.treeLevel &&
-          (prev as Record<string, unknown>)[groupOrderField] ===
-            (next as Record<string, unknown>)[groupOrderField] &&
-          prev.visible === next.visible
-        ) {
+  const saveImage = () => {
+    // Force every row into the DOM first (virtualization is normally on), then
+    // capture once the full-height layout has painted, and turn windowing back on.
+    setIsCapturing(true)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = chartRootRef.current
+        if (!el) {
+          setIsCapturing(false)
           return
         }
-        changedGroups.push(next)
-        const cached = elementMapRef.current[next.id]
-        if (cached && Template) {
-          cached.root.render(
-            <Template
-              item={next}
-              fontColor={colorsRef.current.item.font}
-              foregroundColor={colorsRef.current.item.foreground}
-              parentElement={cached.container.parentElement ?? undefined}
-            />,
-          )
-        }
-      })
-      // Skip the DataSet.update() entirely when no visible field changed —
-      // calling update() on every refetch fires change events that cause
-      // vis-timeline to re-lay out group rows, producing visible flicker.
-      if (changedGroups.length > 0) {
-        datasetGroupsRef.current.update(changedGroups as any)
-      }
-      return
-    }
+        const cs = getComputedStyle(el)
+        const containerBg =
+          cs.getPropertyValue('--ant-color-bg-container').trim() || undefined
 
-    // Evict cached group template entries so React roots from the old hierarchy
-    // aren't reused after setGroups() rebuilds the DOM and detaches those containers.
-    const prevGroupIds = new Set(datasetGroupsRef.current.getIds())
-    Object.keys(elementMapRef.current).forEach((key) => {
-      const id = (isNaN(Number(key)) ? key : Number(key)) as string | number
-      if (prevGroupIds.has(id)) {
-        const { container, root } = elementMapRef.current[key]
-        container.remove()
-        setTimeout(() => { try { root.unmount() } catch { /* ignore */ } }, 0)
-        delete elementMapRef.current[key]
-      }
+        // We capture the CURRENT horizontal viewport (no time scrolled off-screen)
+        // but the FULL vertical extent (all rows). Since we don't expand
+        // horizontally, the Splitter layout stays intact — so we capture `.root`
+        // as a single element (no split/stitch) and only un-clip the vertical
+        // scroll in html2canvas's cloned document. The header underline etc.
+        // render naturally because it's the real layout, just taller.
+        const fullHeight = AXIS_HEIGHT + totalHeight + 2 // +2 for top/bottom border
+
+        // The Splitter sizes its panels via JS; those widths don't survive the
+        // html2canvas clone, so capture the live group-column width and re-pin it.
+        const groupPane = el.querySelector<HTMLElement>(
+          '[data-timeline-group-pane]',
+        )
+        const groupPaneWidth = groupPane
+          ? Math.round(groupPane.getBoundingClientRect().width)
+          : undefined
+
+        captureTimeline(el, {
+          fileName: `${saveImageFileName}.png`,
+          backgroundColor: containerBg,
+          captureHeight: fullHeight,
+          groupPaneWidth,
+          footer: footerRef.current ?? undefined,
+        }).finally(() => setIsCapturing(false))
+      })
     })
-
-    // Fully replace the groups DataSet to ensure vis-timeline rebuilds its
-    // internal nestedInGroup hierarchy correctly when the level structure changes.
-    const newDataset = new DataSet(nextGroups)
-    datasetGroupsRef.current = newDataset
-    timelineInstanceRef.current.setGroups(newDataset)
-  }, [props.groups, props.isLoading])
-
-  // When consumer controls group column width via CSS, force a vis-timeline
-  // redraw so axis/grid panel geometry is recomputed to match.
-  useEffect(() => {
-    if (!isInitializedRef.current || !timelineInstanceRef.current) return
-    if (!props.options.groupColumnWidth) return
-
-    timelineInstanceRef.current.redraw()
-  }, [props.options.groupColumnWidth])
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      const roots = Object.values(elementMapRef.current).map(({ root }) => root)
-      setTimeout(() => {
-        roots.forEach((root) => {
-          try {
-            root.unmount()
-          } catch (error) {
-            console.error('Error unmounting root:', error)
-          }
-        })
-      }, 0)
-      elementMapRef.current = {}
-      if (timelineInstanceRef.current) {
-        timelineInstanceRef.current.destroy()
-        timelineInstanceRef.current = null
-      }
-      datasetItemsRef.current = null
-      datasetGroupsRef.current = null
-      isInitializedRef.current = false
-      prevWindowBoundsRef.current = null
-    }
-  }, [])
-
-  const toggleFullScreen = () => {
-    if (!enableFullScreenToggle) return
-    setIsFullScreen(!isFullScreen)
   }
 
-  const saveTimelineAsImage = async () => {
-    if (!timelineRef.current || !timelineInstanceRef.current) return
+  // Measure the chart viewport width so the time scale maps onto real pixels.
+  // Use a CALLBACK ref: it fires exactly when the chart node attaches, which
+  // removes all timing ambiguity around when the (Splitter-nested) panel mounts.
+  const chartRef = useRef<HTMLDivElement | null>(null)
+  const observerRef = useRef<ResizeObserver | null>(null)
+  const scrollRafRef = useRef<number | null>(null)
+  const axisViewportRef = useRef<HTMLDivElement>(null)
+  const groupBodyRef = useRef<HTMLDivElement>(null)
+  const [viewportWidth, setViewportWidth] = useState(0)
+  const [viewportHeight, setViewportHeight] = useState(0)
+  const [scrollLeft, setScrollLeft] = useState(0)
+  const [scrollTop, setScrollTop] = useState(0)
+  // While true, virtualization is bypassed so all rows render for image capture.
+  const [isCapturing, setIsCapturing] = useState(false)
+  // Horizontal time zoom: factor over the base (fit-to-window) width. 1 = reset.
+  const [zoom, setZoom] = useState(1)
+  // scrollLeft to apply on the NEXT paint after a zoom changes chartWidth, so the
+  // anchor (cursor/centre) stays fixed. Consumed in a layout effect below.
+  const pendingScrollLeftRef = useRef<number | null>(null)
+  // Latest zoom geometry, refreshed every render so the (stable) wheel listener
+  // attached in setChartRef reads current values without a stale closure.
+  const zoomGeomRef = useRef({
+    zoom: 1,
+    baseWidth: 0,
+    chartWidth: 0,
+    bounds: { min: 1, max: 1 },
+    allowZoom: true,
+  })
 
-    // Store current options
-    const currentOptions = dynamicOptionsRef.current
-
-    try {
-      // Temporarily remove height constraints to capture full timeline
-      const captureOptions = {
-        ...currentOptions,
-        maxHeight: undefined,
-        height: undefined,
-      }
-      timelineInstanceRef.current.setOptions(captureOptions)
-
-      // Wait for the timeline to re-render with full height
-      await new Promise((resolve) => setTimeout(resolve, 300))
-
-      const canvasOptions: Record<string, unknown> = {
-        backgroundColor: token.colorBgContainer,
-      }
-
-      await saveElementAsImage(
-        timelineRef.current,
-        'timeline.png',
-        canvasOptions,
-      )
-    } catch (error) {
-      console.error('Failed to save timeline as image:', error)
-    } finally {
-      // Restore original options
-      timelineInstanceRef.current.setOptions(currentOptions)
+  // While true, every resize re-locks the scroll to windowStart (the "home" view).
+  // Set to false the first time the user pans or zooms.
+  // Ref for synchronous reads in hot-path handlers (scroll, pan, zoom).
+  // State mirrors it for the render (canReset prop).
+  const isInitialViewRef = useRef(true)
+  const [isInitialView, setIsInitialView] = useState(true)
+  // Reset to the home view whenever the storageKey changes (different timeline
+  // instance). Uses the state-during-render pattern (same as prevWidthKey above)
+  // so React can bail out without a double-render from an effect.
+  const [prevStorageKey, setPrevStorageKey] = useState(storageKey)
+  if (prevStorageKey !== storageKey) {
+    setPrevStorageKey(storageKey)
+    setIsInitialView(true)
+  }
+  // The isInitialViewRef mutation must stay in an effect — refs can't be written
+  // during render. Keep it in sync with the state transition above.
+  const prevStorageKeyRef = useRef(storageKey)
+  useLayoutEffect(() => {
+    if (prevStorageKeyRef.current !== storageKey) {
+      prevStorageKeyRef.current = storageKey
+      isInitialViewRef.current = true
     }
+  }, [storageKey])
+
+  // Latest domain/window geometry — updated in a layout effect each render so
+  // the (stable) scroll/reset callbacks always read current props without a
+  // stale closure.
+  const windowGeomRef = useRef({
+    domainStart: 0,
+    domainMs: 1,
+    windowStart: 0,
+    windowMs: 1,
+  })
+
+  // Resolve the drill level: which activities stay groups vs. demote to bars,
+  // remapping every item to its nearest surviving group. (timeline variant only;
+  // gantt keeps one row per record.) Backgrounds are split AFTER remapping so a
+  // row-scoped timebox follows its reassigned group.
+  const resolved =
+    usesDrillLevel && variant === 'timeline'
+      ? resolveLevel(items, groups!, level)
+      : { items, groups: groups ?? [] }
+
+  // ── Horizontal time geometry (domain + zoom) ──────────────────────────────
+  // The render domain is the HARD BOUNDS [minDate, maxDate], defaulting to the
+  // view window. This is also the pan/zoom limit, so
+  // the axis matches the consumer's bounds exactly (e.g. the roadmap dates).
+  // Items extending past the bounds are clipped at the canvas edge; we do NOT
+  // widen the domain to fit them.
+  // Domain must fully contain the window so the canvas is always wide enough to
+  // scroll windowStart to the left edge with windowEnd visible at the right.
+  const domainStart = Math.min(minDate ?? windowStart, windowStart)
+  const domainEnd = Math.max(domainStart + 1, maxDate ?? windowEnd, windowEnd)
+  const domainMs = domainEnd - domainStart
+  const windowMs = Math.max(1, windowEnd - windowStart)
+  // Base width is defined so that zoom=1 shows exactly the window
+  // (windowStart→windowEnd) in the viewport. The full canvas is wider by the
+  // domain/window ratio so the user can pan into minDate/maxDate on either side.
+  // We do NOT apply a per-day minimum here — that would make multi-year windows
+  // wider than the viewport at zoom=1. Users zoom in if they need finer detail.
+  const baseWidth = Math.max(viewportWidth, 1) * (domainMs / windowMs)
+  // zoomMin: the factor that fits the entire domain into the viewport (zoom out
+  // floor). At this zoom, chartWidth === viewportWidth and the user can see
+  // minDate→maxDate without scrolling. Always <= 1 since baseWidth >= viewportWidth.
+  const zoomMin = domainMs > 0 ? windowMs / domainMs : 1
+  // zoomMax: cap zoom-in so the viewport never spans less than ZOOM_MIN_MS (1 day).
+  const zoomMax = maxZoom(baseWidth, viewportWidth, domainMs, ZOOM_MIN_MS)
+  const effectiveZoom = clampZoom(zoom, { min: zoomMin, max: zoomMax })
+  const chartWidth = baseWidth * effectiveZoom
+
+  const wheelCleanupRef = useRef<(() => void) | null>(null)
+  const setChartRef = (el: HTMLDivElement | null) => {
+    chartRef.current = el
+    observerRef.current?.disconnect()
+    wheelCleanupRef.current?.()
+    wheelCleanupRef.current = null
+    if (!el) return
+    const measure = () => {
+      setViewportWidth(el.clientWidth)
+      setViewportHeight(el.clientHeight)
+      // Initial scroll is handled by the useLayoutEffect that watches viewportWidth.
+    }
+    measure()
+    requestAnimationFrame(measure)
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    observerRef.current = observer
+
+    // Ctrl/Cmd + wheel = zoom, anchored on the cursor. Must be a NON-passive
+    // listener so we can preventDefault the browser's pinch/scroll-zoom. Plain
+    // wheel (no modifier) falls through to native horizontal/vertical scroll.
+    const onWheel = (e: WheelEvent) => {
+      const geom = zoomGeomRef.current
+      if (!geom.allowZoom) return
+      if (!e.ctrlKey && !e.metaKey) return
+      e.preventDefault()
+      const anchorX = e.clientX - el.getBoundingClientRect().left
+      // Wheel up (deltaY < 0) zooms in; scale exponentially by the scroll amount.
+      const factor = Math.pow(ZOOM_WHEEL_STEP, -e.deltaY)
+      requestZoom(geom.zoom * factor, anchorX)
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    wheelCleanupRef.current = () => el.removeEventListener('wheel', onWheel)
   }
 
-  const resetWindow = () => {
-    if (timelineInstanceRef.current && initialWindowRef.current) {
-      timelineInstanceRef.current.setWindow(
-        initialWindowRef.current.start,
-        initialWindowRef.current.end,
-        { animation: true },
-      )
+  useEffect(
+    () => () => {
+      observerRef.current?.disconnect()
+      wheelCleanupRef.current?.()
+      if (scrollRafRef.current != null)
+        cancelAnimationFrame(scrollRafRef.current)
+    },
+    [],
+  )
+
+  // After every render, publish current zoom geometry for the (stable) wheel
+  // listener and toolbar handlers to read — and, when a zoom changed chartWidth,
+  // set scrollLeft so the anchor stays fixed. useLayoutEffect runs before paint,
+  // so the user never sees an intermediate (mis-scrolled) frame. Also syncs the
+  // axis viewport (it mirrors chart scroll).
+  useLayoutEffect(() => {
+    windowGeomRef.current = { domainStart, domainMs, windowStart, windowMs }
+    zoomGeomRef.current = {
+      zoom: effectiveZoom,
+      baseWidth,
+      chartWidth,
+      bounds: { min: zoomMin, max: zoomMax },
+      allowZoom,
     }
-  }
+    const pending = pendingScrollLeftRef.current
+    if (pending == null) return
+    pendingScrollLeftRef.current = null
+    const chart = chartRef.current
+    if (chart) {
+      chart.scrollLeft = pending
+      if (axisViewportRef.current) axisViewportRef.current.scrollLeft = pending
+      setScrollLeft(pending)
+    }
+  }, [
+    effectiveZoom,
+    baseWidth,
+    chartWidth,
+    zoomMin,
+    zoomMax,
+    allowZoom,
+    domainStart,
+    domainMs,
+    windowStart,
+    windowMs,
+  ])
 
-  const isLoading = props.isLoading || isTimelineLoading
-  const hasData = props.data && props.data.length > 0
-  const showControls = !isLoading && hasData
+  // While in the initial view (no user pan/zoom), lock scroll to windowStart
+  // on every render where the viewport is measured. Runs in useLayoutEffect so
+  // it applies before paint — no flash of wrong position.
+  useLayoutEffect(() => {
+    if (!isInitialViewRef.current) return
+    const chart = chartRef.current
+    if (!chart) return
+    if (chart.clientWidth <= 0) return
+    const offset = initialScrollLeft(
+      domainStart,
+      domainMs,
+      windowStart,
+      baseWidth,
+    )
+    // Only apply if the canvas is wide enough to scroll to this offset.
+    if (chart.scrollWidth <= offset) return
+    chart.scrollLeft = offset
+    if (axisViewportRef.current) axisViewportRef.current.scrollLeft = offset
+    // Defer state update to avoid setState-in-effect lint error; bar labels
+    // tolerate a one-frame lag after a programmatic scroll to windowStart.
+    requestAnimationFrame(() => setScrollLeft(offset))
+  }, [viewportWidth, domainStart, domainMs, windowStart, baseWidth, chartWidth])
 
-  const menuItems: MenuProps['items'] = (() => {
-    const items: MenuProps['items'] = []
-
-    if (enableFullScreenToggle) {
-      items.push({
-        key: 'fullscreen',
-        label: isFullScreen ? 'Exit Fullscreen' : 'Enter Fullscreen',
-        icon: isFullScreen ? (
-          <FullscreenExitOutlined />
-        ) : (
-          <FullscreenOutlined />
-        ),
-        onClick: toggleFullScreen,
+  // Chart scroll drives: axis horizontal sync + group-column vertical sync, and
+  // a debounced scrollLeft state so bar labels can stick to the visible left
+  // edge (rAF-throttled to avoid re-rendering bars on every scroll event).
+  const onChartScroll = () => {
+    const chart = chartRef.current
+    if (!chart) return
+    // Any scroll (including Shift+wheel / trackpad horizontal pan) means the user
+    // has navigated away from the default window — clear the initial-view lock so
+    // a later viewport resize doesn't snap back to windowStart.
+    if (isInitialViewRef.current) {
+      isInitialViewRef.current = false
+      setIsInitialView(false)
+    }
+    if (axisViewportRef.current) {
+      axisViewportRef.current.scrollLeft = chart.scrollLeft
+    }
+    if (groupBodyRef.current) {
+      groupBodyRef.current.scrollTop = chart.scrollTop
+    }
+    if (scrollRafRef.current == null) {
+      scrollRafRef.current = requestAnimationFrame(() => {
+        scrollRafRef.current = null
+        const c = chartRef.current
+        setScrollLeft(c?.scrollLeft ?? 0)
+        setScrollTop(c?.scrollTop ?? 0)
       })
     }
+  }
 
-    if (enableSaveAsImage) {
-      items.push({
-        key: 'save-image',
-        label: 'Save as Image',
-        icon: <FileImageOutlined />,
-        onClick: saveTimelineAsImage,
-      })
+  // Group-column scroll (wheel over labels) drives the chart vertically.
+  const onGroupScroll = () => {
+    const group = groupBodyRef.current
+    if (group && chartRef.current) {
+      chartRef.current.scrollTop = group.scrollTop
     }
+  }
 
-    items.push({
-      key: 'reset',
-      label: 'Reset View',
-      icon: <UndoOutlined />,
-      onClick: resetWindow,
+  // Drag-to-pan: grab empty chart space and drag to scroll horizontally (and
+  // vertically). Bars/handles/milestones stop pointer propagation (or are marked
+  // with data-timeline-item), so this only engages on whitespace — the native
+  // scrollbar still works alongside it.
+  const panSessionRef = useRef<{
+    pointerId: number
+    startX: number
+    startY: number
+    startScrollLeft: number
+    startScrollTop: number
+    moved: boolean
+  } | null>(null)
+
+  const onPanPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Primary button only; ignore clicks that land on an interactive item.
+    if (e.button !== 0) return
+    if ((e.target as HTMLElement).closest('[data-timeline-item]')) return
+    isInitialViewRef.current = false
+    setIsInitialView(false)
+    const chart = chartRef.current
+    if (!chart) return
+    // Nothing to pan if content fits the viewport in both axes.
+    const canScroll =
+      chart.scrollWidth > chart.clientWidth ||
+      chart.scrollHeight > chart.clientHeight
+    if (!canScroll) return
+
+    // Avoid starting a native text/element selection while dragging to pan.
+    e.preventDefault()
+
+    panSessionRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      startScrollLeft: chart.scrollLeft,
+      startScrollTop: chart.scrollTop,
+      moved: false,
+    }
+    chart.style.cursor = 'grabbing'
+
+    const move = (ev: PointerEvent) => {
+      const s = panSessionRef.current
+      const c = chartRef.current
+      if (!s || !c) return
+      const dx = ev.clientX - s.startX
+      const dy = ev.clientY - s.startY
+      if (!s.moved && Math.abs(dx) + Math.abs(dy) >= 3) s.moved = true
+      // Dragging right reveals content to the left → scrollLeft decreases.
+      c.scrollLeft = s.startScrollLeft - dx
+      c.scrollTop = s.startScrollTop - dy
+    }
+    const up = () => {
+      const c = chartRef.current
+      if (c) c.style.cursor = ''
+      panSessionRef.current = null
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
+  // Apply a new zoom factor, keeping the time under `anchorX` (viewport-local px)
+  // fixed. Reads current geometry from the ref so it's safe to call from both the
+  // wheel listener and the toolbar buttons. Stages the post-paint scrollLeft.
+  const requestZoom = (nextZoomRaw: number, anchorX: number) => {
+    isInitialViewRef.current = false
+    setIsInitialView(false)
+    const geom = zoomGeomRef.current
+    const next = clampZoom(nextZoomRaw, geom.bounds)
+    if (next === geom.zoom) return
+    const newWidth = geom.baseWidth * next
+    pendingScrollLeftRef.current = anchoredScrollLeft({
+      oldWidth: geom.chartWidth,
+      newWidth,
+      oldScrollLeft: chartRef.current?.scrollLeft ?? 0,
+      anchorX,
+      viewportWidth: chartRef.current?.clientWidth ?? 0,
     })
+    setZoom(next)
+  }
 
-    return items
-  })()
+  // Zoom in/out by a fixed step, anchored on the viewport centre (toolbar buttons).
+  const zoomBy = (factor: number) => {
+    const geom = zoomGeomRef.current
+    const centre = (chartRef.current?.clientWidth ?? 0) / 2
+    requestZoom(geom.zoom * factor, centre)
+  }
+
+  // Reset View: zoom=1 (window fills viewport) and scroll to windowStart.
+  const resetView = () => {
+    isInitialViewRef.current = true
+    setIsInitialView(true)
+    const g = windowGeomRef.current
+    const chart = chartRef.current
+    const w = chart?.clientWidth ?? viewportWidth
+    const offset =
+      g.windowMs > 0 ? ((g.windowStart - g.domainStart) / g.windowMs) * w : 0
+    // Always apply the scroll immediately via DOM refs so panning-only resets
+    // work even when zoom is already 1 (setZoom(1) would be a no-op → no
+    // layout effect → pendingScrollLeftRef never consumed).
+    if (chart) {
+      chart.scrollLeft = offset
+      if (axisViewportRef.current) axisViewportRef.current.scrollLeft = offset
+      setScrollLeft(offset)
+    }
+    // Also stage via pendingScrollLeftRef as a fallback for when the zoom
+    // changes (layout effect fires on the next paint and re-applies it).
+    pendingScrollLeftRef.current = offset
+    setZoom(1)
+  }
+
+  // Loading: show a spinner until data arrives (covers the isLoading + no-data
+  // window, which would otherwise render a blank zero-height chart).
+  if (isLoading && items.length === 0) {
+    return (
+      <div className={styles.root} style={{ height }}>
+        <div className={styles.empty}>
+          <Spin />
+        </div>
+      </div>
+    )
+  }
+
+  if (!isLoading && items.length === 0) {
+    return (
+      <div className={styles.root} style={{ height }}>
+        <div className={styles.empty}>{emptyMessage}</div>
+      </div>
+    )
+  }
+
+  const chartBackgrounds = resolved.items.filter((i) => i.kind === 'background')
+  const layoutItems = resolved.items.filter((i) => i.kind !== 'background')
+
+  // Group ids that have a row-scoped background → reserve label headroom in those
+  // rows so the timebox name sits above the bars. Chart-wide (ungrouped)
+  // backgrounds drive headroom on the flat row instead.
+  const backgroundGroupIds = new Set<string>()
+  let hasChartBackground = false
+  for (const bg of chartBackgrounds) {
+    if (bg.groupId) backgroundGroupIds.add(bg.groupId)
+    else hasChartBackground = true
+  }
+
+  const scale = createTimeScale(domainStart, domainEnd, chartWidth)
+  const oneDayMarkerSize = effectiveLaneHeight - LANE_PADDING * 2
+  const oneDayLabelFontSize = Math.max(
+    9,
+    Math.min(Math.floor(oneDayMarkerSize / 1.2), 13),
+  )
+  const estimateOneDayLabelWidth = (label: string) =>
+    label.length * oneDayLabelFontSize * 0.58 + ONE_DAY_LABEL_EXTRA_PX
+  const getCollisionEnd = (item: TimelineItem) => {
+    if (item.kind !== 'range' || item.end - item.start > DAY_MS) {
+      return item.kind === 'milestone' ? item.start : item.end
+    }
+
+    const rawX1 = scale.toX(item.start)
+    const rawX2 = scale.toX(item.end)
+    const spanWidth = Math.max(oneDayMarkerSize, rawX2 - rawX1)
+    const markerLeft = rawX1 + Math.max(0, (spanWidth - oneDayMarkerSize) / 2)
+    const label = truncateOneDayLabel(item.label ?? item.id)
+    const labelRight =
+      markerLeft +
+      oneDayMarkerSize +
+      ONE_DAY_LABEL_GAP +
+      estimateOneDayLabelWidth(label)
+
+    return Math.max(item.end, scale.toMs(labelRight))
+  }
+
+  const strategy = getLayoutStrategy(variant)
+  const base = strategy({
+    items: layoutItems,
+    groups: resolved.groups,
+    backgroundGroupIds,
+    hasChartBackground,
+    getCollisionEnd,
+    config: { laneHeight: effectiveLaneHeight, rowPadding: ROW_PADDING },
+  })
+
+  // Grow rows whose wrapped group label is taller than the lane-based height,
+  // using heights measured in the rendered column (see GroupColumn onMeasure).
+  const { rows, totalHeight } = growRowsForLabels(base.rows, labelHeights)
+
+  // Virtualize: only rows intersecting the viewport (plus overscan) render.
+  // The full totalHeight is kept as a spacer so the scrollbar reflects all rows.
+  // During an image capture we bypass windowing so EVERY row is in the DOM (the
+  // capture renders the full vertical extent, including rows scrolled off-view).
+  const visibleRange = isCapturing
+    ? { startIndex: 0, endIndex: rows.length - 1 }
+    : getVisibleRange(rows, scrollTop, viewportHeight)
+  const visibleRows =
+    visibleRange.endIndex < 0
+      ? []
+      : rows.slice(visibleRange.startIndex, visibleRange.endIndex + 1)
+
+  const geometry: GeometryConfig = {
+    laneHeight: effectiveLaneHeight,
+    lanePadding: LANE_PADDING,
+    rowPadding: ROW_PADDING,
+  }
+  const groupsById = new Map<string, TimelineGroup>(
+    resolved.groups.map((g) => [g.id, g]),
+  )
+
+  // Show the group column + splitter only when the resolved level actually has
+  // groups. At drill level 1 there are none → render a flat, full-width chart.
+  const showGroupColumn = resolved.groups.length > 0
+
+  // The right pane (axis + chart) is shared by both grouped/ungrouped layouts.
+  const rightPane = (
+    <div className={styles.pane}>
+      <div className={styles.axisViewport} ref={axisViewportRef}>
+        {viewportWidth > 0 && <Axis scale={scale} height={AXIS_HEIGHT} />}
+      </div>
+      <div
+        className={styles.chartScroll}
+        ref={setChartRef}
+        onScroll={onChartScroll}
+        onPointerDown={onPanPointerDown}
+      >
+        {viewportWidth > 0 && (
+          <ChartCanvas
+            rows={visibleRows}
+            allRows={rows}
+            rowIndexOffset={visibleRange.startIndex}
+            totalHeight={totalHeight}
+            scale={scale}
+            geometry={geometry}
+            chartBackgrounds={chartBackgrounds}
+            editable={editable}
+            viewportLeft={scrollLeft}
+            itemRenderer={itemRenderer as ChartCanvasProps['itemRenderer']}
+            onItemClick={onItemClick as ChartCanvasProps['onItemClick']}
+            onItemDateChange={onItemDateChange}
+            onItemProgressChange={onItemProgressChange}
+            showCurrentTime={showCurrentTime}
+            showGridlines={showVerticalGridlines}
+            showWeekends={showWeekends}
+            canPan={
+              chartWidth > viewportWidth + 1 || totalHeight > viewportHeight + 1
+            }
+            dragMin={domainStart}
+            dragMax={domainEnd}
+          />
+        )}
+      </div>
+    </div>
+  )
 
   return (
-    <Spin spinning={isLoading} description="Loading timeline..." size="large">
-      <div
-        ref={containerRef}
-        className={
-          props.options.groupColumnWidth
-            ? 'wayd-timeline-root wayd-timeline-fixed-group-width'
-            : 'wayd-timeline-root'
-        }
-        style={{
-          ...(props.options.groupColumnWidth
-            ? {
-                ['--wayd-group-column-width' as any]: `${props.options.groupColumnWidth}px`,
-              }
-            : {}),
-          position: isFullScreen ? 'fixed' : 'relative',
-          top: 0,
-          left: 0,
-          width: isFullScreen ? '100vw' : 'auto',
-          height: isFullScreen ? '100vh' : 'auto',
-          zIndex: isFullScreen ? 1000 : 'auto',
-          transition: 'all 0.3s ease',
-          background: isFullScreen ? token.colorBgContainer : 'transparent',
-          padding: isFullScreen ? 20 : 0,
-          overflow: isFullScreen ? 'auto' : 'unset',
-        }}
-      >
-        {showControls && (
-          <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-            <Button
-              type="text"
-              shape="circle"
-              title="Timeline Actions"
-              aria-label="Timeline Actions"
-              icon={<MoreOutlined />}
-              size="small"
-              style={{
-                position: 'absolute',
-                top: isFullScreen ? 25 : 5,
-                right: isFullScreen ? 25 : 5,
-                zIndex: 1000,
-              }}
-            />
-          </Dropdown>
-        )}
-        <div
-          ref={timelineRef}
-          style={{
-            border: `1px solid ${token.colorBorderSecondary}`,
-          }}
+    <div
+      ref={wrapperRef}
+      className={`${styles.wrapper} ${isFullScreen ? styles.fullscreen : ''}`}
+    >
+      {hasToolbar && (
+        <TimelineToolbar
+          leftSlot={
+            <>
+              {hasDrill && (
+                <DrillControl
+                  level={level}
+                  maxLevel={maxLevel}
+                  onChange={setUserLevel}
+                />
+              )}
+              {toolbarLeftSlot}
+            </>
+          }
+          rightSlot={toolbarRightSlot}
+          allowZoom={allowZoom}
+          onZoomIn={() => zoomBy(ZOOM_STEP)}
+          onZoomOut={() => zoomBy(1 / ZOOM_STEP)}
+          onResetView={resetView}
+          canZoomIn={effectiveZoom < zoomMax - 1e-6}
+          canZoomOut={effectiveZoom > zoomMin + 1e-6}
+          canReset={Math.abs(effectiveZoom - 1) > 1e-6 || !isInitialView}
+          allowSaveAsImage={allowSaveAsImage}
+          onSaveAsImage={saveImage}
+          allowFullScreen={allowFullScreen}
+          isFullScreen={isFullScreen}
+          onToggleFullScreen={toggleFullScreen}
+          allowSettings={allowToggleCurrentTime}
+          showCurrentTime={showCurrentTime}
+          onToggleCurrentTime={setShowCurrentTime}
+          showVerticalGridlines={showVerticalGridlines}
+          onToggleVerticalGridlines={setShowVerticalGridlines}
+          showWeekends={showWeekends}
+          onToggleWeekends={setShowWeekends}
+          isCompact={isCompact}
+          onToggleCompact={setIsCompact}
+          onRefresh={onRefresh}
+          editable={editable}
         />
-        {!isLoading &&
-          (!props.data || props.data.length === 0) &&
-          (!props.groups || props.groups.length === 0) && (
-            <WaydEmpty message={props.emptyMessage ?? 'No timeline data'} />
-          )}
+      )}
+      <div
+        ref={chartRootRef}
+        className={styles.root}
+        style={isFullScreen ? undefined : { height }}
+      >
+        {showGroupColumn ? (
+          <Splitter
+            // antd Splitter reads `defaultSize` only on mount; remount when the
+            // instance (storageKey) changes so a different roadmap's persisted
+            // width is applied.
+            key={storageKey ?? 'default'}
+            // Persist the resized group-column width (first panel) on drop. Using
+            // onResizeEnd (not onResize) avoids writing to storage on every frame.
+            onResizeEnd={(sizes) => {
+              const next = sizes[0]
+              if (typeof next === 'number' && next > 0) setColumnWidth(next)
+            }}
+          >
+            <Splitter.Panel
+              defaultSize={columnWidth}
+              min={MIN_GROUP_COLUMN_WIDTH}
+              max="60%"
+            >
+              <div className={styles.pane} data-timeline-group-pane>
+                {/* Corner spacer aligns the column under the axis header. */}
+                <div
+                  className={styles.headerCorner}
+                  style={{ height: AXIS_HEIGHT }}
+                />
+                <div
+                  className={styles.groupBody}
+                  ref={groupBodyRef}
+                  onScroll={onGroupScroll}
+                >
+                  <GroupColumn
+                    rows={rows}
+                    totalHeight={totalHeight}
+                    width="100%"
+                    groupsById={groupsById}
+                    groupRenderer={
+                      groupRenderer as React.ComponentProps<
+                        typeof GroupColumn
+                      >['groupRenderer']
+                    }
+                    onMeasure={onMeasureLabels}
+                    laneHeight={effectiveLaneHeight}
+                  />
+                </div>
+              </div>
+            </Splitter.Panel>
+            <Splitter.Panel>{rightPane}</Splitter.Panel>
+          </Splitter>
+        ) : (
+          rightPane
+        )}
       </div>
-    </Spin>
+      {footerSlot && (
+        <div ref={footerRef} className={styles.footer}>
+          {footerSlot}
+        </div>
+      )}
+    </div>
   )
 }
 
-export default memo(WaydTimeline)
+export default WaydTimeline

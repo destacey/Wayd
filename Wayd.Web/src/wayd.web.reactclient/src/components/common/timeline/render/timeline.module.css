@@ -1,0 +1,440 @@
+/* timeline/render/timeline.module.css
+   Theme-token styling only (no hardcoded colors). Re-themes via CSS vars with
+   no component reinit (FR-6). */
+
+/* Outer wrapper: toolbar (above) + bordered chart container (below), like the
+   grid where the toolbar sits outside/above the data container. */
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--ant-font-size-sm);
+  color: var(--ant-color-text);
+}
+
+.root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  border: 1px solid var(--ant-color-border);
+  border-radius: var(--ant-border-radius-lg);
+  background-color: var(--ant-color-bg-container);
+  overflow: hidden;
+}
+
+/* The Splitter (or the bare right pane when ungrouped) fills the root. */
+.root > :global(.ant-splitter),
+.root > .pane {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* When the browser fullscreens the wrapper, fill the screen. */
+/* "Fullscreen" = fill the browser's current viewport (a CSS overlay), matching
+   the legacy timeline. Not the native OS fullscreen (which fills the monitor). */
+.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  height: 100vh;
+  background-color: var(--ant-color-bg-container);
+  padding: var(--ant-padding-xs);
+}
+
+.fullscreen .root {
+  border-radius: 0;
+}
+
+/* ── Toolbar (mirrors tree-grid toolbar conventions; sits ABOVE container) ── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ant-margin);
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  margin-bottom: var(--ant-margin-xs);
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-margin-xxs);
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  /* Tight gap so icon buttons cluster; the divider separates logical groups. */
+  gap: var(--ant-margin-xxs);
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.toolbarDivider {
+  width: 1px;
+  height: 24px;
+  margin: 0 var(--ant-margin-xxs);
+  background-color: var(--ant-color-split);
+}
+
+/* ── Axis (timescale header) ───────────────────────────────────────────── */
+.axis {
+  position: relative;
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--ant-color-border);
+  background-color: var(--ant-color-bg-elevated);
+  overflow: hidden;
+}
+
+/* Two-tier header: upper (month/year) over lower (week/day). */
+.axisTier {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+.axisTier:first-child .axisCell {
+  border-bottom: 1px solid var(--ant-color-split);
+  font-weight: var(--ant-font-weight-strong);
+  color: var(--ant-color-text);
+}
+
+.axisCell {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  padding-left: var(--ant-padding-xxs);
+  border-left: 1px solid var(--ant-color-split);
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.axisCellLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Panes (inside the Splitter, or the right side when ungrouped) ──────── */
+/* Each pane is a vertical stack: fixed header + scroll body. */
+.pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+}
+
+/* Corner spacer above the group column, aligned to axis height. */
+.headerCorner {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--ant-color-border);
+  background-color: var(--ant-color-bg-elevated);
+}
+
+/* Axis viewport — clips; scrolled horizontally in sync with the chart. */
+.axisViewport {
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+/* Group label column body — vertical scroll, synced to the chart. */
+.groupBody {
+  flex: 1 1 auto;
+  /* Scrolls programmatically in sync with the chart, but its own scrollbar is
+     redundant (the chart owns the visible one) — hide the chrome, keep scroll. */
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+
+.groupBody::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.groupColumn {
+  position: relative;
+  background-color: var(--ant-color-bg-container);
+}
+
+.groupCell {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  padding: var(--ant-padding-xs) var(--ant-padding-xs) var(--ant-padding-xs)
+    var(--ant-padding-sm);
+  border-bottom: 1px solid var(--ant-color-split);
+  overflow: hidden;
+}
+
+.groupLabel {
+  padding-right: var(--ant-padding-xs);
+  font-size: var(--ant-font-size-sm);
+  color: var(--ant-color-text);
+  /* Wrap long names onto multiple lines instead of truncating with an ellipsis. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Chart scroll body — both axes; drives axis + group-column sync. */
+.chartScroll {
+  flex: 1 1 auto;
+  overflow: scroll;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+
+.chartScroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* Inner sized to full content height so the scrollbar reflects all rows. */
+.canvas {
+  position: relative;
+}
+
+/* Whitespace is draggable to pan ONLY when the content overflows the viewport
+   (otherwise there's nowhere to pan). Bars/handles set their own cursors. */
+.canvasPannable {
+  cursor: grab;
+}
+
+.canvasPannable:active {
+  cursor: grabbing;
+}
+
+/* Weekend column shading (Sat + Sun), behind gridlines and rows. */
+.weekend {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background-color: var(--ant-color-fill-quaternary);
+  pointer-events: none;
+}
+
+/* Vertical gridlines aligned with axis ticks, behind everything. */
+.gridline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px solid var(--ant-color-split);
+  pointer-events: none;
+}
+
+/* Current-time indicator. */
+.nowLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px solid var(--ant-color-error);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* ── Rows & groups ─────────────────────────────────────────────────────── */
+.row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-bottom: 1px solid var(--ant-color-split);
+}
+
+.rowAlt {
+  background-color: var(--ant-color-fill-quaternary);
+}
+
+/* ── Backgrounds (behind items) ────────────────────────────────────────── */
+.background {
+  position: absolute;
+  z-index: 1;
+  pointer-events: auto;
+  /* Solid, readable block (matches the legacy timebox look) — not a faint wash. */
+  background-color: var(--ant-color-fill-secondary);
+  border: 1px solid var(--ant-color-border);
+  border-radius: var(--ant-border-radius);
+  overflow: hidden;
+}
+
+.backgroundLabel {
+  display: block;
+  padding: 2px var(--ant-padding-xs);
+  font-size: var(--ant-font-size-sm);
+  line-height: var(--ant-line-height, 1.5);
+  color: var(--ant-color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Item bars ─────────────────────────────────────────────────────────── */
+.bar {
+  position: absolute;
+  z-index: 2;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  border-radius: var(--ant-border-radius);
+  padding: 0 var(--ant-padding-xs);
+  overflow: hidden;
+  white-space: nowrap;
+  background-color: var(--ant-color-primary);
+  color: var(--ant-color-white);
+  font-size: var(--ant-font-size-sm);
+  cursor: default;
+}
+
+/* A one-day range: too narrow to be a useful bar, rendered as a circle (an easy
+   click target) with its label beside it. Distinct from the milestone diamond and
+   the multi-day rectangular bar. Reverts to a normal bar automatically when a
+   resize drag extends it past one day (the shape is duration-driven). */
+.barOneDay {
+  border-radius: 50%;
+  padding: 0;
+}
+
+.barLabel {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Label rendered beside a one-day bar (too narrow to hold text inside). Uses the
+   chart's normal text color and sits outside the bar's clipped box. */
+.barLabelOutside {
+  position: absolute;
+  z-index: 2;
+  white-space: nowrap;
+  color: var(--ant-color-text);
+  pointer-events: auto;
+  cursor: default;
+}
+
+.barSelected {
+  outline: 2px solid var(--ant-color-primary-border-hover);
+  outline-offset: 1px;
+}
+
+.barEditable {
+  cursor: grab;
+}
+
+.barEditable:active {
+  cursor: grabbing;
+}
+
+/* Progress fill drawn behind the label, within the bar. */
+.progressFill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 0;
+  background-color: var(--ant-color-primary-active);
+  border-radius: var(--ant-border-radius) 0 0 var(--ant-border-radius);
+}
+
+/* Start/end resize handles — hidden until the bar is hovered. */
+.handle {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--ant-color-bg-container);
+  border: 2px solid var(--ant-color-primary);
+  transform: translateY(-50%);
+  opacity: 0;
+  cursor: ew-resize;
+  z-index: 3;
+  transition: opacity 0.1s ease;
+}
+
+.bar:hover .handle,
+.bar:focus-within .handle {
+  opacity: 1;
+}
+
+.handleStart {
+  left: -5px;
+}
+
+.handleEnd {
+  right: -5px;
+}
+
+/* Progress drag handle — small marker at the progress boundary. */
+.progressHandle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  margin-left: -3px;
+  z-index: 3;
+  cursor: ew-resize;
+  opacity: 0;
+  background-color: var(--ant-color-text-light-solid, #fff);
+  transition: opacity 0.1s ease;
+}
+
+.bar:hover .progressHandle {
+  opacity: 0.8;
+}
+
+/* Milestone diamond, centered on its date. */
+.milestone {
+  position: absolute;
+  z-index: 2;
+  background-color: var(--ant-color-warning);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+/* One shared tooltip for timeline bars, milestones, and timeboxes. Kept inside
+   the canvas so virtualization and horizontal scrolling stay simple. */
+.tooltip {
+  position: absolute;
+  z-index: 5;
+  max-width: 280px;
+  padding: var(--ant-padding-xxs) var(--ant-padding-xs);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius);
+  background-color: var(--ant-color-bg-elevated);
+  color: var(--ant-color-text);
+  box-shadow: var(--ant-box-shadow-secondary);
+  font-size: var(--ant-font-size-sm);
+  line-height: var(--ant-line-height, 1.5);
+  white-space: pre-line;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.tooltipVisible {
+  opacity: 1;
+}
+
+/* ── Empty / loading ───────────────────────────────────────────────────── */
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ant-padding-lg);
+  color: var(--ant-color-text-secondary);
+}
+
+/* ── Footer ────────────────────────────────────────────────────────────── */
+.footer {
+  flex: 0 0 auto;
+}

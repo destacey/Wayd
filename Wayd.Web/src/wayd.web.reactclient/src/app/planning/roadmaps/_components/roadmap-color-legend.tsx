@@ -1,7 +1,7 @@
 'use client'
 
 import { RoadmapColorDto } from '@/src/services/wayd-api'
-import { contrastText } from '@/src/components/common/timeline2/core/color'
+import { contrastText } from '@/src/components/common/timeline/core/color'
 import { Space, Tag, Typography, theme } from 'antd'
 
 const { Text } = Typography
@@ -30,7 +30,7 @@ const RoadmapColorLegend = ({ colors }: RoadmapColorLegendProps) => {
       style={{ padding: `${token.paddingSM}px ${token.padding}px` }}
     >
       <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-        Legend:
+        Color Legend:
       </Text>
       {ordered.map((color) => (
         // antd's `color` prop tints custom hex values rather than filling them,

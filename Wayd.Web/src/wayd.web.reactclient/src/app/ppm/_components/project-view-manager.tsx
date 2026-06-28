@@ -9,18 +9,12 @@ import { Segmented, Spin } from 'antd'
 import { memo, useState } from 'react'
 import { ProjectListDto } from '@/src/services/wayd-api'
 import dynamic from 'next/dynamic'
-import { useFeatureFlag } from '@/src/hooks'
 import { useMessage } from '@/src/components/contexts/messaging'
 import ProjectsGrid from './projects-grid'
 import ProjectsCardView from './projects-card-view'
 import ProjectDrawer from './project-drawer'
 
-const LegacyTimeline = dynamic(() => import('./projects-timeline'), {
-  ssr: false,
-  loading: () => <Spin />,
-})
-
-const TimelineV2 = dynamic(() => import('./projects-timeline-v2'), {
+const Timeline = dynamic(() => import('./projects-timeline'), {
   ssr: false,
   loading: () => <Spin />,
 })
@@ -61,8 +55,6 @@ const ProjectViewManager = (props: ProjectViewManagerProps) => {
   )
   const [drawerOpen, setDrawerOpen] = useState(false)
 
-  const { isEnabled: useNewTimeline, isLoading: isFlagLoading } =
-    useFeatureFlag('new-timeline-ui')
   const messageApi = useMessage()
 
   const refreshWithFeedback = async () => {
@@ -104,8 +96,8 @@ const ProjectViewManager = (props: ProjectViewManagerProps) => {
           viewSelector={viewSelector}
         />
       )}
-      {currentView === 'Timeline' && (isFlagLoading || useNewTimeline ? (
-        <TimelineV2
+      {currentView === 'Timeline' && (
+        <Timeline
           projects={props.projects}
           isLoading={props.isLoading}
           refetch={props.refetch}
@@ -113,15 +105,7 @@ const ProjectViewManager = (props: ProjectViewManagerProps) => {
           groupByProgram={props.groupByProgram}
           onRefresh={refreshWithFeedback}
         />
-      ) : (
-        <LegacyTimeline
-          projects={props.projects}
-          isLoading={props.isLoading}
-          refetch={props.refetch}
-          viewSelector={viewSelector}
-          groupByProgram={props.groupByProgram}
-        />
-      ))}
+      )}
       {selectedProjectKey && (
         <ProjectDrawer
           projectKey={selectedProjectKey}

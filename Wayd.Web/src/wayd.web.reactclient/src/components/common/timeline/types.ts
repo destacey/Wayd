@@ -1,66 +1,123 @@
-import { FC } from 'react'
-import {
-  DataItemEnhanced,
-  DataGroup,
+// timeline/types.ts
+// Public, React-facing types for WaydTimeline (distinct from core/types.ts,
+// which is the pure-math domain model).
+
+import type { FC, ReactNode } from 'react'
+import type {
+  TimelineGroup,
   TimelineItem,
-} from 'vis-timeline/standalone'
-import { TimelineOptionsTemplateFunction } from '@/src/lib/vis-timeline'
+  TimelineVariant,
+} from './core/types'
 
-export type WaydDataItem<T = unknown, G = unknown> = DataItemEnhanced<G> & {
-  itemColor?: string
-  objectData?: T
+export type { TimelineItem, TimelineGroup, TimelineVariant } from './core/types'
+
+/** Props passed to a consumer's custom bar renderer. */
+export interface ItemRenderProps<T = unknown> {
+  item: TimelineItem<T>
+  /** Resolved foreground color for text on the bar (contrast-aware). */
+  fontColor: string
+  /** Resolved background color for the bar. */
+  backgroundColor: string
+  selected: boolean
 }
 
-export type WaydDataGroup<T = unknown> = DataGroup & {
-  treeLevel?: number // undocumented property, that is used for styling
-  objectData?: T
+/** Props passed to a consumer's custom group-label renderer. */
+export interface GroupRenderProps<T = unknown> {
+  group: TimelineGroup<T>
+  depth: number
+  collapsed: boolean
 }
 
-export type WaydTimelineOptions<T> = {
-  maxHeight?: number
-  minHeight?: number
-  showCurrentTime?: boolean
+/** A date-range change emitted by move or endpoint-resize. */
+export interface ItemDateChange {
+  id: string
+  start: number
+  end: number
+}
+
+/** A progress change emitted by the progress handle. */
+export interface ItemProgressChange {
+  id: string
+  progress: number
+}
+
+export interface WaydTimelineProps<TItem = unknown, TGroup = unknown> {
+  variant?: TimelineVariant
+  items: TimelineItem<TItem>[]
+  groups?: TimelineGroup<TGroup>[]
+
+  /**
+   * Default visible window on load, epoch ms — the initial view the user sees.
+   * If this window extends outside [minDate, maxDate], the timeline defensively
+   * expands the domain boundaries to ensure the window remains fully visible.
+   */
+  windowStart: number
+  windowEnd: number
+  /**
+   * Hard bounds for the rendered time domain AND pan/zoom limits, epoch ms.
+   * Items are clamped to this range (anything past it is clipped at the edge),
+   * and the user cannot pan/zoom outside it. Defaults to windowStart/windowEnd
+   * when omitted. Note that the timeline will defensively expand these bounds
+   * if they do not contain the initial view window.
+   */
+  minDate?: number
+  maxDate?: number
+
+  /** Sizing. */
+  height?: number
+  laneHeight?: number
+  /** Default width of the left group-label column (only shown when groups exist).
+   *  When `storageKey` is set, the user's resized width is persisted and overrides
+   *  this default on subsequent loads. */
   groupColumnWidth?: number
-  start: Date
-  end: Date
-  min: Date
-  max: Date
-  groupOrder?: string
-  template?: TimelineOptionsTemplateFunction<T>
-}
+  /**
+   * Stable key identifying this timeline instance (e.g. a roadmap id). When set,
+   * per-instance UI preferences (group-column width) are persisted to
+   * localStorage under this key and restored on the next load.
+   */
+  storageKey?: string
+  /** Initial drill-through level (1 = flat, no groups; 2 = top tier as groups).
+   *  Default 2. */
+  defaultDrillLevel?: number
 
-export type WaydTimelineProps<
-  TItem extends WaydDataItem,
-  TGroup extends WaydDataGroup,
-> = {
-  data: TItem[]
-  groups?: TGroup[]
-  isLoading: boolean
-  options: WaydTimelineOptions<TItem>
-  rangeItemTemplate?: TimelineTemplate<TItem>
-  groupTemplate?: TimelineTemplate<TGroup>
-  emptyMessage?: string
+  /** Default for the current-time indicator. When `allowToggleCurrentTime` is on,
+   *  this is the initial value of the user-togglable setting. Default true. */
+  showCurrentTime?: boolean
+  /** Show a settings menu with a "Show Current Time" toggle. Default true. */
+  allowToggleCurrentTime?: boolean
+
+  /** Toolbar chrome. */
   allowFullScreen?: boolean
   allowSaveAsImage?: boolean
-  onMove?: (item: TimelineItem) => void
-}
+  /** Time-axis zoom controls (Ctrl/Cmd+wheel + toolbar +/- and Reset View).
+   *  Default true. */
+  allowZoom?: boolean
+  /** Base filename (without extension) for save-as-image. */
+  saveImageFileName?: string
+  /**
+   * Optional content (e.g. a color legend) rendered inside the timeline wrapper,
+   * below the chart — like the toolbar slots, but at the bottom. Because it lives
+   * inside the wrapper it stays visible in full-screen and is included in
+   * save-as-image (stitched beneath the chart).
+   */
+  footerSlot?: ReactNode
+  /** Toolbar slots — left for controls (e.g. future drill +/-), right for extra actions. */
+  toolbarLeftSlot?: ReactNode
+  toolbarRightSlot?: ReactNode
+  /** Refresh action — shows a Reload toolbar button (like WaydGrid) when provided. */
+  onRefresh?: () => void
 
-export type GroupTemplateProps<T extends WaydDataGroup> = {
-  item: T
-  fontColor: string
-  foregroundColor?: string
-  parentElement?: HTMLElement
-}
+  /** Custom renderers. */
+  itemRenderer?: FC<ItemRenderProps<TItem>>
+  groupRenderer?: FC<GroupRenderProps<TGroup>>
 
-export type ItemTemplateProps<T extends WaydDataItem> = {
-  item: T
-  fontColor: string
-  foregroundColor?: string
-}
+  /** Interaction (omit to disable). */
+  editable?: boolean
+  onItemDateChange?: (change: ItemDateChange) => void
+  onItemProgressChange?: (change: ItemProgressChange) => void
+  onItemClick?: (item: TimelineItem<TItem>) => void
 
-export type TimelineTemplate<T extends WaydDataItem | WaydDataGroup> =
-  T extends WaydDataItem
-    ? FC<ItemTemplateProps<T>>
-    : T extends WaydDataGroup
-      ? FC<GroupTemplateProps<T>>
-      : never
+  /** States. */
+  isLoading?: boolean
+  emptyMessage?: string
+}

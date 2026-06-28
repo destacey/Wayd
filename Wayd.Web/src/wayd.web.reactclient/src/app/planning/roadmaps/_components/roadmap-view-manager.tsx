@@ -6,18 +6,10 @@ import Segmented, { SegmentedLabeledOption } from 'antd/es/segmented'
 import { memo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { Spin } from 'antd'
-import { useFeatureFlag } from '@/src/hooks'
 import { useMessage } from '@/src/components/contexts/messaging'
 import RoadmapItemsGrid from './roadmap-items-grid'
 
-// Legacy (vis-timeline) and new (in-house WaydTimeline2) roadmap timelines.
-// Which one renders is gated by the "new-timeline-ui" feature flag below.
-const RoadmapsTimeline = dynamic(() => import('./roadmaps-timeline'), {
-  ssr: false,
-  loading: () => <Spin />,
-})
-
-const RoadmapTimelineV2 = dynamic(() => import('./roadmap-timeline-v2'), {
+const RoadmapTimeline = dynamic(() => import('./roadmap-timeline'), {
   ssr: false,
   loading: () => <Spin />,
 })
@@ -35,10 +27,6 @@ const RoadmapViewManager = (props: RoadmapViewManagerProps) => {
   const [currentView, setCurrentView] = useState<string | number>('Timeline')
 
   const messageApi = useMessage()
-  // Default-on flag (see FeatureFlags.cs). While flags load we keep the new UI
-  // to avoid a flash of the legacy timeline on the happy path.
-  const { isEnabled: useNewTimeline, isLoading: isFlagLoading } =
-    useFeatureFlag('new-timeline-ui')
 
   const viewSelectorOptions: SegmentedLabeledOption[] = [
     {
@@ -70,28 +58,17 @@ const RoadmapViewManager = (props: RoadmapViewManagerProps) => {
 
   return (
     <>
-      {currentView === 'Timeline' &&
-        (isFlagLoading || useNewTimeline ? (
-          <RoadmapTimelineV2
-            roadmap={props.roadmap}
-            roadmapItems={props.roadmapItems}
-            isRoadmapItemsLoading={props.isRoadmapItemsLoading}
-            refreshRoadmapItems={refreshTimelineWithFeedback}
-            viewSelector={viewSelector}
-            openRoadmapItemDrawer={props.openRoadmapItemDrawer}
-            isRoadmapManager={props.canUpdateRoadmap}
-          />
-        ) : (
-          <RoadmapsTimeline
-            roadmap={props.roadmap}
-            roadmapItems={props.roadmapItems}
-            isRoadmapItemsLoading={props.isRoadmapItemsLoading}
-            refreshRoadmapItems={props.refreshRoadmapItems}
-            viewSelector={viewSelector}
-            openRoadmapItemDrawer={props.openRoadmapItemDrawer}
-            isRoadmapManager={props.canUpdateRoadmap}
-          />
-        ))}
+      {currentView === 'Timeline' && (
+        <RoadmapTimeline
+          roadmap={props.roadmap}
+          roadmapItems={props.roadmapItems}
+          isRoadmapItemsLoading={props.isRoadmapItemsLoading}
+          refreshRoadmapItems={refreshTimelineWithFeedback}
+          viewSelector={viewSelector}
+          openRoadmapItemDrawer={props.openRoadmapItemDrawer}
+          isRoadmapManager={props.canUpdateRoadmap}
+        />
+      )}
       {currentView === 'List' && (
         <RoadmapItemsGrid
           roadmapItemsData={props.roadmapItems}

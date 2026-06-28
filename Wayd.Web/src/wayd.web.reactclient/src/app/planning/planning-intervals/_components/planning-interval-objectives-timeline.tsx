@@ -1,169 +1,177 @@
 'use client'
 
-import React, { FC } from 'react'
-import { Card, Flex, Typography } from 'antd'
+// planning-interval-objectives-timeline.tsx — adapter feeding PI objectives
+// data into WaydTimeline.
+//
+// iteration schedule -> kind 'background'  (scoped to a synthetic root band when
+//                                           groups are shown, so the label has headroom)
+// objective          -> kind 'range'        (one bar per objective, grouped by team)
+
+import { FC, ReactNode } from 'react'
 import dayjs from 'dayjs'
-import Link from 'next/link'
-import { DataGroup } from 'vis-timeline/standalone'
+import { useRouter } from 'next/navigation'
 import {
   PlanningIntervalCalendarDto,
   PlanningIntervalObjectiveListDto,
 } from '@/src/services/wayd-api'
-import {
-  ItemTemplateProps,
-  WaydDataGroup,
-  WaydDataItem,
-  WaydTimeline,
-  WaydTimelineOptions,
-  TimelineTemplate,
-} from '@/src/components/common/timeline'
+import { WaydTimeline } from '@/src/components/common/timeline'
+import type { TimelineItem, TimelineGroup } from '@/src/components/common/timeline'
 
-const { Text } = Typography
 
-interface PlanningIntervalObjectivesTimelineProps {
+const ms = (d: dayjs.ConfigType) => dayjs(d).valueOf()
+
+interface PiObjectivesPayload {
+  dto: PlanningIntervalObjectiveListDto
+}
+
+export interface PlanningIntervalObjectivesTimelineProps {
   objectivesData: PlanningIntervalObjectiveListDto[]
   planningIntervalCalendar: PlanningIntervalCalendarDto
   enableGroups?: boolean
   teamNames?: string[]
-  viewSelector?: React.ReactNode
+  viewSelector?: ReactNode
   onObjectiveClick?: (objectiveKey: number) => void
   onRefresh?: () => void
 }
 
-interface ObjectiveDataItem extends WaydDataItem<
-  PlanningIntervalObjectiveListDto,
-  string
-> {
-  planningIntervalKey?: number
-  zIndex?: number
-}
+function mapObjectives(
+  objectivesData: PlanningIntervalObjectiveListDto[],
+  planningIntervalCalendar: PlanningIntervalCalendarDto,
+  enableGroups: boolean,
+  teamNames: string[] | undefined,
+): {
+  items: TimelineItem<PiObjectivesPayload>[]
+  groups: TimelineGroup[]
+} {
+  // Synthetic root group id — hosts iteration backgrounds when team groups are
+  // shown, so the band label gets a dedicated headroom row above the team rows
+  // rather than floating over the first team's bars.
+  const ROOT_GROUP_ID = '__pi_root__'
 
-export const ObjectiveTimelineTemplate: TimelineTemplate<ObjectiveDataItem> = ({
-  item,
-  fontColor,
-  foregroundColor,
-}) => {
-  return (
-    <div
-      style={{
-        width: `${item.objectData?.progress}%`,
-        backgroundColor: foregroundColor,
-      }}
-    >
-      <Text style={{ padding: '5px', color: fontColor }}>
-        <Link
-          href={`/planning/planning-intervals/${item.objectData?.planningInterval?.key}/objectives/${item.objectData?.key}`}
-        >
-          {item.objectData?.key}
-        </Link>
-        <span> - </span> {item.objectData?.name}
-      </Text>
-    </div>
-  )
-}
-
-const getDataGroups = (
-  teamNames: string[],
-  objectives: ObjectiveDataItem[],
-): DataGroup[] => {
-  let groups: string[]
-  if (!teamNames || teamNames.length === 0) {
-    groups = objectives.reduce(
-      (acc, item) => {
-        if (!item.group) return acc
-
-        if (!acc.includes(item.group)) {
-          acc.push(item.group)
-        }
-
-        return acc
-      },
-      [] as NonNullable<ObjectiveDataItem['group']>[],
-    )
-  } else {
-    groups = teamNames
-  }
-
-  return groups.map(
-    (group): WaydDataGroup => ({
-      id: group,
-      content: group,
-    }),
-  )
-}
-
-const PlanningIntervalObjectivesTimeline = ({
-  objectivesData,
-  planningIntervalCalendar: planningIntervalCalendar,
-  enableGroups = false,
-  teamNames,
-  viewSelector,
-}: PlanningIntervalObjectivesTimelineProps) => {
-  const timelineOptions: WaydTimelineOptions<ObjectiveDataItem> = {
-    maxHeight: 650,
-    start: planningIntervalCalendar?.start ?? dayjs().toDate(),
-    end: planningIntervalCalendar?.end ?? dayjs().toDate(),
-    min: planningIntervalCalendar?.start ?? dayjs().toDate(),
-    max: planningIntervalCalendar?.end ?? dayjs().toDate(),
-    groupOrder: 'content',
-  }
-
-  const iterations: ObjectiveDataItem[] =
-    planningIntervalCalendar?.iterationSchedules?.map(
-      (i): ObjectiveDataItem => ({
-        id: String(i.key),
-        planningIntervalKey: planningIntervalCalendar?.key,
-        title: i.name,
-        content: i.name ?? '',
-        start: dayjs(i.start).toDate(),
-        end: dayjs(i.end).add(1, 'day').subtract(1, 'second').toDate(),
-        type: 'background',
+  // Background items: one per iteration schedule. When groups are shown they are
+  // scoped to the root band; otherwise chart-wide (no groupId).
+  const backgrounds: TimelineItem<PiObjectivesPayload>[] =
+    planningIntervalCalendar.iterationSchedules?.map(
+      (iter): TimelineItem<PiObjectivesPayload> => ({
+        id: `iter-${iter.key}`,
+        kind: 'background',
+        label: iter.name ?? '',
+        // Iteration end is inclusive in the DTO; add 1 day minus 1 second to
+        // match the legacy component's rendering (fills to end of that day).
+        start: ms(iter.start),
+        end: ms(dayjs(iter.end as unknown as string).add(1, 'day').subtract(1, 'second')),
+        groupId: enableGroups ? ROOT_GROUP_ID : undefined,
       }),
     ) ?? []
 
-  const objectives: ObjectiveDataItem[] = (objectivesData ?? [])
-    .filter((obj) => obj.status?.name !== 'Canceled')
-    .map(
-      (obj): ObjectiveDataItem => ({
-        id: String(obj.key),
-        title: `${obj.name} (${obj.status?.name}) - ${obj.progress}%`,
-        content: obj.name ?? '',
-        start: dayjs(obj.startDate ?? planningIntervalCalendar?.start).toDate(),
-        end: dayjs(obj.targetDate ?? planningIntervalCalendar?.end).toDate(),
-        group: obj.team?.name,
-        type: 'range',
-        zIndex: 1,
-        objectData: obj,
-      }),
-    )
+  const active = (objectivesData ?? []).filter(
+    (obj) => obj.status?.name !== 'Canceled',
+  )
 
-  const combinedItems = [...iterations, ...objectives]
-  const derivedIsLoading = !(planningIntervalCalendar && objectivesData)
+  // Determine group list: either from teamNames prop or derived from objectives.
+  let groupIds: string[]
+  if (enableGroups) {
+    if (teamNames && teamNames.length > 0) {
+      groupIds = [...teamNames].sort((a, b) => a.localeCompare(b))
+    } else {
+      groupIds = active
+        .reduce<string[]>((acc, obj) => {
+          const name = obj.team?.name
+          if (name && !acc.includes(name)) acc.push(name)
+          return acc
+        }, [])
+        .sort((a, b) => a.localeCompare(b))
+    }
+  } else {
+    groupIds = []
+  }
 
-  // Hooks must run unconditionally; perform an early return after hooks
+  const teamGroups: TimelineGroup[] = groupIds.map((name, idx) => ({
+    id: name,
+    label: name,
+    order: idx,
+  }))
+
+  // Prepend a blank root band when there are iteration backgrounds to host —
+  // this gives the band labels headroom above the team rows.
+  const groups: TimelineGroup[] =
+    enableGroups && backgrounds.length > 0
+      ? [{ id: ROOT_GROUP_ID, label: '', order: -Infinity }, ...teamGroups]
+      : teamGroups
+
+  const bars: TimelineItem<PiObjectivesPayload>[] = active.map(
+    (obj, idx): TimelineItem<PiObjectivesPayload> => ({
+      id: String(obj.key),
+      kind: 'range',
+      label: `${obj.key} - ${obj.name ?? ''}`,
+      start: ms(obj.startDate ?? planningIntervalCalendar.start),
+      end: ms(obj.targetDate ?? planningIntervalCalendar.end),
+      groupId: enableGroups ? (obj.team?.name ?? undefined) : undefined,
+      order: obj.order ?? idx,
+      progress: obj.progress,
+      data: { dto: obj },
+    }),
+  )
+
+  return { items: [...backgrounds, ...bars], groups }
+}
+
+const PlanningIntervalObjectivesTimeline: FC<
+  PlanningIntervalObjectivesTimelineProps
+> = ({
+  objectivesData,
+  planningIntervalCalendar,
+  enableGroups = false,
+  teamNames,
+  viewSelector,
+  onObjectiveClick,
+  onRefresh,
+}) => {
+  const router = useRouter()
+
   if (!planningIntervalCalendar) return null
 
+  const { items, groups } = mapObjectives(
+    objectivesData,
+    planningIntervalCalendar,
+    enableGroups,
+    teamNames,
+  )
+
+  const windowStart = ms(planningIntervalCalendar.start)
+  const windowEnd = ms(planningIntervalCalendar.end)
+  const piKey = planningIntervalCalendar.key
+
   return (
-    <>
-      {viewSelector && (
-        <Flex justify="end" align="center" style={{ paddingBottom: '16px' }}>
-          {viewSelector}
-        </Flex>
-      )}
-      <Card size="small" variant="borderless">
-        <WaydTimeline
-          data={combinedItems}
-          groups={
-            enableGroups
-              ? getDataGroups(teamNames ?? [], objectives)
-              : undefined
-          }
-          isLoading={derivedIsLoading}
-          options={timelineOptions as WaydTimelineOptions<WaydDataItem>}
-          rangeItemTemplate={ObjectiveTimelineTemplate as FC<ItemTemplateProps<WaydDataItem>>}
-        />
-      </Card>
-    </>
+    <WaydTimeline<PiObjectivesPayload>
+      variant="timeline"
+      items={items}
+      groups={groups.length > 0 ? groups : undefined}
+      windowStart={windowStart}
+      windowEnd={windowEnd}
+      minDate={windowStart}
+      maxDate={windowEnd}
+      storageKey={`pi-objectives-${piKey}`}
+      height={650}
+      // Read-only: no drag/resize/progress editing.
+      editable={false}
+      allowFullScreen
+      allowSaveAsImage
+      saveImageFileName={`PI ${planningIntervalCalendar.name} Objectives`}
+      onRefresh={onRefresh}
+      toolbarRightSlot={viewSelector}
+      onItemClick={(item) => {
+        if (!item.data) return
+        const { dto } = item.data
+        if (onObjectiveClick) {
+          onObjectiveClick(dto.key)
+        } else {
+          router.push(
+            `/planning/planning-intervals/${dto.planningInterval?.key}/objectives/${dto.key}`,
+          )
+        }
+      }}
+    />
   )
 }
 

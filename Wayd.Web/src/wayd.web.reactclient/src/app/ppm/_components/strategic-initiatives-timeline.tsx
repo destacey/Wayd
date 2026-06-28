@@ -1,23 +1,19 @@
 'use client'
 
-import { ControlItemsMenu } from '@/src/components/common/control-items-menu'
-import {
-  ItemTemplateProps,
-  WaydDataItem,
-  WaydTimeline,
-  WaydTimelineOptions,
-  TimelineTemplate,
-} from '@/src/components/common/timeline'
-import { StrategicInitiativeListDto } from '@/src/services/wayd-api'
-import { Card, Divider, Flex, Space, Switch, theme, Typography } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
-import dayjs from 'dayjs'
 import { FC, ReactNode, useState } from 'react'
+import dayjs from 'dayjs'
+import { theme } from 'antd'
+import { StrategicInitiativeListDto } from '@/src/services/wayd-api'
+import { WaydTimeline } from '@/src/components/common/timeline'
+import type { TimelineItem } from '@/src/components/common/timeline'
+import { getLifecyclePhaseColorFromStatus } from '@/src/utils'
 import { StrategicInitiativeDrawer } from '.'
-import { getLifecyclePhaseColorFromStatus, getLuminance } from '@/src/utils'
 
-const { Text } = Typography
-const { useToken } = theme
+const ms = (d: dayjs.ConfigType) => dayjs(d).valueOf()
+
+interface StrategicInitiativePayload {
+  dto: StrategicInitiativeListDto
+}
 
 export interface StrategicInitiativesTimelineProps {
   strategicInitiatives: StrategicInitiativeListDto[]
@@ -27,158 +23,95 @@ export interface StrategicInitiativesTimelineProps {
   onRefresh?: () => void
 }
 
-interface StrategicInitiativeTimelineItem extends WaydDataItem<
-  StrategicInitiativeListDto,
-  string
-> {
-  id: string
-  openStrategicInitiativeDrawer: (strategicInitiativeKey: number) => void
-}
+function mapStrategicInitiatives(
+  initiatives: StrategicInitiativeListDto[],
+  token: ReturnType<typeof theme.useToken>['token'],
+): {
+  items: TimelineItem<StrategicInitiativePayload>[]
+  windowStart: number
+  windowEnd: number
+  minDate: number
+  maxDate: number
+} {
+  const dated = initiatives.filter((i) => i.start && i.end)
 
-export const StrategicInitiativeRangeItemTemplate: TimelineTemplate<
-  StrategicInitiativeTimelineItem
-> = ({ item, fontColor, foregroundColor }) => {
-  const adjustedfontColor =
-    getLuminance(item.itemColor ?? '') > 0.6 ? '#4d4d4d' : '#FFFFFF'
+  let minMs = dated.length > 0 ? ms(dated[0].start!) : dayjs().valueOf()
+  let maxMs = dated.length > 0 ? ms(dated[0].end!) : dayjs().valueOf()
 
-  return (
-    <Text style={{ padding: '5px' }}>
-      <a
-        onClick={() => item.openStrategicInitiativeDrawer(item.objectData!.key)}
-        style={{ color: adjustedfontColor, textDecoration: 'none' }}
-        onMouseOver={(e) =>
-          (e.currentTarget.style.textDecoration = 'underline')
-        }
-        onMouseOut={(e) => (e.currentTarget.style.textDecoration = 'none')}
-      >
-        {item.content}
-      </a>
-    </Text>
+  const items: TimelineItem<StrategicInitiativePayload>[] = dated.map(
+    (i, idx) => {
+      const start = ms(i.start!)
+      const end = ms(i.end!)
+      if (start < minMs) minMs = start
+      if (end > maxMs) maxMs = end
+      return {
+        id: String(i.id),
+        kind: 'range',
+        label: i.name ?? '',
+        color: getLifecyclePhaseColorFromStatus(i.status, token),
+        start,
+        end,
+        order: idx,
+        data: { dto: i },
+      }
+    },
   )
+
+  const windowStart = dayjs().subtract(6, 'months').valueOf()
+  const windowEnd = dayjs().add(6, 'months').valueOf()
+  const minDate = dayjs(minMs).subtract(1, 'month').valueOf()
+  const maxDate = dayjs(maxMs).add(1, 'month').valueOf()
+
+  return { items, windowStart, windowEnd, minDate, maxDate }
 }
 
-const StrategicInitiativesTimeline: FC<StrategicInitiativesTimelineProps> = (
-  props,
-) => {
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [selectedItemKey, setSelectedItemKey] = useState<number | null>(null)
-  const [showCurrentTime, setShowCurrentTime] = useState<boolean>(true)
-  const { token } = useToken()
+const StrategicInitiativesTimeline: FC<StrategicInitiativesTimelineProps> =
+  ({ strategicInitiatives, isLoading, viewSelector, onRefresh }) => {
+    const [drawerOpen, setDrawerOpen] = useState(false)
+    const [selectedKey, setSelectedKey] = useState<number | null>(null)
+    const { token } = theme.useToken()
 
-  const showDrawer = () => {
-    setDrawerOpen(true)
-  }
+    const { items, windowStart, windowEnd, minDate, maxDate } = mapStrategicInitiatives(
+      isLoading ? [] : strategicInitiatives,
+      token,
+    )
 
-  const onDrawerClose = () => {
-    setDrawerOpen(false)
-    setSelectedItemKey(null)
-  }
-
-  const openStrategicInitiativeDrawer = (strategicInitiativeKey: number) => {
-    setSelectedItemKey(strategicInitiativeKey)
-    showDrawer()
-  }
-
-  const processedStrategicInitiatives: StrategicInitiativeTimelineItem[] =
-    props.isLoading || !props.strategicInitiatives
-      ? []
-      : props.strategicInitiatives
-          .filter((initiative) => initiative.start && initiative.end)
-          .map((initiative) => ({
-            id: String(initiative.id),
-            title: initiative.name,
-            content: initiative.name,
-            itemColor: getLifecyclePhaseColorFromStatus(
-              initiative.status,
-              token,
-            ),
-            objectData: initiative,
-            type: 'range',
-            start: new Date(initiative.start!),
-            end: new Date(initiative.end!),
-            openStrategicInitiativeDrawer: openStrategicInitiativeDrawer,
-          }))
-
-  const timelineWindow = (() => {
-    let minDate = dayjs()
-    let maxDate = dayjs()
-
-    processedStrategicInitiatives.forEach((initiative) => {
-      if (initiative.start && dayjs(initiative.start).isBefore(minDate)) {
-        minDate = dayjs(initiative.start)
-      }
-      if (initiative.end && dayjs(initiative.end).isAfter(maxDate)) {
-        maxDate = dayjs(initiative.end)
-      }
-    })
-
-    minDate = minDate.subtract(14, 'days')
-    maxDate = maxDate.add(1, 'month')
-
-    return { start: minDate.toDate(), end: maxDate.toDate() }
-  })()
-
-  const timelineOptions: WaydTimelineOptions<StrategicInitiativeTimelineItem> =
-    {
-      showCurrentTime: showCurrentTime,
-      maxHeight: 650,
-      start: timelineWindow.start,
-      end: timelineWindow.end,
-      min: timelineWindow.start,
-      max: timelineWindow.end,
-    }
-
-  const onShowCurrentTimeChange = (checked: boolean) => {
-    setShowCurrentTime(checked)
-  }
-
-  const controlItems = (): ItemType[] => {
-    const items: ItemType[] = []
-
-    items.push({
-      label: (
-        <Space>
-          <Switch
-            size="small"
-            checked={showCurrentTime}
-            onChange={onShowCurrentTimeChange}
+    return (
+      <>
+        <WaydTimeline<StrategicInitiativePayload>
+          variant="timeline"
+          items={items}
+          windowStart={windowStart}
+          windowEnd={windowEnd}
+          minDate={minDate}
+          maxDate={maxDate}
+          storageKey="ppm-strategic-initiatives"
+          height={650}
+          editable={false}
+          isLoading={isLoading}
+          allowFullScreen
+          allowSaveAsImage
+          saveImageFileName="Strategic Initiatives Timeline"
+          onRefresh={onRefresh}
+          toolbarRightSlot={viewSelector}
+          onItemClick={(item) => {
+            if (!item.data) return
+            setSelectedKey(item.data.dto.key)
+            setDrawerOpen(true)
+          }}
+        />
+        {selectedKey !== null && (
+          <StrategicInitiativeDrawer
+            strategicInitiativeKey={selectedKey}
+            drawerOpen={drawerOpen}
+            onDrawerClose={() => {
+              setDrawerOpen(false)
+              setSelectedKey(null)
+            }}
           />
-          Show Current Time
-        </Space>
-      ),
-      key: 'show-current-time',
-      onClick: () => setShowCurrentTime(!showCurrentTime),
-    })
-
-    return items
+        )}
+      </>
+    )
   }
-
-  return (
-    <>
-      <Flex justify="end" align="center">
-        <ControlItemsMenu items={controlItems()} />
-        <Divider vertical style={{ height: '30px' }} />
-        {props.viewSelector}
-      </Flex>
-      <Card size="small" variant="borderless">
-        <WaydTimeline
-          data={processedStrategicInitiatives}
-          isLoading={props.isLoading}
-          options={timelineOptions as WaydTimelineOptions<WaydDataItem>}
-          rangeItemTemplate={StrategicInitiativeRangeItemTemplate as FC<ItemTemplateProps<WaydDataItem>>}
-          allowFullScreen={true}
-          allowSaveAsImage={true}
-        />
-      </Card>
-      {selectedItemKey && (
-        <StrategicInitiativeDrawer
-          strategicInitiativeKey={selectedItemKey}
-          drawerOpen={drawerOpen}
-          onDrawerClose={onDrawerClose}
-        />
-      )}
-    </>
-  )
-}
 
 export default StrategicInitiativesTimeline

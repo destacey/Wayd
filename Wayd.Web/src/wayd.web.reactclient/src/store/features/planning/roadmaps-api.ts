@@ -74,8 +74,8 @@ function applyOptimisticDates(
 
 // The DTO fields are typed as `Date` but at runtime hold ISO strings. The
 // request may carry either a real Date (rare) or a YYYY-MM-DD string cast to
-// Date by the timeline consumer. Normalize to a string that vis-timeline /
-// dayjs can parse, and cast back to `Date` to satisfy the DTO type.
+// Date by the timeline consumer. Normalize to a string dayjs can parse, and
+// cast back to `Date` to satisfy the DTO type.
 function toIsoDateString(value: Date | string): Date {
   if (typeof value === 'string') return value as unknown as Date
   if (value instanceof Date)

@@ -332,8 +332,8 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
       : { items, groups: groups ?? [] }
 
   // ── Horizontal time geometry (domain + zoom) ──────────────────────────────
-  // The render domain is the HARD BOUNDS [minDate, maxDate] (vis-timeline's
-  // min/max), defaulting to the view window. This is also the pan/zoom limit, so
+  // The render domain is the HARD BOUNDS [minDate, maxDate], defaulting to the
+  // view window. This is also the pan/zoom limit, so
   // the axis matches the consumer's bounds exactly (e.g. the roadmap dates).
   // Items extending past the bounds are clipped at the canvas edge; we do NOT
   // widen the domain to fit them.

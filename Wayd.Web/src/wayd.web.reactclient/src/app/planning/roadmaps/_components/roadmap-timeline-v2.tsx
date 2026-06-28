@@ -1,10 +1,8 @@
 'use client'
 
-// roadmap-timeline-v2.tsx — adapter that feeds roadmap data into the new
-// in-house WaydTimeline2 component. Rendered in place of the legacy vis-timeline
-// (roadmaps-timeline.tsx) when the "new-timeline-ui" feature flag is enabled;
-// RoadmapViewManager picks between the two. Maps the roadmap item tree to the
-// component's TimelineItem/TimelineGroup shape (epoch-ms bounds).
+// roadmap-timeline-v2.tsx — adapter that feeds roadmap data into WaydTimeline2.
+// Maps the roadmap item tree to the component's TimelineItem/TimelineGroup shape
+// (epoch-ms bounds).
 //
 // activity  -> kind 'range'      (and a GROUP, so its children can nest)
 // milestone -> kind 'milestone'

@@ -44,7 +44,7 @@ export function clampZoom(zoom: number, bounds: ZoomBounds): number {
 
 /**
  * Largest allowed zoom factor so the viewport still spans at least `zoomMinMs`
- * of time (vis-timeline's `zoomMin`, e.g. 1 day). Below the base factor (zoomed
+ * of time (e.g. 1 day). Below the base factor (zoomed
  * further out than the window) is never allowed, so the result is >= 1.
  *
  *   At factor f, chartWidth = baseWidth * f, pxPerMs = chartWidth / domainMs,

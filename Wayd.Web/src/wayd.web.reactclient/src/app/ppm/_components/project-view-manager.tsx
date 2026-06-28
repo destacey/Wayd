@@ -105,7 +105,7 @@ const ProjectViewManager = (props: ProjectViewManagerProps) => {
           groupByProgram={props.groupByProgram}
           onRefresh={refreshWithFeedback}
         />
-      ))}
+      )}
       {selectedProjectKey && (
         <ProjectDrawer
           projectKey={selectedProjectKey}

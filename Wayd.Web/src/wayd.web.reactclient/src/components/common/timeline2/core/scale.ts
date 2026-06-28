@@ -167,7 +167,7 @@ export function createTimeScale(
     tiers: () => {
       // Pick tier granularities by PIXEL DENSITY (how wide one day renders), not
       // the total domain span — so granularity gets FINER as the user zooms in
-      // (more px per day) and coarser as they zoom out, matching vis-timeline.
+      // (more px per day) and coarser as they zoom out.
       //  wide day  (zoomed in):  month over day   (every day number)
       //  mid       :             month over week
       //  narrow    (zoomed out): year over month

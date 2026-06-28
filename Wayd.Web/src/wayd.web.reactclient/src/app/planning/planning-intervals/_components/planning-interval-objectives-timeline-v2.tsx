@@ -1,9 +1,7 @@
 'use client'
 
 // planning-interval-objectives-timeline-v2.tsx — adapter feeding PI objectives
-// data into WaydTimeline2. Rendered in place of the legacy vis-timeline
-// (planning-interval-objectives-timeline.tsx) when the "new-timeline-ui" feature
-// flag is enabled; PlanningIntervalObjectivesViewManager picks between the two.
+// data into WaydTimeline2.
 //
 // iteration schedule -> kind 'background'  (scoped to a synthetic root band when
 //                                           groups are shown, so the label has headroom)

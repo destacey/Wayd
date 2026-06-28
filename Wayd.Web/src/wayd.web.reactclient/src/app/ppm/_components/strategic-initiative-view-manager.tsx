@@ -74,7 +74,7 @@ const StrategicInitiativeViewManager = (
           viewSelector={viewSelector}
           onRefresh={refreshWithFeedback}
         />
-      ))}
+      )}
     </>
   )
 }

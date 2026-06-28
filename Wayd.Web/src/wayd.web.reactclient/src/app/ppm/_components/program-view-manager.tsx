@@ -68,7 +68,7 @@ const ProgramViewManager = (props: ProgramViewManagerProps) => {
           viewSelector={viewSelector}
           onRefresh={refreshWithFeedback}
         />
-      ))}
+      )}
     </>
   )
 }

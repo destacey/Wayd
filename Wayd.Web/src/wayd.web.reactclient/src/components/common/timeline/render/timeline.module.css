@@ -433,3 +433,8 @@
   padding: var(--ant-padding-lg);
   color: var(--ant-color-text-secondary);
 }
+
+/* ── Footer ────────────────────────────────────────────────────────────── */
+.footer {
+  flex: 0 0 auto;
+}

@@ -244,30 +244,28 @@ const RoadmapTimeline: FC<RoadmapTimelineProps> = (props) => {
   }
 
   return (
-    <>
-      <WaydTimeline<RoadmapPayload>
-        variant="timeline"
-        items={items}
-        groups={groups}
-        windowStart={windowStart}
-        windowEnd={windowEnd}
-        minDate={minDate}
-        maxDate={maxDate}
-        storageKey={`roadmap-${props.roadmap.id}`}
-        onRefresh={props.refreshRoadmapItems}
-        height={650}
-        isLoading={props.isRoadmapItemsLoading || updatingId !== null}
-        editable={props.isRoadmapManager}
-        allowFullScreen
-        allowSaveAsImage
-        saveImageFileName={props.roadmap.name}
-        // The view selector (Timeline/List) renders inside the toolbar, like WaydGrid.
-        toolbarRightSlot={props.viewSelector}
-        onItemDateChange={onItemDateChange}
-        onItemClick={(item) => item.data?.openDrawer(item.id)}
-      />
-      <RoadmapColorLegend colors={props.roadmap.colors} />
-    </>
+    <WaydTimeline<RoadmapPayload>
+      variant="timeline"
+      items={items}
+      groups={groups}
+      windowStart={windowStart}
+      windowEnd={windowEnd}
+      minDate={minDate}
+      maxDate={maxDate}
+      storageKey={`roadmap-${props.roadmap.id}`}
+      onRefresh={props.refreshRoadmapItems}
+      height={650}
+      isLoading={props.isRoadmapItemsLoading || updatingId !== null}
+      editable={props.isRoadmapManager}
+      allowFullScreen
+      allowSaveAsImage
+      saveImageFileName={props.roadmap.name}
+      // The view selector (Timeline/List) renders inside the toolbar, like WaydGrid.
+      toolbarRightSlot={props.viewSelector}
+      onItemDateChange={onItemDateChange}
+      onItemClick={(item) => item.data?.openDrawer(item.id)}
+      footerSlot={<RoadmapColorLegend colors={props.roadmap.colors} />}
+    />
   )
 }
 

@@ -88,6 +88,7 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
     allowSaveAsImage = false,
     allowZoom = true,
     saveImageFileName = 'timeline',
+    footerSlot,
     toolbarLeftSlot,
     toolbarRightSlot,
     onRefresh,
@@ -140,6 +141,7 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
   // bordered chart container (save-as-image target, so the toolbar is excluded).
   const wrapperRef = useRef<HTMLDivElement>(null)
   const chartRootRef = useRef<HTMLDivElement>(null)
+  const footerRef = useRef<HTMLDivElement>(null)
   const [isFullScreen, setIsFullScreen] = useState(false)
 
   // User-togglable current-time line (settings menu); seeded from the prop.
@@ -254,6 +256,7 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
           backgroundColor: containerBg,
           captureHeight: fullHeight,
           groupPaneWidth,
+          footer: footerRef.current ?? undefined,
         }).finally(() => setIsCapturing(false))
       })
     })
@@ -852,6 +855,11 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
           rightPane
         )}
       </div>
+      {footerSlot && (
+        <div ref={footerRef} className={styles.footer}>
+          {footerSlot}
+        </div>
+      )}
     </div>
   )
 }

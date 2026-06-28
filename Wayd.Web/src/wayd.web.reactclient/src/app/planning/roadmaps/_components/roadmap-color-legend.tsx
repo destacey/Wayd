@@ -30,7 +30,7 @@ const RoadmapColorLegend = ({ colors }: RoadmapColorLegendProps) => {
       style={{ padding: `${token.paddingSM}px ${token.padding}px` }}
     >
       <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-        Legend:
+        Color Legend:
       </Text>
       {ordered.map((color) => (
         // antd's `color` prop tints custom hex values rather than filling them,

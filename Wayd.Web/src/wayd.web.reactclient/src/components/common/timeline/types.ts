@@ -92,6 +92,13 @@ export interface WaydTimelineProps<TItem = unknown, TGroup = unknown> {
   allowZoom?: boolean
   /** Base filename (without extension) for save-as-image. */
   saveImageFileName?: string
+  /**
+   * Optional content (e.g. a color legend) rendered inside the timeline wrapper,
+   * below the chart — like the toolbar slots, but at the bottom. Because it lives
+   * inside the wrapper it stays visible in full-screen and is included in
+   * save-as-image (stitched beneath the chart).
+   */
+  footerSlot?: ReactNode
   /** Toolbar slots — left for controls (e.g. future drill +/-), right for extra actions. */
   toolbarLeftSlot?: ReactNode
   toolbarRightSlot?: ReactNode

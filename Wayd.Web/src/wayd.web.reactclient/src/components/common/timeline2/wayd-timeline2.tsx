@@ -13,7 +13,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Spin, Splitter } from 'antd'
 import { captureTimeline } from './render/capture-timeline'
 import { createTimeScale } from './core/scale'
-import { clampZoom, maxZoom, anchoredScrollLeft, initialScrollLeft } from './core/zoom'
+import {
+  clampZoom,
+  maxZoom,
+  anchoredScrollLeft,
+  initialScrollLeft,
+} from './core/zoom'
 import { getLayoutStrategy } from './layout'
 import { ChartCanvas, type ChartCanvasProps } from './render/chart-canvas'
 import { GroupColumn } from './render/group-column'
@@ -22,6 +27,7 @@ import TimelineToolbar from './render/timeline-toolbar'
 import DrillControl from './render/drill-control'
 import { resolveLevel } from './core/depth'
 import { growRowsForLabels, type GeometryConfig } from './core/geometry'
+import { truncateOneDayLabel } from './core/labels'
 import { getVisibleRange } from './core/virtualization'
 import type { TimelineGroup } from './core/types'
 import type { WaydTimeline2Props } from './types'
@@ -37,6 +43,8 @@ const LANE_PADDING = 3
 const ROW_PADDING = 6
 const MIN_PX_PER_DAY = 3
 const DAY_MS = 86_400_000
+const ONE_DAY_LABEL_GAP = 4
+const ONE_DAY_LABEL_EXTRA_PX = 8
 // Minimum visible time span when fully zoomed in (1 day), matching the legacy
 // timeline's `zoomMin`.
 const ZOOM_MIN_MS = DAY_MS
@@ -307,7 +315,12 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
   // Latest domain/window geometry — updated in a layout effect each render so
   // the (stable) scroll/reset callbacks always read current props without a
   // stale closure.
-  const windowGeomRef = useRef({ domainStart: 0, domainMs: 1, windowStart: 0, windowMs: 1 })
+  const windowGeomRef = useRef({
+    domainStart: 0,
+    domainMs: 1,
+    windowStart: 0,
+    windowMs: 1,
+  })
 
   // Resolve the drill level: which activities stay groups vs. demote to bars,
   // remapping every item to its nearest surviving group. (timeline variant only;
@@ -384,7 +397,8 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
     () => () => {
       observerRef.current?.disconnect()
       wheelCleanupRef.current?.()
-      if (scrollRafRef.current != null) cancelAnimationFrame(scrollRafRef.current)
+      if (scrollRafRef.current != null)
+        cancelAnimationFrame(scrollRafRef.current)
     },
     [],
   )
@@ -412,7 +426,18 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
       if (axisViewportRef.current) axisViewportRef.current.scrollLeft = pending
       setScrollLeft(pending)
     }
-  }, [effectiveZoom, baseWidth, chartWidth, zoomMin, zoomMax, allowZoom, domainStart, domainMs, windowStart, windowMs])
+  }, [
+    effectiveZoom,
+    baseWidth,
+    chartWidth,
+    zoomMin,
+    zoomMax,
+    allowZoom,
+    domainStart,
+    domainMs,
+    windowStart,
+    windowMs,
+  ])
 
   // While in the initial view (no user pan/zoom), lock scroll to windowStart
   // on every render where the viewport is measured. Runs in useLayoutEffect so
@@ -422,7 +447,12 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
     const chart = chartRef.current
     if (!chart) return
     if (chart.clientWidth <= 0) return
-    const offset = initialScrollLeft(domainStart, domainMs, windowStart, baseWidth)
+    const offset = initialScrollLeft(
+      domainStart,
+      domainMs,
+      windowStart,
+      baseWidth,
+    )
     // Only apply if the canvas is wide enough to scroll to this offset.
     if (chart.scrollWidth <= offset) return
     chart.scrollLeft = offset
@@ -565,7 +595,8 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
     const g = windowGeomRef.current
     const chart = chartRef.current
     const w = chart?.clientWidth ?? viewportWidth
-    const offset = g.windowMs > 0 ? ((g.windowStart - g.domainStart) / g.windowMs) * w : 0
+    const offset =
+      g.windowMs > 0 ? ((g.windowStart - g.domainStart) / g.windowMs) * w : 0
     // Always apply the scroll immediately via DOM refs so panning-only resets
     // work even when zoom is already 1 (setZoom(1) would be a no-op → no
     // layout effect → pendingScrollLeftRef never consumed).
@@ -613,12 +644,40 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
     else hasChartBackground = true
   }
 
+  const scale = createTimeScale(domainStart, domainEnd, chartWidth)
+  const oneDayMarkerSize = effectiveLaneHeight - LANE_PADDING * 2
+  const oneDayLabelFontSize = Math.max(
+    9,
+    Math.min(Math.floor(oneDayMarkerSize / 1.2), 13),
+  )
+  const estimateOneDayLabelWidth = (label: string) =>
+    label.length * oneDayLabelFontSize * 0.58 + ONE_DAY_LABEL_EXTRA_PX
+  const getCollisionEnd = (item: (typeof layoutItems)[number]) => {
+    if (item.kind !== 'range' || item.end - item.start > DAY_MS) {
+      return item.kind === 'milestone' ? item.start : item.end
+    }
+
+    const rawX1 = scale.toX(item.start)
+    const rawX2 = scale.toX(item.end)
+    const spanWidth = Math.max(oneDayMarkerSize, rawX2 - rawX1)
+    const markerLeft = rawX1 + Math.max(0, (spanWidth - oneDayMarkerSize) / 2)
+    const label = truncateOneDayLabel(item.label ?? item.id)
+    const labelRight =
+      markerLeft +
+      oneDayMarkerSize +
+      ONE_DAY_LABEL_GAP +
+      estimateOneDayLabelWidth(label)
+
+    return Math.max(item.end, scale.toMs(labelRight))
+  }
+
   const strategy = getLayoutStrategy(variant)
   const base = strategy({
     items: layoutItems,
     groups: resolved.groups,
     backgroundGroupIds,
     hasChartBackground,
+    getCollisionEnd,
     config: { laneHeight: effectiveLaneHeight, rowPadding: ROW_PADDING },
   })
 
@@ -638,8 +697,11 @@ export function WaydTimeline2<TItem = unknown, TGroup = unknown>(
       ? []
       : rows.slice(visibleRange.startIndex, visibleRange.endIndex + 1)
 
-  const scale = createTimeScale(domainStart, domainEnd, chartWidth)
-  const geometry: GeometryConfig = { laneHeight: effectiveLaneHeight, lanePadding: LANE_PADDING, rowPadding: ROW_PADDING }
+  const geometry: GeometryConfig = {
+    laneHeight: effectiveLaneHeight,
+    lanePadding: LANE_PADDING,
+    rowPadding: ROW_PADDING,
+  }
   const groupsById = new Map<string, TimelineGroup>(
     resolved.groups.map((g) => [g.id, g]),
   )

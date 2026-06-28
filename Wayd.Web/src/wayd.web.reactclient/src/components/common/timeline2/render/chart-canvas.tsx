@@ -6,7 +6,14 @@
 // interaction (move/resize via useBarDrag; progress via a pointer handler),
 // applying the live draft to the dragged bar and committing on release.
 
-import { FC, useCallback, useRef, useState } from 'react'
+import {
+  FC,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
 import type { TimeScale } from '../core/scale'
 import type { ResolvedRow, TimelineItem } from '../core/types'
 import { itemBox, backgroundBox, type GeometryConfig } from '../core/geometry'
@@ -20,6 +27,23 @@ import type {
   ItemProgressChange,
 } from '../types'
 import styles from './timeline.module.css'
+
+const TOOLTIP_OFFSET = 12
+const TOOLTIP_VIEWPORT_MARGIN = 8
+const TOOLTIP_SHOW_DELAY_MS = 500
+const FALLBACK_TOOLTIP_WIDTH = 240
+const FALLBACK_TOOLTIP_HEIGHT = 48
+
+type CanvasTooltip = {
+  text: string
+  left: number
+  top: number
+}
+
+const clamp = (value: number, min: number, max: number): number => {
+  if (max < min) return min
+  return Math.min(Math.max(value, min), max)
+}
 
 export interface ChartCanvasProps {
   /** Visible (virtualized) rows to render. */
@@ -113,10 +137,17 @@ export const ChartCanvas: FC<ChartCanvasProps> = ({
   // listeners are stored on the session ref so they can reference each other
   // for teardown without a declaration cycle.
   const canvasRef = useRef<HTMLDivElement>(null)
+  const tooltipRef = useRef<HTMLDivElement>(null)
+  const tooltipTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(
+    null,
+  )
+  const pendingTooltipRef = useRef<CanvasTooltip | null>(null)
+  const pendingTooltipTargetRef = useRef<HTMLElement | null>(null)
   const [progressDraft, setProgressDraft] = useState<{
     id: string
     progress: number
   } | null>(null)
+  const [tooltip, setTooltip] = useState<CanvasTooltip | null>(null)
   const progressSession = useRef<{
     item: TimelineItem
     box: { left: number; width: number }
@@ -133,7 +164,10 @@ export const ChartCanvas: FC<ChartCanvasProps> = ({
         if (!canvas || !s) return
         s.moved = true
         const x = e.clientX - canvas.getBoundingClientRect().left
-        setProgressDraft({ id: item.id, progress: progressFromX(x, box.left, box.width) })
+        setProgressDraft({
+          id: item.id,
+          progress: progressFromX(x, box.left, box.width),
+        })
       }
       const up = () => {
         const s = progressSession.current
@@ -158,11 +192,122 @@ export const ChartCanvas: FC<ChartCanvasProps> = ({
     [onItemProgressChange],
   )
 
+  const clearTooltipTimer = useCallback(() => {
+    if (tooltipTimerRef.current === null) return
+    window.clearTimeout(tooltipTimerRef.current)
+    tooltipTimerRef.current = null
+  }, [])
+
+  const hideTooltip = useCallback(() => {
+    clearTooltipTimer()
+    pendingTooltipRef.current = null
+    pendingTooltipTargetRef.current = null
+    setTooltip(null)
+  }, [clearTooltipTimer])
+
+  useEffect(
+    () => () => {
+      clearTooltipTimer()
+    },
+    [clearTooltipTimer],
+  )
+
+  const handleTooltipPointerMove = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (active || progressDraft) {
+        hideTooltip()
+        return
+      }
+
+      const target = (e.target as HTMLElement | null)?.closest<HTMLElement>(
+        '[data-tooltip]',
+      )
+      const text = target?.dataset.tooltip
+      const canvas = canvasRef.current
+
+      if (!target || !text || !canvas) {
+        hideTooltip()
+        return
+      }
+
+      const viewport = canvas.parentElement
+      const canvasRect = canvas.getBoundingClientRect()
+      const viewportRect = viewport?.getBoundingClientRect() ?? canvasRect
+      const tooltipWidth =
+        tooltipRef.current?.offsetWidth || FALLBACK_TOOLTIP_WIDTH
+      const tooltipHeight =
+        tooltipRef.current?.offsetHeight || FALLBACK_TOOLTIP_HEIGHT
+
+      const viewportLeft = viewportRect.left - canvasRect.left
+      const viewportRight = viewportRect.right - canvasRect.left
+      const viewportTop = viewportRect.top - canvasRect.top
+      const viewportBottom = viewportRect.bottom - canvasRect.top
+      const eventClientX = Number.isFinite(e.clientX)
+        ? e.clientX
+        : canvasRect.left
+      const eventClientY = Number.isFinite(e.clientY)
+        ? e.clientY
+        : canvasRect.top
+      const cursorX = eventClientX - canvasRect.left
+      const cursorY = eventClientY - canvasRect.top
+
+      let left = cursorX + TOOLTIP_OFFSET
+      if (left + tooltipWidth > viewportRight - TOOLTIP_VIEWPORT_MARGIN) {
+        left = cursorX - tooltipWidth - TOOLTIP_OFFSET
+      }
+
+      let top = cursorY - tooltipHeight - TOOLTIP_OFFSET
+      if (top < viewportTop + TOOLTIP_VIEWPORT_MARGIN) {
+        top = cursorY + TOOLTIP_OFFSET
+      }
+
+      const nextTooltip = {
+        text,
+        left: clamp(
+          left,
+          viewportLeft + TOOLTIP_VIEWPORT_MARGIN,
+          viewportRight - tooltipWidth - TOOLTIP_VIEWPORT_MARGIN,
+        ),
+        top: clamp(
+          top,
+          viewportTop + TOOLTIP_VIEWPORT_MARGIN,
+          viewportBottom - tooltipHeight - TOOLTIP_VIEWPORT_MARGIN,
+        ),
+      }
+
+      pendingTooltipRef.current = nextTooltip
+
+      if (tooltip) {
+        setTooltip(nextTooltip)
+        pendingTooltipTargetRef.current = target
+        return
+      }
+
+      if (
+        tooltipTimerRef.current !== null &&
+        pendingTooltipTargetRef.current === target
+      ) {
+        return
+      }
+
+      clearTooltipTimer()
+      pendingTooltipTargetRef.current = target
+      tooltipTimerRef.current = window.setTimeout(() => {
+        tooltipTimerRef.current = null
+        setTooltip(pendingTooltipRef.current)
+      }, TOOLTIP_SHOW_DELAY_MS)
+    },
+    [active, clearTooltipTimer, hideTooltip, progressDraft, tooltip],
+  )
+
   return (
     <div
       ref={canvasRef}
       className={`${styles.canvas} ${canPan ? styles.canvasPannable : ''}`}
       style={{ width: scale.width, height: totalHeight }}
+      onPointerMove={handleTooltipPointerMove}
+      onPointerLeave={hideTooltip}
+      onPointerDown={hideTooltip}
     >
       {/* Weekend shading — behind gridlines and rows */}
       {weekendBoxes.map((box, i) => (
@@ -174,9 +319,14 @@ export const ChartCanvas: FC<ChartCanvasProps> = ({
       ))}
 
       {/* Vertical gridlines */}
-      {showGridlines && tickLines.map((ms) => (
-        <div key={`gl-${ms}`} className={styles.gridline} style={{ left: scale.toX(ms) }} />
-      ))}
+      {showGridlines &&
+        tickLines.map((ms) => (
+          <div
+            key={`gl-${ms}`}
+            className={styles.gridline}
+            style={{ left: scale.toX(ms) }}
+          />
+        ))}
 
       {/* Row stripes — alternation keyed off the ABSOLUTE row index so it stays
           stable as rows scroll in/out of the virtualized window. */}
@@ -198,6 +348,7 @@ export const ChartCanvas: FC<ChartCanvasProps> = ({
       {chartBackgrounds?.map((bg) => {
         const row = bg.groupId ? rowsByGroupId.get(bg.groupId) : undefined
         const box = backgroundBox(bg, row ?? null, scale, totalHeight)
+        const tooltip = bg.tooltip ?? bg.label
         return (
           <div
             key={`bg-${bg.id}`}
@@ -209,9 +360,12 @@ export const ChartCanvas: FC<ChartCanvasProps> = ({
               height: box.height,
               ...(bg.color ? { backgroundColor: bg.color } : {}),
             }}
-            title={bg.label}
+            data-tooltip={tooltip}
+            aria-label={tooltip}
           >
-            {bg.label && <span className={styles.backgroundLabel}>{bg.label}</span>}
+            {bg.label && (
+              <span className={styles.backgroundLabel}>{bg.label}</span>
+            )}
           </div>
         )
       })}
@@ -231,7 +385,10 @@ export const ChartCanvas: FC<ChartCanvasProps> = ({
           const box = itemBox(withProgress, lane, row, scale, geometry)
           // Push the label right so it stays visible when the bar starts before
           // the viewport's left edge (clamped so it never leaves the bar).
-          const labelOffset = Math.max(0, Math.min(viewportLeft - box.left, box.width))
+          const labelOffset = Math.max(
+            0,
+            Math.min(viewportLeft - box.left, box.width),
+          )
           return (
             <ItemBar
               key={item.id}
@@ -245,7 +402,10 @@ export const ChartCanvas: FC<ChartCanvasProps> = ({
               onProgressDragStart={(e, dragItem) => {
                 e.preventDefault()
                 e.stopPropagation()
-                beginProgressDrag(dragItem, { left: box.left, width: box.width })
+                beginProgressDrag(dragItem, {
+                  left: box.left,
+                  width: box.width,
+                })
               }}
             />
           )
@@ -256,6 +416,16 @@ export const ChartCanvas: FC<ChartCanvasProps> = ({
       {nowVisible && (
         <div className={styles.nowLine} style={{ left: scale.toX(now) }} />
       )}
+
+      <div
+        ref={tooltipRef}
+        role="tooltip"
+        aria-hidden={!tooltip}
+        className={`${styles.tooltip} ${tooltip ? styles.tooltipVisible : ''}`}
+        style={tooltip ? { left: tooltip.left, top: tooltip.top } : undefined}
+      >
+        {tooltip?.text}
+      </div>
     </div>
   )
 }

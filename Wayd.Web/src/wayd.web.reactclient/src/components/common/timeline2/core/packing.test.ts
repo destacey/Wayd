@@ -124,6 +124,19 @@ describe('packLanes', () => {
     expect(result.lanes.get('m')).toBe(0)
   })
 
+  it('uses custom collision ends when provided', () => {
+    // Arrange — item a's visible label extends to day 4, so b cannot share lane 0.
+    const items = [range('a', 0, 1), range('b', 2, 3)]
+    // Act
+    const result = packLanes(items, {
+      getCollisionEnd: (item) => (item.id === 'a' ? day(4) : item.end),
+    })
+    // Assert
+    expect(result.laneCount).toBe(2)
+    expect(result.lanes.get('a')).toBe(0)
+    expect(result.lanes.get('b')).toBe(1)
+  })
+
   it('excludes background items from packing', () => {
     // Arrange
     const items: TimelineItem[] = [

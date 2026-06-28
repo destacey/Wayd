@@ -56,13 +56,25 @@ describe('itemBox', () => {
     expect(box.height).toBe(32)
   })
 
-  it('enforces a minimum width for zero-duration ranges', () => {
-    // Arrange — start === end.
-    const item: TimelineItem = { id: 'a', kind: 'range', start: day(3), end: day(3) }
+  it('floors a one-day range to a square when the day is narrower than the bar height', () => {
+    // Arrange — a single-day range at a zoomed-OUT scale where one day < bar height.
+    // 2px/day scale: one day = 2px, well under the 32px bar height.
+    const zoomedOut = createTimeScale(day(0), day(500), 1000)
+    const item: TimelineItem = { id: 'a', kind: 'range', start: day(3), end: day(4) }
+    // Act
+    const box = itemBox(item, 0, row(0), zoomedOut, config)
+    // Assert — floored to a square of the bar height (32) so it's an easy target.
+    expect(box.width).toBe(box.height)
+    expect(box.width).toBe(32)
+  })
+
+  it('keeps a one-day range at its natural width when the day is wider than the square', () => {
+    // Arrange — at 100px/day, one day (100px) already exceeds the 32px square floor.
+    const item: TimelineItem = { id: 'a', kind: 'range', start: day(3), end: day(4) }
     // Act
     const box = itemBox(item, 0, row(0), scale, config)
-    // Assert
-    expect(box.width).toBeGreaterThanOrEqual(4)
+    // Assert — natural width wins.
+    expect(box.width).toBeCloseTo(100)
   })
 
   it('clamps a range that extends past the domain end to the right edge', () => {

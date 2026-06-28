@@ -63,14 +63,15 @@ public sealed class SearchWorkItemsQueryTests
     }
 
     [Fact]
-    public async Task Handle_RespectsTopLimit()
+    public async Task Handle_RespectsTopLimit_ReturningLowestKeyedMatchesInOrder()
     {
         // Arrange
         using var context = new FakeWorkDbContext();
+        // Added out of key order to confirm results are ordered by key before the top limit is applied.
         context.AddWorkItems([
+            CreateWorkItem(3, "match three"),
             CreateWorkItem(1, "match one"),
             CreateWorkItem(2, "match two"),
-            CreateWorkItem(3, "match three"),
         ]);
         var handler = new SearchWorkItemsQueryHandler(context, NullLogger<SearchWorkItemsQueryHandler>.Instance);
 
@@ -79,7 +80,7 @@ public sealed class SearchWorkItemsQueryTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(2, result.Value.Count);
+        Assert.Equal(["TEST-1", "TEST-2"], result.Value.Select(x => x.Key));
     }
 
     private static WorkItem CreateWorkItem(int externalId, string title)

@@ -71,6 +71,10 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
                 .Where(e => e.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
                     || ((string)e.Key).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
                     || (e.ParentId.HasValue && ((string)e.Parent!.Key).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
+                // Mirror the real context's ordering (by the KeyPrefix/KeyNumber computed columns)
+                // so Take(top) selects the same subset when matches exceed the limit.
+                .OrderBy(e => e.Key.WorkspaceKey)
+                .ThenBy(e => e.Key.WorkItemNumber)
                 .Take(top));
 
     /// <summary>

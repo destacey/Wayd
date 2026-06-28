@@ -13,6 +13,10 @@ export interface RoadmapColorPickerProps {
   id?: string
   value?: string
   onChange?: (value: string | undefined) => void
+  /** Notifies when the dropdown opens/closes (used by the grid's keyboard nav). */
+  onOpenChange?: (open: boolean) => void
+  /** Auto-opens the dropdown on mount (used when entering inline edit in the grid). */
+  defaultOpen?: boolean
 }
 
 const ColorOptionLabel = ({
@@ -62,6 +66,8 @@ const RoadmapColorPicker = ({
   entries,
   value,
   onChange,
+  onOpenChange,
+  defaultOpen,
 }: RoadmapColorPickerProps) => {
   const hasMatch = entries.some(
     (e) => e.color.toUpperCase() === value?.toUpperCase(),
@@ -81,6 +87,8 @@ const RoadmapColorPicker = ({
       id={id}
       value={value}
       onChange={(next) => onChange?.(next)}
+      onOpenChange={onOpenChange}
+      defaultOpen={defaultOpen}
       allowClear
       placeholder="Select a color"
       style={{ width: '100%' }}

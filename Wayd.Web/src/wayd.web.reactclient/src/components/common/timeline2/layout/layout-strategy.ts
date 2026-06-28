@@ -33,6 +33,8 @@ export interface LayoutInput<TItem = unknown, TGroup = unknown> {
    * reserves top headroom for their labels above the bars.
    */
   hasChartBackground?: boolean
+  /** Optional effective exclusive end used only for lane collision detection. */
+  getCollisionEnd?: (item: TimelineItem<TItem>) => number
   config?: Partial<LayoutConfig>
 }
 

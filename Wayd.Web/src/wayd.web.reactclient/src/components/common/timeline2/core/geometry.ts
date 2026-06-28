@@ -19,6 +19,8 @@ export interface ItemBox extends Box {
 
 /** Minimum rendered width so zero/short-duration ranges stay clickable. */
 const MIN_RANGE_WIDTH = 4
+/** Milliseconds in a day — a range shorter than this is a single-day item. */
+const ONE_DAY_MS = 24 * 60 * 60 * 1000
 /** Milestone diamonds are square; sized to the lane height at render time. */
 
 export interface GeometryConfig {
@@ -65,9 +67,14 @@ export function itemBox(
   // Does the (unclamped) item overlap the visible domain at all? A point item
   // (start === end) counts as intersecting when it sits within [0, width].
   const intersects = rawX2 >= 0 && rawX1 <= scale.width
+  // A one-day (or shorter) range is too narrow to be a useful bar, so render it
+  // as a small square (its height) — an easy click target, with the label drawn
+  // beside it. Longer ranges keep the slim min-width floor.
+  const isOneDay = item.end - item.start <= ONE_DAY_MS
+  const minWidth = isOneDay ? height : MIN_RANGE_WIDTH
   // Outside the domain → zero width (nothing to show). Inside → keep the
   // min-width floor so short/zero-duration ranges remain visible/clickable.
-  const width = intersects ? Math.max(MIN_RANGE_WIDTH, x2 - x1) : 0
+  const width = intersects ? Math.max(minWidth, x2 - x1) : 0
   return { item, left: x1, top, width, height }
 }
 

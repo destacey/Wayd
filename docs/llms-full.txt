@@ -138,9 +138,10 @@ Potential circumstances that could impact delivery. Properties:
 
 Visual timelines with hierarchical items. Properties:
 - Name, Description, Date Range, Visibility (Public/Private), Managers (min 1)
+- Date ranges are inclusive; start and end may be the same day.
 
 Item types:
-- Activity: Date range, can contain children (other activities, milestones, timeboxes), ordered
+- Activity: Date range, can contain children (other activities, milestones, timeboxes), ordered. Parent activities auto-expand to contain child dates; shrinking an activity behind its children is rejected; moving an activity without changing duration shifts the whole subtree.
 - Milestone: Single date point
 - Timebox: Date range period
 

@@ -1195,6 +1195,242 @@ public class RoadmapTests
 
     #endregion Update Item Dates Tests
 
+    #region Date Rollup Tests
+
+    private Roadmap CreateRoadmapWithManager(out Guid managerId)
+    {
+        var fakeRoadmap = _faker.Generate();
+        managerId = Guid.NewGuid();
+        return Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId]).Value;
+    }
+
+    private RoadmapActivity CreateActivity(Roadmap roadmap, Guid managerId, LocalDateRange dateRange, Guid? parentId = null)
+    {
+        var activity = _activityFaker.WithDateRange(dateRange).WithParentId(parentId).Generate();
+        var result = roadmap.CreateActivity(new TestUpsertRoadmapActivity(activity), managerId);
+        result.IsSuccess.Should().BeTrue();
+        return result.Value;
+    }
+
+    [Fact]
+    public void CreateActivity_ChildEndsAfterParent_ShouldGrowParentEnd()
+    {
+        // Arrange
+        var roadmap = CreateRoadmapWithManager(out var managerId);
+        var parent = CreateActivity(roadmap, managerId,
+            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
+
+        // Act
+        CreateActivity(roadmap, managerId,
+            new LocalDateRange(_dateTimeProvider.Today.PlusDays(5), _dateTimeProvider.Today.PlusDays(20)),
+            parent.Id);
+
+        // Assert
+        parent.DateRange.Start.Should().Be(_dateTimeProvider.Today);
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(20));
+    }
+
+    [Fact]
+    public void CreateActivity_ChildStartsBeforeParent_ShouldGrowParentStart()
+    {
+        // Arrange
+        var roadmap = CreateRoadmapWithManager(out var managerId);
+        var parent = CreateActivity(roadmap, managerId,
+            new LocalDateRange(_dateTimeProvider.Today.PlusDays(10), _dateTimeProvider.Today.PlusDays(20)));
+
+        // Act
+        CreateActivity(roadmap, managerId,
+            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(15)),
+            parent.Id);
+
+        // Assert
+        parent.DateRange.Start.Should().Be(_dateTimeProvider.Today);
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(20));
+    }
+
+    [Fact]
+    public void CreateActivity_ChildFullyInsideParent_ShouldLeaveParentUnchanged()
+    {
+        // Arrange
+        var roadmap = CreateRoadmapWithManager(out var managerId);
+        var parentRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30));
+        var parent = CreateActivity(roadmap, managerId, parentRange);
+
+        // Act
+        CreateActivity(roadmap, managerId,
+            new LocalDateRange(_dateTimeProvider.Today.PlusDays(5), _dateTimeProvider.Today.PlusDays(10)),
+            parent.Id);
+
+        // Assert
+        parent.DateRange.Should().Be(parentRange);
+    }
+
+    [Fact]
+    public void CreateMilestone_ChildDateOutsideParent_ShouldGrowParent()
+    {
+        // Arrange
+        var roadmap = CreateRoadmapWithManager(out var managerId);
+        var parent = CreateActivity(roadmap, managerId,
+            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
+        var milestoneDate = _dateTimeProvider.Today.PlusDays(25);
+        var milestone = _milestoneFaker.WithDate(milestoneDate).WithParentId(parent.Id).Generate();
+
+        // Act
+        var result = roadmap.CreateMilestone(new TestUpsertRoadmapMilestone(milestone), managerId);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        parent.DateRange.Start.Should().Be(_dateTimeProvider.Today);
+        parent.DateRange.End.Should().Be(milestoneDate);
+    }
+
+    [Fact]
+    public void CreateTimebox_ChildRangeOutsideParent_ShouldGrowParent()
+    {
+        // Arrange
+        var roadmap = CreateRoadmapWithManager(out var managerId);
+        var parent = CreateActivity(roadmap, managerId,
+            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
+        var timeboxRange = new LocalDateRange(_dateTimeProvider.Today.PlusDays(8), _dateTimeProvider.Today.PlusDays(18));
+        var timebox = _timeboxFaker.WithDateRange(timeboxRange).WithParentId(parent.Id).Generate();
+
+        // Act
+        var result = roadmap.CreateTimebox(new TestUpsertRoadmapTimebox(timebox), managerId);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        parent.DateRange.Start.Should().Be(_dateTimeProvider.Today);
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(18));
+    }
+
+    [Fact]
+    public void UpdateRoadmapItemDates_ChildGrowsBeyondParent_ShouldBubbleUpToRoot()
+    {
+        // Arrange
+        var roadmap = CreateRoadmapWithManager(out var managerId);
+        var grandparent = CreateActivity(roadmap, managerId,
+            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
+        var parent = CreateActivity(roadmap, managerId,
+            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)),
+            grandparent.Id);
+        var child = CreateActivity(roadmap, managerId,
+            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)),
+            parent.Id);
+
+        var newChildRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(40));
+        var dateUpdate = OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange>.FromT0(
+            new TestUpsertRoadmapActivityDateRange(newChildRange));
+
+        // Act
+        var result = roadmap.UpdateRoadmapItemDates(child.Id, dateUpdate, managerId);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(40));
+        grandparent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(40));
+    }
+
+    [Fact]
+    public void UpdateRoadmapItemDates_ParentWithNoChildren_ShouldApplyRangeUnchanged()
+    {
+        // Arrange
+        var roadmap = CreateRoadmapWithManager(out var managerId);
+        var activity = CreateActivity(roadmap, managerId,
+            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
+
+        var newRange = new LocalDateRange(_dateTimeProvider.Today.PlusDays(2), _dateTimeProvider.Today.PlusDays(6));
+        var dateUpdate = OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange>.FromT0(
+            new TestUpsertRoadmapActivityDateRange(newRange));
+
+        // Act
+        var result = roadmap.UpdateRoadmapItemDates(activity.Id, dateUpdate, managerId);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        activity.DateRange.Should().Be(newRange);
+    }
+
+    [Fact]
+    public void UpdateRoadmapItemDates_ParentWiderThanChildren_ShouldKeepParentRange()
+    {
+        // Arrange
+        var roadmap = CreateRoadmapWithManager(out var managerId);
+        var parent = CreateActivity(roadmap, managerId,
+            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
+        CreateActivity(roadmap, managerId,
+            new LocalDateRange(_dateTimeProvider.Today.PlusDays(2), _dateTimeProvider.Today.PlusDays(6)),
+            parent.Id);
+
+        // Set the parent wider than its child
+        var widerRange = new LocalDateRange(_dateTimeProvider.Today.PlusDays(-5), _dateTimeProvider.Today.PlusDays(30));
+        var dateUpdate = OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange>.FromT0(
+            new TestUpsertRoadmapActivityDateRange(widerRange));
+
+        // Act
+        var result = roadmap.UpdateRoadmapItemDates(parent.Id, dateUpdate, managerId);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        parent.DateRange.Should().Be(widerRange);
+    }
+
+    [Fact]
+    public void UpdateActivity_FormUpdateGrowsChildBeyondParent_ShouldGrowParent()
+    {
+        // Arrange
+        var roadmap = CreateRoadmapWithManager(out var managerId);
+        var parent = CreateActivity(roadmap, managerId,
+            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
+        var child = CreateActivity(roadmap, managerId,
+            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)),
+            parent.Id);
+
+        // Form update that widens the child past the parent's end
+        var updateChild = new TestUpsertRoadmapActivity(child)
+        {
+            ParentId = parent.Id,
+            DateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(35))
+        };
+
+        // Act
+        var result = roadmap.UpdateActivity(child.Id, updateChild, managerId);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(35));
+    }
+
+    [Fact]
+    public void MoveActivity_ChildExtendsBeyondNewParent_ShouldGrowNewParent()
+    {
+        // Arrange
+        var roadmap = CreateRoadmapWithManager(out var managerId);
+        roadmap.SetPrivate(x => x.Id, Guid.NewGuid());
+
+        var originalParent = CreateActivity(roadmap, managerId,
+            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(40)));
+        originalParent.SetPrivate(x => x.Id, Guid.NewGuid());
+
+        var newParent = CreateActivity(roadmap, managerId,
+            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
+        newParent.SetPrivate(x => x.Id, Guid.NewGuid());
+
+        var child = CreateActivity(roadmap, managerId,
+            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30)),
+            originalParent.Id);
+        child.SetPrivate(x => x.Id, Guid.NewGuid());
+        child.SetPrivate(x => x.Parent, originalParent);
+
+        // Act
+        var result = roadmap.MoveActivity(child.Id, newParent.Id, 1, managerId);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        newParent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(30));
+    }
+
+    #endregion Date Rollup Tests
+
     #region Update Colors Tests
 
     [Fact]

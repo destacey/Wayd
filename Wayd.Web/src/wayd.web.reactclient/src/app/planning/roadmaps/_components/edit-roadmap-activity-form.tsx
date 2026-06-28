@@ -13,13 +13,19 @@ import {
   useUpdateRoadmapItemMutation,
 } from '@/src/store/features/planning/roadmaps-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { DatePicker, Form, Input, Modal, TreeSelect } from 'antd'
+import { Alert, DatePicker, Form, Input, Modal, TreeSelect } from 'antd'
 import { useEffect, useState } from 'react'
 import dayjs from 'dayjs'
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import RoadmapColorPicker from './roadmap-color-picker'
+import {
+  findOwnChildrenSpan,
+  findParentActivityRange,
+  getChildrenContainmentError,
+  getParentExpansionHint,
+} from './roadmap-parent-date-hint'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -155,6 +161,16 @@ const EditRoadmapActivityForm = ({
     })
   }, [activities, activitiesIsLoading, activityData, activityId, form])
 
+  const selectedParentId = Form.useWatch('parentActivityId', form)
+  const selectedRange = Form.useWatch('range', form)
+  const parentExpansionHint = getParentExpansionHint(
+    findParentActivityRange(activities, selectedParentId),
+    selectedRange?.[0],
+    selectedRange?.[1],
+  )
+  // This activity's own children constrain its range: it cannot be shrunk behind them.
+  const ownChildrenSpan = findOwnChildrenSpan(activities, activityId)
+
   // Query error display
   useEffect(() => {
     if (activityDataError) {
@@ -231,10 +247,18 @@ const EditRoadmapActivityForm = ({
                   )
                 }
                 const [start, end] = value
-                if (!start || !end || !start.isBefore(end)) {
+                if (!start || !end || end.isBefore(start, 'day')) {
                   return Promise.reject(
-                    new Error('End date must be after start date'),
+                    new Error('End date must be on or after start date'),
                   )
+                }
+                const containmentError = getChildrenContainmentError(
+                  ownChildrenSpan,
+                  start,
+                  end,
+                )
+                if (containmentError) {
+                  return Promise.reject(new Error(containmentError))
                 }
                 return Promise.resolve()
               },
@@ -243,6 +267,14 @@ const EditRoadmapActivityForm = ({
         >
           <RangePicker />
         </Item>
+        {parentExpansionHint && (
+          <Alert
+            type="info"
+            showIcon
+            message={parentExpansionHint}
+            style={{ marginBottom: 16 }}
+          />
+        )}
         <Item name="color" label="Color">
           {roadmapColors.length > 0 ? (
             <RoadmapColorPicker entries={roadmapColors} />

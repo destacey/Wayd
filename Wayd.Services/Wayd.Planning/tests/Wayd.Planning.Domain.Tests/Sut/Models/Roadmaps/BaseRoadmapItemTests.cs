@@ -1,4 +1,5 @@
-﻿using Wayd.Planning.Domain.Models.Roadmaps;
+﻿using Wayd.Common.Models;
+using Wayd.Planning.Domain.Models.Roadmaps;
 using Wayd.Planning.Domain.Tests.Data;
 using Wayd.Planning.Domain.Tests.Models;
 using Wayd.Tests.Shared;
@@ -90,6 +91,41 @@ public class BaseRoadmapItemTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("Unable to make the Roadmap Item a child of itself.");
+    }
+
+    [Fact]
+    public void ChangeParent_WhenChildExtendsBeyondNewParent_ShouldGrowNewParent()
+    {
+        // Arrange
+        var newParent = _faker
+            .WithDateRange(new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)))
+            .Generate();
+        var activity = _faker
+            .WithDateRange(new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30)))
+            .Generate();
+
+        // Act
+        var result = activity.ChangeParent(newParent);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        newParent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(30));
+    }
+
+    [Fact]
+    public void LinkParent_ShouldSetParentNavigation_WithoutAddingToChildren()
+    {
+        // Arrange
+        var parent = _faker.Generate();
+        var activity = _faker.Generate();
+
+        // Act
+        activity.LinkParent(parent);
+
+        // Assert
+        activity.ParentId.Should().Be(parent.Id);
+        activity.Parent.Should().Be(parent);
+        parent.Children.Should().NotContain(activity);
     }
 
     //[Fact]

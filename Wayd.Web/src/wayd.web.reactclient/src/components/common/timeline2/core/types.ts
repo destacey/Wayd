@@ -23,6 +23,8 @@ export interface TimelineItem<T = unknown> {
   end: number
   /** Display label shown on the bar (first-class; default renderer uses it). */
   label?: string
+  /** Optional full tooltip/title text. Falls back to label when omitted. */
+  tooltip?: string
   /** Bar background color (any CSS color). Text contrast is auto-derived. */
   color?: string
   /** Group this item belongs to; undefined = ungrouped. */

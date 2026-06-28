@@ -12,9 +12,18 @@ const range = (
   startDay: number,
   endDay: number,
   extra: Partial<TimelineItem> = {},
-): TimelineItem => ({ id, kind: 'range', start: day(startDay), end: day(endDay), ...extra })
+): TimelineItem => ({
+  id,
+  kind: 'range',
+  start: day(startDay),
+  end: day(endDay),
+  ...extra,
+})
 
-const group = (id: string, extra: Partial<TimelineGroup> = {}): TimelineGroup => ({
+const group = (
+  id: string,
+  extra: Partial<TimelineGroup> = {},
+): TimelineGroup => ({
   id,
   ...extra,
 })
@@ -96,7 +105,10 @@ describe('timelineLayout', () => {
   it('collapses children onto the parent lane (collapse-to-lane)', () => {
     // Arrange — g1 collapsed; its child g1a's items fold up into g1's row.
     // Parent item p (0-2) and child item c (3-5) don't overlap => 1 lane.
-    const groups = [group('g1', { collapsed: true }), group('g1a', { parentId: 'g1' })]
+    const groups = [
+      group('g1', { collapsed: true }),
+      group('g1a', { parentId: 'g1' }),
+    ]
     const items = [
       range('p', 0, 2, { groupId: 'g1' }),
       range('c', 3, 5, { groupId: 'g1a' }),
@@ -113,7 +125,10 @@ describe('timelineLayout', () => {
 
   it('packs collapsed descendants into multiple lanes when they overlap', () => {
     // Arrange — collapsed parent; parent + child items overlap => 2 lanes.
-    const groups = [group('g1', { collapsed: true }), group('g1a', { parentId: 'g1' })]
+    const groups = [
+      group('g1', { collapsed: true }),
+      group('g1a', { parentId: 'g1' }),
+    ]
     const items = [
       range('p', 0, 5, { groupId: 'g1' }),
       range('c', 2, 7, { groupId: 'g1a' }),
@@ -141,7 +156,11 @@ describe('timelineLayout', () => {
     const out = timelineLayout({ items, groups })
     // Assert
     expect(out.rows).toHaveLength(1)
-    expect(out.rows[0].items.map((i) => i.item.id).sort()).toEqual(['c', 'gc', 'p'])
+    expect(out.rows[0].items.map((i) => i.item.id).sort()).toEqual([
+      'c',
+      'gc',
+      'p',
+    ])
   })
 
   it('assigns each placed item a lane index', () => {
@@ -155,5 +174,19 @@ describe('timelineLayout', () => {
       .sort((x, y) => (x.item.id < y.item.id ? -1 : 1))
       .map((i) => i.lane)
     expect(lanes).toEqual([0, 1])
+  })
+
+  it('packs items using effective collision ends for outside labels', () => {
+    // Arrange — a ends at day 1, but its outside label reserves space to day 4.
+    const items = [range('a', 0, 1), range('b', 2, 3)]
+    // Act
+    const out = timelineLayout({
+      items,
+      getCollisionEnd: (item) => (item.id === 'a' ? day(4) : item.end),
+    })
+    // Assert
+    expect(out.rows[0].laneCount).toBe(2)
+    expect(out.rows[0].items.find((i) => i.item.id === 'a')?.lane).toBe(0)
+    expect(out.rows[0].items.find((i) => i.item.id === 'b')?.lane).toBe(1)
   })
 })

@@ -66,6 +66,7 @@ internal sealed class UpdateRoadmapItemCommandHandler(IPlanningDbContext plannin
             var roadmap = await _planningDbContext.Roadmaps
                 .Include(x => x.RoadmapManagers)
                 .Include(x => x.Items)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(r => r.Id == request.RoadmapId, cancellationToken);
 
             if (roadmap is null)

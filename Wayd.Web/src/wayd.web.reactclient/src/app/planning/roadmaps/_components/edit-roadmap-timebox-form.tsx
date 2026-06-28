@@ -1,4 +1,5 @@
 import {
+  RoadmapActivityListDto,
   RoadmapTimeboxDetailsDto,
   RoadmapTimeboxListDto,
   UpdateRoadmapTimeboxRequest,
@@ -9,12 +10,16 @@ import {
   useUpdateRoadmapItemMutation,
 } from '@/src/store/features/planning/roadmaps-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { DatePicker, Form, Input, Modal, TreeSelect } from 'antd'
+import { Alert, DatePicker, Form, Input, Modal, TreeSelect } from 'antd'
 import { useEffect, useState } from 'react'
 import dayjs from 'dayjs'
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
+import {
+  findParentActivityRange,
+  getParentExpansionHint,
+} from './roadmap-parent-date-hint'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -130,6 +135,17 @@ const EditRoadmapTimeboxForm = ({
     })
   }, [activities, activitiesIsLoading, timeboxData, form])
 
+  const selectedParentId = Form.useWatch('parentActivityId', form)
+  const selectedRange = Form.useWatch('range', form)
+  const parentExpansionHint = getParentExpansionHint(
+    findParentActivityRange(
+      activities as RoadmapActivityListDto[] | undefined,
+      selectedParentId,
+    ),
+    selectedRange?.[0],
+    selectedRange?.[1],
+  )
+
   // Query error display
   useEffect(() => {
     if (timeboxDataError) {
@@ -206,9 +222,9 @@ const EditRoadmapTimeboxForm = ({
                   )
                 }
                 const [start, end] = value
-                if (!start || !end || !start.isBefore(end)) {
+                if (!start || !end || end.isBefore(start, 'day')) {
                   return Promise.reject(
-                    new Error('End date must be after start date'),
+                    new Error('End date must be on or after start date'),
                   )
                 }
                 return Promise.resolve()
@@ -218,6 +234,14 @@ const EditRoadmapTimeboxForm = ({
         >
           <RangePicker />
         </Item>
+        {parentExpansionHint && (
+          <Alert
+            type="info"
+            showIcon
+            message={parentExpansionHint}
+            style={{ marginBottom: 16 }}
+          />
+        )}
       </Form>
     </Modal>
   )

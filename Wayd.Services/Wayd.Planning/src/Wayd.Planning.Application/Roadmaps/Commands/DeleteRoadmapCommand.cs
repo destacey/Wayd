@@ -25,6 +25,7 @@ internal sealed class DeleteRoadmapCommandHandler(IPlanningDbContext planningDbC
             var roadmap = await _planningDbContext.Roadmaps
                 .Include(x => x.RoadmapManagers)
                 .Include(x => x.Items)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
 
             if (roadmap is null)

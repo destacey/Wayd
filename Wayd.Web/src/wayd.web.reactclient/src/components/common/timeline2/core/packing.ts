@@ -5,6 +5,11 @@
 
 import type { PackResult, TimelineItem } from './types'
 
+export interface PackOptions {
+  /** Optional effective exclusive end for collision detection. */
+  getCollisionEnd?: (item: TimelineItem) => number
+}
+
 /**
  * Greedy interval-scheduling lane assignment.
  *
@@ -19,7 +24,10 @@ import type { PackResult, TimelineItem } from './types'
  *
  * Background items are excluded — they are not lane-packed (they render behind).
  */
-export function packLanes(items: TimelineItem[]): PackResult {
+export function packLanes(
+  items: TimelineItem[],
+  options: PackOptions = {},
+): PackResult {
   const packable = items.filter((i) => i.kind !== 'background')
 
   const sorted = [...packable].sort((a, b) => {
@@ -36,7 +44,11 @@ export function packLanes(items: TimelineItem[]): PackResult {
 
   for (const item of sorted) {
     // Milestones occupy an instant; treat end as start so they pack tightly.
-    const itemEnd = item.kind === 'milestone' ? item.start : item.end
+    const defaultEnd = item.kind === 'milestone' ? item.start : item.end
+    const itemEnd = Math.max(
+      defaultEnd,
+      options.getCollisionEnd?.(item) ?? defaultEnd,
+    )
 
     let placed = -1
     for (let lane = 0; lane < laneEnds.length; lane += 1) {

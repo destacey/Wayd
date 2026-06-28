@@ -54,6 +54,8 @@ public sealed class RoadmapTimebox : BaseRoadmapItem
         DateRange = roadmapTimebox.DateRange;
         Color = roadmapTimebox.Color;
 
+        Parent?.RecalculateDateRangeFromChildren();
+
         return Result.Success();
     }
 
@@ -65,7 +67,23 @@ public sealed class RoadmapTimebox : BaseRoadmapItem
     internal Result UpdateDateRange(IUpsertRoadmapTimeboxDateRange dateRange)
     {
         DateRange = dateRange.DateRange;
+        Parent?.RecalculateDateRangeFromChildren();
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Shifts the Timebox's date range by the given number of days (negative shifts earlier). Used
+    /// when an ancestor Activity is moved as a whole and the entire subtree shifts with it.
+    /// </summary>
+    /// <param name="days"></param>
+    internal void ShiftDates(int days)
+    {
+        if (days == 0)
+        {
+            return;
+        }
+
+        DateRange = new LocalDateRange(DateRange.Start.PlusDays(days), DateRange.End.PlusDays(days));
     }
 
     /// <summary>

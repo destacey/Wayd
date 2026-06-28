@@ -90,6 +90,50 @@ const parseRoadmapCalendarDate = (value: unknown): Date | null => {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
+// The effective [start, end] of a child node: a range for Activity/Timebox, the date for a Milestone.
+const childNodeRange = (
+  child: RoadmapItemTreeNode,
+): [dayjs.Dayjs, dayjs.Dayjs] | null => {
+  if (child.type === 'Milestone' && child.date) {
+    const d = dayjs(child.date)
+    return [d, d]
+  }
+  if (child.start && child.end) {
+    return [dayjs(child.start), dayjs(child.end)]
+  }
+  return null
+}
+
+/**
+ * Validates that an item's range contains all of its direct children. Returns the
+ * offending field + message when the range would fall inside the children, matching
+ * the domain rule that a parent cannot be shrunk behind a child.
+ */
+const childrenContainmentError = (
+  item: RoadmapItemTreeNode,
+  start: dayjs.Dayjs,
+  end: dayjs.Dayjs,
+): { field: 'start' | 'end'; message: string } | null => {
+  for (const child of item.children ?? []) {
+    const range = childNodeRange(child)
+    if (!range) continue
+    const [childStart, childEnd] = range
+    if (childStart.isBefore(start, 'day')) {
+      return {
+        field: 'start',
+        message: `Start must be on or before child “${child.name}” (${childStart.format('MMM D, YYYY')}).`,
+      }
+    }
+    if (childEnd.isAfter(end, 'day')) {
+      return {
+        field: 'end',
+        message: `End must be on or after child “${child.name}” (${childEnd.format('MMM D, YYYY')}).`,
+      }
+    }
+  }
+  return null
+}
+
 function mapToTreeNode(item: RoadmapItemUnion): RoadmapItemTreeNode {
   const node: RoadmapItemTreeNode = {
     id: item.id,
@@ -521,8 +565,8 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
         const message = 'Start and end dates are required.'
         errors.start = message
         errors.end = message
-      } else if (!dayjs(start).isBefore(dayjs(end), 'day')) {
-        errors.end = 'End date must be after start date.'
+      } else if (dayjs(end).isBefore(dayjs(start), 'day')) {
+        errors.end = 'End date must be on or after start date.'
       }
 
       return errors
@@ -559,8 +603,15 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
         const message = 'Start and end dates are required.'
         errors.start = message
         errors.end = message
-      } else if (!dayjs(start).isBefore(dayjs(end), 'day')) {
-        errors.end = 'End date must be after start date.'
+      } else if (dayjs(end).isBefore(dayjs(start), 'day')) {
+        errors.end = 'End date must be on or after start date.'
+      } else {
+        // An activity's range must contain all of its children (matches the domain
+        // rule that a parent cannot be shrunk behind a child).
+        const containment = childrenContainmentError(item, dayjs(start), dayjs(end))
+        if (containment) {
+          errors[containment.field] = containment.message
+        }
       }
 
       return errors

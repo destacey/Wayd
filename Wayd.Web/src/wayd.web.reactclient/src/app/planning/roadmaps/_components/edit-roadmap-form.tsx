@@ -191,9 +191,9 @@ const EditRoadmapForm = ({
                   )
                 }
                 const [start, end] = value
-                if (!start || !end || !start.isBefore(end)) {
+                if (!start || !end || end.isBefore(start, 'day')) {
                   return Promise.reject(
-                    new Error('End date must be after start date'),
+                    new Error('End date must be on or after start date'),
                   )
                 }
                 return Promise.resolve()

@@ -259,7 +259,7 @@
 .background {
   position: absolute;
   z-index: 1;
-  pointer-events: none;
+  pointer-events: auto;
   /* Solid, readable block (matches the legacy timebox look) — not a faint wash. */
   background-color: var(--ant-color-fill-secondary);
   border: 1px solid var(--ant-color-border);
@@ -282,6 +282,7 @@
 .bar {
   position: absolute;
   z-index: 2;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   border-radius: var(--ant-border-radius);
@@ -294,11 +295,31 @@
   cursor: default;
 }
 
+/* A one-day range: too narrow to be a useful bar, rendered as a circle (an easy
+   click target) with its label beside it. Distinct from the milestone diamond and
+   the multi-day rectangular bar. Reverts to a normal bar automatically when a
+   resize drag extends it past one day (the shape is duration-driven). */
+.barOneDay {
+  border-radius: 50%;
+  padding: 0;
+}
+
 .barLabel {
   position: relative;
   z-index: 1;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Label rendered beside a one-day bar (too narrow to hold text inside). Uses the
+   chart's normal text color and sits outside the bar's clipped box. */
+.barLabelOutside {
+  position: absolute;
+  z-index: 2;
+  white-space: nowrap;
+  color: var(--ant-color-text);
+  pointer-events: auto;
+  cursor: default;
 }
 
 .barSelected {
@@ -378,6 +399,30 @@
   z-index: 2;
   background-color: var(--ant-color-warning);
   transform: translateX(-50%) rotate(45deg);
+}
+
+/* One shared tooltip for timeline bars, milestones, and timeboxes. Kept inside
+   the canvas so virtualization and horizontal scrolling stay simple. */
+.tooltip {
+  position: absolute;
+  z-index: 5;
+  max-width: 280px;
+  padding: var(--ant-padding-xxs) var(--ant-padding-xs);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius);
+  background-color: var(--ant-color-bg-elevated);
+  color: var(--ant-color-text);
+  box-shadow: var(--ant-box-shadow-secondary);
+  font-size: var(--ant-font-size-sm);
+  line-height: var(--ant-line-height, 1.5);
+  white-space: pre-line;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.tooltipVisible {
+  opacity: 1;
 }
 
 /* ── Empty / loading ───────────────────────────────────────────────────── */

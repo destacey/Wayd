@@ -49,10 +49,12 @@ jest.mock('../projects/_components', () => ({
 function createProject(
   overrides: Partial<ProjectListDto> & { key: string; name: string },
 ): ProjectListDto {
+  const { key, name, ...rest } = overrides
+
   return {
-    id: overrides.key,
-    key: overrides.key,
-    name: overrides.name,
+    id: key,
+    key,
+    name,
     status: { id: 1, name: 'Active' } as any,
     portfolio: { id: 'portfolio-1', key: 1, name: 'Portfolio' } as any,
     projectSponsors: [],
@@ -63,7 +65,7 @@ function createProject(
     phases: [],
     rank: 0,
     canManageProject: true,
-    ...overrides,
+    ...rest,
   } as ProjectListDto
 }
 

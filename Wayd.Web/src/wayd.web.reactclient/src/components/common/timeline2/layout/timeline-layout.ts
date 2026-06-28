@@ -32,8 +32,9 @@ function buildRow(
   laneHeight: number,
   rowPadding: number,
   topInset = 0,
+  getCollisionEnd?: (item: TimelineItem) => number,
 ): ResolvedRow {
-  const packed = packLanes(items)
+  const packed = packLanes(items, { getCollisionEnd })
   const placed = items.map((item) => ({
     item,
     lane: packed.lanes.get(item.id) ?? 0,
@@ -69,7 +70,16 @@ export function timelineLayout(input: LayoutInput): LayoutOutput {
     // Chart-wide timeboxes (e.g. level-1 root timeboxes) reserve top headroom
     // for their labels above the bars.
     const inset = input.hasChartBackground ? laneHeight : 0
-    const row = buildRow(items, undefined, 0, 0, laneHeight, rowPadding, inset)
+    const row = buildRow(
+      items,
+      undefined,
+      0,
+      0,
+      laneHeight,
+      rowPadding,
+      inset,
+      input.getCollisionEnd,
+    )
     return { rows: [row], totalHeight: row.height }
   }
 
@@ -107,7 +117,9 @@ export function timelineLayout(input: LayoutInput): LayoutOutput {
     const node = nodes.get(id)
     if (!node) return []
     const own = directItems.get(id) ?? []
-    const fromChildren = node.childIds.flatMap((childId) => subtreeItems(childId))
+    const fromChildren = node.childIds.flatMap((childId) =>
+      subtreeItems(childId),
+    )
     return [...own, ...fromChildren]
   }
 
@@ -132,7 +144,7 @@ export function timelineLayout(input: LayoutInput): LayoutOutput {
     const collapsed = node.group.collapsed === true
 
     // Collapsed => fold the whole subtree onto this row; expanded => direct only.
-    const rowItems = collapsed ? subtreeItems(id) : directItems.get(id) ?? []
+    const rowItems = collapsed ? subtreeItems(id) : (directItems.get(id) ?? [])
     const row = buildRow(
       rowItems,
       id,
@@ -141,6 +153,7 @@ export function timelineLayout(input: LayoutInput): LayoutOutput {
       laneHeight,
       rowPadding,
       insetFor(id),
+      input.getCollisionEnd,
     )
     rows.push(row)
     top += row.height

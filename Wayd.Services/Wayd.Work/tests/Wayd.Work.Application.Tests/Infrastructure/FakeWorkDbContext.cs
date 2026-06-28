@@ -66,12 +66,12 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
     public DatabaseFacade Database => throw new NotImplementedException("Database operations are not supported in FakeWorkDbContext. Use integration tests with a real DbContext for database-specific functionality.");
 
     public IQueryable<WorkItem> SearchWorkItems(string searchTerm, int top) =>
-        _workItems
-            .Where(e => e.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
-                || ((string)e.Key).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
-                || (e.ParentId.HasValue && ((string)e.Parent!.Key).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
-            .Take(top)
-            .AsQueryable();
+        new TestAsyncEnumerable<WorkItem>(
+            _workItems
+                .Where(e => e.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                    || ((string)e.Key).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                    || (e.ParentId.HasValue && ((string)e.Parent!.Key).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
+                .Take(top));
 
     /// <summary>
     /// Gets the number of times SaveChangesAsync has been called.

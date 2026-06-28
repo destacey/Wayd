@@ -42,13 +42,26 @@ graph TD
 - **Milestone** — A point-in-time marker representing a key date or achievement.
 - **Timebox** — A time-bounded period (e.g., a sprint or phase).
 
+Roadmap and item date ranges are inclusive: the end date can be the same as the start date, which creates a single-day range.
+
 All items support an optional **Color** property for visual differentiation. When a roadmap has a [color palette](#roadmap-colors) configured, activities are colored by choosing from those named colors; otherwise any color can be picked freely.
+
+## Activity Date Rollup
+
+Activities automatically stay large enough to contain their child items:
+
+- Creating or moving a child item outside its parent activity expands the parent activity to include it.
+- Updating a child activity, milestone, or timebox outside its parent also expands the parent. The change rolls up through ancestor activities when needed.
+- Editing an activity to shrink it inside any of its children is blocked. The activity date range must contain every direct child item.
+- Moving an activity without changing its duration shifts the whole subtree by the same number of days, preserving the relative dates of descendant activities, milestones, and timeboxes.
+
+When a form detects that a child date falls outside the selected parent activity, it shows an informational hint before saving so managers know the parent will expand.
 
 ## Roadmap Detail Page
 
 The roadmap detail page offers two views:
 
-**Timeline View** (default) — Visual timeline showing activities, milestones, and timeboxes. Managers can drag and drop items to reorder them.
+**Timeline View** (default) — Visual timeline showing activities, milestones, and timeboxes. Managers can drag and drop items to reorder them. Single-day activity and timebox ranges use a compact marker treatment with the label beside the marker.
 
 **List View** — Hierarchical tree grid showing all items with Name, Type, Start Date, End Date, and Status. Supports inline editing for managers and keyboard shortcuts.
 
@@ -115,6 +128,8 @@ The timeline starts with the roadmap's date range filling the viewport. Zoom in 
 | Drag bar | Move the item |
 | Drag left/right handle | Resize start or end date |
 | Esc during drag | Cancel the drag without saving |
+
+Moving a parent activity by dragging its bar keeps the same duration, so all descendant items move with it. Resizing a parent activity changes only the parent's range and must still leave every child item inside that range.
 
 ### Settings Menu
 

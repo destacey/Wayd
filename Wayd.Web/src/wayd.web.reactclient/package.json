@@ -83,9 +83,7 @@
     "rehype-raw": "^7.0.0",
     "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^4.0.1",
-    "unist-util-visit": "^5.1.0",
-    "vis-data": "8.0.4",
-    "vis-timeline": "8.5.1"
+    "unist-util-visit": "^5.1.0"
   },
   "overrides": {
     "react": "$react",

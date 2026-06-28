@@ -47,6 +47,15 @@ enum RoadmapItemType {
 }
 
 const ms = (d: unknown) => dayjs(d as string).valueOf()
+const formatTooltipDate = (d: unknown) =>
+  dayjs(d as string).format('MMM D, YYYY')
+const formatRangeTooltip = (
+  name: string | undefined,
+  start: unknown,
+  end: unknown,
+) => `${name ?? ''}\n${formatTooltipDate(start)} - ${formatTooltipDate(end)}`
+const formatDateTooltip = (name: string | undefined, date: unknown) =>
+  `${name ?? ''}\n${formatTooltipDate(date)}`
 
 interface RoadmapPayload {
   dto: RoadmapItemListDto
@@ -116,6 +125,7 @@ function mapRoadmap(
             id,
             kind: 'range',
             label: a.name,
+            tooltip: formatRangeTooltip(a.name, a.start, a.end),
             // Activities with no color of their own fall back to the roadmap's
             // configured default color (display-time only; nothing is stored).
             color: a.color ?? defaultActivityColor,
@@ -135,6 +145,7 @@ function mapRoadmap(
             id,
             kind: 'milestone',
             label: m.name,
+            tooltip: formatDateTooltip(m.name, m.date),
             color: m.color,
             start: ms(m.date),
             end: ms(m.date),
@@ -151,6 +162,7 @@ function mapRoadmap(
             id,
             kind: 'background',
             label: t.name,
+            tooltip: formatRangeTooltip(t.name, t.start, t.end),
             color: t.color,
             start: ms(t.start),
             end: ms(t.end),
@@ -186,8 +198,9 @@ const RoadmapTimelineV2: FC<RoadmapTimelineV2Props> = (props) => {
   const [updateRoadmapItemDates] = useUpdateRoadmapItemDatesMutation()
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
-  const defaultActivityColor = props.roadmap.colors.find((c) => c.isDefault)
-    ?.color
+  const defaultActivityColor = props.roadmap.colors.find(
+    (c) => c.isDefault,
+  )?.color
 
   const { items, groups } = mapRoadmap(
     props.roadmapItems,

@@ -9,9 +9,13 @@ import {
   useGetRoadmapQuery,
 } from '@/src/store/features/planning/roadmaps-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { DatePicker, Form, Input, Modal, TreeSelect } from 'antd'
+import { Alert, DatePicker, Form, Input, Modal, TreeSelect } from 'antd'
 import { useEffect } from 'react'
 import RoadmapColorPicker from './roadmap-color-picker'
+import {
+  findParentActivityRange,
+  getParentExpansionHint,
+} from './roadmap-parent-date-hint'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -96,6 +100,14 @@ const CreateRoadmapActivityForm = ({
       permission: 'Permissions.Roadmaps.Update',
     })
 
+  const selectedParentId = Form.useWatch('parentId', form)
+  const selectedRange = Form.useWatch('range', form)
+  const parentExpansionHint = getParentExpansionHint(
+    findParentActivityRange(activities, selectedParentId),
+    selectedRange?.[0],
+    selectedRange?.[1],
+  )
+
   // Query error display
   useEffect(() => {
     if (activitiesError) {
@@ -173,9 +185,9 @@ const CreateRoadmapActivityForm = ({
                   )
                 }
                 const [start, end] = value
-                if (!start || !end || !start.isBefore(end)) {
+                if (!start || !end || end.isBefore(start, 'day')) {
                   return Promise.reject(
-                    new Error('End date must be after start date'),
+                    new Error('End date must be on or after start date'),
                   )
                 }
                 return Promise.resolve()
@@ -185,6 +197,14 @@ const CreateRoadmapActivityForm = ({
         >
           <RangePicker />
         </Item>
+        {parentExpansionHint && (
+          <Alert
+            type="info"
+            showIcon
+            message={parentExpansionHint}
+            style={{ marginBottom: 16 }}
+          />
+        )}
         <Item name="color" label="Color">
           {roadmapColors.length > 0 ? (
             <RoadmapColorPicker entries={roadmapColors} />

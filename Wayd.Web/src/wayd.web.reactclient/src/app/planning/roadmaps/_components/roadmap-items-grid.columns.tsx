@@ -103,12 +103,6 @@ function FocusableColorPickerField({
 }: FocusableColorPickerFieldProps) {
   const focusTargetRef = useRef<HTMLDivElement | null>(null)
   const isDropdownOpenRef = useRef(false)
-  const onColorChange = (nextValue: string | undefined) => {
-    onChange?.(nextValue)
-    setTimeout(() => {
-      focusTargetRef.current?.focus()
-    }, 0)
-  }
 
   // When the roadmap has a color palette, constrain inline editing to it (same
   // as the create/edit forms); otherwise fall back to the freeform picker.
@@ -130,16 +124,27 @@ function FocusableColorPickerField({
           void handleKeyDown(e, rowId, 'color')
         }}
       >
+        {/* The Select keeps focus on its own combobox after a selection, so no
+            manual refocus is needed here (unlike the freeform picker below). */}
         <RoadmapColorPicker
           entries={roadmapColors}
           value={value}
-          onChange={onColorChange}
+          onChange={(nextValue) => onChange?.(nextValue)}
           onOpenChange={(open) => {
             isDropdownOpenRef.current = open
           }}
         />
       </div>
     )
+  }
+
+  // The freeform picker opens a popover that steals focus; pull it back to this
+  // wrapper after a change so the grid's keyboard navigation keeps working.
+  const onColorChange = (nextValue: string | undefined) => {
+    onChange?.(nextValue)
+    setTimeout(() => {
+      focusTargetRef.current?.focus()
+    }, 0)
   }
 
   return (

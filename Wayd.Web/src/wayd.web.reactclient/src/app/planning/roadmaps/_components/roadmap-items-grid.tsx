@@ -398,7 +398,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
                 'input, .ant-select, .ant-picker',
               ) as HTMLElement | null
               if (input) {
-                input.focus()
+                input.focus({ preventScroll: true })
                 focused = true
                 break
               }
@@ -411,7 +411,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
               const input = cellElement?.querySelector(
                 'input',
               ) as HTMLElement | null
-              input?.focus()
+              input?.focus({ preventScroll: true })
             }
           }, 0)
 
@@ -608,9 +608,23 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
       } else {
         // An activity's range must contain all of its children (matches the domain
         // rule that a parent cannot be shrunk behind a child).
-        const containment = childrenContainmentError(item, dayjs(start), dayjs(end))
-        if (containment) {
-          errors[containment.field] = containment.message
+        const originalStart = item.start ? dayjs(item.start) : null
+        const originalEnd = item.end ? dayjs(item.end) : null
+        const newStart = dayjs(start)
+        const newEnd = dayjs(end)
+
+        let isShift = false
+        if (originalStart && originalEnd && originalStart.isValid() && originalEnd.isValid()) {
+          const startDelta = newStart.diff(originalStart, 'day')
+          const endDelta = newEnd.diff(originalEnd, 'day')
+          isShift = startDelta === endDelta && startDelta !== 0
+        }
+
+        if (!isShift) {
+          const containment = childrenContainmentError(item, newStart, newEnd)
+          if (containment) {
+            errors[containment.field] = containment.message
+          }
         }
       }
 

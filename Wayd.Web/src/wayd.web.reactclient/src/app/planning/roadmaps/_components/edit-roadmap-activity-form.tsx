@@ -25,6 +25,7 @@ import {
   findParentActivityRange,
   getChildrenContainmentError,
   getParentExpansionHint,
+  isShiftOnlyChange,
 } from './roadmap-parent-date-hint'
 
 const { Item } = Form
@@ -252,13 +253,20 @@ const EditRoadmapActivityForm = ({
                     new Error('End date must be on or after start date'),
                   )
                 }
-                const containmentError = getChildrenContainmentError(
-                  ownChildrenSpan,
-                  start,
-                  end,
-                )
-                if (containmentError) {
-                  return Promise.reject(new Error(containmentError))
+                const activity = activityData as RoadmapActivityDetailsDto | undefined
+                const originalStart = activity?.start ? dayjs(activity.start) : null
+                const originalEnd = activity?.end ? dayjs(activity.end) : null
+                const isShift = isShiftOnlyChange(originalStart, originalEnd, start, end)
+
+                if (!isShift) {
+                  const containmentError = getChildrenContainmentError(
+                    ownChildrenSpan,
+                    start,
+                    end,
+                  )
+                  if (containmentError) {
+                    return Promise.reject(new Error(containmentError))
+                  }
                 }
                 return Promise.resolve()
               },

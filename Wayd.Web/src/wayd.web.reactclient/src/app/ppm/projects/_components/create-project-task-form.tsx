@@ -15,6 +15,7 @@ import {
   useGetTaskStatusOptionsQuery,
 } from '@/src/store/features/ppm/project-tasks-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import { useGetProjectPlanTreeQuery } from '@/src/store/features/ppm/projects-api'
 import {
   DatePicker,
   Form,
@@ -23,8 +24,14 @@ import {
   Modal,
   Radio,
   TreeSelect,
+  Alert,
 } from 'antd'
 import { useEffect } from 'react'
+import {
+  findParentPlanNodeRange,
+  getParentExpansionHint,
+  getMilestoneParentExpansionHint,
+} from './project-parent-date-hint'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -130,6 +137,16 @@ const CreateProjectTaskForm = ({
     (opt) => opt.label === 'Milestone',
   )?.value
   const isMilestone = selectedType === milestoneValue
+
+  const { data: planTree } = useGetProjectPlanTreeQuery(projectIdOrKey)
+  const selectedParentId = Form.useWatch('parentId', form)
+  const selectedRange = Form.useWatch('plannedRange', form)
+  const selectedDate = Form.useWatch('plannedDate', form)
+
+  const parentRange = findParentPlanNodeRange(planTree, selectedParentId)
+  const parentExpansionHint = isMilestone
+    ? getMilestoneParentExpansionHint(parentRange, selectedDate)
+    : getParentExpansionHint(parentRange, selectedRange?.[0], selectedRange?.[1])
 
   const { data: statusOptions = [] } = useGetTaskStatusOptionsQuery({
     forMilestone: isMilestone,
@@ -282,6 +299,14 @@ const CreateProjectTaskForm = ({
           >
             <DatePicker style={{ width: '60%' }} format="MMM D, YYYY" />
           </Item>
+        )}
+        {parentExpansionHint && (
+          <Alert
+            type="info"
+            showIcon
+            message={parentExpansionHint}
+            style={{ marginBottom: 16 }}
+          />
         )}
       </Form>
     </Modal>

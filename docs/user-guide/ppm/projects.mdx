@@ -252,6 +252,11 @@ graph TD
 - Milestones cannot be In Progress (only Not Started or Completed)
 - Tasks cannot be deleted if they have children or active dependencies
 - Tasks cannot be moved under their own descendants (prevents circular references)
+- **Date Rollup** — Phase and parent task date ranges automatically roll up from child dates:
+  - If a phase or parent task has dated children, its range automatically expands to cover the minimum start date through the maximum end date of its descendants.
+  - A phase or parent task date range cannot be manually shrunk behind its children's dates, nor can its dates be cleared while any of its descendants have dates.
+  - Leaf regular tasks and empty containers can remain undated.
+  - Shifting a parent task's range offsets all of its dated descendants by the same duration.
 
 ### Task Dependencies
 

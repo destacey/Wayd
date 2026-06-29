@@ -405,7 +405,7 @@ export const getProjectPlanTableColumns = ({
                         const input = cell.querySelector(
                           'input.ant-select-input',
                         ) as HTMLElement
-                        input?.focus()
+                        input?.focus({ preventScroll: true })
                       }
                     }, 10)
                   }
@@ -587,7 +587,7 @@ export const getProjectPlanTableColumns = ({
                       const input = cell.querySelector('input') as
                         | HTMLInputElement
                         | undefined
-                      input?.focus()
+                      input?.focus({ preventScroll: true })
                     }
                   }, 0)
                 }
@@ -650,7 +650,7 @@ export const getProjectPlanTableColumns = ({
                       const input = cell.querySelector('input') as
                         | HTMLInputElement
                         | undefined
-                      input?.focus()
+                      input?.focus({ preventScroll: true })
                     }
                   }, 0)
                 }

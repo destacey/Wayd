@@ -1,4 +1,4 @@
-﻿using Ardalis.GuardClauses;
+using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
@@ -675,6 +675,9 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
         parentTask?.AddChild(task);
 
+        LinkTaskParents();
+        RecalculateAncestorsForTask(task);
+
         return Result.Success(task);
     }
 
@@ -827,8 +830,14 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             }
 
             changeResult = task.ChangeOrder(newOrder);
-            return changeResult;
+            if (changeResult.IsFailure)
+            {
+                return changeResult;
+            }
         }
+
+        LinkTaskParents();
+        RecalculateAncestorsForTask(task);
 
         return Result.Success();
     }
@@ -868,6 +877,150 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         ResetOrderForChildTasks(parentId);
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Reconstructs the in-memory parent-child tree navigation structure for all tasks.
+    /// </summary>
+    public void LinkTaskParents()
+    {
+        foreach (var t in _tasks)
+        {
+            t.ClearChildren();
+        }
+        foreach (var t in _tasks)
+        {
+            if (t.ParentId.HasValue)
+            {
+                var parent = _tasks.FirstOrDefault(p => p.Id == t.ParentId.Value);
+                parent?.AddChild(t);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Updates a task's planned dates and runs hierarchical date rollup recalculations.
+    /// </summary>
+    public Result UpdateTaskDates(Guid taskId, FlexibleDateRange? plannedDateRange, LocalDate? plannedDate, bool parentChanging)
+    {
+        var task = _tasks.FirstOrDefault(t => t.Id == taskId);
+        if (task is null)
+        {
+            return Result.Failure("Task not found.");
+        }
+
+        LinkTaskParents();
+
+        var allowShift = !parentChanging;
+        var result = task.ApplyPlannedDates(plannedDateRange, plannedDate, allowShift);
+        if (result.IsFailure)
+        {
+            return result;
+        }
+
+        RecalculateAncestorsForTask(task);
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Updates a phase's planned dates, validating that it contains all dated root tasks.
+    /// </summary>
+    public Result UpdatePhaseDates(Guid phaseId, FlexibleDateRange? dateRange)
+    {
+        var phase = _phases.FirstOrDefault(p => p.Id == phaseId);
+        if (phase is null)
+        {
+            return Result.Failure("Phase not found.");
+        }
+
+        var rootTasks = _tasks.Where(t => t.ProjectPhaseId == phaseId && t.ParentId == null);
+        return phase.UpdatePlannedDates(dateRange, rootTasks);
+    }
+
+    /// <summary>
+    /// Recalculates all parent task and phase date ranges recursively up the ancestor chain starting from the given task.
+    /// </summary>
+    public void RecalculateAncestorsForTask(ProjectTask task)
+    {
+        var current = task.Parent;
+        while (current is not null)
+        {
+            current.RecalculateDatesFromChildren();
+            current = current.Parent;
+        }
+
+        // Also recalculate the phase
+        var phase = _phases.FirstOrDefault(p => p.Id == task.ProjectPhaseId);
+        if (phase is not null)
+        {
+            RecalculatePhaseDatesFromRootTasks(phase);
+        }
+    }
+
+    private void RecalculatePhaseDatesFromRootTasks(ProjectPhase phase)
+    {
+        var rootTasks = _tasks.Where(t => t.ProjectPhaseId == phase.Id && t.ParentId == null);
+        LocalDate? childrenStart = null;
+        LocalDate? childrenEnd = null;
+        bool hasOpenEndedChild = false;
+
+        foreach (var task in rootTasks)
+        {
+            if (task.Type == ProjectTaskType.Milestone)
+            {
+                if (task.PlannedDate.HasValue)
+                {
+                    childrenStart = childrenStart is null ? task.PlannedDate.Value : LocalDate.Min(childrenStart.Value, task.PlannedDate.Value);
+                    childrenEnd = childrenEnd is null ? task.PlannedDate.Value : LocalDate.Max(childrenEnd.Value, task.PlannedDate.Value);
+                }
+            }
+            else
+            {
+                if (task.PlannedDateRange is not null)
+                {
+                    childrenStart = childrenStart is null ? task.PlannedDateRange.Start : LocalDate.Min(childrenStart.Value, task.PlannedDateRange.Start);
+                    if (task.PlannedDateRange.End.HasValue)
+                    {
+                        childrenEnd = childrenEnd is null ? task.PlannedDateRange.End.Value : LocalDate.Max(childrenEnd.Value, task.PlannedDateRange.End.Value);
+                    }
+                    else
+                    {
+                        hasOpenEndedChild = true;
+                    }
+                }
+            }
+        }
+
+        if (!childrenStart.HasValue)
+        {
+            return;
+        }
+
+        LocalDate? finalChildrenEnd = hasOpenEndedChild ? null : childrenEnd;
+
+        if (phase.DateRange is null)
+        {
+            phase.UpdatePlannedDates(new FlexibleDateRange(childrenStart.Value, finalChildrenEnd));
+        }
+        else
+        {
+            var newStart = LocalDate.Min(phase.DateRange.Start, childrenStart.Value);
+            LocalDate? newEnd;
+            if (phase.DateRange.End is null || finalChildrenEnd is null)
+            {
+                newEnd = null;
+            }
+            else
+            {
+                newEnd = LocalDate.Max(phase.DateRange.End.Value, finalChildrenEnd.Value);
+            }
+
+            if (newStart != phase.DateRange.Start || newEnd != phase.DateRange.End)
+            {
+                phase.UpdatePlannedDates(new FlexibleDateRange(newStart, newEnd));
+            }
+        }
     }
 
     /// <summary>

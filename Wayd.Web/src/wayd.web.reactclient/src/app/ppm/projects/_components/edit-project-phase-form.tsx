@@ -3,7 +3,7 @@
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useModalForm } from '@/src/hooks'
-import { useGetProjectPhaseQuery } from '@/src/store/features/ppm/projects-api'
+import { useGetProjectPhaseQuery, useGetProjectPlanTreeQuery } from '@/src/store/features/ppm/projects-api'
 import { useGetTaskStatusOptionsQuery } from '@/src/store/features/ppm/project-tasks-api'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import { authenticatedFetch } from '@/src/services/clients'
@@ -11,6 +11,11 @@ import { toFormErrors } from '@/src/utils'
 import { DatePicker, Form, InputNumber, Modal, Radio } from 'antd'
 import dayjs from 'dayjs'
 import { useEffect } from 'react'
+import {
+  findOwnChildrenSpan,
+  getChildrenContainmentError,
+  isShiftOnlyChange,
+} from './project-parent-date-hint'
 
 const { Item } = Form
 const { RangePicker } = DatePicker
@@ -41,6 +46,7 @@ const EditProjectPhaseForm = ({
     { projectId, phaseId },
     { skip: !projectId || !phaseId },
   )
+  const { data: planTree } = useGetProjectPlanTreeQuery(projectId, { skip: !projectId })
 
   const { data: statusOptions = [] } = useGetTaskStatusOptionsQuery()
   const { data: employeeData } = useGetEmployeeOptionsQuery(true)
@@ -228,7 +234,37 @@ const EditProjectPhaseForm = ({
           />
         </Item>
 
-        <Item name="plannedRange" label="Planned Date Range">
+        <Item
+          name="plannedRange"
+          label="Planned Date Range"
+          rules={[
+            {
+              validator: (_, value) => {
+                const childrenSpan = findOwnChildrenSpan(planTree, phaseId)
+                if (childrenSpan) {
+                  if (!value || !value[0] || !value[1]) {
+                    return Promise.reject(
+                      new Error('Planned dates cannot be cleared when child items have dates.')
+                    )
+                  }
+                  const start = value[0]
+                  const end = value[1]
+                  const originalStart = phaseData?.start ? dayjs(phaseData.start.toString()) : null
+                  const originalEnd = phaseData?.end ? dayjs(phaseData.end.toString()) : null
+                  const isShift = isShiftOnlyChange(originalStart, originalEnd, start, end)
+
+                  if (!isShift) {
+                    const containmentError = getChildrenContainmentError(childrenSpan, start, end)
+                    if (containmentError) {
+                      return Promise.reject(new Error(containmentError))
+                    }
+                  }
+                }
+                return Promise.resolve()
+              }
+            }
+          ]}
+        >
           <RangePicker style={{ width: '60%' }} format="MMM D, YYYY" />
         </Item>
 

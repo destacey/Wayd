@@ -14,6 +14,7 @@ import {
   useUpdateProjectTaskMutation,
 } from '@/src/store/features/ppm/project-tasks-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import { useGetProjectPlanTreeQuery } from '@/src/store/features/ppm/projects-api'
 import {
   DatePicker,
   Form,
@@ -22,9 +23,18 @@ import {
   Modal,
   Radio,
   TreeSelect,
+  Alert,
 } from 'antd'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useEffect } from 'react'
+import {
+  findParentPlanNodeRange,
+  getParentExpansionHint,
+  getMilestoneParentExpansionHint,
+  findOwnChildrenSpan,
+  getChildrenContainmentError,
+  isShiftOnlyChange,
+} from './project-parent-date-hint'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -92,6 +102,8 @@ const EditProjectTaskForm = ({
   const taskType = taskData?.type?.name
   const isMilestone = taskType === 'Milestone'
 
+
+
   const {
     data: employeeData,
   } = useGetEmployeeOptionsQuery(true)
@@ -147,6 +159,16 @@ const EditProjectTaskForm = ({
         'An error occurred while updating the task. Please try again.',
       permission: 'Permissions.Projects.Update',
     })
+
+  const { data: planTree } = useGetProjectPlanTreeQuery(projectIdOrKey)
+  const selectedParentId = Form.useWatch('parentId', form)
+  const selectedRange = Form.useWatch('plannedRange', form)
+  const selectedDate = Form.useWatch('plannedDate', form)
+
+  const parentRange = findParentPlanNodeRange(planTree, selectedParentId)
+  const parentExpansionHint = isMilestone
+    ? getMilestoneParentExpansionHint(parentRange, selectedDate)
+    : getParentExpansionHint(parentRange, selectedRange?.[0], selectedRange?.[1])
 
   // Initialize form values when data is loaded
   useEffect(() => {
@@ -270,7 +292,37 @@ const EditProjectTaskForm = ({
 
         {!isMilestone ? (
           <>
-            <Item name="plannedRange" label="Planned Date Range">
+            <Item
+              name="plannedRange"
+              label="Planned Date Range"
+              rules={[
+                {
+                  validator: (_, value) => {
+                    const childrenSpan = findOwnChildrenSpan(planTree, taskData?.id)
+                    if (childrenSpan) {
+                      if (!value || !value[0] || !value[1]) {
+                        return Promise.reject(
+                          new Error('Planned dates cannot be cleared when child items have dates.')
+                        )
+                      }
+                      const start = value[0]
+                      const end = value[1]
+                      const originalStart = taskData?.plannedStart ? dayjs(taskData.plannedStart) : null
+                      const originalEnd = taskData?.plannedEnd ? dayjs(taskData.plannedEnd) : null
+                      const isShift = isShiftOnlyChange(originalStart, originalEnd, start, end)
+
+                      if (!isShift) {
+                        const containmentError = getChildrenContainmentError(childrenSpan, start, end)
+                        if (containmentError) {
+                          return Promise.reject(new Error(containmentError))
+                        }
+                      }
+                    }
+                    return Promise.resolve()
+                  }
+                }
+              ]}
+            >
               <RangePicker style={{ width: '60%' }} format="MMM D, YYYY" />
             </Item>
 
@@ -288,6 +340,14 @@ const EditProjectTaskForm = ({
           <Item name="plannedDate" label="Planned Date">
             <DatePicker style={{ width: '60%' }} format="MMM D, YYYY" />
           </Item>
+        )}
+        {parentExpansionHint && (
+          <Alert
+            type="info"
+            showIcon
+            message={parentExpansionHint}
+            style={{ marginBottom: 16 }}
+          />
         )}
       </Form>
     </Modal>

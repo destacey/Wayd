@@ -1,4 +1,5 @@
-﻿using Wayd.ProjectPortfolioManagement.Domain.Enums;
+using Wayd.ProjectPortfolioManagement.Domain.Enums;
+using Wayd.ProjectPortfolioManagement.Domain.Models;
 using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
@@ -40,10 +41,20 @@ internal sealed class UpdateProjectPhaseCommandHandler(
     {
         try
         {
-            var phase = await _ppmDbContext.ProjectPhases
-                .Include(p => p.Roles)
-                .FirstOrDefaultAsync(p => p.ProjectId == request.ProjectId && p.Id == request.PhaseId, cancellationToken);
+            var project = await _ppmDbContext.Projects
+                .AsSplitQuery()
+                .Include(p => p.Phases)
+                .ThenInclude(p => p.Roles)
+                .Include(p => p.Tasks)
+                .FirstOrDefaultAsync(p => p.Id == request.ProjectId, cancellationToken);
 
+            if (project is null)
+            {
+                _logger.LogInformation("Project {ProjectId} not found.", request.ProjectId);
+                return Result.Failure($"Project {request.ProjectId} not found.");
+            }
+
+            var phase = project.Phases.FirstOrDefault(p => p.Id == request.PhaseId);
             if (phase is null)
             {
                 _logger.LogInformation("Project Phase {PhaseId} not found for Project {ProjectId}.", request.PhaseId, request.ProjectId);
@@ -52,23 +63,23 @@ internal sealed class UpdateProjectPhaseCommandHandler(
 
             var descriptionResult = phase.UpdateDescription(request.Description);
             if (descriptionResult.IsFailure)
-                return descriptionResult;
+                return await HandleDomainFailure(project, descriptionResult, cancellationToken);
 
             var statusResult = phase.UpdateStatus((TaskStatus)request.Status);
             if (statusResult.IsFailure)
-                return statusResult;
+                return await HandleDomainFailure(project, statusResult, cancellationToken);
 
             FlexibleDateRange? dateRange = request.PlannedStart.HasValue && request.PlannedEnd.HasValue
                 ? new FlexibleDateRange(request.PlannedStart.Value, request.PlannedEnd.Value)
                 : null;
 
-            var datesResult = phase.UpdatePlannedDates(dateRange);
+            var datesResult = project.UpdatePhaseDates(phase.Id, dateRange);
             if (datesResult.IsFailure)
-                return datesResult;
+                return await HandleDomainFailure(project, datesResult, cancellationToken);
 
             var progressResult = phase.UpdateProgress(new Progress(request.Progress));
             if (progressResult.IsFailure)
-                return progressResult;
+                return await HandleDomainFailure(project, progressResult, cancellationToken);
 
             if (request.AssigneeIds is not null)
             {
@@ -79,7 +90,7 @@ internal sealed class UpdateProjectPhaseCommandHandler(
 
                 var rolesResult = phase.UpdateRoles(updatedRoles);
                 if (rolesResult.IsFailure)
-                    return rolesResult;
+                    return await HandleDomainFailure(project, rolesResult, cancellationToken);
             }
 
             await _ppmDbContext.SaveChangesAsync(cancellationToken);
@@ -93,5 +104,37 @@ internal sealed class UpdateProjectPhaseCommandHandler(
             _logger.LogError(ex, "Exception handling {CommandName} command for request {@Request}.", AppRequestName, request);
             return Result.Failure($"Error handling {AppRequestName} command.");
         }
+    }
+
+    private async Task<Result> HandleDomainFailure(Project project, Result errorResult, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _ppmDbContext.Entry(project).ReloadAsync(cancellationToken);
+            foreach (var task in project.Tasks)
+            {
+                await _ppmDbContext.Entry(task).ReloadAsync(cancellationToken);
+                task.ClearDomainEvents();
+            }
+            foreach (var phase in project.Phases)
+            {
+                await _ppmDbContext.Entry(phase).ReloadAsync(cancellationToken);
+                phase.ClearDomainEvents();
+            }
+        }
+        catch (NotImplementedException)
+        {
+            foreach (var task in project.Tasks)
+            {
+                task.ClearDomainEvents();
+            }
+            foreach (var phase in project.Phases)
+            {
+                phase.ClearDomainEvents();
+            }
+        }
+
+        _logger.LogError("Unable to update project phase. Error message: {Error}", errorResult.Error);
+        return Result.Failure(errorResult.Error);
     }
 }

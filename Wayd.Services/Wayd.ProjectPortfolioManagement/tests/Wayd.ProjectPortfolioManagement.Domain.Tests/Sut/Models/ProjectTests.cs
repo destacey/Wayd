@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.Testing;
@@ -1935,4 +1935,267 @@ public class ProjectTests
     }
 
     #endregion Scoring
+
+    #region Date Rollup Tests
+
+    [Fact]
+    public void CreateTask_ShouldExpandUndatedPhase_WhenDatedRootTaskCreated()
+    {
+        // Arrange
+        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning phase"));
+        var phase = phases[0];
+        phase.DateRange.Should().BeNull();
+
+        var plannedRange = new FlexibleDateRange(new LocalDate(2026, 6, 1), new LocalDate(2026, 6, 10));
+
+        // Act
+        var result = project.CreateTask(
+            nextNumber: 1,
+            name: "Dated Root Task",
+            description: null,
+            type: ProjectTaskType.Task,
+            status: Enums.TaskStatus.NotStarted,
+            priority: TaskPriority.Medium,
+            progress: null,
+            parentId: phase.Id,
+            plannedDateRange: plannedRange,
+            plannedDate: null,
+            estimatedEffortHours: null,
+            roles: null);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        phase.DateRange.Should().NotBeNull();
+        phase.DateRange!.Start.Should().Be(plannedRange.Start);
+        phase.DateRange.End.Should().Be(plannedRange.End);
+    }
+
+    [Fact]
+    public void CreateTask_ShouldExpandUndatedParentTaskAndPhase_WhenDatedChildTaskCreated()
+    {
+        // Arrange
+        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning phase"));
+        var phase = phases[0];
+
+        // Create undated parent task
+        var parentResult = project.CreateTask(
+            nextNumber: 1,
+            name: "Parent Task",
+            description: null,
+            type: ProjectTaskType.Task,
+            status: Enums.TaskStatus.NotStarted,
+            priority: TaskPriority.Medium,
+            progress: null,
+            parentId: phase.Id,
+            plannedDateRange: null,
+            plannedDate: null,
+            estimatedEffortHours: null,
+            roles: null);
+        
+        parentResult.IsSuccess.Should().BeTrue();
+        var parentTask = parentResult.Value;
+        parentTask.PlannedDateRange.Should().BeNull();
+        phase.DateRange.Should().BeNull();
+
+        var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
+
+        // Act - Create dated child task under parent task
+        var childResult = project.CreateTask(
+            nextNumber: 2,
+            name: "Child Task",
+            description: null,
+            type: ProjectTaskType.Task,
+            status: Enums.TaskStatus.NotStarted,
+            priority: TaskPriority.Medium,
+            progress: null,
+            parentId: parentTask.Id,
+            plannedDateRange: childRange,
+            plannedDate: null,
+            estimatedEffortHours: null,
+            roles: null);
+
+        // Assert
+        childResult.IsSuccess.Should().BeTrue();
+        parentTask.PlannedDateRange.Should().NotBeNull();
+        parentTask.PlannedDateRange!.Start.Should().Be(childRange.Start);
+        parentTask.PlannedDateRange.End.Should().Be(childRange.End);
+
+        phase.DateRange.Should().NotBeNull();
+        phase.DateRange!.Start.Should().Be(childRange.Start);
+        phase.DateRange.End.Should().Be(childRange.End);
+    }
+
+    [Fact]
+    public void CreateTask_ShouldExpandAncestors_WhenMilestoneCreatedOutsideParent()
+    {
+        // Arrange
+        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning phase"));
+        var phase = phases[0];
+
+        var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
+        var parentResult = project.CreateTask(
+            nextNumber: 1,
+            name: "Parent Task",
+            description: null,
+            type: ProjectTaskType.Task,
+            status: Enums.TaskStatus.NotStarted,
+            priority: TaskPriority.Medium,
+            progress: null,
+            parentId: phase.Id,
+            plannedDateRange: parentRange,
+            plannedDate: null,
+            estimatedEffortHours: null,
+            roles: null);
+        
+        var parentTask = parentResult.Value;
+
+        // Act - Create milestone on 2026-06-20 (outside parent range)
+        var milestoneResult = project.CreateTask(
+            nextNumber: 2,
+            name: "Milestone",
+            description: null,
+            type: ProjectTaskType.Milestone,
+            status: Enums.TaskStatus.NotStarted,
+            priority: TaskPriority.Medium,
+            progress: null,
+            parentId: parentTask.Id,
+            plannedDateRange: null,
+            plannedDate: new LocalDate(2026, 6, 20),
+            estimatedEffortHours: null,
+            roles: null);
+
+        // Assert
+        milestoneResult.IsSuccess.Should().BeTrue();
+        parentTask.PlannedDateRange.Should().NotBeNull();
+        parentTask.PlannedDateRange!.Start.Should().Be(parentRange.Start);
+        parentTask.PlannedDateRange.End.Should().Be(new LocalDate(2026, 6, 20));
+
+        phase.DateRange.Should().NotBeNull();
+        phase.DateRange!.Start.Should().Be(parentRange.Start);
+        phase.DateRange.End.Should().Be(new LocalDate(2026, 6, 20));
+    }
+
+    [Fact]
+    public void UpdateTaskDates_ShouldShiftDatedDescendants_WhenShiftingParent()
+    {
+        // Arrange
+        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning phase"));
+        var phase = phases[0];
+
+        var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
+        var parentTask = project.CreateTask(1, "Parent", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, phase.Id, parentRange, null, null, null).Value;
+        
+        var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 6, 12));
+        var childTask = project.CreateTask(2, "Child", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, parentTask.Id, childRange, null, null, null).Value;
+
+        var milestone = project.CreateTask(3, "Milestone", null, ProjectTaskType.Milestone, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, parentTask.Id, null, new LocalDate(2026, 6, 10), null, null).Value;
+
+        var undatedTask = project.CreateTask(4, "Undated Child", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, parentTask.Id, null, null, null, null).Value;
+
+        var shiftedRange = new FlexibleDateRange(new LocalDate(2026, 6, 10), new LocalDate(2026, 6, 20)); // Shift by +5 days
+
+        // Act
+        var result = project.UpdateTaskDates(parentTask.Id, shiftedRange, null, parentChanging: false);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        parentTask.PlannedDateRange!.Start.Should().Be(new LocalDate(2026, 6, 10));
+        parentTask.PlannedDateRange.End.Should().Be(new LocalDate(2026, 6, 20));
+
+        childTask.PlannedDateRange!.Start.Should().Be(new LocalDate(2026, 6, 13)); // 8 + 5
+        childTask.PlannedDateRange.End.Should().Be(new LocalDate(2026, 6, 17)); // 12 + 5
+
+        milestone.PlannedDate.Should().Be(new LocalDate(2026, 6, 15)); // 10 + 5
+
+        undatedTask.PlannedDateRange.Should().BeNull(); // Preserved null
+    }
+
+    [Fact]
+    public void UpdateTaskDates_ShouldFail_WhenResizeExcludesDatedChildren()
+    {
+        // Arrange
+        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning phase"));
+        var phase = phases[0];
+
+        var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
+        var parentTask = project.CreateTask(1, "Parent", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, phase.Id, parentRange, null, null, null).Value;
+        
+        var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 6, 12));
+        project.CreateTask(2, "Child", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, parentTask.Id, childRange, null, null, null);
+
+        var resizedRange = new FlexibleDateRange(new LocalDate(2026, 6, 9), new LocalDate(2026, 6, 15)); // Start is 9, excludes child start on 8
+
+        // Act
+        var result = project.UpdateTaskDates(parentTask.Id, resizedRange, null, parentChanging: false);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("falls outside the selected range");
+    }
+
+    [Fact]
+    public void UpdateTaskDates_ShouldFail_WhenClearingDatesWithDatedChildren()
+    {
+        // Arrange
+        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning phase"));
+        var phase = phases[0];
+
+        var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
+        var parentTask = project.CreateTask(1, "Parent", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, phase.Id, parentRange, null, null, null).Value;
+        
+        var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 6, 12));
+        project.CreateTask(2, "Child", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, parentTask.Id, childRange, null, null, null);
+
+        // Act
+        var result = project.UpdateTaskDates(parentTask.Id, null, null, parentChanging: false);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("cannot be updated to null");
+    }
+
+    [Fact]
+    public void UpdatePhaseDates_ShouldFail_WhenClearingDatesWithDatedRootTasks()
+    {
+        // Arrange
+        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning phase"));
+        var phase = phases[0];
+
+        var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 6, 12));
+        project.CreateTask(1, "Child", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, phase.Id, childRange, null, null, null);
+
+        // Act
+        var result = project.UpdatePhaseDates(phase.Id, null);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("cannot be updated to null");
+    }
+
+    [Fact]
+    public void ChangeTaskPlacement_ShouldExpandNewParent_WhenMoved()
+    {
+        // Arrange
+        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning phase"));
+        var phase = phases[0];
+
+        var parent1Range = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
+        var parent1 = project.CreateTask(1, "Parent 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, phase.Id, parent1Range, null, null, null).Value;
+
+        var parent2Range = new FlexibleDateRange(new LocalDate(2026, 6, 10), new LocalDate(2026, 6, 12));
+        var parent2 = project.CreateTask(2, "Parent 2", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, phase.Id, parent2Range, null, null, null).Value;
+
+        var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
+        var child = project.CreateTask(3, "Child", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, parent1.Id, childRange, null, null, null).Value;
+
+        // Act - Move child to parent2 (which expands parent2 to cover 2026-06-05 to 2026-06-15)
+        var result = project.ChangeTaskPlacement(child.Id, parent2.Id, null);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        parent2.PlannedDateRange!.Start.Should().Be(new LocalDate(2026, 6, 5));
+        parent2.PlannedDateRange.End.Should().Be(new LocalDate(2026, 6, 15));
+    }
+
+    #endregion Date Rollup Tests
 }

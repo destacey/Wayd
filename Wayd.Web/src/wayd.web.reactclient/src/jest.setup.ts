@@ -236,7 +236,7 @@ jest.mock('dayjs', () => {
       }
       return 0
     },
-    isSame: (other: any, unit: string) => {
+    isSame: (other: any, unit?: string) => {
       if (!date || !other) return false
       const d1 = new Date(date)
       const d2 = new Date(other.valueOf ? other.valueOf() : other)
@@ -247,7 +247,7 @@ jest.mock('dayjs', () => {
       }
       return false
     },
-    isAfter: (other: any, unit: string) => {
+    isAfter: (other: any, unit?: string) => {
       if (!date || !other) return false
       const d1 = new Date(date)
       const d2 = new Date(other.valueOf ? other.valueOf() : other)
@@ -260,7 +260,7 @@ jest.mock('dayjs', () => {
       }
       return d1.getTime() > d2.getTime()
     },
-    isBefore: (other: any, unit: string) => {
+    isBefore: (other: any, unit?: string) => {
       if (!date || !other) return false
       const d1 = new Date(date)
       const d2 = new Date(other.valueOf ? other.valueOf() : other)

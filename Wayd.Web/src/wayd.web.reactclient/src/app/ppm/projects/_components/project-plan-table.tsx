@@ -337,14 +337,33 @@ const ProjectPlanTable = ({
         messageApi.error('Correct the validation error(s) to continue.')
       } else if (status === 400 && detail) {
         const detailStr = String(detail)
-        const isDateError = detailStr.toLowerCase().includes('date') || detailStr.toLowerCase().includes('child') || detailStr.toLowerCase().includes('range')
+        const isDateError =
+          detailStr.toLowerCase().includes('date') ||
+          detailStr.toLowerCase().includes('child') ||
+          detailStr.toLowerCase().includes('range')
         if (isDateError) {
-          const field = (detailStr.toLowerCase().includes('start') || detailStr.toLowerCase().includes('before'))
-            ? 'plannedStart'
-            : 'plannedEnd'
-          setFieldErrors({
-            [field]: detailStr,
-          })
+          const isStartSpecific =
+            detailStr.toLowerCase().includes('start') ||
+            detailStr.toLowerCase().includes('before')
+          const isEndSpecific =
+            detailStr.toLowerCase().includes('end') ||
+            detailStr.toLowerCase().includes('after')
+
+          if (isStartSpecific && !isEndSpecific) {
+            setFieldErrors({
+              plannedStart: detailStr,
+            })
+          } else if (isEndSpecific && !isStartSpecific) {
+            setFieldErrors({
+              plannedEnd: detailStr,
+            })
+          } else {
+            // General range/date error or clearing/null error applies to both
+            setFieldErrors({
+              plannedStart: detailStr,
+              plannedEnd: detailStr,
+            })
+          }
           messageApi.error('Correct the validation error(s) to continue.')
         } else {
           messageApi.error(detailStr)

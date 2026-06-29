@@ -434,6 +434,10 @@ public sealed class ProjectTask : BaseAuditableEntity, IHasIdAndKey<ProjectTaskK
     /// </summary>
     internal void ClearChildren()
     {
+        foreach (var child in _children)
+        {
+            child.Parent = null;
+        }
         _children.Clear();
     }
 

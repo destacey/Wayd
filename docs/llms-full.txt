@@ -319,6 +319,7 @@ Must have min 1 phase to activate. Only Proposed deletable/editable.
 Concrete instances from lifecycle template. Properties:
 - Name (from template, not editable), Description (editable), Status (NotStarted/InProgress/Completed/Cancelled)
 - Date Range, Progress (0-100%), Roles (Assignee)
+Rules: Date range is optional unless root tasks have dates, in which case it automatically rolls up to cover the child range span. A phase range cannot be manually shrunk behind its children's dates, nor can its dates be cleared while root tasks have dates.
 
 ### Project Tasks
 
@@ -328,7 +329,7 @@ Hierarchical work items within phases (WBS). Properties:
 - Progress (0-100 for tasks, 0 or 100 for milestones), Order, Dates, Effort (hours)
 - Dependencies (Finish-to-Start, soft-deleted), Roles (Assignee)
 
-Rules: Milestones cannot have children or be InProgress. Cannot delete tasks with children or active dependencies. No circular moves.
+Rules: Milestones cannot have children or be InProgress. Cannot delete tasks with children or active dependencies. No circular moves. Parent task date ranges automatically roll up from child dates (minimum start through maximum end). A parent task cannot be manually shrunk behind its children's dates, nor can its dates be cleared while children have dates. Shifting a parent task shifts its dated descendants.
 
 ### Strategic Initiatives
 

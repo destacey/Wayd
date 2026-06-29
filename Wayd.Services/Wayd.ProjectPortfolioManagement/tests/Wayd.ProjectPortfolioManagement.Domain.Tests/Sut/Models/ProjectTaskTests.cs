@@ -1,7 +1,9 @@
-﻿using FluentAssertions;
+using FluentAssertions;
+using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.Testing;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
 
@@ -396,4 +398,84 @@ public class ProjectTaskTests
     }
 
     #endregion ChangeParent Tests
+
+    #region Date Rollup and Shifting Tests
+
+    [Fact]
+    public void RecalculateDatesFromChildren_ShouldExpandParentTask_ToFitDatedChildren()
+    {
+        // Arrange
+        var parentTask = new ProjectTaskFaker().Generate();
+        var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 12));
+        var childTask = new ProjectTaskFaker().WithPlannedDateRange(childRange).Generate();
+        parentTask.AddChild(childTask);
+
+        // Act
+        parentTask.RecalculateDatesFromChildren();
+
+        // Assert
+        parentTask.PlannedDateRange.Should().NotBeNull();
+        parentTask.PlannedDateRange!.Start.Should().Be(new LocalDate(2026, 6, 5));
+        parentTask.PlannedDateRange.End.Should().Be(new LocalDate(2026, 6, 12));
+    }
+
+    [Fact]
+    public void ShiftDates_ShouldOffsetParentAndChildren_BySpecifiedDays()
+    {
+        // Arrange
+        var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 12));
+        var parentTask = new ProjectTaskFaker().WithPlannedDateRange(parentRange).Generate();
+
+        var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 7), new LocalDate(2026, 6, 10));
+        var childTask = new ProjectTaskFaker().WithPlannedDateRange(childRange).Generate();
+        parentTask.AddChild(childTask);
+
+        // Act
+        parentTask.ShiftDates(5);
+
+        // Assert
+        parentTask.PlannedDateRange!.Start.Should().Be(new LocalDate(2026, 6, 10));
+        parentTask.PlannedDateRange.End.Should().Be(new LocalDate(2026, 6, 17));
+
+        childTask.PlannedDateRange!.Start.Should().Be(new LocalDate(2026, 6, 12));
+        childTask.PlannedDateRange.End.Should().Be(new LocalDate(2026, 6, 15));
+    }
+
+    [Fact]
+    public void ApplyPlannedDates_ShouldFail_WhenProposedRangeExcludesChild()
+    {
+        // Arrange
+        var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 12));
+        var parentTask = new ProjectTaskFaker().WithPlannedDateRange(parentRange).Generate();
+
+        var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 10));
+        var childTask = new ProjectTaskFaker().WithPlannedDateRange(childRange).Generate();
+        parentTask.AddChild(childTask);
+
+        // Act
+        var shrunkRange = new FlexibleDateRange(new LocalDate(2026, 6, 6), new LocalDate(2026, 6, 12)); // Excludes child start on June 5
+        var result = parentTask.ApplyPlannedDates(shrunkRange, null, false);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("falls outside the selected range");
+    }
+
+    [Fact]
+    public void HasAnyDatedChildren_ShouldBeTrue_WhenChildHasPlannedRange()
+    {
+        // Arrange
+        var parentTask = new ProjectTaskFaker().Generate();
+        var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 12));
+        var childTask = new ProjectTaskFaker().WithPlannedDateRange(childRange).Generate();
+        parentTask.AddChild(childTask);
+
+        // Act
+        var hasDatedChildren = parentTask.HasAnyDatedChildren();
+
+        // Assert
+        hasDatedChildren.Should().BeTrue();
+    }
+
+    #endregion Date Rollup and Shifting Tests
 }

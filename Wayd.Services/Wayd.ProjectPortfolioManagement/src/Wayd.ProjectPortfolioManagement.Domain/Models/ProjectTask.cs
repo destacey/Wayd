@@ -1,4 +1,4 @@
-﻿using Ardalis.GuardClauses;
+using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
@@ -411,7 +411,12 @@ public sealed class ProjectTask : BaseAuditableEntity, IHasIdAndKey<ProjectTaskK
     /// </summary>
     internal void AddChild(ProjectTask child)
     {
-        _children.Add(child);
+        if (!_children.Contains(child))
+        {
+            _children.Add(child);
+        }
+        child.Parent = this;
+        child.ParentId = Id;
     }
 
     /// <summary>
@@ -420,6 +425,232 @@ public sealed class ProjectTask : BaseAuditableEntity, IHasIdAndKey<ProjectTaskK
     internal void RemoveChild(ProjectTask child)
     {
         _children.Remove(child);
+        child.Parent = null;
+        child.ParentId = null;
+    }
+
+    /// <summary>
+    /// Clears the list of children for this task.
+    /// </summary>
+    internal void ClearChildren()
+    {
+        _children.Clear();
+    }
+
+    /// <summary>
+    /// Checks if this task has any children with planned dates.
+    /// </summary>
+    internal bool HasAnyDatedChildren()
+    {
+        return _children.Any(c => c.Type == ProjectTaskType.Milestone ? c.PlannedDate.HasValue : c.PlannedDateRange is not null);
+    }
+
+    /// <summary>
+    /// Recalculates this task's date range based on its children's dates.
+    /// </summary>
+    internal void RecalculateDatesFromChildren()
+    {
+        if (Type == ProjectTaskType.Milestone)
+        {
+            return;
+        }
+
+        LocalDate? childrenStart = null;
+        LocalDate? childrenEnd = null;
+        bool hasOpenEndedChild = false;
+
+        foreach (var child in _children)
+        {
+            if (child.Type == ProjectTaskType.Milestone)
+            {
+                if (child.PlannedDate.HasValue)
+                {
+                    childrenStart = childrenStart is null ? child.PlannedDate.Value : LocalDate.Min(childrenStart.Value, child.PlannedDate.Value);
+                    childrenEnd = childrenEnd is null ? child.PlannedDate.Value : LocalDate.Max(childrenEnd.Value, child.PlannedDate.Value);
+                }
+            }
+            else
+            {
+                if (child.PlannedDateRange is not null)
+                {
+                    childrenStart = childrenStart is null ? child.PlannedDateRange.Start : LocalDate.Min(childrenStart.Value, child.PlannedDateRange.Start);
+                    if (child.PlannedDateRange.End.HasValue)
+                    {
+                        childrenEnd = childrenEnd is null ? child.PlannedDateRange.End.Value : LocalDate.Max(childrenEnd.Value, child.PlannedDateRange.End.Value);
+                    }
+                    else
+                    {
+                        hasOpenEndedChild = true;
+                    }
+                }
+            }
+        }
+
+        if (!childrenStart.HasValue)
+        {
+            return;
+        }
+
+        LocalDate? finalChildrenEnd = hasOpenEndedChild ? null : childrenEnd;
+
+        if (PlannedDateRange is null)
+        {
+            PlannedDateRange = new FlexibleDateRange(childrenStart.Value, finalChildrenEnd);
+        }
+        else
+        {
+            var newStart = LocalDate.Min(PlannedDateRange.Start, childrenStart.Value);
+            LocalDate? newEnd;
+            if (PlannedDateRange.End is null || finalChildrenEnd is null)
+            {
+                newEnd = null;
+            }
+            else
+            {
+                newEnd = LocalDate.Max(PlannedDateRange.End.Value, finalChildrenEnd.Value);
+            }
+
+            if (newStart != PlannedDateRange.Start || newEnd != PlannedDateRange.End)
+            {
+                PlannedDateRange = new FlexibleDateRange(newStart, newEnd);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Applies planned dates, supporting shifting of subtrees or containment checks.
+    /// </summary>
+    internal Result ApplyPlannedDates(FlexibleDateRange? newRange, LocalDate? newMilestoneDate, bool allowShift)
+    {
+        if (Type == ProjectTaskType.Milestone)
+        {
+            if (newMilestoneDate is null)
+            {
+                return Result.Failure("Milestones must have a planned date.");
+            }
+            PlannedDate = newMilestoneDate;
+            PlannedDateRange = null;
+            return Result.Success();
+        }
+
+        if (newRange is null)
+        {
+            if (HasAnyDatedChildren())
+            {
+                return Result.Failure("A parent task cannot be updated to null when it has child items with dates.");
+            }
+            PlannedDateRange = null;
+            PlannedDate = null;
+            return Result.Success();
+        }
+
+        if (allowShift && _children.Count > 0 && TryGetShiftDays(newRange, out var days))
+        {
+            ShiftDates(days);
+            return Result.Success();
+        }
+
+        var containsChildrenResult = EnsureRangeContainsChildren(newRange);
+        if (containsChildrenResult.IsFailure)
+        {
+            return containsChildrenResult;
+        }
+
+        PlannedDateRange = newRange;
+        PlannedDate = null;
+        return Result.Success();
+    }
+
+    private bool TryGetShiftDays(FlexibleDateRange newRange, out int days)
+    {
+        days = 0;
+        if (PlannedDateRange is null)
+        {
+            return false;
+        }
+
+        if (PlannedDateRange.End.HasValue != newRange.End.HasValue)
+        {
+            return false;
+        }
+
+        var startDelta = Period.DaysBetween(PlannedDateRange.Start, newRange.Start);
+
+        if (PlannedDateRange.End.HasValue && newRange.End.HasValue)
+        {
+            var endDelta = Period.DaysBetween(PlannedDateRange.End.Value, newRange.End.Value);
+            days = startDelta;
+            return startDelta != 0 && startDelta == endDelta;
+        }
+        else
+        {
+            days = startDelta;
+            return startDelta != 0;
+        }
+    }
+
+    internal void ShiftDates(int days)
+    {
+        if (days == 0)
+        {
+            return;
+        }
+
+        if (Type == ProjectTaskType.Milestone)
+        {
+            if (PlannedDate.HasValue)
+            {
+                PlannedDate = PlannedDate.Value.PlusDays(days);
+            }
+        }
+        else
+        {
+            if (PlannedDateRange is not null)
+            {
+                var newStart = PlannedDateRange.Start.PlusDays(days);
+                var newEnd = PlannedDateRange.End?.PlusDays(days);
+                PlannedDateRange = new FlexibleDateRange(newStart, newEnd);
+            }
+        }
+
+        foreach (var child in _children)
+        {
+            child.ShiftDates(days);
+        }
+    }
+
+    private Result EnsureRangeContainsChildren(FlexibleDateRange proposedRange)
+    {
+        foreach (var child in _children)
+        {
+            if (child.Type == ProjectTaskType.Milestone)
+            {
+                if (child.PlannedDate.HasValue)
+                {
+                    var date = child.PlannedDate.Value;
+                    if (date < proposedRange.Start || (proposedRange.End.HasValue && date > proposedRange.End.Value))
+                    {
+                        return Result.Failure(
+                            $"The date range must contain all child items. \"{child.Name}\" falls outside the selected range.");
+                    }
+                }
+            }
+            else
+            {
+                if (child.PlannedDateRange is not null)
+                {
+                    var childStart = child.PlannedDateRange.Start;
+                    var childEnd = child.PlannedDateRange.End;
+                    if (childStart < proposedRange.Start || (proposedRange.End.HasValue && (!childEnd.HasValue || childEnd.Value > proposedRange.End.Value)))
+                    {
+                        return Result.Failure(
+                            $"The date range must contain all child items. \"{child.Name}\" falls outside the selected range.");
+                    }
+                }
+            }
+        }
+
+        return Result.Success();
     }
 
     /// <summary>

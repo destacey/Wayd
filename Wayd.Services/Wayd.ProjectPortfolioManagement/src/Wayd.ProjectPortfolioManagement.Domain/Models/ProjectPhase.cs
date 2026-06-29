@@ -1,4 +1,4 @@
-﻿using Ardalis.GuardClauses;
+using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
@@ -102,6 +102,54 @@ public sealed class ProjectPhase : BaseAuditableEntity
     /// </summary>
     public Result UpdatePlannedDates(FlexibleDateRange? dateRange)
     {
+        DateRange = dateRange;
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Updates the planned date range for the phase, validating that it contains all dated root tasks.
+    /// </summary>
+    internal Result UpdatePlannedDates(FlexibleDateRange? dateRange, IEnumerable<ProjectTask> rootTasks)
+    {
+        if (dateRange is null)
+        {
+            if (rootTasks.Any(t => t.Type == ProjectTaskType.Milestone ? t.PlannedDate.HasValue : t.PlannedDateRange is not null))
+            {
+                return Result.Failure("A phase cannot be updated to null when it has root tasks with dates.");
+            }
+            DateRange = null;
+            return Result.Success();
+        }
+
+        foreach (var task in rootTasks)
+        {
+            if (task.Type == ProjectTaskType.Milestone)
+            {
+                if (task.PlannedDate.HasValue)
+                {
+                    var date = task.PlannedDate.Value;
+                    if (date < dateRange.Start || (dateRange.End.HasValue && date > dateRange.End.Value))
+                    {
+                        return Result.Failure(
+                            $"The date range must contain all child items. \"{task.Name}\" falls outside the selected range.");
+                    }
+                }
+            }
+            else
+            {
+                if (task.PlannedDateRange is not null)
+                {
+                    var start = task.PlannedDateRange.Start;
+                    var end = task.PlannedDateRange.End;
+                    if (start < dateRange.Start || (dateRange.End.HasValue && (!end.HasValue || end.Value > dateRange.End.Value)))
+                    {
+                        return Result.Failure(
+                            $"The date range must contain all child items. \"{task.Name}\" falls outside the selected range.");
+                    }
+                }
+            }
+        }
+
         DateRange = dateRange;
         return Result.Success();
     }

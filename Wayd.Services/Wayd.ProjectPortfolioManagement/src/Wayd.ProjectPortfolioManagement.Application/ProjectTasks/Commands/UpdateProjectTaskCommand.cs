@@ -1,4 +1,4 @@
-﻿using Wayd.ProjectPortfolioManagement.Domain.Enums;
+using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
 namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
@@ -67,14 +67,19 @@ internal sealed class UpdateProjectTaskCommandHandler(
     {
         try
         {
-            var task = await _ppmDbContext.ProjectTasks
-                .Include(t => t.Roles)
-                .FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
-            if (task is null)
+            var project = await _ppmDbContext.Projects
+                .AsSplitQuery()
+                .Include(p => p.Phases)
+                .Include(p => p.Tasks)
+                .ThenInclude(t => t.Roles)
+                .FirstOrDefaultAsync(p => p.Tasks.Any(t => t.Id == request.Id), cancellationToken);
+            if (project is null)
             {
                 _logger.LogInformation("Project task {TaskId} not found.", request.Id);
                 return Result.Failure("Project task not found.");
             }
+
+            var task = project.Tasks.First(t => t.Id == request.Id);
 
             // Validate parent — ParentId can be a phase or task, domain handles full validation
             if (request.ParentId == request.Id)
@@ -87,14 +92,14 @@ internal sealed class UpdateProjectTaskCommandHandler(
             var detailsResult = task.UpdateDetails(request.Name, request.Description, request.Priority);
             if (detailsResult.IsFailure)
             {
-                return await HandleDomainFailure(task, detailsResult, cancellationToken);
+                return await HandleDomainFailure(project, detailsResult, cancellationToken);
             }
 
             // Update status
             var statusResult = task.UpdateStatus(request.Status, _dateTimeProvider.Now);
             if (statusResult.IsFailure)
             {
-                return await HandleDomainFailure(task, statusResult, cancellationToken);
+                return await HandleDomainFailure(project, statusResult, cancellationToken);
             }
 
             // Update progress
@@ -109,44 +114,35 @@ internal sealed class UpdateProjectTaskCommandHandler(
                 var progressResult = task.UpdateProgress(request.Progress);
                 if (progressResult.IsFailure)
                 {
-                    return await HandleDomainFailure(task, progressResult, cancellationToken);
+                    return await HandleDomainFailure(project, progressResult, cancellationToken);
                 }
-            }
-
-            // Update planned dates
-            var plannedDatesResult = task.UpdatePlannedDates(request.PlannedDateRange, request.PlannedDate);
-            if (plannedDatesResult.IsFailure)
-            {
-                return await HandleDomainFailure(task, plannedDatesResult, cancellationToken);
             }
 
             // Update effort
             var effortResult = task.UpdateEffort(request.EstimatedEffortHours);
             if (effortResult.IsFailure)
             {
-                return await HandleDomainFailure(task, effortResult, cancellationToken);
+                return await HandleDomainFailure(project, effortResult, cancellationToken);
             }
 
             // Update parent/phase if changed
             // For root tasks, the effective parent is the phase; for child tasks, it's the parent task
             var effectiveCurrentParentId = task.ParentId ?? task.ProjectPhaseId;
-            if (request.ParentId != effectiveCurrentParentId)
-            {
-                // get the project with all tasks and phases to perform the parent change
-                var project = await _ppmDbContext.Projects
-                    .Include(p => p.Phases)
-                    .Include(p => p.Tasks)
-                    .FirstOrDefaultAsync(p => p.Id == task.ProjectId, cancellationToken);
-                if (project is null)
-                {
-                    _logger.LogError("Project with Id {ProjectId} not found for task {TaskId}.", task.ProjectId, task.Id);
-                    return Result.Failure("Project not found for the task.");
-                }
+            var parentChanging = request.ParentId != effectiveCurrentParentId;
 
+            // Update planned dates
+            var plannedDatesResult = project.UpdateTaskDates(task.Id, request.PlannedDateRange, request.PlannedDate, parentChanging);
+            if (plannedDatesResult.IsFailure)
+            {
+                return await HandleDomainFailure(project, plannedDatesResult, cancellationToken);
+            }
+
+            if (parentChanging)
+            {
                 var parentResult = project.ChangeTaskPlacement(task.Id, request.ParentId, null);
                 if (parentResult.IsFailure)
                 {
-                    return await HandleDomainFailure(task, parentResult, cancellationToken);
+                    return await HandleDomainFailure(project, parentResult, cancellationToken);
                 }
             }
 
@@ -154,7 +150,7 @@ internal sealed class UpdateProjectTaskCommandHandler(
             var updateRolesResult = task.UpdateRoles(roles);
             if (updateRolesResult.IsFailure)
             {
-                return await HandleDomainFailure(task, updateRolesResult, cancellationToken);
+                return await HandleDomainFailure(project, updateRolesResult, cancellationToken);
             }
 
             await _ppmDbContext.SaveChangesAsync(cancellationToken);
@@ -200,13 +196,37 @@ internal sealed class UpdateProjectTaskCommandHandler(
         return roles;
     }
 
-    private async Task<Result> HandleDomainFailure(ProjectTask task, Result errorResult, CancellationToken cancellationToken)
+    private async Task<Result> HandleDomainFailure(Project project, Result errorResult, CancellationToken cancellationToken)
     {
-        // Reset the entity
-        await _ppmDbContext.Entry(task).ReloadAsync(cancellationToken);
-        task.ClearDomainEvents();
+        try
+        {
+            // Reset the project aggregate and all tasks/phases
+            await _ppmDbContext.Entry(project).ReloadAsync(cancellationToken);
+            foreach (var task in project.Tasks)
+            {
+                await _ppmDbContext.Entry(task).ReloadAsync(cancellationToken);
+                task.ClearDomainEvents();
+            }
+            foreach (var phase in project.Phases)
+            {
+                await _ppmDbContext.Entry(phase).ReloadAsync(cancellationToken);
+                phase.ClearDomainEvents();
+            }
+        }
+        catch (NotImplementedException)
+        {
+            // Fallback for FakeProjectPortfolioManagementDbContext in unit tests
+            foreach (var task in project.Tasks)
+            {
+                task.ClearDomainEvents();
+            }
+            foreach (var phase in project.Phases)
+            {
+                phase.ClearDomainEvents();
+            }
+        }
 
-        _logger.LogError("Unable to update project task {ProjectTaskId}.  Error message: {Error}", task.Id, errorResult.Error);
+        _logger.LogError("Unable to update project task. Error message: {Error}", errorResult.Error);
         return Result.Failure(errorResult.Error);
     }
 }

@@ -11,8 +11,9 @@ beforeAll(() => {
   } as unknown as typeof ResizeObserver
 })
 
-// The loading/empty branches return before the chart body mounts, so the heavy
-// dependencies (Splitter layout, ResizeObserver, html2canvas) are never reached.
+// The loading branch returns before the chart body mounts, so the heavy
+// dependencies (Splitter layout, ResizeObserver, html2canvas) are not reached
+// until the timeline has either data or an in-frame empty state.
 
 const DAY = 86_400_000
 const windowStart = 0
@@ -40,7 +41,7 @@ describe('WaydTimeline — loading & empty states', () => {
     expect(container.querySelector('.ant-spin')).toBeInTheDocument()
   })
 
-  it('renders the empty message when not loading and there are no items', () => {
+  it('keeps the timeline frame mounted when not loading and there are no items', () => {
     // Arrange / Act
     render(
       <WaydTimeline
@@ -48,10 +49,14 @@ describe('WaydTimeline — loading & empty states', () => {
         windowStart={windowStart}
         windowEnd={windowEnd}
         emptyMessage="Nothing here"
+        toolbarLeftSlot={<span>Timeline tools</span>}
+        footerSlot={<div>Timeline footer</div>}
       />,
     )
     // Assert
+    expect(screen.getByText('Timeline tools')).toBeInTheDocument()
     expect(screen.getByText('Nothing here')).toBeInTheDocument()
+    expect(screen.getByText('Timeline footer')).toBeInTheDocument()
   })
 
   it('does not show the spinner once items are present, even while loading', () => {

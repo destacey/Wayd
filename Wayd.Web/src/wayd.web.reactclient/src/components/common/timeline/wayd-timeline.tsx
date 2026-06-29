@@ -9,8 +9,9 @@
 // separate "group width" control needed. Each pane is a vertical stack
 // [header | scroll body]; the two bodies' vertical scroll is kept in sync.
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Spin, Splitter } from 'antd'
+import WaydEmpty from '@/src/components/common/wayd-empty'
 import { captureTimeline } from './render/capture-timeline'
 import { createTimeScale } from './core/scale'
 import {
@@ -274,6 +275,15 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
   const [viewportHeight, setViewportHeight] = useState(0)
   const [scrollLeft, setScrollLeft] = useState(0)
   const [scrollTop, setScrollTop] = useState(0)
+  const preserveInitialViewOnNextScrollRef = useRef(false)
+  const visibleStartMsRef = useRef(windowStart)
+  const pendingVisibleStartMsRef = useRef<number | null>(null)
+  const preserveInitialViewForProgrammaticScroll = useCallback(() => {
+    preserveInitialViewOnNextScrollRef.current = true
+    requestAnimationFrame(() => {
+      preserveInitialViewOnNextScrollRef.current = false
+    })
+  }, [])
   // While true, virtualization is bypassed so all rows render for image capture.
   const [isCapturing, setIsCapturing] = useState(false)
   // Horizontal time zoom: factor over the base (fit-to-window) width. 1 = reset.
@@ -312,8 +322,10 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
     if (prevStorageKeyRef.current !== storageKey) {
       prevStorageKeyRef.current = storageKey
       isInitialViewRef.current = true
+      visibleStartMsRef.current = windowStart
+      pendingVisibleStartMsRef.current = null
     }
-  }, [storageKey])
+  }, [storageKey, windowStart])
 
   // Latest domain/window geometry — updated in a layout effect each render so
   // the (stable) scroll/reset callbacks always read current props without a
@@ -360,6 +372,31 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
   const zoomMax = maxZoom(baseWidth, viewportWidth, domainMs, ZOOM_MIN_MS)
   const effectiveZoom = clampZoom(zoom, { min: zoomMin, max: zoomMax })
   const chartWidth = baseWidth * effectiveZoom
+  const toScrollLeft = useCallback((ms: number) => {
+    if (domainMs <= 0 || chartWidth <= 0) return 0
+    const viewport = chartRef.current?.clientWidth ?? viewportWidth
+    const maxScroll = Math.max(0, chartWidth - viewport)
+    const raw = ((ms - domainStart) / domainMs) * chartWidth
+    return Math.min(maxScroll, Math.max(0, raw))
+  }, [chartWidth, domainMs, domainStart, viewportWidth])
+  const applyHorizontalScrollToDom = useCallback(
+    (left: number) => {
+      preserveInitialViewForProgrammaticScroll()
+      const chart = chartRef.current
+      if (chart) chart.scrollLeft = left
+      if (axisViewportRef.current) axisViewportRef.current.scrollLeft = left
+      visibleStartMsRef.current =
+        domainStart + (domainMs * left) / Math.max(chartWidth, 1)
+    },
+    [chartWidth, domainMs, domainStart, preserveInitialViewForProgrammaticScroll],
+  )
+  const applyHorizontalScroll = useCallback(
+    (left: number) => {
+      applyHorizontalScrollToDom(left)
+      setScrollLeft(left)
+    },
+    [applyHorizontalScrollToDom],
+  )
 
   const wheelCleanupRef = useRef<(() => void) | null>(null)
   const setChartRef = (el: HTMLDivElement | null) => {
@@ -375,6 +412,9 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
     }
     measure()
     requestAnimationFrame(measure)
+    if (!isInitialViewRef.current) {
+      pendingVisibleStartMsRef.current = visibleStartMsRef.current
+    }
     const observer = new ResizeObserver(measure)
     observer.observe(el)
     observerRef.current = observer
@@ -421,13 +461,21 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
       allowZoom,
     }
     const pending = pendingScrollLeftRef.current
-    if (pending == null) return
-    pendingScrollLeftRef.current = null
-    const chart = chartRef.current
-    if (chart) {
-      chart.scrollLeft = pending
-      if (axisViewportRef.current) axisViewportRef.current.scrollLeft = pending
-      setScrollLeft(pending)
+    if (pending != null) {
+      pendingScrollLeftRef.current = null
+      applyHorizontalScrollToDom(pending)
+      requestAnimationFrame(() => setScrollLeft(pending))
+      return
+    }
+
+    const pendingVisibleStart = pendingVisibleStartMsRef.current
+    if (pendingVisibleStart != null) {
+      const chart = chartRef.current
+      if (chart && Math.abs(viewportWidth - chart.clientWidth) > 1) return
+      pendingVisibleStartMsRef.current = null
+      const nextScrollLeft = toScrollLeft(pendingVisibleStart)
+      applyHorizontalScrollToDom(nextScrollLeft)
+      requestAnimationFrame(() => setScrollLeft(nextScrollLeft))
     }
   }, [
     effectiveZoom,
@@ -440,6 +488,9 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
     domainMs,
     windowStart,
     windowMs,
+    viewportWidth,
+    applyHorizontalScrollToDom,
+    toScrollLeft,
   ])
 
   // While in the initial view (no user pan/zoom), lock scroll to windowStart
@@ -458,12 +509,19 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
     )
     // Only apply if the canvas is wide enough to scroll to this offset.
     if (chart.scrollWidth <= offset) return
-    chart.scrollLeft = offset
-    if (axisViewportRef.current) axisViewportRef.current.scrollLeft = offset
+    applyHorizontalScrollToDom(offset)
     // Defer state update to avoid setState-in-effect lint error; bar labels
     // tolerate a one-frame lag after a programmatic scroll to windowStart.
     requestAnimationFrame(() => setScrollLeft(offset))
-  }, [viewportWidth, domainStart, domainMs, windowStart, baseWidth, chartWidth])
+  }, [
+    viewportWidth,
+    domainStart,
+    domainMs,
+    windowStart,
+    baseWidth,
+    chartWidth,
+    applyHorizontalScrollToDom,
+  ])
 
   // Chart scroll drives: axis horizontal sync + group-column vertical sync, and
   // a debounced scrollLeft state so bar labels can stick to the visible left
@@ -474,10 +532,14 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
     // Any scroll (including Shift+wheel / trackpad horizontal pan) means the user
     // has navigated away from the default window — clear the initial-view lock so
     // a later viewport resize doesn't snap back to windowStart.
-    if (isInitialViewRef.current) {
+    const preserveInitialView = preserveInitialViewOnNextScrollRef.current
+    preserveInitialViewOnNextScrollRef.current = false
+    if (isInitialViewRef.current && !preserveInitialView) {
       isInitialViewRef.current = false
       setIsInitialView(false)
     }
+    visibleStartMsRef.current =
+      domainStart + (domainMs * chart.scrollLeft) / Math.max(chartWidth, 1)
     if (axisViewportRef.current) {
       axisViewportRef.current.scrollLeft = chart.scrollLeft
     }
@@ -604,9 +666,7 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
     // work even when zoom is already 1 (setZoom(1) would be a no-op → no
     // layout effect → pendingScrollLeftRef never consumed).
     if (chart) {
-      chart.scrollLeft = offset
-      if (axisViewportRef.current) axisViewportRef.current.scrollLeft = offset
-      setScrollLeft(offset)
+      applyHorizontalScroll(offset)
     }
     // Also stage via pendingScrollLeftRef as a fallback for when the zoom
     // changes (layout effect fires on the next paint and re-applies it).
@@ -626,13 +686,7 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
     )
   }
 
-  if (!isLoading && items.length === 0) {
-    return (
-      <div className={styles.root} style={{ height }}>
-        <div className={styles.empty}>{emptyMessage}</div>
-      </div>
-    )
-  }
+  const isEmpty = !isLoading && items.length === 0
 
   const chartBackgrounds = resolved.items.filter((i) => i.kind === 'background')
   const layoutItems = resolved.items.filter((i) => i.kind !== 'background')
@@ -725,30 +779,37 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
         onScroll={onChartScroll}
         onPointerDown={onPanPointerDown}
       >
-        {viewportWidth > 0 && (
-          <ChartCanvas
-            rows={visibleRows}
-            allRows={rows}
-            rowIndexOffset={visibleRange.startIndex}
-            totalHeight={totalHeight}
-            scale={scale}
-            geometry={geometry}
-            chartBackgrounds={chartBackgrounds}
-            editable={editable}
-            viewportLeft={scrollLeft}
-            itemRenderer={itemRenderer as ChartCanvasProps['itemRenderer']}
-            onItemClick={onItemClick as ChartCanvasProps['onItemClick']}
-            onItemDateChange={onItemDateChange}
-            onItemProgressChange={onItemProgressChange}
-            showCurrentTime={showCurrentTime}
-            showGridlines={showVerticalGridlines}
-            showWeekends={showWeekends}
-            canPan={
-              chartWidth > viewportWidth + 1 || totalHeight > viewportHeight + 1
-            }
-            dragMin={domainStart}
-            dragMax={domainEnd}
-          />
+        {isEmpty ? (
+          <div className={styles.empty}>
+            <WaydEmpty message={emptyMessage} />
+          </div>
+        ) : (
+          viewportWidth > 0 && (
+            <ChartCanvas
+              rows={visibleRows}
+              allRows={rows}
+              rowIndexOffset={visibleRange.startIndex}
+              totalHeight={totalHeight}
+              scale={scale}
+              geometry={geometry}
+              chartBackgrounds={chartBackgrounds}
+              editable={editable}
+              viewportLeft={scrollLeft}
+              itemRenderer={itemRenderer as ChartCanvasProps['itemRenderer']}
+              onItemClick={onItemClick as ChartCanvasProps['onItemClick']}
+              onItemDateChange={onItemDateChange}
+              onItemProgressChange={onItemProgressChange}
+              showCurrentTime={showCurrentTime}
+              showGridlines={showVerticalGridlines}
+              showWeekends={showWeekends}
+              canPan={
+                chartWidth > viewportWidth + 1 ||
+                totalHeight > viewportHeight + 1
+              }
+              dragMin={domainStart}
+              dragMax={domainEnd}
+            />
+          )
         )}
       </div>
     </div>

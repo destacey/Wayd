@@ -212,10 +212,9 @@ const RoadmapTimeline: FC<RoadmapTimelineProps> = (props) => {
   const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000
   const itemStarts = items.map((i) => i.start)
   const itemEnds = items.map((i) => i.end)
-  const earliestItem = itemStarts.length ? Math.min(...itemStarts) : windowStart
-  const latestItem = itemEnds.length ? Math.max(...itemEnds) : windowEnd
-  const minDate = earliestItem - ONE_YEAR_MS
-  const maxDate = latestItem + ONE_YEAR_MS
+  const hasItems = items.length > 0
+  const minDate = hasItems ? Math.min(...itemStarts) - ONE_YEAR_MS : windowStart
+  const maxDate = hasItems ? Math.max(...itemEnds) + ONE_YEAR_MS : windowEnd
 
   const onItemDateChange = async (change: ItemDateChange) => {
     const source = items.find((i) => i.id === change.id)

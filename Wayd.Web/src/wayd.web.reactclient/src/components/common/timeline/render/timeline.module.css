@@ -428,8 +428,10 @@
 /* ── Empty / loading ───────────────────────────────────────────────────── */
 .empty {
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
   justify-content: center;
+  min-height: 100%;
   padding: var(--ant-padding-lg);
   color: var(--ant-color-text-secondary);
 }

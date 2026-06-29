@@ -93,4 +93,39 @@ public class ProjectPhaseTests
         result.IsSuccess.Should().BeTrue();
         phase.DateRange.Should().Be(proposedRange);
     }
+
+    [Fact]
+    public void UpdatePlannedDates_ShouldShiftRootTaskSubtrees_WhenRangeShiftedBySameDuration()
+    {
+        // Arrange
+        var phase = new ProjectPhaseFaker().Generate();
+        var originalPhaseRange = new FlexibleDateRange(new LocalDate(2026, 6, 1), new LocalDate(2026, 6, 30));
+        phase.UpdatePlannedDates(originalPhaseRange, []).IsSuccess.Should().BeTrue();
+
+        var rootTask = new ProjectTaskFaker()
+            .WithProjectPhaseId(phase.Id)
+            .WithPlannedDateRange(new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 6, 12)))
+            .Generate();
+        var childTask = new ProjectTaskFaker()
+            .WithProjectPhaseId(phase.Id)
+            .WithParentId(rootTask.Id)
+            .WithPlannedDateRange(new FlexibleDateRange(new LocalDate(2026, 6, 9), new LocalDate(2026, 6, 10)))
+            .Generate();
+        rootTask.AddChild(childTask);
+
+        var shiftedPhaseRange = new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 7, 7));
+
+        // Act
+        var result = phase.UpdatePlannedDates(shiftedPhaseRange, [rootTask]);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        phase.DateRange.Should().Be(shiftedPhaseRange);
+        rootTask.PlannedDateRange.Should().NotBeNull();
+        rootTask.PlannedDateRange!.Start.Should().Be(new LocalDate(2026, 6, 15));
+        rootTask.PlannedDateRange.End.Should().Be(new LocalDate(2026, 6, 19));
+        childTask.PlannedDateRange.Should().NotBeNull();
+        childTask.PlannedDateRange!.Start.Should().Be(new LocalDate(2026, 6, 16));
+        childTask.PlannedDateRange.End.Should().Be(new LocalDate(2026, 6, 17));
+    }
 }

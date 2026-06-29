@@ -1,9 +1,6 @@
 import dayjs from 'dayjs'
 import {
   findParentPlanNodeRange,
-  getParentExpansionHint,
-  getMilestoneParentExpansionHint,
-  findOwnChildrenSpan,
   getChildrenContainmentError,
   isShiftOnlyChange,
 } from './project-parent-date-hint'

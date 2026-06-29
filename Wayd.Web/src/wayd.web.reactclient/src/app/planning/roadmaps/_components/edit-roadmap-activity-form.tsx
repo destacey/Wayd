@@ -253,8 +253,9 @@ const EditRoadmapActivityForm = ({
                     new Error('End date must be on or after start date'),
                   )
                 }
-                const originalStart = activityData?.start ? dayjs(activityData.start) : null
-                const originalEnd = activityData?.end ? dayjs(activityData.end) : null
+                const activity = activityData as RoadmapActivityDetailsDto | undefined
+                const originalStart = activity?.start ? dayjs(activity.start) : null
+                const originalEnd = activity?.end ? dayjs(activity.end) : null
                 const isShift = isShiftOnlyChange(originalStart, originalEnd, start, end)
 
                 if (!isShift) {

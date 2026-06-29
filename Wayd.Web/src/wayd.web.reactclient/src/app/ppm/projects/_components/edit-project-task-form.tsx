@@ -102,15 +102,7 @@ const EditProjectTaskForm = ({
   const taskType = taskData?.type?.name
   const isMilestone = taskType === 'Milestone'
 
-  const { data: planTree } = useGetProjectPlanTreeQuery(projectIdOrKey)
-  const selectedParentId = Form.useWatch('parentId', form)
-  const selectedRange = Form.useWatch('plannedRange', form)
-  const selectedDate = Form.useWatch('plannedDate', form)
 
-  const parentRange = findParentPlanNodeRange(planTree, selectedParentId)
-  const parentExpansionHint = isMilestone
-    ? getMilestoneParentExpansionHint(parentRange, selectedDate)
-    : getParentExpansionHint(parentRange, selectedRange?.[0], selectedRange?.[1])
 
   const {
     data: employeeData,
@@ -167,6 +159,16 @@ const EditProjectTaskForm = ({
         'An error occurred while updating the task. Please try again.',
       permission: 'Permissions.Projects.Update',
     })
+
+  const { data: planTree } = useGetProjectPlanTreeQuery(projectIdOrKey)
+  const selectedParentId = Form.useWatch('parentId', form)
+  const selectedRange = Form.useWatch('plannedRange', form)
+  const selectedDate = Form.useWatch('plannedDate', form)
+
+  const parentRange = findParentPlanNodeRange(planTree, selectedParentId)
+  const parentExpansionHint = isMilestone
+    ? getMilestoneParentExpansionHint(parentRange, selectedDate)
+    : getParentExpansionHint(parentRange, selectedRange?.[0], selectedRange?.[1])
 
   // Initialize form values when data is loaded
   useEffect(() => {

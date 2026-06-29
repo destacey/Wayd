@@ -135,10 +135,6 @@ export function useTreeGridEditing<T extends TreeNode>(
 
         if (cellElement) {
           const cellElementNode = cellElement as HTMLElement
-          cellElementNode.scrollIntoView({
-            block: 'nearest',
-            inline: 'nearest',
-          })
 
           let input: HTMLElement | null = null
 
@@ -151,7 +147,7 @@ export function useTreeGridEditing<T extends TreeNode>(
           ) as HTMLElement | null
 
           if (picker && pickerInput) {
-            picker.focus()
+            picker.focus({ preventScroll: true })
             input = pickerInput
           } else {
             // Try Select
@@ -183,7 +179,7 @@ export function useTreeGridEditing<T extends TreeNode>(
           }
 
           if (input instanceof HTMLElement) {
-            input.focus()
+            input.focus({ preventScroll: true })
             if (input instanceof HTMLInputElement) {
               input.select()
             }

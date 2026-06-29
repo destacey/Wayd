@@ -3,6 +3,7 @@
 import { ProjectPlanNodeDto } from '@/src/services/wayd-api'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dayjs from 'dayjs'
+import { findOwnChildrenSpan, getChildrenContainmentError, isShiftOnlyChange } from './project-parent-date-hint'
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
@@ -116,53 +117,7 @@ const ProjectPlanTable = ({
     }
   }, [isSelectedRowMilestone, form, taskStatusOptions])
 
-  // Clear date-pair validation errors as soon as the user fixes the values
-  const watchedPlannedStart = Form.useWatch('plannedStart', form)
-  const watchedPlannedEnd = Form.useWatch('plannedEnd', form)
-  const selectedRowId = treeGridRef.current?.selectedRowId ?? null
 
-  useEffect(() => {
-    if (!selectedRowId) return
-    if (!fieldErrors.plannedStart && !fieldErrors.plannedEnd) return
-
-    const task = findNodeById(tasks, selectedRowId) as ProjectPlanNodeDto | null
-    const isDraft = selectedRowId.startsWith('draft-')
-    const isMilestone = isDraft
-      ? isSelectedRowMilestone
-      : task?.type?.name === 'Milestone'
-
-    let shouldClearDateErrors = false
-
-    if (isMilestone) {
-      shouldClearDateErrors = true
-    } else {
-      const hasPlannedStart = Boolean(watchedPlannedStart)
-      const hasPlannedEnd = Boolean(watchedPlannedEnd)
-      const bothOrNeither = hasPlannedStart === hasPlannedEnd
-      const endNotBeforeStart =
-        !hasPlannedStart ||
-        !hasPlannedEnd ||
-        !dayjs(watchedPlannedEnd).isBefore(dayjs(watchedPlannedStart), 'day')
-      shouldClearDateErrors = bothOrNeither && endNotBeforeStart
-    }
-
-    if (!shouldClearDateErrors) return
-
-    const nextErrors = { ...fieldErrors }
-    delete nextErrors.plannedStart
-    delete nextErrors.plannedEnd
-
-    if (Object.keys(nextErrors).length !== Object.keys(fieldErrors).length) {
-      setFieldErrors(nextErrors)
-    }
-  }, [
-    fieldErrors,
-    isSelectedRowMilestone,
-    selectedRowId,
-    tasks,
-    watchedPlannedEnd,
-    watchedPlannedStart,
-  ])
 
   const taskTypeFilterOptions = useMemo(
     () => {
@@ -362,7 +317,7 @@ const ProjectPlanTable = ({
                 'input, .ant-select',
               ) as HTMLElement
               if (input) {
-                input.focus()
+                input.focus({ preventScroll: true })
                 focused = true
                 break
               }
@@ -374,12 +329,26 @@ const ProjectPlanTable = ({
             )
             if (cellElement) {
               const input = cellElement.querySelector('input') as HTMLElement
-              input?.focus()
+              input?.focus({ preventScroll: true })
             }
           }
         }, 0)
 
         messageApi.error('Correct the validation error(s) to continue.')
+      } else if (status === 400 && detail) {
+        const detailStr = String(detail)
+        const isDateError = detailStr.toLowerCase().includes('date') || detailStr.toLowerCase().includes('child') || detailStr.toLowerCase().includes('range')
+        if (isDateError) {
+          const field = (detailStr.toLowerCase().includes('start') || detailStr.toLowerCase().includes('before'))
+            ? 'plannedStart'
+            : 'plannedEnd'
+          setFieldErrors({
+            [field]: detailStr,
+          })
+          messageApi.error('Correct the validation error(s) to continue.')
+        } else {
+          messageApi.error(detailStr)
+        }
       } else {
         messageApi.error(detail ?? fallbackMessage)
       }
@@ -727,6 +696,36 @@ const ProjectPlanTable = ({
         if (plannedEnd.isBefore(plannedStart, 'day')) {
           errors.plannedEnd =
             'Planned End cannot be earlier than Planned Start.'
+        }
+      }
+
+      // Check for date shrinking/clearing when children exist
+      if (!isDraft && task) {
+        const childrenSpan = findOwnChildrenSpan(tasks, rowId)
+        if (childrenSpan) {
+          if (!hasPlannedStart || !hasPlannedEnd) {
+            const message = 'Planned dates cannot be cleared when child items have dates.'
+            errors.plannedStart = message
+            errors.plannedEnd = message
+          } else {
+            const start = dayjs(formValues.plannedStart)
+            const end = dayjs(formValues.plannedEnd)
+            const originalStart = task.start ? dayjs(task.start) : null
+            const originalEnd = task.end ? dayjs(task.end) : null
+
+            const isShift = isShiftOnlyChange(originalStart, originalEnd, start, end)
+
+            if (!isShift) {
+              const containmentError = getChildrenContainmentError(childrenSpan, start, end)
+              if (containmentError) {
+                if (containmentError.startsWith('Start')) {
+                  errors.plannedStart = containmentError
+                } else {
+                  errors.plannedEnd = containmentError
+                }
+              }
+            }
+          }
         }
       }
 

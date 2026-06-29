@@ -174,3 +174,18 @@ export const getChildrenContainmentError = (
   }
   return null
 }
+
+/**
+ * Checks if a date change is a pure shift (duration is identical, but shifted in time).
+ */
+export const isShiftOnlyChange = (
+  originalStart: Dayjs | null | undefined,
+  originalEnd: Dayjs | null | undefined,
+  newStart: Dayjs | null | undefined,
+  newEnd: Dayjs | null | undefined,
+): boolean => {
+  if (!originalStart || !originalEnd || !newStart || !newEnd) return false
+  const startDelta = newStart.diff(originalStart, 'day')
+  const endDelta = newEnd.diff(originalEnd, 'day')
+  return startDelta === endDelta && startDelta !== 0
+}

@@ -650,8 +650,8 @@ function TreeGridInner<T extends TreeNode>(
     typeof leftSlot === 'function' ? leftSlot(columnContext) : leftSlot
 
   // ─── DnD wrapping ───────────────────────────────────────
-  const dndEnabled = dragEnabledBase && !hasActiveFilters
-  const isDragEnabled = dndEnabled
+  const dndEnabled = enableDragAndDrop && !!onNodeMove
+  const isDragEnabled = dndEnabled && !isLoading && !isEditing && !hasActiveFilters
 
   // ─── Render ──────────────────────────────────────────────
   const tableContent = (

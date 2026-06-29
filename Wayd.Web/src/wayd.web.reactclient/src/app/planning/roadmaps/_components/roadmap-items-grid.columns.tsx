@@ -143,7 +143,7 @@ function FocusableColorPickerField({
   const onColorChange = (nextValue: string | undefined) => {
     onChange?.(nextValue)
     setTimeout(() => {
-      focusTargetRef.current?.focus()
+      focusTargetRef.current?.focus({ preventScroll: true })
     }, 0)
   }
 
@@ -163,7 +163,7 @@ function FocusableColorPickerField({
               .closest('[data-cell-id]')
               ?.querySelector('.ant-color-picker-trigger')
           ) as HTMLElement | null
-          trigger?.focus()
+          trigger?.focus({ preventScroll: true })
           trigger?.click()
           return
         }
@@ -491,7 +491,7 @@ export const getRoadmapItemsGridColumns = ({
                         const input = cell.querySelector('input') as
                           | HTMLInputElement
                           | undefined
-                        input?.focus()
+                        input?.focus({ preventScroll: true })
                       }
                     }, 0)
                   }
@@ -545,7 +545,7 @@ export const getRoadmapItemsGridColumns = ({
                         const input = cell.querySelector('input') as
                           | HTMLInputElement
                           | undefined
-                        input?.focus()
+                        input?.focus({ preventScroll: true })
                       }
                     }, 0)
                   }

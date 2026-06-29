@@ -247,6 +247,32 @@ jest.mock('dayjs', () => {
       }
       return false
     },
+    isAfter: (other: any, unit: string) => {
+      if (!date || !other) return false
+      const d1 = new Date(date)
+      const d2 = new Date(other.valueOf ? other.valueOf() : other)
+      if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return false
+
+      if (unit === 'day') {
+        const d1Day = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate())
+        const d2Day = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate())
+        return d1Day.getTime() > d2Day.getTime()
+      }
+      return d1.getTime() > d2.getTime()
+    },
+    isBefore: (other: any, unit: string) => {
+      if (!date || !other) return false
+      const d1 = new Date(date)
+      const d2 = new Date(other.valueOf ? other.valueOf() : other)
+      if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return false
+
+      if (unit === 'day') {
+        const d1Day = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate())
+        const d2Day = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate())
+        return d1Day.getTime() < d2Day.getTime()
+      }
+      return d1.getTime() < d2.getTime()
+    },
   })
   mockDayjs.extend = jest.fn()
   return mockDayjs

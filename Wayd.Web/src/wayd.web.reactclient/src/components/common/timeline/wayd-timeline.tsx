@@ -278,6 +278,7 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
   const preserveInitialViewOnNextScrollRef = useRef(false)
   const visibleStartMsRef = useRef(windowStart)
   const pendingVisibleStartMsRef = useRef<number | null>(null)
+  const visibleStartRestoreTokenRef = useRef(0)
   const preserveInitialViewForProgrammaticScroll = useCallback(() => {
     preserveInitialViewOnNextScrollRef.current = true
     requestAnimationFrame(() => {
@@ -324,6 +325,7 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
       isInitialViewRef.current = true
       visibleStartMsRef.current = windowStart
       pendingVisibleStartMsRef.current = null
+      visibleStartRestoreTokenRef.current += 1
     }
   }, [storageKey, windowStart])
 
@@ -373,10 +375,12 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
   const effectiveZoom = clampZoom(zoom, { min: zoomMin, max: zoomMax })
   const chartWidth = baseWidth * effectiveZoom
   const toScrollLeft = useCallback((ms: number) => {
-    if (domainMs <= 0 || chartWidth <= 0) return 0
-    const viewport = chartRef.current?.clientWidth ?? viewportWidth
-    const maxScroll = Math.max(0, chartWidth - viewport)
-    const raw = ((ms - domainStart) / domainMs) * chartWidth
+    const chart = chartRef.current
+    const contentWidth = chart?.scrollWidth ?? chartWidth
+    if (domainMs <= 0 || contentWidth <= 0) return 0
+    const viewport = chart?.clientWidth ?? viewportWidth
+    const maxScroll = Math.max(0, contentWidth - viewport)
+    const raw = ((ms - domainStart) / domainMs) * contentWidth
     return Math.min(maxScroll, Math.max(0, raw))
   }, [chartWidth, domainMs, domainStart, viewportWidth])
   const applyHorizontalScrollToDom = useCallback(
@@ -385,8 +389,9 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
       const chart = chartRef.current
       if (chart) chart.scrollLeft = left
       if (axisViewportRef.current) axisViewportRef.current.scrollLeft = left
+      const contentWidth = chart?.scrollWidth ?? chartWidth
       visibleStartMsRef.current =
-        domainStart + (domainMs * left) / Math.max(chartWidth, 1)
+        domainStart + (domainMs * left) / Math.max(contentWidth, 1)
     },
     [chartWidth, domainMs, domainStart, preserveInitialViewForProgrammaticScroll],
   )
@@ -399,7 +404,10 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
   )
 
   const wheelCleanupRef = useRef<(() => void) | null>(null)
-  const setChartRef = (el: HTMLDivElement | null) => {
+  const requestZoomRef = useRef<(nextZoomRaw: number, anchorX: number) => void>(
+    () => {},
+  )
+  const setChartRef = useCallback((el: HTMLDivElement | null) => {
     chartRef.current = el
     observerRef.current?.disconnect()
     wheelCleanupRef.current?.()
@@ -430,11 +438,11 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
       const anchorX = e.clientX - el.getBoundingClientRect().left
       // Wheel up (deltaY < 0) zooms in; scale exponentially by the scroll amount.
       const factor = Math.pow(ZOOM_WHEEL_STEP, -e.deltaY)
-      requestZoom(geom.zoom * factor, anchorX)
+      requestZoomRef.current(geom.zoom * factor, anchorX)
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     wheelCleanupRef.current = () => el.removeEventListener('wheel', onWheel)
-  }
+  }, [])
 
   useEffect(
     () => () => {
@@ -475,7 +483,19 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
       pendingVisibleStartMsRef.current = null
       const nextScrollLeft = toScrollLeft(pendingVisibleStart)
       applyHorizontalScrollToDom(nextScrollLeft)
-      requestAnimationFrame(() => setScrollLeft(nextScrollLeft))
+      const restoreToken = visibleStartRestoreTokenRef.current
+      requestAnimationFrame(() => {
+        if (restoreToken !== visibleStartRestoreTokenRef.current) return
+        const settledScrollLeft = toScrollLeft(pendingVisibleStart)
+        applyHorizontalScrollToDom(settledScrollLeft)
+        setScrollLeft(settledScrollLeft)
+      })
+      window.setTimeout(() => {
+        if (restoreToken !== visibleStartRestoreTokenRef.current) return
+        const finalScrollLeft = toScrollLeft(pendingVisibleStart)
+        applyHorizontalScrollToDom(finalScrollLeft)
+        setScrollLeft(finalScrollLeft)
+      }, 150)
     }
   }, [
     effectiveZoom,
@@ -539,7 +559,7 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
       setIsInitialView(false)
     }
     visibleStartMsRef.current =
-      domainStart + (domainMs * chart.scrollLeft) / Math.max(chartWidth, 1)
+      domainStart + (domainMs * chart.scrollLeft) / Math.max(chart.scrollWidth, 1)
     if (axisViewportRef.current) {
       axisViewportRef.current.scrollLeft = chart.scrollLeft
     }
@@ -563,6 +583,24 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
       chartRef.current.scrollTop = group.scrollTop
     }
   }
+
+  const captureVisibleStart = useCallback(() => {
+    const chart = chartRef.current
+    if (!chart) return
+    const visibleStart =
+      domainStart + (domainMs * chart.scrollLeft) / Math.max(chart.scrollWidth, 1)
+    visibleStartRestoreTokenRef.current += 1
+    visibleStartMsRef.current = visibleStart
+    pendingVisibleStartMsRef.current = visibleStart
+  }, [domainMs, domainStart])
+
+  const onDrillLevelChange = useCallback(
+    (nextLevel: number) => {
+      captureVisibleStart()
+      setUserLevel(nextLevel)
+    },
+    [captureVisibleStart],
+  )
 
   // Drag-to-pan: grab empty chart space and drag to scroll horizontally (and
   // vertically). Bars/handles/milestones stop pointer propagation (or are marked
@@ -629,7 +667,7 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
   // Apply a new zoom factor, keeping the time under `anchorX` (viewport-local px)
   // fixed. Reads current geometry from the ref so it's safe to call from both the
   // wheel listener and the toolbar buttons. Stages the post-paint scrollLeft.
-  const requestZoom = (nextZoomRaw: number, anchorX: number) => {
+  const requestZoom = useCallback((nextZoomRaw: number, anchorX: number) => {
     isInitialViewRef.current = false
     setIsInitialView(false)
     const geom = zoomGeomRef.current
@@ -644,7 +682,11 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
       viewportWidth: chartRef.current?.clientWidth ?? 0,
     })
     setZoom(next)
-  }
+  }, [])
+
+  useLayoutEffect(() => {
+    requestZoomRef.current = requestZoom
+  }, [requestZoom])
 
   // Zoom in/out by a fixed step, anchored on the viewport centre (toolbar buttons).
   const zoomBy = (factor: number) => {
@@ -828,7 +870,7 @@ export function WaydTimeline<TItem = unknown, TGroup = unknown>(
                 <DrillControl
                   level={level}
                   maxLevel={maxLevel}
-                  onChange={setUserLevel}
+                  onChange={onDrillLevelChange}
                 />
               )}
               {toolbarLeftSlot}

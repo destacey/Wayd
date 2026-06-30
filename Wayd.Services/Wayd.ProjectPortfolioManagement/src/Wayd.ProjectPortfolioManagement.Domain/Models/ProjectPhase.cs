@@ -1,5 +1,6 @@
 using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
+using NodaTime;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
 
@@ -111,9 +112,11 @@ public sealed class ProjectPhase : BaseAuditableEntity
     /// </summary>
     internal Result UpdatePlannedDates(FlexibleDateRange? dateRange, IEnumerable<ProjectTask> rootTasks)
     {
+        var rootTaskList = rootTasks.ToList();
+
         if (dateRange is null)
         {
-            if (rootTasks.Any(t => t.Type == ProjectTaskType.Milestone ? t.PlannedDate.HasValue : t.PlannedDateRange is not null))
+            if (rootTaskList.Any(t => t.Type == ProjectTaskType.Milestone ? t.PlannedDate.HasValue : t.PlannedDateRange is not null))
             {
                 return Result.Failure("A phase cannot be updated to null when it has root tasks with dates.");
             }
@@ -121,7 +124,18 @@ public sealed class ProjectPhase : BaseAuditableEntity
             return Result.Success();
         }
 
-        foreach (var task in rootTasks)
+        if (rootTaskList.Count > 0 && TryGetShiftDays(dateRange, out var days))
+        {
+            foreach (var task in rootTaskList)
+            {
+                task.ShiftDates(days);
+            }
+
+            DateRange = dateRange;
+            return Result.Success();
+        }
+
+        foreach (var task in rootTaskList)
         {
             if (task.Type == ProjectTaskType.Milestone)
             {
@@ -152,6 +166,32 @@ public sealed class ProjectPhase : BaseAuditableEntity
 
         DateRange = dateRange;
         return Result.Success();
+    }
+
+    private bool TryGetShiftDays(FlexibleDateRange newRange, out int days)
+    {
+        days = 0;
+        if (DateRange is null)
+        {
+            return false;
+        }
+
+        if (DateRange.End.HasValue != newRange.End.HasValue)
+        {
+            return false;
+        }
+
+        var startDelta = Period.DaysBetween(DateRange.Start, newRange.Start);
+
+        if (DateRange.End.HasValue && newRange.End.HasValue)
+        {
+            var endDelta = Period.DaysBetween(DateRange.End.Value, newRange.End.Value);
+            days = startDelta;
+            return startDelta != 0 && startDelta == endDelta;
+        }
+
+        days = startDelta;
+        return startDelta != 0;
     }
 
     /// <summary>

@@ -74,6 +74,11 @@ import { useTreeGridEditing } from './use-tree-grid-editing'
 
 const EMPTY_FIELD_ERRORS: Record<string, string> = {}
 const FILTER_DEBOUNCE_MS = 250
+const DRAFT_SCROLL_MARGIN = 8
+const escapeSelectorValue = (value: string) =>
+  typeof CSS !== 'undefined' && CSS.escape
+    ? CSS.escape(value)
+    : value.replace(/["\\]/g, '\\$&')
 const formatTagPlaceholder = (values: { label?: unknown; value?: unknown }[]) => {
   const labels = values
     .map((v) => String(v.label ?? v.value ?? ''))
@@ -86,6 +91,58 @@ const NOOP_FORM = {
   setFieldsValue: () => {},
   resetFields: () => {},
 } as unknown as FormInstance
+
+const scrollRowIntoViewIfNeeded = (
+  rowId: string,
+  tableWrapperClassName: string,
+) => {
+  const row = document.querySelector(
+    `[data-row-id="${escapeSelectorValue(rowId)}"]`,
+  ) as HTMLElement | null
+  const wrapper = row?.closest(
+    `.${tableWrapperClassName}`,
+  ) as HTMLElement | null
+
+  if (!row || !wrapper) return 'missing'
+
+  const rowRect = row.getBoundingClientRect()
+  const wrapperRect = wrapper.getBoundingClientRect()
+
+  const visibleTop = wrapperRect.top + wrapper.clientTop
+  const visibleBottom = visibleTop + wrapper.clientHeight
+
+  if (rowRect.top < visibleTop + DRAFT_SCROLL_MARGIN) {
+    wrapper.scrollTop -= visibleTop + DRAFT_SCROLL_MARGIN - rowRect.top
+    return 'done'
+  }
+
+  if (rowRect.bottom > visibleBottom - DRAFT_SCROLL_MARGIN) {
+    wrapper.scrollTop +=
+      rowRect.bottom - (visibleBottom - DRAFT_SCROLL_MARGIN)
+    return 'done'
+  }
+
+  return 'done'
+}
+
+const requestScrollRowIntoView = (
+  rowId: string,
+  tableWrapperClassName: string,
+) => {
+  let attempts = 0
+
+  const tryScroll = () => {
+    if (scrollRowIntoViewIfNeeded(rowId, tableWrapperClassName) === 'done') {
+      return
+    }
+    attempts += 1
+    if (attempts < 12) {
+      setTimeout(tryScroll, 20)
+    }
+  }
+
+  requestAnimationFrame(tryScroll)
+}
 
 function TreeGridInner<T extends TreeNode>(
   props: TreeGridProps<T>,
@@ -287,6 +344,7 @@ function TreeGridInner<T extends TreeNode>(
           setTimeout(() => {
             setSelectedRowId(newDraft.id)
             setSelectedCellId(`${newDraft.id}-name`)
+            requestScrollRowIntoView(newDraft.id, styles.tableWrapper)
           }, 50)
         })
 

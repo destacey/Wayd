@@ -119,5 +119,6 @@ export interface WaydTimelineProps<TItem = unknown, TGroup = unknown> {
 
   /** States. */
   isLoading?: boolean
+  /** Empty-state message used by the default WaydEmpty renderer. */
   emptyMessage?: string
 }

@@ -442,6 +442,30 @@ public class ProjectTaskTests
     }
 
     [Fact]
+    public void ApplyPlannedDates_ShouldShiftChildren_WhenRangeShiftedBySameDuration()
+    {
+        // Arrange
+        var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 12));
+        var parentTask = new ProjectTaskFaker().WithPlannedDateRange(parentRange).Generate();
+
+        var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 7), new LocalDate(2026, 6, 10));
+        var childTask = new ProjectTaskFaker().WithPlannedDateRange(childRange).Generate();
+        parentTask.AddChild(childTask);
+
+        var shiftedRange = new FlexibleDateRange(new LocalDate(2026, 6, 10), new LocalDate(2026, 6, 17));
+
+        // Act
+        var result = parentTask.ApplyPlannedDates(shiftedRange, null, true);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        parentTask.PlannedDateRange!.Start.Should().Be(new LocalDate(2026, 6, 10));
+        parentTask.PlannedDateRange.End.Should().Be(new LocalDate(2026, 6, 17));
+        childTask.PlannedDateRange!.Start.Should().Be(new LocalDate(2026, 6, 12));
+        childTask.PlannedDateRange.End.Should().Be(new LocalDate(2026, 6, 15));
+    }
+
+    [Fact]
     public void ApplyPlannedDates_ShouldFail_WhenProposedRangeExcludesChild()
     {
         // Arrange

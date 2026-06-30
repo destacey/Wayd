@@ -47,6 +47,19 @@ describe('applyDrag — move', () => {
     expect(r.end - r.start).toBe(3 * DAY)
   })
 
+  it('preserves matching calendar-day deltas for backend shift detection', () => {
+    // Arrange
+    const original = item(0, 3)
+    const ctx = { mode: 'move' as const, item: original, pxPerMs, deltaPx: 200 }
+    // Act
+    const r = applyDrag(ctx)
+    // Assert
+    const startDelta = dayjs(r.start).diff(dayjs(original.start), 'day')
+    const endDelta = dayjs(r.end).diff(dayjs(original.end), 'day')
+    expect(startDelta).toBe(2)
+    expect(endDelta).toBe(startDelta)
+  })
+
   it('clamps move to max without changing duration', () => {
     // Arrange — large positive drag, max at day 4; item is 3 days long.
     const ctx = {

@@ -3,7 +3,6 @@
 import React, { useMemo } from 'react'
 import WaydGrid from '../../../../components/common/wayd-grid'
 import Link from 'next/link'
-import dayjs from 'dayjs'
 import {
   PiObjectiveHealthCheckStatusCellRenderer,
   MarkdownCellRenderer,
@@ -67,13 +66,11 @@ const PiObjectiveHealthReportGrid = (
       },
       {
         field: 'reportedOn',
-        valueGetter: (params) =>
-          params.data?.reportedOn ? dayjs(params.data.reportedOn).format('M/D/YYYY h:mm A') : null,
+        type: 'dateTime',
       },
       {
         field: 'expiration',
-        valueGetter: (params) =>
-          params.data?.expiration ? dayjs(params.data.expiration).format('M/D/YYYY h:mm A') : null,
+        type: 'dateTime',
       },
     ],
     [],

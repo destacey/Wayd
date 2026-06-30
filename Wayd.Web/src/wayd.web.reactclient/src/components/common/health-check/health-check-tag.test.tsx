@@ -26,14 +26,18 @@ jest.mock('antd', () => {
       children,
       content,
       onOpenChange,
+      styles,
     }: {
       children: any
       content: any
       onOpenChange?: (open: boolean) => void
+      styles?: { content?: React.CSSProperties }
     }) => (
       <div>
         <div onMouseEnter={() => onOpenChange?.(true)}>{children}</div>
-        <div>{typeof content === 'function' ? content() : content}</div>
+        <div data-testid="health-check-popover-content" style={styles?.content}>
+          {typeof content === 'function' ? content() : content}
+        </div>
       </div>
     ),
   }
@@ -82,11 +86,34 @@ describe('HealthCheckTag', () => {
     expect(screen.getByText('Reported By')).toBeInTheDocument()
     expect(screen.getByText('Jane Smith')).toBeInTheDocument()
     expect(screen.getByText('Reported On')).toBeInTheDocument()
-    expect(screen.getByText(/1\/10\/2026/)).toBeInTheDocument()
+    expect(screen.getByText(/Jan 10, 2026/)).toBeInTheDocument()
     expect(screen.getByText('Expires On')).toBeInTheDocument()
     expect(screen.getByTestId('markdown-renderer')).toHaveTextContent(
       'Project remains on track',
     )
+  })
+
+  it('should use a responsive detailed popover width when notes are provided', () => {
+    const details: HealthCheckDetailsData = {
+      ...healthCheck,
+      reportedBy: { name: 'Jane Smith' },
+      reportedOn: new Date(2026, 0, 10, 9, 0),
+      note: 'Project remains on track',
+    }
+
+    render(<HealthCheckTag healthCheck={healthCheck} details={details} />)
+
+    expect(screen.getByTestId('health-check-popover-content')).toHaveStyle({
+      width: 'min(420px, calc(100vw - 32px))',
+    })
+  })
+
+  it('should use a compact responsive popover width without notes', () => {
+    render(<HealthCheckTag healthCheck={healthCheck} />)
+
+    expect(screen.getByTestId('health-check-popover-content')).toHaveStyle({
+      width: 'min(280px, calc(100vw - 32px))',
+    })
   })
 })
 

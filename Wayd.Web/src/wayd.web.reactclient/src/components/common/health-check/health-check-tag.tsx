@@ -1,6 +1,6 @@
 'use client'
 
-import { Descriptions, Popover, Spin, Tag } from 'antd'
+import { Descriptions, Flex, Popover, Spin, Tag } from 'antd'
 import { FlagFilled } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { MarkdownRenderer } from '../markdown'
@@ -53,47 +53,46 @@ const HealthCheckTag = ({
 }: HealthCheckTagProps) => {
   if (!healthCheck) return null
 
+  const popoverWidth = details?.note ? 420 : 280
+
   const content = () => {
     if (isLoading) return <Spin size="small" />
 
     if (!details) {
       return (
-        <Descriptions size="small" column={1} style={{ maxWidth: '250px' }}>
+        <Descriptions size="small" column={1} style={{ width: '100%' }}>
           {healthCheck.expiration && (
             <Item label="Expires On">
-              {dayjs(healthCheck.expiration).format('M/D/YYYY hh:mm A')}
+              {dayjs(healthCheck.expiration).format('MMM D, YYYY hh:mm A')}
             </Item>
           )}
         </Descriptions>
       )
     }
 
-    const maxWidth = details.note
-      ? details.note.length <= 200
-        ? '300px'
-        : '400px'
-      : '250px'
-
     return (
-      <Descriptions size="small" column={1} style={{ maxWidth }}>
-        <Item label="Reported By">{details.reportedBy.name}</Item>
-        <Item label="Reported On">
-          {dayjs(details.reportedOn).format('M/D/YYYY')}
-        </Item>
-        <Item label="Expires On">
-          {dayjs(details.expiration).format('M/D/YYYY hh:mm A')}
-        </Item>
-        <Item>
-          <MarkdownRenderer markdown={details.note} />
-        </Item>
-      </Descriptions>
+      <Flex vertical gap="medium">
+        <Descriptions size="small" column={1} style={{ width: '100%' }}>
+          <Item label="Reported By">{details.reportedBy.name}</Item>
+          <Item label="Reported On">
+            {dayjs(details.reportedOn).format('MMM D, YYYY')}
+          </Item>
+          <Item label="Expires On">
+            {dayjs(details.expiration).format('MMM D, YYYY hh:mm A')}
+          </Item>
+        </Descriptions>
+        {details.note && <MarkdownRenderer markdown={details.note} />}
+      </Flex>
     )
   }
 
   const trigger =
     variant === 'flag' ? (
       <FlagFilled
-        style={{ color: statusToColorVar(healthCheck.status.name), fontSize: 14 }}
+        style={{
+          color: statusToColorVar(healthCheck.status.name),
+          fontSize: 14,
+        }}
         aria-label={`Health: ${healthCheck.status.name}`}
       />
     ) : (
@@ -108,6 +107,11 @@ const HealthCheckTag = ({
       content={content}
       trigger="hover"
       onOpenChange={onOpenChange}
+      styles={{
+        content: {
+          width: `min(${popoverWidth}px, calc(100vw - 32px))`,
+        },
+      }}
     >
       {trigger}
     </Popover>

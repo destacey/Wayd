@@ -11,12 +11,11 @@ import {
   NestedTeamNameLinkCellRenderer,
 } from '@/src/components/common/wayd-grid-cell-renderers'
 import PiObjectiveHealthCheckTag from '@/src/app/planning/planning-intervals/_components/pi-objective-health-check-tag'
-import dayjs from 'dayjs'
 import { WaydGrid } from '@/src/components/common'
 import { Progress } from 'antd'
 import { useGetPlanningIntervalObjectivesHealthReportQuery } from '@/src/store/features/planning/planning-interval-api'
 import { PlanningIntervalObjectiveHealthCheckDto } from '@/src/services/wayd-api'
-import { ICellRendererParams, ValueGetterParams } from 'ag-grid-community'
+import { ICellRendererParams } from 'ag-grid-community'
 
 const LocalHealthCheckCellRenderer = (params: ICellRendererParams<PlanningIntervalObjectiveHealthCheckDto>) => {
   if (!params.data?.healthCheckId) return null
@@ -96,17 +95,11 @@ const ObjectiveHealthReportPage = (props: {
       },
       {
         field: 'reportedOn',
-        valueGetter: (params: ValueGetterParams<PlanningIntervalObjectiveHealthCheckDto>) =>
-          !params.data!.reportedOn
-            ? null
-            : dayjs(params.data!.reportedOn).format('M/D/YYYY h:mm A'),
+        type: 'dateTime',
       },
       {
-        field: 'Expiration',
-        valueGetter: (params: ValueGetterParams<PlanningIntervalObjectiveHealthCheckDto>) =>
-          !params.data!.expiration
-            ? null
-            : dayjs(params.data!.expiration).format('M/D/YYYY h:mm A'),
+        field: 'expiration',
+        type: 'dateTime',
       },
     ],
     [],

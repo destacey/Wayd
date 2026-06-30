@@ -3,7 +3,6 @@
 import { useMemo } from 'react'
 import WaydGrid from '@/src/components/common/wayd-grid'
 import Link from 'next/link'
-import dayjs from 'dayjs'
 import {
   ProjectHealthCheckStatusCellRenderer,
   MarkdownCellRenderer,
@@ -52,13 +51,11 @@ const ProjectHealthReportGrid = ({
       },
       {
         field: 'reportedOn',
-        valueGetter: (params) =>
-          params.data?.reportedOn ? dayjs(params.data.reportedOn).format('M/D/YYYY h:mm A') : null,
+        type: 'dateTime',
       },
       {
         field: 'expiration',
-        valueGetter: (params) =>
-          params.data?.expiration ? dayjs(params.data.expiration).format('M/D/YYYY h:mm A') : null,
+        type: 'dateTime',
       },
     ],
     [],

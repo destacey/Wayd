@@ -59,12 +59,16 @@ export function applyDrag(ctx: DragContext): DragResult {
 
   if (mode === 'move') {
     start = clamp(maybeSnap(item.start + deltaMs))
-    // Preserve duration on move.
-    const duration = item.end - item.start
-    end = start + duration
+    // Preserve calendar-day duration on move. The backend works with LocalDate
+    // deltas, so preserving raw milliseconds can turn a move into a resize when
+    // the range crosses a daylight-saving boundary.
+    const durationDays = dayjs(item.end)
+      .startOf('day')
+      .diff(dayjs(item.start).startOf('day'), 'day')
+    end = dayjs(start).add(durationDays, 'day').valueOf()
     if (max != null && end > max) {
-      end = max
-      start = end - duration
+      end = maybeSnap(max)
+      start = dayjs(end).subtract(durationDays, 'day').valueOf()
     }
   } else if (mode === 'resize-start') {
     start = clamp(maybeSnap(item.start + deltaMs))

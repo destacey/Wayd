@@ -14,10 +14,12 @@ public sealed record InitWorkdayConnectionCommand(Guid Id) : ICommand<Connection
 
 internal sealed class InitWorkdayConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
+    IDateTimeProvider dateTimeProvider,
     IWorkdayConnectionInitializer initializer,
     ILogger<InitWorkdayConnectionCommandHandler> logger) : ICommandHandler<InitWorkdayConnectionCommand, ConnectionInitResult>
 {
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IWorkdayConnectionInitializer _initializer = initializer;
     private readonly ILogger<InitWorkdayConnectionCommandHandler> _logger = logger;
 
@@ -53,7 +55,7 @@ internal sealed class InitWorkdayConnectionCommandHandler(
                 result.Warnings,
                 result.AuthError,
                 result.DiscoveredOrgTypes?.Select(d => new WorkdayOrgType(d.TypeId, d.DisplayName, d.Count)).ToList(),
-                DateTimeOffset.UtcNow);
+                _dateTimeProvider.Now.ToDateTimeOffset());
 
             await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
 

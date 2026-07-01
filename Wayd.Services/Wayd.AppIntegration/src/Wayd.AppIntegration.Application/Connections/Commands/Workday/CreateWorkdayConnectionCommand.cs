@@ -134,6 +134,6 @@ internal sealed class CreateWorkdayConnectionCommandHandler(
             result.Warnings,
             result.AuthError,
             result.DiscoveredOrgTypes?.Select(d => new WorkdayOrgType(d.TypeId, d.DisplayName, d.Count)).ToList(),
-            DateTimeOffset.UtcNow);
+            _dateTimeProvider.Now.ToDateTimeOffset());
     }
 }

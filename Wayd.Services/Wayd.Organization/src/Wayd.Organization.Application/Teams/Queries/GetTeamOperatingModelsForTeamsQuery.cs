@@ -25,7 +25,7 @@ internal sealed class GetTeamOperatingModelsForTeamsQueryHandler(IOrganizationDb
             return [];
         }
 
-        var asOfDate = request.AsOfDate ?? LocalDate.FromDateTime(_dateTimeProvider.Now.ToDateTimeUtc());
+        var asOfDate = request.AsOfDate ?? _dateTimeProvider.Today;
 
         var query = _organizationDbContext.Teams
             .Where(t => teamIdList.Contains(t.Id))

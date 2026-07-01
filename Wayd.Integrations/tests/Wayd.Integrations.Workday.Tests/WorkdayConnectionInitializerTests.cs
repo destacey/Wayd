@@ -10,6 +10,8 @@ namespace Wayd.Integrations.Workday.Tests;
 
 public class WorkdayConnectionInitializerTests
 {
+    private static readonly DateTimeOffset TestNow = new(2026, 7, 1, 15, 30, 45, TimeSpan.Zero);
+
     private static WorkdayRequestContext BuildContext(
         WorkdayWorkerKey key = WorkdayWorkerKey.Wid,
         bool useUserIdAsEmailFallback = false,
@@ -30,7 +32,7 @@ public class WorkdayConnectionInitializerTests
     {
         var handler = new FakeHttpMessageHandler();
         var httpClient = new HttpClient(handler);
-        var client = new WorkdayStaffingClient(httpClient, NullLogger<WorkdayStaffingClient>.Instance);
+        var client = new WorkdayStaffingClient(httpClient, new FixedTimeProvider(TestNow), NullLogger<WorkdayStaffingClient>.Instance);
         var initializer = new WorkdayConnectionInitializer(client, NullLogger<WorkdayConnectionInitializer>.Instance);
         return (initializer, handler);
     }

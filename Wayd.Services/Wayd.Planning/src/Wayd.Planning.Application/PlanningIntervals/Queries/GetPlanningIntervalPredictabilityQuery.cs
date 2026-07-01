@@ -44,7 +44,7 @@ internal sealed class GetPlanningIntervalPredictabilityQueryHandler : IQueryHand
         else if (!planningInterval.Teams.Any())
             return new PlanningIntervalPredictabilityDto(null, []);
 
-        var currentDate = _dateTimeProvider.Now.InUtc().Date;
+        var currentDate = _dateTimeProvider.Today;
 
         // Pre-bucket team objectives once. We need per-team counts of
         // regular/stretch/completed objectives — same data the predictability

@@ -10,20 +10,23 @@ namespace Wayd.Integrations.Workday.Tests;
 
 public class WorkdayStaffingServiceTests
 {
+    private static readonly DateTimeOffset TestNow = new(2026, 7, 1, 15, 30, 45, TimeSpan.Zero);
+
     private static WorkdayRequestContext BuildContext(
         WorkdayWorkerKey key = WorkdayWorkerKey.Wid,
         bool useUserIdAsEmailFallback = false,
         bool usePreferredName = false,
         bool normalizeNameCasing = false,
         string? departmentOrganizationTypeId = null,
-        IReadOnlyList<WorkdayOrgExclusion>? orgExclusions = null) => new(
+        IReadOnlyList<WorkdayOrgExclusion>? orgExclusions = null,
+        NodaTime.Instant? incrementalUpdatedFrom = null) => new(
         SoapEndpoint: "https://wd3-impl-services1.workday.com/ccx/service/acme_corp1/Staffing/v46.1",
         TenantAlias: "acme_corp1",
         WsdlVersion: "v46.1",
         Credentials: new WorkdayCredentials("wayd_isu@acme_corp1", "secret"),
         WorkerKey: key,
         IncludeInactive: false,
-        IncrementalUpdatedFrom: null,
+        IncrementalUpdatedFrom: incrementalUpdatedFrom,
         UseUserIdAsEmailFallback: useUserIdAsEmailFallback,
         UsePreferredName: usePreferredName,
         NormalizeNameCasing: normalizeNameCasing,
@@ -34,7 +37,7 @@ public class WorkdayStaffingServiceTests
     {
         var handler = new FakeHttpMessageHandler();
         var httpClient = new HttpClient(handler);
-        var client = new WorkdayStaffingClient(httpClient, NullLogger<WorkdayStaffingClient>.Instance);
+        var client = new WorkdayStaffingClient(httpClient, new FixedTimeProvider(TestNow), NullLogger<WorkdayStaffingClient>.Instance);
         var service = new WorkdayStaffingService(client, NullLogger<WorkdayStaffingService>.Instance);
         return (service, handler);
     }
@@ -343,6 +346,22 @@ public class WorkdayStaffingServiceTests
         body.Should().Contain("secret");
         body.Should().Contain("Get_Workers_Request");
         sent.RequestUri!.ToString().Should().Be("https://wd3-impl-services1.workday.com/ccx/service/acme_corp1/Staffing/v46.1");
+    }
+
+    [Fact]
+    public async Task GetEmployees_incrementalRequest_usesInjectedClockForUpdatedThrough()
+    {
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
+
+        await service.GetEmployees(
+            BuildContext(incrementalUpdatedFrom: NodaTime.Instant.FromUtc(2026, 6, 30, 12, 0)),
+            CancellationToken.None);
+
+        var body = await handler.Captured.Single().Content!.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        body.Should().Contain("<wd:Updated_From>2026-06-30T12:00:00Z</wd:Updated_From>");
+        body.Should().Contain("<wd:Updated_Through>2026-07-01T15:30:45Z</wd:Updated_Through>");
     }
 
     [Fact]

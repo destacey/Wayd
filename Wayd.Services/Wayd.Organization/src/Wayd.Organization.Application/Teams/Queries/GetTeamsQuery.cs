@@ -34,7 +34,7 @@ internal sealed class GetTeamsQueryHandler(
             query = query.Where(e => request.TeamIds.Contains(e.Id));
 
 
-        var today = _dateTimeProvider.Now.InUtc().Date;
+        var today = _dateTimeProvider.Today;
         var cfg = TeamListDto.CreateTypeAdapterConfig(today);
 
         return await query

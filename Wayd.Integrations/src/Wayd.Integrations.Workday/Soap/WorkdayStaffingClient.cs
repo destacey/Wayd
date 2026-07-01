@@ -20,9 +20,10 @@ namespace Wayd.Integrations.Workday.Soap;
 /// WWS contract is forward+backward compatible for read operations across the supported window.
 /// Field-level changes are absorbed by the response parser (missing element → null).
 /// </remarks>
-public sealed class WorkdayStaffingClient(HttpClient httpClient, ILogger<WorkdayStaffingClient> logger)
+public sealed class WorkdayStaffingClient(HttpClient httpClient, TimeProvider timeProvider, ILogger<WorkdayStaffingClient> logger)
 {
     private readonly HttpClient _httpClient = httpClient;
+    private readonly TimeProvider _timeProvider = timeProvider;
     private readonly ILogger<WorkdayStaffingClient> _logger = logger;
 
     // Workday's two primary namespaces. The envelope name is suffixed with the WWS version on the
@@ -44,7 +45,7 @@ public sealed class WorkdayStaffingClient(HttpClient httpClient, ILogger<Workday
         int pageSize,
         CancellationToken cancellationToken)
     {
-        var envelope = BuildGetWorkersEnvelope(context, page, pageSize);
+        var envelope = BuildGetWorkersEnvelope(context, page, pageSize, _timeProvider.GetUtcNow());
         var responseXml = await PostAsync(context, envelope, cancellationToken);
 
         // Find all wd:Worker elements anywhere in the response — Workday nests them under
@@ -58,7 +59,7 @@ public sealed class WorkdayStaffingClient(HttpClient httpClient, ILogger<Workday
         return new GetWorkersResponse(workers, page, totalPages, totalResults);
     }
 
-    private static XDocument BuildGetWorkersEnvelope(WorkdayRequestContext context, int page, int pageSize)
+    private static XDocument BuildGetWorkersEnvelope(WorkdayRequestContext context, int page, int pageSize, DateTimeOffset now)
     {
         var requestCriteria = new XElement(Wd + "Request_Criteria",
             new XElement(Wd + "Exclude_Inactive_Workers", context.IncludeInactive ? "0" : "1"));
@@ -76,11 +77,10 @@ public sealed class WorkdayStaffingClient(HttpClient httpClient, ILogger<Workday
         //      both are Required!". We pair the watermark with "now" to close the range.
         if (context.IncrementalUpdatedFrom is { } since)
         {
-            var now = DateTime.UtcNow;
             requestCriteria.Add(new XElement(Wd + "Transaction_Log_Criteria_Data",
                 new XElement(Wd + "Transaction_Date_Range_Data",
                     new XElement(Wd + "Updated_From", since.ToDateTimeUtc().ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture)),
-                    new XElement(Wd + "Updated_Through", now.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture)))));
+                    new XElement(Wd + "Updated_Through", now.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture)))));
         }
 
         // Response_Group controls how much Workday serializes per worker — the dominant driver of

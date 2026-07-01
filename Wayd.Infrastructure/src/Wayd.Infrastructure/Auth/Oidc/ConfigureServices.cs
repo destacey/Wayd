@@ -13,7 +13,6 @@ internal static class ConfigureServices
     /// </summary>
     internal static IServiceCollection AddOidcProviderRegistry(this IServiceCollection services)
     {
-        services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IOidcProviderRegistry, OidcProviderRegistry>();
         services.AddSingleton<IOidcConfigurationManagerFactory, OidcConfigurationManagerFactory>();
 

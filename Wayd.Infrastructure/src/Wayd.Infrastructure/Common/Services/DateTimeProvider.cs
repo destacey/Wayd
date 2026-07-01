@@ -2,11 +2,9 @@
 
 namespace Wayd.Infrastructure.Common.Services;
 
-public class DateTimeProvider(IClock clock) : IDateTimeProvider
+public class DateTimeProvider(TimeProvider timeProvider) : IDateTimeProvider
 {
-    private readonly IClock _clock = clock;
+    public Instant Now => Instant.FromDateTimeOffset(timeProvider.GetUtcNow());
 
-    public Instant Now => _clock.GetCurrentInstant();
-
-    public LocalDate Today => _clock.GetCurrentInstant().InUtc().Date;
+    public LocalDate Today => Now.InUtc().Date;
 }

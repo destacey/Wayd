@@ -33,7 +33,6 @@ internal sealed class GetTeamMembershipsQueryHandler : IQueryHandler<GetTeamMemb
 
     public async Task<IReadOnlyList<TeamMembershipDto>> Handle(GetTeamMembershipsQuery request, CancellationToken cancellationToken)
     {
-        var today = _dateTimeProvider.Now.InUtc().Date;
         var query = _organizationDbContext.TeamOfTeams
             .Include(t => t.ParentMemberships)
                 .ThenInclude(m => m.Target)

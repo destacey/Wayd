@@ -50,7 +50,7 @@ internal sealed class GetTeamQueryHandler(
             throw exception;
         }
 
-        var today = _dateTimeProvider.Now.InUtc().Date;
+        var today = _dateTimeProvider.Today;
         var cfg = TeamDetailsDto.CreateTypeAdapterConfig(today);
 
         return await query

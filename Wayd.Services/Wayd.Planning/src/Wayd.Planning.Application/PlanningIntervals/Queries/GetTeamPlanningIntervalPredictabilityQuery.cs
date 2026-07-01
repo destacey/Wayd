@@ -35,7 +35,7 @@ internal sealed class GetTeamPlanningIntervalPredictabilityQueryHandler(IPlannin
         if (planningInterval is null || planningInterval.Teams.Count == 0)
             return null;
 
-        return planningInterval.CalculatePredictability(_dateTimeProvider.Now.InUtc().Date, request.TeamId);
+        return planningInterval.CalculatePredictability(_dateTimeProvider.Today, request.TeamId);
     }
 }
 

@@ -26,7 +26,7 @@ internal sealed class GetTeamOperatingModelAsOfQueryHandler(IOrganizationDbConte
         if (request.AsOfDate is null)
         {
             // Current model: has started and hasn't ended
-            var today = LocalDate.FromDateTime(_dateTimeProvider.Now.ToDateTimeUtc());
+            var today = _dateTimeProvider.Today;
             query = query.Where(x =>
                 x.Model.DateRange.Start <= today &&
                 (x.Model.DateRange.End == null || x.Model.DateRange.End >= today));

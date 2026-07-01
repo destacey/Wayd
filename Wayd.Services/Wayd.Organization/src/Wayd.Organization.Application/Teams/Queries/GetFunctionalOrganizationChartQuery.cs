@@ -16,7 +16,7 @@ internal sealed class GetFunctionalOrganizationChartQueryHandler(IOrganizationDb
 
     public async Task<FunctionalOrganizationChartDto> Handle(GetFunctionalOrganizationChartQuery request, CancellationToken cancellationToken)
     {
-        var asOfDate = request.AsOfDate ?? _dateTimeProvider.Now.InUtc().Date;
+        var asOfDate = request.AsOfDate ?? _dateTimeProvider.Today;
 
         _logger.LogInformation("{RequestName}: Retrieving functional organization chart as of {AsOfDate}", RequestName, asOfDate);
 

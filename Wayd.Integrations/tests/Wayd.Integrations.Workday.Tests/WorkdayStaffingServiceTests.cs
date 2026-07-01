@@ -34,7 +34,7 @@ public class WorkdayStaffingServiceTests
     {
         var handler = new FakeHttpMessageHandler();
         var httpClient = new HttpClient(handler);
-        var client = new WorkdayStaffingClient(httpClient, NullLogger<WorkdayStaffingClient>.Instance);
+        var client = new WorkdayStaffingClient(httpClient, TimeProvider.System, NullLogger<WorkdayStaffingClient>.Instance);
         var service = new WorkdayStaffingService(client, NullLogger<WorkdayStaffingService>.Instance);
         return (service, handler);
     }

@@ -3,21 +3,23 @@
 import { PlanningIntervalObjectiveListDto } from '@/src/services/wayd-api'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import WaydGrid from '../../../../components/common/wayd-grid'
-import { MenuProps, Progress } from 'antd'
+import {
+  WaydGrid2,
+  createActionsColumn,
+  renderTeamLink,
+  renderPlanningIntervalLink,
+} from '@/src/components/common/wayd-grid2'
+import type { ColumnDef } from '@tanstack/react-table'
+import { Progress } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import useAuth from '../../../../components/contexts/auth'
 import EditPlanningIntervalObjectiveForm from '@/src/app/planning/planning-intervals/_components/edit-planning-interval-objective-form'
 import CreateHealthCheckForm from './create-pi-objective-health-check-form'
+import PiObjectiveHealthCheckTag from './pi-objective-health-check-tag'
 import {
-  NestedPiObjectiveHealthCheckStatusCellRenderer,
-  PlanningIntervalObjectiveLinkCellRenderer,
-  RowMenuCellRenderer,
-  NestedTeamNameLinkCellRenderer,
-  NestedPlanningIntervalLinkCellRenderer,
-} from '../../../../components/common/wayd-grid-cell-renderers'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
-import { ControlItemSwitch } from '../../../../components/common/control-items-menu'
+  ControlItemsMenu,
+  ControlItemSwitch,
+} from '../../../../components/common/control-items-menu'
 
 export interface PlanningIntervalObjectivesGridProps {
   objectivesData: PlanningIntervalObjectiveListDto[]
@@ -34,67 +36,11 @@ interface SelectedObjective {
   key: number
 }
 
-const ProgressCellRenderer = ({ value, data }: ICellRendererParams<PlanningIntervalObjectiveListDto>) => {
-  const progressStatus = ['Canceled', 'Missed'].includes(data?.status?.name ?? '')
-    ? 'exception'
-    : undefined
-  return <Progress percent={value} size="small" status={progressStatus} />
-}
-
-interface RowMenuProps extends MenuProps {
-  planningIntervalId: string
-  planningIntervalKey: number
-  objectiveId: string
-  objectiveKey: number
-  canManageObjectives: boolean
-  canCreateHealthChecks: boolean
-  onEditObjectiveMenuClicked: (id: string, key: number) => void
-  onCreateHealthCheckMenuClicked: (
-    planningIntervalId: string,
-    id: string,
-  ) => void
-}
-
-const getRowMenuItems = (props: RowMenuProps) => {
-  if (
-    (!props.canManageObjectives && !props.canCreateHealthChecks) ||
-    !props.objectiveId ||
-    !props.onEditObjectiveMenuClicked ||
-    !props.onCreateHealthCheckMenuClicked
-  ) {
-    return null
-  }
-  return [
-    {
-      key: 'editObjective',
-      label: 'Edit Objective',
-      disabled: !props.canManageObjectives,
-      onClick: () =>
-        props.onEditObjectiveMenuClicked(props.objectiveId, props.objectiveKey),
-    },
-    {
-      key: 'createHealthCheck',
-      label: 'Create Health Check',
-      disabled: !props.canCreateHealthChecks,
-      onClick: () =>
-        props.onCreateHealthCheckMenuClicked(
-          props.planningIntervalId,
-          props.objectiveId,
-        ),
-    },
-    {
-      key: 'healthReport',
-      label: (
-        <Link
-          href={`/planning/planning-intervals/${props.planningIntervalKey}/objectives/${props.objectiveKey}/health-report`}
-        >
-          Health Report
-        </Link>
-      ),
-    },
-  ] as ItemType[]
-}
-
+/**
+ * PI Objectives grid on WaydGrid2 (TanStack). Uses nested-field accessors,
+ * custom cell renderers (link, progress, health tag), the dateOnly column
+ * type, the default empties-last sort, and hideable columns.
+ */
 const PlanningIntervalObjectivesGrid = ({
   objectivesData,
   refreshObjectives,
@@ -127,7 +73,9 @@ const PlanningIntervalObjectivesGrid = ({
     refreshObjectives()
   }
 
-  const columnDefs = useMemo<ColDef<PlanningIntervalObjectiveListDto>[]>(() => {
+  const columns = useMemo<
+    ColumnDef<PlanningIntervalObjectiveListDto, any>[]
+  >(() => {
     const onEditObjectiveMenuClicked = (id: string, key: number) => {
       setSelectedObjective({ id, key })
       setOpenUpdateObjectiveForm(true)
@@ -141,73 +89,129 @@ const PlanningIntervalObjectivesGrid = ({
     }
 
     return [
-      {
-        width: 50,
-        filter: false,
-        sortable: false,
-        resizable: false,
+      createActionsColumn<PlanningIntervalObjectiveListDto>({
         hide: !canManageObjectives,
-        cellRenderer: (params: ICellRendererParams<PlanningIntervalObjectiveListDto>) => {
-          if (!params.data) return null
-          const menuItems = getRowMenuItems({
-            planningIntervalId: params.data.planningInterval.id,
-            planningIntervalKey: planningIntervalKey,
-            objectiveId: params.data.id,
-            objectiveKey: params.data.key,
-            canManageObjectives,
-            canCreateHealthChecks,
-            onEditObjectiveMenuClicked,
-            onCreateHealthCheckMenuClicked,
-          })
-
-          return RowMenuCellRenderer({ ...params, menuItems: menuItems ?? [] })
+        ariaLabel: 'Objective actions',
+        getItems: (obj) => [
+          {
+            key: 'editObjective',
+            label: 'Edit Objective',
+            disabled: !canManageObjectives,
+            onClick: () => onEditObjectiveMenuClicked(obj.id, obj.key),
+          },
+          {
+            key: 'createHealthCheck',
+            label: 'Create Health Check',
+            disabled: !canCreateHealthChecks,
+            onClick: () =>
+              onCreateHealthCheckMenuClicked(obj.planningInterval.id, obj.id),
+          },
+          {
+            key: 'healthReport',
+            label: (
+              <Link
+                href={`/planning/planning-intervals/${planningIntervalKey}/objectives/${obj.key}/health-report`}
+              >
+                Health Report
+              </Link>
+            ),
+          },
+        ],
+      }),
+      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        size: 500,
+        cell: ({ row }) => (
+          <Link
+            href={`/planning/planning-intervals/${row.original.planningInterval?.key}/objectives/${row.original.key}`}
+          >
+            {row.original.name}
+          </Link>
+        ),
+      },
+      {
+        id: 'isStretch',
+        accessorKey: 'isStretch',
+        header: 'Stretch',
+        meta: { columnType: 'yesNo' },
+      },
+      {
+        id: 'planningInterval',
+        accessorKey: 'planningInterval.name',
+        header: 'Planning Interval',
+        meta: { hide: hidePlanningInterval },
+        cell: ({ row }) =>
+          renderPlanningIntervalLink(row.original.planningInterval),
+      },
+      {
+        id: 'status',
+        accessorKey: 'status.name',
+        header: 'Status',
+        size: 125,
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'team',
+        accessorKey: 'team.name',
+        header: 'Team',
+        meta: { hide: hideTeam, filterEnableSet: true },
+        cell: ({ row }) => renderTeamLink(row.original.team),
+      },
+      {
+        id: 'health',
+        accessorFn: (row) => row.healthCheck?.status?.name ?? '',
+        header: 'Health',
+        size: 125,
+        cell: ({ row }) => {
+          const obj = row.original
+          if (!obj.healthCheck) return null
+          return (
+            <PiObjectiveHealthCheckTag
+              healthCheck={obj.healthCheck}
+              planningIntervalId={obj.planningInterval?.id}
+              objectiveId={obj.id}
+            />
+          )
         },
       },
-      { field: 'id', hide: true },
-      { field: 'key', width: 90 },
       {
-        field: 'name',
-        width: 500,
-        cellRenderer: PlanningIntervalObjectiveLinkCellRenderer,
-      },
-      { field: 'isStretch', width: 100 },
-      {
-        field: 'planningInterval.name',
-        headerName: 'Planning Interval',
-        cellRenderer: NestedPlanningIntervalLinkCellRenderer,
-        hide: hidePlanningInterval,
-      },
-      { field: 'status.name', headerName: 'Status', width: 125 },
-      {
-        field: 'team.name',
-        headerName: 'Team',
-        cellRenderer: NestedTeamNameLinkCellRenderer,
-        hide: hideTeam,
-      },
-      {
-        field: 'healthCheck.status.name',
-        headerName: 'Health',
-        width: 125,
-        cellRenderer: NestedPiObjectiveHealthCheckStatusCellRenderer,
-      },
-      { field: 'progress', width: 250, cellRenderer: ProgressCellRenderer },
-      {
-        field: 'startDate',
-        type: 'dateOnly',
-      },
-      {
-        field: 'targetDate',
-        type: 'dateOnly',
-      },
-      {
-        field: 'order',
-        width: 100,
-        comparator: (a, b) => {
-          if (!a) return 1 // sort empty at the end
-          if (!b) return -1
-
-          return a - b
+        id: 'progress',
+        accessorKey: 'progress',
+        header: 'Progress',
+        size: 250,
+        enableColumnFilter: false,
+        cell: ({ row }) => {
+          const obj = row.original
+          const status = ['Canceled', 'Missed'].includes(obj.status?.name ?? '')
+            ? 'exception'
+            : undefined
+          return (
+            <Progress percent={obj.progress} size="small" status={status} />
+          )
         },
+      },
+      {
+        id: 'startDate',
+        accessorKey: 'startDate',
+        header: 'Start Date',
+        meta: { columnType: 'dateOnly' },
+      },
+      {
+        id: 'targetDate',
+        accessorKey: 'targetDate',
+        header: 'Target Date',
+        meta: { columnType: 'dateOnly' },
+      },
+      {
+        id: 'order',
+        accessorKey: 'order',
+        header: 'Order',
+        size: 100,
+        enableColumnFilter: false,
+        // Empties sort last (asc) via the grid's default sortEmptyLast sortingFn.
       },
     ]
   }, [
@@ -218,44 +222,30 @@ const PlanningIntervalObjectivesGrid = ({
     hideTeam,
   ])
 
-  const onHidePlanningIntervalChange = (checked: boolean) => {
-    setHidePlanningInterval(checked)
-  }
-
-  const onHideTeamChange = (checked: boolean) => {
-    setHideTeam(checked)
-  }
-
-  const controlItems = (): ItemType[] => {
-    const items: ItemType[] = []
-
-    items.push(
-      {
-        label: (
-          <ControlItemSwitch
-            label="Hide PI"
-            checked={hidePlanningInterval}
-            onChange={onHidePlanningIntervalChange}
-          />
-        ),
-        key: 'hide-planning-interval',
-        onClick: () => onHidePlanningIntervalChange(!hidePlanningInterval),
-      },
-      {
-        label: (
-          <ControlItemSwitch
-            label="Hide Team"
-            checked={hideTeam}
-            onChange={onHideTeamChange}
-          />
-        ),
-        key: 'hide-team',
-        onClick: () => onHideTeamChange(!hideTeam),
-      },
-    )
-
-    return items
-  }
+  const controlItems: ItemType[] = [
+    {
+      label: (
+        <ControlItemSwitch
+          label="Hide PI"
+          checked={hidePlanningInterval}
+          onChange={setHidePlanningInterval}
+        />
+      ),
+      key: 'hide-planning-interval',
+      onClick: () => setHidePlanningInterval((prev) => !prev),
+    },
+    {
+      label: (
+        <ControlItemSwitch
+          label="Hide Team"
+          checked={hideTeam}
+          onChange={setHideTeam}
+        />
+      ),
+      key: 'hide-team',
+      onClick: () => setHideTeam((prev) => !prev),
+    },
+  ]
 
   const onEditObjectiveFormClosed = (wasSaved: boolean) => {
     setOpenUpdateObjectiveForm(false)
@@ -276,15 +266,19 @@ const PlanningIntervalObjectivesGrid = ({
 
   return (
     <>
-      {/* TODO:  setup dynamic height */}
-      <WaydGrid
+      <WaydGrid2
         height={650}
-        columnDefs={columnDefs}
-        rowData={objectivesData}
-        loading={isLoading}
-        loadData={refresh}
-        gridControlMenuItems={controlItems()}
-        toolbarActions={viewSelector}
+        columns={columns}
+        data={objectivesData}
+        isLoading={isLoading}
+        onRefresh={refresh}
+        csvFileName="pi-objectives"
+        rightSlot={
+          <>
+            <ControlItemsMenu items={controlItems} />
+            {viewSelector}
+          </>
+        }
       />
       {openUpdateObjectiveForm && selectedObjective && (
         <EditPlanningIntervalObjectiveForm

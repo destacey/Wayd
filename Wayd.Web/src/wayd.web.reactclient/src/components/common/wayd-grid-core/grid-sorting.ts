@@ -120,7 +120,14 @@ export const workItemKeySort: SortingFn<any> = (
   if (prefixA < prefixB) return -1
   if (prefixA > prefixB) return 1
 
-  return parseInt(numA) - parseInt(numB)
+  // Same prefix: compare the numeric suffix. Guard against malformed keys
+  // (missing/non-numeric suffix) — fall back to a plain string compare so a
+  // NaN subtraction can't destabilize the sort.
+  const nA = parseInt(numA, 10)
+  const nB = parseInt(numB, 10)
+  if (Number.isNaN(nA) || Number.isNaN(nB)) return a.localeCompare(b)
+
+  return nA - nB
 }
 
 /** Work status categories in workflow order; drives {@link workStatusCategorySort}. */
@@ -138,8 +145,11 @@ export const workStatusCategorySort: SortingFn<any> = (
 ): number => {
   const a = rowA.getValue(columnId) as string
   const b = rowB.getValue(columnId) as string
-  return (
-    WORK_STATUS_CATEGORY_ORDER.indexOf(a) -
-    WORK_STATUS_CATEGORY_ORDER.indexOf(b)
-  )
+  // Unknown/blank categories aren't in the workflow list; sort them last
+  // (ascending) instead of first, which is what a raw indexOf of -1 would do.
+  const rank = (value: string): number => {
+    const index = WORK_STATUS_CATEGORY_ORDER.indexOf(value)
+    return index === -1 ? WORK_STATUS_CATEGORY_ORDER.length : index
+  }
+  return rank(a) - rank(b)
 }

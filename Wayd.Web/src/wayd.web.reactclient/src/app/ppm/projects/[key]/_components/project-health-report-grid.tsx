@@ -49,13 +49,14 @@ const ProjectHealthReportGrid = ({
         id: 'reportedBy',
         accessorKey: 'reportedBy.name',
         header: 'Reported By',
-        cell: ({ row }) => (
-          <Link
-            href={`/organizations/employees/${row.original.reportedBy?.key}`}
-          >
-            {row.original.reportedBy?.name}
-          </Link>
-        ),
+        cell: ({ row }) =>
+          row.original.reportedBy ? (
+            <Link
+              href={`/organizations/employees/${row.original.reportedBy.key}`}
+            >
+              {row.original.reportedBy.name}
+            </Link>
+          ) : null,
       },
       {
         id: 'reportedOn',

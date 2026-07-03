@@ -169,6 +169,14 @@ describe('grid-sorting', () => {
       // Assert — API before WEB, numeric within prefix, empty last
       expect(sorted).toEqual(['API-2', 'API-10', 'WEB-2', 'WEB-10', ''])
     })
+
+    it('falls back to a string compare for a malformed suffix (no NaN)', () => {
+      // Arrange / Act / Assert — a non-numeric suffix must not produce NaN,
+      // which would make the comparator return an unstable value.
+      expect(cmp('WEB-abc', 'WEB-def')).toBeLessThan(0)
+      expect(cmp('WEB-abc', 'WEB-abc')).toBe(0)
+      expect(Number.isNaN(cmp('WEB-x', 'WEB-1'))).toBe(false)
+    })
   })
 
   describe('workStatusCategorySort', () => {
@@ -196,6 +204,20 @@ describe('grid-sorting', () => {
 
       // Assert
       expect(sorted).toEqual(['Proposed', 'Active', 'Done', 'Removed'])
+    })
+
+    it('sorts unknown/blank categories last, not first', () => {
+      // Arrange — a raw indexOf would give unknowns -1 and float them to the top
+      const categories = ['Done', 'Mystery', 'Proposed', '', 'Active']
+
+      // Act
+      const sorted = [...categories].sort((a, b) => cmp(a, b))
+
+      // Assert — known categories in workflow order, unknowns trailing
+      expect(sorted.slice(0, 3)).toEqual(['Proposed', 'Active', 'Done'])
+      expect(sorted.slice(3).every((c) => c === 'Mystery' || c === '')).toBe(
+        true,
+      )
     })
   })
 })

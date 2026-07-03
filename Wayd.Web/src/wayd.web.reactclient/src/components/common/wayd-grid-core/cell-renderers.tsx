@@ -162,6 +162,7 @@ export const renderWorkItemLink = (
         <Link
           href={workItem.externalViewWorkItemUrl}
           target="_blank"
+          rel="noopener noreferrer"
           title="Open in external system"
           style={{ marginLeft: '5px' }}
         >

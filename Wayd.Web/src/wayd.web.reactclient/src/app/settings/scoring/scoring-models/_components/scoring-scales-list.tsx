@@ -1,7 +1,9 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common'
-import { RowMenuCellRenderer } from '@/src/components/common/wayd-grid-cell-renderers'
+import {
+  WaydGrid2,
+  createActionsColumn,
+} from '@/src/components/common/wayd-grid2'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
   ScoringModelDetailsDto,
@@ -15,7 +17,7 @@ import {
 } from '@/src/store/features/scoring/scoring-models-api'
 import { App, Button, Collapse, Empty, Space, Typography } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
 import AddScoringScaleForm from './add-scoring-scale-form'
 import EditScoringScaleForm from './edit-scoring-scale-form'
@@ -86,10 +88,10 @@ const ScoringScalesList = ({
     })
   }
 
-  const makeLevelColumnDefs = (
+  const makeLevelColumns = (
     scale: ScoringScaleDto,
     sortedLevels: ScoringRatingLevelDto[],
-  ): ColDef<ScoringRatingLevelDto>[] => {
+  ): ColumnDef<ScoringRatingLevelDto, any>[] => {
     const handleDeleteLevel = (level: ScoringRatingLevelDto) => {
       modal.confirm({
         title: 'Delete this rating level?',
@@ -185,22 +187,20 @@ const ScoringScalesList = ({
     }
 
     return [
-      {
-        width: 50,
-        filter: false,
-        sortable: false,
-        resizable: false,
+      createActionsColumn<ScoringRatingLevelDto>({
         hide: !canManage,
-        suppressHeaderMenuButton: true,
-        cellRenderer: (params: ICellRendererParams<ScoringRatingLevelDto>) =>
-          RowMenuCellRenderer({
-            ...params,
-            menuItems: getRowMenuItems(params.data!),
-          }),
+        ariaLabel: 'Rating level actions',
+        getItems: (level) => getRowMenuItems(level),
+      }),
+      {
+        id: 'order',
+        accessorKey: 'order',
+        header: 'Order',
+        size: 90,
+        enableColumnFilter: false,
       },
-      { field: 'order', headerName: 'Order', width: 90, sort: 'asc' as const },
-      { field: 'label', headerName: 'Label', width: 200 },
-      { field: 'value', headerName: 'Value', flex: 1 },
+      { id: 'label', accessorKey: 'label', header: 'Label', size: 200 },
+      { id: 'value', accessorKey: 'value', header: 'Value', size: 150 },
     ]
   }
 
@@ -230,11 +230,12 @@ const ScoringScalesList = ({
         </Space>
       ) : undefined,
       children: (
-        <WaydGrid
+        <WaydGrid2
           height={220}
-          columnDefs={makeLevelColumnDefs(scale, sortedLevels)}
-          rowData={sortedLevels}
-          loadData={loadData}
+          columns={makeLevelColumns(scale, sortedLevels)}
+          data={sortedLevels}
+          onRefresh={loadData}
+          csvFileName="scoring-scale-levels"
         />
       ),
     }

@@ -1,7 +1,9 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common'
-import { RowMenuCellRenderer } from '@/src/components/common/wayd-grid-cell-renderers'
+import {
+  WaydGrid2,
+  createActionsColumn,
+} from '@/src/components/common/wayd-grid2'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
   ScoringModelCriterionDto,
@@ -13,7 +15,7 @@ import {
 } from '@/src/store/features/scoring/scoring-models-api'
 import { App, Button, Space, Tag, Typography } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
 import AddScoringModelCriterionForm from './add-scoring-model-criterion-form'
 import EditScoringModelCriterionForm from './edit-scoring-model-criterion-form'
@@ -117,7 +119,7 @@ const ScoringModelCriteriaList = ({
     [sortedCriteria],
   )
 
-  const columnDefs = useMemo<ColDef<ScoringModelCriterionDto>[]>(() => {
+  const columns = useMemo<ColumnDef<ScoringModelCriterionDto, any>[]>(() => {
     const handleEdit = (criterion: ScoringModelCriterionDto) => {
       setEditingCriterion(criterion)
     }
@@ -183,45 +185,52 @@ const ScoringModelCriteriaList = ({
     }
 
     return [
-      {
-        width: 50,
-        filter: false,
-        sortable: false,
-        resizable: false,
+      createActionsColumn<ScoringModelCriterionDto>({
         hide: !canManage,
-        suppressHeaderMenuButton: true,
-        cellRenderer: (
-          params: ICellRendererParams<ScoringModelCriterionDto>,
-        ) => {
-          const menuItems = getRowMenuItems({
-            criterion: params.data!,
+        ariaLabel: 'Criterion actions',
+        getItems: (criterion) =>
+          getRowMenuItems({
+            criterion,
             sortedCriteria,
             onEditClicked: handleEdit,
             onDeleteClicked: handleDelete,
             onMoveClicked: handleMove,
-          })
-          if (menuItems.length === 0) return null
-          return RowMenuCellRenderer({ ...params, menuItems })
-        },
-      },
-      { field: 'order', headerName: 'Order', width: 80, sort: 'asc' as const },
-      { field: 'name', headerName: 'Name', width: 250 },
-      { field: 'token', headerName: 'Token', width: 110 },
+          }),
+      }),
       {
-        headerName: 'Scale',
-        valueGetter: (p) => {
-          const scaleId = p.data?.scaleId
+        id: 'order',
+        accessorKey: 'order',
+        header: 'Order',
+        size: 80,
+        enableColumnFilter: false,
+      },
+      { id: 'name', accessorKey: 'name', header: 'Name', size: 250 },
+      { id: 'token', accessorKey: 'token', header: 'Token', size: 110 },
+      {
+        id: 'scale',
+        accessorFn: (row) => {
+          const scaleId = row.scaleId
           if (!scaleId) return 'Free entry'
           return scoringModel.scales?.find((s) => s.id === scaleId)?.name ?? '—'
         },
+        header: 'Scale',
       },
       {
-        field: 'weight',
-        headerName: 'Weight (%)',
-        width: 120,
-        valueFormatter: (p) => (p.value != null ? `${p.value}%` : ''),
+        id: 'weight',
+        accessorKey: 'weight',
+        header: 'Weight (%)',
+        size: 120,
+        cell: ({ getValue }) => {
+          const value = getValue() as number | null | undefined
+          return value != null ? `${value}%` : ''
+        },
       },
-      { field: 'description', headerName: 'Description', width: 300 },
+      {
+        id: 'description',
+        accessorKey: 'description',
+        header: 'Description',
+        size: 300,
+      },
     ]
   }, [
     canManage,
@@ -262,12 +271,13 @@ const ScoringModelCriteriaList = ({
 
   return (
     <>
-      <WaydGrid
+      <WaydGrid2
         height={300}
-        columnDefs={columnDefs}
-        rowData={sortedCriteria}
-        actions={actions}
-        loadData={loadData}
+        columns={columns}
+        data={sortedCriteria}
+        leftSlot={actions}
+        onRefresh={loadData}
+        csvFileName="scoring-criteria"
       />
       {openAddForm && (
         <AddScoringModelCriterionForm

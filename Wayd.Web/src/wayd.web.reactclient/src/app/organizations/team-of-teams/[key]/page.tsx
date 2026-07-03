@@ -164,7 +164,7 @@ const TeamOfTeamsDetailsPage = (props: {
         return <TeamOfTeamsDetails team={team!} />
       case TeamOfTeamsTabs.RiskManagement:
         return createElement(RisksGrid, {
-          risks: risksQuery.data,
+          risks: risksQuery.data ?? [],
           updateIncludeClosed: onIncludeClosedRisksChanged,
           isLoadingRisks: risksQuery.isLoading,
           refreshRisks: risksQuery.refetch,

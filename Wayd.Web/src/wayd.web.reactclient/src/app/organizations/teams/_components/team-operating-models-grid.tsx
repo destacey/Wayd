@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import WaydGrid from '@/src/components/common/wayd-grid'
+import {
+  WaydGrid2,
+  createActionsColumn,
+} from '@/src/components/common/wayd-grid2'
 import {
   useDeleteTeamOperatingModelMutation,
   useGetTeamOperatingModelsQuery,
@@ -11,11 +14,10 @@ import {
   TeamOperatingModelDetailsDto,
 } from '@/src/services/wayd-api'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { RowMenuCellRenderer } from '@/src/components/common/wayd-grid-cell-renderers'
 import { Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import EditTeamOperatingModelForm from './edit-team-operating-model-form'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 
 interface TeamOperatingModelsGridProps {
   teamId: string
@@ -106,7 +108,9 @@ const TeamOperatingModelsGrid = ({
 
   const totalModelsCount = operatingModelsData?.length ?? 0
 
-  const columnDefs = useMemo<ColDef<TeamOperatingModelDetailsDto>[]>(() => {
+  const columns = useMemo<
+    ColumnDef<TeamOperatingModelDetailsDto, any>[]
+  >(() => {
     const handleEdit = (model: TeamOperatingModelDetailsDto) => {
       setSelectedModelId(model.id)
       setShowUpdateForm(true)
@@ -129,65 +133,63 @@ const TeamOperatingModelsGrid = ({
     }
 
     return [
-      {
-        width: 50,
-        filter: false,
-        sortable: false,
+      createActionsColumn<TeamOperatingModelDetailsDto>({
         hide: !canUpdate,
-        suppressHeaderMenuButton: true,
-        cellRenderer: (
-          params: ICellRendererParams<TeamOperatingModelDetailsDto>,
-        ) => {
-          const menuItems = getRowMenuItems({
-            operatingModel: params.data!,
+        ariaLabel: 'Operating model actions',
+        getItems: (operatingModel) =>
+          getRowMenuItems({
+            operatingModel,
             canUpdate,
             totalModelsCount,
             onEditClicked: handleEdit,
             onDeleteClicked: handleDelete,
-          })
-          if (menuItems.length === 0) return null
-          return RowMenuCellRenderer({ ...params, menuItems })
-        },
+          }),
+      }),
+      {
+        id: 'start',
+        accessorKey: 'start',
+        header: 'Start Date',
+        meta: { columnType: 'dateOnly' },
       },
       {
-        field: 'start',
-        headerName: 'Start Date',
-        type: 'dateOnly',
-        sort: 'desc',
+        id: 'end',
+        accessorKey: 'end',
+        header: 'End Date',
+        meta: { columnType: 'dateOnly' },
       },
       {
-        field: 'end',
-        headerName: 'End Date',
-        type: 'dateOnly',
+        id: 'methodology',
+        accessorKey: 'methodology',
+        header: 'Methodology',
+        meta: { filterType: 'set' },
       },
       {
-        field: 'methodology',
-        headerName: 'Methodology',
-      },
-      {
-        field: 'sizingMethod',
-        headerName: 'Sizing Method',
-        valueGetter: (params) =>
-          params.data?.sizingMethod
-            ? getSizingMethodDisplayName(params.data.sizingMethod)
+        id: 'sizingMethod',
+        accessorFn: (row) =>
+          row.sizingMethod
+            ? getSizingMethodDisplayName(row.sizingMethod)
             : null,
+        header: 'Sizing Method',
+        meta: { filterType: 'set' },
       },
       {
-        field: 'isCurrent',
-        headerName: 'Status',
-        cellRenderer: StatusCellRenderer,
+        id: 'isCurrent',
+        accessorFn: (row) => (row.isCurrent ? 'Current' : 'Historical'),
+        header: 'Status',
+        meta: { filterType: 'set' },
+        cell: ({ row }) => <StatusCellRenderer data={row.original} />,
       },
     ]
   }, [canUpdate, totalModelsCount, teamId, deleteOperatingModel, messageApi])
 
   return (
     <>
-      <WaydGrid
-        height={550}
-        columnDefs={columnDefs}
-        rowData={operatingModelsData}
-        loading={isLoading}
-        loadData={refresh}
+      <WaydGrid2
+        columns={columns}
+        data={operatingModelsData ?? []}
+        isLoading={isLoading}
+        onRefresh={refresh}
+        csvFileName="team-operating-models"
       />
 
       {showUpdateForm && selectedModelId && (

@@ -1,12 +1,15 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import WaydGrid from '@/src/components/common/wayd-grid'
-import { RowMenuCellRenderer } from '@/src/components/common/wayd-grid-cell-renderers'
+import {
+  WaydGrid2,
+  createActionsColumn,
+  createMultiValueSetFilter,
+} from '@/src/components/common/wayd-grid2'
 import useAuth from '@/src/components/contexts/auth'
 import { ItemType } from 'antd/es/menu/interface'
 import { Flex, Tag, Tooltip } from 'antd'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
 import {
   TeamMemberDto,
@@ -22,14 +25,12 @@ interface TeamMembersGridProps {
   teamType: 'Team' | 'TeamOfTeams'
 }
 
-const NameCellRenderer = ({ data }: ICellRendererParams<TeamMemberDto>) => {
-  if (!data) return null
-  return (
-    <Link href={`/organizations/employees/${data.employee.key}`}>
-      {data.employee.name}
-    </Link>
-  )
-}
+/** A member's roles as their display names (source for the cell, the Roles set
+ *  filter, and CSV export). */
+const roleNames = (member: TeamMemberDto): string[] =>
+  member.roles.map((r) => r.name)
+
+const rolesFilter = createMultiValueSetFilter<TeamMemberDto>(roleNames)
 
 const TeamMembersGrid = ({ teamId, teamType }: TeamMembersGridProps) => {
   const [editingMember, setEditingMember] = useState<TeamMemberDto | null>(null)
@@ -68,88 +69,96 @@ const TeamMembersGrid = ({ teamId, teamType }: TeamMembersGridProps) => {
   const isLoading = teamType === 'Team' ? teamLoading : totLoading
   const refetch = teamType === 'Team' ? refetchTeam : refetchTot
 
-  const columnDefs = useMemo<ColDef<TeamMemberDto>[]>(() => {
-    const getRowMenuItems = (member: TeamMemberDto): ItemType[] => {
-      if (!canUpdate) return []
-      return [
-        { key: 'edit', label: 'Edit', onClick: () => setEditingMember(member) },
-        {
-          key: 'remove',
-          label: 'Remove',
-          danger: true,
-          onClick: () => setRemovingMember(member),
-        },
-      ]
-    }
+  // Distinct role names across the visible members, for the set filter's
+  // checkbox list (individual roles, not whole combinations).
+  const roleFilterOptions = useMemo(() => {
+    const names = new Set<string>()
+    members?.forEach((m) => m.roles.forEach((r) => names.add(r.name)))
+    return Array.from(names)
+      .sort()
+      .map((name) => ({ label: name, value: name }))
+  }, [members])
 
+  const columns = useMemo<ColumnDef<TeamMemberDto, any>[]>(() => {
     return [
-      {
-        width: 50,
-        filter: false,
-        sortable: false,
+      createActionsColumn<TeamMemberDto>({
         hide: !canUpdate,
-        suppressHeaderMenuButton: true,
-        cellRenderer: (params: ICellRendererParams<TeamMemberDto>) => {
-          if (!params.data) return null
-          return RowMenuCellRenderer({
-            ...params,
-            menuItems: getRowMenuItems(params.data),
-          })
+        ariaLabel: 'Team member actions',
+        getItems: (member): ItemType[] => {
+          if (!canUpdate) return []
+          return [
+            {
+              key: 'edit',
+              label: 'Edit',
+              onClick: () => setEditingMember(member),
+            },
+            {
+              key: 'remove',
+              label: 'Remove',
+              danger: true,
+              onClick: () => setRemovingMember(member),
+            },
+          ]
         },
+      }),
+      {
+        id: 'name',
+        accessorKey: 'employee.name',
+        header: 'Name',
+        size: 200,
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => (
+          <Link href={`/organizations/employees/${row.original.employee.key}`}>
+            {row.original.employee.name}
+          </Link>
+        ),
       },
       {
-        field: 'employee.name',
-        headerName: 'Name',
-        cellRenderer: NameCellRenderer,
-        width: 250,
+        id: 'jobTitle',
+        accessorKey: 'employee.jobTitle',
+        header: 'Title',
+        size: 300,
       },
       {
-        field: 'employee.jobTitle',
-        headerName: 'Title',
-        width: 300,
+        id: 'email',
+        accessorKey: 'employee.email',
+        header: 'Email',
+        size: 300,
       },
       {
-        field: 'employee.email',
-        headerName: 'Email',
-        width: 300,
-      },
-      {
-        colId: 'roles',
-        headerName: 'Roles',
-        cellRenderer: ({ data }: ICellRendererParams<TeamMemberDto>) => {
-          if (!data) return null
-          return (
-            <Flex wrap gap={4}>
-              {data.roles.map((role) => (
-                <Tooltip
-                  key={role.id}
-                  title={roleDescriptionById.get(role.id)}
-                  placement="top"
-                >
-                  <Tag variant="filled">{role.name}</Tag>
-                </Tooltip>
-              ))}
-            </Flex>
-          )
-        },
-        valueGetter: (params) =>
-          params.data?.roles.map((r) => r.name).join(', '),
-        cellStyle: { display: 'flex', alignItems: 'center' },
-        width: 400,
+        id: 'roles',
+        accessorFn: (row) => roleNames(row).join(', '),
+        header: 'Roles',
+        size: 400,
+        filterFn: rolesFilter,
+        meta: { filterEnableSet: true, filterOptions: roleFilterOptions },
+        cell: ({ row }) => (
+          <Flex wrap gap={4}>
+            {row.original.roles.map((role) => (
+              <Tooltip
+                key={role.id}
+                title={roleDescriptionById.get(role.id)}
+                placement="top"
+              >
+                <Tag variant="filled">{role.name}</Tag>
+              </Tooltip>
+            ))}
+          </Flex>
+        ),
       },
     ]
-  }, [canUpdate, roleDescriptionById])
+  }, [canUpdate, roleDescriptionById, roleFilterOptions])
 
   return (
     <>
-      <WaydGrid
-        height={550}
-        columnDefs={columnDefs}
-        rowData={members}
-        loading={isLoading}
-        loadData={() => {
+      <WaydGrid2
+        columns={columns}
+        data={members ?? []}
+        isLoading={isLoading}
+        onRefresh={() => {
           refetch()
         }}
+        csvFileName="team-members"
       />
       {editingMember && (
         <EditTeamMemberForm

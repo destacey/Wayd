@@ -321,7 +321,7 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return <TeamDependencyManagement team={team!} />
       case TeamTabs.RiskManagement:
         return createElement(RisksGrid, {
-          risks: risksQuery.data,
+          risks: risksQuery.data ?? [],
           updateIncludeClosed: onIncludeClosedRisksChanged,
           isLoadingRisks: risksQuery.isLoading,
           refreshRisks: risksQuery.refetch,

@@ -1,20 +1,18 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import WaydGrid from '../../../components/common/wayd-grid'
-import { TeamMembershipDto } from '@/src/services/wayd-api'
-import dayjs from 'dayjs'
 import {
-  RowMenuCellRenderer,
-  renderTeamLinkHelper,
-} from '../../../components/common/wayd-grid-cell-renderers'
+  WaydGrid2,
+  createActionsColumn,
+  renderTeamLink,
+} from '../../../components/common/wayd-grid2'
+import { TeamMembershipDto } from '@/src/services/wayd-api'
 import useAuth from '../../../components/contexts/auth'
-import { MenuProps } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import EditTeamMembershipForm from './edit-team-membership-form'
 import { TeamTypeName } from '../types'
 import DeleteTeamMembershipForm from './delete-team-membership-form'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 
 export interface TeamMembershipsGridProps {
   teamId: string
@@ -22,40 +20,6 @@ export interface TeamMembershipsGridProps {
   isLoading: boolean
   refetch: () => void
   teamType: TeamTypeName
-}
-
-const LocalChildTeamNameLinkCellRenderer = ({ data }: ICellRendererParams<TeamMembershipDto>) => {
-  return renderTeamLinkHelper(data?.child)
-}
-
-const LocalParentTeamNameLinkCellRenderer = ({ data }: ICellRendererParams<TeamMembershipDto>) => {
-  return renderTeamLinkHelper(data?.parent)
-}
-
-interface RowMenuProps extends MenuProps {
-  membership: TeamMembershipDto
-  canManageTeamMemberships: boolean
-  onEditTeamMembershipMenuClicked: (membership: TeamMembershipDto) => void
-  onDeleteTeamMembershipMenuClicked: (membership: TeamMembershipDto) => void
-}
-
-const getRowMenuItems = (props: RowMenuProps) => {
-  if (!props.membership) return null
-
-  return [
-    {
-      key: 'edit-team-membership',
-      label: 'Edit Team Membership',
-      disabled: !props.canManageTeamMemberships,
-      onClick: () => props.onEditTeamMembershipMenuClicked(props.membership),
-    },
-    {
-      key: 'delete-team-membership',
-      label: 'Delete Team Membership',
-      disabled: !props.canManageTeamMemberships,
-      onClick: () => props.onDeleteTeamMembershipMenuClicked(props.membership),
-    },
-  ] as ItemType[]
 }
 
 const TeamMembershipsGrid = ({
@@ -82,67 +46,79 @@ const TeamMembershipsGrid = ({
     refetch()
   }
 
-  const columnDefs = useMemo<ColDef<TeamMembershipDto>[]>(
-    () => {
-      const onEditTeamMembershipMenuClicked = (membership: TeamMembershipDto) => {
-        setSelectedTeamMembership(membership)
-        setOpenEditTeamMembershipForm(true)
-      }
+  const columns = useMemo<ColumnDef<TeamMembershipDto, any>[]>(() => {
+    const onEditTeamMembershipMenuClicked = (membership: TeamMembershipDto) => {
+      setSelectedTeamMembership(membership)
+      setOpenEditTeamMembershipForm(true)
+    }
 
-      const onDeleteTeamMembershipMenuClicked = (membership: TeamMembershipDto) => {
-        setSelectedTeamMembership(membership)
-        setOpenDeleteTeamMembershipForm(true)
-      }
+    const onDeleteTeamMembershipMenuClicked = (
+      membership: TeamMembershipDto,
+    ) => {
+      setSelectedTeamMembership(membership)
+      setOpenDeleteTeamMembershipForm(true)
+    }
 
-      return [
-      {
-        width: 50,
-        filter: false,
-        sortable: false,
+    return [
+      createActionsColumn<TeamMembershipDto>({
         hide: !showRowActions,
-        suppressHeaderMenuButton: true,
-        cellRenderer: (params: ICellRendererParams<TeamMembershipDto>) => {
-          // only allow editing memberships for current team
-          if (teamId != params.data!.child.id) return null
+        ariaLabel: 'Team membership actions',
+        getItems: (membership): ItemType[] => {
+          // only allow editing memberships for the current team
+          if (teamId != membership.child.id) return []
 
-          const menuItems = getRowMenuItems({
-            id: params.data!.id,
-            membership: params.data!,
-            canManageTeamMemberships,
-            onEditTeamMembershipMenuClicked,
-            onDeleteTeamMembershipMenuClicked,
-          })
-
-          return RowMenuCellRenderer({ ...params, menuItems: menuItems ?? [] })
+          return [
+            {
+              key: 'edit-team-membership',
+              label: 'Edit Team Membership',
+              disabled: !canManageTeamMemberships,
+              onClick: () => onEditTeamMembershipMenuClicked(membership),
+            },
+            {
+              key: 'delete-team-membership',
+              label: 'Delete Team Membership',
+              disabled: !canManageTeamMemberships,
+              onClick: () => onDeleteTeamMembershipMenuClicked(membership),
+            },
+          ]
         },
+      }),
+      {
+        id: 'child',
+        accessorKey: 'child.name',
+        header: 'Child Team',
+        size: 200,
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => renderTeamLink(row.original.child),
       },
       {
-        field: 'child.name',
-        headerName: 'Child Team',
-        cellRenderer: LocalChildTeamNameLinkCellRenderer,
+        id: 'parent',
+        accessorKey: 'parent.name',
+        header: 'Parent Team',
+        size: 200,
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => renderTeamLink(row.original.parent),
       },
       {
-        field: 'parent.name',
-        headerName: 'Parent Team',
-        cellRenderer: LocalParentTeamNameLinkCellRenderer,
-      },
-      { field: 'state' },
-      {
-        field: 'start',
-        valueGetter: (params) => params.data?.start ? dayjs(params.data.start).format('M/D/YYYY') : null,
+        id: 'state',
+        accessorKey: 'state',
+        header: 'State',
+        meta: { filterType: 'set' },
       },
       {
-        field: 'end',
-        valueGetter: (params) =>
-          params.data?.end ? dayjs(params.data.end).format('M/D/YYYY') : null,
+        id: 'start',
+        accessorKey: 'start',
+        header: 'Start',
+        meta: { columnType: 'dateOnly' },
       },
-    ]},
-    [
-      showRowActions,
-      teamId,
-      canManageTeamMemberships,
-    ],
-  )
+      {
+        id: 'end',
+        accessorKey: 'end',
+        header: 'End',
+        meta: { columnType: 'dateOnly' },
+      },
+    ]
+  }, [showRowActions, teamId, canManageTeamMemberships])
 
   const onEditTeamMembershipFormClosed = (wasCreated: boolean) => {
     setOpenEditTeamMembershipForm(false)
@@ -161,12 +137,12 @@ const TeamMembershipsGrid = ({
   }
   return (
     <>
-      <WaydGrid
-        height={550}
-        columnDefs={columnDefs}
-        rowData={teamMemberships}
-        loading={isLoading}
-        loadData={refresh}
+      <WaydGrid2
+        columns={columns}
+        data={teamMemberships ?? []}
+        isLoading={isLoading}
+        onRefresh={refresh}
+        csvFileName="team-memberships"
       />
       {openEditTeamMembershipForm && selectedTeamMembership && (
         <EditTeamMembershipForm

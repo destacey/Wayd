@@ -1,10 +1,13 @@
 'use client'
 
 import { useMemo } from 'react'
-import WaydGrid from '@/src/components/common/wayd-grid'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import {
+  WaydGrid2,
+  renderTeamLink,
+  createMultiValueSetFilter,
+} from '@/src/components/common/wayd-grid2'
+import type { ColumnDef } from '@tanstack/react-table'
 import { Flex, Tag, Tooltip } from 'antd'
-import Link from 'next/link'
 import {
   TeamMemberDto,
   useGetEmployeeTeamMembershipsQuery,
@@ -15,13 +18,12 @@ interface Props {
   employeeId: string
 }
 
-const TeamLinkCellRenderer = ({ data }: ICellRendererParams<TeamMemberDto>) => {
-  if (!data) return null
-  const segment = data.team.type === 'Team of Teams' ? 'team-of-teams' : 'teams'
-  return (
-    <Link href={`/organizations/${segment}/${data.team.key}`}>{data.team.name}</Link>
-  )
-}
+/** Membership roles as their display names (the multi-value source for the cell,
+ *  the Roles set filter, and CSV export). */
+const roleNames = (member: TeamMemberDto): string[] =>
+  member.roles.map((r) => r.name)
+
+const rolesFilter = createMultiValueSetFilter<TeamMemberDto>(roleNames)
 
 const EmployeeTeamsGrid = ({ employeeId }: Props) => {
   const {
@@ -37,52 +39,67 @@ const EmployeeTeamsGrid = ({ employeeId }: Props) => {
     return map
   }, [allRoles])
 
-  const columnDefs = useMemo<ColDef<TeamMemberDto>[]>(
+  // Distinct role names present in this employee's memberships, for the set
+  // filter's checkbox list (individual roles, not whole combinations).
+  const roleFilterOptions = useMemo(() => {
+    const names = new Set<string>()
+    memberships?.forEach((m) => m.roles.forEach((r) => names.add(r.name)))
+    return Array.from(names)
+      .sort()
+      .map((name) => ({ label: name, value: name }))
+  }, [memberships])
+
+  const columns = useMemo<ColumnDef<TeamMemberDto, any>[]>(
     () => [
       {
-        field: 'team.name',
-        headerName: 'Team',
-        cellRenderer: TeamLinkCellRenderer,
-        flex: 1,
+        id: 'team',
+        accessorKey: 'team.name',
+        header: 'Team',
+        size: 200,
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => renderTeamLink(row.original.team),
       },
-      { field: 'team.type', headerName: 'Type', width: 150 },
       {
-        colId: 'roles',
-        headerName: 'Roles',
-        cellRenderer: ({ data }: ICellRendererParams<TeamMemberDto>) => {
-          if (!data) return null
-          return (
-            <Flex wrap gap={4}>
-              {data.roles.map((role) => (
-                <Tooltip
-                  key={role.id}
-                  title={roleDescriptionById.get(role.id)}
-                  placement="top"
-                >
-                  <Tag variant="filled">{role.name}</Tag>
-                </Tooltip>
-              ))}
-            </Flex>
-          )
-        },
-        valueGetter: (params) =>
-          params.data?.roles.map((r) => r.name).join(', '),
-        cellStyle: { display: 'flex', alignItems: 'center' },
-        flex: 1,
+        id: 'type',
+        accessorKey: 'team.type',
+        header: 'Type',
+        size: 150,
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'roles',
+        accessorFn: (row) => roleNames(row).join(', '),
+        header: 'Roles',
+        size: 250,
+        filterFn: rolesFilter,
+        meta: { filterEnableSet: true, filterOptions: roleFilterOptions },
+        cell: ({ row }) => (
+          <Flex wrap gap={4}>
+            {row.original.roles.map((role) => (
+              <Tooltip
+                key={role.id}
+                title={roleDescriptionById.get(role.id)}
+                placement="top"
+              >
+                <Tag variant="filled">{role.name}</Tag>
+              </Tooltip>
+            ))}
+          </Flex>
+        ),
       },
     ],
-    [roleDescriptionById],
+    [roleDescriptionById, roleFilterOptions],
   )
 
   return (
-    <WaydGrid
-      height={500}
-      columnDefs={columnDefs}
-      rowData={memberships}
-      loading={isLoading}
-      loadData={() => {
+    <WaydGrid2
+      columns={columns}
+      data={memberships ?? []}
+      isLoading={isLoading}
+      onRefresh={() => {
         refetch()
       }}
+      csvFileName="employee-teams"
     />
   )
 }

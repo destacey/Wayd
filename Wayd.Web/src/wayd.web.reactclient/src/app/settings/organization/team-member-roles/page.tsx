@@ -1,7 +1,10 @@
 'use client'
 
-import { WaydGrid, PageTitle } from '@/src/components/common'
-import { RowMenuCellRenderer } from '@/src/components/common/wayd-grid-cell-renderers'
+import { PageTitle } from '@/src/components/common'
+import {
+  WaydGrid2,
+  createActionsColumn,
+} from '@/src/components/common/wayd-grid2'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
@@ -11,10 +14,13 @@ import {
   useActivateTeamMemberRoleMutation,
   useDeactivateTeamMemberRoleMutation,
 } from '@/src/store/features/organization/team-member-roles-api'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
-import { ControlItemSwitch } from '@/src/components/common/control-items-menu'
+import {
+  ControlItemsMenu,
+  ControlItemSwitch,
+} from '@/src/components/common/control-items-menu'
 import { ItemType } from 'antd/es/menu/interface'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { isApiError } from '@/src/utils'
@@ -28,7 +34,9 @@ const TeamMemberRolesPage = () => {
   const [includeInactive, setIncludeInactive] = useState(false)
   const [openCreateForm, setOpenCreateForm] = useState(false)
   const [editingRole, setEditingRole] = useState<TeamMemberRoleDto | null>(null)
-  const [deletingRole, setDeletingRole] = useState<TeamMemberRoleDto | null>(null)
+  const [deletingRole, setDeletingRole] = useState<TeamMemberRoleDto | null>(
+    null,
+  )
 
   const messageApi = useMessage()
   const { hasPermissionClaim } = useAuth()
@@ -37,7 +45,12 @@ const TeamMemberRolesPage = () => {
   const canUpdate = hasPermissionClaim('Permissions.TeamMemberRoles.Update')
   const canDelete = hasPermissionClaim('Permissions.TeamMemberRoles.Delete')
 
-  const { data: roles, isLoading, error, refetch } = useGetTeamMemberRolesQuery(includeInactive)
+  const {
+    data: roles,
+    isLoading,
+    error,
+    refetch,
+  } = useGetTeamMemberRolesQuery(includeInactive)
   const [activateRole] = useActivateTeamMemberRoleMutation()
   const [deactivateRole] = useDeactivateTeamMemberRoleMutation()
 
@@ -51,11 +64,15 @@ const TeamMemberRolesPage = () => {
     }
   }, [error, messageApi])
 
-  const columnDefs = useMemo<ColDef<TeamMemberRoleDto>[]>(() => {
+  const columns = useMemo<ColumnDef<TeamMemberRoleDto, any>[]>(() => {
     const getRowMenuItems = (role: TeamMemberRoleDto): ItemType[] => {
       const items: ItemType[] = []
       if (canUpdate) {
-        items.push({ key: 'edit', label: 'Edit', onClick: () => setEditingRole(role) })
+        items.push({
+          key: 'edit',
+          label: 'Edit',
+          onClick: () => setEditingRole(role),
+        })
         if (role.isActive) {
           items.push({
             key: 'deactivate',
@@ -64,8 +81,9 @@ const TeamMemberRolesPage = () => {
               const response = await deactivateRole(role.id)
               if (response.error) {
                 messageApi.error(
-                  (isApiError(response.error) ? response.error.detail : undefined) ??
-                    'Failed to deactivate role.',
+                  (isApiError(response.error)
+                    ? response.error.detail
+                    : undefined) ?? 'Failed to deactivate role.',
                 )
               } else {
                 messageApi.success(`"${role.name}" deactivated.`)
@@ -80,8 +98,9 @@ const TeamMemberRolesPage = () => {
               const response = await activateRole(role.id)
               if (response.error) {
                 messageApi.error(
-                  (isApiError(response.error) ? response.error.detail : undefined) ??
-                    'Failed to activate role.',
+                  (isApiError(response.error)
+                    ? response.error.detail
+                    : undefined) ?? 'Failed to activate role.',
                 )
               } else {
                 messageApi.success(`"${role.name}" activated.`)
@@ -91,27 +110,36 @@ const TeamMemberRolesPage = () => {
         }
       }
       if (canDelete) {
-        items.push({ key: 'delete', label: 'Delete', danger: true, onClick: () => setDeletingRole(role) })
+        items.push({
+          key: 'delete',
+          label: 'Delete',
+          danger: true,
+          onClick: () => setDeletingRole(role),
+        })
       }
       return items
     }
 
     return [
-      {
-        width: 50,
-        filter: false,
-        sortable: false,
+      createActionsColumn<TeamMemberRoleDto>({
         hide: !canUpdate && !canDelete,
-        suppressHeaderMenuButton: true,
-        cellRenderer: (params: ICellRendererParams<TeamMemberRoleDto>) => {
-          if (!params.data) return null
-          return RowMenuCellRenderer({ ...params, menuItems: getRowMenuItems(params.data) })
-        },
+        ariaLabel: 'Team member role actions',
+        getItems: (role) => getRowMenuItems(role),
+      }),
+      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
+      { id: 'name', accessorKey: 'name', header: 'Name', size: 250 },
+      {
+        id: 'description',
+        accessorKey: 'description',
+        header: 'Description',
+        size: 400,
       },
-      { field: 'key', width: 90 },
-      { field: 'name', flex: 1 },
-      { field: 'description', flex: 2 },
-      { field: 'isActive', headerName: 'Active', width: 90 },
+      {
+        id: 'isActive',
+        accessorKey: 'isActive',
+        header: 'Active',
+        meta: { columnType: 'yesNo' },
+      },
     ]
   }, [canUpdate, canDelete, activateRole, deactivateRole, messageApi])
 
@@ -130,39 +158,52 @@ const TeamMemberRolesPage = () => {
   ]
 
   const actions = canCreate ? (
-    <Button onClick={() => setOpenCreateForm(true)}>Create Team Member Role</Button>
+    <Button onClick={() => setOpenCreateForm(true)}>
+      Create Team Member Role
+    </Button>
   ) : null
 
   return (
     <>
       <PageTitle title="Team Member Roles" actions={actions} />
 
-      <WaydGrid
-        height={600}
-        columnDefs={columnDefs}
-        gridControlMenuItems={controlItems}
-        rowData={roles}
-        loadData={() => { refetch() }}
-        loading={isLoading}
+      <WaydGrid2
+        columns={columns}
+        data={roles ?? []}
+        onRefresh={() => {
+          refetch()
+        }}
+        isLoading={isLoading}
+        csvFileName="team-member-roles"
+        rightSlot={<ControlItemsMenu items={controlItems} />}
       />
 
       {openCreateForm && (
         <CreateTeamMemberRoleForm
-          onFormComplete={() => { setOpenCreateForm(false); refetch() }}
+          onFormComplete={() => {
+            setOpenCreateForm(false)
+            refetch()
+          }}
           onFormCancel={() => setOpenCreateForm(false)}
         />
       )}
       {editingRole && (
         <EditTeamMemberRoleForm
           role={editingRole}
-          onFormComplete={() => { setEditingRole(null); refetch() }}
+          onFormComplete={() => {
+            setEditingRole(null)
+            refetch()
+          }}
           onFormCancel={() => setEditingRole(null)}
         />
       )}
       {deletingRole && (
         <DeleteTeamMemberRoleForm
           role={deletingRole}
-          onFormComplete={() => { setDeletingRole(null); refetch() }}
+          onFormComplete={() => {
+            setDeletingRole(null)
+            refetch()
+          }}
           onFormCancel={() => setDeletingRole(null)}
         />
       )}

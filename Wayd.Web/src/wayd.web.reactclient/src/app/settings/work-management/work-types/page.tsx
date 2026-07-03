@@ -1,26 +1,33 @@
 'use client'
 
-import { WaydGrid, PageTitle } from '@/src/components/common'
+import { PageTitle } from '@/src/components/common'
+import {
+  WaydGrid2,
+  createActionsColumn,
+} from '@/src/components/common/wayd-grid2'
 import { useAppDispatch, useAppSelector, useDocumentTitle } from '@/src/hooks'
 import { WorkTypeDto } from '@/src/services/wayd-api'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
-import { Button } from 'antd'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useEffect, useMemo, useState } from 'react'
 import { setIncludeInactive } from '../../../../store/features/work-management/work-type-slice'
 import { authorizePage } from '@/src/components/hoc'
 import { useGetWorkTypesQuery } from '@/src/store/features/work-management/work-type-api'
 import useAuth from '@/src/components/contexts/auth'
-import { EditOutlined } from '@ant-design/icons'
 import EditWorkTypeForm from './_components/edit-work-type-form'
 import Link from 'next/link'
 import { ItemType } from 'antd/es/menu/interface'
-import { ControlItemSwitch } from '@/src/components/common/control-items-menu'
+import {
+  ControlItemsMenu,
+  ControlItemSwitch,
+} from '@/src/components/common/control-items-menu'
 
 const WorkTypesPage = () => {
   useDocumentTitle('Work Management - Work Types')
   const [openUpdateWorkTypeForm, setOpenUpdateWorkTypeForm] =
     useState<boolean>(false)
-  const [editWorkTypeId, setEditWorkTypeId] = useState<number | undefined>(undefined)
+  const [editWorkTypeId, setEditWorkTypeId] = useState<number | undefined>(
+    undefined,
+  )
 
   const { includeInactive } = useAppSelector((state) => state.workType)
 
@@ -46,38 +53,48 @@ const WorkTypesPage = () => {
     error && console.error(error)
   }, [error])
 
-  const columnDefs = useMemo<ColDef<WorkTypeDto>[]>(() => {
+  const columns = useMemo<ColumnDef<WorkTypeDto, any>[]>(() => {
     const editWorkTypeButtonClicked = (id: number) => {
       setEditWorkTypeId(id)
       setOpenUpdateWorkTypeForm(true)
     }
 
     return [
-      {
-        width: 50,
-        filter: false,
-        sortable: false,
-        resizable: false,
+      createActionsColumn<WorkTypeDto>({
         hide: !canUpdateWorkTypes,
-        cellRenderer: (params: ICellRendererParams<WorkTypeDto>) => {
-          return (
-            canUpdateWorkTypes && (
-              <Button
-                type="text"
-                size="small"
-                icon={<EditOutlined />}
-                onClick={() => editWorkTypeButtonClicked(params.data!.id)}
-              />
-            )
-          )
-        },
+        ariaLabel: 'Work type actions',
+        getItems: (workType): ItemType[] =>
+          canUpdateWorkTypes
+            ? [
+                {
+                  key: 'edit',
+                  label: 'Edit',
+                  onClick: () => editWorkTypeButtonClicked(workType.id),
+                },
+              ]
+            : [],
+      }),
+      { id: 'name', accessorKey: 'name', header: 'Name' },
+      {
+        id: 'description',
+        accessorKey: 'description',
+        header: 'Description',
+        size: 300,
       },
-      { field: 'id', hide: true },
-      { field: 'name' },
-      { field: 'description', width: 300 },
-      { field: 'level.name', headerName: 'Level' },
-      { field: 'isActive', width: 100 }, // TODO: convert to yes/no
-    ]}, [canUpdateWorkTypes])
+      {
+        id: 'level',
+        accessorKey: 'level.name',
+        header: 'Level',
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'isActive',
+        accessorKey: 'isActive',
+        header: 'Active',
+        meta: { columnType: 'yesNo' },
+      },
+    ]
+  }, [canUpdateWorkTypes])
 
   const refresh = async () => {
     refetch()
@@ -126,13 +143,13 @@ const WorkTypesPage = () => {
     <>
       <PageTitle title="Work Types" actions={actions()} />
 
-      <WaydGrid
-        height={600}
-        columnDefs={columnDefs}
-        gridControlMenuItems={controlItems}
-        rowData={workTypes}
-        loadData={refresh}
-        loading={isLoading}
+      <WaydGrid2
+        columns={columns}
+        data={workTypes ?? []}
+        onRefresh={refresh}
+        isLoading={isLoading}
+        csvFileName="work-types"
+        rightSlot={<ControlItemsMenu items={controlItems} />}
       />
       {openUpdateWorkTypeForm && (
         <EditWorkTypeForm

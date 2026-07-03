@@ -1,22 +1,19 @@
 'use client'
 
-import { WaydGrid, PageTitle } from '@/src/components/common'
+import { PageTitle } from '@/src/components/common'
+import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import { ExpenditureCategoryListDto } from '@/src/services/wayd-api'
 import { useGetExpenditureCategoriesQuery } from '@/src/store/features/ppm/expenditure-categories-api'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from 'antd'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { CreateExpenditureCategoryForm } from './_components'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { isApiError } from '@/src/utils'
-
-const ExpenditureCategoryCellRenderer = ({ value, data }: ICellRendererParams<ExpenditureCategoryListDto>) => {
-  return <Link href={`./expenditure-categories/${data!.id}`}>{value}</Link>
-}
 
 const ExpenditureCategoriesPage = () => {
   useDocumentTitle('PPM - Expenditure Categories')
@@ -50,36 +47,62 @@ const ExpenditureCategoriesPage = () => {
     }
   }, [error, messageApi])
 
-  const columnDefs = useMemo<ColDef<ExpenditureCategoryListDto>[]>(() => [
-      { field: 'id', hide: true },
-      { field: 'name', cellRenderer: ExpenditureCategoryCellRenderer },
-      { field: 'state.name', headerName: 'State', width: 100 },
+  const columns = useMemo<ColumnDef<ExpenditureCategoryListDto, any>[]>(
+    () => [
       {
-        field: 'isCapitalizable',
-        headerName: 'Capitalizable',
-        width: 100,
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        cell: ({ row }) => (
+          <Link href={`./expenditure-categories/${row.original.id}`}>
+            {row.original.name}
+          </Link>
+        ),
       },
       {
-        field: 'requiresDepreciation',
-        headerName: 'Requires Depreciation',
-        width: 150,
+        id: 'state',
+        accessorKey: 'state.name',
+        header: 'State',
+        size: 100,
+        meta: { filterType: 'set' },
       },
-      { field: 'accountingCode', headerName: 'Accounting Code', width: 150 },
-    ], [])
+      {
+        id: 'isCapitalizable',
+        accessorKey: 'isCapitalizable',
+        header: 'Capitalizable',
+        size: 120,
+        meta: { columnType: 'yesNo' },
+      },
+      {
+        id: 'requiresDepreciation',
+        accessorKey: 'requiresDepreciation',
+        header: 'Requires Depreciation',
+        size: 170,
+        meta: { columnType: 'yesNo' },
+      },
+      {
+        id: 'accountingCode',
+        accessorKey: 'accountingCode',
+        header: 'Accounting Code',
+        size: 150,
+      },
+    ],
+    [],
+  )
 
   const refresh = async () => {
     refetch()
   }
 
   const actions = !showActions ? null : (
-      <>
-        {canCreateExpenditureCategory && (
-          <Button onClick={() => setOpenCreateExpenditureCategoryForm(true)}>
-            Create Expenditure Category
-          </Button>
-        )}
-      </>
-    )
+    <>
+      {canCreateExpenditureCategory && (
+        <Button onClick={() => setOpenCreateExpenditureCategoryForm(true)}>
+          Create Expenditure Category
+        </Button>
+      )}
+    </>
+  )
 
   const onCreateExpenditureCategoryFormClosed = (wasCreated: boolean) => {
     setOpenCreateExpenditureCategoryForm(false)
@@ -92,12 +115,12 @@ const ExpenditureCategoriesPage = () => {
     <>
       <PageTitle title="Expenditure Categories" actions={actions} />
 
-      <WaydGrid
-        height={600}
-        columnDefs={columnDefs}
-        rowData={categoryData}
-        loadData={refresh}
-        loading={isLoading}
+      <WaydGrid2
+        columns={columns}
+        data={categoryData ?? []}
+        onRefresh={refresh}
+        isLoading={isLoading}
+        csvFileName="expenditure-categories"
       />
       {openCreateExpenditureCategoryForm && (
         <CreateExpenditureCategoryForm

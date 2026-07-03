@@ -1,22 +1,19 @@
 'use client'
 
-import { WaydGrid, PageTitle } from '@/src/components/common'
+import { PageTitle } from '@/src/components/common'
+import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import { ProjectLifecycleListDto } from '@/src/services/wayd-api'
 import { useGetProjectLifecyclesQuery } from '@/src/store/features/ppm/project-lifecycles-api'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from 'antd'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import CreateProjectLifecycleForm from './_components/create-project-lifecycle-form'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { isApiError } from '@/src/utils'
-
-const ProjectLifecycleCellRenderer = ({ value, data }: ICellRendererParams<ProjectLifecycleListDto>) => {
-  return <Link href={`./project-lifecycles/${data!.key}`}>{value}</Link>
-}
 
 const ProjectLifecyclesPage = () => {
   useDocumentTitle('PPM - Project Lifecycles')
@@ -47,27 +44,49 @@ const ProjectLifecyclesPage = () => {
     }
   }, [error, messageApi])
 
-  const columnDefs = useMemo<ColDef<ProjectLifecycleListDto>[]>(() => [
-      { field: 'id', hide: true },
-      { field: 'key', width: 90 },
-      { field: 'name', cellRenderer: ProjectLifecycleCellRenderer, sort: 'asc' },
-      { field: 'state.name', headerName: 'State', width: 100 },
-      { field: 'phaseCount', headerName: 'Phase Count', width: 120 },
-    ], [])
+  const columns = useMemo<ColumnDef<ProjectLifecycleListDto, any>[]>(
+    () => [
+      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        cell: ({ row }) => (
+          <Link href={`./project-lifecycles/${row.original.key}`}>
+            {row.original.name}
+          </Link>
+        ),
+      },
+      {
+        id: 'state',
+        accessorKey: 'state.name',
+        header: 'State',
+        size: 100,
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'phaseCount',
+        accessorKey: 'phaseCount',
+        header: 'Phase Count',
+        size: 120,
+      },
+    ],
+    [],
+  )
 
   const refresh = async () => {
     refetch()
   }
 
   const actions = !showActions ? null : (
-      <>
-        {canCreateProjectLifecycle && (
-          <Button onClick={() => setOpenCreateForm(true)}>
-            Create Project Lifecycle
-          </Button>
-        )}
-      </>
-    )
+    <>
+      {canCreateProjectLifecycle && (
+        <Button onClick={() => setOpenCreateForm(true)}>
+          Create Project Lifecycle
+        </Button>
+      )}
+    </>
+  )
 
   const onCreateFormClosed = (wasCreated: boolean) => {
     setOpenCreateForm(false)
@@ -80,12 +99,12 @@ const ProjectLifecyclesPage = () => {
     <>
       <PageTitle title="Project Lifecycles" actions={actions} />
 
-      <WaydGrid
-        height={600}
-        columnDefs={columnDefs}
-        rowData={lifecycleData}
-        loadData={refresh}
-        loading={isLoading}
+      <WaydGrid2
+        columns={columns}
+        data={lifecycleData ?? []}
+        onRefresh={refresh}
+        isLoading={isLoading}
+        csvFileName="project-lifecycles"
       />
       {openCreateForm && (
         <CreateProjectLifecycleForm

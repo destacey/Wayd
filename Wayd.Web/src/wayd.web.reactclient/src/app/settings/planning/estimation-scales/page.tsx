@@ -1,7 +1,10 @@
 'use client'
 
-import { WaydGrid, PageTitle } from '@/src/components/common'
-import { RowMenuCellRenderer } from '@/src/components/common/wayd-grid-cell-renderers'
+import { PageTitle } from '@/src/components/common'
+import {
+  WaydGrid2,
+  createActionsColumn,
+} from '@/src/components/common/wayd-grid2'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
@@ -10,7 +13,7 @@ import {
   useGetEstimationScalesQuery,
   useSetEstimationScaleActiveStatusMutation,
 } from '@/src/store/features/planning/estimation-scales-api'
-import { ColDef, ICellRendererParams, ValueGetterParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
@@ -22,10 +25,6 @@ import {
 } from './_components'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { isApiError } from '@/src/utils'
-
-const EstimationScaleCellRenderer = ({ value, data }: ICellRendererParams<EstimationScaleDto>) => {
-  return <Link href={`./estimation-scales/${data!.id}`}>{value}</Link>
-}
 
 interface RowMenuProps {
   scale: EstimationScaleDto
@@ -70,8 +69,9 @@ const EstimationScalesPage = () => {
   useDocumentTitle('Planning - Estimation Scales')
   const [openCreateForm, setOpenCreateForm] = useState<boolean>(false)
   const [editScaleId, setEditScaleId] = useState<number | null>(null)
-  const [deleteScale, setDeleteScale] =
-    useState<EstimationScaleDto | null>(null)
+  const [deleteScale, setDeleteScale] = useState<EstimationScaleDto | null>(
+    null,
+  )
 
   const messageApi = useMessage()
 
@@ -98,13 +98,14 @@ const EstimationScalesPage = () => {
   useEffect(() => {
     if (error) {
       messageApi.error(
-        (isApiError(error) ? error.detail : undefined) ?? 'An error occurred while loading estimation scales',
+        (isApiError(error) ? error.detail : undefined) ??
+          'An error occurred while loading estimation scales',
       )
       console.error(error)
     }
   }, [error, messageApi])
 
-  const columnDefs = useMemo<ColDef<EstimationScaleDto>[]>(() => {
+  const columns = useMemo<ColumnDef<EstimationScaleDto, any>[]>(() => {
     const handleEdit = (id: number) => {
       setEditScaleId(id)
     }
@@ -134,51 +135,61 @@ const EstimationScalesPage = () => {
     }
 
     return [
-      {
-        width: 50,
-        filter: false,
-        sortable: false,
-        resizable: false,
+      createActionsColumn<EstimationScaleDto>({
         hide: !showRowMenu,
-        suppressHeaderMenuButton: true,
-        cellRenderer: (params: ICellRendererParams<EstimationScaleDto>) => {
-          const menuItems = getRowMenuItems({
-            scale: params.data!,
+        ariaLabel: 'Estimation scale actions',
+        getItems: (scale) =>
+          getRowMenuItems({
+            scale,
             canUpdate: canUpdateEstimationScale,
             canDelete: canDeleteEstimationScale,
             onEditClicked: handleEdit,
             onToggleActiveClicked: handleToggleActive,
             onDeleteClicked: handleDelete,
-          })
-          if (menuItems.length === 0) return null
-          return RowMenuCellRenderer({ ...params, menuItems })
-        },
-      },
-      { field: 'id', hide: true },
-      { field: 'name', cellRenderer: EstimationScaleCellRenderer },
+          }),
+      }),
       {
-        field: 'isActive',
-        headerName: 'Active',
-        width: 100,
-        cellRenderer: (params: ICellRendererParams<EstimationScaleDto>) => (params.value ? 'Yes' : 'No'),
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        cell: ({ row }) => (
+          <Link href={`./estimation-scales/${row.original.id}`}>
+            {row.original.name}
+          </Link>
+        ),
       },
       {
-        field: 'values',
-        headerName: 'Values',
-        width: 100,
-        valueGetter: (params: ValueGetterParams<EstimationScaleDto>) => params.data?.values?.length ?? 0,
+        id: 'isActive',
+        accessorKey: 'isActive',
+        header: 'Active',
+        size: 100,
+        meta: { columnType: 'yesNo' },
       },
-    ]}, [showRowMenu, canUpdateEstimationScale, canDeleteEstimationScale, setActiveStatus, messageApi])
+      {
+        id: 'values',
+        accessorFn: (row) => row.values?.length ?? 0,
+        header: 'Values',
+        size: 100,
+        enableColumnFilter: false,
+      },
+    ]
+  }, [
+    showRowMenu,
+    canUpdateEstimationScale,
+    canDeleteEstimationScale,
+    setActiveStatus,
+    messageApi,
+  ])
 
   const refresh = async () => {
     refetch()
   }
 
   const actions = !canCreateEstimationScale ? null : (
-      <Button onClick={() => setOpenCreateForm(true)}>
-        Create Estimation Scale
-      </Button>
-    )
+    <Button onClick={() => setOpenCreateForm(true)}>
+      Create Estimation Scale
+    </Button>
+  )
 
   const onCreateFormClosed = (wasCreated: boolean) => {
     setOpenCreateForm(false)
@@ -205,12 +216,12 @@ const EstimationScalesPage = () => {
     <>
       <PageTitle title="Estimation Scales" actions={actions} />
 
-      <WaydGrid
-        height={600}
-        columnDefs={columnDefs}
-        rowData={scaleData}
-        loadData={refresh}
-        loading={isLoading}
+      <WaydGrid2
+        columns={columns}
+        data={scaleData ?? []}
+        onRefresh={refresh}
+        isLoading={isLoading}
+        csvFileName="estimation-scales"
       />
       {openCreateForm && (
         <CreateEstimationScaleForm
@@ -237,7 +248,11 @@ const EstimationScalesPage = () => {
 }
 
 const EstimationScalesPageWithAuthorization = requireFeatureFlag(
-  authorizePage(EstimationScalesPage, 'Permission', 'Permissions.EstimationScales.View'),
+  authorizePage(
+    EstimationScalesPage,
+    'Permission',
+    'Permissions.EstimationScales.View',
+  ),
   'planning-poker',
 )
 

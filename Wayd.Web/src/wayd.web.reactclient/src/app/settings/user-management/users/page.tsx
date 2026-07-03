@@ -2,7 +2,12 @@
 
 import PageTitle from '@/src/components/common/page-title'
 import { useEffect, useMemo, useState } from 'react'
-import WaydGrid from '@/src/components/common/wayd-grid'
+import {
+  WaydGrid2,
+  createActionsColumn,
+  renderUserLink,
+  formatDateTime,
+} from '@/src/components/common/wayd-grid2'
 import { authorizePage } from '@/src/components/hoc'
 import Link from 'next/link'
 import { Button, Tag } from 'antd'
@@ -10,13 +15,9 @@ import { WaydTooltip } from '@/src/components/common'
 import useAuth from '@/src/components/contexts/auth'
 import { useDocumentTitle } from '@/src/hooks'
 import { useGetUsersQuery } from '@/src/store/features/user-management/users-api'
-import { RoleListDto, UserDetailsDto } from '@/src/services/wayd-api'
-import { ColDef, ICellRendererParams, ValueFormatterParams } from 'ag-grid-community'
+import { UserDetailsDto } from '@/src/services/wayd-api'
+import type { ColumnDef } from '@tanstack/react-table'
 import dayjs from 'dayjs'
-import {
-  RowMenuCellRenderer,
-  UserLinkCellRenderer,
-} from '@/src/components/common/wayd-grid-cell-renderers'
 import {
   CreateUserForm,
   EditUserForm,
@@ -25,16 +26,6 @@ import {
   useUserAccountActions,
 } from './_components'
 import { ItemType } from 'antd/es/menu/interface'
-
-const EmployeeLinkCellRenderer = ({ value, data }: ICellRendererParams<UserDetailsDto>) => {
-  return (
-    <Link href={`/organizations/employees/${data!.employee?.key}`}>{value}</Link>
-  )
-}
-
-const dateTimeValueFormatter = (
-  params: ValueFormatterParams<UserDetailsDto>,
-) => (params.value ? dayjs(params.value).format('YYYY-MM-DD h:mm A') : '')
 
 const UsersListPage = () => {
   useDocumentTitle('Users')
@@ -58,112 +49,137 @@ const UsersListPage = () => {
   const { getAccountActionMenuItems } = useUserAccountActions()
   const { data: usersData, isLoading, error, refetch } = useGetUsersQuery()
 
-  const columnDefs = useMemo<ColDef<UserDetailsDto>[]>(() => [
-      {
-        width: 50,
-        filter: false,
-        sortable: false,
+  const columns = useMemo<ColumnDef<UserDetailsDto, any>[]>(
+    () => [
+      createActionsColumn<UserDetailsDto>({
         hide: !showRowActions,
-        suppressHeaderMenuButton: true,
-        cellRenderer: (params: ICellRendererParams<UserDetailsDto>) => {
+        ariaLabel: 'User actions',
+        getItems: (user) => {
           const menuItems: ItemType[] = []
           if (canUpdateUser) {
             menuItems.push({
               key: 'edit',
               label: 'Edit',
-              onClick: () => setEditingUser(params.data ?? null),
+              onClick: () => setEditingUser(user),
             })
             menuItems.push(
               ...getAccountActionMenuItems({
-                id: params.data!.id,
-                userName: params.data!.userName!,
-                firstName: params.data!.firstName!,
-                lastName: params.data!.lastName!,
-                isActive: params.data!.isActive,
+                id: user.id,
+                userName: user.userName!,
+                firstName: user.firstName!,
+                lastName: user.lastName!,
+                isActive: user.isActive,
                 isLockedOut:
-                  !!params.data!.lockoutEnd &&
-                  new Date(params.data!.lockoutEnd) > new Date(),
+                  !!user.lockoutEnd && new Date(user.lockoutEnd) > new Date(),
               }),
             )
           }
           const secondaryItems: ItemType[] = []
-          if (canUpdateUser && params.data!.loginProvider === 'Wayd') {
+          if (canUpdateUser && user.loginProvider === 'Wayd') {
             secondaryItems.push({
               key: 'reset-password',
               label: 'Reset Password',
-              onClick: () => setResettingPasswordUser(params.data ?? null),
+              onClick: () => setResettingPasswordUser(user),
             })
           }
           if (canUpdateUserRoles) {
             secondaryItems.push({
               key: 'manage-roles',
               label: 'Manage Roles',
-              onClick: () => setManagingRolesUserId(params.data!.id),
+              onClick: () => setManagingRolesUserId(user.id),
             })
           }
           if (secondaryItems.length > 0 && menuItems.length > 0) {
             menuItems.push({ key: 'divider', type: 'divider' })
           }
           menuItems.push(...secondaryItems)
-          return <RowMenuCellRenderer {...params} menuItems={menuItems} />
+          return menuItems
         },
-      },
-      { field: 'id', hide: true },
-      { field: 'userName', cellRenderer: UserLinkCellRenderer },
-      { field: 'firstName' },
-      { field: 'lastName' },
-      { field: 'email' },
+      }),
       {
-        field: 'loginProvider',
-        headerName: 'Login Provider',
-        valueFormatter: (params) =>
-          params.value === 'MicrosoftEntraId'
+        id: 'userName',
+        accessorKey: 'userName',
+        header: 'User Name',
+        cell: ({ row }) => renderUserLink(row.original),
+      },
+      { id: 'firstName', accessorKey: 'firstName', header: 'First Name' },
+      { id: 'lastName', accessorKey: 'lastName', header: 'Last Name' },
+      { id: 'email', accessorKey: 'email', header: 'Email' },
+      {
+        id: 'loginProvider',
+        accessorFn: (row) =>
+          row.loginProvider === 'MicrosoftEntraId'
             ? 'Microsoft Entra ID'
-            : (params.value ?? ''),
+            : (row.loginProvider ?? ''),
+        header: 'Login Provider',
+        meta: { filterType: 'set' },
       },
       {
-        field: 'employee.name',
-        headerName: 'Employee',
-        cellRenderer: EmployeeLinkCellRenderer,
-      },
-      {
-        field: 'roles',
-        valueFormatter: (params) =>
-          params.value
-            ?.map((r: RoleListDto) => r.name)
-            .sort()
-            .join(', ') ?? '',
-      },
-      {
-        field: 'lockoutEnd',
-        headerName: 'Locked Out',
-        width: 120,
-        cellRenderer: (params: { value: Date | undefined }) =>
-          params.value && new Date(params.value) > new Date() ? (
-            <WaydTooltip
-              title={`Locked until ${dayjs(params.value).format('MMM D, YYYY h:mm A')}`}
+        id: 'employee',
+        accessorKey: 'employee.name',
+        header: 'Employee',
+        cell: ({ row }) =>
+          row.original.employee ? (
+            <Link
+              href={`/organizations/employees/${row.original.employee.key}`}
             >
-              <Tag color="error">Locked</Tag>
-            </WaydTooltip>
+              {row.original.employee.name}
+            </Link>
           ) : null,
       },
       {
-        field: 'lastActivityAt',
-        headerName: 'Last Activity',
-        valueFormatter: dateTimeValueFormatter,
+        id: 'roles',
+        accessorFn: (row) =>
+          row.roles
+            ?.map((r) => r.name)
+            .sort()
+            .join(', ') ?? '',
+        header: 'Roles',
       },
       {
-        field: 'isActive',
-        headerName: 'Active',
-        width: 100,
-        cellRenderer: (params: { value: boolean | undefined }) =>
-          params.value ? (
+        id: 'lockoutEnd',
+        accessorKey: 'lockoutEnd',
+        header: 'Locked Out',
+        size: 120,
+        cell: ({ getValue }) => {
+          const value = getValue() as Date | undefined
+          return value && new Date(value) > new Date() ? (
+            <WaydTooltip
+              title={`Locked until ${dayjs(value).format('MMM D, YYYY h:mm A')}`}
+            >
+              <Tag color="error">Locked</Tag>
+            </WaydTooltip>
+          ) : null
+        },
+      },
+      {
+        id: 'lastActivityAt',
+        accessorKey: 'lastActivityAt',
+        header: 'Last Activity',
+        meta: { columnType: 'dateTime' },
+        cell: ({ getValue }) => (getValue() ? formatDateTime(getValue()) : ''),
+      },
+      {
+        id: 'isActive',
+        accessorFn: (row) => (row.isActive ? 'Active' : 'Inactive'),
+        header: 'Active',
+        size: 100,
+        meta: { filterType: 'set' },
+        cell: ({ row }) =>
+          row.original.isActive ? (
             <Tag color="success">Active</Tag>
           ) : (
             <Tag color="error">Inactive</Tag>
           ),
       },
-    ], [showRowActions, canUpdateUser, canUpdateUserRoles, getAccountActionMenuItems, setEditingUser, setResettingPasswordUser, setManagingRolesUserId])
+    ],
+    [
+      showRowActions,
+      canUpdateUser,
+      canUpdateUserRoles,
+      getAccountActionMenuItems,
+    ],
+  )
 
   useEffect(() => {
     error && console.error(error)
@@ -189,12 +205,12 @@ const UsersListPage = () => {
     <>
       <PageTitle title="Users" actions={actions()} />
 
-      <WaydGrid
-        height={600}
-        columnDefs={columnDefs}
-        rowData={usersData}
-        loadData={refresh}
-        loading={isLoading}
+      <WaydGrid2
+        columns={columns}
+        data={usersData ?? []}
+        onRefresh={refresh}
+        isLoading={isLoading}
+        csvFileName="users"
       />
 
       {openCreateUserForm && (

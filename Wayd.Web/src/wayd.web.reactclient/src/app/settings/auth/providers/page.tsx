@@ -1,12 +1,18 @@
 'use client'
 
-import { WaydGrid, PageTitle } from '@/src/components/common'
-import { RowMenuCellRenderer } from '@/src/components/common/wayd-grid-cell-renderers'
+import { PageTitle } from '@/src/components/common'
+import {
+  WaydGrid2,
+  createActionsColumn,
+} from '@/src/components/common/wayd-grid2'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
-import { OidcProviderListItemDto, OidcProviderType } from '@/src/services/wayd-api'
+import {
+  OidcProviderListItemDto,
+  OidcProviderType,
+} from '@/src/services/wayd-api'
 import {
   useGetOidcProvidersQuery,
   useTestOidcProviderDiscoveryMutation,
@@ -17,7 +23,7 @@ import {
   CloseCircleOutlined,
   LoadingOutlined,
 } from '@ant-design/icons'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { Button, Space, Tag, Tooltip, Typography } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
@@ -133,7 +139,12 @@ const OidcProvidersPage = () => {
   const [testStates, setTestStates] = useState<Record<string, TestState>>({})
 
   const messageApi = useMessage()
-  const { data: providers, isLoading, error, refetch } = useGetOidcProvidersQuery()
+  const {
+    data: providers,
+    isLoading,
+    error,
+    refetch,
+  } = useGetOidcProvidersQuery()
   const [testDiscovery] = useTestOidcProviderDiscoveryMutation()
 
   const { hasPermissionClaim } = useAuth()
@@ -185,83 +196,86 @@ const OidcProvidersPage = () => {
   const handleDelete = (provider: OidcProviderListItemDto) =>
     setDeleteProvider(provider)
 
-  const columnDefs: ColDef<OidcProviderListItemDto>[] = [
-      {
-        width: 50,
-        filter: false,
-        sortable: false,
-        resizable: false,
-        hide: !showRowMenu,
-        suppressHeaderMenuButton: true,
-        cellRenderer: (params: ICellRendererParams<OidcProviderListItemDto>) => {
-          const menuItems = getRowMenuItems({
-            provider: params.data!,
-            canUpdate,
-            canDelete,
-            onEditClicked: handleEdit,
-            onDeleteClicked: handleDelete,
-          })
-          if (menuItems.length === 0) return null
-          return RowMenuCellRenderer({ ...params, menuItems })
-        },
+  const columns: ColumnDef<OidcProviderListItemDto, any>[] = [
+    createActionsColumn<OidcProviderListItemDto>({
+      hide: !showRowMenu,
+      ariaLabel: 'Identity provider actions',
+      getItems: (provider) =>
+        getRowMenuItems({
+          provider,
+          canUpdate,
+          canDelete,
+          onEditClicked: handleEdit,
+          onDeleteClicked: handleDelete,
+        }),
+    }),
+    {
+      id: 'name',
+      accessorKey: 'name',
+      header: 'Name',
+      size: 200,
+      cell: ({ row }) => (
+        <Link href={`/settings/auth/providers/${row.original.id}`}>
+          {row.original.name}
+        </Link>
+      ),
+    },
+    {
+      id: 'displayName',
+      accessorKey: 'displayName',
+      header: 'Display Name',
+      size: 200,
+    },
+    {
+      id: 'providerType',
+      accessorFn: (row) => providerTypeLabel(row.providerType ?? ''),
+      header: 'Type',
+      size: 180,
+      meta: { filterType: 'set' },
+    },
+    {
+      id: 'authority',
+      accessorKey: 'authority',
+      header: 'Authority',
+      size: 300,
+    },
+    {
+      id: 'isEnabled',
+      accessorFn: (row) => (row.isEnabled ? 'Enabled' : 'Disabled'),
+      header: 'Enabled',
+      size: 100,
+      meta: { filterType: 'set' },
+      cell: ({ row }) =>
+        row.original.isEnabled ? (
+          <Tag color="success">Enabled</Tag>
+        ) : (
+          <Tag color="default">Disabled</Tag>
+        ),
+    },
+    {
+      id: 'discovery',
+      header: 'Discovery',
+      size: 120,
+      enableSorting: false,
+      enableColumnFilter: false,
+      enableGlobalFilter: false,
+      cell: ({ row }) => {
+        const provider = row.original
+        const testState = testStates[provider.id] ?? { status: 'idle' }
+        return (
+          <DiscoveryTestCell
+            provider={provider}
+            testState={testState}
+            onTest={handleTest}
+          />
+        )
       },
-      { field: 'id', hide: true },
-      {
-        field: 'name',
-        headerName: 'Name',
-        flex: 1,
-        cellRenderer: (params: ICellRendererParams<OidcProviderListItemDto>) => {
-          if (!params.data) return null
-          return (
-            <Link href={`/settings/auth/providers/${params.data.id}`}>
-              {params.data.name}
-            </Link>
-          )
-        },
-      },
-      { field: 'displayName', headerName: 'Display Name', flex: 1 },
-      {
-        field: 'providerType',
-        headerName: 'Type',
-        width: 180,
-        valueGetter: (params) => providerTypeLabel(params.data?.providerType ?? ''),
-      },
-      {
-        field: 'authority',
-        headerName: 'Authority',
-        flex: 2,
-      },
-      {
-        field: 'isEnabled',
-        headerName: 'Enabled',
-        width: 100,
-        cellRenderer: (params: ICellRendererParams<OidcProviderListItemDto>) =>
-          params.value ? (
-            <Tag color="success">Enabled</Tag>
-          ) : (
-            <Tag color="default">Disabled</Tag>
-          ),
-      },
-      {
-        headerName: 'Discovery',
-        width: 120,
-        filter: false,
-        sortable: false,
-        cellRenderer: (params: ICellRendererParams<OidcProviderListItemDto>) => {
-          const provider = params.data!
-          const testState = testStates[provider.id] ?? { status: 'idle' }
-          return (
-            <DiscoveryTestCell
-              provider={provider}
-              testState={testState}
-              onTest={handleTest}
-            />
-          )
-        },
-      },
+    },
   ]
 
-  const refresh = () => { refetch() }
+  const refresh = () => {
+    refetch()
+  }
 
   const actions = !canCreate ? null : (
     <Button onClick={() => setOpenCreateForm(true)}>
@@ -288,12 +302,12 @@ const OidcProvidersPage = () => {
     <>
       <PageTitle title="Identity Providers" actions={actions} />
 
-      <WaydGrid
-        height={600}
-        columnDefs={columnDefs}
-        rowData={providers}
-        loadData={refresh}
-        loading={isLoading}
+      <WaydGrid2
+        columns={columns}
+        data={providers ?? []}
+        onRefresh={refresh}
+        isLoading={isLoading}
+        csvFileName="identity-providers"
       />
 
       {openCreateForm && (

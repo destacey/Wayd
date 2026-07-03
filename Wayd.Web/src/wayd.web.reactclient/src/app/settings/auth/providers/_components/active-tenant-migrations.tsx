@@ -1,55 +1,51 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common'
+import { WaydGrid2, formatDateTime } from '@/src/components/common/wayd-grid2'
 import { PendingTenantMigrationDto } from '@/src/services/wayd-api'
 import { useGetPendingTenantMigrationsQuery } from '@/src/store/features/user-management/oidc-providers-api'
-import {
-  ColDef,
-  ICellRendererParams,
-  ValueFormatterParams,
-} from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
-import dayjs from 'dayjs'
 
-const formatDate = (
-  params: ValueFormatterParams<PendingTenantMigrationDto, Date | undefined>,
-) => (params.value ? dayjs(params.value).format('MMM D, YYYY h:mm A') : '—')
+/** Formats a value with a dash fallback when empty. */
+const orDash = (value: unknown) => (value ? String(value) : '—')
 
-const columnDefs: ColDef<PendingTenantMigrationDto>[] = [
-  { field: 'userId', hide: true },
+const columns: ColumnDef<PendingTenantMigrationDto, any>[] = [
   {
-    field: 'userName',
-    headerName: 'User',
-    cellRenderer: (params: ICellRendererParams<PendingTenantMigrationDto>) => {
-      if (!params.data) return null
-      return (
-        <Link href={`/settings/user-management/users/${params.data.userId}`}>
-          {params.data.userName}
-        </Link>
-      )
-    },
+    id: 'userName',
+    accessorKey: 'userName',
+    header: 'User',
+    cell: ({ row }) => (
+      <Link href={`/settings/user-management/users/${row.original.userId}`}>
+        {row.original.userName}
+      </Link>
+    ),
   },
   {
-    field: 'email',
-    headerName: 'Email',
-    width: 175,
-    valueFormatter: (params) => params.value ?? '—',
+    id: 'email',
+    accessorKey: 'email',
+    header: 'Email',
+    size: 175,
+    cell: ({ getValue }) => orDash(getValue()),
   },
   {
-    field: 'sourceTenantId',
-    headerName: 'Source tenant',
-    width: 175,
-    valueFormatter: (params) => params.value ?? '—',
+    id: 'sourceTenantId',
+    accessorKey: 'sourceTenantId',
+    header: 'Source tenant',
+    size: 175,
+    cell: ({ getValue }) => orDash(getValue()),
   },
   {
-    field: 'targetTenantId',
-    headerName: 'Target tenant',
-    width: 175,
+    id: 'targetTenantId',
+    accessorKey: 'targetTenantId',
+    header: 'Target tenant',
+    size: 175,
   },
   {
-    field: 'stagedAt',
-    headerName: 'Staged',
-    valueFormatter: formatDate,
+    id: 'stagedAt',
+    accessorKey: 'stagedAt',
+    header: 'Staged',
+    meta: { columnType: 'dateTime' },
+    cell: ({ getValue }) => (getValue() ? formatDateTime(getValue()) : '—'),
   },
 ]
 
@@ -64,14 +60,14 @@ const ActiveTenantMigrations = ({
     useGetPendingTenantMigrationsQuery(providerId)
 
   return (
-    <WaydGrid
-      height={500}
-      columnDefs={columnDefs}
-      rowData={data}
-      loading={isLoading}
-      loadData={() => {
+    <WaydGrid2
+      columns={columns}
+      data={data ?? []}
+      isLoading={isLoading}
+      onRefresh={() => {
         refetch()
       }}
+      csvFileName="tenant-migrations"
       emptyMessage="No tenant migrations are currently in progress."
     />
   )

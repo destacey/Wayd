@@ -6,6 +6,7 @@ import {
   createActionsColumn,
 } from '@/src/components/common/wayd-grid2'
 import { useMemo, useState } from 'react'
+import { Button } from 'antd'
 import type { ColumnDef } from '@tanstack/react-table'
 import { authorizePage } from '../../../../components/hoc'
 import useAuth from '../../../../components/contexts/auth'
@@ -97,9 +98,15 @@ const FeatureFlagsListPage = () => {
         header: 'Name',
         size: 250,
         cell: ({ row }) => (
-          <a onClick={() => openDetailsDrawer(row.original.id)}>
+          // A real button (styled as a link) — an href-less <a> isn't
+          // keyboard-focusable and reads inconsistently to assistive tech.
+          <Button
+            type="link"
+            style={{ padding: 0, height: 'auto', fontSize: 'inherit' }}
+            onClick={() => openDetailsDrawer(row.original.id)}
+          >
             {row.original.name}
-          </a>
+          </Button>
         ),
       },
       {

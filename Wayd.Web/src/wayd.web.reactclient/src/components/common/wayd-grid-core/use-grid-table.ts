@@ -151,8 +151,14 @@ export function useGridTable<T>({
     getColumnCanGlobalFilter,
     globalFilterFn: stringContainsFilter,
     enableMultiSort: true,
-    isMultiSortEvent: (e) =>
-      (e as unknown as { ctrlKey?: boolean } | null)?.ctrlKey === true,
+    // Ctrl-click adds a column to the sort; on macOS the conventional key is
+    // ⌘ (metaKey), so accept both — matching ag-grid's multiSortKey behavior.
+    isMultiSortEvent: (e) => {
+      const evt = e as unknown as
+        | { ctrlKey?: boolean; metaKey?: boolean }
+        | null
+      return evt?.ctrlKey === true || evt?.metaKey === true
+    },
     enableColumnResizing: true,
     columnResizeMode: 'onChange',
     ...tableOptions,

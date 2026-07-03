@@ -118,7 +118,8 @@ export const renderUserLink = (
   if (!user) return null
   return (
     <Link href={`/settings/user-management/users/${user.id}`}>
-      {user.userName}
+      {/* Fall back to the id so the link always has accessible text. */}
+      {user.userName || user.id}
     </Link>
   )
 }

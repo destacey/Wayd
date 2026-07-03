@@ -161,7 +161,7 @@ describe('csv-utils', () => {
         return new RealBlob(parts as BlobPart[], opts)
       }) as unknown as typeof Blob
 
-      const BOM = '﻿'
+      const BOM = '\uFEFF'
       try {
         // Act — content with a multibyte character (rocket emoji)
         downloadCsv('Team\nCore Services 🚀', 'test.csv')

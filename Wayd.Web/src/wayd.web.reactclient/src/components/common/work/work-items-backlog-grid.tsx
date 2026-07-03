@@ -1,23 +1,19 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common'
+import {
+  WaydGrid2,
+  renderAssignedToLink,
+  renderProjectLink,
+  renderSprintLink,
+  renderTeamLink,
+  renderWorkItemLink,
+  renderWorkStatusTag,
+  workItemKeySort,
+  workStatusCategorySort,
+} from '@/src/components/common/wayd-grid2'
 import { WorkItemBacklogItemDto } from '@/src/services/wayd-api'
-import { ColDef } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useMemo } from 'react'
-import {
-  AssignedToLinkCellRenderer,
-  NestedTeamNameLinkCellRenderer,
-  NestedWorkSprintLinkCellRenderer,
-  ParentWorkItemLinkCellRenderer,
-  ProjectLinkCellRenderer,
-  WorkItemLinkCellRenderer,
-  WorkStatusTagCellRenderer,
-} from '../wayd-grid-cell-renderers'
-import {
-  workItemKeyComparator,
-  workStatusCategoryComparator,
-} from './work-item-utils'
-import { CustomCellRendererProps } from 'ag-grid-react'
 import WorkItemTagsCell from './work-item-tags-cell'
 
 export interface WorkItemsBacklogGridProps {
@@ -30,70 +26,109 @@ export interface WorkItemsBacklogGridProps {
 const WorkItemsBacklogGrid = (props: WorkItemsBacklogGridProps) => {
   const { refetch } = props
 
-  const columnDefs = useMemo<ColDef<WorkItemBacklogItemDto>[]>(
+  const columns = useMemo<ColumnDef<WorkItemBacklogItemDto, any>[]>(
     () => [
-      { field: 'rank', width: 125 },
+      { id: 'rank', accessorKey: 'rank', header: 'Rank', size: 125 },
       {
-        field: 'key',
-        comparator: workItemKeyComparator,
-        cellRenderer: WorkItemLinkCellRenderer,
+        id: 'key',
+        accessorKey: 'key',
+        header: 'Key',
+        sortingFn: workItemKeySort,
+        cell: ({ row }) =>
+          renderWorkItemLink({
+            key: row.original.key,
+            workspaceKey: row.original.workspace.key,
+            externalViewWorkItemUrl: row.original.externalViewWorkItemUrl,
+          }),
       },
-      { field: 'title', width: 400 },
-      { field: 'type', width: 125 },
+      { id: 'title', accessorKey: 'title', header: 'Title', size: 400 },
       {
-        field: 'storyPoints',
-        headerName: 'SPs',
-        headerTooltip: 'Story Points',
-        width: 80,
-      },
-      { field: 'status', width: 125, cellRenderer: WorkStatusTagCellRenderer },
-      {
-        field: 'statusCategory.name',
-        headerName: 'Status Category',
-        width: 140,
-        comparator: workStatusCategoryComparator,
-      },
-      {
-        field: 'team.name',
-        headerName: 'Team',
-        cellRenderer: NestedTeamNameLinkCellRenderer,
-        hide: props.hideTeamColumn,
+        id: 'type',
+        accessorKey: 'type',
+        header: 'Type',
+        size: 125,
+        meta: { filterType: 'set' },
       },
       {
-        field: 'sprint.name',
-        headerName: 'Sprint',
-        cellRenderer: NestedWorkSprintLinkCellRenderer,
+        id: 'storyPoints',
+        accessorKey: 'storyPoints',
+        header: 'SPs',
+        size: 80,
       },
       {
-        field: 'parent.key',
-        headerName: 'Parent Key',
-        comparator: workItemKeyComparator,
-        cellRenderer: ParentWorkItemLinkCellRenderer,
+        id: 'status',
+        accessorKey: 'status',
+        header: 'Status',
+        size: 125,
+        meta: { filterType: 'set' },
+        cell: ({ row }) => renderWorkStatusTag(row.original),
       },
       {
-        field: 'parent.title',
-        headerName: 'Parent',
-        width: 400,
+        id: 'statusCategory',
+        accessorKey: 'statusCategory.name',
+        header: 'Status Category',
+        size: 140,
+        sortingFn: workStatusCategorySort,
+        meta: { filterType: 'set' },
       },
       {
-        field: 'assignedTo.name',
-        headerName: 'Assigned To',
-        cellRenderer: AssignedToLinkCellRenderer,
+        id: 'team',
+        accessorKey: 'team.name',
+        header: 'Team',
+        meta: { hide: props.hideTeamColumn, filterEnableSet: true },
+        cell: ({ row }) => renderTeamLink(row.original.team),
       },
       {
-        field: 'project.name',
-        headerName: 'Project',
-        width: 300,
-        cellRenderer: ProjectLinkCellRenderer,
+        id: 'sprint',
+        accessorKey: 'sprint.name',
+        header: 'Sprint',
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => renderSprintLink(row.original.sprint),
       },
       {
-        field: 'tags',
-        headerName: 'Tags',
-        width: 200,
-        valueGetter: (params) => params.data?.tags?.join(', ') ?? '',
-        cellRenderer: (
-          params: CustomCellRendererProps<WorkItemBacklogItemDto>,
-        ) => <WorkItemTagsCell tags={params.data?.tags} />,
+        id: 'parentKey',
+        accessorKey: 'parent.key',
+        header: 'Parent Key',
+        sortingFn: workItemKeySort,
+        cell: ({ row }) =>
+          renderWorkItemLink(
+            row.original.parent
+              ? {
+                  key: row.original.parent.key,
+                  workspaceKey: row.original.parent.workspaceKey,
+                  externalViewWorkItemUrl:
+                    row.original.parent.externalViewWorkItemUrl,
+                }
+              : null,
+          ),
+      },
+      {
+        id: 'parentTitle',
+        accessorKey: 'parent.title',
+        header: 'Parent',
+        size: 400,
+      },
+      {
+        id: 'assignedTo',
+        accessorKey: 'assignedTo.name',
+        header: 'Assigned To',
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => renderAssignedToLink(row.original.assignedTo),
+      },
+      {
+        id: 'project',
+        accessorKey: 'project.name',
+        header: 'Project',
+        size: 300,
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => renderProjectLink(row.original.project),
+      },
+      {
+        id: 'tags',
+        accessorFn: (row) => row.tags?.join(', ') ?? '',
+        header: 'Tags',
+        size: 200,
+        cell: ({ row }) => <WorkItemTagsCell tags={row.original.tags} />,
       },
     ],
     [props.hideTeamColumn],
@@ -104,15 +139,14 @@ const WorkItemsBacklogGrid = (props: WorkItemsBacklogGridProps) => {
   }
 
   return (
-    <>
-      <WaydGrid
-        height={550}
-        columnDefs={columnDefs}
-        rowData={props.workItems}
-        loadData={refresh}
-        loading={props.isLoading}
-      />
-    </>
+    <WaydGrid2
+      height={550}
+      columns={columns}
+      data={props.workItems ?? []}
+      onRefresh={refresh}
+      isLoading={props.isLoading}
+      csvFileName="work-items-backlog"
+    />
   )
 }
 

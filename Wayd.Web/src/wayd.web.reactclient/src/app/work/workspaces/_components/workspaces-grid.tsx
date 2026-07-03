@@ -1,9 +1,8 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common'
-import { WorkspaceLinkCellRenderer } from '@/src/components/common/wayd-grid-cell-renderers'
+import { WaydGrid2, renderWorkspaceLink } from '@/src/components/common/wayd-grid2'
 import { WorkspaceListDto } from '@/src/services/wayd-api'
-import { ColDef } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { ReactElement, useMemo } from 'react'
 
 export interface WorkspacesGridProps {
@@ -16,28 +15,51 @@ export interface WorkspacesGridProps {
 const WorkspacesGrid = (props: WorkspacesGridProps) => {
   const { refetch } = props
 
-  const columnDefs = useMemo<ColDef<WorkspaceListDto>[]>(() => [
-    { field: 'key', width: 90 },
-    { field: 'name', cellRenderer: WorkspaceLinkCellRenderer },
-    { field: 'description', width: 300 },
-    { field: 'ownership.name', headerName: 'Ownership' },
-    { field: 'isActive' },
-  ], [])
+  const columns = useMemo<ColumnDef<WorkspaceListDto, any>[]>(
+    () => [
+      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => renderWorkspaceLink(row.original),
+      },
+      {
+        id: 'description',
+        accessorKey: 'description',
+        header: 'Description',
+        size: 300,
+      },
+      {
+        id: 'ownership',
+        accessorKey: 'ownership.name',
+        header: 'Ownership',
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'isActive',
+        accessorKey: 'isActive',
+        header: 'Active',
+        meta: { columnType: 'yesNo' },
+      },
+    ],
+    [],
+  )
 
   const refresh = async () => {
     refetch()
   }
 
   return (
-    <>
-      <WaydGrid
-        columnDefs={columnDefs}
-        rowData={props.workspaces}
-        loadData={refresh}
-        loading={props.isLoading}
-        toolbarActions={props.viewSelector}
-      />
-    </>
+    <WaydGrid2
+      columns={columns}
+      data={props.workspaces ?? []}
+      onRefresh={refresh}
+      isLoading={props.isLoading}
+      csvFileName="workspaces"
+      rightSlot={props.viewSelector}
+    />
   )
 }
 

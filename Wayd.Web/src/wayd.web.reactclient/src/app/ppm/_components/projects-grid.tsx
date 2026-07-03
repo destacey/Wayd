@@ -1,16 +1,16 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common'
 import {
-  LifecycleStatusTagCellRenderer,
-  PortfolioLinkCellRenderer,
-  ProgramLinkCellRenderer,
-  NestedProjectHealthCheckStatusCellRenderer,
-  ProjectLinkCellRenderer,
-} from '@/src/components/common/wayd-grid-cell-renderers'
+  WaydGrid2,
+  renderPortfolioLink,
+  renderProgramLink,
+  renderProjectLink,
+} from '@/src/components/common/wayd-grid2'
+import LifecycleStatusTag from '@/src/components/common/lifecycle-status-tag'
+import ProjectHealthCheckTag from '@/src/app/ppm/projects/_components/project-health-check-tag'
 import { ProjectListDto } from '@/src/services/wayd-api'
 import { getSortedNames } from '@/src/utils'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { FC, ReactNode, useMemo } from 'react'
 
 export interface ProjectsGridProps {
@@ -26,99 +26,110 @@ export interface ProjectsGridProps {
 const ProjectsGrid: FC<ProjectsGridProps> = (props: ProjectsGridProps) => {
   const { refetch } = props
 
-  const columnDefs = useMemo<ColDef<ProjectListDto>[]>(
+  const columns = useMemo<ColumnDef<ProjectListDto, any>[]>(
     () => [
       {
-        field: 'position',
-        headerName: 'Rank',
-        headerTooltip:
-          "Rank based on the project's portfolio and the current context.",
-        width: 90,
-        valueFormatter: (params) =>
-          params.value == null ? '—' : String(params.value),
+        id: 'position',
+        accessorKey: 'position',
+        header: 'Rank',
+        size: 90,
+        enableColumnFilter: false,
+        cell: ({ getValue }) => {
+          const value = getValue() as number | null | undefined
+          return value == null ? '—' : String(value)
+        },
       },
-      { field: 'key', width: 125 },
+      { id: 'key', accessorKey: 'key', header: 'Key', size: 125 },
       {
-        field: 'name',
-        cellRenderer: ProjectLinkCellRenderer,
-        width: 300,
-        initialSort: 'asc',
-      },
-      {
-        field: 'status.name',
-        headerName: 'Status',
-        width: 125,
-        cellRenderer: LifecycleStatusTagCellRenderer,
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        size: 300,
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => renderProjectLink(row.original),
       },
       {
-        field: 'healthCheck.status.name',
-        headerName: 'Health',
-        width: 125,
-        cellRenderer: NestedProjectHealthCheckStatusCellRenderer,
+        id: 'status',
+        accessorKey: 'status.name',
+        header: 'Status',
+        size: 125,
+        meta: { filterType: 'set' },
+        cell: ({ row }) =>
+          row.original.status ? (
+            <LifecycleStatusTag status={row.original.status} />
+          ) : null,
       },
       {
-        field: 'portfolio.name',
-        headerName: 'Portfolio',
-        width: 200,
-        hide: props.hidePortfolio,
-        cellRenderer: (params: ICellRendererParams<ProjectListDto>) => {
-          if (!params.data) return null
-          return PortfolioLinkCellRenderer({
-            ...(params as any),
-            data: params.data.portfolio,
-          })
+        id: 'health',
+        accessorFn: (row) => row.healthCheck?.status?.name ?? '',
+        header: 'Health',
+        size: 125,
+        cell: ({ row }) => {
+          const project = row.original
+          if (!project.healthCheck) return null
+          return (
+            <ProjectHealthCheckTag
+              healthCheck={project.healthCheck}
+              projectId={project.id}
+            />
+          )
         },
       },
       {
-        field: 'program.name',
-        headerName: 'Program',
-        width: 200,
-        hide: props.hideProgram,
-        cellRenderer: (params: ICellRendererParams<ProjectListDto>) =>
-          params.data?.program
-            ? ProgramLinkCellRenderer({
-                ...(params as any),
-                data: params.data.program,
-              })
-            : null,
+        id: 'portfolio',
+        accessorKey: 'portfolio.name',
+        header: 'Portfolio',
+        size: 200,
+        meta: { hide: props.hidePortfolio, filterEnableSet: true },
+        cell: ({ row }) => renderPortfolioLink(row.original.portfolio),
       },
       {
-        field: 'start',
-        width: 125,
-        type: 'dateOnly',
+        id: 'program',
+        accessorKey: 'program.name',
+        header: 'Program',
+        size: 200,
+        meta: { hide: props.hideProgram, filterEnableSet: true },
+        cell: ({ row }) => renderProgramLink(row.original.program),
       },
       {
-        field: 'end',
-        width: 125,
-        type: 'dateOnly',
+        id: 'start',
+        accessorKey: 'start',
+        header: 'Start',
+        size: 125,
+        meta: { columnType: 'dateOnly' },
       },
       {
-        field: 'projectManagers',
-        headerName: 'PMs',
-        valueGetter: (params) =>
-          getSortedNames(params.data?.projectManagers ?? []),
+        id: 'end',
+        accessorKey: 'end',
+        header: 'End',
+        size: 125,
+        meta: { columnType: 'dateOnly' },
       },
       {
-        field: 'projectOwners',
-        headerName: 'Owners',
-        valueGetter: (params) =>
-          getSortedNames(params.data?.projectOwners ?? []),
+        id: 'projectManagers',
+        accessorFn: (row) => getSortedNames(row.projectManagers ?? []),
+        header: 'PMs',
       },
       {
-        field: 'projectSponsors',
-        headerName: 'Sponsors',
-        valueGetter: (params) =>
-          getSortedNames(params.data?.projectSponsors ?? []),
+        id: 'projectOwners',
+        accessorFn: (row) => getSortedNames(row.projectOwners ?? []),
+        header: 'Owners',
       },
       {
-        field: 'strategicThemes',
-        headerName: 'Strategic Themes',
-        valueGetter: (params) =>
-          getSortedNames(params.data?.strategicThemes ?? []),
+        id: 'projectSponsors',
+        accessorFn: (row) => getSortedNames(row.projectSponsors ?? []),
+        header: 'Sponsors',
       },
       {
-        field: 'projectLifecycle.name',
-        headerName: 'Lifecycle',
+        id: 'strategicThemes',
+        accessorFn: (row) => getSortedNames(row.strategicThemes ?? []),
+        header: 'Strategic Themes',
+      },
+      {
+        id: 'projectLifecycle',
+        accessorKey: 'projectLifecycle.name',
+        header: 'Lifecycle',
+        meta: { filterType: 'set' },
       },
     ],
     [props.hidePortfolio, props.hideProgram],
@@ -129,17 +140,16 @@ const ProjectsGrid: FC<ProjectsGridProps> = (props: ProjectsGridProps) => {
   }
 
   return (
-    <>
-      <WaydGrid
-        columnDefs={columnDefs}
-        rowData={props.projects}
-        loadData={refresh}
-        loading={props.isLoading}
-        toolbarActions={props.viewSelector}
-        height={props.gridHeight}
-        emptyMessage="No projects found."
-      />
-    </>
+    <WaydGrid2
+      columns={columns}
+      data={props.projects}
+      onRefresh={refresh}
+      isLoading={props.isLoading}
+      csvFileName="projects"
+      rightSlot={props.viewSelector}
+      height={props.gridHeight}
+      emptyMessage="No projects found."
+    />
   )
 }
 

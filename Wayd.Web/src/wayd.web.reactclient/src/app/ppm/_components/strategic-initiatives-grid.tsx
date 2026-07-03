@@ -1,16 +1,16 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common'
 import {
-  LifecycleStatusTagCellRenderer,
-  PortfolioLinkCellRenderer,
-} from '@/src/components/common/wayd-grid-cell-renderers'
+  WaydGrid2,
+  renderPortfolioLink,
+} from '@/src/components/common/wayd-grid2'
+import LifecycleStatusTag from '@/src/components/common/lifecycle-status-tag'
 import {
   NavigationDto,
   StrategicInitiativeListDto,
 } from '@/src/services/wayd-api'
 import { getSortedNames } from '@/src/utils'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
 import { FC, useMemo } from 'react'
 
@@ -23,15 +23,15 @@ export interface StrategicInitiativesGridProps {
   viewSelector?: React.ReactNode | undefined
 }
 
-export interface NavigationLinkCellRendererProps {
-  data: NavigationDto
-}
-export const StrategicInitiativeLinkCellRenderer = ({
-  data,
-}: NavigationLinkCellRendererProps) => {
-  if (!data) return null
+/** Renders a strategic initiative as a link to its page. */
+export const renderStrategicInitiativeLink = (
+  initiative: NavigationDto | null | undefined,
+) => {
+  if (!initiative) return null
   return (
-    <Link href={`/ppm/strategic-initiatives/${data.key}`}>{data.name}</Link>
+    <Link href={`/ppm/strategic-initiatives/${initiative.key}`}>
+      {initiative.name}
+    </Link>
   )
 }
 
@@ -40,64 +40,78 @@ const StrategicInitiativesGrid: FC<StrategicInitiativesGridProps> = (
 ) => {
   const { refetch } = props
 
-  const columnDefs = useMemo<ColDef<StrategicInitiativeListDto>[]>(() => [
-    { field: 'key', width: 90 },
-    {
-      field: 'name',
-      cellRenderer: StrategicInitiativeLinkCellRenderer,
-      width: 300,
-    },
-    {
-      field: 'status.name',
-      headerName: 'Status',
-      width: 125,
-      cellRenderer: LifecycleStatusTagCellRenderer,
-    },
-    {
-      field: 'portfolio.name',
-      headerName: 'Portfolio',
-      width: 200,
-      hide: props.hidePortfolio,
-      cellRenderer: (params: ICellRendererParams<StrategicInitiativeListDto>) => {
-        if (!params.data) return null
-        return PortfolioLinkCellRenderer({ ...(params as any), data: params.data.portfolio })
+  const columns = useMemo<ColumnDef<StrategicInitiativeListDto, any>[]>(
+    () => [
+      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        size: 300,
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => renderStrategicInitiativeLink(row.original),
       },
-    },
-    {
-      field: 'start',
-      width: 125,
-      type: 'dateOnly',
-    },
-    {
-      field: 'end',
-      width: 125,
-      type: 'dateOnly',
-    },
-    {
-      field: 'strategicInitiativeSponsors',
-      headerName: 'Sponsors',
-      valueGetter: (params) =>
-        getSortedNames(params.data?.strategicInitiativeSponsors ?? []),
-    },
-    {
-      field: 'strategicInitiativeOwners',
-      headerName: 'Owners',
-      valueGetter: (params) =>
-        getSortedNames(params.data?.strategicInitiativeOwners ?? []),
-    },
-  ], [props.hidePortfolio])
+      {
+        id: 'status',
+        accessorKey: 'status.name',
+        header: 'Status',
+        size: 125,
+        meta: { filterType: 'set' },
+        cell: ({ row }) =>
+          row.original.status ? (
+            <LifecycleStatusTag status={row.original.status} />
+          ) : null,
+      },
+      {
+        id: 'portfolio',
+        accessorKey: 'portfolio.name',
+        header: 'Portfolio',
+        size: 200,
+        meta: { hide: props.hidePortfolio, filterEnableSet: true },
+        cell: ({ row }) => renderPortfolioLink(row.original.portfolio),
+      },
+      {
+        id: 'start',
+        accessorKey: 'start',
+        header: 'Start',
+        size: 125,
+        meta: { columnType: 'dateOnly' },
+      },
+      {
+        id: 'end',
+        accessorKey: 'end',
+        header: 'End',
+        size: 125,
+        meta: { columnType: 'dateOnly' },
+      },
+      {
+        id: 'strategicInitiativeSponsors',
+        accessorFn: (row) =>
+          getSortedNames(row.strategicInitiativeSponsors ?? []),
+        header: 'Sponsors',
+      },
+      {
+        id: 'strategicInitiativeOwners',
+        accessorFn: (row) =>
+          getSortedNames(row.strategicInitiativeOwners ?? []),
+        header: 'Owners',
+      },
+    ],
+    [props.hidePortfolio],
+  )
 
   const refresh = async () => {
     refetch()
   }
 
   return (
-    <WaydGrid
-      columnDefs={columnDefs}
-      rowData={props.strategicInitiatives}
-      loadData={refresh}
-      loading={props.isLoading}
-      toolbarActions={props.viewSelector}
+    <WaydGrid2
+      columns={columns}
+      data={props.strategicInitiatives}
+      onRefresh={refresh}
+      isLoading={props.isLoading}
+      csvFileName="strategic-initiatives"
+      rightSlot={props.viewSelector}
       height={props.gridHeight}
       emptyMessage="No strategic initiatives found."
     />

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, FC, useMemo } from 'react'
-import { Button, Tag, Alert, Flex, Typography, App, Space, Tooltip } from 'antd'
+import { Button, Tag, Alert, Flex, Typography, App, Space } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import {
   useGetMyPersonalAccessTokensQuery,
@@ -189,13 +189,13 @@ const PersonalAccessTokens: FC = () => {
       {
         id: 'lastUsedAt',
         accessorKey: 'lastUsedAt',
-        header: () => (
-          <Tooltip title="The last time this token was used for authentication. Updates at most once per hour.">
-            <span>Last Used</span>
-          </Tooltip>
-        ),
+        header: 'Last Used',
         size: 180,
-        meta: { columnType: 'dateTime', exportHeader: 'Last Used' },
+        meta: {
+          columnType: 'dateTime',
+          headerTooltip:
+            'The last time this token was used for authentication. Updates at most once per hour.',
+        },
         cell: ({ getValue }) => renderDateTimeOrNever(getValue()),
       },
     ]

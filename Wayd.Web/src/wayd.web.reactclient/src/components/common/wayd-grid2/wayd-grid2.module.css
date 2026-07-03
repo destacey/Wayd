@@ -20,6 +20,10 @@
 
 .tableElement {
   --wayd-grid-header-row-height: 29px;
+  /* Grouped-header band rows above the leaf header row; set inline by the
+   * grid (0 when no column groups). Drives the sticky offsets below so the
+   * leaf header and floating-filter rows stick beneath the bands. */
+  --wayd-grid-group-header-rows: 0;
   /*
    * Subtle tinted header band, AG Grid style. Applied to the header + filter rows.
    * One elevation step above the zebra alt-row tint (fill-quaternary) so the
@@ -58,17 +62,29 @@
   padding: 5px var(--ant-padding-sm);
   background: var(--wayd-grid-header-bg);
   border-bottom: 1px solid var(--ant-color-border);
-  color: var(--ant-color-text);
+  /* Secondary (muted) text keeps headers from overpowering the data rows —
+     matches the retired ag-grid Balham theme's muted headerTextColor. */
+  color: var(--ant-color-text-secondary);
   text-align: left;
   font-size: 12px;
   font-weight: var(--ant-font-weight-strong);
   white-space: nowrap;
   position: sticky;
-  top: 0;
+  top: calc(
+    var(--wayd-grid-group-header-rows) * var(--wayd-grid-header-row-height)
+  );
   z-index: 20;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 0;
+}
+
+/*
+ * Grouped-header band cell. Band rows override .th's sticky `top` inline
+ * (bandIndex * row height) — band depth isn't expressible per-row in CSS.
+ */
+.groupTh {
+  text-align: center;
 }
 
 .thSortable {
@@ -225,7 +241,10 @@
   overflow: hidden;
   text-align: left;
   position: sticky;
-  top: var(--wayd-grid-header-row-height);
+  top: calc(
+    (var(--wayd-grid-group-header-rows) + 1) *
+      var(--wayd-grid-header-row-height)
+  );
   z-index: 19;
 }
 

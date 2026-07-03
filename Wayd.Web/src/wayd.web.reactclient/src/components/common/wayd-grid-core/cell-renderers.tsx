@@ -3,22 +3,17 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { teamUrl, type TeamUrlTarget } from '@/src/utils'
+import DependencyHealthTag from '@/src/components/common/work/dependency-health-tag'
 import WorkStatusTag from '@/src/components/common/work/work-status-tag'
-import type { WorkStatusCategory } from '@/src/components/types'
+import type {
+  DependencyHealth,
+  WorkStatusCategory,
+} from '@/src/components/types'
 
 /**
- * Cell renderers for WaydGrid2 columns.
- *
- * Unlike the ag-grid `wayd-grid-cell-renderers.tsx` (whose renderers take
- * ag-grid's `CustomCellRendererProps`), a TanStack `cell` already receives
- * `row.original`, so these are plain functions of the domain object — call them
- * inline: `cell: ({ row }) => renderTeamLink(row.original.team)`. Each returns
- * `null` for a missing value so an empty cell renders nothing.
- *
- * This is the flat-list counterpart to the ag-grid renderers; as more grids
- * migrate to WaydGrid2 we add the matching link renderers here (planning
- * interval, project, portfolio, sprint, user, …), each reusing the shared URL
- * helpers in `@/src/utils`.
+ * Cell renderers for WaydGrid2 columns — plain functions of the domain object,
+ * called inline: `cell: ({ row }) => renderTeamLink(row.original.team)`. Each
+ * returns `null` for a missing value so an empty cell renders nothing.
  */
 
 /** A team/team-of-teams reference that can be rendered as a link. */
@@ -210,4 +205,21 @@ export const renderWorkStatusTag = (
 ): ReactNode => {
   if (!item?.status) return null
   return <WorkStatusTag status={item.status} category={item.statusCategory.id} />
+}
+
+/** A dependency health reference (the id drives the tag color + tooltip). */
+export interface DependencyHealthTarget {
+  id: DependencyHealth
+  name: string
+}
+
+/**
+ * Renders a dependency's health as a colored {@link DependencyHealthTag} with
+ * its explanatory tooltip. Returns `null` when there's no health.
+ */
+export const renderDependencyHealthTag = (
+  health: DependencyHealthTarget | null | undefined,
+): ReactNode => {
+  if (!health) return null
+  return <DependencyHealthTag name={health.name} health={health.id} />
 }

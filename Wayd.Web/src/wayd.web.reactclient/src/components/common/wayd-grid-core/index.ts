@@ -35,12 +35,14 @@ export {
   renderWorkspaceLink,
   renderSprintLink,
   renderUserLink,
+  renderDependencyHealthTag,
 } from './cell-renderers'
 export type {
   TeamLinkTarget,
   NavLinkTarget,
   SprintLinkTarget,
   UserLinkTarget,
+  DependencyHealthTarget,
 } from './cell-renderers'
 
 // Sorting utilities
@@ -62,10 +64,11 @@ export { default as GridToolbar } from './grid-toolbar'
 export type { GridToolbarProps } from './grid-toolbar'
 
 // Row renderer — the flat and tree forms of the row-renderer seam
-export { FlatGridRow, TreeGridRow } from './grid-row'
+export { FlatGridRow, SortableFlatGridRow, TreeGridRow } from './grid-row'
 export type {
   FlatGridRowProps,
   GridRowClasses,
+  SortableFlatGridRowProps,
   TreeGridRowClasses,
   TreeGridRowProps,
 } from './grid-row'
@@ -81,7 +84,11 @@ export { mergeDraftsIntoTree } from './draft-utils'
 export type { DraftItem } from './draft-utils'
 
 // Header sort/resize cell
-export { GridHeaderCell, useResizeClickGuard } from './grid-header-row'
+export {
+  GridHeaderCell,
+  GridHeaderContent,
+  useResizeClickGuard,
+} from './grid-header-row'
 export type {
   GridHeaderCellClasses,
   GridHeaderCellProps,

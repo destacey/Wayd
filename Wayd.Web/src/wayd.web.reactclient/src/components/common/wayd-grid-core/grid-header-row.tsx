@@ -3,6 +3,31 @@
 import { useRef, type MouseEvent, type ReactNode, type TouchEvent } from 'react'
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons'
 import { type Header, flexRender } from '@tanstack/react-table'
+import WaydTooltip from '@/src/components/common/wayd-tooltip'
+
+/**
+ * A header's content, wrapped in a {@link WaydTooltip} when the column
+ * declares `meta.headerTooltip` — columns keep a plain-string `header` (which
+ * CSV export also reads) instead of hand-rolling a Tooltip header renderer.
+ */
+export function GridHeaderContent<T>({ header }: { header: Header<T, unknown> }) {
+  // eslint-disable-next-line react-compiler/react-compiler -- same mutable-header caveat as GridHeaderCell
+  'use no memo'
+  if (header.isPlaceholder) return null
+
+  const content = flexRender(
+    header.column.columnDef.header,
+    header.getContext(),
+  )
+  const tooltip = header.column.columnDef.meta?.headerTooltip
+  if (!tooltip) return content
+
+  return (
+    <WaydTooltip title={tooltip}>
+      <span>{content}</span>
+    </WaydTooltip>
+  )
+}
 
 /**
  * Guards the header's click-to-sort against the click that ends a column
@@ -115,9 +140,7 @@ export function GridHeaderCell<T>({
     >
       <span className={classes.thContent}>
         <span className={classes.thText}>
-          {header.isPlaceholder
-            ? null
-            : flexRender(header.column.columnDef.header, header.getContext())}
+          <GridHeaderContent header={header} />
         </span>
         {sortIcon}
         {filterSlot}

@@ -104,7 +104,8 @@ const readRaw = <T>(col: ColumnDef<T, unknown>, row: T): unknown => {
 
 /**
  * Applies the column's declared `meta.columnType` to a ColumnDef, returning a
- * new def. No-op when the column declares no (or an unknown) type.
+ * new def. Grouped-header defs (with `columns`) recurse into their children;
+ * otherwise a column with no (or an unknown) type passes through unchanged.
  *
  * Precedence — explicit column config wins over the type's defaults:
  * - The type's value transform wraps the column's existing accessor (so the
@@ -117,7 +118,7 @@ export const applyColumnType = <T>(
 ): ColumnDef<T, unknown> => {
   const meta = col.meta
   const columnType = meta?.columnType
-  if (!columnType || !(columnType in registry)) return col
+  if (!columnType || !(columnType in registry)) return applyGroupChildren(col)
 
   const type = registry[columnType]<T>()
   const next = { ...col } as ColumnDef<T, unknown> & {
@@ -150,4 +151,20 @@ export const applyColumnType = <T>(
   } satisfies WaydGridColumnMeta
 
   return next
+}
+
+/**
+ * Recurses {@link applyColumnType} into a grouped-header def's `columns`, so
+ * leaves nested under a header band get their declared types applied the same
+ * as top-level columns. No-op for leaf defs.
+ */
+const applyGroupChildren = <T>(
+  col: ColumnDef<T, unknown>,
+): ColumnDef<T, unknown> => {
+  const children = (col as { columns?: ColumnDef<T, unknown>[] }).columns
+  if (!children) return col
+  return {
+    ...col,
+    columns: children.map((child) => applyColumnType(child)),
+  } as ColumnDef<T, unknown>
 }

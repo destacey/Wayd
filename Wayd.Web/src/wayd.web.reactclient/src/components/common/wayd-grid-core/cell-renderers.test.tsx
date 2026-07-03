@@ -1,9 +1,10 @@
 import { render, screen } from '@testing-library/react'
 
-import { WorkStatusCategory } from '@/src/components/types'
+import { DependencyHealth, WorkStatusCategory } from '@/src/components/types'
 
 import {
   renderAssignedToLink,
+  renderDependencyHealthTag,
   renderPlanningIntervalLink,
   renderPortfolioLink,
   renderProgramLink,
@@ -281,6 +282,31 @@ describe('renderWorkStatusTag', () => {
         })}
       </>,
     )
+
+    // Assert
+    expect(container).toBeEmptyDOMElement()
+  })
+})
+
+describe('renderDependencyHealthTag', () => {
+  it('renders the health name as a tag', () => {
+    // Arrange / Act
+    render(
+      <>
+        {renderDependencyHealthTag({
+          id: DependencyHealth.AtRisk,
+          name: 'At Risk',
+        })}
+      </>,
+    )
+
+    // Assert
+    expect(screen.getByText('At Risk')).toBeInTheDocument()
+  })
+
+  it('renders nothing when there is no health', () => {
+    // Arrange / Act
+    const { container } = render(<>{renderDependencyHealthTag(null)}</>)
 
     // Assert
     expect(container).toBeEmptyDOMElement()

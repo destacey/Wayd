@@ -2,11 +2,11 @@
 
 import {
   forwardRef,
-  Fragment,
   type Ref,
   type ReactElement,
   type ReactNode,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -18,6 +18,7 @@ import { FilterFilled, FilterOutlined } from '@ant-design/icons'
 import {
   type ColumnDef,
   type Header,
+  type Row,
   type VisibilityState,
   getExpandedRowModel,
   getFacetedRowModel,
@@ -30,7 +31,11 @@ import {
   type DragStartEvent,
   closestCenter,
 } from '@dnd-kit/core'
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import {
+  SortableContext,
+  arrayMove,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
 
 import { WaydEmpty } from '@/src/components/common'
 import { useRemainingHeight } from '@/src/hooks'
@@ -49,6 +54,7 @@ import {
   type FilterType,
 } from '../wayd-grid-core/filters'
 
+import { applySafeAccessor } from '../wayd-grid-core/column-accessors'
 import { applyColumnType } from '../wayd-grid-core/column-types'
 import { useGridDndSensors } from '../wayd-grid-core/dnd/grid-dnd'
 import {
@@ -64,11 +70,13 @@ import {
 import { exportGridToCsv } from '../wayd-grid-core/grid-export'
 import {
   GridHeaderCell,
+  GridHeaderContent,
   useResizeClickGuard,
   type GridHeaderCellClasses,
 } from '../wayd-grid-core/grid-header-row'
 import {
   FlatGridRow,
+  SortableFlatGridRow,
   TreeGridRow,
   type GridRowClasses,
   type TreeGridRowClasses,
@@ -203,10 +211,14 @@ function WaydGrid2Inner<T>(
     emptyMessage = 'No records found',
     csvFileName = 'grid-export',
     height,
+    initialSorting,
     includeGlobalSearch = true,
     includeExportButton = true,
     includeColumnFilters = true,
     includeFloatingFilters = true,
+    getRowId,
+    onDisplayedRowsChange,
+    onRowReorder,
     getSubRows,
     enableDragAndDrop = false,
     onNodeMove,
@@ -220,8 +232,6 @@ function WaydGrid2Inner<T>(
     onDraftsChange,
   } = props
 
-  // Tree mode: rows form a hierarchy, expansion/indent/reparenting apply, and
-  // a filter match keeps the row's ancestor chain visible.
   const isTree = !!getSubRows
 
   // ─── Auto-height ─────────────────────────────────────────
@@ -229,7 +239,7 @@ function WaydGrid2Inner<T>(
   const resolvedHeight = height ?? autoHeight
 
   // ─── State ───────────────────────────────────────────────
-  const gridState = useGridState()
+  const gridState = useGridState({ initialSorting })
   const { searchValue, onSearchChange, onClearFilters, hasActiveFilters } =
     gridState
   const resizeGuard = useResizeClickGuard()
@@ -262,7 +272,6 @@ function WaydGrid2Inner<T>(
     [],
   )
 
-  // Field errors: delegate to external state when provided
   const [internalFieldErrors, setInternalFieldErrors] =
     useState<Record<string, string>>(EMPTY_FIELD_ERRORS)
   const fieldErrors = externalFieldErrors ?? internalFieldErrors
@@ -390,7 +399,6 @@ function WaydGrid2Inner<T>(
           return next
         })
 
-        // Ensure parent is expanded when adding a child draft
         if (parentId && tableRef.current) {
           const rows = tableRef.current.getRowModel().rows
           const parentRow = rows.find((r: any) => r.original.id === parentId)
@@ -441,8 +449,11 @@ function WaydGrid2Inner<T>(
   )
 
   // ─── Column context ──────────────────────────────────────
+  // Tree drags reparent (onNodeMove); flat drags reorder (onRowReorder).
   const dragEnabledBase =
-    isTree && enableDragAndDrop && !!onNodeMove && !isLoading && !isEditing
+    (isTree ? enableDragAndDrop && !!onNodeMove : !!onRowReorder) &&
+    !isLoading &&
+    !isEditing
 
   const columnContext: GridColumnContext = useMemo(() => {
     const dragEnabledForColumns = dragEnabledBase && !hasActiveFilters
@@ -479,32 +490,36 @@ function WaydGrid2Inner<T>(
     return columnsProp
   }, [columnsProp, columnContext])
 
-  // Apply declarative column types (meta.columnType) before handing columns to
-  // TanStack. Memoized on `columns` so the resolved array keeps a stable
-  // identity across unrelated re-renders (e.g. a column-filter change). Without
-  // this, every render rebuilt the column defs, TanStack rebuilt its headers,
-  // and the filter Popover's trigger DOM node was replaced — which antd read as
-  // a click-outside and closed the open popover on every checkbox toggle.
+  // applySafeAccessor must run before applyColumnType (the type's raw-value
+  // reader handles accessorFns but not dotted keys). Memoized on `columns`:
+  // rebuilding defs every render made TanStack rebuild its headers, replacing
+  // the filter Popover's trigger DOM node — which antd read as a click-outside
+  // and closed the open popover on every checkbox toggle.
   const resolvedColumns = useMemo(
     () =>
       columns.map((col) =>
-        applyColumnType(col as ColumnDef<T, unknown>),
+        applyColumnType(applySafeAccessor(col as ColumnDef<T, unknown>)),
       ) as typeof columns,
     [columns],
   )
 
-  // Derive columnVisibility from each column's meta.hide (AG Grid `hide` style),
-  // so columns can live in one static literal and be shown/hidden by a flag.
+  // meta.hide → columnVisibility (AG Grid `hide` style), recursing into
+  // grouped defs (TanStack shrinks a band's colSpan as its leaves hide).
   const columnVisibility = useMemo<VisibilityState>(() => {
     const visibility: VisibilityState = {}
-    for (const col of resolvedColumns) {
-      const meta = col.meta
-      if (meta?.hide === undefined) continue
-      const id =
-        col.id ??
-        ((col as { accessorKey?: string | number }).accessorKey?.toString())
-      if (id) visibility[id] = !meta.hide
+    const collect = (cols: typeof resolvedColumns) => {
+      for (const col of cols) {
+        const children = (col as { columns?: typeof resolvedColumns }).columns
+        if (children) collect(children)
+        const meta = col.meta
+        if (meta?.hide === undefined) continue
+        const id =
+          col.id ??
+          ((col as { accessorKey?: string | number }).accessorKey?.toString())
+        if (id) visibility[id] = !meta.hide
+      }
     }
+    collect(resolvedColumns)
     return visibility
   }, [resolvedColumns])
 
@@ -587,6 +602,46 @@ function WaydGrid2Inner<T>(
     }
   }, [])
 
+  // ─── Flat row-reorder DnD ────────────────────────────────
+  /** Stable sortable id for a flat row: getRowId → row.original.id → row.id. */
+  const flatRowId = useCallback(
+    (row: Row<T>): string => {
+      if (getRowId) return getRowId(row.original)
+      const id = (row.original as { id?: string | number }).id
+      return id != null ? String(id) : row.id
+    },
+    [getRowId],
+  )
+
+  const handleFlatDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event
+      setDraggedNodeId(null)
+
+      if (!over || !onRowReorder || active.id === over.id) return
+
+      const displayed = (tableRef.current?.getRowModel().rows ??
+        []) as Row<T>[]
+      const fromIndex = displayed.findIndex((r) => flatRowId(r) === active.id)
+      const toIndex = displayed.findIndex((r) => flatRowId(r) === over.id)
+      if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return
+
+      // Fire-and-forget: reorder consumers own their error handling (they
+      // revert by refetching), same as the tree onNodeMove contract.
+      void onRowReorder({
+        orderedData: arrayMove(
+          displayed.map((r) => r.original),
+          fromIndex,
+          toIndex,
+        ),
+        activeId: String(active.id),
+        fromIndex,
+        toIndex,
+      })
+    },
+    [flatRowId, onRowReorder, tableRef],
+  )
+
   // ─── TanStack table ─────────────────────────────────────
   const table = useGridTable({
     data: dataWithDrafts,
@@ -602,6 +657,7 @@ function WaydGrid2Inner<T>(
         filterFn: waydColumnFilter,
         sortingFn: sortEmptyLast,
       },
+      ...(getRowId ? { getRowId: (row: T) => getRowId(row) } : {}),
       // Tree mode: rows expand, and a filter match keeps the ancestor chain
       // visible (filterFromLeafRows).
       ...(isTree
@@ -618,16 +674,27 @@ function WaydGrid2Inner<T>(
 
   tableRef.current = table
 
-  useImperativeHandle(ref, () => ({ table, selectedRowId }))
+  useImperativeHandle(ref, () => ({
+    table,
+    selectedRowId,
+    getDisplayedRows: () =>
+      table.getRowModel().rows.map((row: Row<T>) => row.original),
+  }))
 
   const rows = table.getRowModel().rows
+
+  // Displayed-rows callback: TanStack memoizes the row model, so `rows` only
+  // changes identity when the data / filters / sorting actually change — the
+  // effect fires exactly on displayed-set changes (plus once on mount).
+  useEffect(() => {
+    onDisplayedRowsChange?.(rows.map((row) => row.original))
+  }, [rows, onDisplayedRowsChange])
   const displayedRowCount = rows.length
   const totalRowCount = isTree
     ? countTreeNodes(data as unknown as TreeNode[]) + draftTasks.length
     : data.length
   const visibleColumnCount = table.getVisibleLeafColumns().length
 
-  // Toggle a date-tree year/month node's expanded state for a given column.
   const toggleDateTreeNode = useCallback((columnId: string, nodeKey: string) => {
     setDateTreeExpanded((prev) => {
       const current = prev[columnId] ?? EMPTY_NODE_SET
@@ -884,7 +951,9 @@ function WaydGrid2Inner<T>(
     typeof leftSlot === 'function' ? leftSlot(columnContext) : leftSlot
 
   // ─── DnD wrapping ───────────────────────────────────────
-  const dndEnabled = isTree && enableDragAndDrop && !!onNodeMove
+  const treeDndEnabled = isTree && enableDragAndDrop && !!onNodeMove
+  const flatDndEnabled = !isTree && !!onRowReorder
+  const dndEnabled = treeDndEnabled || flatDndEnabled
   const isDragEnabled =
     dndEnabled && !isLoading && !isEditing && !hasActiveFilters
 
@@ -893,12 +962,24 @@ function WaydGrid2Inner<T>(
   // single status row (and its spinner / empty message) centers vertically.
   const showStatusRow = isLoading || rows.length === 0
 
+  // TanStack returns one header group per depth; the LAST is always the leaf
+  // columns, so any rows above it render as colspan bands. The band count
+  // drives the sticky-offset CSS var (bands / leaf header / filter row stack).
+  const headerGroups = table.getHeaderGroups()
+  const leafHeaderGroup = headerGroups[headerGroups.length - 1]
+  const groupHeaderRows = headerGroups.slice(0, -1)
+
   const tableContent = (
     <div className={styles.tableWrapper}>
       <table
         className={`${styles.tableElement}${
           showStatusRow ? ` ${styles.tableElementFill}` : ''
         }`}
+        style={
+          {
+            '--wayd-grid-group-header-rows': groupHeaderRows.length,
+          } as React.CSSProperties
+        }
       >
         <colgroup>
           {table.getVisibleLeafColumns().map((column) => (
@@ -910,142 +991,154 @@ function WaydGrid2Inner<T>(
           <col className={styles.fillerCol} />
         </colgroup>
         <thead>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <Fragment key={headerGroup.id}>
-              {/* Header row */}
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  // When floating filters are shown, the popup trigger lives
-                  // in the floating row instead of the header.
-                  const showHeaderFilterIcon =
-                    showColumnFilters &&
-                    !showFloatingFilters &&
-                    !header.isPlaceholder &&
-                    header.column.getCanFilter()
+          {/* Grouped-header band rows — plain colspan cells, no
+              sort/filter/resize; placeholders render empty. */}
+          {groupHeaderRows.map((headerGroup, bandIndex) => (
+            <tr key={headerGroup.id} data-role="header-band">
+              {headerGroup.headers.map((header) => (
+                <th
+                  key={header.id}
+                  colSpan={header.colSpan}
+                  className={`${styles.th} ${styles.groupTh}`}
+                  style={{
+                    top: `calc(${bandIndex} * var(--wayd-grid-header-row-height))`,
+                  }}
+                >
+                  <GridHeaderContent header={header} />
+                </th>
+              ))}
+              {/* Filler band cell — carries the band across the empty width. */}
+              <th
+                aria-hidden="true"
+                className={`${styles.th} ${styles.groupTh} ${styles.fillerTh}`}
+                style={{
+                  top: `calc(${bandIndex} * var(--wayd-grid-header-row-height))`,
+                }}
+              />
+            </tr>
+          ))}
 
+          {/* Leaf header row */}
+          <tr key={leafHeaderGroup.id}>
+            {leafHeaderGroup.headers.map((header) => {
+              // When floating filters are shown, the popup trigger lives
+              // in the floating row instead of the header.
+              const showHeaderFilterIcon =
+                showColumnFilters &&
+                !showFloatingFilters &&
+                !header.isPlaceholder &&
+                header.column.getCanFilter()
+
+              return (
+                <GridHeaderCell
+                  key={header.id}
+                  header={header}
+                  resizeGuard={resizeGuard}
+                  classes={headerCellClasses}
+                  filterSlot={
+                    showHeaderFilterIcon
+                      ? renderFilterPopover(header)
+                      : undefined
+                  }
+                />
+              )
+            })}
+            {/* Filler header cell — carries the header band across the
+                empty width. */}
+            <th
+              aria-hidden="true"
+              className={`${styles.th} ${styles.fillerTh}`}
+            />
+          </tr>
+
+          {/* Floating filter row — single-condition editor per column,
+              reflecting conditions[0] of the same descriptor. */}
+          {showFloatingFilters && (
+            <tr
+              key={`${leafHeaderGroup.id}-floating`}
+              data-role="floating-filters"
+            >
+              {leafHeaderGroup.headers.map((header) => {
+                const column = header.column
+                if (header.isPlaceholder || !column.getCanFilter()) {
                   return (
-                    <GridHeaderCell
-                      key={header.id}
-                      header={header}
-                      resizeGuard={resizeGuard}
-                      classes={headerCellClasses}
-                      filterSlot={
-                        showHeaderFilterIcon
-                          ? renderFilterPopover(header)
-                          : undefined
-                      }
+                    <th
+                      key={`${header.id}-floating`}
+                      className={styles.filterTh}
                     />
                   )
-                })}
-                {/* Filler header cell — carries the header band across the
-                    empty width. */}
-                <th
-                  aria-hidden="true"
-                  className={`${styles.th} ${styles.fillerTh}`}
-                />
-              </tr>
+                }
 
-              {/* Floating filter row — single-condition editor per column,
-                  reflecting conditions[0] of the same descriptor. */}
-              {showFloatingFilters && (
-                <tr
-                  key={`${headerGroup.id}-floating`}
-                  data-role="floating-filters"
-                >
-                  {headerGroup.headers.map((header) => {
-                    const column = header.column
-                    if (header.isPlaceholder || !column.getCanFilter()) {
-                      return (
-                        <th
-                          key={`${header.id}-floating`}
-                          className={styles.filterTh}
-                        />
-                      )
-                    }
+                const meta = column.columnDef.meta
+                const colFilterType = columnFilterType(header)
+                const colFilterValue = column.getFilterValue() as
+                  | ColumnFilterModel
+                  | undefined
 
-                    const meta = column.columnDef.meta
-                    const colFilterType = columnFilterType(header)
-                    const colFilterValue = column.getFilterValue() as
-                      | ColumnFilterModel
-                      | undefined
+                if (colFilterType === 'set') {
+                  return (
+                    <th
+                      key={`${header.id}-floating`}
+                      className={styles.filterTh}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {renderSetFilter(header)}
+                    </th>
+                  )
+                }
 
-                    // Set filters open the Excel-style SetFilterPanel (search
-                    // + Select All + checkboxes) from a compact box + icon.
-                    if (colFilterType === 'set') {
-                      return (
-                        <th
-                          key={`${header.id}-floating`}
-                          className={styles.filterTh}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {renderSetFilter(header)}
-                        </th>
-                      )
-                    }
+                // The floating DatePicker can faithfully edit only a simple
+                // equals; any richer date filter shows a read-only summary
+                // chip instead. The cell structure must stay identical in
+                // both states — left child input ⇄ chip, right child ALWAYS
+                // the same popover trigger icon — so the open popover's
+                // anchor is never replaced (antd closes it as a click-outside
+                // otherwise, flickering when the filter activates).
+                const showDateSummary =
+                  colFilterType === 'date' &&
+                  !canFloatingEditDate(colFilterValue)
 
-                    // Date columns: the floating DatePicker can faithfully show
-                    // and edit only a simple equals. A complex date filter
-                    // (before/after/inRange, a relative range, a date-tree
-                    // selection, or multiple conditions) would otherwise render
-                    // as a bare date and mislead — so show a read-only summary
-                    // chip in place of the input instead.
-                    //
-                    // Crucially, the cell structure is identical in both states:
-                    // a `.floatingCell` whose LEFT child is the input or the
-                    // chip, and whose RIGHT child is always the same filter-icon
-                    // popover trigger from renderFilterPopover(). The popover is
-                    // therefore always anchored to that stable icon — swapping
-                    // the left child (input ⇄ chip) when the filter activates
-                    // never replaces the popover's anchor, so it doesn't
-                    // close/reopen (flicker) as the filter crosses the
-                    // unfiltered ⇄ active boundary.
-                    const showDateSummary =
-                      colFilterType === 'date' &&
-                      !canFloatingEditDate(colFilterValue)
-
-                    return (
-                      <th
-                        key={`${header.id}-floating`}
-                        className={styles.filterTh}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className={styles.floatingCell}>
-                          {showDateSummary ? (
-                            <span
-                              className={styles.setSummary}
-                              title={describeDateFilter(colFilterValue)}
-                            >
-                              {describeDateFilter(colFilterValue)}
-                            </span>
-                          ) : (
-                            <FloatingFilter
-                              filterType={colFilterType}
-                              // Only reflect a matching condition descriptor. On
-                              // a combined column, a `set` descriptor leaves the
-                              // floating input empty (AG Grid behavior).
-                              value={
-                                colFilterValue?.type === colFilterType
-                                  ? colFilterValue
-                                  : undefined
-                              }
-                              placeholder={meta?.filterPlaceholder}
-                              onChange={(next) => column.setFilterValue(next)}
-                            />
-                          )}
-                          {renderFilterPopover(header)}
-                        </div>
-                      </th>
-                    )
-                  })}
-                  {/* Filler cell carries the filter-row band to the edge. */}
+                return (
                   <th
-                    aria-hidden="true"
-                    className={`${styles.filterTh} ${styles.fillerTh}`}
-                  />
-                </tr>
-              )}
-            </Fragment>
-          ))}
+                    key={`${header.id}-floating`}
+                    className={styles.filterTh}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className={styles.floatingCell}>
+                      {showDateSummary ? (
+                        <span
+                          className={styles.setSummary}
+                          title={describeDateFilter(colFilterValue)}
+                        >
+                          {describeDateFilter(colFilterValue)}
+                        </span>
+                      ) : (
+                        <FloatingFilter
+                          filterType={colFilterType}
+                          // Only reflect a matching condition descriptor. On
+                          // a combined column, a `set` descriptor leaves the
+                          // floating input empty (AG Grid behavior).
+                          value={
+                            colFilterValue?.type === colFilterType
+                              ? colFilterValue
+                              : undefined
+                          }
+                          placeholder={meta?.filterPlaceholder}
+                          onChange={(next) => column.setFilterValue(next)}
+                        />
+                      )}
+                      {renderFilterPopover(header)}
+                    </div>
+                  </th>
+                )
+              })}
+              {/* Filler cell carries the filter-row band to the edge. */}
+              <th
+                aria-hidden="true"
+                className={`${styles.filterTh} ${styles.fillerTh}`}
+              />
+            </tr>
+          )}
         </thead>
         <tbody>
           {isLoading ? (
@@ -1089,7 +1182,6 @@ function WaydGrid2Inner<T>(
                 />,
               ]
 
-              // Add validation error row
               if (isSelected && Object.keys(fieldErrors).length > 0) {
                 const errorItems = Object.entries(fieldErrors).map(
                   ([field, error]) => (
@@ -1118,6 +1210,21 @@ function WaydGrid2Inner<T>(
               }
 
               return rowElements
+            })
+          ) : flatDndEnabled ? (
+            rows.map((row, index) => {
+              const nodeId = flatRowId(row)
+              return (
+                <SortableFlatGridRow
+                  key={row.id}
+                  row={row}
+                  index={index}
+                  classes={rowClasses}
+                  nodeId={nodeId}
+                  isDragging={draggedNodeId === nodeId}
+                  isDragEnabled={isDragEnabled}
+                />
+              )
             })
           ) : (
             rows.map((row, index) => (
@@ -1161,11 +1268,15 @@ function WaydGrid2Inner<T>(
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
+          onDragEnd={treeDndEnabled ? handleDragEnd : handleFlatDragEnd}
           onDragCancel={handleDragCancel}
         >
           <SortableContext
-            items={flattenedNodes.map((t) => t.node.id)}
+            items={
+              treeDndEnabled
+                ? flattenedNodes.map((t) => t.node.id)
+                : rows.map((row) => flatRowId(row))
+            }
             strategy={verticalListSortingStrategy}
           >
             {tableContent}
@@ -1184,8 +1295,10 @@ function WaydGrid2Inner<T>(
  * CSV export). Flat by default; provide `getSubRows` to turn on tree mode —
  * expansion, `filterFromLeafRows` (a matching child keeps its ancestor chain
  * visible), and, when configured, reparenting drag-and-drop, inline editing,
- * and draft rows. Rows render through the row-renderer seam: the flat form
- * ({@link FlatGridRow}) or the tree form ({@link TreeGridRow}).
+ * and draft rows. Flat mode supports row-reorder drag-and-drop via
+ * `onRowReorder`. Rows render through the row-renderer seam: the flat forms
+ * ({@link FlatGridRow} / {@link SortableFlatGridRow}) or the tree form
+ * ({@link TreeGridRow}).
  *
  * Named WaydGrid2 while the ag-grid WaydGrid still exists; takes the
  * canonical WaydGrid name when ag-grid is retired.

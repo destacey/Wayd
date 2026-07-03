@@ -1,6 +1,6 @@
 'use client'
 
-import { FC, useEffect, useRef, useState } from 'react'
+import { FC, useState } from 'react'
 import {
   DatePicker,
   Flex,
@@ -26,8 +26,6 @@ import {
   sortCycleTimeWorkItems,
 } from './cycle-time-report.filtering'
 import { InfoCircleOutlined } from '@ant-design/icons'
-import '../grid/ag-grid-init'
-import { AgGridReact } from 'ag-grid-react'
 
 const { Title, Text } = Typography
 
@@ -52,8 +50,6 @@ const CycleTimeReportContent: FC<CycleTimeReportContentProps> = ({
   source,
   workItemsScope,
 }) => {
-  const gridRef = useRef<AgGridReact<WorkItemListDto>>(null)
-  const filterAnimationFrameRef = useRef<number | null>(null)
   const doneFromPresets = [30, 60, 90, 120, 180].map((days) => ({
     label: `${days} Days`,
     value: dayjs().utc().subtract(days, 'days').startOf('day'),
@@ -125,38 +121,6 @@ const CycleTimeReportContent: FC<CycleTimeReportContentProps> = ({
       normalizedPercentile,
     )
   })()
-
-  const onFilterChanged = () => {
-    if (filterAnimationFrameRef.current !== null) {
-      return
-    }
-    filterAnimationFrameRef.current = window.requestAnimationFrame(() => {
-      filterAnimationFrameRef.current = null
-
-      if (gridRef.current?.api) {
-        const displayedRows: WorkItemListDto[] = []
-        gridRef.current.api.forEachNodeAfterFilterAndSort((node) => {
-          if (node.data) {
-            displayedRows.push(node.data)
-          }
-        })
-        setChartWorkItems(displayedRows)
-      }
-    })
-  }
-
-  // Initialize chart data when filtered work items change
-  useEffect(() => {
-    setChartWorkItems(filteredWorkItems)
-  }, [filteredWorkItems])
-
-  useEffect(() => {
-    return () => {
-      if (filterAnimationFrameRef.current !== null) {
-        window.cancelAnimationFrame(filterAnimationFrameRef.current)
-      }
-    }
-  }, [])
 
   if (error) {
     return <div>Error loading work items</div>
@@ -249,13 +213,13 @@ const CycleTimeReportContent: FC<CycleTimeReportContentProps> = ({
           isLoading={isLoading}
         />
       )}
+      {/* The chart tracks the grid's displayed rows — grid filters re-scope it. */}
       <WorkItemsGrid
-        ref={gridRef}
         workItems={filteredWorkItems}
         isLoading={isLoading}
         refetch={refetch}
         showStats={true}
-        onFilterChanged={onFilterChanged}
+        onDisplayedRowsChange={setChartWorkItems}
       />
     </Flex>
   )

@@ -1,24 +1,19 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common'
+import {
+  WaydGrid2,
+  renderAssignedToLink,
+  renderProjectLink,
+  renderSprintLink,
+  renderTeamLink,
+  renderWorkItemLink,
+  renderWorkStatusTag,
+  workItemKeySort,
+  workStatusCategorySort,
+} from '@/src/components/common/wayd-grid2'
 import { WorkItemListDto } from '@/src/services/wayd-api'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
-import { forwardRef, ReactNode, useMemo } from 'react'
-import { AgGridReact } from 'ag-grid-react'
-import {
-  AssignedToLinkCellRenderer,
-  DateTimeCellRenderer,
-  NestedTeamNameLinkCellRenderer,
-  NestedWorkSprintLinkCellRenderer,
-  ParentWorkItemLinkCellRenderer,
-  ProjectLinkCellRenderer,
-  WorkItemLinkCellRenderer,
-  WorkStatusTagCellRenderer,
-} from '../wayd-grid-cell-renderers'
-import {
-  workItemKeyComparator,
-  workStatusCategoryComparator,
-} from './work-item-utils'
+import type { ColumnDef } from '@tanstack/react-table'
+import { FC, ReactNode, useMemo } from 'react'
 
 export interface WorkItemsGridProps {
   workItems: WorkItemListDto[]
@@ -28,125 +23,154 @@ export interface WorkItemsGridProps {
   hideParentColumn?: boolean
   hideProjectColumn?: boolean
   showStats?: boolean
-  onFilterChanged?: () => void
+  /** Fires with the displayed (post filter + sort) rows whenever that set
+   *  changes — e.g. the cycle-time report syncs its chart to the grid. */
+  onDisplayedRowsChange?: (workItems: WorkItemListDto[]) => void
   viewSelector?: ReactNode | undefined
 }
 
-const WorkItemsGrid = forwardRef<
-  AgGridReact<WorkItemListDto>,
-  WorkItemsGridProps
->((props, ref) => {
+const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
   const { refetch } = props
 
-  const columnDefs = useMemo<ColDef<WorkItemListDto>[]>(() => [
-    {
-      field: 'key',
-      comparator: workItemKeyComparator,
-      cellRenderer: WorkItemLinkCellRenderer,
-    },
-    { field: 'title', width: 400 },
-    { field: 'type.name', headerName: 'Type', width: 125 },
-    { field: 'status', width: 125, cellRenderer: WorkStatusTagCellRenderer },
-    {
-      field: 'statusCategory.name',
-      headerName: 'Status Category',
-      width: 140,
-      comparator: workStatusCategoryComparator,
-    },
-    {
-      field: 'storyPoints',
-      headerName: 'SPs',
-      headerTooltip: 'Story Points',
-      width: 100,
-      filter: 'agNumberColumnFilter',
-      type: 'numericColumn',
-    },
-    {
-      field: 'team.name',
-      headerName: 'Team',
-      cellRenderer: NestedTeamNameLinkCellRenderer,
-    },
-    {
-      field: 'sprint.name',
-      headerName: 'Sprint',
-      cellRenderer: NestedWorkSprintLinkCellRenderer,
-    },
-    {
-      field: 'parent.key',
-      headerName: 'Parent Key',
-      hide: props.hideParentColumn,
-      comparator: workItemKeyComparator,
-      cellRenderer: ParentWorkItemLinkCellRenderer,
-    },
-    {
-      field: 'parent.title',
-      headerName: 'Parent',
-      width: 400,
-      hide: props.hideParentColumn,
-    },
-    {
-      field: 'assignedTo.name',
-      headerName: 'Assigned To',
-      cellRenderer: AssignedToLinkCellRenderer,
-    },
-    {
-      field: 'project.name',
-      headerName: 'Project',
-      width: 300,
-      hide: props.hideProjectColumn,
-      cellRenderer: ProjectLinkCellRenderer,
-    },
-    {
-      field: 'activated',
-      hide: !props.showStats,
-      filter: 'agDateColumnFilter',
-      filterParams: {
-        includeBlanksInEquals: false,
-        includeBlanksInLessThan: false,
-        includeBlanksInGreaterThan: false,
+  const columns = useMemo<ColumnDef<WorkItemListDto, any>[]>(
+    () => [
+      {
+        id: 'key',
+        accessorKey: 'key',
+        header: 'Key',
+        sortingFn: workItemKeySort,
+        cell: ({ row }) =>
+          renderWorkItemLink({
+            key: row.original.key,
+            workspaceKey: row.original.workspace.key,
+            externalViewWorkItemUrl: row.original.externalViewWorkItemUrl,
+          }),
       },
-      cellRenderer: DateTimeCellRenderer,
-    },
-    {
-      field: 'done',
-      hide: !props.showStats,
-      sort: 'desc',
-      filter: 'agDateColumnFilter',
-      filterParams: {
-        includeBlanksInEquals: false,
-        includeBlanksInLessThan: false,
-        includeBlanksInGreaterThan: false,
+      { id: 'title', accessorKey: 'title', header: 'Title', size: 400 },
+      {
+        id: 'type',
+        accessorKey: 'type.name',
+        header: 'Type',
+        size: 125,
+        meta: { filterType: 'set' },
       },
-      cellRenderer: DateTimeCellRenderer,
-    },
-    {
-      field: 'cycleTime',
-      headerName: 'Cycle Time (Days)',
-      hide: !props.showStats,
-      type: 'numericColumn',
-      cellRenderer: (params: ICellRendererParams<WorkItemListDto>) =>
-        params.value?.toFixed(2) ?? '',
-    },
-  ], [props.hideParentColumn, props.hideProjectColumn, props.showStats])
+      {
+        id: 'status',
+        accessorKey: 'status',
+        header: 'Status',
+        size: 125,
+        meta: { filterType: 'set' },
+        cell: ({ row }) => renderWorkStatusTag(row.original),
+      },
+      {
+        id: 'statusCategory',
+        accessorKey: 'statusCategory.name',
+        header: 'Status Category',
+        size: 140,
+        sortingFn: workStatusCategorySort,
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'storyPoints',
+        accessorKey: 'storyPoints',
+        header: 'SPs',
+        size: 100,
+        meta: { headerTooltip: 'Story Points' },
+      },
+      {
+        id: 'team',
+        accessorKey: 'team.name',
+        header: 'Team',
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => renderTeamLink(row.original.team),
+      },
+      {
+        id: 'sprint',
+        accessorKey: 'sprint.name',
+        header: 'Sprint',
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => renderSprintLink(row.original.sprint),
+      },
+      {
+        id: 'parentKey',
+        accessorKey: 'parent.key',
+        header: 'Parent Key',
+        sortingFn: workItemKeySort,
+        meta: { hide: props.hideParentColumn },
+        cell: ({ row }) =>
+          renderWorkItemLink(
+            row.original.parent
+              ? {
+                  key: row.original.parent.key,
+                  workspaceKey: row.original.parent.workspaceKey,
+                  externalViewWorkItemUrl:
+                    row.original.parent.externalViewWorkItemUrl,
+                }
+              : null,
+          ),
+      },
+      {
+        id: 'parentTitle',
+        accessorKey: 'parent.title',
+        header: 'Parent',
+        size: 400,
+        meta: { hide: props.hideParentColumn },
+      },
+      {
+        id: 'assignedTo',
+        accessorKey: 'assignedTo.name',
+        header: 'Assigned To',
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => renderAssignedToLink(row.original.assignedTo),
+      },
+      {
+        id: 'project',
+        accessorKey: 'project.name',
+        header: 'Project',
+        size: 300,
+        meta: { hide: props.hideProjectColumn, filterEnableSet: true },
+        cell: ({ row }) => renderProjectLink(row.original.project),
+      },
+      {
+        id: 'activated',
+        accessorKey: 'activated',
+        header: 'Activated',
+        meta: { hide: !props.showStats, columnType: 'dateTime' },
+      },
+      {
+        id: 'done',
+        accessorKey: 'done',
+        header: 'Done',
+        meta: { hide: !props.showStats, columnType: 'dateTime' },
+      },
+      {
+        id: 'cycleTime',
+        accessorKey: 'cycleTime',
+        header: 'Cycle Time (Days)',
+        meta: { hide: !props.showStats },
+        cell: ({ getValue }) => getValue<number | undefined>()?.toFixed(2) ?? '',
+      },
+    ],
+    [props.hideParentColumn, props.hideProjectColumn, props.showStats],
+  )
 
   const refresh = async () => {
     refetch()
   }
 
   return (
-    <WaydGrid
-      ref={ref}
+    <WaydGrid2
       height={props.gridHeight}
-      columnDefs={columnDefs}
-      rowData={props.workItems}
-      loadData={refresh}
-      loading={props.isLoading}
-      onFilterChanged={props.onFilterChanged}
-      toolbarActions={props.viewSelector}
+      columns={columns}
+      data={props.workItems}
+      onRefresh={refresh}
+      isLoading={props.isLoading}
+      initialSorting={[{ id: 'done', desc: true }]}
+      onDisplayedRowsChange={props.onDisplayedRowsChange}
+      rightSlot={props.viewSelector}
+      csvFileName="work-items"
     />
   )
-})
-
-WorkItemsGrid.displayName = 'WorkItemsGrid'
+}
 
 export default WorkItemsGrid

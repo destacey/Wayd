@@ -1,23 +1,25 @@
 'use client'
 
 import PageTitle from '@/src/components/common/page-title'
-import WaydGrid from '../../../components/common/wayd-grid'
+import {
+  WaydGrid2,
+  renderTeamLink,
+} from '../../../components/common/wayd-grid2'
 import { useMemo, useState } from 'react'
 import { ItemType } from 'antd/es/menu/interface'
 import { Button } from 'antd'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useDocumentTitle } from '../../../hooks/use-document-title'
 import useAuth from '../../../components/contexts/auth'
 import { useAppSelector, useAppDispatch } from '../../../hooks'
 import { setIncludeInactive } from '../../../store/features/organizations/team-slice'
 import { useGetTeamsQuery } from '../../../store/features/organizations/team-api'
 import { ModalCreateTeamForm } from '../_components/create-team-form'
-import {
-  NestedTeamOfTeamsNameLinkCellRenderer,
-  TeamNameLinkCellRenderer,
-} from '../../../components/common/wayd-grid-cell-renderers'
 import { TeamListItem } from '../types'
-import { ColDef } from 'ag-grid-community'
-import { ControlItemSwitch } from '../../../components/common/control-items-menu'
+import {
+  ControlItemsMenu,
+  ControlItemSwitch,
+} from '../../../components/common/control-items-menu'
 import { authorizePage } from '../../../components/hoc'
 
 const TeamListPage = () => {
@@ -31,33 +33,38 @@ const TeamListPage = () => {
   } = useGetTeamsQuery(includeInactive)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
 
-  const columnDefs = useMemo<ColDef<TeamListItem>[]>(
+  const columns = useMemo<ColumnDef<TeamListItem, any>[]>(
     () => [
-      { field: 'key', width: 90 },
+      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
       {
-        field: 'name',
-        cellRenderer: TeamNameLinkCellRenderer,
-        width: 250,
-        comparator: (valueA, valueB) => {
-          return valueA.toLowerCase().localeCompare(valueB.toLowerCase())
-        },
-        initialSort: 'asc',
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        size: 200,
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => renderTeamLink(row.original),
       },
-      { field: 'code', width: 125 },
-      { field: 'type' },
+      { id: 'code', accessorKey: 'code', header: 'Code', size: 125 },
       {
-        field: 'teamOfTeams.name',
-        headerName: 'Team of Teams',
-        cellRenderer: NestedTeamOfTeamsNameLinkCellRenderer,
-        width: 250,
-        comparator: (valueA, valueB) => {
-          if (!valueA && !valueB) return 0
-          if (!valueA) return 1
-          if (!valueB) return -1
-          return valueA.toLowerCase().localeCompare(valueB.toLowerCase())
-        },
+        id: 'type',
+        accessorKey: 'type',
+        header: 'Type',
+        meta: { filterType: 'set' },
       },
-      { field: 'isActive' }, // TODO: convert to yes/no
+      {
+        id: 'teamOfTeams',
+        accessorKey: 'teamOfTeams.name',
+        header: 'Team of Teams',
+        size: 200,
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => renderTeamLink(row.original.teamOfTeams),
+      },
+      {
+        id: 'isActive',
+        accessorKey: 'isActive',
+        header: 'Active',
+        meta: { columnType: 'yesNo' },
+      },
     ],
     [],
   )
@@ -102,14 +109,15 @@ const TeamListPage = () => {
   return (
     <>
       <PageTitle title="Teams" actions={actions()} />
-      <WaydGrid
-        columnDefs={columnDefs}
-        gridControlMenuItems={controlItems}
-        rowData={teams}
-        loadData={() => {
+      <WaydGrid2
+        columns={columns}
+        data={teams ?? []}
+        onRefresh={() => {
           refetch()
         }}
-        loading={isLoading}
+        isLoading={isLoading}
+        csvFileName="teams"
+        rightSlot={<ControlItemsMenu items={controlItems} />}
       />
       {isCreateOpen && (
         <ModalCreateTeamForm

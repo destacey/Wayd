@@ -2,7 +2,7 @@
 
 import PageTitle from '@/src/components/common/page-title'
 import { useEffect, useMemo, useState } from 'react'
-import WaydGrid from '@/src/components/common/wayd-grid'
+import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
 import { authorizePage } from '@/src/components/hoc'
 import Link from 'next/link'
 import { Button } from 'antd'
@@ -12,11 +12,7 @@ import { useDocumentTitle } from '@/src/hooks'
 import { useGetRolesQuery } from '@/src/store/features/user-management/roles-api'
 import { CreateRoleForm } from './_components'
 import { RoleListDto } from '@/src/services/wayd-api'
-import { ICellRendererParams } from 'ag-grid-community'
-
-const LinkCellRenderer = ({ value, data }: ICellRendererParams<RoleListDto>) => {
-  return <Link href={`roles/${data!.id}`}>{value}</Link>
-}
+import type { ColumnDef } from '@tanstack/react-table'
 
 const RoleListPage = () => {
   useDocumentTitle('Roles')
@@ -28,10 +24,25 @@ const RoleListPage = () => {
   const { hasClaim } = useAuth()
   const canCreateRole = hasClaim('Permission', 'Permissions.Roles.Create')
 
-  const columnDefs = useMemo(() => [
-      { field: 'name', cellRenderer: LinkCellRenderer },
-      { field: 'description', width: 300 },
-    ], [])
+  const columns = useMemo<ColumnDef<RoleListDto, any>[]>(
+    () => [
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        cell: ({ row }) => (
+          <Link href={`roles/${row.original.id}`}>{row.original.name}</Link>
+        ),
+      },
+      {
+        id: 'description',
+        accessorKey: 'description',
+        header: 'Description',
+        size: 300,
+      },
+    ],
+    [],
+  )
 
   useEffect(() => {
     error && console.error(error)
@@ -57,12 +68,12 @@ const RoleListPage = () => {
     <>
       <PageTitle title="Roles" actions={actions()} />
 
-      <WaydGrid
-        height={600}
-        columnDefs={columnDefs}
-        rowData={roleData}
-        loadData={refresh}
-        loading={isLoading}
+      <WaydGrid2
+        columns={columns}
+        data={roleData ?? []}
+        onRefresh={refresh}
+        isLoading={isLoading}
+        csvFileName="roles"
       />
 
       {openCreateRoleForm && (

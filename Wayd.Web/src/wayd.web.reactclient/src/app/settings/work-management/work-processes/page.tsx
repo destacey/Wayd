@@ -1,20 +1,20 @@
 'use client'
 
-import { WaydGrid, PageTitle } from '@/src/components/common'
-import { ControlItemSwitch } from '@/src/components/common/control-items-menu'
+import { PageTitle } from '@/src/components/common'
+import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
+import {
+  ControlItemsMenu,
+  ControlItemSwitch,
+} from '@/src/components/common/control-items-menu'
 import { authorizePage } from '@/src/components/hoc'
 import { useAppDispatch, useAppSelector, useDocumentTitle } from '@/src/hooks'
 import { WorkProcessListDto } from '@/src/services/wayd-api'
 import { useGetWorkProcessesQuery } from '@/src/store/features/work-management/work-process-api'
 import { setIncludeInactive } from '@/src/store/features/work-management/work-process-slice'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
 import { useEffect, useMemo } from 'react'
-
-const WorkProcessLinkCellRenderer = ({ value, data }: ICellRendererParams<WorkProcessListDto>) => {
-  return <Link href={`./work-processes/${data!.key}`}>{value}</Link>
-}
 
 const WorkProcessesPage: React.FC = () => {
   useDocumentTitle('Work Management - Work Processes')
@@ -29,13 +29,35 @@ const WorkProcessesPage: React.FC = () => {
   } = useGetWorkProcessesQuery(includeInactive)
   const dispatch = useAppDispatch()
 
-  const columnDefs = useMemo<ColDef<WorkProcessListDto>[]>(() => [
-      { field: 'id', hide: true },
-      { field: 'key', width: 80 },
-      { field: 'name', width: 300, cellRenderer: WorkProcessLinkCellRenderer },
-      { field: 'ownership.name', headerName: 'Ownership' },
-      { field: 'isActive', width: 100 }, // TODO: convert to yes/no
-    ], [])
+  const columns = useMemo<ColumnDef<WorkProcessListDto, any>[]>(
+    () => [
+      { id: 'key', accessorKey: 'key', header: 'Key', size: 80 },
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        size: 300,
+        cell: ({ row }) => (
+          <Link href={`./work-processes/${row.original.key}`}>
+            {row.original.name}
+          </Link>
+        ),
+      },
+      {
+        id: 'ownership',
+        accessorKey: 'ownership.name',
+        header: 'Ownership',
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'isActive',
+        accessorKey: 'isActive',
+        header: 'Active',
+        meta: { columnType: 'yesNo' },
+      },
+    ],
+    [],
+  )
 
   useEffect(() => {
     error && console.error(error)
@@ -67,13 +89,13 @@ const WorkProcessesPage: React.FC = () => {
     <>
       <PageTitle title="Work Processes" />
 
-      <WaydGrid
-        height={600}
-        columnDefs={columnDefs}
-        gridControlMenuItems={controlItems}
-        rowData={workProcessesData}
-        loadData={refresh}
-        loading={isLoading}
+      <WaydGrid2
+        columns={columns}
+        data={workProcessesData ?? []}
+        onRefresh={refresh}
+        isLoading={isLoading}
+        csvFileName="work-processes"
+        rightSlot={<ControlItemsMenu items={controlItems} />}
       />
     </>
   )

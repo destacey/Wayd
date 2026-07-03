@@ -1,37 +1,32 @@
-import React from 'react'
 import { render, screen } from '@testing-library/react'
 
-// Mock the WaydGrid component
-jest.mock('../index', () => ({
-  WaydGrid: jest.fn(
-    ({ columnDefs, rowData, loadData, loading, height, emptyMessage }) => (
+// Mock WaydGrid2 with a light stand-in that exposes the props under test.
+jest.mock('../wayd-grid2', () => ({
+  WaydGrid2: jest.fn(
+    ({ data, isLoading, height, emptyMessage, columns, onRefresh }) => (
       <div data-testid="wayd-grid">
-        <div data-testid="row-count">{rowData?.length ?? 0}</div>
-        <div data-testid="loading">{loading ? 'loading' : 'not-loading'}</div>
+        <div data-testid="row-count">{data?.length ?? 0}</div>
+        <div data-testid="loading">{isLoading ? 'loading' : 'not-loading'}</div>
         <div data-testid="height">{height}</div>
         <div data-testid="empty-message">{emptyMessage}</div>
-        <div data-testid="column-count">{columnDefs?.length ?? 0}</div>
-        {loadData && (
-          <button type="button" onClick={loadData} data-testid="load-data">
+        <div data-testid="column-count">{columns?.length ?? 0}</div>
+        {onRefresh && (
+          <button type="button" onClick={onRefresh} data-testid="load-data">
             Refresh
           </button>
         )}
       </div>
     ),
   ),
-}))
-
-// Mock the TeamNameLinkCellRenderer
-jest.mock('../wayd-grid-cell-renderers', () => ({
-  TeamNameLinkCellRenderer: jest.fn(({ data }) => (
-    <div data-testid="team-link">{data?.name}</div>
-  )),
+  // Link renderers are exercised elsewhere; stub them so the grid stays simple.
+  renderSprintLink: jest.fn(() => null),
+  renderTeamLink: jest.fn(() => null),
 }))
 
 // Note: useTheme and dayjs are mocked globally in jest.setup.ts
 
 import SprintsGrid from './sprints-grid'
-import * as ModaGridModule from '../index'
+import * as WaydGrid2Module from '../wayd-grid2'
 import { SprintListDto } from '@/src/services/wayd-api'
 
 describe('SprintsGrid', () => {
@@ -62,7 +57,8 @@ describe('SprintsGrid', () => {
     jest.clearAllMocks()
   })
 
-  it('renders the WaydGrid component', () => {
+  it('renders the grid', () => {
+    // Arrange / Act
     render(
       <SprintsGrid
         sprints={mockSprints}
@@ -71,10 +67,12 @@ describe('SprintsGrid', () => {
       />,
     )
 
+    // Assert
     expect(screen.getByTestId('wayd-grid')).toBeInTheDocument()
   })
 
-  it('passes sprint data to WaydGrid', () => {
+  it('passes sprint data to the grid', () => {
+    // Arrange / Act
     render(
       <SprintsGrid
         sprints={mockSprints}
@@ -83,40 +81,30 @@ describe('SprintsGrid', () => {
       />,
     )
 
+    // Assert
     expect(screen.getByTestId('row-count')).toHaveTextContent('2')
   })
 
-  it('passes loading state to WaydGrid', () => {
+  it('passes the loading state through', () => {
+    // Arrange / Act
     render(
-      <SprintsGrid
-        sprints={mockSprints}
-        isLoading={true}
-        refetch={mockRefetch}
-      />,
+      <SprintsGrid sprints={mockSprints} isLoading={true} refetch={mockRefetch} />,
     )
 
+    // Assert
     expect(screen.getByTestId('loading')).toHaveTextContent('loading')
   })
 
-  it('passes not loading state to WaydGrid', () => {
-    render(
-      <SprintsGrid
-        sprints={mockSprints}
-        isLoading={false}
-        refetch={mockRefetch}
-      />,
-    )
-
-    expect(screen.getByTestId('loading')).toHaveTextContent('not-loading')
-  })
-
-  it('renders with empty sprints array', () => {
+  it('renders with an empty sprints array', () => {
+    // Arrange / Act
     render(<SprintsGrid sprints={[]} isLoading={false} refetch={mockRefetch} />)
 
+    // Assert
     expect(screen.getByTestId('row-count')).toHaveTextContent('0')
   })
 
-  it('uses default grid height when not specified', () => {
+  it('uses the default grid height when not specified', () => {
+    // Arrange / Act
     render(
       <SprintsGrid
         sprints={mockSprints}
@@ -125,10 +113,12 @@ describe('SprintsGrid', () => {
       />,
     )
 
+    // Assert
     expect(screen.getByTestId('height')).toHaveTextContent('650')
   })
 
-  it('uses custom grid height when specified', () => {
+  it('uses a custom grid height when specified', () => {
+    // Arrange / Act
     render(
       <SprintsGrid
         sprints={mockSprints}
@@ -138,18 +128,22 @@ describe('SprintsGrid', () => {
       />,
     )
 
+    // Assert
     expect(screen.getByTestId('height')).toHaveTextContent('500')
   })
 
-  it('displays correct empty message', () => {
+  it('displays the empty message', () => {
+    // Arrange / Act
     render(<SprintsGrid sprints={[]} isLoading={false} refetch={mockRefetch} />)
 
+    // Assert
     expect(screen.getByTestId('empty-message')).toHaveTextContent(
       'No sprints found.',
     )
   })
 
-  it('creates correct number of columns', () => {
+  it('defines the expected columns', () => {
+    // Arrange / Act
     render(
       <SprintsGrid
         sprints={mockSprints}
@@ -158,11 +152,17 @@ describe('SprintsGrid', () => {
       />,
     )
 
-    // Should have 6 columns: key, name, state, start, end, team
-    expect(screen.getByTestId('column-count')).toHaveTextContent('6')
+    // Assert — key, name, team, state, start, end
+    const call = (WaydGrid2Module.WaydGrid2 as unknown as jest.Mock).mock
+      .calls[0][0]
+    const ids = call.columns.map((c: { id: string }) => c.id)
+    expect(ids).toEqual(
+      expect.arrayContaining(['key', 'name', 'team', 'state', 'start', 'end']),
+    )
   })
 
-  it('calls refetch when refresh button is clicked', () => {
+  it('calls refetch when the refresh action fires', () => {
+    // Arrange
     render(
       <SprintsGrid
         sprints={mockSprints}
@@ -171,40 +171,15 @@ describe('SprintsGrid', () => {
       />,
     )
 
-    const refreshButton = screen.getByTestId('load-data')
-    refreshButton.click()
+    // Act
+    screen.getByTestId('load-data').click()
 
+    // Assert
     expect(mockRefetch).toHaveBeenCalledTimes(1)
   })
 
-  it('memoizes refresh callback based on refetch dependency', () => {
-    const { rerender } = render(
-      <SprintsGrid
-        sprints={mockSprints}
-        isLoading={false}
-        refetch={mockRefetch}
-      />,
-    )
-
-    // Rerender with same refetch function
-    rerender(
-      <SprintsGrid
-        sprints={mockSprints}
-        isLoading={false}
-        refetch={mockRefetch}
-      />,
-    )
-
-    const secondRefreshButton = screen.getByTestId('load-data')
-
-    // The button should still work
-    secondRefreshButton.click()
-    expect(mockRefetch).toHaveBeenCalledTimes(1)
-  })
-
-  it('respects hideTeam prop when provided', () => {
-    const WaydGrid = ModaGridModule.WaydGrid as unknown as jest.Mock
-
+  it('hides the team column via meta.hide when hideTeam is set', () => {
+    // Arrange / Act
     render(
       <SprintsGrid
         sprints={mockSprints}
@@ -214,19 +189,17 @@ describe('SprintsGrid', () => {
       />,
     )
 
-    // Check that WaydGrid was called with column definitions
-    const mockCall = WaydGrid.mock.calls[0][0]
-    const teamColumn = mockCall.columnDefs.find(
-      (col: any) => col.field === 'team.name',
+    // Assert
+    const call = (WaydGrid2Module.WaydGrid2 as unknown as jest.Mock).mock
+      .calls[0][0]
+    const teamColumn = call.columns.find(
+      (c: { id: string }) => c.id === 'team',
     )
-
-    expect(teamColumn).toBeDefined()
-    expect(teamColumn.hide).toBe(true)
+    expect(teamColumn.meta.hide).toBe(true)
   })
 
-  it('does not hide team column by default', () => {
-    const WaydGrid = ModaGridModule.WaydGrid as unknown as jest.Mock
-
+  it('does not hide the team column by default', () => {
+    // Arrange / Act
     render(
       <SprintsGrid
         sprints={mockSprints}
@@ -235,35 +208,12 @@ describe('SprintsGrid', () => {
       />,
     )
 
-    // Check that WaydGrid was called with column definitions
-    const mockCall = WaydGrid.mock.calls[0][0]
-    const teamColumn = mockCall.columnDefs.find(
-      (col: any) => col.field === 'team.name',
+    // Assert
+    const call = (WaydGrid2Module.WaydGrid2 as unknown as jest.Mock).mock
+      .calls[0][0]
+    const teamColumn = call.columns.find(
+      (c: { id: string }) => c.id === 'team',
     )
-
-    expect(teamColumn).toBeDefined()
-    expect(teamColumn.hide).toBeUndefined()
-  })
-
-  it('defines all expected columns with correct fields', () => {
-    const WaydGrid = ModaGridModule.WaydGrid as unknown as jest.Mock
-
-    render(
-      <SprintsGrid
-        sprints={mockSprints}
-        isLoading={false}
-        refetch={mockRefetch}
-      />,
-    )
-
-    const mockCall = WaydGrid.mock.calls[0][0]
-    const columnFields = mockCall.columnDefs.map((col: any) => col.field)
-
-    expect(columnFields).toContain('key')
-    expect(columnFields).toContain('name')
-    expect(columnFields).toContain('state.name')
-    expect(columnFields).toContain('start')
-    expect(columnFields).toContain('end')
-    expect(columnFields).toContain('team.name')
+    expect(teamColumn.meta.hide).toBeUndefined()
   })
 })

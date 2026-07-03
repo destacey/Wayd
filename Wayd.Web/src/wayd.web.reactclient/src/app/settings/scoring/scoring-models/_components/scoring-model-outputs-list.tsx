@@ -1,7 +1,9 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common'
-import { RowMenuCellRenderer } from '@/src/components/common/wayd-grid-cell-renderers'
+import {
+  WaydGrid2,
+  createActionsColumn,
+} from '@/src/components/common/wayd-grid2'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
   ScoringModelDetailsDto,
@@ -13,7 +15,7 @@ import {
 } from '@/src/store/features/scoring/scoring-models-api'
 import { App, Button, Space, Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
 import AddScoringModelOutputForm from './add-scoring-model-output-form'
 import EditScoringModelOutputForm from './edit-scoring-model-output-form'
@@ -116,7 +118,7 @@ const ScoringModelOutputsList = ({
     [scoringModel?.criteria, scoringModel?.outputs],
   )
 
-  const columnDefs = useMemo<ColDef<ScoringModelOutputDto>[]>(() => {
+  const columns = useMemo<ColumnDef<ScoringModelOutputDto, any>[]>(() => {
     const handleEdit = (output: ScoringModelOutputDto) => {
       setEditingOutput(output)
     }
@@ -182,35 +184,36 @@ const ScoringModelOutputsList = ({
     }
 
     return [
-      {
-        width: 50,
-        filter: false,
-        sortable: false,
-        resizable: false,
+      createActionsColumn<ScoringModelOutputDto>({
         hide: !canManage,
-        suppressHeaderMenuButton: true,
-        cellRenderer: (params: ICellRendererParams<ScoringModelOutputDto>) => {
-          const menuItems = getRowMenuItems({
-            output: params.data!,
+        ariaLabel: 'Output actions',
+        getItems: (output) =>
+          getRowMenuItems({
+            output,
             sortedOutputs,
             onEditClicked: handleEdit,
             onDeleteClicked: handleDelete,
             onMoveClicked: handleMove,
-          })
-          if (menuItems.length === 0) return null
-          return RowMenuCellRenderer({ ...params, menuItems })
-        },
-      },
-      { field: 'order', width: 80, sort: 'asc' as const },
-      { field: 'name', width: 200 },
-      { field: 'token', width: 110 },
-      { field: 'formula', flex: 1 },
+          }),
+      }),
       {
-        field: 'isPrimary',
-        headerName: 'Primary',
-        width: 110,
-        cellRenderer: (params: ICellRendererParams<ScoringModelOutputDto>) =>
-          params.value ? <Tag color="blue">Primary</Tag> : null,
+        id: 'order',
+        accessorKey: 'order',
+        header: 'Order',
+        size: 80,
+        enableColumnFilter: false,
+      },
+      { id: 'name', accessorKey: 'name', header: 'Name', size: 200 },
+      { id: 'token', accessorKey: 'token', header: 'Token', size: 110 },
+      { id: 'formula', accessorKey: 'formula', header: 'Formula', size: 300 },
+      {
+        id: 'isPrimary',
+        accessorFn: (row) => (row.isPrimary ? 'Yes' : 'No'),
+        header: 'Primary',
+        size: 110,
+        meta: { filterType: 'set' },
+        cell: ({ row }) =>
+          row.original.isPrimary ? <Tag color="blue">Primary</Tag> : null,
       },
     ]
   }, [
@@ -279,12 +282,13 @@ const ScoringModelOutputsList = ({
 
   return (
     <>
-      <WaydGrid
+      <WaydGrid2
         height={300}
-        columnDefs={columnDefs}
-        rowData={sortedOutputs}
-        actions={actions}
-        loadData={loadData}
+        columns={columns}
+        data={sortedOutputs}
+        leftSlot={actions}
+        onRefresh={loadData}
+        csvFileName="scoring-outputs"
       />
       {openAddForm && (
         <AddScoringModelOutputForm

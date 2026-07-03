@@ -1,25 +1,19 @@
 'use client'
 
-import { WaydGrid, PageTitle } from '@/src/components/common'
+import { PageTitle } from '@/src/components/common'
+import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import { ScoringModelListDto } from '@/src/services/wayd-api'
 import { useGetScoringModelsQuery } from '@/src/store/features/scoring/scoring-models-api'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from 'antd'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import CreateScoringModelForm from './_components/create-scoring-model-form'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { isApiError } from '@/src/utils'
-
-const ScoringModelCellRenderer = ({
-  value,
-  data,
-}: ICellRendererParams<ScoringModelListDto>) => {
-  return <Link href={`./scoring-models/${data!.key}`}>{value}</Link>
-}
 
 const ScoringModelsPage = () => {
   useDocumentTitle('Settings - Scoring Models')
@@ -50,15 +44,44 @@ const ScoringModelsPage = () => {
     }
   }, [error, messageApi])
 
-  const columnDefs = useMemo<ColDef<ScoringModelListDto>[]>(
+  const columns = useMemo<ColumnDef<ScoringModelListDto, any>[]>(
     () => [
-      { field: 'id', hide: true },
-      { field: 'key', width: 90 },
-      { field: 'name', cellRenderer: ScoringModelCellRenderer, sort: 'asc' },
-      { field: 'state.name', headerName: 'State', width: 100 },
-      { field: 'criterionCount', headerName: 'Criteria', width: 110 },
-      { field: 'scaleCount', headerName: 'Scales', width: 110 },
-      { field: 'outputCount', headerName: 'Outputs', width: 110 },
+      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        cell: ({ row }) => (
+          <Link href={`./scoring-models/${row.original.key}`}>
+            {row.original.name}
+          </Link>
+        ),
+      },
+      {
+        id: 'state',
+        accessorKey: 'state.name',
+        header: 'State',
+        size: 100,
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'criterionCount',
+        accessorKey: 'criterionCount',
+        header: 'Criteria',
+        size: 110,
+      },
+      {
+        id: 'scaleCount',
+        accessorKey: 'scaleCount',
+        header: 'Scales',
+        size: 110,
+      },
+      {
+        id: 'outputCount',
+        accessorKey: 'outputCount',
+        header: 'Outputs',
+        size: 110,
+      },
     ],
     [],
   )
@@ -88,12 +111,12 @@ const ScoringModelsPage = () => {
     <>
       <PageTitle title="Scoring Models" actions={actions} />
 
-      <WaydGrid
-        height={600}
-        columnDefs={columnDefs}
-        rowData={scoringModelData}
-        loadData={refresh}
-        loading={isLoading}
+      <WaydGrid2
+        columns={columns}
+        data={scoringModelData ?? []}
+        onRefresh={refresh}
+        isLoading={isLoading}
+        csvFileName="scoring-models"
       />
       {openCreateForm && (
         <CreateScoringModelForm
@@ -112,4 +135,3 @@ const ScoringModelsPageWithAuthorization = authorizePage(
 )
 
 export default ScoringModelsPageWithAuthorization
-

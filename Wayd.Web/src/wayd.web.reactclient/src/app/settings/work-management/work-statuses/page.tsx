@@ -1,14 +1,18 @@
 'use client'
 
-import { WaydGrid, PageTitle } from '@/src/components/common'
+import { PageTitle } from '@/src/components/common'
+import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
 import { useAppDispatch, useAppSelector, useDocumentTitle } from '@/src/hooks'
 import { WorkStatusDto } from '@/src/services/wayd-api'
-import { ColDef } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useEffect, useMemo } from 'react'
 import { setIncludeInactive } from '../../../../store/features/work-management/work-status-slice'
 import { authorizePage } from '@/src/components/hoc'
 import { useGetWorkStatusesQuery } from '@/src/store/features/work-management/work-status-api'
-import { ControlItemSwitch } from '@/src/components/common/control-items-menu'
+import {
+  ControlItemsMenu,
+  ControlItemSwitch,
+} from '@/src/components/common/control-items-menu'
 import { ItemType } from 'antd/es/menu/interface'
 
 const WorkStatusesPage = () => {
@@ -28,12 +32,24 @@ const WorkStatusesPage = () => {
     error && console.error(error)
   }, [error])
 
-  const columnDefs = useMemo<ColDef<WorkStatusDto>[]>(() => [
-      { field: 'id', hide: true },
-      { field: 'name' },
-      { field: 'description', width: 300 },
-      { field: 'isActive', width: 100 }, // TODO: convert to yes/no
-    ], [])
+  const columns = useMemo<ColumnDef<WorkStatusDto, any>[]>(
+    () => [
+      { id: 'name', accessorKey: 'name', header: 'Name' },
+      {
+        id: 'description',
+        accessorKey: 'description',
+        header: 'Description',
+        size: 300,
+      },
+      {
+        id: 'isActive',
+        accessorKey: 'isActive',
+        header: 'Active',
+        meta: { columnType: 'yesNo' },
+      },
+    ],
+    [],
+  )
 
   const refresh = async () => {
     refetch()
@@ -62,13 +78,13 @@ const WorkStatusesPage = () => {
     <>
       <PageTitle title="Work Statuses" />
 
-      <WaydGrid
-        height={600}
-        columnDefs={columnDefs}
-        gridControlMenuItems={controlItems}
-        rowData={workStatuses}
-        loadData={refresh}
-        loading={isLoading}
+      <WaydGrid2
+        columns={columns}
+        data={workStatuses ?? []}
+        onRefresh={refresh}
+        isLoading={isLoading}
+        csvFileName="work-statuses"
+        rightSlot={<ControlItemsMenu items={controlItems} />}
       />
     </>
   )

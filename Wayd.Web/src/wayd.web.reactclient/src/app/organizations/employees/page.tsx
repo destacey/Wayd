@@ -1,34 +1,20 @@
 'use client'
 
 import PageTitle from '@/src/components/common/page-title'
-import WaydGrid from '../../../components/common/wayd-grid'
+import { WaydGrid2 } from '../../../components/common/wayd-grid2'
 import { useEffect, useState, useMemo } from 'react'
 import { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useDocumentTitle } from '../../../hooks/use-document-title'
-import { ControlItemSwitch } from '../../../components/common/control-items-menu'
+import {
+  ControlItemsMenu,
+  ControlItemSwitch,
+} from '../../../components/common/control-items-menu'
 import { authorizePage } from '../../../components/hoc'
 import { useGetEmployeesQuery } from '@/src/store/features/organizations/employee-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { EmployeeListDto } from '@/src/services/wayd-api'
-import { ICellRendererParams } from 'ag-grid-community'
-
-const EmployeeLinkCellRenderer = ({
-  value,
-  data,
-}: ICellRendererParams<EmployeeListDto>) => {
-  return <Link href={`/organizations/employees/${data!.key}`}>{value}</Link>
-}
-
-const ManagerLinkCellRenderer = ({
-  value,
-  data,
-}: ICellRendererParams<EmployeeListDto>) => {
-  if (!data?.manager?.key) return value ?? null
-  return (
-    <Link href={`/organizations/employees/${data.manager.key}`}>{value}</Link>
-  )
-}
 
 const EmployeeListPage = () => {
   useDocumentTitle('Employees')
@@ -50,26 +36,68 @@ const EmployeeListPage = () => {
     }
   }, [error, messageApi])
 
-  const columnDefs = useMemo(
+  const columns = useMemo<ColumnDef<EmployeeListDto, any>[]>(
     () => [
-      { field: 'key', width: 90 },
+      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
       {
-        field: 'displayName',
-        headerName: 'Name',
-        cellRenderer: EmployeeLinkCellRenderer,
+        id: 'displayName',
+        accessorKey: 'displayName',
+        header: 'Name',
+        size: 200,
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => (
+          <Link href={`/organizations/employees/${row.original.key}`}>
+            {row.original.displayName}
+          </Link>
+        ),
       },
-      { field: 'email' },
-      { field: 'employeeNumber', headerName: 'Employee Number' },
-      { field: 'employeeType', headerName: 'Employee Type' },
-      { field: 'jobTitle' },
-      { field: 'department' },
+      { id: 'email', accessorKey: 'email', header: 'Email' },
       {
-        field: 'manager.name',
-        headerName: 'Manager',
-        cellRenderer: ManagerLinkCellRenderer,
+        id: 'employeeNumber',
+        accessorKey: 'employeeNumber',
+        header: 'Employee Number',
       },
-      { field: 'officeLocation' },
-      { field: 'isActive' }, // TODO: convert to yes/no
+      {
+        id: 'employeeType',
+        accessorKey: 'employeeType',
+        header: 'Employee Type',
+        meta: { filterType: 'set' },
+      },
+      { id: 'jobTitle', accessorKey: 'jobTitle', header: 'Job Title' },
+      {
+        id: 'department',
+        accessorKey: 'department',
+        header: 'Department',
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'manager',
+        accessorKey: 'manager.name',
+        header: 'Manager',
+        size: 200,
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => {
+          const manager = row.original.manager
+          if (!manager?.key) return manager?.name ?? null
+          return (
+            <Link href={`/organizations/employees/${manager.key}`}>
+              {manager.name}
+            </Link>
+          )
+        },
+      },
+      {
+        id: 'officeLocation',
+        accessorKey: 'officeLocation',
+        header: 'Office Location',
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'isActive',
+        accessorKey: 'isActive',
+        header: 'Active',
+        meta: { columnType: 'yesNo' },
+      },
     ],
     [],
   )
@@ -99,12 +127,13 @@ const EmployeeListPage = () => {
   return (
     <>
       <PageTitle title="Employees" />
-      <WaydGrid
-        columnDefs={columnDefs}
-        gridControlMenuItems={controlItems}
-        rowData={employeesData}
-        loading={isLoading}
-        loadData={refresh}
+      <WaydGrid2
+        columns={columns}
+        data={employeesData ?? []}
+        isLoading={isLoading}
+        onRefresh={refresh}
+        csvFileName="employees"
+        rightSlot={<ControlItemsMenu items={controlItems} />}
       />
     </>
   )

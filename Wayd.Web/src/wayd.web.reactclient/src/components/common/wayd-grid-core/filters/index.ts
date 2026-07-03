@@ -33,7 +33,12 @@ export {
 } from './filter-model'
 
 // Filter engine
-export { evaluateFilterModel, toDayKey, waydColumnFilter } from './filter-engine'
+export {
+  createMultiValueSetFilter,
+  evaluateFilterModel,
+  toDayKey,
+  waydColumnFilter,
+} from './filter-engine'
 
 // Floating-row filter summaries (read-only chip for complex date filters)
 export { canFloatingEditDate, describeDateFilter } from './filter-summary'

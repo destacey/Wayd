@@ -252,3 +252,36 @@ export const waydColumnFilter: FilterFn<any> = (
   const model = filterValue as ColumnFilterModel
   return evaluateFilterModel(model, row.getValue(columnId))
 }
+
+/**
+ * Builds a {@link FilterFn} for a **multi-value** column — one whose cell holds
+ * several discrete values (e.g. a Roles column rendered as a list of tags, whose
+ * accessor is the comma-joined names). The default {@link waydColumnFilter}
+ * matches a `set` descriptor against the *whole* joined string, so it would list
+ * and match each combination ("A, B") as one value — rarely what you want.
+ *
+ * This factory instead:
+ * - **set** descriptor → passes when the row shares **any** selected value with
+ *   its own list (`getValues(row)`), so the set panel lists and matches
+ *   *individual* values. Pair it with `meta.filterOptions` = the distinct values
+ *   so the checkbox list shows them.
+ * - **any other** descriptor (text conditions, blank/notBlank, …) → delegates to
+ *   {@link evaluateFilterModel} against the column's joined accessor value, so the
+ *   Text Filter still behaves as a normal contains/equals over the label.
+ *
+ * @param getValues extracts the row's individual string values from `row.original`.
+ */
+export const createMultiValueSetFilter =
+  <T>(getValues: (row: T) => string[]): FilterFn<T> =>
+  (row, columnId, filterValue) => {
+    if (!filterValue || typeof filterValue !== 'object') return true
+    const model = filterValue as ColumnFilterModel
+
+    if (model.type === 'set') {
+      if (model.values.length === 0) return true
+      const selected = new Set(model.values)
+      return getValues(row.original).some((v) => selected.has(v))
+    }
+
+    return evaluateFilterModel(model, row.getValue(columnId))
+  }

@@ -1,10 +1,9 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common'
-import { UserLinkCellRenderer } from '@/src/components/common/wayd-grid-cell-renderers'
-import { RoleListDto, UserDetailsDto } from '@/src/services/wayd-api'
+import { WaydGrid2, renderUserLink } from '@/src/components/common/wayd-grid2'
+import { UserDetailsDto } from '@/src/services/wayd-api'
 import { useGetRoleUsersQuery } from '@/src/store/features/user-management/roles-api'
-import { ColDef } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { FC, useMemo } from 'react'
 
 export interface RoleUsersGridProps {
@@ -18,33 +17,46 @@ const RoleUsersGrid: FC<RoleUsersGridProps> = (props: RoleUsersGridProps) => {
     refetch,
   } = useGetRoleUsersQuery(props.roleId)
 
-  const columnDefs = useMemo<ColDef<UserDetailsDto>[]>(() => [
-      { field: 'id', hide: true },
-      { field: 'userName', cellRenderer: UserLinkCellRenderer },
-      { field: 'firstName' },
-      { field: 'lastName' },
+  const columns = useMemo<ColumnDef<UserDetailsDto, any>[]>(
+    () => [
       {
-        field: 'roles',
-        valueFormatter: (params) =>
-          params.value
-            ?.map((r: RoleListDto) => r.name)
+        id: 'userName',
+        accessorKey: 'userName',
+        header: 'User Name',
+        cell: ({ row }) => renderUserLink(row.original),
+      },
+      { id: 'firstName', accessorKey: 'firstName', header: 'First Name' },
+      { id: 'lastName', accessorKey: 'lastName', header: 'Last Name' },
+      {
+        id: 'roles',
+        accessorFn: (row) =>
+          row.roles
+            ?.map((r) => r.name)
             .sort()
             .join(', ') ?? '',
+        header: 'Roles',
       },
-      { field: 'isActive' }, // TODO: convert to yes/no
-    ], [])
+      {
+        id: 'isActive',
+        accessorKey: 'isActive',
+        header: 'Active',
+        meta: { columnType: 'yesNo' },
+      },
+    ],
+    [],
+  )
 
   const refresh = async () => {
     refetch()
   }
 
   return (
-    <WaydGrid
-      height={550}
-      columnDefs={columnDefs}
-      rowData={usersData}
-      loadData={refresh}
-      loading={isLoading}
+    <WaydGrid2
+      columns={columns}
+      data={usersData ?? []}
+      onRefresh={refresh}
+      isLoading={isLoading}
+      csvFileName="role-users"
     />
   )
 }

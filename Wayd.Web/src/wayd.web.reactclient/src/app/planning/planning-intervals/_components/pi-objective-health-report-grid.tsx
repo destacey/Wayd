@@ -1,27 +1,18 @@
 'use client'
 
-import React, { useMemo } from 'react'
-import WaydGrid from '../../../../components/common/wayd-grid'
+import { useMemo } from 'react'
+import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
 import Link from 'next/link'
-import {
-  PiObjectiveHealthCheckStatusCellRenderer,
-  MarkdownCellRenderer,
-} from '../../../../components/common/wayd-grid-cell-renderers'
+import PiObjectiveHealthCheckTag from './pi-objective-health-check-tag'
+import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { PlanningIntervalObjectiveHealthCheckDetailsDto } from '@/src/services/wayd-api'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useGetObjectiveHealthChecksQuery } from '@/src/store/features/planning/pi-objective-health-checks-api'
+import styles from './pi-objective-health-report-grid.module.css'
 
 interface PiObjectiveHealthReportGridProps {
   planningIntervalId: string
   objectiveId: string
-}
-
-const ReportedByLinkCellRenderer = ({ value, data }: ICellRendererParams<PlanningIntervalObjectiveHealthCheckDetailsDto>) => {
-  return (
-    <Link href={`/organizations/employees/${data!.reportedBy?.key}`}>
-      {value}
-    </Link>
-  )
 }
 
 const PiObjectiveHealthReportGrid = (
@@ -30,8 +21,6 @@ const PiObjectiveHealthReportGrid = (
   const {
     data: healthReportData,
     isLoading,
-    isFetching,
-    error,
     refetch,
   } = useGetObjectiveHealthChecksQuery(
     {
@@ -41,36 +30,57 @@ const PiObjectiveHealthReportGrid = (
     { skip: !props.planningIntervalId || !props.objectiveId },
   )
 
-  const columnDefs = useMemo<
-    ColDef<PlanningIntervalObjectiveHealthCheckDetailsDto>[]
+  const columns = useMemo<
+    ColumnDef<PlanningIntervalObjectiveHealthCheckDetailsDto, any>[]
   >(
     () => [
-      { field: 'id', hide: true },
       {
-        field: 'status.name',
-        headerName: 'Health',
-        width: 115,
-        cellRenderer: PiObjectiveHealthCheckStatusCellRenderer,
+        id: 'status',
+        accessorKey: 'status.name',
+        header: 'Health',
+        size: 115,
+        meta: { filterType: 'set' },
+        cell: ({ row }) => <PiObjectiveHealthCheckTag healthCheck={row.original} />,
       },
       {
-        field: 'note',
-        width: 400,
-        autoHeight: true,
-        wrapText: true,
-        cellRenderer: MarkdownCellRenderer,
+        id: 'note',
+        accessorKey: 'note',
+        header: 'Note',
+        size: 400,
+        cell: ({ getValue }) => {
+          const note = getValue() as string | null | undefined
+          if (!note) return null
+          return (
+            <div className={styles.markdown}>
+              <MarkdownRenderer markdown={note} />
+            </div>
+          )
+        },
       },
       {
-        field: 'reportedBy.name',
-        headerName: 'Reported By',
-        cellRenderer: ReportedByLinkCellRenderer,
+        id: 'reportedBy',
+        accessorKey: 'reportedBy.name',
+        header: 'Reported By',
+        cell: ({ row }) =>
+          row.original.reportedBy ? (
+            <Link
+              href={`/organizations/employees/${row.original.reportedBy.key}`}
+            >
+              {row.original.reportedBy.name}
+            </Link>
+          ) : null,
       },
       {
-        field: 'reportedOn',
-        type: 'dateTime',
+        id: 'reportedOn',
+        accessorKey: 'reportedOn',
+        header: 'Reported On',
+        meta: { columnType: 'dateTime' },
       },
       {
-        field: 'expiration',
-        type: 'dateTime',
+        id: 'expiration',
+        accessorKey: 'expiration',
+        header: 'Expiration',
+        meta: { columnType: 'dateTime' },
       },
     ],
     [],
@@ -81,15 +91,14 @@ const PiObjectiveHealthReportGrid = (
   }
 
   return (
-    <>
-      <WaydGrid
-        height={550}
-        columnDefs={columnDefs}
-        rowData={healthReportData}
-        loadData={refresh}
-        loading={isLoading}
-      />
-    </>
+    <WaydGrid2
+      height={550}
+      columns={columns}
+      data={healthReportData ?? []}
+      onRefresh={refresh}
+      isLoading={isLoading}
+      csvFileName="pi-objective-health-report"
+    />
   )
 }
 

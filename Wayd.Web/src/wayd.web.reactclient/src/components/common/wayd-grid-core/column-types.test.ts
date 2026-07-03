@@ -1,6 +1,17 @@
+// The global jest.setup dayjs mock returns raw values; the formatter tests
+// below need the real library (same opt-in as the filter suites).
+jest.mock('dayjs', () => jest.requireActual('dayjs'))
+
 import type { ColumnDef } from '@tanstack/react-table'
 
-import { applyColumnType, YES, NO, YES_NO_COLUMN_SIZE } from './column-types'
+import {
+  applyColumnType,
+  formatDateOnly,
+  formatDateTime,
+  YES,
+  NO,
+  YES_NO_COLUMN_SIZE,
+} from './column-types'
 import type { WaydGridColumnMeta } from './types'
 
 interface Row {
@@ -98,6 +109,19 @@ describe('applyColumnType', () => {
 
       // Assert
       expect((resolved.meta as WaydGridColumnMeta).filterType).toBe('dateTime')
+    })
+
+    it('exposes the standard display formatters for custom cells', () => {
+      // Arrange
+      const when = '2026-07-02T13:05:00Z'
+
+      // Act / Assert — same formats the dateOnly/dateTime cells use
+      expect(formatDateOnly(when)).toBe(formatDateOnly(new Date(when)))
+      expect(formatDateTime(when)).toMatch(
+        /^[A-Z][a-z]{2} \d{1,2}, \d{4} \d{2}:\d{2} [AP]M$/,
+      )
+      expect(formatDateOnly(null)).toBe('')
+      expect(formatDateTime(undefined)).toBe('')
     })
   })
 

@@ -35,11 +35,26 @@ export {
 } from '../wayd-grid-core/grid-filters'
 
 // Sorting utilities
-export { dateSortBy, sortEmptyLast } from '../wayd-grid-core/grid-sorting'
+export {
+  dateSortBy,
+  sortEmptyLast,
+  workItemKeySort,
+  workStatusCategorySort,
+} from '../wayd-grid-core/grid-sorting'
+
+// Multi-value set filter (set panel over individual values, e.g. a Roles column
+// whose accessor is the comma-joined names). Pair with meta.filterOptions.
+export { createMultiValueSetFilter } from '../wayd-grid-core/filters'
 
 // Column types (declarative via meta.columnType) + helpers — moved to the
 // shared grid core; re-exported so consumers keep a single import surface
-export { applyColumnType, YES, NO } from '../wayd-grid-core/column-types'
+export {
+  applyColumnType,
+  formatDateOnly,
+  formatDateTime,
+  YES,
+  NO,
+} from '../wayd-grid-core/column-types'
 export type { WaydColumnType } from './types'
 
 // Reusable row-actions column (⋯ dropdown, per-row getItems)
@@ -59,12 +74,18 @@ export {
   renderWorkspaceLink,
   renderSprintLink,
   renderUserLink,
+  renderWorkItemLink,
+  renderAssignedToLink,
+  renderWorkStatusTag,
 } from '../wayd-grid-core/cell-renderers'
 export type {
   TeamLinkTarget,
   NavLinkTarget,
   SprintLinkTarget,
   UserLinkTarget,
+  WorkItemLinkTarget,
+  AssignedToLinkTarget,
+  WorkStatusTagTarget,
 } from '../wayd-grid-core/cell-renderers'
 
 // Components (toolbar reconciled into the shared grid core; aliases kept)

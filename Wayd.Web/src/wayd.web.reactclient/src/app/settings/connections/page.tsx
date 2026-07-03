@@ -1,7 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { WaydGrid, PageActions, PageTitle } from '../../../components/common'
+import { PageActions, PageTitle } from '../../../components/common'
+import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
 import { authorizePage } from '../../../components/hoc'
 import { useDocumentTitle } from '../../../hooks'
 import useAuth from '../../../components/contexts/auth'
@@ -9,17 +10,13 @@ import CreateConnectionForm from './_components/create-connection-form'
 import Link from 'next/link'
 import { ConnectionListDto } from '@/src/services/wayd-api'
 import { getCapabilityNames } from '@/src/types/connectors'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { ItemType } from 'antd/es/menu/interface'
 import { useGetConnectionsQuery } from '@/src/store/features/app-integration/connections-api'
-import { ControlItemSwitch } from '../../../components/common/control-items-menu'
-
-const ConnectionLinkCellRenderer = ({
-  value,
-  data,
-}: ICellRendererParams<ConnectionListDto>) => {
-  return <Link href={`/settings/connections/${data!.id}`}>{value}</Link>
-}
+import {
+  ControlItemsMenu,
+  ControlItemSwitch,
+} from '../../../components/common/control-items-menu'
 
 const ConnectionsPage = () => {
   useDocumentTitle('Connections')
@@ -38,18 +35,46 @@ const ConnectionsPage = () => {
     'Permissions.Connections.Create',
   )
 
-  const columnDefs = useMemo<ColDef<ConnectionListDto>[]>(
+  const columns = useMemo<ColumnDef<ConnectionListDto, any>[]>(
     () => [
-      { field: 'id', hide: true },
-      { field: 'name', cellRenderer: ConnectionLinkCellRenderer, width: 250 },
-      { field: 'connector.name', headerName: 'Connector', width: 150 },
       {
-        headerName: 'Capabilities',
-        valueGetter: ({ data }) => getCapabilityNames(data),
-        width: 180,
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        size: 250,
+        cell: ({ row }) => (
+          <Link href={`/settings/connections/${row.original.id}`}>
+            {row.original.name}
+          </Link>
+        ),
       },
-      { field: 'isActive', width: 125 },
-      { field: 'isValidConfiguration', width: 150 },
+      {
+        id: 'connector',
+        accessorKey: 'connector.name',
+        header: 'Connector',
+        size: 150,
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'capabilities',
+        accessorFn: (row) => getCapabilityNames(row),
+        header: 'Capabilities',
+        size: 180,
+      },
+      {
+        id: 'isActive',
+        accessorKey: 'isActive',
+        header: 'Active',
+        size: 125,
+        meta: { columnType: 'yesNo' },
+      },
+      {
+        id: 'isValidConfiguration',
+        accessorKey: 'isValidConfiguration',
+        header: 'Valid Configuration',
+        size: 160,
+        meta: { columnType: 'yesNo' },
+      },
     ],
     [],
   )
@@ -95,13 +120,13 @@ const ConnectionsPage = () => {
         actions={<PageActions actionItems={actionsMenuItems} />}
       />
 
-      <WaydGrid
-        height={600}
-        columnDefs={columnDefs}
-        gridControlMenuItems={controlItems}
-        rowData={connectionsData}
-        loadData={refresh}
-        loading={isLoading}
+      <WaydGrid2
+        columns={columns}
+        data={connectionsData ?? []}
+        onRefresh={refresh}
+        isLoading={isLoading}
+        csvFileName="connections"
+        rightSlot={<ControlItemsMenu items={controlItems} />}
       />
 
       {openCreateConnectionForm && (

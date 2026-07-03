@@ -15,10 +15,14 @@ import type { WaydColumnType, WaydGridColumnMeta } from './types'
 const DATE_ONLY_FORMAT = 'MMM D, YYYY'
 const DATE_TIME_FORMAT = 'MMM D, YYYY hh:mm A'
 
-const formatDateOnly = (value: unknown): string =>
+/** Formats a date-ish value with the grid's dateOnly display format ('' when empty). */
+export const formatDateOnly = (value: unknown): string =>
   value ? dayjs(value as Date | string).format(DATE_ONLY_FORMAT) : ''
 
-const formatDateTime = (value: unknown): string =>
+/** Formats a date-ish value with the grid's dateTime display format ('' when empty).
+ * Exported for columns that need the standard format inside a custom cell
+ * (e.g. an empty-value fallback like "Never"). */
+export const formatDateTime = (value: unknown): string =>
   value ? dayjs(value as Date | string).format(DATE_TIME_FORMAT) : ''
 
 /** Display/filter strings for the yes-no type. */

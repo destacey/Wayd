@@ -1,8 +1,8 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common'
+import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
 import { StrategicThemeListDto } from '@/src/services/wayd-api'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
 import { useMemo } from 'react'
 
@@ -13,34 +13,44 @@ export interface StrategicThemesGridProps {
   gridHeight?: number | undefined
 }
 
-const StrategicThemeCellRenderer = ({ value, data }: ICellRendererParams<StrategicThemeListDto>) => {
-  return (
-    <Link href={`/strategic-management/strategic-themes/${data!.key}`}>
-      {value}
-    </Link>
-  )
-}
-
 const StrategicThemesGrid: React.FC<StrategicThemesGridProps> = (
   props: StrategicThemesGridProps,
 ) => {
-  const columnDefs = useMemo<ColDef<StrategicThemeListDto>[]>(() => [
-    { field: 'key', width: 90 },
-    { field: 'name', width: 350, cellRenderer: StrategicThemeCellRenderer },
-    {
-      field: 'state.name',
-      headerName: 'State',
-      width: 125,
-    },
-  ], [])
+  const columns = useMemo<ColumnDef<StrategicThemeListDto, any>[]>(
+    () => [
+      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        size: 350,
+        cell: ({ row }) => (
+          <Link
+            href={`/strategic-management/strategic-themes/${row.original.key}`}
+          >
+            {row.original.name}
+          </Link>
+        ),
+      },
+      {
+        id: 'state',
+        accessorKey: 'state.name',
+        header: 'State',
+        size: 125,
+        meta: { filterType: 'set' },
+      },
+    ],
+    [],
+  )
 
   return (
-    <WaydGrid
+    <WaydGrid2
       height={props.gridHeight}
-      columnDefs={columnDefs}
-      rowData={props.strategicThemesData}
-      loadData={props.refreshStrategicThemes}
-      loading={props.strategicThemesLoading}
+      columns={columns}
+      data={props.strategicThemesData}
+      isLoading={props.strategicThemesLoading}
+      onRefresh={props.refreshStrategicThemes}
+      csvFileName="strategic-themes"
     />
   )
 }

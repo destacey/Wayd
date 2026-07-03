@@ -1,6 +1,9 @@
 import { render, screen } from '@testing-library/react'
 
+import { WorkStatusCategory } from '@/src/components/types'
+
 import {
+  renderAssignedToLink,
   renderPlanningIntervalLink,
   renderPortfolioLink,
   renderProgramLink,
@@ -8,6 +11,8 @@ import {
   renderSprintLink,
   renderTeamLink,
   renderUserLink,
+  renderWorkItemLink,
+  renderWorkStatusTag,
   renderWorkspaceLink,
 } from './cell-renderers'
 
@@ -162,6 +167,120 @@ describe('renderUserLink', () => {
   it('renders nothing for a missing user', () => {
     // Arrange / Act
     const { container } = render(<>{renderUserLink(null)}</>)
+
+    // Assert
+    expect(container).toBeEmptyDOMElement()
+  })
+})
+
+describe('renderWorkItemLink', () => {
+  it('links a work item within its workspace, labeled by key', () => {
+    // Arrange / Act
+    render(
+      <>{renderWorkItemLink({ key: 'WEB-42', workspaceKey: 'WEB' })}</>,
+    )
+
+    // Assert
+    const link = screen.getByRole('link', { name: 'WEB-42' })
+    expect(link).toHaveAttribute(
+      'href',
+      '/work/workspaces/WEB/work-items/WEB-42',
+    )
+  })
+
+  it('uses a custom label when provided (e.g. a parent title)', () => {
+    // Arrange / Act
+    render(
+      <>
+        {renderWorkItemLink({
+          key: 'WEB-42',
+          workspaceKey: 'WEB',
+          label: 'Parent title',
+        })}
+      </>,
+    )
+
+    // Assert
+    expect(
+      screen.getByRole('link', { name: 'Parent title' }),
+    ).toBeInTheDocument()
+  })
+
+  it('adds an external-system link when a URL is present', () => {
+    // Arrange / Act
+    render(
+      <>
+        {renderWorkItemLink({
+          key: 'WEB-42',
+          workspaceKey: 'WEB',
+          externalViewWorkItemUrl: 'https://example.com/WEB-42',
+        })}
+      </>,
+    )
+
+    // Assert — the primary link plus the external one
+    expect(
+      screen.getByRole('link', { name: 'WEB-42' }),
+    ).toBeInTheDocument()
+    const external = screen.getByTitle('Open in external system')
+    expect(external).toHaveAttribute('href', 'https://example.com/WEB-42')
+    expect(external).toHaveAttribute('target', '_blank')
+  })
+
+  it('renders nothing for a missing work item', () => {
+    // Arrange / Act
+    const { container } = render(<>{renderWorkItemLink(null)}</>)
+
+    // Assert
+    expect(container).toBeEmptyDOMElement()
+  })
+})
+
+describe('renderAssignedToLink', () => {
+  it('links an assignee to their organization page by key', () => {
+    // Arrange / Act
+    render(<>{renderAssignedToLink({ key: 13, name: 'Ada Lovelace' })}</>)
+
+    // Assert
+    const link = screen.getByRole('link', { name: 'Ada Lovelace' })
+    expect(link).toHaveAttribute('href', '/organizations/employees/13')
+  })
+
+  it('renders nothing when unassigned', () => {
+    // Arrange / Act
+    const { container } = render(<>{renderAssignedToLink(null)}</>)
+
+    // Assert
+    expect(container).toBeEmptyDOMElement()
+  })
+})
+
+describe('renderWorkStatusTag', () => {
+  it('renders the status text as a tag', () => {
+    // Arrange / Act
+    render(
+      <>
+        {renderWorkStatusTag({
+          status: 'In Progress',
+          statusCategory: { id: WorkStatusCategory.Active },
+        })}
+      </>,
+    )
+
+    // Assert
+    expect(screen.getByText('In Progress')).toBeInTheDocument()
+  })
+
+  it('renders nothing when there is no status', () => {
+    // Arrange / Act
+    const { container } = render(
+      <>
+        {renderWorkStatusTag({
+          status: '',
+          statusCategory: { id: WorkStatusCategory.Proposed },
+        })}
+      </>,
+    )
 
     // Assert
     expect(container).toBeEmptyDOMElement()

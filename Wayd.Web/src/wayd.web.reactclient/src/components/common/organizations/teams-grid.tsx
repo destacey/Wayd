@@ -1,11 +1,7 @@
 import { FC, useMemo } from 'react'
-import WaydGrid from '../wayd-grid'
+import { WaydGrid2, renderTeamLink } from '../wayd-grid2'
 import { PlanningIntervalTeamResponse } from '@/src/services/wayd-api'
-import {
-  NestedTeamOfTeamsNameLinkCellRenderer,
-  TeamNameLinkCellRenderer,
-} from '../wayd-grid-cell-renderers'
-import { ColDef } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 
 export interface TeamsGridProps {
   teams: PlanningIntervalTeamResponse[]
@@ -16,37 +12,54 @@ export interface TeamsGridProps {
 const TeamsGrid: FC<TeamsGridProps> = (props) => {
   const { refetch } = props
 
-  const columnDefs = useMemo<ColDef<PlanningIntervalTeamResponse>[]>(() => [
-    { field: 'key', width: 90 },
-    {
-      field: 'name',
-      cellRenderer: TeamNameLinkCellRenderer,
-    },
-    { field: 'code', width: 125 },
-    { field: 'type' },
-    {
-      field: 'teamOfTeams.name',
-      headerName: 'Team of Teams',
-      cellRenderer: NestedTeamOfTeamsNameLinkCellRenderer,
-    },
-    { field: 'isActive' }, // TODO: convert to yes/no
-  ], [])
+  const columns = useMemo<ColumnDef<PlanningIntervalTeamResponse, any>[]>(
+    () => [
+      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        size: 200,
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => renderTeamLink(row.original),
+      },
+      { id: 'code', accessorKey: 'code', header: 'Code', size: 125 },
+      {
+        id: 'type',
+        accessorKey: 'type',
+        header: 'Type',
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'teamOfTeams',
+        accessorKey: 'teamOfTeams.name',
+        header: 'Team of Teams',
+        size: 200,
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => renderTeamLink(row.original.teamOfTeams),
+      },
+      {
+        id: 'isActive',
+        accessorKey: 'isActive',
+        header: 'Active',
+        meta: { columnType: 'yesNo' },
+      },
+    ],
+    [],
+  )
 
   const refresh = async () => {
     refetch()
   }
 
   return (
-    <>
-      {/* TODO:  setup dynamic height */}
-      <WaydGrid
-        height={550}
-        columnDefs={columnDefs}
-        rowData={props.teams}
-        loadData={refresh}
-        loading={props.isLoading}
-      />
-    </>
+    <WaydGrid2
+      columns={columns}
+      data={props.teams}
+      onRefresh={refresh}
+      isLoading={props.isLoading}
+      csvFileName="teams"
+    />
   )
 }
 

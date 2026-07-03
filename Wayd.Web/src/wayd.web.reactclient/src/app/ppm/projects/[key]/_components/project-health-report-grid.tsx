@@ -1,14 +1,13 @@
 'use client'
 
 import { useMemo } from 'react'
-import WaydGrid from '@/src/components/common/wayd-grid'
+import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
 import Link from 'next/link'
-import {
-  ProjectHealthCheckStatusCellRenderer,
-  MarkdownCellRenderer,
-} from '@/src/components/common/wayd-grid-cell-renderers'
+import ProjectHealthCheckTag from '@/src/app/ppm/projects/_components/project-health-check-tag'
+import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { ProjectHealthCheckDetailsDto } from '@/src/services/wayd-api'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
+import styles from './project-health-report-grid.module.css'
 
 interface ProjectHealthReportGridProps {
   data?: ProjectHealthCheckDetailsDto[]
@@ -16,64 +15,77 @@ interface ProjectHealthReportGridProps {
   refetch: () => void
 }
 
-const ReportedByLinkCellRenderer = ({
-  value,
-  data,
-}: ICellRendererParams<ProjectHealthCheckDetailsDto>) => (
-  <Link href={`/organizations/employees/${data?.reportedBy?.key}`}>{value}</Link>
-)
-
 const ProjectHealthReportGrid = ({
   data,
   isLoading,
   refetch,
 }: ProjectHealthReportGridProps) => {
-  const columnDefs = useMemo<ColDef<ProjectHealthCheckDetailsDto>[]>(
+  const columns = useMemo<ColumnDef<ProjectHealthCheckDetailsDto, any>[]>(
     () => [
-      { field: 'id', hide: true },
       {
-        field: 'status.name',
-        headerName: 'Health',
-        width: 115,
-        cellRenderer: ProjectHealthCheckStatusCellRenderer,
+        id: 'status',
+        accessorKey: 'status.name',
+        header: 'Health',
+        size: 115,
+        meta: { filterType: 'set' },
+        cell: ({ row }) => <ProjectHealthCheckTag healthCheck={row.original} />,
       },
       {
-        field: 'note',
-        width: 400,
-        autoHeight: true,
-        wrapText: true,
-        cellRenderer: MarkdownCellRenderer,
+        id: 'note',
+        accessorKey: 'note',
+        header: 'Note',
+        size: 400,
+        cell: ({ getValue }) => {
+          const note = getValue() as string | null | undefined
+          if (!note) return null
+          return (
+            <div className={styles.markdown}>
+              <MarkdownRenderer markdown={note} />
+            </div>
+          )
+        },
       },
       {
-        field: 'reportedBy.name',
-        headerName: 'Reported By',
-        cellRenderer: ReportedByLinkCellRenderer,
+        id: 'reportedBy',
+        accessorKey: 'reportedBy.name',
+        header: 'Reported By',
+        cell: ({ row }) =>
+          row.original.reportedBy ? (
+            <Link
+              href={`/organizations/employees/${row.original.reportedBy.key}`}
+            >
+              {row.original.reportedBy.name}
+            </Link>
+          ) : null,
       },
       {
-        field: 'reportedOn',
-        type: 'dateTime',
+        id: 'reportedOn',
+        accessorKey: 'reportedOn',
+        header: 'Reported On',
+        meta: { columnType: 'dateTime' },
       },
       {
-        field: 'expiration',
-        type: 'dateTime',
+        id: 'expiration',
+        accessorKey: 'expiration',
+        header: 'Expiration',
+        meta: { columnType: 'dateTime' },
       },
     ],
     [],
   )
 
   return (
-    <WaydGrid
-      height={550}
-      columnDefs={columnDefs}
-      rowData={data}
-      loadData={() => {
+    <WaydGrid2
+      columns={columns}
+      data={data ?? []}
+      onRefresh={() => {
         refetch()
       }}
-      loading={isLoading}
+      isLoading={isLoading}
+      csvFileName="project-health-report"
       emptyMessage="No health checks found."
     />
   )
 }
 
 export default ProjectHealthReportGrid
-

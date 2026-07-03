@@ -1,53 +1,44 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common'
+import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
 import { ProjectTeamMemberDto } from '@/src/services/wayd-api'
 import { useGetProjectTeamQuery } from '@/src/store/features/ppm/projects-api'
-import { ColDef } from 'ag-grid-community'
-import { CustomCellRendererProps } from 'ag-grid-react'
+import type { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
 import { FC } from 'react'
 
-const PersonLinkCellRenderer = (
-  props: CustomCellRendererProps<ProjectTeamMemberDto>,
-) => {
-  if (!props.data) return null
-  return (
-    <Link
-      href={`/organizations/employees/${props.data.employee.key}`}
-      prefetch={false}
-    >
-      {props.data.employee.name}
-    </Link>
-  )
-}
-
-const columnDefs: ColDef<ProjectTeamMemberDto>[] = [
+const columns: ColumnDef<ProjectTeamMemberDto, any>[] = [
   {
-    field: 'employee.name',
-    headerName: 'Person',
-    cellRenderer: PersonLinkCellRenderer,
-    minWidth: 200,
-    flex: 1,
+    id: 'person',
+    accessorKey: 'employee.name',
+    header: 'Person',
+    size: 250,
+    cell: ({ row }) => (
+      <Link
+        href={`/organizations/employees/${row.original.employee.key}`}
+        prefetch={false}
+      >
+        {row.original.employee.name}
+      </Link>
+    ),
   },
   {
-    field: 'roles',
-    headerName: 'Roles',
-    minWidth: 200,
-    flex: 1,
-    valueGetter: (params) => params.data?.roles?.join(', '),
+    id: 'roles',
+    accessorFn: (row) => row.roles?.join(', ') ?? '',
+    header: 'Roles',
+    size: 250,
   },
   {
-    field: 'assignedPhases',
-    headerName: 'Assigned Phases',
-    minWidth: 200,
-    flex: 1,
-    valueGetter: (params) => params.data?.assignedPhases?.join(', ') || null,
+    id: 'assignedPhases',
+    accessorFn: (row) => row.assignedPhases?.join(', ') || '',
+    header: 'Assigned Phases',
+    size: 250,
   },
   {
-    field: 'activeWorkItemCount',
-    headerName: 'Active Tasks',
-    width: 130,
+    id: 'activeWorkItemCount',
+    accessorKey: 'activeWorkItemCount',
+    header: 'Active Tasks',
+    size: 130,
   },
 ]
 
@@ -67,11 +58,12 @@ const ProjectTeamGrid: FC<ProjectTeamGridProps> = ({ projectIdOrKey }) => {
   }
 
   return (
-    <WaydGrid
-      columnDefs={columnDefs}
-      rowData={teamData}
-      loadData={refresh}
-      loading={isLoading}
+    <WaydGrid2
+      columns={columns}
+      data={teamData ?? []}
+      onRefresh={refresh}
+      isLoading={isLoading}
+      csvFileName="project-team"
       emptyMessage="No team members assigned."
     />
   )

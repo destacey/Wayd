@@ -1,14 +1,14 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common'
 import {
-  LifecycleStatusTagCellRenderer,
-  PortfolioLinkCellRenderer,
-  ProgramLinkCellRenderer,
-} from '@/src/components/common/wayd-grid-cell-renderers'
+  WaydGrid2,
+  renderPortfolioLink,
+  renderProgramLink,
+} from '@/src/components/common/wayd-grid2'
+import LifecycleStatusTag from '@/src/components/common/lifecycle-status-tag'
 import { ProgramListDto } from '@/src/services/wayd-api'
 import { getSortedNames } from '@/src/utils'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { FC, useMemo } from 'react'
 
 export interface ProgramsGridProps {
@@ -23,60 +23,69 @@ export interface ProgramsGridProps {
 const ProgramsGrid: FC<ProgramsGridProps> = (props: ProgramsGridProps) => {
   const { refetch } = props
 
-  const columnDefs = useMemo<ColDef<ProgramListDto>[]>(
+  const columns = useMemo<ColumnDef<ProgramListDto, any>[]>(
     () => [
-      { field: 'key', width: 90 },
+      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
       {
-        field: 'name',
-        cellRenderer: ProgramLinkCellRenderer,
-        width: 300,
-        initialSort: 'asc',
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        size: 300,
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => renderProgramLink(row.original),
       },
       {
-        field: 'status.name',
-        headerName: 'Status',
-        width: 125,
-        cellRenderer: LifecycleStatusTagCellRenderer,
+        id: 'status',
+        accessorKey: 'status.name',
+        header: 'Status',
+        size: 125,
+        meta: { filterType: 'set' },
+        cell: ({ row }) =>
+          row.original.status ? (
+            <LifecycleStatusTag status={row.original.status} />
+          ) : null,
       },
       {
-        field: 'portfolio.name',
-        headerName: 'Portfolio',
-        width: 200,
-        hide: props.hidePortfolio,
-        cellRenderer: (params: ICellRendererParams<ProgramListDto>) => {
-          if (!params.data) return null
-          return PortfolioLinkCellRenderer({ ...(params as any), data: params.data.portfolio })
-        },
+        id: 'portfolio',
+        accessorKey: 'portfolio.name',
+        header: 'Portfolio',
+        size: 200,
+        meta: { hide: props.hidePortfolio, filterEnableSet: true },
+        cell: ({ row }) => renderPortfolioLink(row.original.portfolio),
       },
       {
-        field: 'start',
-        width: 125,
-        type: 'dateOnly',
+        id: 'start',
+        accessorKey: 'start',
+        header: 'Start',
+        size: 125,
+        meta: { columnType: 'dateOnly' },
       },
       {
-        field: 'end',
-        width: 125,
-        type: 'dateOnly',
+        id: 'end',
+        accessorKey: 'end',
+        header: 'End',
+        size: 125,
+        meta: { columnType: 'dateOnly' },
       },
       {
-        field: 'programManagers',
-        headerName: 'PMs',
-        valueGetter: (params) => getSortedNames(params.data?.programManagers ?? []),
+        id: 'programManagers',
+        accessorFn: (row) => getSortedNames(row.programManagers ?? []),
+        header: 'PMs',
       },
       {
-        field: 'programOwners',
-        headerName: 'Owners',
-        valueGetter: (params) => getSortedNames(params.data?.programOwners ?? []),
+        id: 'programOwners',
+        accessorFn: (row) => getSortedNames(row.programOwners ?? []),
+        header: 'Owners',
       },
       {
-        field: 'programSponsors',
-        headerName: 'Sponsors',
-        valueGetter: (params) => getSortedNames(params.data?.programSponsors ?? []),
+        id: 'programSponsors',
+        accessorFn: (row) => getSortedNames(row.programSponsors ?? []),
+        header: 'Sponsors',
       },
       {
-        field: 'strategicThemes',
-        headerName: 'Strategic Themes',
-        valueGetter: (params) => getSortedNames(params.data?.strategicThemes ?? []),
+        id: 'strategicThemes',
+        accessorFn: (row) => getSortedNames(row.strategicThemes ?? []),
+        header: 'Strategic Themes',
       },
     ],
     [props.hidePortfolio],
@@ -87,17 +96,16 @@ const ProgramsGrid: FC<ProgramsGridProps> = (props: ProgramsGridProps) => {
   }
 
   return (
-    <>
-      <WaydGrid
-        columnDefs={columnDefs}
-        rowData={props.programs}
-        loadData={refresh}
-        loading={props.isLoading}
-        toolbarActions={props.viewSelector}
-        height={props.gridHeight}
-        emptyMessage="No programs found."
-      />
-    </>
+    <WaydGrid2
+      columns={columns}
+      data={props.programs}
+      onRefresh={refresh}
+      isLoading={props.isLoading}
+      csvFileName="programs"
+      rightSlot={props.viewSelector}
+      height={props.gridHeight}
+      emptyMessage="No programs found."
+    />
   )
 }
 

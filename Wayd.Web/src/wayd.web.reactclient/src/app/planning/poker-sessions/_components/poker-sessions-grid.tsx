@@ -1,9 +1,12 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common'
-import { RowMenuCellRenderer } from '@/src/components/common/wayd-grid-cell-renderers'
+import {
+  WaydGrid2,
+  createActionsColumn,
+} from '@/src/components/common/wayd-grid2'
+import { ControlItemsMenu } from '@/src/components/common/control-items-menu'
 import { PokerSessionListDto } from '@/src/services/wayd-api'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
 import { FC, useMemo } from 'react'
@@ -59,17 +62,6 @@ const getRowMenuItems = (props: RowMenuProps): ItemType[] => {
   return items
 }
 
-const sessionLinkCellRenderer = (
-  params: ICellRendererParams<PokerSessionListDto>,
-) => {
-  if (!params.data) return null
-  return (
-    <Link href={`/planning/poker-sessions/${params.data.key}`}>
-      {params.value}
-    </Link>
-  )
-}
-
 const PokerSessionsGrid: FC<PokerSessionsGridProps> = ({
   sessions = [],
   isLoading,
@@ -83,34 +75,53 @@ const PokerSessionsGrid: FC<PokerSessionsGridProps> = ({
 }) => {
   const showRowMenu = canUpdate || canDelete
 
-  const columnDefs = useMemo<ColDef<PokerSessionListDto>[]>(
+  const columns = useMemo<ColumnDef<PokerSessionListDto, any>[]>(
     () => [
-      {
-        width: 50,
-        filter: false,
-        sortable: false,
-        resizable: false,
+      createActionsColumn<PokerSessionListDto>({
         hide: !showRowMenu,
-        suppressHeaderMenuButton: true,
-        cellRenderer: (params: ICellRendererParams<PokerSessionListDto>) => {
-          if (!params.data) return null
-          const menuItems = getRowMenuItems({
-            session: params.data,
+        ariaLabel: 'Poker session actions',
+        getItems: (session) =>
+          getRowMenuItems({
+            session,
             canUpdate,
             canDelete,
             onEditClicked,
             onCompleteClicked,
             onDeleteClicked,
-          })
-          if (menuItems.length === 0) return null
-          return RowMenuCellRenderer({ ...params, menuItems })
-        },
+          }),
+      }),
+      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        size: 300,
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => (
+          <Link href={`/planning/poker-sessions/${row.original.key}`}>
+            {row.original.name}
+          </Link>
+        ),
       },
-      { field: 'key', width: 90 },
-      { field: 'name', width: 300, cellRenderer: sessionLinkCellRenderer },
-      { field: 'status', width: 125 },
-      { field: 'facilitator.name', headerName: 'Facilitator', width: 200 },
-      { field: 'roundCount', headerName: 'Rounds', width: 110 },
+      {
+        id: 'status',
+        accessorKey: 'status',
+        header: 'Status',
+        size: 125,
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'facilitator',
+        accessorKey: 'facilitator.name',
+        header: 'Facilitator',
+        size: 200,
+      },
+      {
+        id: 'roundCount',
+        accessorKey: 'roundCount',
+        header: 'Rounds',
+        size: 110,
+      },
     ],
     [
       showRowMenu,
@@ -123,14 +134,19 @@ const PokerSessionsGrid: FC<PokerSessionsGridProps> = ({
   )
 
   return (
-    <WaydGrid
-      columnDefs={columnDefs}
-      gridControlMenuItems={gridControlMenuItems}
-      rowData={sessions}
-      loadData={refetch}
-      loading={isLoading}
+    <WaydGrid2
+      columns={columns}
+      data={sessions}
+      onRefresh={refetch}
+      isLoading={isLoading}
       height={650}
+      csvFileName="poker-sessions"
       emptyMessage="No poker sessions found."
+      rightSlot={
+        gridControlMenuItems ? (
+          <ControlItemsMenu items={gridControlMenuItems} />
+        ) : undefined
+      }
     />
   )
 }

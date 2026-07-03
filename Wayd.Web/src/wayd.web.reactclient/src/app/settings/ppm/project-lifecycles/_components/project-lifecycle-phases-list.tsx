@@ -1,7 +1,9 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common'
-import { RowMenuCellRenderer } from '@/src/components/common/wayd-grid-cell-renderers'
+import {
+  WaydGrid2,
+  createActionsColumn,
+} from '@/src/components/common/wayd-grid2'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
   ProjectLifecycleDetailsDto,
@@ -13,7 +15,7 @@ import {
 } from '@/src/store/features/ppm/project-lifecycles-api'
 import { App, Button } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
 import AddProjectLifecyclePhaseForm from './add-project-lifecycle-phase-form'
 import EditProjectLifecyclePhaseForm from './edit-project-lifecycle-phase-form'
@@ -101,7 +103,7 @@ const ProjectLifecyclePhasesList = ({
     [lifecycle?.phases],
   )
 
-  const columnDefs = useMemo<ColDef<ProjectLifecyclePhaseDto>[]>(() => {
+  const columns = useMemo<ColumnDef<ProjectLifecyclePhaseDto, any>[]>(() => {
     const handleEdit = (phase: ProjectLifecyclePhaseDto) => {
       setEditingPhase(phase)
     }
@@ -162,28 +164,32 @@ const ProjectLifecyclePhasesList = ({
     }
 
     return [
-      {
-        width: 50,
-        filter: false,
-        sortable: false,
-        resizable: false,
+      createActionsColumn<ProjectLifecyclePhaseDto>({
         hide: !canManagePhases,
-        suppressHeaderMenuButton: true,
-        cellRenderer: (params: ICellRendererParams<ProjectLifecyclePhaseDto>) => {
-          const menuItems = getRowMenuItems({
-            phase: params.data!,
+        ariaLabel: 'Phase actions',
+        getItems: (phase) =>
+          getRowMenuItems({
+            phase,
             sortedPhases,
             onEditClicked: handleEdit,
             onDeleteClicked: handleDeletePhase,
             onMoveClicked: handleMove,
-          })
-          if (menuItems.length === 0) return null
-          return RowMenuCellRenderer({ ...params, menuItems })
-        },
+          }),
+      }),
+      {
+        id: 'order',
+        accessorKey: 'order',
+        header: 'Order',
+        size: 90,
+        enableColumnFilter: false,
       },
-      { field: 'order', headerName: 'Order', width: 90, sort: 'asc' as const },
-      { field: 'name', headerName: 'Name', width: 200 },
-      { field: 'description', headerName: 'Description', flex: 1 },
+      { id: 'name', accessorKey: 'name', header: 'Name', size: 200 },
+      {
+        id: 'description',
+        accessorKey: 'description',
+        header: 'Description',
+        size: 400,
+      },
     ]}, [canManagePhases, sortedPhases, modal, removeProjectLifecyclePhase, reorderPhases, lifecycle.id, messageApi])
 
   const actions = canManagePhases ? (
@@ -194,12 +200,13 @@ const ProjectLifecyclePhasesList = ({
 
   return (
     <>
-      <WaydGrid
+      <WaydGrid2
         height={300}
-        columnDefs={columnDefs}
-        rowData={sortedPhases}
-        actions={actions}
-        loadData={loadData}
+        columns={columns}
+        data={sortedPhases}
+        leftSlot={actions}
+        onRefresh={loadData}
+        csvFileName="project-lifecycle-phases"
       />
       {openAddPhaseForm && (
         <AddProjectLifecyclePhaseForm

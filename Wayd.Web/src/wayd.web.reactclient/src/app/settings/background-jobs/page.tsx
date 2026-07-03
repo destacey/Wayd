@@ -1,7 +1,7 @@
 'use client'
 
 import PageTitle from '@/src/components/common/page-title'
-import WaydGrid from '../../../components/common/wayd-grid'
+import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
 import { useMemo, useState } from 'react'
 import { BackgroundJobDto } from '@/src/services/wayd-api'
 import { getBackgroundJobsClient } from '@/src/services/clients'
@@ -14,7 +14,7 @@ import { useDocumentTitle } from '../../../hooks'
 import { PageActions } from '../../../components/common'
 import { useGetJobTypesQuery } from '@/src/store/features/admin/background-jobs-api'
 import CreateRecurringJobForm from './create-recurring-job-form'
-import { ColDef } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 
 const BackgroundJobsListPage = () => {
   useDocumentTitle('Background Jobs')
@@ -29,14 +29,27 @@ const BackgroundJobsListPage = () => {
     'Permissions.BackgroundJobs.Create',
   )
 
-  const columnDefs = useMemo<ColDef<BackgroundJobDto>[]>(() => [
-      { field: 'id' },
-      { field: 'action' },
-      { field: 'status' },
-      { field: 'type' },
-      { field: 'namespace' },
-      { field: 'startedAt', headerName: 'Start (UTC)' },
-    ], [])
+  const columns = useMemo<ColumnDef<BackgroundJobDto, any>[]>(
+    () => [
+      { id: 'id', accessorKey: 'id', header: 'Id' },
+      { id: 'action', accessorKey: 'action', header: 'Action' },
+      {
+        id: 'status',
+        accessorKey: 'status',
+        header: 'Status',
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'type',
+        accessorKey: 'type',
+        header: 'Type',
+        meta: { filterType: 'set' },
+      },
+      { id: 'namespace', accessorKey: 'namespace', header: 'Namespace' },
+      { id: 'startedAt', accessorKey: 'startedAt', header: 'Start (UTC)' },
+    ],
+    [],
+  )
 
   const { data: jobTypeData = [] } = useGetJobTypesQuery()
 
@@ -141,11 +154,11 @@ const BackgroundJobsListPage = () => {
         actions={<PageActions actionItems={actionsMenuItems} />}
       />
 
-      <WaydGrid
-        height={600}
-        columnDefs={columnDefs}
-        rowData={backgroundJobs}
-        loadData={getRunningJobs}
+      <WaydGrid2
+        columns={columns}
+        data={backgroundJobs}
+        onRefresh={getRunningJobs}
+        csvFileName="background-jobs"
       />
       {openCreateRecurringJobForm && (
         <CreateRecurringJobForm

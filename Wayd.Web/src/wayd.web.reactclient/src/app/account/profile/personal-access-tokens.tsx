@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, FC, useMemo } from 'react'
-import { Button, Tag, Alert, Flex, Typography, App, Space } from 'antd'
+import { Button, Tag, Alert, Flex, Typography, App, Space, Tooltip } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import {
   useGetMyPersonalAccessTokensQuery,
@@ -9,104 +9,38 @@ import {
   useDeletePersonalAccessTokenMutation,
 } from '@/src/store/features/user-management/personal-access-tokens-api'
 import { PersonalAccessTokenDto } from '@/src/services/wayd-api'
-import dayjs from 'dayjs'
-import WaydGrid from '@/src/components/common/wayd-grid'
-import { CustomCellRendererProps } from 'ag-grid-react'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import {
+  WaydGrid2,
+  createActionsColumn,
+  formatDateTime,
+} from '@/src/components/common/wayd-grid2'
+import type { ColumnDef } from '@tanstack/react-table'
 import {
   CreatePersonalAccessTokenForm,
   EditPersonalAccessTokenForm,
   PersonalAccessTokenCreatedModal,
 } from './_components'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { RowMenuCellRenderer } from '@/src/components/common/wayd-grid-cell-renderers'
 import { ItemType } from 'antd/es/menu/interface'
-import { MenuProps } from 'antd'
 
 const { Text } = Typography
 
-// Custom cell renderers
-const StatusCellRenderer = (
-  props: CustomCellRendererProps<PersonalAccessTokenDto>,
-) => {
-  const { data } = props
-  if (!data) return null
-
-  if (data.isRevoked) {
-    return <Tag color="error">Revoked</Tag>
-  }
-  if (data.isExpired) {
-    return <Tag color="warning">Expired</Tag>
-  }
-  if (data.isActive) {
-    return <Tag color="success">Active</Tag>
-  }
-  return <Tag>Unknown</Tag>
+const tokenStatus = (token: PersonalAccessTokenDto): string => {
+  if (token.isRevoked) return 'Revoked'
+  if (token.isExpired) return 'Expired'
+  if (token.isActive) return 'Active'
+  return 'Unknown'
 }
 
-const DateTimeCellRenderer = (props: CustomCellRendererProps) => {
-  const { value } = props
-  if (!value) return 'Never'
-  return dayjs(value).format('YYYY-MM-DD h:mm A')
+const statusTagColor: Record<string, string | undefined> = {
+  Revoked: 'error',
+  Expired: 'warning',
+  Active: 'success',
 }
 
-interface RowMenuProps extends MenuProps {
-  tokenId: string
-  tokenName: string
-  isActive: boolean
-  token: PersonalAccessTokenDto
-  modal: ReturnType<typeof App.useApp>['modal']
-  onEditTokenMenuClicked: (token: PersonalAccessTokenDto) => void
-  onRevokeTokenMenuClicked: (id: string, name: string) => void
-  onDeleteTokenMenuClicked: (id: string, name: string) => void
-}
-
-const getRowMenuItems = (props: RowMenuProps) => {
-  if (!props.tokenId) return null
-
-  const items: ItemType[] = []
-
-  if (props.isActive) {
-    items.push({
-      key: 'editToken',
-      label: 'Edit',
-      onClick: () => props.onEditTokenMenuClicked(props.token),
-    })
-    items.push({
-      key: 'revokeToken',
-      label: 'Revoke',
-      onClick: () => {
-        props.modal.confirm({
-          title: `Revoke Token - ${props.tokenName}`,
-          content:
-            'Are you sure you want to revoke this token? It will no longer work.',
-          okText: 'Revoke',
-          okType: 'danger',
-          onOk: () =>
-            props.onRevokeTokenMenuClicked(props.tokenId, props.tokenName),
-        })
-      },
-    })
-  }
-
-  items.push({
-    key: 'deleteToken',
-    label: 'Delete',
-    onClick: () => {
-      props.modal.confirm({
-        title: `Delete Token - ${props.tokenName}`,
-        content:
-          'Are you sure you want to permanently delete this token? This cannot be undone.',
-        okText: 'Delete',
-        okType: 'danger',
-        onOk: () =>
-          props.onDeleteTokenMenuClicked(props.tokenId, props.tokenName),
-      })
-    },
-  })
-
-  return items
-}
+/** Renders a dateTime cell in the grid's standard format, or "Never" when unset. */
+const renderDateTimeOrNever = (value: unknown) =>
+  value ? formatDateTime(value) : 'Never'
 
 const PersonalAccessTokens: FC = () => {
   const [isCreateFormVisible, setIsCreateFormVisible] = useState(false)
@@ -153,81 +87,119 @@ const PersonalAccessTokens: FC = () => {
     refetch()
   }
 
-  const columnDefs = useMemo<ColDef<PersonalAccessTokenDto>[]>(
-    () => {
-      const handleEdit = (token: PersonalAccessTokenDto) => {
-        setEditingToken(token)
-        setIsEditFormVisible(true)
-      }
+  const columns = useMemo<ColumnDef<PersonalAccessTokenDto, any>[]>(() => {
+    const handleEdit = (token: PersonalAccessTokenDto) => {
+      setEditingToken(token)
+      setIsEditFormVisible(true)
+    }
 
-      const handleRevoke = async (id: string, name: string) => {
-        try {
-          await revokeToken(id).unwrap()
-          messageApi.success(`Token "${name}" revoked successfully`)
-        } catch (error) {
-          console.error('Failed to revoke token:', error)
-          messageApi.error('Failed to revoke token')
-        }
+    const handleRevoke = async (id: string, name: string) => {
+      try {
+        await revokeToken(id).unwrap()
+        messageApi.success(`Token "${name}" revoked successfully`)
+      } catch (error) {
+        console.error('Failed to revoke token:', error)
+        messageApi.error('Failed to revoke token')
       }
+    }
 
-      const handleDelete = async (id: string, name: string) => {
-        try {
-          await deleteToken(id).unwrap()
-          messageApi.success(`Token "${name}" deleted successfully`)
-        } catch (error) {
-          console.error('Failed to delete token:', error)
-          messageApi.error('Failed to delete token')
-        }
+    const handleDelete = async (id: string, name: string) => {
+      try {
+        await deleteToken(id).unwrap()
+        messageApi.success(`Token "${name}" deleted successfully`)
+      } catch (error) {
+        console.error('Failed to delete token:', error)
+        messageApi.error('Failed to delete token')
       }
+    }
 
-      return [
-      {
-        width: 50,
-        filter: false,
-        sortable: false,
-        resizable: false,
-        cellRenderer: (params: ICellRendererParams<PersonalAccessTokenDto>) => {
-          const menuItems = getRowMenuItems({
-            tokenId: params.data?.id ?? '',
-            tokenName: params.data?.name ?? '',
-            isActive: params.data?.isActive ?? false,
-            token: params.data!,
-            modal,
-            onEditTokenMenuClicked: handleEdit,
-            onRevokeTokenMenuClicked: handleRevoke,
-            onDeleteTokenMenuClicked: handleDelete,
+    return [
+      createActionsColumn<PersonalAccessTokenDto>({
+        ariaLabel: 'Token actions',
+        getItems: (token) => {
+          if (!token.id) return []
+
+          const items: ItemType[] = []
+
+          if (token.isActive) {
+            items.push({
+              key: 'editToken',
+              label: 'Edit',
+              onClick: () => handleEdit(token),
+            })
+            items.push({
+              key: 'revokeToken',
+              label: 'Revoke',
+              onClick: () => {
+                modal.confirm({
+                  title: `Revoke Token - ${token.name}`,
+                  content:
+                    'Are you sure you want to revoke this token? It will no longer work.',
+                  okText: 'Revoke',
+                  okType: 'danger',
+                  onOk: () => handleRevoke(token.id, token.name),
+                })
+              },
+            })
+          }
+
+          items.push({
+            key: 'deleteToken',
+            label: 'Delete',
+            onClick: () => {
+              modal.confirm({
+                title: `Delete Token - ${token.name}`,
+                content:
+                  'Are you sure you want to permanently delete this token? This cannot be undone.',
+                okText: 'Delete',
+                okType: 'danger',
+                onOk: () => handleDelete(token.id, token.name),
+              })
+            },
           })
-          return RowMenuCellRenderer({ ...params, menuItems: menuItems ?? [] })
+
+          return items
+        },
+      }),
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        size: 300,
+      },
+      {
+        id: 'status',
+        accessorFn: (row) => tokenStatus(row),
+        header: 'Status',
+        size: 120,
+        meta: { filterType: 'set' },
+        cell: ({ getValue }) => {
+          const status = getValue() as string
+          return <Tag color={statusTagColor[status]}>{status}</Tag>
         },
       },
       {
-        field: 'name',
-        headerName: 'Name',
-        flex: 1,
-        minWidth: 200,
+        id: 'expiresAt',
+        accessorKey: 'expiresAt',
+        header: 'Expires',
+        size: 180,
+        meta: { columnType: 'dateTime' },
+        cell: ({ getValue }) => renderDateTimeOrNever(getValue()),
       },
       {
-        headerName: 'Status',
-        cellRenderer: StatusCellRenderer,
-        width: 120,
+        id: 'lastUsedAt',
+        accessorKey: 'lastUsedAt',
+        header: () => (
+          <Tooltip title="The last time this token was used for authentication. Updates at most once per hour.">
+            <span>Last Used</span>
+          </Tooltip>
+        ),
+        size: 180,
+        meta: { columnType: 'dateTime', exportHeader: 'Last Used' },
+        cell: ({ getValue }) => renderDateTimeOrNever(getValue()),
       },
-      {
-        field: 'expiresAt',
-        headerName: 'Expires',
-        cellRenderer: DateTimeCellRenderer,
-        width: 180,
-      },
-      {
-        field: 'lastUsedAt',
-        headerName: 'Last Used',
-        cellRenderer: DateTimeCellRenderer,
-        width: 180,
-        headerTooltip:
-          'The last time this token was used for authentication. Updates at most once per hour.',
-      },
-    ]},
-    [modal, revokeToken, deleteToken, messageApi],
-  )
+    ]
+  }, [modal, revokeToken, deleteToken, messageApi])
 
   if (error) {
     return (
@@ -263,12 +235,13 @@ const PersonalAccessTokens: FC = () => {
         </Button>
       </Space>
 
-      <WaydGrid
+      <WaydGrid2
         height={500}
-        columnDefs={columnDefs}
-        rowData={tokens}
-        loadData={refresh}
-        loading={isLoading}
+        columns={columns}
+        data={tokens ?? []}
+        isLoading={isLoading}
+        onRefresh={refresh}
+        csvFileName="personal-access-tokens"
         emptyMessage="No PATs found."
       />
 

@@ -1,17 +1,26 @@
 import { useMemo } from 'react'
-import WaydGrid from '../../../components/common/wayd-grid'
+import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
+import type { ColumnDef } from '@tanstack/react-table'
 import useAuth, { Claim } from '../../../components/contexts/auth'
-import { ColDef } from 'ag-grid-community'
 
 const ClaimsGrid = () => {
   const { user } = useAuth()
 
-  const columnDefs = useMemo<ColDef<Claim>[]>(
-    () => [{ field: 'type' }, { field: 'value', width: 500 }],
+  const columns = useMemo<ColumnDef<Claim, any>[]>(
+    () => [
+      { id: 'type', accessorKey: 'type', header: 'Type', size: 400 },
+      { id: 'value', accessorKey: 'value', header: 'Value', size: 400 },
+    ],
     [],
   )
 
-  return <WaydGrid columnDefs={columnDefs} rowData={user?.claims} />
+  return (
+    <WaydGrid2
+      columns={columns}
+      data={user?.claims ?? []}
+      csvFileName="claims"
+    />
+  )
 }
 
 export default ClaimsGrid

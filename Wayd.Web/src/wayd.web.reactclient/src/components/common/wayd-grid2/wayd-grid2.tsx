@@ -999,6 +999,10 @@ function WaydGrid2Inner<T>(
                 <th
                   key={header.id}
                   colSpan={header.colSpan}
+                  // Placeholders (ungrouped columns passing through the band
+                  // level) are empty — hide them from assistive tech so
+                  // screen readers don't announce blank column headers.
+                  aria-hidden={header.isPlaceholder || undefined}
                   className={`${styles.th} ${styles.groupTh}`}
                   style={{
                     top: `calc(${bandIndex} * var(--wayd-grid-header-row-height))`,

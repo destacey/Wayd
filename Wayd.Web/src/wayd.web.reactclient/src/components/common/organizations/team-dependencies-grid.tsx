@@ -11,6 +11,7 @@ import {
   renderWorkItemLink,
   workItemKeySort,
 } from '../wayd-grid2'
+import { DEPENDENCY_SCOPE_TOOLTIP } from '../work/dependency-constants'
 
 export interface TeamDependenciesGridProps {
   team: TeamDetailsDto
@@ -18,9 +19,6 @@ export interface TeamDependenciesGridProps {
   isLoading: boolean
   refetch: () => void
 }
-
-const SCOPE_TOOLTIP =
-  'Defines whether this dependency is managed inside a single team (intra-team) or requires coordination between multiple teams (cross-team).'
 
 const TeamDependenciesGrid: FC<TeamDependenciesGridProps> = (props) => {
   const { refetch } = props
@@ -51,7 +49,7 @@ const TeamDependenciesGrid: FC<TeamDependenciesGridProps> = (props) => {
             accessorKey: 'scope.name',
             header: 'Scope',
             size: 100,
-            meta: { filterType: 'set', headerTooltip: SCOPE_TOOLTIP },
+            meta: { filterType: 'set', headerTooltip: DEPENDENCY_SCOPE_TOOLTIP },
           },
         ],
       },

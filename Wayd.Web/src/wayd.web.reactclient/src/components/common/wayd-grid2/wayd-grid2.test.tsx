@@ -643,6 +643,14 @@ describe('WaydGrid2', () => {
       const cells = Array.from(bands[0].cells)
       expect(cells.map((c) => c.textContent)).toEqual(['Info', 'State', '', ''])
       expect(cells.map((c) => c.colSpan)).toEqual([2, 1, 1, 1])
+
+      // Empty placeholder + filler cells are hidden from assistive tech.
+      expect(cells.map((c) => c.getAttribute('aria-hidden'))).toEqual([
+        null,
+        null,
+        'true',
+        'true',
+      ])
     })
 
     it('renders no band row for flat (ungrouped) columns', () => {

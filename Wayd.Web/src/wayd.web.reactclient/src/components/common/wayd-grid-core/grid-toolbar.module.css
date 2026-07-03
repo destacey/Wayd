@@ -1,0 +1,30 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ant-margin);
+  /* Match WaydGrid's toolbar→grid spacing: antd Space vertical uses an 8px gap
+     (marginXS). marginSM is 12px in this theme, so xs is the correct token. */
+  margin-bottom: var(--ant-margin-xs);
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ant-margin-xs);
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.toolbarSearch {
+  width: 225px;
+}
+
+.toolbarDivider {
+  width: 1px;
+  height: 30px;
+  background-color: var(--ant-color-split);
+}

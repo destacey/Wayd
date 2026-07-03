@@ -38,8 +38,8 @@ public sealed class PersonalAccessTokenTests
         token.EmployeeId.Should().Be(fakePat.EmployeeId);
         token.ExpiresAt.Should().Be(fakePat.ExpiresAt);
         token.Scopes.Should().Be(fakePat.Scopes);
-        token.IsActive.Should().BeTrue();
-        token.IsExpired.Should().BeFalse();
+        token.IsActiveAt(_now).Should().BeTrue();
+        token.IsExpiredAt(_now).Should().BeFalse();
         token.IsRevoked.Should().BeFalse();
         token.LastUsedAt.Should().BeNull();
         token.RevokedAt.Should().BeNull();
@@ -172,7 +172,7 @@ public sealed class PersonalAccessTokenTests
         token.RevokedAt.Should().Be(revokeTime);
         token.RevokedBy.Should().Be(revokedBy);
         token.IsRevoked.Should().BeTrue();
-        token.IsActive.Should().BeFalse();
+        token.IsActiveAt(revokeTime).Should().BeFalse();
     }
 
     [Fact]
@@ -281,34 +281,29 @@ public sealed class PersonalAccessTokenTests
     }
 
     [Fact]
-    public void IsExpired_ShouldReturnTrue_WhenCurrentTimeIsAfterExpiration()
+    public void IsExpiredAt_ShouldReturnTrue_WhenTimestampIsAfterExpiration()
     {
         // Arrange
         var expiresAt = _now.Plus(Duration.FromDays(1));
         var token = PersonalAccessToken.Create("Test", "hash1234", "hash1234567890", "user1", null, expiresAt, null, _now).Value;
 
         // Act & Assert
-        token.IsExpired.Should().BeFalse(); // Initially not expired
+        token.IsExpiredAt(_now).Should().BeFalse();
 
-        // Fast forward time
         var futureTime = expiresAt.Plus(Duration.FromMinutes(1));
 
-        // The IsExpired property uses SystemClock.Instance.GetCurrentInstant()
-        // In a real scenario, we'd need to mock SystemClock or test at the right time
-        // For now, just verify the logic works with ValidateForUse
-        var validationResult = token.ValidateForUse(futureTime);
-        validationResult.IsFailure.Should().BeTrue();
+        token.IsExpiredAt(futureTime).Should().BeTrue();
     }
 
     [Fact]
-    public void IsActive_ShouldReturnFalse_WhenTokenIsExpiredOrRevoked()
+    public void IsActiveAt_ShouldReturnFalse_WhenTokenIsExpiredOrRevoked()
     {
         // Arrange - Revoked token
         var revokedBy = Guid.NewGuid().ToString();
         var revokedToken = _tokenFaker.WithRevokedToken(revokedBy, _now).Generate();
 
         // Assert
-        revokedToken.IsActive.Should().BeFalse();
+        revokedToken.IsActiveAt(_now).Should().BeFalse();
     }
 
     [Fact]

@@ -1,8 +1,9 @@
-import type { TreeNode } from '@/src/components/common/tree-grid'
+import type { TreeNode } from '@/src/components/common/wayd-grid2'
 import type { WorkItemListDto } from '@/src/services/wayd-api'
 
 /**
- * Extends WorkItemListDto to satisfy the TreeNode interface required by TreeGrid.
+ * Extends WorkItemListDto to satisfy the TreeNode interface required by the
+ * grid's tree mode.
  */
 export interface WorkItemTreeNode extends TreeNode, WorkItemListDto {
   children: WorkItemTreeNode[]

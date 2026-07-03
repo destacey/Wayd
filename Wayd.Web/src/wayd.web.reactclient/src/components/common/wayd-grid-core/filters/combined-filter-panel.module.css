@@ -1,0 +1,35 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin-xs);
+  min-width: 240px;
+  max-width: 340px;
+}
+
+/* "Text Filter" expander header — full-width row with a chevron. */
+.textHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--ant-padding-xxs) var(--ant-padding-xs);
+  font-weight: var(--ant-font-weight-strong);
+  color: var(--ant-color-text);
+  background: transparent;
+  border: none;
+  border-radius: var(--ant-border-radius-sm);
+  cursor: pointer;
+}
+
+.textHeader:hover {
+  background-color: var(--ant-color-fill-tertiary);
+}
+
+.textSection {
+  padding-bottom: var(--ant-margin-xs);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+}
+
+.setSection {
+  min-width: 0;
+}

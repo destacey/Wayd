@@ -1,0 +1,493 @@
+.grid {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Toolbar styles live in wayd-grid-core/grid-toolbar.module.css. */
+
+.tableWrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  border-radius: var(--ant-border-radius-lg);
+  border: 1px solid var(--ant-color-border);
+  background-color: var(--ant-color-bg-container);
+  flex: 1;
+  min-height: 0;
+}
+
+.tableElement {
+  --wayd-grid-header-row-height: 29px;
+  /*
+   * Subtle tinted header band, AG Grid style. Applied to the header + filter rows.
+   * One elevation step above the zebra alt-row tint (fill-quaternary) so the
+   * header stays distinct from both plain and zebra rows. Theme-safe: fill
+   * tokens resolve to the correct subtle overlay per theme (darker in light
+   * themes, lighter in dark themes).
+   */
+  --wayd-grid-header-bg: var(--ant-color-fill-tertiary);
+  /*
+   * Fill the wrapper so the header band and borders paint edge-to-edge (AG Grid
+   * style). Real columns keep their declared sizes via <col> widths; a trailing
+   * filler column (.fillerCol / .fillerTh) absorbs any leftover width instead of
+   * fanning it across the data columns. `min-width` keeps columns from being
+   * squeezed below their sizes when the viewport is narrow (horizontal scroll).
+   */
+  width: 100%;
+  min-width: max-content;
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: transparent;
+  font-size: var(--ant-font-size);
+  table-layout: fixed;
+}
+
+.th {
+  padding: 5px var(--ant-padding-sm);
+  background-color: var(--wayd-grid-header-bg);
+  border-bottom: 1px solid var(--ant-color-border);
+  color: var(--ant-color-text);
+  text-align: left;
+  font-size: 12px;
+  font-weight: var(--ant-font-weight-strong);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 0;
+}
+
+.thSortable {
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/*
+ * Trailing filler column. Its <col> has no width so it absorbs all leftover
+ * table width, letting the header band, filter band, and row backgrounds paint
+ * edge-to-edge while the real columns keep their declared sizes. The filler
+ * cells are non-interactive and draw no content or right-edge divider.
+ */
+.fillerCol {
+  width: auto;
+}
+
+.fillerTh {
+  padding: 0;
+  cursor: default;
+}
+
+.fillerTh::after {
+  display: none;
+}
+
+.thResizable {
+  padding-left: var(--ant-padding-sm);
+}
+
+/* Gap between the header title and the column divider on the right edge. */
+.thResizable .thContent {
+  padding-right: var(--ant-padding-sm);
+}
+
+.thContent {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ant-margin-xs);
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.thText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Floating-filter cell: input fills the width, filter-popup icon on the right. */
+.floatingCell {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-margin-xxs);
+  min-width: 0;
+}
+
+.floatingCell > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+/*
+ * Set-filter display box — a compact, read-only summary that opens the
+ * SetFilterPanel. Styled like a (non-editable) input; the enclosing
+ * .floatingCell is the click trigger.
+ */
+.setSummary {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  min-width: 0;
+  padding: 0 var(--ant-padding-xs);
+  font-size: var(--ant-font-size-sm);
+  color: var(--ant-color-text);
+  background-color: var(--ant-color-bg-container-disabled);
+  border: 1px solid var(--ant-color-border);
+  border-radius: var(--ant-border-radius);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.floatingCell:hover .setSummary {
+  border-color: var(--ant-color-primary-hover);
+}
+
+
+.filterTrigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--ant-color-text-quaternary);
+  font-size: 11px;
+  flex-shrink: 0;
+  padding: 2px;
+  border-radius: var(--ant-border-radius-sm);
+  transition: color 0.2s;
+}
+
+.filterTrigger:hover {
+  color: var(--ant-color-text-secondary);
+}
+
+.filterTriggerActive,
+.filterTriggerActive:hover {
+  color: var(--ant-color-primary);
+}
+
+.resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 10px;
+  height: 100%;
+  cursor: col-resize;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+  z-index: 1;
+}
+
+/*
+ * Active-resize highlight. The static divider line is drawn by .th::after
+ * (see below) for all columns; while actively resizing, tint the cell divider
+ * with the primary color.
+ */
+.resizerActive::after {
+  content: '';
+  position: absolute;
+  top: var(--ant-padding-xs);
+  bottom: var(--ant-padding-xs);
+  right: 0;
+  width: 1px;
+  background-color: var(--ant-color-primary);
+  opacity: 1;
+  z-index: 2;
+}
+
+.filterTh {
+  padding: 4px 4px;
+  background-color: var(--wayd-grid-header-bg);
+  border-bottom: 1px solid var(--ant-color-border);
+  color: var(--ant-color-text);
+  font-weight: normal;
+  overflow: hidden;
+  text-align: left;
+  position: sticky;
+  top: var(--wayd-grid-header-row-height);
+  z-index: 19;
+}
+
+/*
+ * Subtle vertical column dividers for the header and filter rows.
+ * Rendered as a ::after line matching the resizer grip, so every column gets a
+ * divider — including columns with no header title or no filter (e.g. an
+ * actions column). Suppressed on the last column.
+ */
+.th::after,
+.filterTh::after {
+  content: '';
+  position: absolute;
+  top: var(--ant-padding-xs);
+  bottom: var(--ant-padding-xs);
+  right: 0;
+  width: 1px;
+  background-color: var(--ant-color-border);
+  opacity: 0.7;
+}
+
+.th:last-child::after,
+.filterTh:last-child::after {
+  display: none;
+}
+
+.filterControl {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.filterControl.antInputAffixWrapper {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.filterControl.antInputAffixWrapper :global(.ant-input) {
+  min-width: 0;
+  font-weight: normal;
+}
+
+.filterControl.antSelect {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  position: relative;
+}
+
+.filterControl.antSelect :global(.ant-select-selector) {
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  flex-wrap: nowrap !important;
+  overflow: hidden;
+}
+
+.filterControl.antSelect :global(.ant-select-selection-item) {
+  font-weight: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+}
+
+.filterControl.antSelect :global(.ant-select-selection-overflow) {
+  flex-wrap: nowrap !important;
+  overflow: hidden;
+}
+
+.filterControl.antSelect :global(.ant-select-selection-overflow-item) {
+  flex-shrink: 1;
+  max-width: 100%;
+}
+
+.filterControl.antSelect :global(.ant-select-selection-search) {
+  min-width: 0;
+}
+
+.filterControl.antSelect :global(.ant-select-selection-search-input) {
+  font-weight: normal;
+}
+
+.filterControl.antSelect :global(.ant-select-clear) {
+  margin-right: 10px;
+}
+
+.filterPopup {
+  min-width: 220px;
+}
+
+.td {
+  padding: 2px 7px;
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+  color: var(--ant-color-text);
+  font-size: 12px;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0;
+}
+
+.tr {
+  cursor: default;
+}
+
+.tr:hover .td {
+  background-color: var(--ant-color-fill-secondary);
+}
+
+.trAlt .td {
+  background-color: var(--ant-color-fill-quaternary);
+}
+
+/*
+ * Loading/empty status band. The classes go on a DIV inside the spanning
+ * <td> (display:flex directly on a td breaks table-cell rendering), and
+ * .tableElementFill stretches the table while the band is shown so the
+ * single status row fills the wrapper and centers its content vertically
+ * (the td is vertical-align: middle).
+ */
+.tableElementFill {
+  height: 100%;
+}
+
+.empty {
+  padding: var(--ant-padding-lg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading {
+  padding: var(--ant-padding-lg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ─── Tree mode: inline editing ─────────────────────────── */
+
+.trEditable {
+  cursor: pointer;
+}
+
+.trSelected .td {
+  background-color: var(--ant-color-bg-container);
+}
+
+.editableCell {
+  padding: 1px 4px !important;
+}
+
+.editableCell :global(.ant-input),
+.editableCell :global(.ant-select),
+.editableCell :global(.ant-picker) {
+  width: 100%;
+  font-size: 12px;
+}
+
+.validationErrorRow {
+  background-color: var(--ant-color-error-bg);
+}
+
+.validationErrorCell {
+  color: var(--ant-color-error);
+  font-size: 12px;
+  padding: 12px;
+  border-top: 1px solid var(--ant-color-error-border);
+}
+
+.validationErrorItem {
+  margin-bottom: 4px;
+}
+
+.validationErrorItem:last-child {
+  margin-bottom: 0;
+}
+
+.validationErrorField {
+  font-weight: 500;
+}
+
+/* ─── Tree mode: caller-column building blocks ──────────── */
+
+.expanderBtn {
+  padding: 0 4px;
+}
+
+.expanderBtn :global(.anticon) {
+  font-size: 12px;
+}
+
+.nameCell {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-margin-xxs);
+  min-width: 0;
+  width: 100%;
+}
+
+.indentSpacer {
+  display: inline-block;
+  width: 24px;
+  flex: 0 0 24px;
+}
+
+.phaseName {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inlineRowAction {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.rowActionBtn {
+  padding: 0 4px;
+  height: 20px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.colorPickerFocusTarget {
+  display: inline-flex;
+  width: 100%;
+  outline: none;
+}
+
+.colorPickerFocusTarget:focus {
+  outline: none;
+}
+
+.colorPickerFocusTarget:focus-visible :global(.ant-color-picker-trigger),
+.colorPickerFocusTarget:focus-within :global(.ant-color-picker-trigger) {
+  border-color: var(--ant-color-primary);
+  box-shadow:
+    0 0 0 var(--ant-control-outline-width, 2px) var(--ant-control-outline);
+  outline: none;
+}
+
+.tr:hover .inlineRowAction,
+.trSelected .inlineRowAction {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ─── Tree mode: drag and drop ──────────────────────────── */
+
+.dragHandle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  transition: opacity 0.2s;
+}
+
+.dragHandle:hover {
+  opacity: 0.8;
+}
+
+.tr[data-dragging='true'] {
+  opacity: 0.4;
+  position: relative;
+  z-index: 999;
+}
+
+.tr[data-dragging='true'] .td {
+  background-color: var(--ant-color-fill-tertiary);
+}

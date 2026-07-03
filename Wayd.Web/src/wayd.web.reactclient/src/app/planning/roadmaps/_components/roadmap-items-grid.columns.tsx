@@ -14,15 +14,13 @@ import dayjs from 'dayjs'
 import { ColumnDef } from '@tanstack/react-table'
 import { WaydColorPicker } from '@/src/components/common'
 import { useRef } from 'react'
-import styles from '@/src/components/common/tree-grid/tree-grid.module.css'
+import styles from '@/src/components/common/wayd-grid2/wayd-grid2.module.css'
 import {
   type FilterOption,
-  type TreeGridColumnMeta,
-  stringContainsFilter,
-  setContainsFilter,
+  type WaydGridColumnMeta,
   dateSortBy,
-  useTreeGridDragHandle,
-} from '@/src/components/common/tree-grid'
+  useGridDragHandle,
+} from '@/src/components/common/wayd-grid2'
 import type { RoadmapItemTreeNode } from './roadmap-items-grid'
 import type { RoadmapColorDto } from '@/src/services/wayd-api'
 import RoadmapColorPicker from './roadmap-color-picker'
@@ -62,7 +60,7 @@ function DragHandleCell({
   isDragEnabled: boolean
   isActivity: boolean
 }) {
-  const { listeners, attributes } = useTreeGridDragHandle()
+  const { listeners, attributes } = useGridDragHandle()
 
   if (!isDragEnabled || !isActivity) {
     return null
@@ -252,7 +250,7 @@ export const getRoadmapItemsGridColumns = ({
             enableGlobalFilter: false,
             enableColumnFilter: false,
             enableResizing: false,
-            meta: { enableExport: false } satisfies TreeGridColumnMeta,
+            meta: { enableExport: false } satisfies WaydGridColumnMeta,
             cell: ({ row }: { row: any }) => {
               const item = row.original as RoadmapItemTreeNode
               const isDraft = item.id.startsWith('draft-')
@@ -303,7 +301,6 @@ export const getRoadmapItemsGridColumns = ({
       header: 'Name',
       size: 300,
       enableColumnFilter: true,
-      filterFn: 'includesString',
       sortingFn: 'alphanumeric',
       cell: ({ row }: { row: any }) => {
         const item = row.original as RoadmapItemTreeNode
@@ -411,12 +408,11 @@ export const getRoadmapItemsGridColumns = ({
       size: 110,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      filterFn: setContainsFilter,
       sortingFn: 'text',
       meta: {
         filterType: 'select',
         filterOptions: typeFilterOptions,
-      } satisfies TreeGridColumnMeta,
+      } satisfies WaydGridColumnMeta,
       cell: ({ row }: { row: any }) => {
         const item = row.original as RoadmapItemTreeNode
         const isSelected = selectedRowId === item.id
@@ -453,7 +449,6 @@ export const getRoadmapItemsGridColumns = ({
       size: 120,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      filterFn: 'includesString',
       sortingFn: dateSortBy((row: any) => {
         const item = row.original as RoadmapItemTreeNode
         return item.type === 'Milestone' ? item.date : item.start
@@ -463,7 +458,7 @@ export const getRoadmapItemsGridColumns = ({
           const dateValue = row.type === 'Milestone' ? row.date : row.start
           return formatDate(dateValue)
         },
-      } satisfies TreeGridColumnMeta,
+      } satisfies WaydGridColumnMeta,
       cell: ({ row }: { row: any }) => {
         const item = row.original as RoadmapItemTreeNode
         const isSelected = selectedRowId === item.id
@@ -513,11 +508,10 @@ export const getRoadmapItemsGridColumns = ({
       size: 120,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      filterFn: 'includesString',
       sortingFn: dateSortBy((row: any) => row.original.end),
       meta: {
         exportFormatter: (value) => formatDate(value as string | null),
-      } satisfies TreeGridColumnMeta,
+      } satisfies WaydGridColumnMeta,
       cell: ({ row }: { row: any }) => {
         const item = row.original as RoadmapItemTreeNode
         const isSelected = selectedRowId === item.id
@@ -567,13 +561,12 @@ export const getRoadmapItemsGridColumns = ({
       enableSorting: false,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      filterFn: stringContainsFilter,
       meta: {
         exportFormatter: (_value, row) => {
           if (row.type === 'Timebox') return ''
           return colorDisplayText(row.color)
         },
-      } satisfies TreeGridColumnMeta,
+      } satisfies WaydGridColumnMeta,
       cell: ({ row }: { row: any }) => {
         const item = row.original as RoadmapItemTreeNode
         const isSelected = selectedRowId === item.id

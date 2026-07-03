@@ -27,8 +27,6 @@ using Wayd.Integrations.Workday;
 using Wayd.Integrations.Workday.Soap;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
-using NodaTime;
-
 namespace Wayd.Infrastructure;
 
 public static class ConfigureServices
@@ -77,7 +75,7 @@ public static class ConfigureServices
         TypeAdapterConfig.GlobalSettings.Scan(assembly);
         TypeAdapterConfig.GlobalSettings.ScanInheritedTypes(assembly);
 
-        services.AddSingleton<IClock>(SystemClock.Instance);
+        services.AddSingleton(TimeProvider.System);
 
         services.AddMemoryCache();
 

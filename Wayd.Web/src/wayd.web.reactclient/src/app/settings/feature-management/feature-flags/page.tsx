@@ -1,21 +1,27 @@
 'use client'
 
 import PageTitle from '@/src/components/common/page-title'
-import WaydGrid from '../../../../components/common/wayd-grid'
+import {
+  WaydGrid2,
+  createActionsColumn,
+} from '@/src/components/common/wayd-grid2'
 import { useMemo, useState } from 'react'
+import { Button } from 'antd'
+import type { ColumnDef } from '@tanstack/react-table'
 import { authorizePage } from '../../../../components/hoc'
 import useAuth from '../../../../components/contexts/auth'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { useDocumentTitle } from '../../../../hooks'
-import { ControlItemSwitch } from '../../../../components/common/control-items-menu'
-import { RowMenuCellRenderer } from '../../../../components/common/wayd-grid-cell-renderers'
+import {
+  ControlItemsMenu,
+  ControlItemSwitch,
+} from '../../../../components/common/control-items-menu'
 import { FeatureFlagListDto } from '@/src/services/wayd-api'
 import { useGetFeatureFlagsQuery } from '@/src/store/features/admin/feature-flags-api'
 import EditFeatureFlagForm from './_components/edit-feature-flag-form'
 import FeatureFlagDetailsDrawer from './_components/feature-flag-details-drawer'
 import useFeatureFlagActions from './_components/use-feature-flag-actions'
-import { ColDef } from 'ag-grid-community'
-import { CustomCellRendererProps } from 'ag-grid-react'
+
 const FeatureFlagsListPage = () => {
   useDocumentTitle('Feature Flags')
   const [editingFlagId, setEditingFlagId] = useState<number | null>(null)
@@ -45,23 +51,17 @@ const FeatureFlagsListPage = () => {
     setViewingFlagId(null)
   }
 
-  const columnDefs = useMemo<ColDef<FeatureFlagListDto>[]>(() => {
+  const columns = useMemo<ColumnDef<FeatureFlagListDto, any>[]>(() => {
     const openDetailsDrawer = (id: number) => {
       setViewingFlagId(id)
       setDrawerOpen(true)
     }
 
     return [
-      {
-        width: 50,
-        filter: false,
-        sortable: false,
-        resizable: false,
+      createActionsColumn<FeatureFlagListDto>({
         hide: !showRowActions,
-        suppressHeaderMenuButton: true,
-        cellRenderer: (params: CustomCellRendererProps<FeatureFlagListDto>) => {
-          const flag = params.data
-          if (!flag) return null
+        ariaLabel: 'Feature flag actions',
+        getItems: (flag) => {
           const items: ItemType[] = []
 
           if (canUpdate) {
@@ -89,67 +89,92 @@ const FeatureFlagsListPage = () => {
             })
           }
 
-          return <RowMenuCellRenderer {...params} menuItems={items} />
+          return items
+        },
+      }),
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        size: 250,
+        cell: ({ row }) => (
+          // A real button (styled as a link) — an href-less <a> isn't
+          // keyboard-focusable and reads inconsistently to assistive tech.
+          <Button
+            type="link"
+            style={{ padding: 0, height: 'auto', fontSize: 'inherit' }}
+            onClick={() => openDetailsDrawer(row.original.id)}
+          >
+            {row.original.name}
+          </Button>
+        ),
+      },
+      {
+        id: 'displayName',
+        accessorKey: 'displayName',
+        header: 'Display Name',
+        size: 250,
+      },
+      {
+        id: 'isSystem',
+        accessorFn: (row) => (row.isSystem ? 'System' : 'User'),
+        header: 'Type',
+        size: 120,
+        meta: {
+          filterType: 'set',
+          filterOptions: [
+            { label: 'System', value: 'System' },
+            { label: 'User', value: 'User' },
+          ],
         },
       },
       {
-        field: 'name',
-        headerName: 'Name',
-        width: 250,
-        cellRenderer: ({
-          data,
-        }: CustomCellRendererProps<FeatureFlagListDto>) =>
-          data ? (
-            <a onClick={() => openDetailsDrawer(data.id)}>{data.name}</a>
-          ) : null,
-      },
-      { field: 'displayName', headerName: 'Display Name', width: 250 },
-      {
-        field: 'isSystem',
-        headerName: 'Type',
-        width: 120,
-        cellDataType: false,
-        valueFormatter: ({ value }) => (value ? 'System' : 'User'),
+        id: 'isEnabled',
+        accessorKey: 'isEnabled',
+        header: 'Enabled',
+        meta: { columnType: 'yesNo' },
       },
       {
-        field: 'isEnabled',
-        headerName: 'Enabled',
-        width: 120,
-        cellDataType: false,
-        valueFormatter: ({ value }) => (value ? 'true' : 'false'),
-      },
-      {
-        field: 'isArchived',
-        headerName: 'Archived',
-        width: 120,
-        hide: !includeArchived,
-      },
-    ]}, [showRowActions, canUpdate, canDelete, includeArchived, handleToggle, handleArchive])
-
-  const controlItems: ItemType[] = [
-      {
-        label: (
-          <ControlItemSwitch
-            label="Include Archived"
-            checked={includeArchived}
-            onChange={setIncludeArchived}
-          />
-        ),
-        key: 'include-archived',
-        onClick: () => setIncludeArchived((prev) => !prev),
+        id: 'isArchived',
+        accessorKey: 'isArchived',
+        header: 'Archived',
+        meta: { columnType: 'yesNo', hide: !includeArchived },
       },
     ]
+  }, [
+    showRowActions,
+    canUpdate,
+    canDelete,
+    includeArchived,
+    handleToggle,
+    handleArchive,
+  ])
+
+  const controlItems: ItemType[] = [
+    {
+      label: (
+        <ControlItemSwitch
+          label="Include Archived"
+          checked={includeArchived}
+          onChange={setIncludeArchived}
+        />
+      ),
+      key: 'include-archived',
+      onClick: () => setIncludeArchived((prev) => !prev),
+    },
+  ]
 
   return (
     <>
       <PageTitle title="Feature Flags" />
-      <WaydGrid
+      <WaydGrid2
         height={600}
-        columnDefs={columnDefs}
-        rowData={featureFlags}
-        loadData={refresh}
-        loading={isLoading}
-        gridControlMenuItems={controlItems}
+        columns={columns}
+        data={featureFlags}
+        onRefresh={refresh}
+        isLoading={isLoading}
+        csvFileName="feature-flags"
+        rightSlot={<ControlItemsMenu items={controlItems} />}
       />
       {editingFlagId !== null && (
         <EditFeatureFlagForm

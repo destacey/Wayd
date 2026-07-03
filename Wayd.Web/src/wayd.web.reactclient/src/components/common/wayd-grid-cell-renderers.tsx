@@ -28,26 +28,6 @@ export interface HealthCheckStatusColumn {
   expiration: Date
 }
 
-export const NestedPiObjectiveHealthCheckStatusCellRenderer = <
-  T extends {
-    id: string
-    healthCheck: HealthCheckStatusColumn | null
-    planningInterval?: { id: string }
-  },
->(
-  props: CustomCellRendererProps<T>,
-) => {
-  const { data } = props
-  if (!data?.healthCheck) return null
-  return (
-    <PiObjectiveHealthCheckTag
-      healthCheck={data.healthCheck}
-      planningIntervalId={data.planningInterval?.id}
-      objectiveId={data.id}
-    />
-  )
-}
-
 export const PiObjectiveHealthCheckStatusCellRenderer = (
   props: CustomCellRendererProps<HealthCheckStatusColumn>,
 ) => {
@@ -176,20 +156,6 @@ export const PlanningIntervalObjectiveLinkCellRenderer = (
       href={`/planning/planning-intervals/${data.planningInterval?.key}/objectives/${data.key}`}
     >
       {data.name}
-    </Link>
-  )
-}
-
-export const NestedPlanningIntervalLinkCellRenderer = <
-  T extends { planningInterval: NavigationDto | null },
->(
-  props: CustomCellRendererProps<T>,
-) => {
-  const { data } = props
-  if (!data?.planningInterval) return null
-  return (
-    <Link href={`/planning/planning-intervals/${data.planningInterval.key}`}>
-      {data.planningInterval.name}
     </Link>
   )
 }

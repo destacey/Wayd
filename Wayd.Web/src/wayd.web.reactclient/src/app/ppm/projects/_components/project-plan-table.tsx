@@ -3,18 +3,22 @@
 import { ProjectPlanNodeDto } from '@/src/services/wayd-api'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dayjs from 'dayjs'
-import { findOwnChildrenSpan, getChildrenContainmentError, isShiftOnlyChange } from './project-parent-date-hint'
+import {
+  findOwnChildrenSpan,
+  getChildrenContainmentError,
+  isShiftOnlyChange,
+} from './project-parent-date-hint'
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
   type DraftItem,
   type FilterOption,
   type MoveValidator,
-  type TreeGridHandle,
+  type WaydGrid2Handle,
   defaultMoveValidator,
   findNodeById,
-  TreeGrid,
-} from '@/src/components/common/tree-grid'
+  WaydGrid2,
+} from '@/src/components/common/wayd-grid2'
 import CreateProjectTaskForm from './create-project-task-form'
 import DeleteProjectTaskForm from './delete-project-task-form'
 import EditProjectPhaseForm from './edit-project-phase-form'
@@ -58,7 +62,7 @@ const ProjectPlanTable = ({
   enableDragAndDrop = true,
 }: ProjectPlanTableProps) => {
   const [form] = Form.useForm()
-  const treeGridRef = useRef<TreeGridHandle>(null)
+  const treeGridRef = useRef<WaydGrid2Handle>(null)
   const messageApi = useMessage()
 
   // Modal form state
@@ -68,9 +72,13 @@ const ProjectPlanTable = ({
   const [openEditPhaseForm, setOpenEditPhaseForm] = useState(false)
   const [openPlanItemDrawer, setOpenPlanItemDrawer] = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>()
-  const [createParentTaskId, setCreateParentTaskId] = useState<string | undefined>()
+  const [createParentTaskId, setCreateParentTaskId] = useState<
+    string | undefined
+  >()
   const [selectedPhaseId, setSelectedPhaseId] = useState<string | undefined>()
-  const [selectedPlanItemId, setSelectedPlanItemId] = useState<string | null>(null)
+  const [selectedPlanItemId, setSelectedPlanItemId] = useState<string | null>(
+    null,
+  )
 
   // Field errors (owned here for Form.useWatch access)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -117,25 +125,20 @@ const ProjectPlanTable = ({
     }
   }, [isSelectedRowMilestone, form, taskStatusOptions])
 
+  const taskTypeFilterOptions = useMemo(() => {
+    const options = taskTypeOptions
+      .map((o: any) => {
+        const label = (o?.label ?? '') as string
+        return label ? { label, value: label } : null
+      })
+      .filter((x): x is FilterOption => x !== null)
 
+    if (!options.some((o) => o.value === 'Phase')) {
+      options.unshift({ label: 'Phase', value: 'Phase' })
+    }
 
-  const taskTypeFilterOptions = useMemo(
-    () => {
-      const options = taskTypeOptions
-        .map((o: any) => {
-          const label = (o?.label ?? '') as string
-          return label ? { label, value: label } : null
-        })
-        .filter((x): x is FilterOption => x !== null)
-
-      if (!options.some((o) => o.value === 'Phase')) {
-        options.unshift({ label: 'Phase', value: 'Phase' })
-      }
-
-      return options
-    },
-    [taskTypeOptions],
-  )
+    return options
+  }, [taskTypeOptions])
 
   const taskStatusFilterOptions = useMemo(
     () =>
@@ -723,7 +726,8 @@ const ProjectPlanTable = ({
         const childrenSpan = findOwnChildrenSpan(tasks, rowId)
         if (childrenSpan) {
           if (!hasPlannedStart || !hasPlannedEnd) {
-            const message = 'Planned dates cannot be cleared when child items have dates.'
+            const message =
+              'Planned dates cannot be cleared when child items have dates.'
             errors.plannedStart = message
             errors.plannedEnd = message
           } else {
@@ -732,10 +736,19 @@ const ProjectPlanTable = ({
             const originalStart = task.start ? dayjs(task.start) : null
             const originalEnd = task.end ? dayjs(task.end) : null
 
-            const isShift = isShiftOnlyChange(originalStart, originalEnd, start, end)
+            const isShift = isShiftOnlyChange(
+              originalStart,
+              originalEnd,
+              start,
+              end,
+            )
 
             if (!isShift) {
-              const containmentError = getChildrenContainmentError(childrenSpan, start, end)
+              const containmentError = getChildrenContainmentError(
+                childrenSpan,
+                start,
+                end,
+              )
               if (containmentError) {
                 if (containmentError.startsWith('Start')) {
                   errors.plannedStart = containmentError
@@ -772,9 +785,10 @@ const ProjectPlanTable = ({
   return (
     <>
       <Form form={form} component={false}>
-        <TreeGrid<ProjectPlanNodeDto>
+        <WaydGrid2<ProjectPlanNodeDto>
           ref={treeGridRef}
           data={tasks}
+          getSubRows={(row) => row.children as ProjectPlanNodeDto[]}
           isLoading={isLoading}
           columns={(ctx) =>
             getProjectPlanTableColumns({
@@ -834,7 +848,13 @@ const ProjectPlanTable = ({
                 rowId,
               ) as ProjectPlanNodeDto | null
               if (node && isPhaseNode(node)) {
-                return ['status', 'plannedStart', 'plannedEnd', 'assignees', 'progress']
+                return [
+                  'status',
+                  'plannedStart',
+                  'plannedEnd',
+                  'assignees',
+                  'progress',
+                ]
               }
               const base = [
                 'name',

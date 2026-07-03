@@ -1,0 +1,20 @@
+.control {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  font-weight: normal;
+}
+
+/* Keep multi-select tags on a single line so the floating row stays compact. */
+.control:global(.ant-select) :global(.ant-select-selector) {
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: nowrap !important;
+  overflow: hidden;
+}
+
+.control:global(.ant-select) :global(.ant-select-selection-overflow) {
+  flex-wrap: nowrap !important;
+  overflow: hidden;
+}

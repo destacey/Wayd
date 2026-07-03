@@ -1,0 +1,53 @@
+.popup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin-xs);
+  min-width: 240px;
+  max-width: 320px;
+}
+
+.conditionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin-xxs);
+}
+
+.conditionRow {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-margin-xxs);
+}
+
+.opSelect {
+  flex: 1;
+  min-width: 0;
+}
+
+.valueInput {
+  width: 100%;
+}
+
+.rangeRow {
+  display: flex;
+  gap: var(--ant-margin-xxs);
+}
+
+.rangeRow .valueInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.join {
+  align-self: flex-start;
+}
+
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ant-margin-xxs);
+  margin-top: var(--ant-margin-xxs);
+  padding-top: var(--ant-margin-xxs);
+  border-top: 1px solid var(--ant-color-border-secondary);
+}

@@ -24,7 +24,11 @@ export const generateCsv = (headers: string[], rows: unknown[][]): string => {
  * Downloads CSV file
  */
 export const downloadCsv = (csvContent: string, filename: string): void => {
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  // Prepend a UTF-8 BOM so spreadsheet apps (notably Excel) detect UTF-8 and
+  // render multibyte characters (accents, emoji/icons) correctly instead of
+  // falling back to a legacy code page (which mojibakes e.g. 🚀 → "ðŸš€").
+  const BOM = '\uFEFF'
+  const blob = new Blob([BOM, csvContent], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
 
   const link = document.createElement('a')

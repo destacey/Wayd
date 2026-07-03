@@ -103,12 +103,12 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
     /// <summary>
     /// Indicates whether this token is currently active (not expired and not revoked).
     /// </summary>
-    public bool IsActive => !IsExpired && !IsRevoked;
+    public bool IsActiveAt(Instant timestamp) => !IsExpiredAt(timestamp) && !IsRevoked;
 
     /// <summary>
     /// Indicates whether this token has expired.
     /// </summary>
-    public bool IsExpired => ExpiresAt <= SystemClock.Instance.GetCurrentInstant();
+    public bool IsExpiredAt(Instant timestamp) => ExpiresAt <= timestamp;
 
     /// <summary>
     /// Indicates whether this token has been revoked.

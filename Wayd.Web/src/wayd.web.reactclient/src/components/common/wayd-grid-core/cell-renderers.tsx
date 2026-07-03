@@ -1,7 +1,10 @@
+import { ExportOutlined } from '@ant-design/icons'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { teamUrl, type TeamUrlTarget } from '@/src/utils'
+import WorkStatusTag from '@/src/components/common/work/work-status-tag'
+import type { WorkStatusCategory } from '@/src/components/types'
 
 /**
  * Cell renderers for WaydGrid2 columns.
@@ -122,4 +125,88 @@ export const renderUserLink = (
       {user.userName || user.id}
     </Link>
   )
+}
+
+/**
+ * A work item reference: keyed within its workspace, optionally carrying an
+ * external-system URL. Both the primary and parent work-item renderers share
+ * this shape (the parent nav DTO uses `workspaceKey` directly rather than a
+ * nested `workspace`).
+ */
+export interface WorkItemLinkTarget {
+  key: string
+  workspaceKey: string
+  externalViewWorkItemUrl?: string | null
+  /** Optional label; defaults to the key. */
+  label?: string | null
+}
+
+/**
+ * Renders a work item as a link to its detail page, with an optional
+ * external-system link icon when `externalViewWorkItemUrl` is set. Returns
+ * `null` when absent. The label defaults to the work item's key.
+ */
+export const renderWorkItemLink = (
+  workItem: WorkItemLinkTarget | null | undefined,
+): ReactNode => {
+  if (!workItem) return null
+  return (
+    <>
+      <Link
+        href={`/work/workspaces/${workItem.workspaceKey}/work-items/${workItem.key}`}
+        prefetch={false}
+      >
+        {workItem.label ?? workItem.key}
+      </Link>
+      {workItem.externalViewWorkItemUrl && (
+        <Link
+          href={workItem.externalViewWorkItemUrl}
+          target="_blank"
+          title="Open in external system"
+          style={{ marginLeft: '5px' }}
+        >
+          <ExportOutlined style={{ width: '10px' }} />
+        </Link>
+      )}
+    </>
+  )
+}
+
+/** An assignable employee reference: keyed, labeled by name. */
+export interface AssignedToLinkTarget {
+  key: number | string
+  name?: string | null
+}
+
+/**
+ * Renders an assigned employee as a link to their organization page. Returns
+ * `null` when unassigned. (Employees route by `key` here, unlike the user-
+ * management {@link renderUserLink}, which routes by `id`.)
+ */
+export const renderAssignedToLink = (
+  assignedTo: AssignedToLinkTarget | null | undefined,
+): ReactNode => {
+  if (!assignedTo) return null
+  return (
+    <Link href={`/organizations/employees/${assignedTo.key}`} prefetch={false}>
+      {assignedTo.name}
+    </Link>
+  )
+}
+
+/** A work status paired with its category (drives the tag color). */
+export interface WorkStatusTagTarget {
+  status: string
+  statusCategory: { id: WorkStatusCategory }
+}
+
+/**
+ * Renders a work item's status as a colored {@link WorkStatusTag}, keyed off the
+ * status category. Returns `null` when there's no status.
+ */
+export const renderWorkStatusTag = (
+  item: WorkStatusTagTarget | null | undefined,
+): ReactNode => {
+  if (!item?.status) return null
+  return <WorkStatusTag status={item.status} category={item.statusCategory.id} />
 }

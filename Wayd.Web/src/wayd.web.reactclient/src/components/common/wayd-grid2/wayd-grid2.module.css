@@ -26,8 +26,18 @@
    * header stays distinct from both plain and zebra rows. Theme-safe: fill
    * tokens resolve to the correct subtle overlay per theme (darker in light
    * themes, lighter in dark themes).
+   *
+   * The fill token is semi-transparent, so the sticky header/filter rows MUST
+   * composite it over an OPAQUE base — otherwise rows scrolling underneath show
+   * through the header (it's sticky, they aren't). We layer the tint over the
+   * container background as a flat gradient so the result is fully opaque.
    */
-  --wayd-grid-header-bg: var(--ant-color-fill-tertiary);
+  --wayd-grid-header-tint: var(--ant-color-fill-tertiary);
+  --wayd-grid-header-bg: linear-gradient(
+      var(--wayd-grid-header-tint),
+      var(--wayd-grid-header-tint)
+    )
+    var(--ant-color-bg-container);
   /*
    * Fill the wrapper so the header band and borders paint edge-to-edge (AG Grid
    * style). Real columns keep their declared sizes via <col> widths; a trailing
@@ -46,7 +56,7 @@
 
 .th {
   padding: 5px var(--ant-padding-sm);
-  background-color: var(--wayd-grid-header-bg);
+  background: var(--wayd-grid-header-bg);
   border-bottom: 1px solid var(--ant-color-border);
   color: var(--ant-color-text);
   text-align: left;
@@ -208,7 +218,7 @@
 
 .filterTh {
   padding: 4px 4px;
-  background-color: var(--wayd-grid-header-bg);
+  background: var(--wayd-grid-header-bg);
   border-bottom: 1px solid var(--ant-color-border);
   color: var(--ant-color-text);
   font-weight: normal;

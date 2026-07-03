@@ -95,3 +95,51 @@ export const sortEmptyLast: SortingFn<any> = (
 
   return compareNonEmpty(a, b)
 }
+
+/**
+ * Sorts work-item keys of the form `PREFIX-NUMBER` (e.g. `WEB-42`) by prefix
+ * first (alphabetically) then by the numeric suffix — so `WEB-9` sorts before
+ * `WEB-10`, unlike a plain string sort. Empty keys sort to the end (ascending).
+ * A TanStack `sortingFn` mirroring the old AG Grid `workItemKeyComparator`.
+ */
+export const workItemKeySort: SortingFn<any> = (
+  rowA: Row<any>,
+  rowB: Row<any>,
+  columnId: string,
+): number => {
+  const a = rowA.getValue(columnId) as string | null | undefined
+  const b = rowB.getValue(columnId) as string | null | undefined
+
+  if (!a && !b) return 0
+  if (!a) return 1 // empty keys sort to the end
+  if (!b) return -1
+
+  const [prefixA, numA] = a.split('-')
+  const [prefixB, numB] = b.split('-')
+
+  if (prefixA < prefixB) return -1
+  if (prefixA > prefixB) return 1
+
+  return parseInt(numA) - parseInt(numB)
+}
+
+/** Work status categories in workflow order; drives {@link workStatusCategorySort}. */
+const WORK_STATUS_CATEGORY_ORDER = ['Proposed', 'Active', 'Done', 'Removed']
+
+/**
+ * Sorts a work status category column by its position in the workflow
+ * (Proposed → Active → Done → Removed) rather than alphabetically. A TanStack
+ * `sortingFn` mirroring the old AG Grid `workStatusCategoryComparator`.
+ */
+export const workStatusCategorySort: SortingFn<any> = (
+  rowA: Row<any>,
+  rowB: Row<any>,
+  columnId: string,
+): number => {
+  const a = rowA.getValue(columnId) as string
+  const b = rowB.getValue(columnId) as string
+  return (
+    WORK_STATUS_CATEGORY_ORDER.indexOf(a) -
+    WORK_STATUS_CATEGORY_ORDER.indexOf(b)
+  )
+}

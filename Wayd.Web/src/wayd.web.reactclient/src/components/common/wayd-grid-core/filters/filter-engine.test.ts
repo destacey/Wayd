@@ -3,8 +3,15 @@
 // needs real date math, so restore the actual dayjs for these tests.
 jest.mock('dayjs', () => jest.requireActual('dayjs'))
 
-import { evaluateFilterModel, toDayKey } from './filter-engine'
+import type { Row } from '@tanstack/react-table'
+
+import {
+  createMultiValueSetFilter,
+  evaluateFilterModel,
+  toDayKey,
+} from './filter-engine'
 import type {
+  ColumnFilterModel,
   DateFilterModel,
   DateSetFilterModel,
   DateTimeFilterModel,
@@ -288,6 +295,69 @@ describe('filter-engine', () => {
       // Act / Assert
       expect(evaluateFilterModel(m, null)).toBe(false)
       expect(evaluateFilterModel(m, 'not-a-date')).toBe(false)
+    })
+  })
+
+  describe('createMultiValueSetFilter', () => {
+    interface RoleRow {
+      roles: string[]
+    }
+
+    // Minimal Row stand-in: the filter only reads `.original` and `.getValue()`.
+    const fakeRow = (roles: string[]): Row<RoleRow> =>
+      ({
+        original: { roles },
+        getValue: () => roles.join(', '),
+      }) as unknown as Row<RoleRow>
+
+    const filter = createMultiValueSetFilter<RoleRow>((row) => row.roles)
+    const run = (roles: string[], model: ColumnFilterModel | undefined) =>
+      filter(fakeRow(roles), 'roles', model, () => {})
+
+    const set = (values: string[]): SetFilterModel => ({ type: 'set', values })
+    const text = (value: string): TextFilterModel => ({
+      type: 'text',
+      conditions: [{ op: 'contains', value }],
+      join: 'AND',
+    })
+
+    it('passes every row when there is no filter', () => {
+      // Arrange / Act / Assert
+      expect(run(['Owner'], undefined)).toBe(true)
+    })
+
+    it('passes every row when the set has no selected values', () => {
+      // Arrange / Act / Assert
+      expect(run(['Owner'], set([]))).toBe(true)
+    })
+
+    it('matches when the row shares ANY selected value (not the whole combo)', () => {
+      // Arrange
+      const m = set(['Owner'])
+
+      // Act / Assert — a row with multiple roles still matches on one of them,
+      // unlike matching the joined "Owner, Engineer" string exactly.
+      expect(run(['Owner', 'Engineer'], m)).toBe(true)
+      expect(run(['Engineer'], m)).toBe(false)
+      expect(run([], m)).toBe(false)
+    })
+
+    it('matches when any of several selected values is present', () => {
+      // Arrange
+      const m = set(['Owner', 'Scrum Master'])
+
+      // Act / Assert
+      expect(run(['Engineer', 'Scrum Master'], m)).toBe(true)
+      expect(run(['Engineer'], m)).toBe(false)
+    })
+
+    it('delegates non-set descriptors to the joined value (Text Filter)', () => {
+      // Arrange — "contains eng" over the joined "Owner, Engineer"
+      const m = text('eng')
+
+      // Act / Assert
+      expect(run(['Owner', 'Engineer'], m)).toBe(true)
+      expect(run(['Owner'], m)).toBe(false)
     })
   })
 

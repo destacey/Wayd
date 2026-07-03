@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { TreeGridSortableRow, useTreeGridDragHandle } from '../tree-grid-sortable-row'
+import { GridSortableRow, useGridDragHandle } from './grid-dnd'
 
 // Mock @dnd-kit/sortable
 jest.mock('@dnd-kit/sortable', () => ({
@@ -22,14 +22,14 @@ jest.mock('@dnd-kit/utilities', () => ({
   },
 }))
 
-describe('TreeGridSortableRow', () => {
+describe('GridSortableRow', () => {
   it('renders children in a table row', () => {
     render(
       <table>
         <tbody>
-          <TreeGridSortableRow nodeId="test-1" isDragEnabled={true}>
+          <GridSortableRow nodeId="test-1" isDragEnabled={true}>
             <td>Cell Content</td>
-          </TreeGridSortableRow>
+          </GridSortableRow>
         </tbody>
       </table>,
     )
@@ -41,9 +41,9 @@ describe('TreeGridSortableRow', () => {
     render(
       <table>
         <tbody>
-          <TreeGridSortableRow nodeId="test-1" isDragEnabled={true}>
+          <GridSortableRow nodeId="test-1" isDragEnabled={true}>
             <td>Cell</td>
-          </TreeGridSortableRow>
+          </GridSortableRow>
         </tbody>
       </table>,
     )
@@ -56,13 +56,13 @@ describe('TreeGridSortableRow', () => {
     render(
       <table>
         <tbody>
-          <TreeGridSortableRow
+          <GridSortableRow
             nodeId="test-1"
             isDragEnabled={true}
             className="custom-class"
           >
             <td>Cell</td>
-          </TreeGridSortableRow>
+          </GridSortableRow>
         </tbody>
       </table>,
     )
@@ -75,13 +75,13 @@ describe('TreeGridSortableRow', () => {
     render(
       <table>
         <tbody>
-          <TreeGridSortableRow
+          <GridSortableRow
             nodeId="test-1"
             isDragEnabled={true}
             isDragging={true}
           >
             <td>Cell</td>
-          </TreeGridSortableRow>
+          </GridSortableRow>
         </tbody>
       </table>,
     )
@@ -91,10 +91,10 @@ describe('TreeGridSortableRow', () => {
   })
 })
 
-describe('useTreeGridDragHandle', () => {
-  it('throws when used outside TreeGridSortableRow', () => {
+describe('useGridDragHandle', () => {
+  it('throws when used outside GridSortableRow', () => {
     const TestComponent = () => {
-      useTreeGridDragHandle()
+      useGridDragHandle()
       return <div>test</div>
     }
 
@@ -102,16 +102,16 @@ describe('useTreeGridDragHandle', () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
 
     expect(() => render(<TestComponent />)).toThrow(
-      'useTreeGridDragHandle must be used within TreeGridSortableRow',
+      'useGridDragHandle must be used within GridSortableRow',
     )
 
     consoleSpy.mockRestore()
   })
 
-  it('provides drag handle context within TreeGridSortableRow', () => {
+  it('provides drag handle context within GridSortableRow', () => {
     const DragHandleConsumer = () => {
       // This will throw if context is not provided
-      const context = useTreeGridDragHandle()
+      const context = useGridDragHandle()
       return (
         <td
           data-testid="handle"
@@ -126,9 +126,9 @@ describe('useTreeGridDragHandle', () => {
     render(
       <table>
         <tbody>
-          <TreeGridSortableRow nodeId="test-1" isDragEnabled={true}>
+          <GridSortableRow nodeId="test-1" isDragEnabled={true}>
             <DragHandleConsumer />
-          </TreeGridSortableRow>
+          </GridSortableRow>
         </tbody>
       </table>,
     )

@@ -1,0 +1,122 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin-xs);
+  min-width: 240px;
+  max-width: 340px;
+}
+
+.search {
+  width: 100%;
+}
+
+.tree {
+  display: flex;
+  flex-direction: column;
+  max-height: 260px;
+  overflow-y: auto;
+  gap: 2px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-margin-xxs);
+  padding: 2px var(--ant-padding-xxs);
+  cursor: pointer;
+  border-radius: var(--ant-border-radius-sm);
+}
+
+.row:hover {
+  background-color: var(--ant-color-fill-tertiary);
+}
+
+.expander,
+.expanderSpacer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  flex: 0 0 16px;
+  color: var(--ant-color-text-tertiary);
+  font-size: var(--ant-font-size-sm);
+}
+
+.expander {
+  cursor: pointer;
+}
+
+.indent {
+  padding-left: var(--ant-margin-md);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nodeLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.empty {
+  padding: var(--ant-padding-xs);
+  color: var(--ant-color-text-tertiary);
+  font-size: var(--ant-font-size-sm);
+}
+
+.treeFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-top: var(--ant-margin-xxs);
+  border-top: 1px solid var(--ant-color-border-secondary);
+}
+
+/* Collapsible section header — "Date Filters" / "Custom Filter". */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--ant-padding-xxs) var(--ant-padding-xs);
+  font-weight: var(--ant-font-weight-strong);
+  color: var(--ant-color-text);
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--ant-color-border-secondary);
+  cursor: pointer;
+}
+
+.sectionHeader:hover {
+  background-color: var(--ant-color-fill-tertiary);
+}
+
+.quickList {
+  display: flex;
+  flex-direction: column;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.quickItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--ant-padding-xxs) var(--ant-padding-sm);
+  background: transparent;
+  border: none;
+  border-radius: var(--ant-border-radius-sm);
+  color: var(--ant-color-text);
+  cursor: pointer;
+}
+
+.quickItem:hover {
+  background-color: var(--ant-color-fill-tertiary);
+}
+
+.customSection {
+  min-width: 0;
+}

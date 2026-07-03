@@ -292,6 +292,21 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
+// jsdom lacks ResizeObserver and Element.scrollIntoView, which Ant Design's
+// popup/dropdown positioning (e.g. an open Select) relies on. Stub them so
+// components that render an open dropdown don't throw during tests.
+if (typeof window.ResizeObserver === 'undefined') {
+  window.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver
+}
+
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = jest.fn()
+}
+
 // Suppress console errors during tests
 // beforeAll(() => {
 //   console.error = jest.fn()

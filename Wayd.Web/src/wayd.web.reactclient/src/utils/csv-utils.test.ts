@@ -152,6 +152,30 @@ describe('csv-utils', () => {
       )
     })
 
+    it('should prepend a UTF-8 BOM so Excel decodes unicode (e.g. emoji) correctly', () => {
+      // Arrange — capture the parts passed to the Blob constructor
+      const blobParts: unknown[][] = []
+      const RealBlob = global.Blob
+      global.Blob = jest.fn((parts: unknown[], opts?: BlobPropertyBag) => {
+        blobParts.push(parts)
+        return new RealBlob(parts as BlobPart[], opts)
+      }) as unknown as typeof Blob
+
+      const BOM = '﻿'
+      try {
+        // Act — content with a multibyte character (rocket emoji)
+        downloadCsv('Team\nCore Services 🚀', 'test.csv')
+
+        // Assert — the blob's first part is the UTF-8 BOM, and the content
+        // (with the emoji intact) follows.
+        const parts = blobParts[0]
+        expect(parts[0]).toBe(BOM)
+        expect(String(parts.join(''))).toContain('🚀')
+      } finally {
+        global.Blob = RealBlob
+      }
+    })
+
     it('should set link href and download attributes', () => {
       const csvContent = 'Name,Age\nJohn,30'
       const filename = 'test.csv'

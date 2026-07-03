@@ -1,30 +1,49 @@
 'use client'
 
+import { KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { createContext, useContext, useMemo, CSSProperties, ReactNode } from 'react'
 
+// Shared drag MECHANICS for grid drag-and-drop: sensor setup and the sortable
+// row wrapper + drag-handle context. Grid-agnostic — the tree-only reparenting
+// projection lives in ./tree-projection.
+
+/** Pixels of pointer movement before a drag activates (vs. a click). */
+export const DRAG_ACTIVATION_DISTANCE = 8
+
+/**
+ * The dnd-kit sensor set shared by all grids: pointer with a small activation
+ * distance (so plain clicks don't start drags) plus keyboard.
+ */
+export function useGridDndSensors() {
+  return useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE },
+    }),
+    useSensor(KeyboardSensor),
+  )
+}
+
 // Context to share drag listeners with child components (drag handle)
-const TreeGridDragHandleContext = createContext<{
+const GridDragHandleContext = createContext<{
   listeners?: any
   attributes?: any
 } | null>(null)
 
 /**
  * Hook to access drag handle listeners and attributes.
- * Must be used within a TreeGridSortableRow.
+ * Must be used within a GridSortableRow.
  */
-export function useTreeGridDragHandle() {
-  const context = useContext(TreeGridDragHandleContext)
+export function useGridDragHandle() {
+  const context = useContext(GridDragHandleContext)
   if (!context) {
-    throw new Error(
-      'useTreeGridDragHandle must be used within TreeGridSortableRow',
-    )
+    throw new Error('useGridDragHandle must be used within GridSortableRow')
   }
   return context
 }
 
-interface TreeGridSortableRowProps {
+interface GridSortableRowProps {
   nodeId: string
   isDragEnabled: boolean
   isDragging?: boolean
@@ -37,14 +56,14 @@ interface TreeGridSortableRowProps {
  * Sortable table row wrapper for drag-and-drop functionality.
  * Uses @dnd-kit/sortable to make table rows draggable via a drag handle.
  */
-export function TreeGridSortableRow({
+export function GridSortableRow({
   nodeId,
   isDragEnabled,
   isDragging: parentIsDragging,
   className = '',
   onClick,
   children,
-}: TreeGridSortableRowProps) {
+}: GridSortableRowProps) {
   const {
     attributes,
     listeners,
@@ -71,7 +90,7 @@ export function TreeGridSortableRow({
   )
 
   return (
-    <TreeGridDragHandleContext.Provider value={dragHandleContextValue}>
+    <GridDragHandleContext.Provider value={dragHandleContextValue}>
       <tr
         ref={setNodeRef}
         style={style}
@@ -82,6 +101,6 @@ export function TreeGridSortableRow({
       >
         {children}
       </tr>
-    </TreeGridDragHandleContext.Provider>
+    </GridDragHandleContext.Provider>
   )
 }

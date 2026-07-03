@@ -2,7 +2,7 @@ import {
   numberRangeFilter,
   setContainsFilter,
   stringContainsFilter,
-} from '../tree-grid-filters'
+} from './grid-filters'
 
 type TestRow = {
   getValue: (columnId: string) => unknown
@@ -14,7 +14,7 @@ const makeRow = (values: Record<string, unknown>): TestRow => {
   }
 }
 
-describe('tree-grid-filters', () => {
+describe('grid-filters', () => {
   describe('stringContainsFilter', () => {
     it('returns true for blank filter', () => {
       const row = makeRow({ name: 'Alpha' })

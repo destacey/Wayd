@@ -22,3 +22,4 @@ export { getInitials } from './get-initials'
 
 export { default as toFormErrors, isApiError, type ApiError } from './problem-details'
 export { getDrawerWidthPixels } from './window-utils'
+export { teamUrl, type TeamUrlTarget } from './team-url'

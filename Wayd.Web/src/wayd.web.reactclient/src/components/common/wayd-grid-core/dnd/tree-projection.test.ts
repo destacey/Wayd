@@ -1,11 +1,13 @@
-import type { TreeNode, FlattenedTreeNode, MoveValidator } from '../types'
 import {
   defaultMoveValidator,
   getProjection,
   calculateOrderInParent,
   updateNodePlacement,
   INDENTATION_WIDTH,
-} from '../tree-dnd-utils'
+  type TreeNode,
+  type FlattenedTreeNode,
+  type MoveValidator,
+} from './tree-projection'
 
 interface TestNode extends TreeNode {
   name: string
@@ -38,7 +40,7 @@ const toFlat = (
   flatIndex,
 })
 
-describe('tree-dnd-utils', () => {
+describe('tree-projection', () => {
   describe('defaultMoveValidator', () => {
     it('allows move to root level', () => {
       const active = toFlat(createNode('1', 'A'), 1, 'parent', ['parent'], 0)

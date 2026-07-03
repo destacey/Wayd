@@ -1,10 +1,54 @@
-import type { TreeNode, FlattenedTreeNode, DragProjection, MoveValidator } from './types'
+// Tree-ONLY reparenting projection for grid drag-and-drop: horizontal offset →
+// indentation depth → parent reassignment, with circular-reference prevention.
+// The shared drag mechanics (sensors, sortable row) live in ./grid-dnd.
 
 /**
- * Constants for drag-and-drop calculations.
+ * Minimum shape that any tree node must satisfy.
+ * Consumers extend this for their domain types.
  */
-export const INDENTATION_WIDTH = 32 // pixels per depth level
-export const DRAG_ACTIVATION_DISTANCE = 8 // pixels before drag activates
+export interface TreeNode {
+  id: string
+  children: TreeNode[]
+  parentId?: string | null
+}
+
+/**
+ * Flattened tree node with DnD metadata. Generic over the node type.
+ * Wraps the original node as `node: T` to avoid type conflicts when spreading.
+ */
+export interface FlattenedTreeNode<T extends TreeNode = TreeNode> {
+  node: T
+  depth: number
+  parentId: string | null
+  ancestorIds: string[]
+  flatIndex: number
+}
+
+/**
+ * Result of projecting where a dragged item will land.
+ */
+export interface DragProjection<T extends TreeNode = TreeNode> {
+  depth: number
+  maxDepth: number
+  minDepth: number
+  parentId: string | null
+  parentNode: T | null
+  canDrop: boolean
+  reason?: string
+}
+
+/**
+ * Validation function for domain-specific move rules.
+ * The generic layer calls this; consumers supply domain logic.
+ */
+export type MoveValidator<T extends TreeNode = TreeNode> = (
+  activeNode: FlattenedTreeNode<T>,
+  targetParentNode: T | null,
+  targetParentId: string | null,
+) => { canMove: boolean; reason?: string }
+
+/** Pixels of horizontal drag per indentation depth level. */
+export const INDENTATION_WIDTH = 32
 
 /**
  * Default structural move validator.

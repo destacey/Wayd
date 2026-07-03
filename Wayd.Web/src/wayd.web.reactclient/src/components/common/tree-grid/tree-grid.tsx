@@ -12,41 +12,20 @@ import {
   useRef,
   useState,
   ReactElement,
-  MouseEvent,
-  TouchEvent,
 } from 'react'
 import { Input, Select, Spin } from 'antd'
 import type { FormInstance } from 'antd'
-import {
-  ArrowUpOutlined,
-  ArrowDownOutlined,
-  FilterOutlined,
-} from '@ant-design/icons'
-import {
-  type ColumnFiltersState,
-  type ColumnSizingState,
-  type SortingState,
-  flexRender,
-  getCoreRowModel,
-  getExpandedRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from '@tanstack/react-table'
+import { FilterOutlined } from '@ant-design/icons'
+import { flexRender, getExpandedRowModel } from '@tanstack/react-table'
 import {
   DndContext,
   type DragCancelEvent,
   type DragEndEvent,
   type DragStartEvent,
-  KeyboardSensor,
-  PointerSensor,
   closestCenter,
-  useSensor,
-  useSensors,
 } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 
-import { generateCsv, downloadCsvWithTimestamp } from '@/src/utils/csv-utils'
 import { WaydEmpty } from '@/src/components/common'
 
 import { useRemainingHeight } from '@/src/hooks'
@@ -62,19 +41,36 @@ import type {
 import { countTreeNodes, flattenTree } from './tree-utils'
 import { mergeDraftsIntoTree } from './draft-utils'
 import {
-  DRAG_ACTIVATION_DISTANCE,
+  GridSortableRow,
+  useGridDndSensors,
+} from '../wayd-grid-core/dnd/grid-dnd'
+import {
   INDENTATION_WIDTH,
   calculateOrderInParent,
   getProjection,
-} from './tree-dnd-utils'
-import { stringContainsFilter } from './tree-grid-filters'
-import { TreeGridSortableRow } from './tree-grid-sortable-row'
+} from '../wayd-grid-core/dnd/tree-projection'
+import { exportGridToCsv } from '../wayd-grid-core/grid-export'
+import {
+  GridHeaderCell,
+  useResizeClickGuard,
+  type GridHeaderCellClasses,
+} from '../wayd-grid-core/grid-header-row'
+import { useGridEditing } from '../wayd-grid-core/use-grid-editing'
+import { useGridState, useGridTable } from '../wayd-grid-core/use-grid-table'
 import TreeGridToolbar from './tree-grid-toolbar'
-import { useTreeGridEditing } from './use-tree-grid-editing'
 
 const EMPTY_FIELD_ERRORS: Record<string, string> = {}
 const FILTER_DEBOUNCE_MS = 250
 const DRAFT_SCROLL_MARGIN = 8
+const headerCellClasses: GridHeaderCellClasses = {
+  th: styles.th,
+  thSortable: styles.thSortable,
+  thResizable: styles.thResizable,
+  thContent: styles.thContent,
+  thText: styles.thText,
+  resizer: styles.resizer,
+  resizerActive: styles.resizerActive,
+}
 const escapeSelectorValue = (value: string) =>
   typeof CSS !== 'undefined' && CSS.escape
     ? CSS.escape(value)
@@ -148,6 +144,12 @@ function TreeGridInner<T extends TreeNode>(
   props: TreeGridProps<T>,
   ref: Ref<TreeGridHandle>,
 ) {
+  // TanStack Table's instance mutates internally behind a stable identity, so
+  // React Compiler memoization goes stale (sort icons, column sizes). Before
+  // the table config moved into useGridTable, the direct useReactTable call
+  // made the compiler skip this component automatically; the directive keeps
+  // that behavior now that the call is behind the hook.
+  'use no memo'
   const {
     data,
     getSubRows,
@@ -177,10 +179,6 @@ function TreeGridInner<T extends TreeNode>(
   const resolvedHeight = height ?? autoHeight
 
   // ─── State ───────────────────────────────────────────────
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
-  const [searchValue, setSearchValue] = useState('')
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null)
   const [draftTasks, setDraftTasks] = useState<DraftItem[]>([])
   const [textFilterDraftValues, setTextFilterDraftValues] = useState<
@@ -189,7 +187,7 @@ function TreeGridInner<T extends TreeNode>(
   const draftTasksRef = useRef<DraftItem[]>([])
   const isAddingDraftRef = useRef(false)
   const draftCounterRef = useRef(0)
-  const isResizingRef = useRef(false)
+  const resizeGuard = useResizeClickGuard()
   const filterDebounceTimersRef = useRef<
     Map<string, ReturnType<typeof setTimeout>>
   >(new Map())
@@ -198,6 +196,22 @@ function TreeGridInner<T extends TreeNode>(
     selectionStart: number | null
     selectionEnd: number | null
   } | null>(null)
+
+  const gridState = useGridState({
+    onClear: () => {
+      setTextFilterDraftValues({})
+      filterDebounceTimersRef.current.forEach((timer) => clearTimeout(timer))
+      filterDebounceTimersRef.current.clear()
+    },
+  })
+  const {
+    searchValue,
+    sorting,
+    columnFilters,
+    onSearchChange,
+    onClearFilters,
+    hasActiveFilters,
+  } = gridState
 
   const updateDraftTasks = useCallback(
     (updater: (prev: DraftItem[]) => DraftItem[]) => {
@@ -235,7 +249,7 @@ function TreeGridInner<T extends TreeNode>(
   const canEdit = editingConfig?.canEdit ?? false
   const draftPrefix = editingConfig?.draftPrefix ?? 'draft-'
 
-  const editing = useTreeGridEditing<T>(
+  const editing = useGridEditing<T>(
     editingConfig
       ? {
           ...editingConfig,
@@ -429,12 +443,7 @@ function TreeGridInner<T extends TreeNode>(
   )
 
   // ─── DnD setup ───────────────────────────────────────────
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE },
-    }),
-    useSensor(KeyboardSensor),
-  )
+  const sensors = useGridDndSensors()
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
@@ -505,41 +514,16 @@ function TreeGridInner<T extends TreeNode>(
     [data, draftTasks.length],
   )
 
-  const table = useReactTable({
+  const table = useGridTable({
     data: dataWithDrafts,
     columns,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getExpandedRowModel: getExpandedRowModel(),
-    getSubRows: getSubRows ?? ((row) => row.children as T[]),
-    filterFromLeafRows: true,
-    getColumnCanGlobalFilter: (column) => {
-      const colDef = column.columnDef as unknown as {
-        enableGlobalFilter?: boolean
-        accessorFn?: unknown
-        accessorKey?: unknown
-      }
-      if (colDef.enableGlobalFilter === false) return false
-      return Boolean(colDef.accessorFn || colDef.accessorKey)
+    gridState,
+    tableOptions: {
+      getExpandedRowModel: getExpandedRowModel(),
+      getSubRows: getSubRows ?? ((row) => row.children as T[]),
+      filterFromLeafRows: true,
+      initialState: { expanded: true },
     },
-    globalFilterFn: stringContainsFilter,
-    enableMultiSort: true,
-    isMultiSortEvent: (e) =>
-      (e as unknown as { ctrlKey?: boolean } | null)?.ctrlKey === true,
-    enableColumnResizing: true,
-    columnResizeMode: 'onChange',
-    state: {
-      globalFilter: searchValue,
-      sorting,
-      columnFilters,
-      columnSizing,
-    },
-    onGlobalFilterChange: (value) => setSearchValue(String(value ?? '')),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnSizingChange: setColumnSizing,
-    initialState: { expanded: true },
   })
 
   tableRef.current = table
@@ -548,22 +532,6 @@ function TreeGridInner<T extends TreeNode>(
 
   // ─── Toolbar wiring ──────────────────────────────────────
   const visibleColumnCount = table.getVisibleLeafColumns().length
-
-  const onSearchChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    setSearchValue(e.target.value)
-  }, [])
-
-  const onClearFilters = useCallback(() => {
-    setSearchValue('')
-    setSorting([])
-    setColumnFilters([])
-    setTextFilterDraftValues({})
-    filterDebounceTimersRef.current.forEach((timer) => clearTimeout(timer))
-    filterDebounceTimersRef.current.clear()
-  }, [])
-
-  const hasActiveFilters =
-    !!searchValue || columnFilters.length > 0 || sorting.length > 0
 
   useEffect(() => {
     const pending = pendingFilterFocusRef.current
@@ -634,43 +602,8 @@ function TreeGridInner<T extends TreeNode>(
 
   // ─── CSV export ──────────────────────────────────────────
   const onExportCsv = useCallback(() => {
-    const exportableColumns = columns.filter((col: any) => {
-      const meta = col.meta as TreeGridColumnMeta | undefined
-      if (meta?.enableExport === false) return false
-      // Also check top-level enableExport for backward compat
-      if (col.enableExport === false) return false
-      return Boolean(col.accessorFn || col.accessorKey)
-    })
-
-    const headers = exportableColumns.map((col: any) => {
-      const meta = col.meta as TreeGridColumnMeta | undefined
-      if (meta?.exportHeader) return meta.exportHeader
-      if (typeof col.header === 'string') return col.header
-      return col.id || ''
-    })
-
-    const rows = table.getRowModel().rows.map((row) => {
-      return exportableColumns.map((col: any) => {
-        const meta = col.meta as TreeGridColumnMeta | undefined
-        let value: unknown = ''
-
-        if (col.accessorFn) {
-          value = col.accessorFn(row.original, row.index)
-        } else if (col.accessorKey) {
-          value = (row.original as any)[col.accessorKey]
-        }
-
-        if (meta?.exportFormatter) {
-          return meta.exportFormatter(value, row.original)
-        }
-
-        return value ?? ''
-      })
-    })
-
-    const csv = generateCsv(headers, rows)
-    downloadCsvWithTimestamp(csv, csvFileName)
-  }, [table, columns, csvFileName])
+    exportGridToCsv(table, csvFileName)
+  }, [table, csvFileName])
 
   // ─── Ref handle ──────────────────────────────────────────
   useImperativeHandle(ref, () => ({
@@ -725,71 +658,14 @@ function TreeGridInner<T extends TreeNode>(
             <Fragment key={headerGroup.id}>
               {/* Header row */}
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  const canSort = header.column.getCanSort()
-                  const sortState = header.column.getIsSorted()
-                  const canResize = header.column.getCanResize()
-
-                  const sortIcon =
-                    sortState === 'asc' ? (
-                      <ArrowUpOutlined />
-                    ) : sortState === 'desc' ? (
-                      <ArrowDownOutlined />
-                    ) : null
-
-                  const handleSortClick = canSort
-                    ? (e: MouseEvent) => {
-                        if (isResizingRef.current) {
-                          isResizingRef.current = false
-                          return
-                        }
-                        header.column.getToggleSortingHandler()?.(e)
-                      }
-                    : undefined
-
-                  const handleResizeStart = (e: MouseEvent | TouchEvent) => {
-                    isResizingRef.current = true
-                    header.getResizeHandler()(e)
-                  }
-
-                  return (
-                    <th
-                      key={header.id}
-                      className={`${styles.th}${
-                        canSort ? ` ${styles.thSortable}` : ''
-                      }${canResize ? ` ${styles.thResizable}` : ''}`}
-                      onClick={handleSortClick}
-                    >
-                      <span className={styles.thContent}>
-                        <span className={styles.thText}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
-                              )}
-                        </span>
-                        {sortIcon}
-                      </span>
-
-                      {canResize && (
-                        <span
-                          role="separator"
-                          aria-orientation="vertical"
-                          onMouseDown={handleResizeStart}
-                          onTouchStart={handleResizeStart}
-                          onDoubleClick={() => header.column.resetSize()}
-                          onClick={(e) => e.stopPropagation()}
-                          className={`${styles.resizer}${
-                            header.column.getIsResizing()
-                              ? ` ${styles.resizerActive}`
-                              : ''
-                          }`}
-                        />
-                      )}
-                    </th>
-                  )
-                })}
+                {headerGroup.headers.map((header) => (
+                  <GridHeaderCell
+                    key={header.id}
+                    header={header}
+                    resizeGuard={resizeGuard}
+                    classes={headerCellClasses}
+                  />
+                ))}
               </tr>
 
               {/* Filter row */}
@@ -905,7 +781,7 @@ function TreeGridInner<T extends TreeNode>(
               const isDragging = draggedNodeId === row.original.id
               const isDraftRow = row.original.id.startsWith(draftPrefix)
               const rowElements = [
-                <TreeGridSortableRow
+                <GridSortableRow
                   key={row.id}
                   nodeId={row.original.id}
                   isDragEnabled={isDragEnabled && !isDraftRow}
@@ -932,7 +808,7 @@ function TreeGridInner<T extends TreeNode>(
                       </td>
                     )
                   })}
-                </TreeGridSortableRow>,
+                </GridSortableRow>,
               ]
 
               // Add validation error row

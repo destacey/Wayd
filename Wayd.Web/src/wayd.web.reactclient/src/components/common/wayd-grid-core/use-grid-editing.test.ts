@@ -1,10 +1,11 @@
 import { renderHook, act } from '@testing-library/react'
-import { useTreeGridEditing } from '../use-tree-grid-editing'
-import type { TreeNode, TreeGridEditingConfig } from '../types'
+import { useGridEditing, type GridEditingConfig } from './use-grid-editing'
 
-interface TestNode extends TreeNode {
+interface TestNode {
+  id: string
   name: string
   value: number
+  children: TestNode[]
 }
 
 const createTestNode = (
@@ -38,8 +39,8 @@ const createMockForm = () => {
 }
 
 const createDefaultConfig = (
-  overrides: Partial<TreeGridEditingConfig<TestNode>> = {},
-): TreeGridEditingConfig<TestNode> => {
+  overrides: Partial<GridEditingConfig<TestNode>> = {},
+): GridEditingConfig<TestNode> => {
   const data = [
     createTestNode('1', 'Node 1'),
     createTestNode('2', 'Node 2'),
@@ -65,11 +66,11 @@ const createDefaultConfig = (
   }
 }
 
-describe('useTreeGridEditing', () => {
+describe('useGridEditing', () => {
   describe('initialization', () => {
     it('starts with no selection', () => {
       const config = createDefaultConfig()
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       expect(result.current.selectedRowId).toBeNull()
       expect(result.current.selectedCellId).toBeNull()
@@ -78,7 +79,7 @@ describe('useTreeGridEditing', () => {
 
     it('provides tableRef', () => {
       const config = createDefaultConfig()
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       expect(result.current.tableRef).toBeDefined()
       expect(result.current.tableRef.current).toBeNull()
@@ -90,7 +91,7 @@ describe('useTreeGridEditing', () => {
       const config = createDefaultConfig({
         editableColumnIds: ['name', 'value'],
       })
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       expect(result.current.editableColumns).toEqual(['name', 'value'])
     })
@@ -102,7 +103,7 @@ describe('useTreeGridEditing', () => {
             ? ['type', 'name', 'value']
             : ['name', 'value'],
       })
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       // No row selected — null selectedRowId
       expect(result.current.editableColumns).toEqual(['name', 'value'])
@@ -112,7 +113,7 @@ describe('useTreeGridEditing', () => {
   describe('selection state', () => {
     it('setSelectedRowId updates selectedRowId', () => {
       const config = createDefaultConfig()
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       act(() => {
         result.current.setSelectedRowId('1')
@@ -123,7 +124,7 @@ describe('useTreeGridEditing', () => {
 
     it('setSelectedCellId updates selectedCellId', () => {
       const config = createDefaultConfig()
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       act(() => {
         result.current.setSelectedRowId('1')
@@ -135,7 +136,7 @@ describe('useTreeGridEditing', () => {
 
     it('initializes form when row is selected', () => {
       const config = createDefaultConfig()
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       act(() => {
         result.current.setSelectedRowId('1')
@@ -147,7 +148,7 @@ describe('useTreeGridEditing', () => {
 
     it('resets form when selection is cleared', () => {
       const config = createDefaultConfig()
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       act(() => {
         result.current.setSelectedRowId('1')
@@ -165,7 +166,7 @@ describe('useTreeGridEditing', () => {
   describe('getFieldError', () => {
     it('returns undefined when no error exists', () => {
       const config = createDefaultConfig({ fieldErrors: {} })
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       expect(result.current.getFieldError('name')).toBeUndefined()
     })
@@ -174,7 +175,7 @@ describe('useTreeGridEditing', () => {
       const config = createDefaultConfig({
         fieldErrors: { name: 'Name is required' },
       })
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       expect(result.current.getFieldError('name')).toBe('Name is required')
     })
@@ -185,7 +186,7 @@ describe('useTreeGridEditing', () => {
       const onSave = jest.fn(() => Promise.resolve(true))
       const computeChanges = jest.fn(() => ({ name: 'Updated' }))
       const config = createDefaultConfig({ onSave, computeChanges })
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       act(() => {
         result.current.setSelectedRowId('1')
@@ -205,7 +206,7 @@ describe('useTreeGridEditing', () => {
       const onSave = jest.fn(() => Promise.resolve(true))
       const computeChanges = jest.fn(() => null)
       const config = createDefaultConfig({ onSave, computeChanges })
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       act(() => {
         result.current.setSelectedRowId('1')
@@ -231,7 +232,7 @@ describe('useTreeGridEditing', () => {
         setFieldErrors,
         validateFields,
       })
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       act(() => {
         result.current.setSelectedRowId('1')
@@ -252,7 +253,7 @@ describe('useTreeGridEditing', () => {
     it('returns false when onSave fails', async () => {
       const onSave = jest.fn(() => Promise.resolve(false))
       const config = createDefaultConfig({ onSave })
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       act(() => {
         result.current.setSelectedRowId('1')
@@ -271,7 +272,7 @@ describe('useTreeGridEditing', () => {
       mockForm.validateFields.mockRejectedValue(new Error('Validation failed'))
       const onSave = jest.fn()
       const config = createDefaultConfig({ form: mockForm as any, onSave })
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       act(() => {
         result.current.setSelectedRowId('1')
@@ -295,7 +296,7 @@ describe('useTreeGridEditing', () => {
             ? ['type', 'name', 'value']
             : ['name', 'value'],
       })
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       // Select a draft row
       act(() => {
@@ -317,7 +318,7 @@ describe('useTreeGridEditing', () => {
             ? ['type', 'name']
             : ['name'],
       })
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       act(() => {
         result.current.setSelectedRowId('new-1')
@@ -330,7 +331,7 @@ describe('useTreeGridEditing', () => {
   describe('handleKeyDown – Tab navigation', () => {
     // Helper: set up the hook with a selected row and a mock tableRef
     const setupForKeyDown = (
-      overrides: Partial<TreeGridEditingConfig<TestNode>> = {},
+      overrides: Partial<GridEditingConfig<TestNode>> = {},
     ) => {
       const onSave = jest.fn(() => Promise.resolve(true))
       const computeChanges = jest.fn(() => ({ name: 'Changed' }))
@@ -339,7 +340,7 @@ describe('useTreeGridEditing', () => {
         computeChanges,
         ...overrides,
       })
-      const hookResult = renderHook(() => useTreeGridEditing(config))
+      const hookResult = renderHook(() => useGridEditing(config))
 
       // Wire up a fake table model so row lookup works
       const rows = config.data.map((node) => ({ original: node }))
@@ -498,7 +499,7 @@ describe('useTreeGridEditing', () => {
       const onSave = jest.fn(() => Promise.resolve(true))
       const computeChanges = jest.fn(() => ({ name: 'Changed' }))
       const config = createDefaultConfig({ onSave, computeChanges })
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       // Wire up tableRef so handleKeyDown can resolve rows
       const rows = config.data.map((node) => ({ original: node }))
@@ -541,7 +542,7 @@ describe('useTreeGridEditing', () => {
 
     it('does NOT stop propagation for non-Tab keys', () => {
       const config = createDefaultConfig()
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       const event = {
         key: 'Enter',
@@ -560,7 +561,7 @@ describe('useTreeGridEditing', () => {
   describe('canEdit guard', () => {
     it('handleRowClick does nothing when canEdit is false', async () => {
       const config = createDefaultConfig({ canEdit: false })
-      const { result } = renderHook(() => useTreeGridEditing(config))
+      const { result } = renderHook(() => useGridEditing(config))
 
       const mockEvent = {
         target: document.createElement('td'),

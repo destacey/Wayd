@@ -22,35 +22,38 @@ export { countTreeNodes, findNodeById, flattenTree, buildTree } from './tree-uti
 // Draft utilities
 export { mergeDraftsIntoTree } from './draft-utils'
 
-// DnD utilities
+// DnD utilities (moved to the shared grid core; re-exported so existing
+// tree-grid consumers keep a single import surface)
 export {
   INDENTATION_WIDTH,
-  DRAG_ACTIVATION_DISTANCE,
   defaultMoveValidator,
   getProjection,
   calculateOrderInParent,
   updateNodePlacement,
-} from './tree-dnd-utils'
+} from '../wayd-grid-core/dnd/tree-projection'
+export { DRAG_ACTIVATION_DISTANCE } from '../wayd-grid-core/dnd/grid-dnd'
 
-// Filter functions
+// Filter functions (moved to the shared grid core; re-exported so existing
+// tree-grid consumers keep a single import surface)
 export {
   stringContainsFilter,
   setContainsFilter,
   numberRangeFilter,
-} from './tree-grid-filters'
+} from '../wayd-grid-core/grid-filters'
 
 // Sorting utilities
-export { dateSortBy } from './tree-grid-sorting'
+export { dateSortBy } from '../wayd-grid-core/grid-sorting'
 
-// React components
+// React components (sortable row moved to the shared grid core; the tree-grid
+// names are aliases kept for existing consumers)
 export {
-  TreeGridSortableRow,
-  useTreeGridDragHandle,
-} from './tree-grid-sortable-row'
+  GridSortableRow as TreeGridSortableRow,
+  useGridDragHandle as useTreeGridDragHandle,
+} from '../wayd-grid-core/dnd/grid-dnd'
 export { default as TreeGridToolbar } from './tree-grid-toolbar'
 
-// Hooks
-export { useTreeGridEditing } from './use-tree-grid-editing'
+// Hooks (editing hook moved to the shared grid core; alias kept)
+export { useGridEditing as useTreeGridEditing } from '../wayd-grid-core/use-grid-editing'
 
 // TreeGrid component
 export { default as TreeGrid } from './tree-grid'

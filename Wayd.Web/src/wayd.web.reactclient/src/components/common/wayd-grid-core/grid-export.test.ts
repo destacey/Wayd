@@ -169,4 +169,80 @@ describe('grid-export', () => {
       expect(csv).toBe('Name,Points\nWidget,3\nGadget,')
     })
   })
+
+  describe('grouped headers', () => {
+    it('writes a band row above the leaf headers: label at the first column of each group, blanks across the span', () => {
+      // Arrange — two bands plus an ungrouped column
+      const columns: ColumnDef<Item, any>[] = [
+        {
+          id: 'info',
+          header: 'Info',
+          columns: [
+            { accessorKey: 'name', header: 'Name' },
+            { accessorKey: 'status.name', header: 'Status' },
+          ],
+        },
+        {
+          id: 'scoring',
+          header: 'Scoring',
+          columns: [{ accessorKey: 'points', header: 'Points' }],
+        },
+        { id: 'plain', accessorFn: (row) => row.name, header: 'Plain' },
+      ]
+
+      // Act
+      const csv = exportCsv(columns)
+
+      // Assert — band row, then leaf headers, then data
+      const lines = csv.split('\n')
+      expect(lines[0]).toBe('Info,,Scoring,')
+      expect(lines[1]).toBe('Name,Status,Points,Plain')
+      expect(lines[2]).toBe('Widget,Active,3,Widget')
+    })
+
+    it('keeps the band aligned when a grouped column is excluded from the export', () => {
+      // Arrange — the group's first leaf is excluded (enableExport: false)
+      const columns: ColumnDef<Item, any>[] = [
+        {
+          id: 'info',
+          header: 'Info',
+          columns: [
+            {
+              accessorKey: 'name',
+              header: 'Name',
+              meta: { enableExport: false },
+            },
+            { accessorKey: 'status.name', header: 'Status' },
+          ],
+        },
+        {
+          id: 'scoring',
+          header: 'Scoring',
+          columns: [{ accessorKey: 'points', header: 'Points' }],
+        },
+      ]
+
+      // Act
+      const csv = exportCsv(columns)
+
+      // Assert — the label moves to the group's first EXPORTED column
+      const lines = csv.split('\n')
+      expect(lines[0]).toBe('Info,Scoring')
+      expect(lines[1]).toBe('Status,Points')
+    })
+
+    it('writes no band row for flat (ungrouped) columns', () => {
+      // Arrange
+      const columns: ColumnDef<Item, any>[] = [
+        { accessorKey: 'name', header: 'Name' },
+        { accessorKey: 'points', header: 'Points' },
+      ]
+
+      // Act
+      const csv = exportCsv(columns)
+
+      // Assert — first line is the leaf header row, no prelude
+      expect(csv.split('\n')[0]).toBe('Name,Points')
+    })
+  })
 })

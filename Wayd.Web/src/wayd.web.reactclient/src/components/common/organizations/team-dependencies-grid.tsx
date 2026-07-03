@@ -1,17 +1,17 @@
 'use client'
 
 import { DependencyDto, TeamDetailsDto } from '@/src/services/wayd-api'
-import { ColDef, ColGroupDef, GetRowIdParams } from 'ag-grid-community'
-import { CustomCellRendererProps } from 'ag-grid-react'
+import type { ColumnDef } from '@tanstack/react-table'
 import { FC, useMemo } from 'react'
-import WaydGrid from '../wayd-grid'
 import {
-  DependencyHealthCellRenderer,
-  renderSprintLinkHelper,
-  renderTeamLinkHelper,
-  renderWorkItemLinkHelper,
-} from '../wayd-grid-cell-renderers'
-import { workItemKeyComparator } from '../work'
+  WaydGrid2,
+  renderDependencyHealthTag,
+  renderSprintLink,
+  renderTeamLink,
+  renderWorkItemLink,
+  workItemKeySort,
+} from '../wayd-grid2'
+import { DEPENDENCY_SCOPE_TOOLTIP } from '../work/dependency-constants'
 
 export interface TeamDependenciesGridProps {
   team: TeamDetailsDto
@@ -21,103 +21,155 @@ export interface TeamDependenciesGridProps {
 }
 
 const TeamDependenciesGrid: FC<TeamDependenciesGridProps> = (props) => {
-  const { team, refetch } = props
+  const { refetch } = props
 
-  const getRowId = ({ data }: GetRowIdParams<DependencyDto>) => {
-    return data.id
-  }
-
-  const columnDefs = useMemo<(ColDef<DependencyDto> | ColGroupDef<DependencyDto>)[]>(() => [
-    {
-      headerName: 'Dependency Info',
-      children: [
-        { field: 'state.name', headerName: 'State', width: 125 },
-        {
-          field: 'health.name',
-          headerName: 'Health',
-          width: 100,
-          cellRenderer: DependencyHealthCellRenderer,
-        },
-        {
-          field: 'scope.name',
-          headerName: 'Scope',
-          width: 100,
-          headerTooltip:
-            'Defines whether this dependency is managed inside a single team (intra-team) or requires coordination between multiple teams (cross-team).',
-        },
-      ],
-    },
-    {
-      headerName: 'Predecessor Info',
-      children: [
-        {
-          field: 'source.key',
-          headerName: 'Key',
-          comparator: workItemKeyComparator,
-          cellRenderer: (params: CustomCellRendererProps<DependencyDto>) =>
-            renderWorkItemLinkHelper(params.data?.source),
-        },
-        { field: 'source.title', headerName: 'Title', width: 400 },
-        { field: 'source.type', headerName: 'Type', width: 150 },
-        { field: 'source.status', headerName: 'Status', width: 150 },
-        {
-          field: 'source.team.name',
-          headerName: 'Team',
-          cellRenderer: (params: CustomCellRendererProps<DependencyDto>) =>
-            renderTeamLinkHelper(params.data?.source.team),
-        },
-        {
-          field: 'source.sprint.name',
-          headerName: 'Sprint',
-          cellRenderer: (params: CustomCellRendererProps<DependencyDto>) =>
-            renderSprintLinkHelper(params.data?.source.sprint),
-        },
-      ],
-    },
-    {
-      headerName: 'Successor Info',
-      children: [
-        {
-          field: 'target.key',
-          headerName: 'Key',
-          comparator: workItemKeyComparator,
-          cellRenderer: (params: CustomCellRendererProps<DependencyDto>) =>
-            renderWorkItemLinkHelper(params.data?.target),
-        },
-        { field: 'target.title', headerName: 'Title', width: 400 },
-        { field: 'target.type', headerName: 'Type', width: 150 },
-        { field: 'target.status', headerName: 'Status', width: 150 },
-        {
-          field: 'target.team.name',
-          headerName: 'Team',
-          cellRenderer: (params: CustomCellRendererProps<DependencyDto>) =>
-            renderTeamLinkHelper(params.data?.target.team),
-        },
-        {
-          field: 'target.sprint.name',
-          headerName: 'Sprint',
-          cellRenderer: (params: CustomCellRendererProps<DependencyDto>) =>
-            renderSprintLinkHelper(params.data?.target.sprint),
-        },
-      ],
-    },
-  ], [])
+  const columns = useMemo<ColumnDef<DependencyDto, any>[]>(
+    () => [
+      {
+        id: 'dependencyInfo',
+        header: 'Dependency Info',
+        columns: [
+          {
+            id: 'state',
+            accessorKey: 'state.name',
+            header: 'State',
+            size: 125,
+            meta: { filterType: 'set' },
+          },
+          {
+            id: 'health',
+            accessorKey: 'health.name',
+            header: 'Health',
+            size: 100,
+            meta: { filterType: 'set' },
+            cell: ({ row }) => renderDependencyHealthTag(row.original.health),
+          },
+          {
+            id: 'scope',
+            accessorKey: 'scope.name',
+            header: 'Scope',
+            size: 100,
+            meta: { filterType: 'set', headerTooltip: DEPENDENCY_SCOPE_TOOLTIP },
+          },
+        ],
+      },
+      {
+        id: 'predecessorInfo',
+        header: 'Predecessor Info',
+        columns: [
+          {
+            id: 'sourceKey',
+            accessorKey: 'source.key',
+            header: 'Key',
+            sortingFn: workItemKeySort,
+            cell: ({ row }) => renderWorkItemLink(row.original.source),
+          },
+          {
+            id: 'sourceTitle',
+            accessorKey: 'source.title',
+            header: 'Title',
+            size: 400,
+          },
+          {
+            id: 'sourceType',
+            accessorKey: 'source.type',
+            header: 'Type',
+            size: 150,
+            meta: { filterType: 'set' },
+          },
+          {
+            id: 'sourceStatus',
+            accessorKey: 'source.status',
+            header: 'Status',
+            size: 150,
+            meta: { filterType: 'set' },
+          },
+          {
+            id: 'sourceTeam',
+            accessorKey: 'source.team.name',
+            header: 'Team',
+            meta: { filterEnableSet: true },
+            cell: ({ row }) => renderTeamLink(row.original.source.team),
+          },
+          {
+            id: 'sourceSprint',
+            accessorKey: 'source.sprint.name',
+            header: 'Sprint',
+            meta: { filterEnableSet: true },
+            cell: ({ row }) =>
+              renderSprintLink(row.original.source.sprint, {
+                showTeamCode: false,
+              }),
+          },
+        ],
+      },
+      {
+        id: 'successorInfo',
+        header: 'Successor Info',
+        columns: [
+          {
+            id: 'targetKey',
+            accessorKey: 'target.key',
+            header: 'Key',
+            sortingFn: workItemKeySort,
+            cell: ({ row }) => renderWorkItemLink(row.original.target),
+          },
+          {
+            id: 'targetTitle',
+            accessorKey: 'target.title',
+            header: 'Title',
+            size: 400,
+          },
+          {
+            id: 'targetType',
+            accessorKey: 'target.type',
+            header: 'Type',
+            size: 150,
+            meta: { filterType: 'set' },
+          },
+          {
+            id: 'targetStatus',
+            accessorKey: 'target.status',
+            header: 'Status',
+            size: 150,
+            meta: { filterType: 'set' },
+          },
+          {
+            id: 'targetTeam',
+            accessorKey: 'target.team.name',
+            header: 'Team',
+            meta: { filterEnableSet: true },
+            cell: ({ row }) => renderTeamLink(row.original.target.team),
+          },
+          {
+            id: 'targetSprint',
+            accessorKey: 'target.sprint.name',
+            header: 'Sprint',
+            meta: { filterEnableSet: true },
+            cell: ({ row }) =>
+              renderSprintLink(row.original.target.sprint, {
+                showTeamCode: false,
+              }),
+          },
+        ],
+      },
+    ],
+    [],
+  )
 
   const refresh = async () => {
     refetch()
   }
 
   return (
-    <>
-      <WaydGrid
-        height={550}
-        columnDefs={columnDefs}
-        rowData={props.dependencies}
-        loadData={refresh}
-        loading={props.isLoading}
-        getRowId={getRowId}
-      />
-    </>
+    <WaydGrid2
+      height={550}
+      columns={columns}
+      data={props.dependencies}
+      onRefresh={refresh}
+      isLoading={props.isLoading}
+      csvFileName="team-dependencies"
+    />
   )
 }
 

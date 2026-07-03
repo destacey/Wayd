@@ -79,11 +79,10 @@ export function buildTree<T extends TreeNode>(
 ): T[] {
   const ROOT_ID = '__root__'
 
-  // Create lookup map for all nodes, initialized with empty children
   const nodes: Record<string, T> = {}
   const rootChildren: T[] = []
 
-  // Initialize all items with empty children arrays
+  // Clone every node with a fresh children array, keyed for parent lookup
   const items = flatItems.map((item) => {
     const clone = {
       ...item.node,

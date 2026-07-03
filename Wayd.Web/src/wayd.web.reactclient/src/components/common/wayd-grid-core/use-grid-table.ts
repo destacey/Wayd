@@ -46,6 +46,9 @@ export interface UseGridStateOptions {
   /** Called by onClearFilters in addition to the shared clears (e.g. TreeGrid
    *  flushes its debounced filter drafts). */
   onClear?: () => void
+  /** Sort applied on mount (ag-grid `sort: 'asc'` equivalent). Read once —
+   *  later changes don't reset the user's sorting. */
+  initialSorting?: SortingState
 }
 
 /**
@@ -53,7 +56,9 @@ export interface UseGridStateOptions {
  * global search) and the toolbar handlers derived from them.
  */
 export function useGridState(options?: UseGridStateOptions): GridState {
-  const [sorting, setSorting] = useState<SortingState>([])
+  const [sorting, setSorting] = useState<SortingState>(
+    options?.initialSorting ?? [],
+  )
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
   const [searchValue, setSearchValue] = useState('')

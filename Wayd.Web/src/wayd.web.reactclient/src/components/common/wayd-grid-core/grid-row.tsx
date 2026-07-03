@@ -54,6 +54,56 @@ export function FlatGridRow<T>({ row, index, classes }: FlatGridRowProps<T>) {
   )
 }
 
+export interface SortableFlatGridRowProps<T> extends FlatGridRowProps<T> {
+  /** The row's data id (not TanStack's row.id) — the dnd-kit sortable id. */
+  nodeId: string
+  /** Whether this row is currently being dragged. */
+  isDragging: boolean
+  /** Whether DnD is enabled for this row. */
+  isDragEnabled: boolean
+}
+
+/**
+ * The flat form wrapped in the dnd-kit sortable row ({@link GridSortableRow})
+ * for flat row-reorder DnD. Rendered (with dragging possibly disabled) for
+ * every row whenever the grid has `onRowReorder`, so drag-handle cells can
+ * always reach the `useGridDragHandle` context.
+ *
+ * Same memoization caveat as {@link FlatGridRow}: consumers must carry
+ * `'use no memo'`.
+ */
+export function SortableFlatGridRow<T>({
+  row,
+  index,
+  classes,
+  nodeId,
+  isDragging,
+  isDragEnabled,
+}: SortableFlatGridRowProps<T>) {
+  // eslint-disable-next-line react-compiler/react-compiler -- false-positive "unused directive"; see GridHeaderCell
+  'use no memo'
+  return (
+    <GridSortableRow
+      nodeId={nodeId}
+      isDragEnabled={isDragEnabled}
+      isDragging={isDragging}
+      className={`${classes.tr}${index % 2 === 1 ? ` ${classes.trAlt}` : ''}`}
+    >
+      {row.getVisibleCells().map((cell) => (
+        <td
+          key={cell.id}
+          data-column-id={cell.column.id}
+          className={classes.td}
+        >
+          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+        </td>
+      ))}
+      {/* Filler data cell keeps the zebra/hover band edge-to-edge. */}
+      <td aria-hidden="true" className={classes.td} />
+    </GridSortableRow>
+  )
+}
+
 /** Additional row classes tree mode needs on top of the flat set. */
 export interface TreeGridRowClasses extends GridRowClasses {
   trEditable: string

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { RowData } from '@tanstack/react-table'
 import type { FilterType } from './filters'
 
@@ -55,6 +56,14 @@ export interface WaydGridColumnMeta {
    * input keeps its type-to-Contains behavior.
    */
   filterEnableSet?: boolean
+  /**
+   * Tooltip shown when hovering the header label (AG Grid `headerTooltip`
+   * style). The grid wraps the header content in WaydTooltip automatically —
+   * keep `header` a plain string (which CSV export also uses) instead of
+   * hand-rolling a Tooltip in a header renderer. Works on grouped-header
+   * bands too.
+   */
+  headerTooltip?: ReactNode
   /** Max AND/OR conditions the popup allows (default 5 — the max; set lower to restrict). Ignored for `set`. */
   maxFilterConditions?: number
   /** Placeholder text for text/numericRange filter inputs. */

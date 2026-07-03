@@ -596,4 +596,376 @@ describe('WaydGrid2', () => {
       ).toBeInTheDocument()
     })
   })
+
+  describe('grouped headers (ColGroupDef-style bands)', () => {
+    // Two bands over three leaves, plus one ungrouped column: the band row
+    // must span its leaves via colSpan and pass the ungrouped column through
+    // as an empty placeholder cell.
+    const groupedColumns: ColumnDef<Flag, unknown>[] = [
+      {
+        id: 'info',
+        header: 'Info',
+        columns: [
+          { id: 'name', accessorKey: 'name', header: 'Name' },
+          { id: 'type', accessorKey: 'type', header: 'Type' },
+        ],
+      },
+      {
+        id: 'state',
+        header: 'State',
+        columns: [
+          {
+            id: 'isEnabled',
+            accessorKey: 'isEnabled',
+            header: 'Enabled',
+            meta: { columnType: 'yesNo' } satisfies WaydGridColumnMeta,
+          },
+        ],
+      },
+      { id: 'id', accessorKey: 'id', header: 'Id' },
+    ]
+
+    const bandRows = () =>
+      Array.from(
+        document.querySelectorAll('tr[data-role="header-band"]'),
+      ) as HTMLTableRowElement[]
+
+    it('renders one band row with group labels spanning their leaves', () => {
+      // Arrange / Act
+      renderGrid({ columns: groupedColumns })
+
+      // Assert — a single band row above the leaf header row
+      const bands = bandRows()
+      expect(bands).toHaveLength(1)
+
+      // Group cells span their visible leaves; the ungrouped column passes
+      // through as a placeholder; the trailing filler cell closes the row.
+      const cells = Array.from(bands[0].cells)
+      expect(cells.map((c) => c.textContent)).toEqual(['Info', 'State', '', ''])
+      expect(cells.map((c) => c.colSpan)).toEqual([2, 1, 1, 1])
+
+      // Empty placeholder + filler cells are hidden from assistive tech.
+      expect(cells.map((c) => c.getAttribute('aria-hidden'))).toEqual([
+        null,
+        null,
+        'true',
+        'true',
+      ])
+    })
+
+    it('renders no band row for flat (ungrouped) columns', () => {
+      // Arrange / Act
+      renderGrid()
+
+      // Assert
+      expect(bandRows()).toHaveLength(0)
+    })
+
+    it('renders the floating filter row exactly once', () => {
+      // Arrange / Act
+      renderGrid({ columns: groupedColumns })
+
+      // Assert
+      expect(
+        document.querySelectorAll('tr[data-role="floating-filters"]'),
+      ).toHaveLength(1)
+    })
+
+    it('sorts a grouped leaf column on header click', () => {
+      // Arrange
+      renderGrid({ columns: groupedColumns })
+
+      // Act — click the leaf header, not the band
+      fireEvent.click(screen.getByText('Name'))
+
+      // Assert — rows sort ascending by name
+      const names = bodyCells('name').map((c) => c.textContent)
+      expect(names).toEqual(['insights', 'planning-poker', 'roadmap'])
+    })
+
+    it('applies meta.columnType to leaves nested under a band', () => {
+      // Arrange / Act
+      renderGrid({ columns: groupedColumns })
+
+      // Assert — the yesNo type formats the grouped Enabled leaf
+      const enabled = bodyCells('isEnabled').map((c) => c.textContent)
+      expect(enabled).toEqual(['Yes', 'No', 'Yes'])
+    })
+
+    it('hides a grouped leaf via meta.hide and shrinks the band colSpan', () => {
+      // Arrange — hide Type inside the Info band
+      const cols: ColumnDef<Flag, unknown>[] = [
+        {
+          id: 'info',
+          header: 'Info',
+          columns: [
+            { id: 'name', accessorKey: 'name', header: 'Name' },
+            {
+              id: 'type',
+              accessorKey: 'type',
+              header: 'Type',
+              meta: { hide: true } satisfies WaydGridColumnMeta,
+            },
+          ],
+        },
+        { id: 'id', accessorKey: 'id', header: 'Id' },
+      ]
+
+      // Act
+      renderGrid({ columns: cols })
+
+      // Assert — Type is gone and Info spans only the remaining leaf
+      expect(screen.queryByText('Type')).not.toBeInTheDocument()
+      const infoCell = Array.from(bandRows()[0].cells).find(
+        (c) => c.textContent === 'Info',
+      )
+      expect(infoCell?.colSpan).toBe(1)
+    })
+
+    it('exports band labels as a prelude row above the leaf headers', () => {
+      // Arrange
+      mockDownloadCsv.mockClear()
+      const { container } = renderGrid({ columns: groupedColumns })
+
+      // Act
+      const exportBtn = container
+        .querySelector('[aria-label="download"]')
+        ?.closest('button') as HTMLButtonElement
+      fireEvent.click(exportBtn)
+
+      // Assert — band row (label at each group's first column, blank across
+      // the span, ungrouped Id blank), then leaf headers, then data
+      expect(mockDownloadCsv).toHaveBeenCalledTimes(1)
+      const lines = (mockDownloadCsv.mock.calls[0][0] as string).split('\n')
+      expect(lines[0]).toBe('Info,,State,')
+      expect(lines[1]).toBe('Name,Type,Enabled,Id')
+      expect(lines[2]).toContain('planning-poker')
+    })
+  })
+
+  describe('displayed-rows surface (onDisplayedRowsChange / getDisplayedRows)', () => {
+    it('fires on mount with all rows in display order', () => {
+      // Arrange / Act
+      const onDisplayedRowsChange = jest.fn()
+      renderGrid({ onDisplayedRowsChange })
+
+      // Assert
+      expect(onDisplayedRowsChange).toHaveBeenCalled()
+      const last = onDisplayedRowsChange.mock.calls.at(-1)![0] as Flag[]
+      expect(last.map((f) => f.name)).toEqual([
+        'planning-poker',
+        'roadmap',
+        'insights',
+      ])
+    })
+
+    it('fires with the filtered subset when the global search changes', () => {
+      // Arrange
+      const onDisplayedRowsChange = jest.fn()
+      renderGrid({ onDisplayedRowsChange })
+
+      // Act
+      fireEvent.change(screen.getByPlaceholderText('Search'), {
+        target: { value: 'road' },
+      })
+
+      // Assert
+      const last = onDisplayedRowsChange.mock.calls.at(-1)![0] as Flag[]
+      expect(last.map((f) => f.name)).toEqual(['roadmap'])
+    })
+
+    it('fires with the re-sorted order when a sort is applied', () => {
+      // Arrange
+      const onDisplayedRowsChange = jest.fn()
+      renderGrid({ onDisplayedRowsChange })
+
+      // Act
+      fireEvent.click(screen.getByText('Name'))
+
+      // Assert
+      const last = onDisplayedRowsChange.mock.calls.at(-1)![0] as Flag[]
+      expect(last.map((f) => f.name)).toEqual([
+        'insights',
+        'planning-poker',
+        'roadmap',
+      ])
+    })
+
+    it('exposes the displayed rows via the handle', () => {
+      // Arrange
+      const ref = createRef<WaydGrid2Handle>()
+      renderGrid({ ref })
+
+      // Act — filter, then read the handle
+      fireEvent.change(screen.getByPlaceholderText('Search'), {
+        target: { value: 'insights' },
+      })
+      const displayed = ref.current!.getDisplayedRows() as Flag[]
+
+      // Assert
+      expect(displayed.map((f) => f.name)).toEqual(['insights'])
+    })
+  })
+
+  describe('flat row-reorder DnD (onRowReorder)', () => {
+    it('wraps rows in sortable rows keyed by getRowId', () => {
+      // Arrange / Act
+      renderGrid({
+        onRowReorder: jest.fn(),
+        getRowId: (row) => `flag-${row.id}`,
+      })
+
+      // Assert — each body row carries its sortable data-row-id
+      const rowIds = Array.from(
+        document.querySelectorAll('tbody tr[data-row-id]'),
+      ).map((tr) => tr.getAttribute('data-row-id'))
+      expect(rowIds).toEqual(['flag-1', 'flag-2', 'flag-3'])
+    })
+
+    it('renders plain rows (no sortable wrapper) without onRowReorder', () => {
+      // Arrange / Act
+      renderGrid()
+
+      // Assert
+      expect(
+        document.querySelectorAll('tbody tr[data-row-id]'),
+      ).toHaveLength(0)
+    })
+
+    it('reports drag disabled through the column context while sorted', () => {
+      // Arrange — a columns function that surfaces context.isDragEnabled
+      const seen: boolean[] = []
+      renderGrid({
+        onRowReorder: jest.fn(),
+        getRowId: (row) => String(row.id),
+        columns: (context) => {
+          seen.push(context.isDragEnabled)
+          return columns
+        },
+      })
+      expect(seen.at(-1)).toBe(true)
+
+      // Act — apply a sort (displayed order no longer the data order)
+      fireEvent.click(screen.getByText('Name'))
+
+      // Assert
+      expect(seen.at(-1)).toBe(false)
+    })
+  })
+
+  describe('meta.headerTooltip', () => {
+    const cols: ColumnDef<Flag, unknown>[] = [
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        meta: { headerTooltip: 'The flag name' },
+      },
+    ]
+
+    it('keeps click-to-sort working through the wrapped header label', () => {
+      // Arrange — antd tooltips portal on hover (not renderable in jsdom);
+      // assert the anchor renders and stays interactive.
+      renderGrid({ columns: cols })
+      const label = screen.getByText('Name')
+
+      // Act
+      fireEvent.click(label)
+
+      // Assert — rows sort ascending by name
+      const names = bodyCells('name').map((c) => c.textContent)
+      expect(names).toEqual(['insights', 'planning-poker', 'roadmap'])
+    })
+
+    it('exports the plain string header (no exportHeader override needed)', () => {
+      // Arrange
+      mockDownloadCsv.mockClear()
+      const { container } = renderGrid({ columns: cols })
+
+      // Act
+      const exportBtn = container
+        .querySelector('[aria-label="download"]')
+        ?.closest('button') as HTMLButtonElement
+      fireEvent.click(exportBtn)
+
+      // Assert
+      const csv = mockDownloadCsv.mock.calls[0][0] as string
+      expect(csv.split('\n')[0]).toBe('Name')
+    })
+  })
+
+  describe('dotted accessorKeys over optional relations', () => {
+    interface Row {
+      id: number
+      name: string
+      team?: { name: string }
+    }
+
+    const rows: Row[] = [
+      { id: 1, name: 'alpha', team: { name: 'Juice' } },
+      { id: 2, name: 'beta' }, // no team — the hop TanStack would warn on
+    ]
+
+    const cols: ColumnDef<Row, unknown>[] = [
+      { id: 'name', accessorKey: 'name', header: 'Name' },
+      { accessorKey: 'team.name', header: 'Team' },
+    ]
+
+    it('renders values without TanStack deep-accessor dev warnings', () => {
+      // Arrange
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+
+      try {
+        // Act
+        render(<WaydGrid2<Row> data={rows} columns={cols} />)
+
+        // Assert — value renders, and no "deeply nested key" warning fired
+        expect(screen.getByText('Juice')).toBeInTheDocument()
+        const deepWarnings = warnSpy.mock.calls.filter((call) =>
+          String(call[0]).includes('deeply nested'),
+        )
+        expect(deepWarnings).toHaveLength(0)
+      } finally {
+        warnSpy.mockRestore()
+      }
+    })
+
+    it('keeps the TanStack-derived column id (dots to underscores)', () => {
+      // Arrange / Act
+      render(<WaydGrid2<Row> data={rows} columns={cols} />)
+
+      // Assert — body cells carry the derived data-column-id
+      expect(
+        document.querySelectorAll('tbody td[data-column-id="team_name"]'),
+      ).toHaveLength(2)
+    })
+  })
+
+  describe('initialSorting', () => {
+    it('applies the initial sort on mount', () => {
+      // Arrange / Act
+      renderGrid({ initialSorting: [{ id: 'name', desc: true }] })
+
+      // Assert — rows sorted descending by name without any user click
+      const names = bodyCells('name').map((c) => c.textContent)
+      expect(names).toEqual(['roadmap', 'planning-poker', 'insights'])
+    })
+
+    it('clears the initial sort via the toolbar Clear button', () => {
+      // Arrange
+      const { container } = renderGrid({
+        initialSorting: [{ id: 'name', desc: true }],
+      })
+
+      // Act — the clear button carries a clear icon (aria-label="clear")
+      const clearBtn = container
+        .querySelector('[aria-label="clear"]')
+        ?.closest('button') as HTMLButtonElement
+      fireEvent.click(clearBtn)
+
+      // Assert — back to data order
+      const names = bodyCells('name').map((c) => c.textContent)
+      expect(names).toEqual(['planning-poker', 'roadmap', 'insights'])
+    })
+  })
 })

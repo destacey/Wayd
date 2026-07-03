@@ -6,6 +6,7 @@ export type {
   WaydGrid2Handle,
   GridColumnContext,
   GridInlineEditingConfig,
+  RowReorderEvent,
 } from './types'
 
 // Tree-mode types + utilities (re-exported from the shared grid core so
@@ -77,6 +78,7 @@ export {
   renderWorkItemLink,
   renderAssignedToLink,
   renderWorkStatusTag,
+  renderDependencyHealthTag,
 } from '../wayd-grid-core/cell-renderers'
 export type {
   TeamLinkTarget,
@@ -86,6 +88,7 @@ export type {
   WorkItemLinkTarget,
   AssignedToLinkTarget,
   WorkStatusTagTarget,
+  DependencyHealthTarget,
 } from '../wayd-grid-core/cell-renderers'
 
 // Components (toolbar reconciled into the shared grid core; aliases kept)

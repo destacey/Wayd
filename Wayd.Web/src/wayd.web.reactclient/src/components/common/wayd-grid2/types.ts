@@ -1,4 +1,4 @@
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef, SortingState } from '@tanstack/react-table'
 import type { FormInstance } from 'antd'
 import type { DraftItem } from '../wayd-grid-core/draft-utils'
 import type { MoveValidator } from '../wayd-grid-core/dnd/tree-projection'
@@ -103,6 +103,12 @@ export interface WaydGrid2Props<T> {
   csvFileName?: string
 
   // -- Behavior toggles --
+  /**
+   * Sort applied on mount (ag-grid `sort: 'asc'` equivalent), e.g.
+   * `[{ id: 'done', desc: true }]`. Read once — later changes don't reset
+   * the user's sorting.
+   */
+  initialSorting?: SortingState
   /** Whether to show the global search input. Default: true. */
   includeGlobalSearch?: boolean
   /** Whether to show the CSV export button. Default: true. */
@@ -119,6 +125,28 @@ export interface WaydGrid2Props<T> {
    * Default: true. Ignored when `includeColumnFilters` is false.
    */
   includeFloatingFilters?: boolean
+
+  // -- Row identity --
+  /** Stable row id (required for `onRowReorder`). Falls back to
+   *  `row.original.id`, then TanStack's index-based id. */
+  getRowId?: (row: T) => string
+
+  // -- Grid state --
+  /**
+   * Fires with the displayed rows (post filter + sort, in display order)
+   * whenever that set changes — including on mount. For consumers deriving
+   * external UI (e.g. a chart) from the grid state.
+   */
+  onDisplayedRowsChange?: (rows: T[]) => void
+
+  // -- Flat row reorder (enabled when provided) --
+  /**
+   * Called after a row-drag drop with the displayed rows in post-drop order.
+   * Dragging auto-disables while sorted/filtered/searched (the displayed
+   * order wouldn't be the data order), loading, or editing — column functions
+   * read `context.isDragEnabled` to render their drag handle accordingly.
+   */
+  onRowReorder?: (event: RowReorderEvent<T>) => void | Promise<void>
 
   // -- Tree mode (turned on by providing getSubRows) --
   /** How to extract child rows. Presence of this prop enables tree mode. */
@@ -155,6 +183,18 @@ export interface WaydGrid2Props<T> {
   onDraftsChange?: (drafts: DraftItem[]) => void
 }
 
+/** Payload for {@link WaydGrid2Props.onRowReorder}. */
+export interface RowReorderEvent<T> {
+  /** All displayed rows in their post-drop order. */
+  orderedData: T[]
+  /** The dragged row's id. */
+  activeId: string
+  /** The dragged row's displayed index before the drop. */
+  fromIndex: number
+  /** The dragged row's displayed index after the drop. */
+  toIndex: number
+}
+
 /**
  * Handle exposed by WaydGrid2 via ref.
  */
@@ -163,4 +203,6 @@ export interface WaydGrid2Handle {
   table: any
   /** The currently selected row ID (from the editing hook), or null. */
   selectedRowId: string | null
+  /** The displayed (post filter + sort) rows' data, in display order. */
+  getDisplayedRows: () => unknown[]
 }

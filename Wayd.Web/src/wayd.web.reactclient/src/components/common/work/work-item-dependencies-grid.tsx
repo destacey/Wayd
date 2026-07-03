@@ -4,53 +4,24 @@ import {
   ScopedDependencyDto,
   WorkItemDetailsDto,
 } from '@/src/services/wayd-api'
-import { ColDef, ColGroupDef, GetRowIdParams } from 'ag-grid-community'
-import { CustomCellRendererProps } from 'ag-grid-react'
+import type { ColumnDef } from '@tanstack/react-table'
 import { FC, useMemo } from 'react'
-import WaydGrid from '../wayd-grid'
-import { workItemKeyComparator } from './work-item-utils'
-import Link from 'next/link'
-import { ExportOutlined } from '@ant-design/icons'
+import { WaydTooltip } from '@/src/components/common'
 import {
-  DependencyHealthCellRenderer,
-  renderSprintLinkHelper,
-  renderTeamLinkHelper,
-} from '../wayd-grid-cell-renderers'
+  WaydGrid2,
+  renderDependencyHealthTag,
+  renderSprintLink,
+  renderTeamLink,
+  renderWorkItemLink,
+  workItemKeySort,
+} from '../wayd-grid2'
+import { DEPENDENCY_SCOPE_TOOLTIP } from './dependency-constants'
 
 export interface WorkItemDependenciesGridProps {
   workItem: WorkItemDetailsDto
   dependencies: ScopedDependencyDto[]
   isLoading: boolean
   refetch: () => void
-}
-
-const WorkItemLinkCellRenderer = (
-  props: CustomCellRendererProps<ScopedDependencyDto>,
-) => {
-  const { value, data } = props
-  if (!data?.dependency) return null
-
-  return (
-    <>
-      <Link
-        href={`/work/workspaces/${data.dependency.workspaceKey}/work-items/${data.dependency.key}`}
-        prefetch={false}
-      >
-        {value}
-      </Link>
-
-      {data.dependency.externalViewWorkItemUrl && (
-        <Link
-          href={data.dependency.externalViewWorkItemUrl}
-          target="_blank"
-          title="Open in external system"
-          style={{ marginLeft: '5px' }}
-        >
-          <ExportOutlined style={{ width: '10px' }} />
-        </Link>
-      )}
-    </>
-  )
 }
 
 const dependencyTypeTooltip = (
@@ -69,89 +40,116 @@ const dependencyTypeTooltip = (
 const WorkItemDependenciesGrid: FC<WorkItemDependenciesGridProps> = (props) => {
   const { workItem, refetch } = props
 
-  const getRowId = ({ data }: GetRowIdParams<ScopedDependencyDto>) => {
-    return data.id
-  }
-
-  const columnDefs = useMemo<(ColDef<ScopedDependencyDto> | ColGroupDef<ScopedDependencyDto>)[]>(() => [
-    {
-      headerName: 'Dependency Info',
-      children: [
-        {
-          field: 'type',
-          width: 125,
-          tooltipValueGetter: (params) =>
-            dependencyTypeTooltip(params.data!, workItem),
-          sort: 'asc',
-          sortIndex: 0,
-        },
-        { field: 'state.name', headerName: 'State', width: 100 },
-        {
-          field: 'health.name',
-          headerName: 'Health',
-          width: 100,
-          cellRenderer: DependencyHealthCellRenderer,
-        },
-        {
-          field: 'scope.name',
-          headerName: 'Scope',
-          width: 100,
-          headerTooltip:
-            'Defines whether this dependency is managed inside a single team (intra-team) or requires coordination between multiple teams (cross-team).',
-        },
-        // {
-        //   field: 'createdOn',
-        //   width: 150,
-        //   valueGetter: (params) =>
-        //     dayjs(params.data.createdOn).format('M/D/YYYY h:mm A'),
-        // },
-      ],
-    },
-    {
-      headerName: 'Work Item Info',
-      children: [
-        {
-          field: 'dependency.key',
-          headerName: 'Key',
-          comparator: workItemKeyComparator,
-          cellRenderer: WorkItemLinkCellRenderer,
-        },
-        { field: 'dependency.title', headerName: 'Title', width: 400 },
-        { field: 'dependency.type', headerName: 'Type', width: 150 },
-        { field: 'dependency.status', headerName: 'Status', width: 150 },
-        {
-          field: 'dependency.team.name',
-          headerName: 'Team',
-          cellRenderer: (
-            params: CustomCellRendererProps<ScopedDependencyDto>,
-          ) => renderTeamLinkHelper(params.data?.dependency.team),
-        },
-        {
-          field: 'dependency.sprint.name',
-          headerName: 'Sprint',
-          cellRenderer: (
-            params: CustomCellRendererProps<ScopedDependencyDto>,
-          ) => renderSprintLinkHelper(params.data?.dependency.sprint),
-        },
-      ],
-    },
-  ], [workItem])
+  const columns = useMemo<ColumnDef<ScopedDependencyDto, any>[]>(
+    () => [
+      {
+        id: 'dependencyInfo',
+        header: 'Dependency Info',
+        columns: [
+          {
+            id: 'type',
+            accessorKey: 'type',
+            header: 'Type',
+            size: 125,
+            meta: { filterType: 'set' },
+            cell: ({ row, getValue }) => (
+              <WaydTooltip title={dependencyTypeTooltip(row.original, workItem)}>
+                <span>{getValue<string>()}</span>
+              </WaydTooltip>
+            ),
+          },
+          {
+            id: 'state',
+            accessorKey: 'state.name',
+            header: 'State',
+            size: 100,
+            meta: { filterType: 'set' },
+          },
+          {
+            id: 'health',
+            accessorKey: 'health.name',
+            header: 'Health',
+            size: 100,
+            meta: { filterType: 'set' },
+            cell: ({ row }) => renderDependencyHealthTag(row.original.health),
+          },
+          {
+            id: 'scope',
+            accessorKey: 'scope.name',
+            header: 'Scope',
+            size: 100,
+            meta: { filterType: 'set', headerTooltip: DEPENDENCY_SCOPE_TOOLTIP },
+          },
+        ],
+      },
+      {
+        id: 'workItemInfo',
+        header: 'Work Item Info',
+        columns: [
+          {
+            id: 'key',
+            accessorKey: 'dependency.key',
+            header: 'Key',
+            sortingFn: workItemKeySort,
+            cell: ({ row }) => renderWorkItemLink(row.original.dependency),
+          },
+          {
+            id: 'title',
+            accessorKey: 'dependency.title',
+            header: 'Title',
+            size: 400,
+          },
+          {
+            id: 'workItemType',
+            accessorKey: 'dependency.type',
+            header: 'Type',
+            size: 150,
+            meta: { filterType: 'set' },
+          },
+          {
+            id: 'status',
+            accessorKey: 'dependency.status',
+            header: 'Status',
+            size: 150,
+            meta: { filterType: 'set' },
+          },
+          {
+            id: 'team',
+            accessorKey: 'dependency.team.name',
+            header: 'Team',
+            meta: { filterEnableSet: true },
+            cell: ({ row }) => renderTeamLink(row.original.dependency.team),
+          },
+          {
+            id: 'sprint',
+            accessorKey: 'dependency.sprint.name',
+            header: 'Sprint',
+            meta: { filterEnableSet: true },
+            cell: ({ row }) =>
+              renderSprintLink(row.original.dependency.sprint, {
+                showTeamCode: false,
+              }),
+          },
+        ],
+      },
+    ],
+    [workItem],
+  )
 
   const refresh = async () => {
     refetch()
   }
 
   return (
-    <>
-      <WaydGrid
-        height={550}
-        columnDefs={columnDefs}
-        rowData={props.dependencies}
-        loadData={refresh}
-        loading={props.isLoading}
-        getRowId={getRowId}
-      />
-    </>
+    <WaydGrid2
+      height={550}
+      columns={columns}
+      data={props.dependencies}
+      onRefresh={refresh}
+      isLoading={props.isLoading}
+      initialSorting={[{ id: 'type', desc: false }]}
+      csvFileName="work-item-dependencies"
+    />
   )
 }
 

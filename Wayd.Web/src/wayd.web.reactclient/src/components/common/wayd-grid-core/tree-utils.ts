@@ -1,4 +1,4 @@
-import type { TreeNode, FlattenedTreeNode } from './types'
+import type { TreeNode, FlattenedTreeNode } from './dnd/tree-projection'
 
 /**
  * Recursively counts all nodes in a tree (including children at all levels).

@@ -331,12 +331,163 @@
   background-color: var(--ant-color-fill-quaternary);
 }
 
+/*
+ * Loading/empty status band. The classes go on a DIV inside the spanning
+ * <td> (display:flex directly on a td breaks table-cell rendering), and
+ * .tableElementFill stretches the table while the band is shown so the
+ * single status row fills the wrapper and centers its content vertically
+ * (the td is vertical-align: middle).
+ */
+.tableElementFill {
+  height: 100%;
+}
+
 .empty {
   padding: var(--ant-padding-lg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .loading {
   padding: var(--ant-padding-lg);
   display: flex;
   justify-content: center;
+  align-items: center;
+}
+
+/* ─── Tree mode: inline editing ─────────────────────────── */
+
+.trEditable {
+  cursor: pointer;
+}
+
+.trSelected .td {
+  background-color: var(--ant-color-bg-container);
+}
+
+.editableCell {
+  padding: 1px 4px !important;
+}
+
+.editableCell :global(.ant-input),
+.editableCell :global(.ant-select),
+.editableCell :global(.ant-picker) {
+  width: 100%;
+  font-size: 12px;
+}
+
+.validationErrorRow {
+  background-color: var(--ant-color-error-bg);
+}
+
+.validationErrorCell {
+  color: var(--ant-color-error);
+  font-size: 12px;
+  padding: 12px;
+  border-top: 1px solid var(--ant-color-error-border);
+}
+
+.validationErrorItem {
+  margin-bottom: 4px;
+}
+
+.validationErrorItem:last-child {
+  margin-bottom: 0;
+}
+
+.validationErrorField {
+  font-weight: 500;
+}
+
+/* ─── Tree mode: caller-column building blocks ──────────── */
+
+.expanderBtn {
+  padding: 0 4px;
+}
+
+.expanderBtn :global(.anticon) {
+  font-size: 12px;
+}
+
+.nameCell {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-margin-xxs);
+  min-width: 0;
+  width: 100%;
+}
+
+.indentSpacer {
+  display: inline-block;
+  width: 24px;
+  flex: 0 0 24px;
+}
+
+.phaseName {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inlineRowAction {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.rowActionBtn {
+  padding: 0 4px;
+  height: 20px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.colorPickerFocusTarget {
+  display: inline-flex;
+  width: 100%;
+  outline: none;
+}
+
+.colorPickerFocusTarget:focus {
+  outline: none;
+}
+
+.colorPickerFocusTarget:focus-visible :global(.ant-color-picker-trigger),
+.colorPickerFocusTarget:focus-within :global(.ant-color-picker-trigger) {
+  border-color: var(--ant-color-primary);
+  box-shadow:
+    0 0 0 var(--ant-control-outline-width, 2px) var(--ant-control-outline);
+  outline: none;
+}
+
+.tr:hover .inlineRowAction,
+.trSelected .inlineRowAction {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ─── Tree mode: drag and drop ──────────────────────────── */
+
+.dragHandle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  transition: opacity 0.2s;
+}
+
+.dragHandle:hover {
+  opacity: 0.8;
+}
+
+.tr[data-dragging='true'] {
+  opacity: 0.4;
+  position: relative;
+  z-index: 999;
+}
+
+.tr[data-dragging='true'] .td {
+  background-color: var(--ant-color-fill-tertiary);
 }

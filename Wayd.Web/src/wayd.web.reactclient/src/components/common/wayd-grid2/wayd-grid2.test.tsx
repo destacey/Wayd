@@ -515,4 +515,85 @@ describe('WaydGrid2', () => {
       expect(screen.queryByPlaceholderText('Search')).not.toBeInTheDocument()
     })
   })
+
+  describe('tree mode (getSubRows)', () => {
+    interface Node {
+      id: string
+      name: string
+      children: Node[]
+    }
+
+    const node = (id: string, name: string, children: Node[] = []): Node => ({
+      id,
+      name,
+      children,
+    })
+
+    const TREE: Node[] = [
+      node('1', 'Plan', [node('1.1', 'Kickoff')]),
+      node('2', 'Execute', [
+        node('2.1', 'Build widgets', [node('2.1.1', 'Widget spec')]),
+        node('2.2', 'Review'),
+      ]),
+    ]
+
+    const treeColumns: ColumnDef<Node, unknown>[] = [
+      { id: 'name', accessorKey: 'name', header: 'Name' },
+    ]
+
+    const renderTree = () =>
+      render(
+        <WaydGrid2<Node>
+          data={TREE}
+          columns={treeColumns}
+          getSubRows={(row) => row.children}
+        />,
+      )
+
+    it('renders all descendants expanded by default', () => {
+      // Arrange / Act
+      renderTree()
+
+      // Assert — every node at every depth is a visible row
+      for (const name of [
+        'Plan',
+        'Kickoff',
+        'Execute',
+        'Build widgets',
+        'Widget spec',
+        'Review',
+      ]) {
+        expect(screen.getByText(name)).toBeInTheDocument()
+      }
+      expect(screen.getByText('6 of 6')).toBeInTheDocument()
+    })
+
+    it('keeps the ancestor chain visible when a filter matches only a deep child (filterFromLeafRows)', () => {
+      // Arrange
+      renderTree()
+
+      // Act — global search matches only the depth-2 leaf
+      fireEvent.change(screen.getByPlaceholderText('Search'), {
+        target: { value: 'Widget spec' },
+      })
+
+      // Assert — the leaf plus its ancestor chain stay visible…
+      expect(screen.getByText('Widget spec')).toBeInTheDocument()
+      expect(screen.getByText('Build widgets')).toBeInTheDocument()
+      expect(screen.getByText('Execute')).toBeInTheDocument()
+      // …while unrelated branches are filtered out
+      expect(screen.queryByText('Plan')).not.toBeInTheDocument()
+      expect(screen.queryByText('Review')).not.toBeInTheDocument()
+    })
+
+    it('tags tree cells with data-cell-id for the editing machinery', () => {
+      // Arrange / Act
+      renderTree()
+
+      // Assert — tree rows carry per-cell ids (`{nodeId}-{columnId}`)
+      expect(
+        document.querySelector('[data-cell-id="2.1.1-name"]'),
+      ).toBeInTheDocument()
+    })
+  })
 })

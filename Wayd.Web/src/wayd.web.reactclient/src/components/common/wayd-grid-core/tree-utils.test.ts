@@ -1,5 +1,5 @@
-import type { TreeNode, FlattenedTreeNode } from '../types'
-import { countTreeNodes, findNodeById, flattenTree, buildTree } from '../tree-utils'
+import type { TreeNode, FlattenedTreeNode } from './dnd/tree-projection'
+import { countTreeNodes, findNodeById, flattenTree, buildTree } from './tree-utils'
 
 interface TestNode extends TreeNode {
   name: string

@@ -409,9 +409,12 @@ export function useGridEditing<T extends { id: string }>(
         return
       }
 
-      // Treat interacting with the filter row like an "outside" click
+      // Treat interacting with a filter row like an "outside" click (covers
+      // both the legacy inline filter row and the floating-filter row).
       const clickedInFilterRow = Boolean(
-        target.closest('[data-role="column-filters"]'),
+        target.closest(
+          '[data-role="column-filters"], [data-role="floating-filters"]',
+        ),
       )
 
       if (clickedInFilterRow) {

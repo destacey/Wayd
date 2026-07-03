@@ -10,9 +10,9 @@ import {
 } from '@ant-design/icons'
 import { Button, Flex } from 'antd'
 import { WorkItemTagsCell } from '@/src/components/common/work'
-import treeGridStyles from '@/src/components/common/tree-grid/tree-grid.module.css'
-import { TreeGrid } from '@/src/components/common/tree-grid'
-import type { TreeGridColumnMeta } from '@/src/components/common/tree-grid'
+import treeGridStyles from '@/src/components/common/wayd-grid2/wayd-grid2.module.css'
+import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
+import type { WaydGridColumnMeta } from '@/src/components/common/wayd-grid2'
 import { WorkItemListDto } from '@/src/services/wayd-api'
 import {
   WorkItemTreeNode,
@@ -99,7 +99,6 @@ const getColumns = (
     size: 120,
     enableGlobalFilter: true,
     enableColumnFilter: true,
-    filterFn: 'includesString',
     sortingFn: 'alphanumeric',
     cell: ({ row }) => <WorkItemKeyCell item={row.original} />,
   },
@@ -109,7 +108,6 @@ const getColumns = (
     size: 400,
     enableGlobalFilter: true,
     enableColumnFilter: true,
-    filterFn: 'includesString',
     sortingFn: 'text',
     cell: ({ row }) => {
       const depth = row.depth
@@ -147,7 +145,6 @@ const getColumns = (
     size: 125,
     enableGlobalFilter: true,
     enableColumnFilter: true,
-    filterFn: 'includesString',
     sortingFn: 'text',
   },
   {
@@ -157,7 +154,6 @@ const getColumns = (
     size: 125,
     enableGlobalFilter: true,
     enableColumnFilter: true,
-    filterFn: 'includesString',
     sortingFn: 'text',
     cell: ({ row }) => {
       const item = row.original
@@ -174,7 +170,6 @@ const getColumns = (
     size: 140,
     enableGlobalFilter: true,
     enableColumnFilter: true,
-    filterFn: 'includesString',
     sortingFn: 'text',
   },
   {
@@ -184,12 +179,11 @@ const getColumns = (
     size: 100,
     enableGlobalFilter: false,
     enableColumnFilter: true,
-    filterFn: 'includesString',
     sortingFn: 'basic',
     sortUndefined: -1,
     meta: {
       exportHeader: 'Story Points',
-    } satisfies TreeGridColumnMeta,
+    } satisfies WaydGridColumnMeta,
   },
   {
     id: 'team',
@@ -198,7 +192,6 @@ const getColumns = (
     size: 150,
     enableGlobalFilter: true,
     enableColumnFilter: true,
-    filterFn: 'includesString',
     sortingFn: 'text',
     cell: ({ row }) => <TeamCell item={row.original} />,
   },
@@ -209,7 +202,6 @@ const getColumns = (
     size: 150,
     enableGlobalFilter: true,
     enableColumnFilter: true,
-    filterFn: 'includesString',
     sortingFn: 'text',
     cell: ({ row }) => <SprintCell item={row.original} />,
   },
@@ -220,7 +212,6 @@ const getColumns = (
     size: 150,
     enableGlobalFilter: true,
     enableColumnFilter: true,
-    filterFn: 'includesString',
     sortingFn: 'text',
     cell: ({ row }) => <AssignedToCell item={row.original} />,
   },
@@ -231,7 +222,6 @@ const getColumns = (
     size: 200,
     enableGlobalFilter: true,
     enableColumnFilter: true,
-    filterFn: 'includesString',
     sortingFn: 'text',
     cell: ({ row }) => <WorkItemTagsCell tags={row.original.tags} />,
   },
@@ -244,7 +234,6 @@ const getColumns = (
           size: 300,
           enableGlobalFilter: true,
           enableColumnFilter: true,
-          filterFn: 'includesString' as const,
           sortingFn: 'text' as const,
           cell: ({ row }: { row: any }) => <ProjectCell item={row.original} />,
         } as ColumnDef<WorkItemTreeNode>,
@@ -265,8 +254,9 @@ const ProjectWorkItemsTreeGrid: FC<ProjectWorkItemsTreeGridProps> = ({
   const columns = getColumns(hideProjectColumn)
 
   return (
-    <TreeGrid<WorkItemTreeNode>
+    <WaydGrid2<WorkItemTreeNode>
       data={treeData}
+      getSubRows={(row) => row.children}
       columns={columns}
       isLoading={isLoading}
       height={gridHeight}

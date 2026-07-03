@@ -19,21 +19,19 @@ import {
 import { BaseOptionType } from 'antd/es/select'
 import dayjs from 'dayjs'
 import { ColumnDef } from '@tanstack/react-table'
-import styles from '@/src/components/common/tree-grid/tree-grid.module.css'
+import styles from '@/src/components/common/wayd-grid2/wayd-grid2.module.css'
 import {
   type FilterOption,
-  type TreeGridColumnMeta,
-  numberRangeFilter,
-  setContainsFilter,
+  type WaydGridColumnMeta,
   dateSortBy,
-  useTreeGridDragHandle,
-} from '@/src/components/common/tree-grid'
+  useGridDragHandle,
+} from '@/src/components/common/wayd-grid2'
 
 const { Item: FormItem } = Form
 
 // Drag handle component that uses the context from the sortable row
 function DragHandleCell({ isDragEnabled }: { isDragEnabled: boolean }) {
-  const { listeners, attributes } = useTreeGridDragHandle()
+  const { listeners, attributes } = useGridDragHandle()
 
   if (!isDragEnabled) {
     return null
@@ -127,7 +125,7 @@ export const getProjectPlanTableColumns = ({
             enableGlobalFilter: false,
             enableColumnFilter: false,
             enableResizing: false,
-            meta: { enableExport: false } satisfies TreeGridColumnMeta,
+            meta: { enableExport: false } satisfies WaydGridColumnMeta,
             cell: ({ row }: { row: any }) => {
               const isDraft = row.original.id.startsWith('draft-')
               const isPhase = isPhaseNode(row.original)
@@ -221,7 +219,6 @@ export const getProjectPlanTableColumns = ({
       size: 100,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      filterFn: 'includesString',
       sortingFn: 'alphanumeric',
     },
     {
@@ -229,7 +226,6 @@ export const getProjectPlanTableColumns = ({
       header: 'Key',
       size: 140,
       enableColumnFilter: true,
-      filterFn: 'includesString',
       sortingFn: 'alphanumeric',
       cell: ({ row, getValue }) => {
         const task = row.original as ProjectPlanNodeDto
@@ -260,7 +256,6 @@ export const getProjectPlanTableColumns = ({
       header: 'Name',
       size: 300,
       enableColumnFilter: true,
-      filterFn: 'includesString',
       sortingFn: 'alphanumeric',
       cell: ({ row }: { row: any }) => {
         const depth = row.depth
@@ -365,12 +360,11 @@ export const getProjectPlanTableColumns = ({
       size: 110,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      filterFn: setContainsFilter,
       sortingFn: 'text',
       meta: {
         filterType: 'select',
         filterOptions: taskTypeFilterOptions,
-      } satisfies TreeGridColumnMeta,
+      } satisfies WaydGridColumnMeta,
       cell: ({ row }: { row: any }) => {
         const task = row.original as ProjectPlanNodeDto
         const isSelected = selectedRowId === task.id
@@ -425,12 +419,11 @@ export const getProjectPlanTableColumns = ({
       size: 130,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      filterFn: setContainsFilter,
       sortingFn: 'text',
       meta: {
         filterType: 'select',
         filterOptions: taskStatusFilterOptions,
-      } satisfies TreeGridColumnMeta,
+      } satisfies WaydGridColumnMeta,
       cell: (info) => {
         const task = info.row.original as ProjectPlanNodeDto
         const status = (info.getValue() as string) ?? ''
@@ -484,12 +477,11 @@ export const getProjectPlanTableColumns = ({
       size: 110,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      filterFn: setContainsFilter,
       sortingFn: 'text',
       meta: {
         filterType: 'select',
         filterOptions: taskPriorityFilterOptions,
-      } satisfies TreeGridColumnMeta,
+      } satisfies WaydGridColumnMeta,
       cell: (info) => {
         const task = info.row.original as ProjectPlanNodeDto
         const priority = (info.getValue() as string) ?? ''
@@ -536,14 +528,13 @@ export const getProjectPlanTableColumns = ({
       size: 130,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      filterFn: 'includesString',
       meta: {
         exportFormatter: (_value, row) => {
           const isMilestone = row.type?.name === 'Milestone'
           const date = isMilestone ? row.plannedDate : row.start
           return date ? dayjs(date).format('MMM D, YYYY') : ''
         },
-      } satisfies TreeGridColumnMeta,
+      } satisfies WaydGridColumnMeta,
       sortingFn: dateSortBy((row: any) => {
         const isMilestone = row.original.type?.name === 'Milestone'
         return isMilestone ? row.original.plannedDate : row.original.start
@@ -606,11 +597,10 @@ export const getProjectPlanTableColumns = ({
       size: 130,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      filterFn: 'includesString',
       meta: {
         exportFormatter: (value) =>
           value ? dayjs(value as string).format('MMM D, YYYY') : '',
-      } satisfies TreeGridColumnMeta,
+      } satisfies WaydGridColumnMeta,
       sortingFn: dateSortBy((row: any) => row.original.end),
       cell: (info) => {
         const task = info.row.original as ProjectPlanNodeDto
@@ -668,7 +658,6 @@ export const getProjectPlanTableColumns = ({
       size: 250,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      filterFn: 'includesString',
       sortingFn: 'text',
       cell: (info) => {
         const task = info.row.original as ProjectPlanNodeDto
@@ -715,11 +704,10 @@ export const getProjectPlanTableColumns = ({
       size: 90,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      filterFn: numberRangeFilter,
       meta: {
         filterType: 'numericRange',
         filterPlaceholder: 'e.g. >=10 or 2-6',
-      } satisfies TreeGridColumnMeta,
+      } satisfies WaydGridColumnMeta,
       cell: (info) => {
         const task = info.row.original as ProjectPlanNodeDto
         const value = task.progress
@@ -764,11 +752,10 @@ export const getProjectPlanTableColumns = ({
       size: 90,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      filterFn: numberRangeFilter,
       meta: {
         filterType: 'numericRange',
         filterPlaceholder: 'e.g. >=10 or 2-6',
-      } satisfies TreeGridColumnMeta,
+      } satisfies WaydGridColumnMeta,
       cell: (info) => {
         const task = info.row.original as ProjectPlanNodeDto
         const value = task.estimatedEffortHours

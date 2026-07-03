@@ -13,14 +13,14 @@ import { Button, Form } from 'antd'
 import dayjs from 'dayjs'
 import {
   type DraftItem,
-  TreeGrid,
+  WaydGrid2,
   type TreeNode,
   type FilterOption,
   type MoveValidator,
-  type TreeGridColumnContext,
+  type GridColumnContext,
   defaultMoveValidator,
   findNodeById,
-} from '@/src/components/common/tree-grid'
+} from '@/src/components/common/wayd-grid2'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
   useCreateRoadmapItemMutation,
@@ -634,7 +634,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
   )
 
   const columns = useCallback(
-    (ctx: TreeGridColumnContext) =>
+    (ctx: GridColumnContext) =>
       getRoadmapItemsGridColumns({
         isRoadmapManager,
         selectedRowId: ctx.selectedRowId,
@@ -692,8 +692,9 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
   return (
     <>
       <Form form={form} component={false}>
-        <TreeGrid<RoadmapItemTreeNode>
+        <WaydGrid2<RoadmapItemTreeNode>
           data={treeData}
+          getSubRows={(row) => row.children}
           isLoading={roadmapItemsIsLoading}
           columns={columns}
           rightSlot={viewSelector}

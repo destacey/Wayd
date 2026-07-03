@@ -4,7 +4,27 @@ export type {
   WaydGridColumnMeta,
   WaydGrid2Props,
   WaydGrid2Handle,
+  GridColumnContext,
+  GridInlineEditingConfig,
 } from './types'
+
+// Tree-mode types + utilities (re-exported from the shared grid core so
+// consumers have a single import surface)
+export type {
+  TreeNode,
+  FlattenedTreeNode,
+  DragProjection,
+  MoveValidator,
+} from '../wayd-grid-core/dnd/tree-projection'
+export { defaultMoveValidator } from '../wayd-grid-core/dnd/tree-projection'
+export type { DraftItem } from '../wayd-grid-core/draft-utils'
+export {
+  buildTree,
+  countTreeNodes,
+  findNodeById,
+  flattenTree,
+} from '../wayd-grid-core/tree-utils'
+export { useGridDragHandle } from '../wayd-grid-core/dnd/grid-dnd'
 
 // Filter functions (re-exported from the shared grid core so wayd-grid2
 // consumers have a single import surface)

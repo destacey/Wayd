@@ -1,5 +1,5 @@
-import type { TreeNode, DraftItem } from '../types'
-import { mergeDraftsIntoTree } from '../draft-utils'
+import type { TreeNode } from './dnd/tree-projection'
+import { mergeDraftsIntoTree, type DraftItem } from './draft-utils'
 
 interface TestNode extends TreeNode {
   name: string

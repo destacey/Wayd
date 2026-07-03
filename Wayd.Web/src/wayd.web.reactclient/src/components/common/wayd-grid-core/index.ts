@@ -61,9 +61,24 @@ export type {
 export { default as GridToolbar } from './grid-toolbar'
 export type { GridToolbarProps } from './grid-toolbar'
 
-// Row renderer — flat form of the row-renderer seam
-export { FlatGridRow } from './grid-row'
-export type { FlatGridRowProps, GridRowClasses } from './grid-row'
+// Row renderer — the flat and tree forms of the row-renderer seam
+export { FlatGridRow, TreeGridRow } from './grid-row'
+export type {
+  FlatGridRowProps,
+  GridRowClasses,
+  TreeGridRowClasses,
+  TreeGridRowProps,
+} from './grid-row'
+
+// Tree + draft utilities (tree mode)
+export {
+  buildTree,
+  countTreeNodes,
+  findNodeById,
+  flattenTree,
+} from './tree-utils'
+export { mergeDraftsIntoTree } from './draft-utils'
+export type { DraftItem } from './draft-utils'
 
 // Header sort/resize cell
 export { GridHeaderCell, useResizeClickGuard } from './grid-header-row'

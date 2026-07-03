@@ -1,4 +1,13 @@
-import type { TreeNode, DraftItem } from './types'
+import type { TreeNode } from './dnd/tree-projection'
+
+/**
+ * Draft item for inline creation.
+ */
+export interface DraftItem {
+  id: string
+  parentId?: string
+  order: number
+}
 
 /**
  * Merges in-memory draft rows into the existing tree for inline creation.

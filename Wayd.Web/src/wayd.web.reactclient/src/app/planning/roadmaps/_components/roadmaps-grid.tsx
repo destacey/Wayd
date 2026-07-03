@@ -1,8 +1,9 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common'
+import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
 import { RoadmapListDto } from '@/src/services/wayd-api'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import { getSortedNames } from '@/src/utils'
+import type { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
 import { FC, ReactNode, useMemo } from 'react'
 
@@ -15,64 +16,68 @@ export interface RoadmapsGridProps {
   parentRoadmapId?: string | undefined
 }
 
-type RoadmapGridRow = RoadmapListDto & {
-  roadmapManagersDisplay: string
-}
-
-const RoadmapCellRenderer = ({ value, data }: ICellRendererParams<RoadmapGridRow>) => {
-  return <Link href={`/planning/roadmaps/${data!.key}`}>{value}</Link>
-}
-
 const RoadmapsGrid: FC<RoadmapsGridProps> = (props: RoadmapsGridProps) => {
-  const rowData: RoadmapGridRow[] = props.roadmapsData.map((roadmap) => ({
-    ...roadmap,
-    roadmapManagersDisplay: roadmap.roadmapManagers
-      .slice()
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map((m) => m.name)
-      .join(', '),
-  }))
-
-  const columnDefs = useMemo<ColDef<RoadmapGridRow>[]>(
+  const columns = useMemo<ColumnDef<RoadmapListDto, any>[]>(
     () => [
-      { field: 'key', width: 90 },
-      { field: 'name', width: 300, cellRenderer: RoadmapCellRenderer },
+      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
       {
-        field: 'start',
-        width: 150,
-        type: 'dateOnly',
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        size: 300,
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => (
+          <Link href={`/planning/roadmaps/${row.original.key}`}>
+            {row.original.name}
+          </Link>
+        ),
       },
       {
-        field: 'end',
-        width: 150,
-        type: 'dateOnly',
+        id: 'start',
+        accessorKey: 'start',
+        header: 'Start',
+        size: 150,
+        meta: { columnType: 'dateOnly' },
       },
       {
-        field: 'roadmapManagersDisplay',
-        headerName: 'Roadmap Managers',
+        id: 'end',
+        accessorKey: 'end',
+        header: 'End',
+        size: 150,
+        meta: { columnType: 'dateOnly' },
       },
       {
-        field: 'visibility.name',
-        headerName: 'Visibility',
-        width: 125,
+        id: 'roadmapManagers',
+        accessorFn: (row) => getSortedNames(row.roadmapManagers ?? []),
+        header: 'Roadmap Managers',
       },
       {
-        field: 'state.name',
-        headerName: 'State',
-        width: 120,
+        id: 'visibility',
+        accessorKey: 'visibility.name',
+        header: 'Visibility',
+        size: 125,
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'state',
+        accessorKey: 'state.name',
+        header: 'State',
+        size: 120,
+        meta: { filterType: 'set' },
       },
     ],
     [],
   )
 
   return (
-    <WaydGrid
+    <WaydGrid2
       height={props.gridHeight ?? 650}
-      columnDefs={columnDefs}
-      rowData={rowData}
-      loadData={props.refreshRoadmaps}
-      loading={props.roadmapsLoading}
-      toolbarActions={props.viewSelector}
+      columns={columns}
+      data={props.roadmapsData}
+      onRefresh={props.refreshRoadmaps}
+      isLoading={props.roadmapsLoading}
+      csvFileName="roadmaps"
+      rightSlot={props.viewSelector}
     />
   )
 }

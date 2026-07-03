@@ -1,16 +1,18 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import WaydGrid from '../wayd-grid'
+import {
+  WaydGrid2,
+  createActionsColumn,
+  renderTeamLink,
+} from '../wayd-grid2'
 import { RiskListDto } from '@/src/services/wayd-api'
 import { ItemType } from 'antd/es/menu/interface'
 import { Button } from 'antd'
 import useAuth from '../../contexts/auth'
 import CreateRiskForm from './create-risk-form'
-import { EditOutlined } from '@ant-design/icons'
 import EditRiskForm from './edit-risk-form'
-import { NestedTeamNameLinkCellRenderer } from '../wayd-grid-cell-renderers'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
-import { ControlItemSwitch } from '../control-items-menu'
+import type { ColumnDef } from '@tanstack/react-table'
+import { ControlItemsMenu, ControlItemSwitch } from '../control-items-menu'
 
 export interface RisksGridProps {
   risks: RiskListDto[]
@@ -21,16 +23,6 @@ export interface RisksGridProps {
   newRisksAllowed?: boolean
   hideTeamColumn?: boolean
   gridHeight?: number
-}
-
-const RiskLinkCellRenderer = ({ value, data }: ICellRendererParams<RiskListDto>) => {
-  return <Link href={`/planning/risks/${data!.key}`}>{value}</Link>
-}
-
-const AssigneeLinkCellRenderer = ({ value, data }: ICellRendererParams<RiskListDto>) => {
-  return (
-    <Link href={`/organizations/employees/${data!.assignee?.key}`}>{value}</Link>
-  )
 }
 
 const RisksGrid = ({
@@ -115,72 +107,106 @@ const RisksGrid = ({
     },
   ]
 
-  // TODO: dates are formatted correctly and filter, but the filter is string based, not date based
-  const columnDefs = useMemo<ColDef<RiskListDto>[]>(() => {
+  const columns = useMemo<ColumnDef<RiskListDto, any>[]>(() => {
     const editRiskButtonClicked = (key: number) => {
       setEditRiskKey(key)
       setOpenUpdateRiskForm(true)
     }
 
     return [
-    {
-      width: 50,
-      filter: false,
-      sortable: false,
-      resizable: false,
+    createActionsColumn<RiskListDto>({
       hide: !canUpdateRisks,
-      cellRenderer: (params: ICellRendererParams<RiskListDto>) => {
-        if (!params.data) return null
-        return (
-          canUpdateRisks && (
-            <Button
-              type="text"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => editRiskButtonClicked(params.data!.key)}
-            />
-          )
-        )
-      },
-    },
-    { field: 'id', hide: true },
-    { field: 'key', width: 90 },
-    { field: 'summary', width: 300, cellRenderer: RiskLinkCellRenderer },
+      ariaLabel: 'Risk actions',
+      getItems: (risk): ItemType[] =>
+        canUpdateRisks
+          ? [
+              {
+                key: 'edit',
+                label: 'Edit',
+                onClick: () => editRiskButtonClicked(risk.key),
+              },
+            ]
+          : [],
+    }),
+    { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
     {
-      field: 'team.name',
-      headerName: 'Team',
-      cellRenderer: NestedTeamNameLinkCellRenderer,
-      hide: hideTeam,
-    },
-    { field: 'status', width: 125, hide: includeClosed === false },
-    { field: 'category', width: 125 },
-    { field: 'exposure', width: 125 },
-    {
-      field: 'followUpDate',
-      type: 'dateOnly',
+      id: 'summary',
+      accessorKey: 'summary',
+      header: 'Summary',
+      size: 300,
+      meta: { filterEnableSet: true },
+      cell: ({ row }) => (
+        <Link href={`/planning/risks/${row.original.key}`}>
+          {row.original.summary}
+        </Link>
+      ),
     },
     {
-      field: 'assignee.name',
-      headerName: 'Assignee',
-      cellRenderer: AssigneeLinkCellRenderer,
+      id: 'team',
+      accessorKey: 'team.name',
+      header: 'Team',
+      meta: { hide: hideTeam, filterEnableSet: true },
+      cell: ({ row }) => renderTeamLink(row.original.team),
     },
     {
-      field: 'reportedOn',
-      type: 'dateOnly',
+      id: 'status',
+      accessorKey: 'status',
+      header: 'Status',
+      size: 125,
+      meta: { hide: includeClosed === false, filterType: 'set' },
+    },
+    {
+      id: 'category',
+      accessorKey: 'category',
+      header: 'Category',
+      size: 125,
+      meta: { filterType: 'set' },
+    },
+    {
+      id: 'exposure',
+      accessorKey: 'exposure',
+      header: 'Exposure',
+      size: 125,
+      meta: { filterType: 'set' },
+    },
+    {
+      id: 'followUpDate',
+      accessorKey: 'followUpDate',
+      header: 'Follow Up Date',
+      meta: { columnType: 'dateOnly' },
+    },
+    {
+      id: 'assignee',
+      accessorKey: 'assignee.name',
+      header: 'Assignee',
+      cell: ({ row }) =>
+        row.original.assignee ? (
+          <Link
+            href={`/organizations/employees/${row.original.assignee.key}`}
+          >
+            {row.original.assignee.name}
+          </Link>
+        ) : null,
+    },
+    {
+      id: 'reportedOn',
+      accessorKey: 'reportedOn',
+      header: 'Reported On',
+      meta: { columnType: 'dateOnly' },
     },
   ]}, [canUpdateRisks, hideTeam, includeClosed])
 
   return (
     <>
-      {/* TODO:  setup dynamic height */}
-      <WaydGrid
+      <WaydGrid2
         height={gridHeight}
-        columnDefs={columnDefs}
-        rowData={risks}
-        loading={isLoadingRisks}
-        loadData={refreshRisks}
-        actions={showActions && actions()}
-        gridControlMenuItems={controlItems}
+        columns={columns}
+        data={risks ?? []}
+        isLoading={isLoadingRisks}
+        onRefresh={refreshRisks}
+        csvFileName="risks"
+        leftSlot={showActions ? actions() : undefined}
+        rightSlot={<ControlItemsMenu items={controlItems} />}
       />
       {openCreateRiskForm && (
         <CreateRiskForm

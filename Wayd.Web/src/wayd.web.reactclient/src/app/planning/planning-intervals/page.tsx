@@ -1,8 +1,10 @@
 'use client'
 
-import WaydGrid from '@/src/components/common/wayd-grid'
+import {
+  WaydGrid2,
+  renderPlanningIntervalLink,
+} from '@/src/components/common/wayd-grid2'
 import PageTitle from '@/src/components/common/page-title'
-import Link from 'next/link'
 import { useState, useMemo } from 'react'
 import { useDocumentTitle } from '../../../hooks/use-document-title'
 import dayjs from 'dayjs'
@@ -12,14 +14,7 @@ import { Button } from 'antd'
 import { authorizePage } from '../../../components/hoc'
 import { useGetPlanningIntervalsQuery } from '@/src/store/features/planning/planning-interval-api'
 import { PlanningIntervalListDto } from '@/src/services/wayd-api'
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
-
-const PlanningIntervalLinkCellRenderer = ({
-  value,
-  data,
-}: ICellRendererParams<PlanningIntervalListDto>) => {
-  return <Link href={`/planning/planning-intervals/${data!.key}`}>{value}</Link>
-}
+import type { ColumnDef } from '@tanstack/react-table'
 
 const stateOrder = ['Active', 'Future', 'Completed']
 
@@ -49,21 +44,34 @@ const PlanningIntervalListPage = () => {
         }
       })
 
-  const columnDefs = useMemo<ColDef<PlanningIntervalListDto>[]>(
+  const columns = useMemo<ColumnDef<PlanningIntervalListDto, any>[]>(
     () => [
-      { field: 'key', width: 90 },
-      { field: 'name', cellRenderer: PlanningIntervalLinkCellRenderer },
+      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
       {
-        field: 'state.name',
-        width: 125,
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => renderPlanningIntervalLink(row.original),
       },
       {
-        field: 'start',
-        type: 'dateOnly',
+        id: 'state',
+        accessorKey: 'state.name',
+        header: 'State',
+        size: 125,
+        meta: { filterType: 'set' },
       },
       {
-        field: 'end',
-        type: 'dateOnly',
+        id: 'start',
+        accessorKey: 'start',
+        header: 'Start',
+        meta: { columnType: 'dateOnly' },
+      },
+      {
+        id: 'end',
+        accessorKey: 'end',
+        header: 'End',
+        meta: { columnType: 'dateOnly' },
       },
     ],
     [],
@@ -99,11 +107,12 @@ const PlanningIntervalListPage = () => {
         title="Planning Intervals"
         actions={showActions && actions()}
       />
-      <WaydGrid
-        columnDefs={columnDefs}
-        rowData={data}
-        loading={isLoading}
-        loadData={refresh}
+      <WaydGrid2
+        columns={columns}
+        data={data}
+        isLoading={isLoading}
+        onRefresh={refresh}
+        csvFileName="planning-intervals"
       />
       {openCreatePlanningIntervalForm && (
         <CreatePlanningIntervalForm

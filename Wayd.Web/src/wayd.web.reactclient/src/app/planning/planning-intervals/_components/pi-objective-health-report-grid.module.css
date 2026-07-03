@@ -1,0 +1,21 @@
+/* Tightens markdown spacing so a health-check note sits cleanly inside a grid
+ * cell (first/last paragraph flush, compact lists). */
+.markdown p {
+  margin-top: 12px;
+  margin-bottom: 12px;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.markdown > p:first-child {
+  margin-top: 0;
+}
+
+.markdown > p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown ul {
+  margin-top: 0;
+  margin-bottom: 0;
+}

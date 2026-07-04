@@ -480,9 +480,15 @@ describe('WaydGrid', () => {
       // Arrange / Act
       const { container } = renderGrid()
 
-      // Assert — one <col> more than data columns (the filler)
-      const cols = container.querySelectorAll('colgroup col')
-      expect(cols).toHaveLength(columns.length + 1)
+      // Assert — one <col> more than data columns (the filler) in EACH of the
+      // two tables (split header + body viewports share one colgroup shape)
+      const tables = container.querySelectorAll('table')
+      expect(tables).toHaveLength(2)
+      tables.forEach((t) =>
+        expect(t.querySelectorAll('colgroup col')).toHaveLength(
+          columns.length + 1,
+        ),
+      )
 
       // Header row ends in an aria-hidden filler th
       const headerRow = container.querySelector('thead tr') as HTMLTableRowElement

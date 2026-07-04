@@ -40,13 +40,17 @@ const renderTransfer = (props: TransferProps = {}) => {
       {...props}
     />,
   )
+  // Each WaydGrid renders a header table (thead) and a body table (tbody):
+  // [0]=left header, [1]=left body, [2]=right header, [3]=right body.
   const tables = utils.container.querySelectorAll('table')
   return {
     ...utils,
     onMove,
     onRemove,
-    leftTable: tables[0] as HTMLTableElement,
-    rightTable: tables[1] as HTMLTableElement,
+    leftHeader: tables[0] as HTMLTableElement,
+    leftTable: tables[1] as HTMLTableElement,
+    rightHeader: tables[2] as HTMLTableElement,
+    rightTable: tables[3] as HTMLTableElement,
   }
 }
 
@@ -176,11 +180,11 @@ describe('WaydGridTransfer', () => {
 
     it('selects every displayed row via the header checkbox', () => {
       // Arrange
-      const { leftTable, onMove } = renderTransfer()
+      const { leftHeader, onMove } = renderTransfer()
 
       // Act
       fireEvent.click(
-        within(leftTable).getByRole('checkbox', { name: 'Select all rows' }),
+        within(leftHeader).getByRole('checkbox', { name: 'Select all rows' }),
       )
       fireEvent.click(moveButton())
 
@@ -192,8 +196,8 @@ describe('WaydGridTransfer', () => {
       // Arrange — filter the left grid's Name column down to 'Beta'
       jest.useFakeTimers()
       try {
-        const { leftTable, onMove } = renderTransfer()
-        const floatingRow = leftTable.querySelector(
+        const { leftHeader, leftTable, onMove } = renderTransfer()
+        const floatingRow = leftHeader.querySelector(
           'tr[data-role="floating-filters"]',
         ) as HTMLTableRowElement
         const nameFilterInput = floatingRow.querySelectorAll(
@@ -207,7 +211,7 @@ describe('WaydGridTransfer', () => {
         })
         expect(bodyCells(leftTable, 'name')).toEqual(['Beta'])
         fireEvent.click(
-          within(leftTable).getByRole('checkbox', { name: 'Select all rows' }),
+          within(leftHeader).getByRole('checkbox', { name: 'Select all rows' }),
         )
         fireEvent.click(moveButton())
 

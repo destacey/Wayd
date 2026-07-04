@@ -8,22 +8,15 @@
 
 /* Toolbar styles live in wayd-grid-core/grid-toolbar.module.css. */
 
-.tableWrapper {
-  overflow-x: auto;
-  overflow-y: auto;
-  border-radius: var(--ant-border-radius-lg);
-  border: 1px solid var(--ant-color-border);
-  background-color: var(--ant-color-bg-container);
-  flex: 1;
-  min-height: 0;
-}
-
-.tableElement {
+/*
+ * Bordered shell around the grid: a fixed header viewport on top of the
+ * scrolling body viewport. Splitting the two keeps the vertical scrollbar in
+ * the rows area only (ag-grid style) — the body syncs its horizontal scroll
+ * into the header. The header vars live here so the header table AND the
+ * scrollbar spacer can both use them.
+ */
+.tableArea {
   --wayd-grid-header-row-height: 29px;
-  /* Grouped-header band rows above the leaf header row; set inline by the
-   * grid (0 when no column groups). Drives the sticky offsets below so the
-   * leaf header and floating-filter rows stick beneath the bands. */
-  --wayd-grid-group-header-rows: 0;
   /*
    * Subtle tinted header band, AG Grid style. Applied to the header + filter rows.
    * One elevation step above the zebra alt-row tint (fill-quaternary) so the
@@ -31,10 +24,9 @@
    * tokens resolve to the correct subtle overlay per theme (darker in light
    * themes, lighter in dark themes).
    *
-   * The fill token is semi-transparent, so the sticky header/filter rows MUST
-   * composite it over an OPAQUE base — otherwise rows scrolling underneath show
-   * through the header (it's sticky, they aren't). We layer the tint over the
-   * container background as a flat gradient so the result is fully opaque.
+   * The fill token is semi-transparent, so the header/filter rows composite it
+   * over an OPAQUE base — we layer the tint over the container background as a
+   * flat gradient so the result is fully opaque.
    */
   --wayd-grid-header-tint: var(--ant-color-fill-tertiary);
   --wayd-grid-header-bg: linear-gradient(
@@ -42,6 +34,52 @@
       var(--wayd-grid-header-tint)
     )
     var(--ant-color-bg-container);
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--ant-border-radius-lg);
+  border: 1px solid var(--ant-color-border);
+  background-color: var(--ant-color-bg-container);
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Header strip: the clipped header viewport plus the scrollbar spacer. */
+.headerArea {
+  display: flex;
+  flex: none;
+}
+
+/* Non-scrolling viewport for the header table; the body's onScroll writes its
+   scrollLeft here so columns track the body's horizontal position. */
+.headerViewport {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Sits above the body's vertical scrollbar (width set inline from a live
+   measurement; 0 when no scrollbar) so header and body columns stay aligned. */
+.headerScrollbarSpacer {
+  flex: none;
+  background: var(--wayd-grid-header-bg);
+  border-bottom: 1px solid var(--ant-color-border);
+}
+
+/* The body viewport — the grid's one scrolling element (draft/editing
+   scroll-into-view helpers target this class). */
+.tableWrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.tableElement {
+  /* Grouped-header band rows above the leaf header row; set inline by the
+   * grid (0 when no column groups). Drives the header row offsets so the
+   * leaf header and floating-filter rows sit beneath the bands. */
+  --wayd-grid-group-header-rows: 0;
   /*
    * Fill the wrapper so the header band and borders paint edge-to-edge (AG Grid
    * style). Real columns keep their declared sizes via <col> widths; a trailing
@@ -346,6 +384,15 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 0;
+}
+
+/* Filler data cell (aria-hidden, empty, keeps the zebra/hover band
+   edge-to-edge). Zero padding so it adds nothing to the body table's
+   intrinsic width: the header table's filler contributes 0, and any
+   difference makes the two tables' max scrollLeft diverge — the header
+   would detach from the body by that amount at full right scroll. */
+.td[aria-hidden='true'] {
+  padding: 0;
 }
 
 .tr {

@@ -8,6 +8,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -249,6 +250,39 @@ function WaydGridInner<T>(
   // ─── Auto-height ─────────────────────────────────────────
   const [gridContainerRef, autoHeight] = useRemainingHeight()
   const resolvedHeight = height ?? autoHeight
+
+  // ─── Split header/body viewports ─────────────────────────
+  // The header lives in its own clipped viewport above the scrolling body, so
+  // the vertical scrollbar spans only the rows (ag-grid style). The body's
+  // horizontal scroll is mirrored into the header, and a spacer as wide as the
+  // body's vertical scrollbar keeps the two tables' columns aligned.
+  const headerViewportRef = useRef<HTMLDivElement>(null)
+  const bodyViewportRef = useRef<HTMLDivElement>(null)
+  const [scrollbarWidth, setScrollbarWidth] = useState(0)
+
+  const handleBodyScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      if (headerViewportRef.current) {
+        headerViewportRef.current.scrollLeft = e.currentTarget.scrollLeft
+      }
+    },
+    [],
+  )
+
+  useLayoutEffect(() => {
+    const el = bodyViewportRef.current
+    if (!el) return
+    // offsetWidth - clientWidth = the vertical scrollbar's width (0 for
+    // overlay scrollbars or when rows don't overflow). The ResizeObserver
+    // re-measures when the scrollbar appears/disappears — that changes the
+    // element's content box.
+    const measure = () => setScrollbarWidth(el.offsetWidth - el.clientWidth)
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   // ─── State ───────────────────────────────────────────────
   const gridState = useGridState({ initialSorting })
@@ -989,28 +1023,34 @@ function WaydGridInner<T>(
   const leafHeaderGroup = headerGroups[headerGroups.length - 1]
   const groupHeaderRows = headerGroups.slice(0, -1)
 
+  // Rendered into BOTH tables (header + body) — with table-layout: fixed,
+  // identical colgroups guarantee the two tables' columns align exactly.
+  const colGroup = (
+    <colgroup>
+      {table.getVisibleLeafColumns().map((column) => (
+        <col key={column.id} width={column.getSize()} />
+      ))}
+      {/* Filler column absorbs leftover width so the table fills the
+          viewport (header band + borders edge-to-edge) without widening
+          the real columns. */}
+      <col className={styles.fillerCol} />
+    </colgroup>
+  )
+
   const tableContent = (
-    <div className={styles.tableWrapper}>
-      <table
-        className={`${styles.tableElement}${
-          showStatusRow ? ` ${styles.tableElementFill}` : ''
-        }`}
-        style={
-          {
-            '--wayd-grid-group-header-rows': groupHeaderRows.length,
-          } as React.CSSProperties
-        }
-      >
-        <colgroup>
-          {table.getVisibleLeafColumns().map((column) => (
-            <col key={column.id} width={column.getSize()} />
-          ))}
-          {/* Filler column absorbs leftover width so the table fills the
-              wrapper (header band + borders edge-to-edge) without widening
-              the real columns. */}
-          <col className={styles.fillerCol} />
-        </colgroup>
-        <thead>
+    <div className={styles.tableArea}>
+      <div className={styles.headerArea}>
+        <div className={styles.headerViewport} ref={headerViewportRef}>
+          <table
+            className={styles.tableElement}
+            style={
+              {
+                '--wayd-grid-group-header-rows': groupHeaderRows.length,
+              } as React.CSSProperties
+            }
+          >
+            {colGroup}
+            <thead>
           {/* Grouped-header band rows — plain colspan cells, no
               sort/filter/resize; placeholders render empty. */}
           {groupHeaderRows.map((headerGroup, bandIndex) => (
@@ -1164,7 +1204,28 @@ function WaydGridInner<T>(
             </tr>
           )}
         </thead>
-        <tbody>
+          </table>
+        </div>
+        {/* Spacer above the body's vertical scrollbar — same header band
+            styling, sized from the live scrollbar measurement. */}
+        <div
+          className={styles.headerScrollbarSpacer}
+          style={{ width: scrollbarWidth }}
+          aria-hidden="true"
+        />
+      </div>
+      <div
+        className={styles.tableWrapper}
+        ref={bodyViewportRef}
+        onScroll={handleBodyScroll}
+      >
+        <table
+          className={`${styles.tableElement}${
+            showStatusRow ? ` ${styles.tableElementFill}` : ''
+          }`}
+        >
+          {colGroup}
+          <tbody>
           {isLoading ? (
             <tr>
               {/* Centering lives on the inner div — `display: flex` directly
@@ -1260,8 +1321,9 @@ function WaydGridInner<T>(
               />
             ))
           )}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 

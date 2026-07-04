@@ -1,0 +1,83 @@
+/*
+ * Column menu (⋮) trigger, ag-grid style: sits at the right end of the header
+ * cell content, hidden until the header is hovered, the trigger is keyboard-
+ * focused, or its menu is open. Opacity (not display) so the header layout
+ * never shifts when it appears.
+ */
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Far right of the header cell (the header content row is a full-width
+     flex container); the label and sort/filter icons stay left. */
+  margin-left: auto;
+  cursor: pointer;
+  color: var(--ant-color-text-quaternary);
+  font-size: 12px;
+  flex-shrink: 0;
+  padding: 2px;
+  border: 0;
+  background: none;
+  border-radius: var(--ant-border-radius-sm);
+  opacity: 0;
+  transition:
+    color 0.2s,
+    opacity 0.2s;
+}
+
+/* th:hover is an element selector, so it reaches across CSS modules to the
+   owning grid's header cell. */
+th:hover .trigger,
+.trigger:focus-visible,
+.triggerOpen {
+  opacity: 1;
+}
+
+.trigger:hover {
+  color: var(--ant-color-text-secondary);
+  background-color: var(--ant-color-fill-secondary);
+}
+
+/* ─── Choose Columns modal ── */
+
+.chooserPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin-xs);
+}
+
+/* A long grid has dozens of leaf columns — scroll inside the modal. */
+.chooserList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.chooserRow {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-margin-xs);
+  padding: 2px var(--ant-padding-xxs);
+  cursor: pointer;
+  border-radius: var(--ant-border-radius-sm);
+}
+
+.chooserRow:hover {
+  background-color: var(--ant-color-fill-tertiary);
+}
+
+.chooserLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.chooserEmpty {
+  padding: var(--ant-padding-xs);
+  color: var(--ant-color-text-tertiary);
+  font-size: var(--ant-font-size-sm);
+}

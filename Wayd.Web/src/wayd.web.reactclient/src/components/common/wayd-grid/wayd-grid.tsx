@@ -361,6 +361,13 @@ function GridBody<T>({
                     />,
                   ]
 
+                  // The error band is an extra <tr> the virtualizer doesn't
+                  // model — its height is missing from the spacer math.
+                  // Accepted: it exists only while the selected row is
+                  // mounted (active inline editing), overscan absorbs the
+                  // offset, and the estimate-derived geometry snaps back the
+                  // moment the band unmounts. If it ever visibly drifts, the
+                  // fix is per-row measureElement, not restructuring.
                   if (isSelected && Object.keys(fieldErrors).length > 0) {
                     const errorItems = Object.entries(fieldErrors).map(
                       ([field, error]) => (

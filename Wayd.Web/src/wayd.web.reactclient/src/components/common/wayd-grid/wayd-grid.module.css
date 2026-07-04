@@ -395,6 +395,17 @@
   padding: 0;
 }
 
+/*
+ * Virtual-offset spacer cell (row virtualization). Height is set inline from
+ * the virtualizer's offsets. Zero padding and border so the spacer's height
+ * is exactly the inline value and it contributes no width — any width the
+ * body table gains over the header table desyncs their max horizontal scroll.
+ */
+.virtualSpacer {
+  padding: 0;
+  border: 0;
+}
+
 .tr {
   cursor: default;
 }

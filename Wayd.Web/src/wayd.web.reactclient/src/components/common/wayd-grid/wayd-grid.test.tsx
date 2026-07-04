@@ -998,6 +998,97 @@ describe('WaydGrid', () => {
     })
   })
 
+  describe('row virtualization', () => {
+    // jsdom has no layout; jest.setup.ts mocks the body viewport's rect to
+    // 800×600 (see data-grid-body-viewport). These tests pin the resulting
+    // window plus the spacer geometry standing in for the unrendered rows.
+    const ROW_ESTIMATE = 28
+    // 600px viewport ÷ 28px rows → indexes 0-21 visible, +10 overscan = 32.
+    const WINDOW_SIZE = 32
+
+    const BIG_DATA: Flag[] = Array.from({ length: 200 }, (_, i) => ({
+      id: i + 1,
+      name: `flag-${String(i + 1).padStart(3, '0')}`,
+      isEnabled: i % 2 === 0,
+      type: i % 3 === 0 ? 'System' : 'User',
+    }))
+
+    /** The scrolling body viewport (parent of the body table, tables[1]). */
+    const bodyViewport = (container: HTMLElement) =>
+      container.querySelectorAll('table')[1].parentElement as HTMLElement
+
+    /** Spacer rows (aria-hidden <tr>s) with their pixel heights. */
+    const spacerHeights = () =>
+      Array.from(
+        document.querySelectorAll('tbody tr[aria-hidden="true"] td'),
+      ).map((td) => (td as HTMLElement).style.height)
+
+    it('renders only the virtual window of a large dataset, keeping the row model complete', () => {
+      // Arrange / Act
+      renderGrid({ data: BIG_DATA })
+
+      // Assert — the toolbar count (row model) sees all rows…
+      expect(screen.getByText('200 of 200')).toBeInTheDocument()
+
+      // …but the DOM holds only the window, from the top of the list
+      const names = bodyCells('name').map((c) => c.textContent)
+      expect(names).toHaveLength(WINDOW_SIZE)
+      expect(names[0]).toBe('flag-001')
+      expect(names[WINDOW_SIZE - 1]).toBe(`flag-0${WINDOW_SIZE}`)
+
+      // A single bottom spacer holds the unrendered remainder's height so
+      // scroll geometry matches the full dataset
+      expect(spacerHeights()).toEqual([
+        `${(BIG_DATA.length - WINDOW_SIZE) * ROW_ESTIMATE}px`,
+      ])
+    })
+
+    it('moves the window (and adds a top spacer) when the body viewport scrolls', () => {
+      // Arrange
+      const { container } = renderGrid({ data: BIG_DATA })
+      const viewport = bodyViewport(container)
+
+      // Act — scroll to row index 50
+      viewport.scrollTop = 50 * ROW_ESTIMATE
+      fireEvent.scroll(viewport)
+
+      // Assert — the window re-anchors around index 50 (± overscan): rows
+      // before index 40 are unmounted, replaced by a top spacer of their
+      // exact height
+      const names = bodyCells('name').map((c) => c.textContent)
+      expect(names[0]).toBe('flag-041')
+      expect(names).not.toContain('flag-001')
+      expect(spacerHeights()[0]).toBe(`${40 * ROW_ESTIMATE}px`)
+    })
+
+    it('exports ALL rows to CSV, not just the rendered window', () => {
+      // Arrange
+      mockDownloadCsv.mockClear()
+      const { container } = renderGrid({ data: BIG_DATA })
+
+      // Act
+      const exportBtn = container
+        .querySelector('[aria-label="download"]')
+        ?.closest('button') as HTMLButtonElement
+      fireEvent.click(exportBtn)
+
+      // Assert — header row + one line per data row, including unrendered ones
+      const csv = mockDownloadCsv.mock.calls[0][0] as string
+      expect(csv.split('\n')).toHaveLength(BIG_DATA.length + 1)
+      expect(csv).toContain('flag-200')
+    })
+
+    it('reports ALL displayed rows through onDisplayedRowsChange, not just the window', () => {
+      // Arrange / Act
+      const onDisplayedRowsChange = jest.fn()
+      renderGrid({ data: BIG_DATA, onDisplayedRowsChange })
+
+      // Assert
+      const last = onDisplayedRowsChange.mock.calls.at(-1)![0] as Flag[]
+      expect(last).toHaveLength(BIG_DATA.length)
+    })
+  })
+
   describe('initialSorting', () => {
     it('applies the initial sort on mount', () => {
       // Arrange / Act

@@ -1153,8 +1153,12 @@ describe('WaydGrid', () => {
         ref.current!.table.getColumn('type').pin('left')
       })
 
-      // Assert — header and body cells lead with the pinned column
-      const headerRow = document.querySelector('thead tr') as HTMLElement
+      // Assert — header and body cells lead with the pinned column. Target
+      // the leaf header row explicitly (band/floating rows carry data-role),
+      // so this survives grids with grouped headers.
+      const headerRow = document.querySelector(
+        'thead tr:not([data-role])',
+      ) as HTMLElement
       const firstTh = headerRow.querySelector('th[data-column-id]')
       expect(firstTh?.getAttribute('data-column-id')).toBe('type')
       const firstBodyRow = document.querySelector('tbody tr') as HTMLElement

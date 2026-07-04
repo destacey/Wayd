@@ -66,6 +66,7 @@ import {
 import {
   ColumnChooserModal,
   ColumnMenuTrigger,
+  getColumnChooserOptions,
 } from '../wayd-grid-core/column-menu'
 import {
   getPinnedBandOffsets,
@@ -1110,6 +1111,10 @@ function WaydGridInner<T>(
     [setUserColumnVisibility],
   )
 
+  // Computed once per grid render and shared by every header's menu trigger
+  // (each trigger deriving it would rescan all leaf columns per column).
+  const hasHidableColumns = getColumnChooserOptions(table).length > 0
+
   const renderColumnMenu = (header: Header<T, unknown>) => (
     <ColumnMenuTrigger
       header={header}
@@ -1118,6 +1123,7 @@ function WaydGridInner<T>(
       onOpenChange={(open) =>
         setOpenMenuColumnId(open ? header.column.id : null)
       }
+      hasHidableColumns={hasHidableColumns}
       onOpenColumnChooser={() => setIsColumnChooserOpen(true)}
       onAutosizeColumn={(columnId) => autosizeColumns([columnId])}
       onAutosizeAllColumns={autosizeAllColumns}

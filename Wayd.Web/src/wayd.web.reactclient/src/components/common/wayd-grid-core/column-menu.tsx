@@ -188,6 +188,10 @@ export interface ColumnMenuTriggerProps<T> {
    *  pattern as the filter popovers) so the trigger's DOM stays stable. */
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Whether the grid has any user-hidable columns — computed ONCE at the
+   *  grid level and shared by every trigger (deriving it here would rescan
+   *  all leaf columns per header cell, O(N²) across a header render). */
+  hasHidableColumns: boolean
   /** Opens the grid's {@link ColumnChooserModal}. */
   onOpenColumnChooser: () => void
   onAutosizeColumn: (columnId: string) => void
@@ -209,6 +213,7 @@ export function ColumnMenuTrigger<T>({
   table,
   open,
   onOpenChange,
+  hasHidableColumns,
   onOpenColumnChooser,
   onAutosizeColumn,
   onAutosizeAllColumns,
@@ -224,7 +229,7 @@ export function ColumnMenuTrigger<T>({
     canPin: column.getCanPin(),
     pinnedState: column.getIsPinned(),
     canResize: column.getCanResize(),
-    hasHidableColumns: getColumnChooserOptions(table).length > 0,
+    hasHidableColumns,
   })
 
   const handleMenuClick: MenuProps['onClick'] = ({ key, domEvent }) => {

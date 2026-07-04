@@ -3,11 +3,13 @@ import {
   type Column,
   type ColumnDef,
   type ColumnFiltersState,
+  type ColumnPinningState,
   type ColumnSizingState,
   type SortingState,
   type Table,
   type TableOptions,
   type TableState,
+  type VisibilityState,
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
@@ -17,13 +19,20 @@ import {
 import { stringContainsFilter } from './grid-filters'
 
 /**
- * Shared grid state: sorting, column filters, column sizing, and the global
- * quick-search value, plus the toolbar wiring derived from them. Created by
- * {@link useGridState} and consumed by {@link useGridTable}.
+ * Shared grid state: sorting, column filters, column sizing, user column
+ * visibility, column pinning, and the global quick-search value, plus the
+ * toolbar wiring derived from them. Created by {@link useGridState} and
+ * consumed by {@link useGridTable}.
  *
  * Split from useGridTable so a grid can build state-dependent column
  * definitions (e.g. TreeGrid's column context reads the active filters)
  * between creating the state and creating the table.
+ *
+ * Every user-adjustable column state slice (columnSizing,
+ * userColumnVisibility, columnPinning, sorting) lives here as plain
+ * serializable state — grid state persistence will serialize exactly these
+ * slices, so new column state must be added here, not scattered into
+ * components.
  */
 export interface GridState {
   sorting: SortingState
@@ -32,12 +41,29 @@ export interface GridState {
   setColumnFilters: React.Dispatch<React.SetStateAction<ColumnFiltersState>>
   columnSizing: ColumnSizingState
   setColumnSizing: React.Dispatch<React.SetStateAction<ColumnSizingState>>
+  /**
+   * The USER's show/hide choices (column chooser) — a layer on top of the
+   * consumer's reactive `meta.hide` visibility; see
+   * {@link mergeColumnVisibility} for how the two combine.
+   */
+  userColumnVisibility: VisibilityState
+  setUserColumnVisibility: React.Dispatch<
+    React.SetStateAction<VisibilityState>
+  >
+  columnPinning: ColumnPinningState
+  setColumnPinning: React.Dispatch<React.SetStateAction<ColumnPinningState>>
   searchValue: string
   setSearchValue: React.Dispatch<React.SetStateAction<string>>
   /** Toolbar search input change handler. */
   onSearchChange: (e: ChangeEvent<HTMLInputElement>) => void
   /** Clears search, sorting, and column filters (plus the grid's own extras). */
   onClearFilters: () => void
+  /**
+   * Restores the column defs' defaults: sizing, user visibility, and pinning
+   * (the column menu's Reset Columns). Sort and filters are deliberately NOT
+   * reset — that's the toolbar Clear button ({@link onClearFilters}).
+   */
+  resetColumnState: () => void
   /** True when any search, column filter, or sort is active. */
   hasActiveFilters: boolean
 }
@@ -51,9 +77,13 @@ export interface UseGridStateOptions {
   initialSorting?: SortingState
 }
 
+/** Empty pinning state (nothing pinned) — also what Reset restores. */
+const EMPTY_COLUMN_PINNING: ColumnPinningState = { left: [], right: [] }
+
 /**
- * Owns the four shared state slices (sorting, column filters, column sizing,
- * global search) and the toolbar handlers derived from them.
+ * Owns the shared state slices (sorting, column filters, column sizing, user
+ * column visibility, column pinning, global search) and the toolbar handlers
+ * derived from them.
  */
 export function useGridState(options?: UseGridStateOptions): GridState {
   const [sorting, setSorting] = useState<SortingState>(
@@ -61,6 +91,10 @@ export function useGridState(options?: UseGridStateOptions): GridState {
   )
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
+  const [userColumnVisibility, setUserColumnVisibility] =
+    useState<VisibilityState>({})
+  const [columnPinning, setColumnPinning] =
+    useState<ColumnPinningState>(EMPTY_COLUMN_PINNING)
   const [searchValue, setSearchValue] = useState('')
 
   const onSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -74,6 +108,12 @@ export function useGridState(options?: UseGridStateOptions): GridState {
     options?.onClear?.()
   }
 
+  const resetColumnState = () => {
+    setColumnSizing({})
+    setUserColumnVisibility({})
+    setColumnPinning(EMPTY_COLUMN_PINNING)
+  }
+
   const hasActiveFilters =
     !!searchValue || columnFilters.length > 0 || sorting.length > 0
 
@@ -84,12 +124,39 @@ export function useGridState(options?: UseGridStateOptions): GridState {
     setColumnFilters,
     columnSizing,
     setColumnSizing,
+    userColumnVisibility,
+    setUserColumnVisibility,
+    columnPinning,
+    setColumnPinning,
     searchValue,
     setSearchValue,
     onSearchChange,
     onClearFilters,
+    resetColumnState,
     hasActiveFilters,
   }
+}
+
+/**
+ * Combines the consumer's reactive `meta.hide` visibility with the user's
+ * column-chooser choices into the TanStack columnVisibility map.
+ *
+ * Rules: a column the consumer hides (`meta.hide === true`) is
+ * consumer-controlled — it stays hidden no matter what the user chose (it is
+ * also excluded from the chooser). For every other column the user's choice
+ * wins; absent a user choice, the consumer's `meta.hide: false` (or no entry
+ * at all) leaves the column visible.
+ */
+export function mergeColumnVisibility(
+  consumerVisibility: VisibilityState,
+  userVisibility: VisibilityState,
+): VisibilityState {
+  const merged: VisibilityState = { ...userVisibility }
+  for (const [id, visible] of Object.entries(consumerVisibility)) {
+    if (!visible) merged[id] = false
+    else if (!(id in merged)) merged[id] = true
+  }
+  return merged
 }
 
 /** Global quick-search applies to any column with an accessor unless the
@@ -143,6 +210,8 @@ export function useGridTable<T>({
     setColumnFilters,
     columnSizing,
     setColumnSizing,
+    columnPinning,
+    setColumnPinning,
     searchValue,
     setSearchValue,
   } = gridState
@@ -166,17 +235,23 @@ export function useGridTable<T>({
     },
     enableColumnResizing: true,
     columnResizeMode: 'onChange',
+    // Pinning is state-only in TanStack (getVisibleLeafColumns / getVisibleCells /
+    // getHeaderGroups reorder pinned columns to the edges); the sticky rendering
+    // is the grid's (see column-pinning.ts).
+    enableColumnPinning: true,
     ...tableOptions,
     state: {
       globalFilter: searchValue,
       sorting,
       columnFilters,
       columnSizing,
+      columnPinning,
       ...extraState,
     },
     onGlobalFilterChange: (value) => setSearchValue(String(value ?? '')),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnSizingChange: setColumnSizing,
+    onColumnPinningChange: setColumnPinning,
   })
 }

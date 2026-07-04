@@ -144,9 +144,14 @@ const ManageStrategicInitiativeProjectsForm = ({
   const handleMove = (items: ProjectListDto[]) => {
     if (items.length === 0) return
 
-    setTargetProjects((prevTarget) =>
-      [...prevTarget, ...items].sort(defaultSort),
-    )
+    setTargetProjects((prevTarget) => {
+      // Skip items already in the target so a double-fired move can't
+      // produce duplicate rows / duplicate projectIds in the save payload.
+      const targetIds = new Set(prevTarget.map((p) => p.id))
+      const additions = items.filter((item) => !targetIds.has(item.id))
+      if (additions.length === 0) return prevTarget
+      return [...prevTarget, ...additions].sort(defaultSort)
+    })
   }
 
   const handleDelete = (item: ProjectListDto) => {

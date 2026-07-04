@@ -79,13 +79,19 @@ const ManagePlanningIntervalObjectiveWorkItemsForm = ({
 
   const [manageObjectiveWorkItems] = useManageObjectiveWorkItemsMutation()
 
-  // Derive target work items: existing items (minus removed) plus user-added items
+  // Derive target work items: existing items (minus removed) plus user-added
+  // items. Added items that show up in a refreshed existing list are skipped
+  // so an item can never appear (or be saved) twice.
   const targetWorkItems = (() => {
     const existing =
       existingWorkItemsData?.workItems?.filter(
         (item) => !removedIds.has(item.id),
       ) ?? []
-    return [...existing, ...addedItems].sort(defaultSort)
+    const existingIds = new Set(existing.map((item) => item.id))
+    return [
+      ...existing,
+      ...addedItems.filter((item) => !existingIds.has(item.id)),
+    ].sort(defaultSort)
   })()
 
   // Derive source work items: search results minus items already in target
@@ -199,8 +205,12 @@ const ManagePlanningIntervalObjectiveWorkItemsForm = ({
   const handleMove = (items: WorkItemListDto[]) => {
     if (items.length === 0) return
 
-    // Items moved from source to target: add them and un-remove if needed
-    setAddedItems((prev) => [...prev, ...items])
+    // Items moved from source to target: add them (skipping any already
+    // tracked, so a double-fired move can't duplicate) and un-remove if needed
+    setAddedItems((prev) => {
+      const prevIds = new Set(prev.map((item) => item.id))
+      return [...prev, ...items.filter((item) => !prevIds.has(item.id))]
+    })
     setRemovedIds((prev) => {
       const next = new Set(prev)
       for (const item of items) {

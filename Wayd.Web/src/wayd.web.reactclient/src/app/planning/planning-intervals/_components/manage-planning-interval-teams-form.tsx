@@ -159,7 +159,14 @@ const ManagePlanningIntervalTeamsForm = ({
   const handleMove = (items: PlanningIntervalTeamModel[]) => {
     if (items.length === 0) return
 
-    setTargetKeys((prev) => [...prev, ...items.map((item) => item.key)])
+    // Set-dedupe so a double-fired move can't produce duplicate teamIds.
+    setTargetKeys((prev) => {
+      const next = new Set(prev)
+      for (const item of items) {
+        next.add(item.key)
+      }
+      return Array.from(next)
+    })
   }
 
   const handleRemove = (item: PlanningIntervalTeamModel) => {

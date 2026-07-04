@@ -1,5 +1,4 @@
 import { ConfigProviderProps, ThemeConfig } from 'antd'
-import { Theme as AgGridTheme } from 'ag-grid-community'
 
 export type ThemeProviderOverrides = Pick<
   ConfigProviderProps,
@@ -34,7 +33,6 @@ export interface AppThemeConfig {
     subtleColor?: string
   }
   integrations: {
-    agGridTheme: AgGridTheme
     antDesignChartsTheme: 'classic' | 'classicDark'
     antvisG6ChartsTheme: 'light' | 'dark'
   }

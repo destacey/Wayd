@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  WaydGrid2,
+  WaydGrid,
   renderAssignedToLink,
   renderProjectLink,
   renderSprintLink,
@@ -10,7 +10,7 @@ import {
   renderWorkStatusTag,
   workItemKeySort,
   workStatusCategorySort,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import { WorkItemListDto } from '@/src/services/wayd-api'
 import type { ColumnDef } from '@tanstack/react-table'
 import { FC, ReactNode, useMemo } from 'react'
@@ -159,7 +159,7 @@ const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
   }
 
   return (
-    <WaydGrid2
+    <WaydGrid
       height={props.gridHeight}
       columns={columns}
       data={props.workItems}

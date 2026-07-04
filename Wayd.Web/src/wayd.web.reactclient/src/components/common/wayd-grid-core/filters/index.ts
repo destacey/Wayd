@@ -18,6 +18,8 @@ export type {
 export {
   CONDITION_LIMIT,
   DEFAULT_MAX_CONDITIONS,
+  SET_FILTER_BLANK,
+  SET_FILTER_BLANK_LABEL,
   addCondition,
   createEmptyCondition,
   createEmptyFilterModel,

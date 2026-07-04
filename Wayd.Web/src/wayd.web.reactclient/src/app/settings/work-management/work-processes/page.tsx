@@ -1,7 +1,7 @@
 'use client'
 
 import { PageTitle } from '@/src/components/common'
-import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
+import { WaydGrid } from '@/src/components/common/wayd-grid'
 import {
   ControlItemsMenu,
   ControlItemSwitch,
@@ -89,7 +89,7 @@ const WorkProcessesPage: React.FC = () => {
     <>
       <PageTitle title="Work Processes" />
 
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={workProcessesData ?? []}
         onRefresh={refresh}

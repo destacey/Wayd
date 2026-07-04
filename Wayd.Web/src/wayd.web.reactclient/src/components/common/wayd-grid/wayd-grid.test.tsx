@@ -13,8 +13,9 @@ import { createRef } from 'react'
 import { render, screen, fireEvent, within, act } from '@testing-library/react'
 import type { ColumnDef } from '@tanstack/react-table'
 
-import WaydGrid2 from './wayd-grid2'
-import type { WaydGrid2Handle, WaydGridColumnMeta } from './types'
+import WaydGrid from './wayd-grid'
+import { SET_FILTER_BLANK } from '../wayd-grid-core/filters'
+import type { WaydGridHandle, WaydGridColumnMeta } from './types'
 import { downloadCsvWithTimestamp } from '@/src/utils/csv-utils'
 
 const mockDownloadCsv = downloadCsvWithTimestamp as jest.Mock
@@ -54,12 +55,12 @@ const columns: ColumnDef<Flag, unknown>[] = [
   },
 ]
 
-type GridProps = Partial<Parameters<typeof WaydGrid2<Flag>>[0]> & {
-  ref?: React.Ref<WaydGrid2Handle>
+type GridProps = Partial<Parameters<typeof WaydGrid<Flag>>[0]> & {
+  ref?: React.Ref<WaydGridHandle>
 }
 
 const renderGrid = ({ ref, ...props }: GridProps = {}) =>
-  render(<WaydGrid2<Flag> ref={ref} data={DATA} columns={columns} {...props} />)
+  render(<WaydGrid<Flag> ref={ref} data={DATA} columns={columns} {...props} />)
 
 /** Cells for a given column id across all body rows. */
 const bodyCells = (columnId: string) =>
@@ -67,7 +68,7 @@ const bodyCells = (columnId: string) =>
     document.querySelectorAll(`tbody td[data-column-id="${columnId}"]`),
   ) as HTMLTableCellElement[]
 
-describe('WaydGrid2', () => {
+describe('WaydGrid', () => {
   describe('basics', () => {
     it('renders a header cell per column', () => {
       // Arrange / Act
@@ -95,6 +96,16 @@ describe('WaydGrid2', () => {
       // Assert
       expect(screen.getByText('Nothing here')).toBeInTheDocument()
       expect(bodyCells('name')).toHaveLength(0)
+    })
+
+    it('treats undefined data (query still loading) as an empty grid', () => {
+      // Arrange / Act — consumers pass query-hook data straight through, which
+      // is undefined until the fetch resolves (old ag-grid rowData tolerance)
+      renderGrid({ data: undefined, isLoading: true })
+
+      // Assert — loading spinner, no crash, zero row count
+      expect(document.querySelector('.ant-spin')).toBeInTheDocument()
+      expect(screen.getByText('0 of 0')).toBeInTheDocument()
     })
 
     it('shows a loading spinner when isLoading', () => {
@@ -128,7 +139,7 @@ describe('WaydGrid2', () => {
       ]
 
       // Act
-      render(<WaydGrid2<Flag> data={DATA} columns={hiddenCols} />)
+      render(<WaydGrid<Flag> data={DATA} columns={hiddenCols} />)
 
       // Assert — Type header absent, its cells absent, Name still present
       expect(screen.queryByText('Type')).not.toBeInTheDocument()
@@ -149,7 +160,7 @@ describe('WaydGrid2', () => {
       ]
 
       // Act
-      render(<WaydGrid2<Flag> data={DATA} columns={cols} />)
+      render(<WaydGrid<Flag> data={DATA} columns={cols} />)
 
       // Assert
       expect(screen.getByText('Type')).toBeInTheDocument()
@@ -205,7 +216,7 @@ describe('WaydGrid2', () => {
     const exportCsv = (cols: ColumnDef<Obj, unknown>[]) => {
       mockDownloadCsv.mockClear()
       const { container } = render(
-        <WaydGrid2<Obj> data={OBJ_DATA} columns={cols} />,
+        <WaydGrid<Obj> data={OBJ_DATA} columns={cols} />,
       )
       const exportBtn = container
         .querySelector('[aria-label="download"]')
@@ -268,7 +279,7 @@ describe('WaydGrid2', () => {
       ]
 
       // Act
-      render(<WaydGrid2<Flag> data={DATA} columns={cols} />)
+      render(<WaydGrid<Flag> data={DATA} columns={cols} />)
 
       // Assert — the numeric column's floating input is a spinbutton
       // (antd InputNumber), while the text column is a plain textbox.
@@ -286,7 +297,7 @@ describe('WaydGrid2', () => {
       ]
 
       // Act
-      render(<WaydGrid2<Flag> data={DATA} columns={cols} />)
+      render(<WaydGrid<Flag> data={DATA} columns={cols} />)
 
       // Assert — no number spinner; a text input is present
       const row = floatingRow()
@@ -371,7 +382,7 @@ describe('WaydGrid2', () => {
   describe('set filter behavior (through the grid)', () => {
     it('filters a set column to the chosen value via the descriptor engine', () => {
       // Arrange
-      const ref = createRef<WaydGrid2Handle>()
+      const ref = createRef<WaydGridHandle>()
       renderGrid({ ref })
 
       // Act
@@ -387,9 +398,49 @@ describe('WaydGrid2', () => {
       ])
     })
 
+    it('filters blank cells via the (Blanks) sentinel', () => {
+      // Arrange — a nullable Team column with one blank row
+      interface Item {
+        id: number
+        name: string
+        team: string | null
+      }
+      const data: Item[] = [
+        { id: 1, name: 'alpha', team: 'Juice' },
+        { id: 2, name: 'beta', team: null },
+      ]
+      const cols: ColumnDef<Item, unknown>[] = [
+        { id: 'name', accessorKey: 'name', header: 'Name' },
+        {
+          id: 'team',
+          accessorKey: 'team',
+          header: 'Team',
+          meta: { filterType: 'set' },
+        },
+      ]
+      const ref = createRef<WaydGridHandle>()
+      render(<WaydGrid<Item> ref={ref} data={data} columns={cols} />)
+
+      // Act / Assert — a value-only selection hides the blank row
+      act(() => {
+        ref.current!.table
+          .getColumn('team')!
+          .setFilterValue({ type: 'set', values: ['Juice'] })
+      })
+      expect(bodyCells('name').map((c) => c.textContent)).toEqual(['alpha'])
+
+      // Act / Assert — selecting only (Blanks) shows just the blank row
+      act(() => {
+        ref.current!.table
+          .getColumn('team')!
+          .setFilterValue({ type: 'set', values: [SET_FILTER_BLANK] })
+      })
+      expect(bodyCells('name').map((c) => c.textContent)).toEqual(['beta'])
+    })
+
     it('filters a yesNo column on the Yes/No display value (not true/false)', () => {
       // Arrange
-      const ref = createRef<WaydGrid2Handle>()
+      const ref = createRef<WaydGridHandle>()
       renderGrid({ ref })
 
       // Act — filter Enabled to "Yes"
@@ -429,9 +480,15 @@ describe('WaydGrid2', () => {
       // Arrange / Act
       const { container } = renderGrid()
 
-      // Assert — one <col> more than data columns (the filler)
-      const cols = container.querySelectorAll('colgroup col')
-      expect(cols).toHaveLength(columns.length + 1)
+      // Assert — one <col> more than data columns (the filler) in EACH of the
+      // two tables (split header + body viewports share one colgroup shape)
+      const tables = container.querySelectorAll('table')
+      expect(tables).toHaveLength(2)
+      tables.forEach((t) =>
+        expect(t.querySelectorAll('colgroup col')).toHaveLength(
+          columns.length + 1,
+        ),
+      )
 
       // Header row ends in an aria-hidden filler th
       const headerRow = container.querySelector('thead tr') as HTMLTableRowElement
@@ -543,7 +600,7 @@ describe('WaydGrid2', () => {
 
     const renderTree = () =>
       render(
-        <WaydGrid2<Node>
+        <WaydGrid<Node>
           data={TREE}
           columns={treeColumns}
           getSubRows={(row) => row.children}
@@ -793,7 +850,7 @@ describe('WaydGrid2', () => {
 
     it('exposes the displayed rows via the handle', () => {
       // Arrange
-      const ref = createRef<WaydGrid2Handle>()
+      const ref = createRef<WaydGridHandle>()
       renderGrid({ ref })
 
       // Act — filter, then read the handle
@@ -917,7 +974,7 @@ describe('WaydGrid2', () => {
 
       try {
         // Act
-        render(<WaydGrid2<Row> data={rows} columns={cols} />)
+        render(<WaydGrid<Row> data={rows} columns={cols} />)
 
         // Assert — value renders, and no "deeply nested key" warning fired
         expect(screen.getByText('Juice')).toBeInTheDocument()
@@ -932,7 +989,7 @@ describe('WaydGrid2', () => {
 
     it('keeps the TanStack-derived column id (dots to underscores)', () => {
       // Arrange / Act
-      render(<WaydGrid2<Row> data={rows} columns={cols} />)
+      render(<WaydGrid<Row> data={rows} columns={cols} />)
 
       // Assert — body cells carry the derived data-column-id
       expect(

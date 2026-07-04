@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
+import { WaydGrid } from '@/src/components/common/wayd-grid'
 import Link from 'next/link'
 import PiObjectiveHealthCheckTag from './pi-objective-health-check-tag'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
@@ -40,7 +40,9 @@ const PiObjectiveHealthReportGrid = (
         header: 'Health',
         size: 115,
         meta: { filterType: 'set' },
-        cell: ({ row }) => <PiObjectiveHealthCheckTag healthCheck={row.original} />,
+        cell: ({ row }) => (
+          <PiObjectiveHealthCheckTag healthCheck={row.original} />
+        ),
       },
       {
         id: 'note',
@@ -91,8 +93,7 @@ const PiObjectiveHealthReportGrid = (
   }
 
   return (
-    <WaydGrid2
-      height={550}
+    <WaydGrid
       columns={columns}
       data={healthReportData ?? []}
       onRefresh={refresh}

@@ -199,7 +199,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         appBar={activeTheme.appBar}
         allowsPrimaryOverride={activeTheme.behavior.allowsPrimaryOverride}
         defaultPrimaryColor={String(activeTheme.configProvider.theme?.token?.colorPrimary ?? '')}
-        agGridTheme={activeTheme.integrations.agGridTheme}
         antDesignChartsTheme={activeTheme.integrations.antDesignChartsTheme}
         antvisG6ChartsTheme={activeTheme.integrations.antvisG6ChartsTheme}
         userThemeConfig={userThemeConfig}
@@ -218,7 +217,6 @@ interface ThemeTokenProviderProps {
   appBar: ThemeContextType['appBar']
   allowsPrimaryOverride: boolean
   defaultPrimaryColor: string
-  agGridTheme: ThemeContextType['agGridTheme']
   antDesignChartsTheme: string
   antvisG6ChartsTheme: string
   userThemeConfig: UserThemeConfigDto | null
@@ -232,7 +230,6 @@ const ThemeTokenProvider = ({
   appBar,
   allowsPrimaryOverride,
   defaultPrimaryColor,
-  agGridTheme,
   antDesignChartsTheme,
   antvisG6ChartsTheme,
   userThemeConfig,
@@ -248,7 +245,6 @@ const ThemeTokenProvider = ({
       appBar,
       allowsPrimaryOverride,
       defaultPrimaryColor,
-      agGridTheme,
       token,
       badgeColor,
       antDesignChartsTheme,
@@ -262,7 +258,6 @@ const ThemeTokenProvider = ({
       appBar,
       allowsPrimaryOverride,
       defaultPrimaryColor,
-      agGridTheme,
       token,
       badgeColor,
       antDesignChartsTheme,

@@ -9,13 +9,10 @@ import dynamic from 'next/dynamic'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { StrategicInitiativesGrid } from '.'
 
-const Timeline = dynamic(
-  () => import('./strategic-initiatives-timeline'),
-  {
-    ssr: false,
-    loading: () => <Spin />,
-  },
-)
+const Timeline = dynamic(() => import('./strategic-initiatives-timeline'), {
+  ssr: false,
+  loading: () => <Spin />,
+})
 
 interface StrategicInitiativeViewManagerProps {
   strategicInitiatives: StrategicInitiativeListDto[]
@@ -62,7 +59,6 @@ const StrategicInitiativeViewManager = (
           isLoading={props.isLoading}
           refetch={props.refetch}
           hidePortfolio={true}
-          gridHeight={550}
           viewSelector={viewSelector}
         />
       )}

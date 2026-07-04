@@ -8,6 +8,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -44,6 +45,8 @@ import {
   DateFilterPanel,
   FilterPopup,
   FloatingFilter,
+  SET_FILTER_BLANK,
+  SET_FILTER_BLANK_LABEL,
   SetFilterPanel,
   canFloatingEditDate,
   describeDateFilter,
@@ -81,7 +84,10 @@ import {
   type GridRowClasses,
   type TreeGridRowClasses,
 } from '../wayd-grid-core/grid-row'
-import { sortEmptyLast } from '../wayd-grid-core/grid-sorting'
+import {
+  caseInsensitiveCompare,
+  sortEmptyLast,
+} from '../wayd-grid-core/grid-sorting'
 import GridToolbar from '../wayd-grid-core/grid-toolbar'
 import { countTreeNodes, flattenTree } from '../wayd-grid-core/tree-utils'
 import {
@@ -89,17 +95,18 @@ import {
   type GridEditingConfig,
 } from '../wayd-grid-core/use-grid-editing'
 import { useGridState, useGridTable } from '../wayd-grid-core/use-grid-table'
-import styles from './wayd-grid2.module.css'
+import styles from './wayd-grid.module.css'
 import type {
   GridColumnContext,
-  WaydGrid2Handle,
-  WaydGrid2Props,
+  WaydGridHandle,
+  WaydGridProps,
 } from './types'
 
 /** Stable empty set for columns with no expanded date-tree nodes yet. Never
  * mutated — toggles always copy before writing. */
 const EMPTY_NODE_SET: Set<string> = new Set<string>()
 
+const EMPTY_DATA: never[] = []
 const EMPTY_FIELD_ERRORS: Record<string, string> = {}
 const DRAFT_SCROLL_MARGIN = 8
 
@@ -190,9 +197,9 @@ const treeRowClasses: TreeGridRowClasses = {
   editableCell: styles.editableCell,
 }
 
-function WaydGrid2Inner<T>(
-  props: WaydGrid2Props<T>,
-  ref: Ref<WaydGrid2Handle>,
+function WaydGridInner<T>(
+  props: WaydGridProps<T>,
+  ref: Ref<WaydGridHandle>,
 ) {
   // TanStack Table's instance mutates internally behind a stable identity, so
   // React Compiler memoization goes stale (sort icons, column sizes). Before
@@ -201,7 +208,7 @@ function WaydGrid2Inner<T>(
   // that behavior now that the call is behind the hook.
   'use no memo'
   const {
-    data,
+    data: dataProp,
     columns: columnsProp,
     isLoading = false,
     onRefresh,
@@ -232,11 +239,50 @@ function WaydGrid2Inner<T>(
     onDraftsChange,
   } = props
 
+  // Undefined data (a query hook still loading) renders as an empty grid —
+  // the old ag-grid WaydGrid tolerated undefined rowData the same way, and
+  // TanStack's row model throws on it. Stable fallback so the table's data
+  // identity doesn't churn while loading.
+  const data = dataProp ?? (EMPTY_DATA as T[])
+
   const isTree = !!getSubRows
 
   // ─── Auto-height ─────────────────────────────────────────
   const [gridContainerRef, autoHeight] = useRemainingHeight()
   const resolvedHeight = height ?? autoHeight
+
+  // ─── Split header/body viewports ─────────────────────────
+  // The header lives in its own clipped viewport above the scrolling body, so
+  // the vertical scrollbar spans only the rows (ag-grid style). The body's
+  // horizontal scroll is mirrored into the header, and a spacer as wide as the
+  // body's vertical scrollbar keeps the two tables' columns aligned.
+  const headerViewportRef = useRef<HTMLDivElement>(null)
+  const bodyViewportRef = useRef<HTMLDivElement>(null)
+  const [scrollbarWidth, setScrollbarWidth] = useState(0)
+
+  const handleBodyScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      if (headerViewportRef.current) {
+        headerViewportRef.current.scrollLeft = e.currentTarget.scrollLeft
+      }
+    },
+    [],
+  )
+
+  useLayoutEffect(() => {
+    const el = bodyViewportRef.current
+    if (!el) return
+    // offsetWidth - clientWidth = the vertical scrollbar's width (0 for
+    // overlay scrollbars or when rows don't overflow). The ResizeObserver
+    // re-measures when the scrollbar appears/disappears — that changes the
+    // element's content box.
+    const measure = () => setScrollbarWidth(el.offsetWidth - el.clientWidth)
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   // ─── State ───────────────────────────────────────────────
   const gridState = useGridState({ initialSorting })
@@ -831,15 +877,21 @@ function WaydGrid2Inner<T>(
   /**
    * All known set values for a column: prefer declared options (stable
    * order/labels), else the distinct values present in the data (faceted).
+   * When the data contains blank cells (null/undefined/''), a "(Blanks)"
+   * sentinel entry is appended so blanks can be filtered like any value.
    */
   const getSetValues = (header: Header<T, unknown>): string[] => {
     const meta = header.column.columnDef.meta
+    const facetedKeys = Array.from(header.column.getFacetedUniqueValues().keys())
+    const hasBlanks = facetedKeys.some((v) => v == null || v === '')
     const optionValues = meta?.filterOptions?.map((o) => o.value)
-    if (optionValues) return optionValues
-    return Array.from(header.column.getFacetedUniqueValues().keys())
-      .filter((v): v is string => v != null && v !== '')
-      .map(String)
-      .sort()
+    const values =
+      optionValues ??
+      facetedKeys
+        .filter((v): v is string => v != null && v !== '')
+        .map(String)
+        .sort(caseInsensitiveCompare)
+    return hasBlanks ? [...values, SET_FILTER_BLANK] : values
   }
 
   /**
@@ -879,8 +931,10 @@ function WaydGrid2Inner<T>(
       !isFiltered || selected.length === allValues.length
         ? ''
         : selected.length === 1
-          ? meta?.filterOptions?.find((o) => o.value === selected[0])?.label ??
-            selected[0]
+          ? selected[0] === SET_FILTER_BLANK
+            ? SET_FILTER_BLANK_LABEL
+            : meta?.filterOptions?.find((o) => o.value === selected[0])
+                ?.label ?? selected[0]
           : `${selected.length} selected`
 
     return (
@@ -969,28 +1023,34 @@ function WaydGrid2Inner<T>(
   const leafHeaderGroup = headerGroups[headerGroups.length - 1]
   const groupHeaderRows = headerGroups.slice(0, -1)
 
+  // Rendered into BOTH tables (header + body) — with table-layout: fixed,
+  // identical colgroups guarantee the two tables' columns align exactly.
+  const colGroup = (
+    <colgroup>
+      {table.getVisibleLeafColumns().map((column) => (
+        <col key={column.id} width={column.getSize()} />
+      ))}
+      {/* Filler column absorbs leftover width so the table fills the
+          viewport (header band + borders edge-to-edge) without widening
+          the real columns. */}
+      <col className={styles.fillerCol} />
+    </colgroup>
+  )
+
   const tableContent = (
-    <div className={styles.tableWrapper}>
-      <table
-        className={`${styles.tableElement}${
-          showStatusRow ? ` ${styles.tableElementFill}` : ''
-        }`}
-        style={
-          {
-            '--wayd-grid-group-header-rows': groupHeaderRows.length,
-          } as React.CSSProperties
-        }
-      >
-        <colgroup>
-          {table.getVisibleLeafColumns().map((column) => (
-            <col key={column.id} width={column.getSize()} />
-          ))}
-          {/* Filler column absorbs leftover width so the table fills the
-              wrapper (header band + borders edge-to-edge) without widening
-              the real columns. */}
-          <col className={styles.fillerCol} />
-        </colgroup>
-        <thead>
+    <div className={styles.tableArea}>
+      <div className={styles.headerArea}>
+        <div className={styles.headerViewport} ref={headerViewportRef}>
+          <table
+            className={styles.tableElement}
+            style={
+              {
+                '--wayd-grid-group-header-rows': groupHeaderRows.length,
+              } as React.CSSProperties
+            }
+          >
+            {colGroup}
+            <thead>
           {/* Grouped-header band rows — plain colspan cells, no
               sort/filter/resize; placeholders render empty. */}
           {groupHeaderRows.map((headerGroup, bandIndex) => (
@@ -1144,7 +1204,28 @@ function WaydGrid2Inner<T>(
             </tr>
           )}
         </thead>
-        <tbody>
+          </table>
+        </div>
+        {/* Spacer above the body's vertical scrollbar — same header band
+            styling, sized from the live scrollbar measurement. */}
+        <div
+          className={styles.headerScrollbarSpacer}
+          style={{ width: scrollbarWidth }}
+          aria-hidden="true"
+        />
+      </div>
+      <div
+        className={styles.tableWrapper}
+        ref={bodyViewportRef}
+        onScroll={handleBodyScroll}
+      >
+        <table
+          className={`${styles.tableElement}${
+            showStatusRow ? ` ${styles.tableElementFill}` : ''
+          }`}
+        >
+          {colGroup}
+          <tbody>
           {isLoading ? (
             <tr>
               {/* Centering lives on the inner div — `display: flex` directly
@@ -1240,8 +1321,9 @@ function WaydGrid2Inner<T>(
               />
             ))
           )}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 
@@ -1303,12 +1385,9 @@ function WaydGrid2Inner<T>(
  * `onRowReorder`. Rows render through the row-renderer seam: the flat forms
  * ({@link FlatGridRow} / {@link SortableFlatGridRow}) or the tree form
  * ({@link TreeGridRow}).
- *
- * Named WaydGrid2 while the ag-grid WaydGrid still exists; takes the
- * canonical WaydGrid name when ag-grid is retired.
  */
-const WaydGrid2 = forwardRef(WaydGrid2Inner) as <T>(
-  props: WaydGrid2Props<T> & { ref?: Ref<WaydGrid2Handle> },
+const WaydGrid = forwardRef(WaydGridInner) as <T>(
+  props: WaydGridProps<T> & { ref?: Ref<WaydGridHandle> },
 ) => ReactElement | null
 
-export default WaydGrid2
+export default WaydGrid

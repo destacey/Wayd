@@ -125,6 +125,12 @@ body {
     background-color: #f0f0f0; /* Light track color */
   }
 
+  /* Corner square where horizontal + vertical scrollbars meet — defaults to
+     white, so match each theme's track color. */
+  ::-webkit-scrollbar-corner {
+    background-color: #f0f0f0;
+  }
+
   /* Scrollbar Styling for Dark Mode */
   [data-theme='dark'] ::-webkit-scrollbar-thumb {
     background-color: #656565; /* Dark thumb color */
@@ -133,6 +139,10 @@ body {
 
   [data-theme='dark'] ::-webkit-scrollbar-track {
     background-color: #2a2a2a; /* Dark track color */
+  }
+
+  [data-theme='dark'] ::-webkit-scrollbar-corner {
+    background-color: #2a2a2a;
   }
 
   [data-theme='slate'] ::-webkit-scrollbar-thumb {
@@ -144,12 +154,20 @@ body {
       background-color: #2d2d2d;
     }
 
+  [data-theme='slate'] ::-webkit-scrollbar-corner {
+    background-color: #2d2d2d;
+  }
+
   [data-theme='geek'] ::-webkit-scrollbar-thumb {
     background-color: #1d5a1d;
     border: 3px solid #0e1310;
   }
 
   [data-theme='geek'] ::-webkit-scrollbar-track {
+    background-color: #0e1310;
+  }
+
+  [data-theme='geek'] ::-webkit-scrollbar-corner {
     background-color: #0e1310;
   }
 
@@ -233,12 +251,6 @@ body {
   background: #fff;
 }
 
-/* AG Grid shell should inherit theme radius for outer container corners */
-.ag-root-wrapper {
-  border-radius: var(--ag-border-radius, 4px);
-  overflow: hidden;
-}
-
 /* Cartoon Theme Overrides */
 /* App-shell background texture */
 html[data-theme='cartoon'] body {
@@ -278,13 +290,11 @@ html[data-theme='cartoon'] .app-theme-cartoon .app-main-content {
 }
 
 /* Improve link contrast inside data-dense surfaces */
-html[data-theme='cartoon'] .app-theme-cartoon .ag-root a,
 html[data-theme='cartoon'] .app-theme-cartoon .tableElement a,
 html[data-theme='cartoon'] .app-theme-cartoon .ant-table a {
   color: #3f79a8;
 }
 
-html[data-theme='cartoon'] .app-theme-cartoon .ag-root a:hover,
 html[data-theme='cartoon'] .app-theme-cartoon .tableElement a:hover,
 html[data-theme='cartoon'] .app-theme-cartoon .ant-table a:hover {
   color: #4b89bb;

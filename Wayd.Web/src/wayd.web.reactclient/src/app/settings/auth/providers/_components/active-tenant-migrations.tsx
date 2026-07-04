@@ -1,6 +1,6 @@
 'use client'
 
-import { WaydGrid2, formatDateTime } from '@/src/components/common/wayd-grid2'
+import { WaydGrid, formatDateTime } from '@/src/components/common/wayd-grid'
 import { PendingTenantMigrationDto } from '@/src/services/wayd-api'
 import { useGetPendingTenantMigrationsQuery } from '@/src/store/features/user-management/oidc-providers-api'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -60,7 +60,7 @@ const ActiveTenantMigrations = ({
     useGetPendingTenantMigrationsQuery(providerId)
 
   return (
-    <WaydGrid2
+    <WaydGrid
       columns={columns}
       data={data ?? []}
       isLoading={isLoading}

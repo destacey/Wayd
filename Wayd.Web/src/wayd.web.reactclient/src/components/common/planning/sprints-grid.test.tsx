@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react'
 
-// Mock WaydGrid2 with a light stand-in that exposes the props under test.
-jest.mock('../wayd-grid2', () => ({
-  WaydGrid2: jest.fn(
+// Mock WaydGrid with a light stand-in that exposes the props under test.
+jest.mock('../wayd-grid', () => ({
+  WaydGrid: jest.fn(
     ({ data, isLoading, height, emptyMessage, columns, onRefresh }) => (
       <div data-testid="wayd-grid">
         <div data-testid="row-count">{data?.length ?? 0}</div>
@@ -26,7 +26,7 @@ jest.mock('../wayd-grid2', () => ({
 // Note: useTheme and dayjs are mocked globally in jest.setup.ts
 
 import SprintsGrid from './sprints-grid'
-import * as WaydGrid2Module from '../wayd-grid2'
+import * as WaydGridModule from '../wayd-grid'
 import { SprintListDto } from '@/src/services/wayd-api'
 
 describe('SprintsGrid', () => {
@@ -85,10 +85,30 @@ describe('SprintsGrid', () => {
     expect(screen.getByTestId('row-count')).toHaveTextContent('2')
   })
 
+  it('defaults the sort to Start descending (newest sprints first)', () => {
+    // Arrange / Act
+    render(
+      <SprintsGrid
+        sprints={mockSprints}
+        isLoading={false}
+        refetch={mockRefetch}
+      />,
+    )
+
+    // Assert — the grid receives the start-descending initial sort
+    const gridProps = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
+      .calls[0][0]
+    expect(gridProps.initialSorting).toEqual([{ id: 'start', desc: true }])
+  })
+
   it('passes the loading state through', () => {
     // Arrange / Act
     render(
-      <SprintsGrid sprints={mockSprints} isLoading={true} refetch={mockRefetch} />,
+      <SprintsGrid
+        sprints={mockSprints}
+        isLoading={true}
+        refetch={mockRefetch}
+      />,
     )
 
     // Assert
@@ -101,20 +121,6 @@ describe('SprintsGrid', () => {
 
     // Assert
     expect(screen.getByTestId('row-count')).toHaveTextContent('0')
-  })
-
-  it('uses the default grid height when not specified', () => {
-    // Arrange / Act
-    render(
-      <SprintsGrid
-        sprints={mockSprints}
-        isLoading={false}
-        refetch={mockRefetch}
-      />,
-    )
-
-    // Assert
-    expect(screen.getByTestId('height')).toHaveTextContent('650')
   })
 
   it('uses a custom grid height when specified', () => {
@@ -153,7 +159,7 @@ describe('SprintsGrid', () => {
     )
 
     // Assert — key, name, team, state, start, end
-    const call = (WaydGrid2Module.WaydGrid2 as unknown as jest.Mock).mock
+    const call = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
       .calls[0][0]
     const ids = call.columns.map((c: { id: string }) => c.id)
     expect(ids).toEqual(
@@ -190,11 +196,9 @@ describe('SprintsGrid', () => {
     )
 
     // Assert
-    const call = (WaydGrid2Module.WaydGrid2 as unknown as jest.Mock).mock
+    const call = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
       .calls[0][0]
-    const teamColumn = call.columns.find(
-      (c: { id: string }) => c.id === 'team',
-    )
+    const teamColumn = call.columns.find((c: { id: string }) => c.id === 'team')
     expect(teamColumn.meta.hide).toBe(true)
   })
 
@@ -209,11 +213,9 @@ describe('SprintsGrid', () => {
     )
 
     // Assert
-    const call = (WaydGrid2Module.WaydGrid2 as unknown as jest.Mock).mock
+    const call = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
       .calls[0][0]
-    const teamColumn = call.columns.find(
-      (c: { id: string }) => c.id === 'team',
-    )
+    const teamColumn = call.columns.find((c: { id: string }) => c.id === 'team')
     expect(teamColumn.meta.hide).toBeUndefined()
   })
 })

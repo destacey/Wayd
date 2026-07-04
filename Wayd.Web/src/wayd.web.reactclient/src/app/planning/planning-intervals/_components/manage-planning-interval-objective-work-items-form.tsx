@@ -14,13 +14,12 @@ import { useSearchWorkItemsQuery } from '@/src/store/features/work-management/wo
 import { LoadingOutlined, SearchOutlined } from '@ant-design/icons'
 import { Flex, Input, Modal, Typography } from 'antd'
 import { ChangeEvent, useState } from 'react'
-import { ColDef } from 'ag-grid-community'
-import { CustomCellRendererProps } from 'ag-grid-react'
+import type { ColumnDef } from '@tanstack/react-table'
 import {
-  AgGridTransfer,
-  asDeletableColDefs,
-  asDraggableColDefs,
-} from '@/src/components/common/grid/ag-grid-transfer'
+  caseInsensitiveCompare,
+  createMultiValueSetFilter,
+} from '@/src/components/common/wayd-grid'
+import WaydGridTransfer from '@/src/components/common/wayd-grid-transfer'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { workItemKeyComparator, WorkItemTagsCell } from '@/src/components/common/work'
 import { isApiError, type ApiError } from '@/src/utils'
@@ -34,67 +33,14 @@ export interface ManagePlanningIntervalObjectiveWorkItemsFormProps {
   onFormCancel: () => void
 }
 
-const workItemColDefs: ColDef<WorkItemListDto>[] = [
-  {
-    field: 'key',
-    headerName: 'Key',
-    width: 125,
-  },
-  {
-    field: 'title',
-    headerName: 'Title',
-    width: 250,
-  },
-  {
-    field: 'type.name',
-    headerName: 'Type',
-    width: 100,
-  },
-  {
-    field: 'status',
-    headerName: 'Status',
-    width: 100,
-  },
-  {
-    field: 'team.name',
-    headerName: 'Team',
-    width: 150,
-  },
-  {
-    field: 'parent.key',
-    headerName: 'Parent Key',
-    width: 125,
-  },
-  {
-    field: 'sprint.name',
-    headerName: 'Sprint',
-    width: 200,
-  },
-  {
-    field: 'project.name',
-    headerName: 'Project',
-    width: 200,
-  },
-  {
-    field: 'tags',
-    headerName: 'Tags',
-    width: 200,
-    valueGetter: (params) => params.data?.tags?.join(', ') ?? '',
-    cellRenderer: (params: CustomCellRendererProps<WorkItemListDto>) => (
-      <WorkItemTagsCell tags={params.data?.tags} />
-    ),
-  },
-]
+/** A work item's tags (source for the cell, the Tags set filter, and CSV
+ *  export). */
+const workItemTags = (item: WorkItemListDto): string[] => item.tags ?? []
 
-const leftColDefs = [...asDraggableColDefs(workItemColDefs)]
+const tagsFilter = createMultiValueSetFilter<WorkItemListDto>(workItemTags)
 
 const defaultSort = (a: WorkItemListDto, b: WorkItemListDto) => {
   return workItemKeyComparator(a.key, b.key)
-}
-
-const defaultColDef: ColDef = {
-  filter: true,
-  floatingFilter: true,
 }
 
 const ManagePlanningIntervalObjectiveWorkItemsForm = ({
@@ -133,13 +79,19 @@ const ManagePlanningIntervalObjectiveWorkItemsForm = ({
 
   const [manageObjectiveWorkItems] = useManageObjectiveWorkItemsMutation()
 
-  // Derive target work items: existing items (minus removed) plus user-added items
+  // Derive target work items: existing items (minus removed) plus user-added
+  // items. Added items that show up in a refreshed existing list are skipped
+  // so an item can never appear (or be saved) twice.
   const targetWorkItems = (() => {
     const existing =
       existingWorkItemsData?.workItems?.filter(
         (item) => !removedIds.has(item.id),
       ) ?? []
-    return [...existing, ...addedItems].sort(defaultSort)
+    const existingIds = new Set(existing.map((item) => item.id))
+    return [
+      ...existing,
+      ...addedItems.filter((item) => !existingIds.has(item.id)),
+    ].sort(defaultSort)
   })()
 
   // Derive source work items: search results minus items already in target
@@ -149,6 +101,77 @@ const ManagePlanningIntervalObjectiveWorkItemsForm = ({
       .filter((item) => !targetIds.has(item.id))
       .sort(defaultSort)
   })()
+
+  // Distinct individual tags across both grids, for the Tags set filter's
+  // checkbox list (individual tags, not whole combinations).
+  const tagFilterOptions = (() => {
+    const names = new Set<string>()
+    for (const item of [...sourceWorkItems, ...targetWorkItems]) {
+      for (const tag of workItemTags(item)) {
+        names.add(tag)
+      }
+    }
+    return Array.from(names)
+      .sort(caseInsensitiveCompare)
+      .map((name) => ({ label: name, value: name }))
+  })()
+
+  const workItemColumns: ColumnDef<WorkItemListDto, any>[] = [
+    {
+      accessorKey: 'key',
+      header: 'Key',
+      size: 125,
+    },
+    {
+      accessorKey: 'title',
+      header: 'Title',
+      size: 250,
+    },
+    {
+      accessorKey: 'type.name',
+      header: 'Type',
+      size: 100,
+      meta: { filterType: 'set' },
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      size: 100,
+      meta: { filterType: 'set' },
+    },
+    {
+      accessorKey: 'team.name',
+      header: 'Team',
+      size: 150,
+      meta: { filterType: 'set' },
+    },
+    {
+      accessorKey: 'parent.key',
+      header: 'Parent Key',
+      size: 125,
+    },
+    {
+      accessorKey: 'sprint.name',
+      header: 'Sprint',
+      size: 200,
+      meta: { filterType: 'set' },
+    },
+    {
+      accessorKey: 'project.name',
+      header: 'Project',
+      size: 200,
+      meta: { filterType: 'set' },
+    },
+    {
+      id: 'tags',
+      header: 'Tags',
+      size: 200,
+      accessorFn: (row) => workItemTags(row).join(', '),
+      filterFn: tagsFilter,
+      meta: { filterType: 'set', filterOptions: tagFilterOptions },
+      cell: ({ row }) => <WorkItemTagsCell tags={row.original.tags} />,
+    },
+  ]
 
   const { isOpen, isSaving, handleOk, handleCancel } = useConfirmModal({
     onSubmit: async () => {
@@ -179,11 +202,15 @@ const ManagePlanningIntervalObjectiveWorkItemsForm = ({
       'An error occurred while managing the work items. Please try again.',
   })
 
-  const onDragStop = (items: WorkItemListDto[]) => {
+  const handleMove = (items: WorkItemListDto[]) => {
     if (items.length === 0) return
 
-    // Items dragged from source to target: add them and un-remove if needed
-    setAddedItems((prev) => [...prev, ...items])
+    // Items moved from source to target: add them (skipping any already
+    // tracked, so a double-fired move can't duplicate) and un-remove if needed
+    setAddedItems((prev) => {
+      const prevIds = new Set(prev.map((item) => item.id))
+      return [...prev, ...items.filter((item) => !prevIds.has(item.id))]
+    })
     setRemovedIds((prev) => {
       const next = new Set(prev)
       for (const item of items) {
@@ -207,8 +234,6 @@ const ManagePlanningIntervalObjectiveWorkItemsForm = ({
       setAddedItems((prev) => prev.filter((p) => p.id !== item.id))
     }
   }
-
-  const rightColDefs = asDeletableColDefs(workItemColDefs, handleDelete)
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value)
@@ -235,16 +260,14 @@ const ManagePlanningIntervalObjectiveWorkItemsForm = ({
             onChange={handleSearch}
             suffix={isSearching ? <LoadingOutlined spin /> : <SearchOutlined />}
           />
-          <AgGridTransfer
-            leftGridData={sourceWorkItems}
-            rightGridData={targetWorkItems}
-            leftColumnDef={leftColDefs}
-            rightColumnDef={rightColDefs}
-            onDragStop={onDragStop}
-            getRowId={(param) => param.data.id}
-            GridProps={{
-              defaultColDef,
-            }}
+          <WaydGridTransfer
+            leftData={sourceWorkItems}
+            rightData={targetWorkItems}
+            columns={workItemColumns}
+            getRowId={(item) => item.id}
+            getDragLabel={(item) => item.key}
+            onMove={handleMove}
+            onRemove={handleDelete}
           />
           <Text>Search results are limited to 50 records.</Text>
         </Flex>

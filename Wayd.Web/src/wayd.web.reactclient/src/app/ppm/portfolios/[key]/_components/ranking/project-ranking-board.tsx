@@ -3,13 +3,13 @@
 import { WaydTooltip } from '@/src/components/common'
 import LifecycleStatusTag from '@/src/components/common/lifecycle-status-tag'
 import {
-  WaydGrid2,
+  WaydGrid,
   renderProgramLink,
   renderProjectLink,
   useGridDragHandle,
   type GridColumnContext,
   type RowReorderEvent,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import { useMessage } from '@/src/components/contexts/messaging'
 import ProjectDrawer from '@/src/app/ppm/_components/project-drawer'
 import RecordProjectScoreForm from '@/src/app/ppm/projects/[key]/_components/scoring/record-project-score-form'
@@ -409,7 +409,7 @@ const ProjectRankingBoard = ({
 
   return (
     <>
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={orderedProjects}
         getRowId={(project) => project.id}

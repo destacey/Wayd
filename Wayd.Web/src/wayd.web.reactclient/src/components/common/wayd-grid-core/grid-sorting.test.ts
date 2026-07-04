@@ -1,4 +1,5 @@
 import {
+  caseInsensitiveCompare,
   dateSortBy,
   sortEmptyLast,
   workItemKeySort,
@@ -7,6 +8,30 @@ import {
 import type { Row } from '@tanstack/react-table'
 
 describe('grid-sorting', () => {
+  describe('caseInsensitiveCompare', () => {
+    it('interleaves capitalized and lowercase values alphabetically', () => {
+      // Arrange — plain Array.sort() would yield ['Bug', 'Chore', 'api']
+      const values = ['Chore', 'api', 'Bug']
+
+      // Act
+      const sorted = [...values].sort(caseInsensitiveCompare)
+
+      // Assert
+      expect(sorted).toEqual(['api', 'Bug', 'Chore'])
+    })
+
+    it('compares numeric segments numerically', () => {
+      // Arrange — plain Array.sort() would put 'v10' before 'v9'
+      const values = ['v10', 'v9', 'v1']
+
+      // Act
+      const sorted = [...values].sort(caseInsensitiveCompare)
+
+      // Assert
+      expect(sorted).toEqual(['v1', 'v9', 'v10'])
+    })
+  })
+
   describe('dateSortBy', () => {
     const row = (value?: string | number | Date | null): Row<any> =>
       ({ original: { value } }) as unknown as Row<any>

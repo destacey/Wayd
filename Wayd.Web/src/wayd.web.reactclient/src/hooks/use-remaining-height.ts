@@ -24,7 +24,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  * ```
  */
 export function useRemainingHeight(
-  bottomOffset: number = 30,
+  bottomOffset: number = 50,
 ): [ref: (node: HTMLElement | null) => void, height: number] {
   const [height, setHeight] = useState(500)
   const elementRef = useRef<HTMLElement | null>(null)

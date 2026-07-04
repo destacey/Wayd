@@ -1,7 +1,7 @@
 'use client'
 
 import { PageTitle } from '@/src/components/common'
-import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
+import { WaydGrid } from '@/src/components/common/wayd-grid'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
@@ -115,7 +115,7 @@ const ExpenditureCategoriesPage = () => {
     <>
       <PageTitle title="Expenditure Categories" actions={actions} />
 
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={categoryData ?? []}
         onRefresh={refresh}

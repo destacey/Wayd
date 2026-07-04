@@ -2,10 +2,11 @@
 
 import { useState, useMemo } from 'react'
 import {
-  WaydGrid2,
+  WaydGrid,
+  caseInsensitiveCompare,
   createActionsColumn,
   createMultiValueSetFilter,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import useAuth from '@/src/components/contexts/auth'
 import { ItemType } from 'antd/es/menu/interface'
 import { Flex, Tag, Tooltip } from 'antd'
@@ -75,7 +76,7 @@ const TeamMembersGrid = ({ teamId, teamType }: TeamMembersGridProps) => {
     const names = new Set<string>()
     members?.forEach((m) => m.roles.forEach((r) => names.add(r.name)))
     return Array.from(names)
-      .sort()
+      .sort(caseInsensitiveCompare)
       .map((name) => ({ label: name, value: name }))
   }, [members])
 
@@ -151,7 +152,7 @@ const TeamMembersGrid = ({ teamId, teamType }: TeamMembersGridProps) => {
 
   return (
     <>
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={members ?? []}
         isLoading={isLoading}

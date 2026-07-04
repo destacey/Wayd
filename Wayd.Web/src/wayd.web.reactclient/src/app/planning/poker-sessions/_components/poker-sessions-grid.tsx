@@ -1,9 +1,9 @@
 'use client'
 
 import {
-  WaydGrid2,
+  WaydGrid,
   createActionsColumn,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import { ControlItemsMenu } from '@/src/components/common/control-items-menu'
 import { PokerSessionListDto } from '@/src/services/wayd-api'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -134,12 +134,11 @@ const PokerSessionsGrid: FC<PokerSessionsGridProps> = ({
   )
 
   return (
-    <WaydGrid2
+    <WaydGrid
       columns={columns}
       data={sessions}
       onRefresh={refetch}
       isLoading={isLoading}
-      height={650}
       csvFileName="poker-sessions"
       emptyMessage="No poker sessions found."
       rightSlot={

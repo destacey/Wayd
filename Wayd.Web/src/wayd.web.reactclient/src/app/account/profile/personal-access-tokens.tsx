@@ -10,10 +10,10 @@ import {
 } from '@/src/store/features/user-management/personal-access-tokens-api'
 import { PersonalAccessTokenDto } from '@/src/services/wayd-api'
 import {
-  WaydGrid2,
+  WaydGrid,
   createActionsColumn,
   formatDateTime,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@tanstack/react-table'
 import {
   CreatePersonalAccessTokenForm,
@@ -235,7 +235,7 @@ const PersonalAccessTokens: FC = () => {
         </Button>
       </Space>
 
-      <WaydGrid2
+      <WaydGrid
         height={500}
         columns={columns}
         data={tokens ?? []}

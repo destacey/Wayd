@@ -1,5 +1,5 @@
 /**
- * WaydGrid2 filter engine.
+ * WaydGrid filter engine.
  *
  * Pure predicate functions that evaluate a {@link ColumnFilterModel} descriptor
  * against a cell value, plus a single TanStack `FilterFn` that dispatches on the
@@ -9,6 +9,7 @@ import type { FilterFn } from '@tanstack/react-table'
 import dayjs from 'dayjs'
 
 import {
+  SET_FILTER_BLANK,
   isConditionActive,
   operatorNeedsValue,
   type ColumnFilterModel,
@@ -194,7 +195,10 @@ export const evaluateFilterModel = (
 ): boolean => {
   if (model.type === 'set') {
     if (model.values.length === 0) return true
-    if (cellValue == null) return false
+    // Blank cells match via the "(Blanks)" sentinel rather than never matching.
+    if (cellValue == null || cellValue === '') {
+      return model.values.includes(SET_FILTER_BLANK)
+    }
     return model.values.includes(String(cellValue))
   }
 
@@ -280,7 +284,10 @@ export const createMultiValueSetFilter =
     if (model.type === 'set') {
       if (model.values.length === 0) return true
       const selected = new Set(model.values)
-      return getValues(row.original).some((v) => selected.has(v))
+      const rowValues = getValues(row.original)
+      // A row with no values is a blank row — it matches via the sentinel.
+      if (rowValues.length === 0) return selected.has(SET_FILTER_BLANK)
+      return rowValues.some((v) => selected.has(v))
     }
 
     return evaluateFilterModel(model, row.getValue(columnId))

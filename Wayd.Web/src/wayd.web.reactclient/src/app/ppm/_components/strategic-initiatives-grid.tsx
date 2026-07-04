@@ -1,9 +1,9 @@
 'use client'
 
 import {
-  WaydGrid2,
+  WaydGrid,
   renderPortfolioLink,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import LifecycleStatusTag from '@/src/components/common/lifecycle-status-tag'
 import {
   NavigationDto,
@@ -105,7 +105,7 @@ const StrategicInitiativesGrid: FC<StrategicInitiativesGridProps> = (
   }
 
   return (
-    <WaydGrid2
+    <WaydGrid
       columns={columns}
       data={props.strategicInitiatives}
       onRefresh={refresh}

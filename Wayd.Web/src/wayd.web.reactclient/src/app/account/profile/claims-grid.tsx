@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
+import { WaydGrid } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@tanstack/react-table'
 import useAuth, { Claim } from '../../../components/contexts/auth'
 
@@ -15,7 +15,7 @@ const ClaimsGrid = () => {
   )
 
   return (
-    <WaydGrid2
+    <WaydGrid
       columns={columns}
       data={user?.claims ?? []}
       csvFileName="claims"

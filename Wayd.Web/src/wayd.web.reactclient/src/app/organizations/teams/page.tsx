@@ -2,9 +2,9 @@
 
 import PageTitle from '@/src/components/common/page-title'
 import {
-  WaydGrid2,
+  WaydGrid,
   renderTeamLink,
-} from '../../../components/common/wayd-grid2'
+} from '../../../components/common/wayd-grid'
 import { useMemo, useState } from 'react'
 import { ItemType } from 'antd/es/menu/interface'
 import { Button } from 'antd'
@@ -109,7 +109,7 @@ const TeamListPage = () => {
   return (
     <>
       <PageTitle title="Teams" actions={actions()} />
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={teams ?? []}
         onRefresh={() => {

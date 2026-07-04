@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  WaydGrid2,
+  WaydGrid,
   renderAssignedToLink,
   renderProjectLink,
   renderSprintLink,
@@ -10,7 +10,7 @@ import {
   renderWorkStatusTag,
   workItemKeySort,
   workStatusCategorySort,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import { SprintBacklogItemDto } from '@/src/services/wayd-api'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useMemo } from 'react'
@@ -22,7 +22,6 @@ export interface SprintBacklogGridProps {
   refetch: () => void
   hideTeamColumn?: boolean
   hideSprintColumn?: boolean
-  /** Grid height in pixels. Use -1 for auto-height (expands to fit all rows). Default: -1 */
   gridHeight?: number
 }
 
@@ -32,7 +31,7 @@ const SprintBacklogGrid = (props: SprintBacklogGridProps) => {
     refetch,
     hideTeamColumn = false,
     hideSprintColumn = false,
-    gridHeight = -1,
+    gridHeight,
   } = props
 
   const columns = useMemo<ColumnDef<SprintBacklogItemDto, any>[]>(
@@ -155,7 +154,7 @@ const SprintBacklogGrid = (props: SprintBacklogGridProps) => {
   }
 
   return (
-    <WaydGrid2
+    <WaydGrid
       height={gridHeight}
       columns={columns}
       data={workItems ?? []}

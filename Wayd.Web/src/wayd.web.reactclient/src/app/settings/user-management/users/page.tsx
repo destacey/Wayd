@@ -3,11 +3,12 @@
 import PageTitle from '@/src/components/common/page-title'
 import { useEffect, useMemo, useState } from 'react'
 import {
-  WaydGrid2,
+  WaydGrid,
+  caseInsensitiveCompare,
   createActionsColumn,
   renderUserLink,
   formatDateTime,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import { authorizePage } from '@/src/components/hoc'
 import Link from 'next/link'
 import { Button, Tag } from 'antd'
@@ -132,7 +133,7 @@ const UsersListPage = () => {
         accessorFn: (row) =>
           row.roles
             ?.map((r) => r.name)
-            .sort()
+            .sort(caseInsensitiveCompare)
             .join(', ') ?? '',
         header: 'Roles',
       },
@@ -205,7 +206,7 @@ const UsersListPage = () => {
     <>
       <PageTitle title="Users" actions={actions()} />
 
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={usersData ?? []}
         onRefresh={refresh}

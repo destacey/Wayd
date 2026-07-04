@@ -11,7 +11,7 @@ import type {
 } from '@/src/components/types'
 
 /**
- * Cell renderers for WaydGrid2 columns — plain functions of the domain object,
+ * Cell renderers for WaydGrid columns — plain functions of the domain object,
  * called inline: `cell: ({ row }) => renderTeamLink(row.original.team)`. Each
  * returns `null` for a missing value so an empty cell renders nothing.
  */

@@ -101,7 +101,7 @@ Wayd supports multiple built-in themes (for example: **Light**, **Dark**, **Slat
 | `src/config/theme/theme-preset.ts` | Shared `AppThemeConfig` contract |
 | `src/config/theme/timeline-colors.ts` | Theme-to-timeline style mapping |
 | `src/config/theme/theme-constants.ts` | Brand color (`COLOR_PRIMARY`) — single source of truth |
-| `src/components/contexts/theme/theme-context.tsx` | `ThemeProvider`, `mergeThemeConfig`, ag-Grid theme wiring |
+| `src/components/contexts/theme/theme-context.tsx` | `ThemeProvider`, `mergeThemeConfig`, chart theme wiring |
 | `src/components/contexts/theme/types.d.ts` | `ThemeName`, `ThemeContextType` |
 | `src/app/_components/theme-manager-drawer.tsx` | User-facing theme manager UI |
 
@@ -139,7 +139,7 @@ const { currentThemeName, setCurrentThemeName, token, userThemeConfig, setUserTh
 | Library | Purpose |
 |---------|---------|
 | Ant Design | UI component library |
-| AG Grid | Advanced data tables |
+| TanStack Table | Data grids (via the `WaydGrid` house component) |
 | Redux Toolkit | State management |
 | react-markdown | Markdown rendering |
 | dayjs | Date formatting |

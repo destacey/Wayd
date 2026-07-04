@@ -1,7 +1,7 @@
 'use client'
 
 import PageTitle from '@/src/components/common/page-title'
-import { WaydGrid2 } from '../../../components/common/wayd-grid2'
+import { WaydGrid } from '../../../components/common/wayd-grid'
 import { useEffect, useState, useMemo } from 'react'
 import { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
@@ -127,7 +127,7 @@ const EmployeeListPage = () => {
   return (
     <>
       <PageTitle title="Employees" />
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={employeesData ?? []}
         isLoading={isLoading}

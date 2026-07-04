@@ -1,6 +1,6 @@
 'use client'
 
-import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
+import { WaydGrid } from '@/src/components/common/wayd-grid'
 import { ProjectTeamMemberDto } from '@/src/services/wayd-api'
 import { useGetProjectTeamQuery } from '@/src/store/features/ppm/projects-api'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -58,7 +58,7 @@ const ProjectTeamGrid: FC<ProjectTeamGridProps> = ({ projectIdOrKey }) => {
   }
 
   return (
-    <WaydGrid2
+    <WaydGrid
       columns={columns}
       data={teamData ?? []}
       onRefresh={refresh}

@@ -8,13 +8,13 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { FC, useMemo } from 'react'
 import { WaydTooltip } from '@/src/components/common'
 import {
-  WaydGrid2,
+  WaydGrid,
   renderDependencyHealthTag,
   renderSprintLink,
   renderTeamLink,
   renderWorkItemLink,
   workItemKeySort,
-} from '../wayd-grid2'
+} from '../wayd-grid'
 import { DEPENDENCY_SCOPE_TOOLTIP } from './dependency-constants'
 
 export interface WorkItemDependenciesGridProps {
@@ -53,7 +53,9 @@ const WorkItemDependenciesGrid: FC<WorkItemDependenciesGridProps> = (props) => {
             size: 125,
             meta: { filterType: 'set' },
             cell: ({ row, getValue }) => (
-              <WaydTooltip title={dependencyTypeTooltip(row.original, workItem)}>
+              <WaydTooltip
+                title={dependencyTypeTooltip(row.original, workItem)}
+              >
                 <span>{getValue<string>()}</span>
               </WaydTooltip>
             ),
@@ -78,7 +80,10 @@ const WorkItemDependenciesGrid: FC<WorkItemDependenciesGridProps> = (props) => {
             accessorKey: 'scope.name',
             header: 'Scope',
             size: 100,
-            meta: { filterType: 'set', headerTooltip: DEPENDENCY_SCOPE_TOOLTIP },
+            meta: {
+              filterType: 'set',
+              headerTooltip: DEPENDENCY_SCOPE_TOOLTIP,
+            },
           },
         ],
       },
@@ -141,8 +146,7 @@ const WorkItemDependenciesGrid: FC<WorkItemDependenciesGridProps> = (props) => {
   }
 
   return (
-    <WaydGrid2
-      height={550}
+    <WaydGrid
       columns={columns}
       data={props.dependencies}
       onRefresh={refresh}

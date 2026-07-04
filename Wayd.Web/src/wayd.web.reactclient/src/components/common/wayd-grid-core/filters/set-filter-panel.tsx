@@ -6,7 +6,11 @@ import { SearchOutlined } from '@ant-design/icons'
 
 import styles from './set-filter-panel.module.css'
 import type { FilterOption } from '../types'
-import type { ColumnFilterModel } from './filter-model'
+import {
+  SET_FILTER_BLANK,
+  SET_FILTER_BLANK_LABEL,
+  type ColumnFilterModel,
+} from './filter-model'
 
 export interface SetFilterPanelProps {
   /**
@@ -41,7 +45,8 @@ const SetFilterPanel = ({
   const labelFor = useMemo(() => {
     const map = new Map<string, string>()
     for (const opt of labels ?? []) map.set(opt.value, opt.label)
-    return (v: string) => map.get(v) ?? v
+    return (v: string) =>
+      v === SET_FILTER_BLANK ? SET_FILTER_BLANK_LABEL : (map.get(v) ?? v)
   }, [labels])
 
   // Checked set: undefined descriptor ⇒ everything checked (unfiltered).

@@ -1,6 +1,6 @@
 'use client'
 
-import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
+import { WaydGrid } from '@/src/components/common/wayd-grid'
 import { StrategicThemeListDto } from '@/src/services/wayd-api'
 import type { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
@@ -44,7 +44,7 @@ const StrategicThemesGrid: React.FC<StrategicThemesGridProps> = (
   )
 
   return (
-    <WaydGrid2
+    <WaydGrid
       height={props.gridHeight}
       columns={columns}
       data={props.strategicThemesData}

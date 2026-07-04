@@ -1,6 +1,10 @@
 'use client'
 
-import { WaydGrid2, renderUserLink } from '@/src/components/common/wayd-grid2'
+import {
+  WaydGrid,
+  caseInsensitiveCompare,
+  renderUserLink,
+} from '@/src/components/common/wayd-grid'
 import { UserDetailsDto } from '@/src/services/wayd-api'
 import { useGetRoleUsersQuery } from '@/src/store/features/user-management/roles-api'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -32,7 +36,7 @@ const RoleUsersGrid: FC<RoleUsersGridProps> = (props: RoleUsersGridProps) => {
         accessorFn: (row) =>
           row.roles
             ?.map((r) => r.name)
-            .sort()
+            .sort(caseInsensitiveCompare)
             .join(', ') ?? '',
         header: 'Roles',
       },
@@ -51,7 +55,7 @@ const RoleUsersGrid: FC<RoleUsersGridProps> = (props: RoleUsersGridProps) => {
   }
 
   return (
-    <WaydGrid2
+    <WaydGrid
       columns={columns}
       data={usersData ?? []}
       onRefresh={refresh}

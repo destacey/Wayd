@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { themeBalham, colorSchemeDark } from 'ag-grid-community'
 import { theme } from 'antd'
 import { createStyles } from 'antd-style'
 import { AppThemeConfig, TimeLineStyles } from './theme-preset'
@@ -83,16 +82,6 @@ const useStyles = createStyles(({ css, cssVar }) => {
     }),
   }
 })
-
-const agGridGeekTheme = themeBalham
-  .withPart(colorSchemeDark)
-  .withParams({
-    foregroundColor: '#9aff86',
-    backgroundColor: '#0e1310',
-    borderColor: '#39ff14',
-    accentColor: '#39ff14',
-    borderRadius: 0,
-  })
 
 const useGeekTheme = (): AppThemeConfig => {
   const { styles } = useStyles()
@@ -205,7 +194,6 @@ const useGeekTheme = (): AppThemeConfig => {
         subtleColor: '#9aff86',
       },
       integrations: {
-        agGridTheme: agGridGeekTheme,
         antDesignChartsTheme: 'classicDark',
         antvisG6ChartsTheme: 'dark',
       },

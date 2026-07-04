@@ -7,15 +7,14 @@ import {
   getTeamsClient,
   getTeamsOfTeamsClient,
 } from '@/src/services/clients'
-import { Modal, Spin, Table, Transfer, TransferProps } from 'antd'
+import { Modal, Spin } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
-import type { Key } from 'react'
-import difference from 'lodash/difference'
+import type { ColumnDef } from '@tanstack/react-table'
+import WaydGridTransfer from '@/src/components/common/wayd-grid-transfer'
 import {
   ManagePlanningIntervalTeamsRequest,
   PlanningIntervalTeamResponse,
 } from '@/src/services/wayd-api'
-import type { ColumnsType, TableRowSelection } from 'antd/es/table/interface'
 import { useMessage } from '@/src/components/contexts/messaging'
 
 export interface ManagePlanningIntervalTeamsFormProps {
@@ -28,88 +27,32 @@ interface PlanningIntervalTeamModel {
   key: string
   name: string
   code: string
-  disabled: boolean
   teamOfTeams: string | undefined
 }
 
-interface TableTransferProps extends TransferProps<PlanningIntervalTeamModel> {
-  dataSource: PlanningIntervalTeamModel[]
-  leftColumns: ColumnsType<PlanningIntervalTeamModel>
-  rightColumns: ColumnsType<PlanningIntervalTeamModel>
-}
-
-const TableTransfer = ({
-  leftColumns,
-  rightColumns,
-  ...restProps
-}: TableTransferProps) => (
-  <Transfer {...restProps}>
-    {({
-      direction,
-      filteredItems,
-      onItemSelectAll,
-      onItemSelect,
-      selectedKeys: listSelectedKeys,
-      disabled: listDisabled,
-    }) => {
-      const columns = direction === 'left' ? leftColumns : rightColumns
-
-      const rowSelection: TableRowSelection<PlanningIntervalTeamModel> = {
-        getCheckboxProps: (item) => ({
-          disabled: listDisabled || item.disabled,
-        }),
-        onSelectAll(selected, selectedRows) {
-          const treeSelectedKeys = selectedRows
-            .filter((item) => !item.disabled)
-            .map(({ key }) => key)
-          const diffKeys = selected
-            ? difference(treeSelectedKeys, listSelectedKeys)
-            : difference(listSelectedKeys, treeSelectedKeys)
-          onItemSelectAll(diffKeys as string[], selected)
-        },
-        onSelect({ key }, selected) {
-          onItemSelect(key as string, selected)
-        },
-        selectedRowKeys: listSelectedKeys,
-      }
-
-      return (
-        <Table
-          rowSelection={rowSelection}
-          columns={columns}
-          dataSource={filteredItems}
-          size="small"
-          pagination={false}
-          style={{ pointerEvents: listDisabled ? 'none' : undefined }}
-          onRow={({ key, disabled: itemDisabled }) => ({
-            onClick: () => {
-              if (itemDisabled || listDisabled) return
-              onItemSelect(
-                key as string,
-                !listSelectedKeys.includes(key as string),
-              )
-            },
-          })}
-        />
-      )
-    }}
-  </Transfer>
-)
-
-const tableColumns: ColumnsType<PlanningIntervalTeamModel> = [
+const teamColumns: ColumnDef<PlanningIntervalTeamModel, any>[] = [
   {
-    dataIndex: 'name',
-    title: 'Name',
+    accessorKey: 'name',
+    header: 'Name',
+    size: 220,
   },
   {
-    dataIndex: 'code',
-    title: 'Code',
+    accessorKey: 'code',
+    header: 'Code',
+    size: 110,
   },
   {
-    dataIndex: 'teamOfTeams',
-    title: 'Team of Teams',
+    accessorKey: 'teamOfTeams',
+    header: 'Team of Teams',
+    size: 220,
+    meta: { filterType: 'set' },
   },
 ]
+
+const defaultSort = (
+  a: PlanningIntervalTeamModel,
+  b: PlanningIntervalTeamModel,
+) => a.name.localeCompare(b.name)
 
 const ManagePlanningIntervalTeamsForm = ({
   id,
@@ -118,7 +61,7 @@ const ManagePlanningIntervalTeamsForm = ({
 }: ManagePlanningIntervalTeamsFormProps) => {
   const [isLoading, setIsLoading] = useState(false)
   const [teams, setTeams] = useState<PlanningIntervalTeamModel[]>([])
-  const [targetKeys, setTargetKeys] = useState<Key[]>([])
+  const [targetKeys, setTargetKeys] = useState<string[]>([])
   const messageApi = useMessage()
 
   // TODO: should this be in a custom hook? The teams index page has a similar call.
@@ -132,7 +75,6 @@ const ManagePlanningIntervalTeamsForm = ({
       key: team.id,
       name: team.name,
       code: team.code ?? '',
-      disabled: false,
       teamOfTeams: team.teamOfTeams?.name,
     }))
   }, [])
@@ -144,7 +86,6 @@ const ManagePlanningIntervalTeamsForm = ({
       key: team.id,
       name: team.name,
       code: team.code,
-      disabled: false,
       teamOfTeams: team.teamOfTeams?.name,
     }))
   }, [])
@@ -154,7 +95,7 @@ const ManagePlanningIntervalTeamsForm = ({
       try {
         const request: ManagePlanningIntervalTeamsRequest = {
           id: id,
-          teamIds: targetKeys as string[],
+          teamIds: targetKeys,
         }
         await getPlanningIntervalsClient().manageTeams(id, request)
 
@@ -207,15 +148,38 @@ const ManagePlanningIntervalTeamsForm = ({
     }
   }, [isOpen, id, getTeams, getPlanningIntervalTeams, messageApi])
 
-  const onChange: TransferProps<PlanningIntervalTeamModel>['onChange'] = (nextTargetKeys) => {
-    setTargetKeys(nextTargetKeys)
+  const targetKeySet = new Set(targetKeys)
+  const sourceTeams = teams
+    .filter((team) => !targetKeySet.has(team.key))
+    .sort(defaultSort)
+  const targetTeams = teams
+    .filter((team) => targetKeySet.has(team.key))
+    .sort(defaultSort)
+
+  const handleMove = (items: PlanningIntervalTeamModel[]) => {
+    if (items.length === 0) return
+
+    // Set-dedupe so a double-fired move can't produce duplicate teamIds.
+    setTargetKeys((prev) => {
+      const next = new Set(prev)
+      for (const item of items) {
+        next.add(item.key)
+      }
+      return Array.from(next)
+    })
+  }
+
+  const handleRemove = (item: PlanningIntervalTeamModel) => {
+    if (!item) return
+
+    setTargetKeys((prev) => prev.filter((key) => key !== item.key))
   }
 
   return (
     <Modal
       title="Manage Planning Interval Teams"
       open={isOpen}
-      width={900}
+      width={'80vw'}
       onOk={handleOk}
       okText="Save"
       confirmLoading={isSaving}
@@ -225,25 +189,14 @@ const ManagePlanningIntervalTeamsForm = ({
     >
       {
         <Spin spinning={isLoading} size="large">
-          <TableTransfer
-            dataSource={teams}
-            targetKeys={targetKeys}
-            showSearch={true}
-            onChange={onChange}
-            filterOption={(inputValue, item: PlanningIntervalTeamModel) =>
-              item.name!.toLowerCase().indexOf(inputValue.toLowerCase()) !==
-                -1 ||
-              item.code!.toLowerCase().indexOf(inputValue.toLowerCase()) !==
-                -1 ||
-              !!(
-                item.teamOfTeams &&
-                item.teamOfTeams
-                  .toLowerCase()
-                  .indexOf(inputValue.toLowerCase()) !== -1
-              )
-            }
-            leftColumns={tableColumns}
-            rightColumns={tableColumns}
+          <WaydGridTransfer
+            leftData={sourceTeams}
+            rightData={targetTeams}
+            columns={teamColumns}
+            getRowId={(item) => item.key}
+            getDragLabel={(item) => item.code || item.name}
+            onMove={handleMove}
+            onRemove={handleRemove}
           />
         </Spin>
       }

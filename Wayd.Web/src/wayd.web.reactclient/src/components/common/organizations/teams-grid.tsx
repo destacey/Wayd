@@ -1,5 +1,5 @@
 import { FC, useMemo } from 'react'
-import { WaydGrid2, renderTeamLink } from '../wayd-grid2'
+import { WaydGrid, renderTeamLink } from '../wayd-grid'
 import { PlanningIntervalTeamResponse } from '@/src/services/wayd-api'
 import type { ColumnDef } from '@tanstack/react-table'
 
@@ -53,7 +53,7 @@ const TeamsGrid: FC<TeamsGridProps> = (props) => {
   }
 
   return (
-    <WaydGrid2
+    <WaydGrid
       columns={columns}
       data={props.teams}
       onRefresh={refresh}

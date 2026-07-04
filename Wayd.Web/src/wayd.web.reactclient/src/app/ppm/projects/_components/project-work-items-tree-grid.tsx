@@ -10,9 +10,9 @@ import {
 } from '@ant-design/icons'
 import { Button, Flex } from 'antd'
 import { WorkItemTagsCell } from '@/src/components/common/work'
-import treeGridStyles from '@/src/components/common/wayd-grid2/wayd-grid2.module.css'
-import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
-import type { WaydGridColumnMeta } from '@/src/components/common/wayd-grid2'
+import treeGridStyles from '@/src/components/common/wayd-grid/wayd-grid.module.css'
+import { WaydGrid } from '@/src/components/common/wayd-grid'
+import type { WaydGridColumnMeta } from '@/src/components/common/wayd-grid'
 import { WorkItemListDto } from '@/src/services/wayd-api'
 import {
   WorkItemTreeNode,
@@ -254,7 +254,7 @@ const ProjectWorkItemsTreeGrid: FC<ProjectWorkItemsTreeGridProps> = ({
   const columns = getColumns(hideProjectColumn)
 
   return (
-    <WaydGrid2<WorkItemTreeNode>
+    <WaydGrid<WorkItemTreeNode>
       data={treeData}
       getSubRows={(row) => row.children}
       columns={columns}

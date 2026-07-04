@@ -35,6 +35,17 @@ export function dateSortBy(
   }
 }
 
+/**
+ * Locale-aware, case-insensitive comparator for grid-facing string lists —
+ * set-filter option values, joined display values, and the like. A plain
+ * `Array.sort()` compares code points, which puts every capitalized value
+ * before any lowercase one; use this instead so "api", "Bug", "chore" sort
+ * naturally. Also numeric-aware ("v9" before "v10"), matching the grid's
+ * default row sort ({@link sortEmptyLast}).
+ */
+export const caseInsensitiveCompare = (a: string, b: string): number =>
+  a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true })
+
 /** True for values that should sort as "empty": null, undefined, or ''. */
 const isEmpty = (v: unknown): boolean => v === null || v === undefined || v === ''
 
@@ -64,7 +75,7 @@ const compareNonEmpty = (a: unknown, b: unknown): number => {
 }
 
 /**
- * Default WaydGrid2 sort that keeps **empty** values (null/undefined/'') at the
+ * Default WaydGrid sort that keeps **empty** values (null/undefined/'') at the
  * *end* of an ascending sort — and thus the start of a descending sort, since
  * TanStack negates the result on `desc`. This treats "empty" as the largest
  * value (like `+Infinity`), matching AG Grid / Excel, and fixes TanStack's

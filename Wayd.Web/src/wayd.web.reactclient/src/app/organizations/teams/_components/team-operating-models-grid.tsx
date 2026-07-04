@@ -2,9 +2,9 @@
 
 import { useState, useMemo } from 'react'
 import {
-  WaydGrid2,
+  WaydGrid,
   createActionsColumn,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import {
   useDeleteTeamOperatingModelMutation,
   useGetTeamOperatingModelsQuery,
@@ -184,7 +184,7 @@ const TeamOperatingModelsGrid = ({
 
   return (
     <>
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={operatingModelsData ?? []}
         isLoading={isLoading}

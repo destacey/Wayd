@@ -13,14 +13,14 @@ import { Button, Form } from 'antd'
 import dayjs from 'dayjs'
 import {
   type DraftItem,
-  WaydGrid2,
+  WaydGrid,
   type TreeNode,
   type FilterOption,
   type MoveValidator,
   type GridColumnContext,
   defaultMoveValidator,
   findNodeById,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
   useCreateRoadmapItemMutation,
@@ -692,7 +692,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
   return (
     <>
       <Form form={form} component={false}>
-        <WaydGrid2<RoadmapItemTreeNode>
+        <WaydGrid<RoadmapItemTreeNode>
           data={treeData}
           getSubRows={(row) => row.children}
           isLoading={roadmapItemsIsLoading}

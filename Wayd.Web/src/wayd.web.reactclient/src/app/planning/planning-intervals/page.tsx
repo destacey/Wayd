@@ -1,9 +1,9 @@
 'use client'
 
 import {
-  WaydGrid2,
+  WaydGrid,
   renderPlanningIntervalLink,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import PageTitle from '@/src/components/common/page-title'
 import { useState, useMemo } from 'react'
 import { useDocumentTitle } from '../../../hooks/use-document-title'
@@ -107,7 +107,7 @@ const PlanningIntervalListPage = () => {
         title="Planning Intervals"
         actions={showActions && actions()}
       />
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={data}
         isLoading={isLoading}

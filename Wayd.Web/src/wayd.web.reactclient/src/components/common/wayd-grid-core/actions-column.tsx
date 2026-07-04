@@ -64,7 +64,7 @@ const ActionsCell = <T,>({
 }
 
 /**
- * Builds the reusable row-actions column for a WaydGrid2. Everything about the
+ * Builds the reusable row-actions column for a WaydGrid. Everything about the
  * column is standardized — a fixed-width, non-sortable/-filterable/-resizable
  * `⋯` dropdown that hides itself when a row has no items — except {@link
  * ActionsColumnOptions.getItems}, which each grid supplies to compute per-row

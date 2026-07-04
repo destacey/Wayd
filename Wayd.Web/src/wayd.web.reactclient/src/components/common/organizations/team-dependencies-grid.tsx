@@ -4,13 +4,13 @@ import { DependencyDto, TeamDetailsDto } from '@/src/services/wayd-api'
 import type { ColumnDef } from '@tanstack/react-table'
 import { FC, useMemo } from 'react'
 import {
-  WaydGrid2,
+  WaydGrid,
   renderDependencyHealthTag,
   renderSprintLink,
   renderTeamLink,
   renderWorkItemLink,
   workItemKeySort,
-} from '../wayd-grid2'
+} from '../wayd-grid'
 import { DEPENDENCY_SCOPE_TOOLTIP } from '../work/dependency-constants'
 
 export interface TeamDependenciesGridProps {
@@ -49,7 +49,10 @@ const TeamDependenciesGrid: FC<TeamDependenciesGridProps> = (props) => {
             accessorKey: 'scope.name',
             header: 'Scope',
             size: 100,
-            meta: { filterType: 'set', headerTooltip: DEPENDENCY_SCOPE_TOOLTIP },
+            meta: {
+              filterType: 'set',
+              headerTooltip: DEPENDENCY_SCOPE_TOOLTIP,
+            },
           },
         ],
       },
@@ -162,8 +165,7 @@ const TeamDependenciesGrid: FC<TeamDependenciesGridProps> = (props) => {
   }
 
   return (
-    <WaydGrid2
-      height={550}
+    <WaydGrid
       columns={columns}
       data={props.dependencies}
       onRefresh={refresh}

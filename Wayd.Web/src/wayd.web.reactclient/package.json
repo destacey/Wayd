@@ -58,8 +58,6 @@
     "@swc/core": "1.15.41",
     "@tanstack/react-table": "^8.21.3",
     "@uiw/react-md-editor": "^4.1.1",
-    "ag-grid-community": "35.3.1",
-    "ag-grid-react": "35.3.1",
     "antd": "6.4.4",
     "antd-style": "^4.1.0",
     "axios": "1.18.0",

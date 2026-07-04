@@ -144,7 +144,6 @@ jest.mock('rehype-raw', () => ({
 jest.mock('./components/contexts/theme', () => ({
   __esModule: true,
   default: () => ({
-    agGridTheme: 'ag-theme-alpine',
     token: {
       colorPrimary: '#1890ff',
       colorWarning: '#faad14',

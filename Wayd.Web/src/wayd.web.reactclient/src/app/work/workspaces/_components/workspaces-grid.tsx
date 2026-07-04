@@ -1,6 +1,6 @@
 'use client'
 
-import { WaydGrid2, renderWorkspaceLink } from '@/src/components/common/wayd-grid2'
+import { WaydGrid, renderWorkspaceLink } from '@/src/components/common/wayd-grid'
 import { WorkspaceListDto } from '@/src/services/wayd-api'
 import type { ColumnDef } from '@tanstack/react-table'
 import { ReactElement, useMemo } from 'react'
@@ -52,7 +52,7 @@ const WorkspacesGrid = (props: WorkspacesGridProps) => {
   }
 
   return (
-    <WaydGrid2
+    <WaydGrid
       columns={columns}
       data={props.workspaces ?? []}
       onRefresh={refresh}

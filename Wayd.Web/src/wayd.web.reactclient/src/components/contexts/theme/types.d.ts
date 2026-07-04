@@ -1,4 +1,3 @@
-import { type Theme as AgGridTheme } from 'ag-grid-community'
 import { GlobalToken } from 'antd'
 import { UserThemeConfigDto } from '@/src/services/wayd-api'
 
@@ -23,7 +22,6 @@ export interface ThemeContextType {
     subtleColor?: string
   }
   allowsPrimaryOverride: boolean
-  agGridTheme: AgGridTheme
   token: GlobalToken
   badgeColor: string
   defaultPrimaryColor: string

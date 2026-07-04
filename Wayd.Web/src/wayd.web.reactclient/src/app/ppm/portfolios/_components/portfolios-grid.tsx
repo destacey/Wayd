@@ -1,6 +1,6 @@
 'use client'
 
-import { WaydGrid2, renderPortfolioLink } from '@/src/components/common/wayd-grid2'
+import { WaydGrid, renderPortfolioLink } from '@/src/components/common/wayd-grid'
 import { ProjectPortfolioListDto } from '@/src/services/wayd-api'
 import { getSortedNames } from '@/src/utils'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -59,7 +59,7 @@ const PortfoliosGrid: React.FC<PortfoliosGridProps> = (
   }
 
   return (
-    <WaydGrid2
+    <WaydGrid
       columns={columns}
       data={props.portfolios}
       onRefresh={refresh}

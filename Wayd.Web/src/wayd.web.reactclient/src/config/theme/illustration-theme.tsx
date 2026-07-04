@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { theme } from 'antd'
 import { createStyles } from 'antd-style'
-import { themeBalham } from 'ag-grid-community'
 import { AppThemeConfig, TimeLineStyles } from './theme-preset'
 
 export const illustrationTimeLineStyles: TimeLineStyles = {
@@ -14,10 +13,6 @@ export const illustrationTimeLineStyles: TimeLineStyles = {
     background: '#fff9f0',
   },
 }
-
-const illustrationAgGridTheme = themeBalham.withParams({
-  borderRadius: 12,
-})
 
 const useStyles = createStyles(({ css, cssVar }) => {
   const illustrationBorder = {
@@ -207,7 +202,6 @@ const useIllustrationTheme = (): AppThemeConfig => {
         subtleColor: 'rgba(255, 255, 255, 0.9)',
       },
       integrations: {
-        agGridTheme: illustrationAgGridTheme,
         antDesignChartsTheme: 'classic',
         antvisG6ChartsTheme: 'light',
       },

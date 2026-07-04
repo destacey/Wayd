@@ -1,5 +1,5 @@
 /**
- * WaydGrid2 filter model.
+ * WaydGrid filter model.
  *
  * One filter descriptor per column, stored as the column's TanStack filter
  * value. The floating-filter row and the filter popup are two UIs over this
@@ -109,6 +109,18 @@ export interface SetFilterModel {
   /** Selected values; empty array means "no filter" (all pass). */
   values: string[]
 }
+
+/**
+ * Sentinel entry representing blank cells (null/undefined/'') in a set
+ * filter's value list — the Excel/AG Grid "(Blanks)" row. It is only offered
+ * when the column's data actually contains blanks; selecting it keeps blank
+ * rows visible, deselecting it hides them. The engine maps blank cell values
+ * to this sentinel when checking membership.
+ */
+export const SET_FILTER_BLANK = '__wayd-blank__'
+
+/** Display label for {@link SET_FILTER_BLANK}. */
+export const SET_FILTER_BLANK_LABEL = '(Blanks)'
 
 /**
  * Set-style selection over the distinct *days* present in a date column — the

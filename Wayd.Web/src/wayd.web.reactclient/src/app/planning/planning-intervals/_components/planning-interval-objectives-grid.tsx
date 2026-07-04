@@ -4,11 +4,11 @@ import { PlanningIntervalObjectiveListDto } from '@/src/services/wayd-api'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import {
-  WaydGrid2,
+  WaydGrid,
   createActionsColumn,
   renderTeamLink,
   renderPlanningIntervalLink,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Progress } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
@@ -37,7 +37,7 @@ interface SelectedObjective {
 }
 
 /**
- * PI Objectives grid on WaydGrid2 (TanStack). Uses nested-field accessors,
+ * PI Objectives grid on WaydGrid (TanStack). Uses nested-field accessors,
  * custom cell renderers (link, progress, health tag), the dateOnly column
  * type, the default empties-last sort, and hideable columns.
  */
@@ -266,8 +266,7 @@ const PlanningIntervalObjectivesGrid = ({
 
   return (
     <>
-      <WaydGrid2
-        height={650}
+      <WaydGrid
         columns={columns}
         data={objectivesData}
         isLoading={isLoading}

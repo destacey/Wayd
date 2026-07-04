@@ -2,10 +2,10 @@
 
 import { useState, useMemo } from 'react'
 import {
-  WaydGrid2,
+  WaydGrid,
   createActionsColumn,
   renderTeamLink,
-} from '../../../components/common/wayd-grid2'
+} from '../../../components/common/wayd-grid'
 import { TeamMembershipDto } from '@/src/services/wayd-api'
 import useAuth from '../../../components/contexts/auth'
 import { ItemType } from 'antd/es/menu/interface'
@@ -137,7 +137,7 @@ const TeamMembershipsGrid = ({
   }
   return (
     <>
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={teamMemberships ?? []}
         isLoading={isLoading}

@@ -14,11 +14,11 @@ import {
   type DraftItem,
   type FilterOption,
   type MoveValidator,
-  type WaydGrid2Handle,
+  type WaydGridHandle,
   defaultMoveValidator,
   findNodeById,
-  WaydGrid2,
-} from '@/src/components/common/wayd-grid2'
+  WaydGrid,
+} from '@/src/components/common/wayd-grid'
 import CreateProjectTaskForm from './create-project-task-form'
 import DeleteProjectTaskForm from './delete-project-task-form'
 import EditProjectPhaseForm from './edit-project-phase-form'
@@ -62,7 +62,7 @@ const ProjectPlanTable = ({
   enableDragAndDrop = true,
 }: ProjectPlanTableProps) => {
   const [form] = Form.useForm()
-  const treeGridRef = useRef<WaydGrid2Handle>(null)
+  const treeGridRef = useRef<WaydGridHandle>(null)
   const messageApi = useMessage()
 
   // Modal form state
@@ -785,7 +785,7 @@ const ProjectPlanTable = ({
   return (
     <>
       <Form form={form} component={false}>
-        <WaydGrid2<ProjectPlanNodeDto>
+        <WaydGrid<ProjectPlanNodeDto>
           ref={treeGridRef}
           data={tasks}
           getSubRows={(row) => row.children as ProjectPlanNodeDto[]}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
+import { WaydGrid } from '@/src/components/common/wayd-grid'
 import Link from 'next/link'
 import PiObjectiveHealthCheckTag from './pi-objective-health-check-tag'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
@@ -91,7 +91,7 @@ const PiObjectiveHealthReportGrid = (
   }
 
   return (
-    <WaydGrid2
+    <WaydGrid
       height={550}
       columns={columns}
       data={healthReportData ?? []}

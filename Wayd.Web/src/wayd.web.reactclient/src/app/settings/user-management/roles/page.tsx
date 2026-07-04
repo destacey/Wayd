@@ -2,7 +2,7 @@
 
 import PageTitle from '@/src/components/common/page-title'
 import { useEffect, useMemo, useState } from 'react'
-import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
+import { WaydGrid } from '@/src/components/common/wayd-grid'
 import { authorizePage } from '@/src/components/hoc'
 import Link from 'next/link'
 import { Button } from 'antd'
@@ -68,7 +68,7 @@ const RoleListPage = () => {
     <>
       <PageTitle title="Roles" actions={actions()} />
 
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={roleData ?? []}
         onRefresh={refresh}

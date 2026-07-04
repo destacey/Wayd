@@ -2,9 +2,9 @@
 
 import { PageTitle } from '@/src/components/common'
 import {
-  WaydGrid2,
+  WaydGrid,
   createActionsColumn,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import { useAppDispatch, useAppSelector, useDocumentTitle } from '@/src/hooks'
 import { WorkTypeDto } from '@/src/services/wayd-api'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -143,7 +143,7 @@ const WorkTypesPage = () => {
     <>
       <PageTitle title="Work Types" actions={actions()} />
 
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={workTypes ?? []}
         onRefresh={refresh}

@@ -1,9 +1,9 @@
 'use client'
 
 import {
-  WaydGrid2,
+  WaydGrid,
   createActionsColumn,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
   ScoringModelDetailsDto,
@@ -282,7 +282,7 @@ const ScoringModelOutputsList = ({
 
   return (
     <>
-      <WaydGrid2
+      <WaydGrid
         height={300}
         columns={columns}
         data={sortedOutputs}

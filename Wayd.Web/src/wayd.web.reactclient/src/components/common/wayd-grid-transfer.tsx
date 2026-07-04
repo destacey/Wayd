@@ -17,7 +17,7 @@ import {
 import type { ColumnDef } from '@tanstack/react-table'
 
 import { useGridDndSensors } from './wayd-grid-core/dnd/grid-dnd'
-import WaydGrid2 from './wayd-grid2/wayd-grid2'
+import WaydGrid from './wayd-grid/wayd-grid'
 import WaydTooltip from './wayd-tooltip'
 
 const DEFAULT_HEIGHT = 400
@@ -110,7 +110,7 @@ export interface WaydGridTransferProps<TData> {
 }
 
 /**
- * Dual-list transfer picker: two side-by-side WaydGrid2 instances. Rows move
+ * Dual-list transfer picker: two side-by-side WaydGrid instances. Rows move
  * right by dragging their handle onto the right grid — dragging a checked row
  * brings all checked rows — or by checking rows and clicking the move button;
  * right rows are removed via a delete icon. Selection and drag state live
@@ -267,7 +267,7 @@ const WaydGridTransfer = <TData,>(props: WaydGridTransferProps<TData>) => {
     >
       <Flex gap="small" style={{ width: '100%' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <WaydGrid2
+          <WaydGrid
             data={leftData}
             columns={leftColumns}
             getRowId={getRowId}
@@ -288,7 +288,7 @@ const WaydGridTransfer = <TData,>(props: WaydGridTransferProps<TData>) => {
           </WaydTooltip>
         </Flex>
         <TransferDropZone>
-          <WaydGrid2
+          <WaydGrid
             data={rightData}
             columns={rightColumns}
             getRowId={getRowId}

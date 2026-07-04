@@ -1,5 +1,5 @@
 /**
- * WaydGrid2 filter engine.
+ * WaydGrid filter engine.
  *
  * Pure predicate functions that evaluate a {@link ColumnFilterModel} descriptor
  * against a cell value, plus a single TanStack `FilterFn` that dispatches on the

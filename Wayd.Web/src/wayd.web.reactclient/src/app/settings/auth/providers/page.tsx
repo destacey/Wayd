@@ -2,9 +2,9 @@
 
 import { PageTitle } from '@/src/components/common'
 import {
-  WaydGrid2,
+  WaydGrid,
   createActionsColumn,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { authorizePage } from '@/src/components/hoc'
@@ -302,7 +302,7 @@ const OidcProvidersPage = () => {
     <>
       <PageTitle title="Identity Providers" actions={actions} />
 
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={providers ?? []}
         onRefresh={refresh}

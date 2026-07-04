@@ -4,13 +4,13 @@ import { DependencyDto, TeamDetailsDto } from '@/src/services/wayd-api'
 import type { ColumnDef } from '@tanstack/react-table'
 import { FC, useMemo } from 'react'
 import {
-  WaydGrid2,
+  WaydGrid,
   renderDependencyHealthTag,
   renderSprintLink,
   renderTeamLink,
   renderWorkItemLink,
   workItemKeySort,
-} from '../wayd-grid2'
+} from '../wayd-grid'
 import { DEPENDENCY_SCOPE_TOOLTIP } from '../work/dependency-constants'
 
 export interface TeamDependenciesGridProps {
@@ -162,7 +162,7 @@ const TeamDependenciesGrid: FC<TeamDependenciesGridProps> = (props) => {
   }
 
   return (
-    <WaydGrid2
+    <WaydGrid
       height={550}
       columns={columns}
       data={props.dependencies}

@@ -1,4 +1,4 @@
-import type { TreeNode } from '@/src/components/common/wayd-grid2'
+import type { TreeNode } from '@/src/components/common/wayd-grid'
 import type { WorkItemListDto } from '@/src/services/wayd-api'
 
 /**

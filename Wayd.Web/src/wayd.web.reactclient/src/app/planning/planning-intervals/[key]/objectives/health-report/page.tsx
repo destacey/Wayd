@@ -7,9 +7,9 @@ import { authorizePage } from '@/src/components/hoc'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
-  WaydGrid2,
+  WaydGrid,
   renderTeamLink,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import PiObjectiveHealthCheckTag from '@/src/app/planning/planning-intervals/_components/pi-objective-health-check-tag'
 import { Progress } from 'antd'
@@ -159,7 +159,7 @@ const ObjectiveHealthReportPage = (props: {
   return (
     <>
       <PageTitle title="PI Objectives Health Report" />
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={healthReport ?? []}
         isLoading={isLoading}

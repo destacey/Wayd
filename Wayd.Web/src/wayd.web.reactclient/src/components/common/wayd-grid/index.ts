@@ -2,8 +2,8 @@
 export type {
   FilterOption,
   WaydGridColumnMeta,
-  WaydGrid2Props,
-  WaydGrid2Handle,
+  WaydGridProps,
+  WaydGridHandle,
   GridColumnContext,
   GridInlineEditingConfig,
   RowReorderEvent,
@@ -27,7 +27,7 @@ export {
 } from '../wayd-grid-core/tree-utils'
 export { useGridDragHandle } from '../wayd-grid-core/dnd/grid-dnd'
 
-// Filter functions (re-exported from the shared grid core so wayd-grid2
+// Filter functions (re-exported from the shared grid core so wayd-grid
 // consumers have a single import surface)
 export {
   stringContainsFilter,
@@ -92,6 +92,6 @@ export type {
 } from '../wayd-grid-core/cell-renderers'
 
 // Components (toolbar reconciled into the shared grid core; aliases kept)
-export { default as WaydGrid2Toolbar } from '../wayd-grid-core/grid-toolbar'
-export type { GridToolbarProps as WaydGrid2ToolbarProps } from '../wayd-grid-core/grid-toolbar'
-export { default as WaydGrid2 } from './wayd-grid2'
+export { default as WaydGridToolbar } from '../wayd-grid-core/grid-toolbar'
+export type { GridToolbarProps as WaydGridToolbarProps } from '../wayd-grid-core/grid-toolbar'
+export { default as WaydGrid } from './wayd-grid'

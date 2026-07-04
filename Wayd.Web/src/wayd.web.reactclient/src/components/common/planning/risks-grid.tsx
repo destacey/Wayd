@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import {
-  WaydGrid2,
+  WaydGrid,
   createActionsColumn,
   renderTeamLink,
-} from '../wayd-grid2'
+} from '../wayd-grid'
 import { RiskListDto } from '@/src/services/wayd-api'
 import { ItemType } from 'antd/es/menu/interface'
 import { Button } from 'antd'
@@ -198,7 +198,7 @@ const RisksGrid = ({
 
   return (
     <>
-      <WaydGrid2
+      <WaydGrid
         height={gridHeight}
         columns={columns}
         data={risks ?? []}

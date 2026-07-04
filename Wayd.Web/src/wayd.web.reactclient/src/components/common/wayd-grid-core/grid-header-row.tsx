@@ -83,7 +83,7 @@ export interface GridHeaderCellProps<T> {
   resizeGuard: ResizeClickGuard
   classes: GridHeaderCellClasses
   /** Optional filter affordance rendered after the sort icon (e.g. the
-   *  wayd-grid2 filter popover trigger). */
+   *  wayd-grid filter popover trigger). */
   filterSlot?: ReactNode
 }
 

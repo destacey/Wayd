@@ -4,11 +4,11 @@ import { WaydTooltip } from '@/src/components/common'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { WaydStatisticNumber } from '@/src/components/common/metrics'
 import {
-  WaydGrid2,
+  WaydGrid,
   useGridDragHandle,
   type GridColumnContext,
   type RowReorderEvent,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import { StrategicInitiativeKpiListDto } from '@/src/services/wayd-api'
 import { useReorderStrategicInitiativeKpisMutation } from '@/src/store/features/ppm/strategic-initiatives-api'
 import { isApiError } from '@/src/utils'
@@ -319,7 +319,7 @@ const StrategicInitiativeKpisGrid: FC<StrategicInitiativeKpisGridProps> = (
 
   return (
     <>
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={kpis}
         onRefresh={refresh}

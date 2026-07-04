@@ -2,9 +2,9 @@
 
 import { PageTitle } from '@/src/components/common'
 import {
-  WaydGrid2,
+  WaydGrid,
   createActionsColumn,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
@@ -216,7 +216,7 @@ const EstimationScalesPage = () => {
     <>
       <PageTitle title="Estimation Scales" actions={actions} />
 
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={scaleData ?? []}
         onRefresh={refresh}

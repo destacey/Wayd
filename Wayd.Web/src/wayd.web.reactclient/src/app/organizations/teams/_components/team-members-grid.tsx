@@ -2,10 +2,10 @@
 
 import { useState, useMemo } from 'react'
 import {
-  WaydGrid2,
+  WaydGrid,
   createActionsColumn,
   createMultiValueSetFilter,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import useAuth from '@/src/components/contexts/auth'
 import { ItemType } from 'antd/es/menu/interface'
 import { Flex, Tag, Tooltip } from 'antd'
@@ -151,7 +151,7 @@ const TeamMembersGrid = ({ teamId, teamType }: TeamMembersGridProps) => {
 
   return (
     <>
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={members ?? []}
         isLoading={isLoading}

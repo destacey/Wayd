@@ -1,4 +1,4 @@
-// Shared grid engine for WaydGrid2 and TreeGrid — converging into the unified
+// Shared grid engine for WaydGrid and TreeGrid — converging into the unified
 // WaydGrid (see docs/contributing/specs/grid-core-implementation-plan.md).
 
 // Shared column meta types (+ TanStack ColumnMeta module augmentation)

@@ -3,11 +3,11 @@
 import PageTitle from '@/src/components/common/page-title'
 import { useEffect, useMemo, useState } from 'react'
 import {
-  WaydGrid2,
+  WaydGrid,
   createActionsColumn,
   renderUserLink,
   formatDateTime,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import { authorizePage } from '@/src/components/hoc'
 import Link from 'next/link'
 import { Button, Tag } from 'antd'
@@ -205,7 +205,7 @@ const UsersListPage = () => {
     <>
       <PageTitle title="Users" actions={actions()} />
 
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={usersData ?? []}
         onRefresh={refresh}

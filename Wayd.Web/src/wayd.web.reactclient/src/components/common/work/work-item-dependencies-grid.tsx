@@ -8,13 +8,13 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { FC, useMemo } from 'react'
 import { WaydTooltip } from '@/src/components/common'
 import {
-  WaydGrid2,
+  WaydGrid,
   renderDependencyHealthTag,
   renderSprintLink,
   renderTeamLink,
   renderWorkItemLink,
   workItemKeySort,
-} from '../wayd-grid2'
+} from '../wayd-grid'
 import { DEPENDENCY_SCOPE_TOOLTIP } from './dependency-constants'
 
 export interface WorkItemDependenciesGridProps {
@@ -141,7 +141,7 @@ const WorkItemDependenciesGrid: FC<WorkItemDependenciesGridProps> = (props) => {
   }
 
   return (
-    <WaydGrid2
+    <WaydGrid
       height={550}
       columns={columns}
       data={props.dependencies}

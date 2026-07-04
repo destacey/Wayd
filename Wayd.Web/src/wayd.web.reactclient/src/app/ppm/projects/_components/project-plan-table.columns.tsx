@@ -19,13 +19,13 @@ import {
 import { BaseOptionType } from 'antd/es/select'
 import dayjs from 'dayjs'
 import { ColumnDef } from '@tanstack/react-table'
-import styles from '@/src/components/common/wayd-grid2/wayd-grid2.module.css'
+import styles from '@/src/components/common/wayd-grid/wayd-grid.module.css'
 import {
   type FilterOption,
   type WaydGridColumnMeta,
   dateSortBy,
   useGridDragHandle,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 
 const { Item: FormItem } = Form
 

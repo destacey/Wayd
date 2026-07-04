@@ -64,7 +64,7 @@ const compareNonEmpty = (a: unknown, b: unknown): number => {
 }
 
 /**
- * Default WaydGrid2 sort that keeps **empty** values (null/undefined/'') at the
+ * Default WaydGrid sort that keeps **empty** values (null/undefined/'') at the
  * *end* of an ascending sort — and thus the start of a descending sort, since
  * TanStack negates the result on `desc`. This treats "empty" as the largest
  * value (like `+Infinity`), matching AG Grid / Excel, and fixes TanStack's

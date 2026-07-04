@@ -14,13 +14,13 @@ import dayjs from 'dayjs'
 import { ColumnDef } from '@tanstack/react-table'
 import { WaydColorPicker } from '@/src/components/common'
 import { useRef } from 'react'
-import styles from '@/src/components/common/wayd-grid2/wayd-grid2.module.css'
+import styles from '@/src/components/common/wayd-grid/wayd-grid.module.css'
 import {
   type FilterOption,
   type WaydGridColumnMeta,
   dateSortBy,
   useGridDragHandle,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import type { RoadmapItemTreeNode } from './roadmap-items-grid'
 import type { RoadmapColorDto } from '@/src/services/wayd-api'
 import RoadmapColorPicker from './roadmap-color-picker'

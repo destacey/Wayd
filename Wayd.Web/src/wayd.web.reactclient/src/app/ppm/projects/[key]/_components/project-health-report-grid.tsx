@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
+import { WaydGrid } from '@/src/components/common/wayd-grid'
 import Link from 'next/link'
 import ProjectHealthCheckTag from '@/src/app/ppm/projects/_components/project-health-check-tag'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
@@ -75,7 +75,7 @@ const ProjectHealthReportGrid = ({
   )
 
   return (
-    <WaydGrid2
+    <WaydGrid
       columns={columns}
       data={data ?? []}
       onRefresh={() => {

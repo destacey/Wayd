@@ -89,11 +89,11 @@ import {
   type GridEditingConfig,
 } from '../wayd-grid-core/use-grid-editing'
 import { useGridState, useGridTable } from '../wayd-grid-core/use-grid-table'
-import styles from './wayd-grid2.module.css'
+import styles from './wayd-grid.module.css'
 import type {
   GridColumnContext,
-  WaydGrid2Handle,
-  WaydGrid2Props,
+  WaydGridHandle,
+  WaydGridProps,
 } from './types'
 
 /** Stable empty set for columns with no expanded date-tree nodes yet. Never
@@ -190,9 +190,9 @@ const treeRowClasses: TreeGridRowClasses = {
   editableCell: styles.editableCell,
 }
 
-function WaydGrid2Inner<T>(
-  props: WaydGrid2Props<T>,
-  ref: Ref<WaydGrid2Handle>,
+function WaydGridInner<T>(
+  props: WaydGridProps<T>,
+  ref: Ref<WaydGridHandle>,
 ) {
   // TanStack Table's instance mutates internally behind a stable identity, so
   // React Compiler memoization goes stale (sort icons, column sizes). Before
@@ -1303,12 +1303,9 @@ function WaydGrid2Inner<T>(
  * `onRowReorder`. Rows render through the row-renderer seam: the flat forms
  * ({@link FlatGridRow} / {@link SortableFlatGridRow}) or the tree form
  * ({@link TreeGridRow}).
- *
- * Named WaydGrid2 while the ag-grid WaydGrid still exists; takes the
- * canonical WaydGrid name when ag-grid is retired.
  */
-const WaydGrid2 = forwardRef(WaydGrid2Inner) as <T>(
-  props: WaydGrid2Props<T> & { ref?: Ref<WaydGrid2Handle> },
+const WaydGrid = forwardRef(WaydGridInner) as <T>(
+  props: WaydGridProps<T> & { ref?: Ref<WaydGridHandle> },
 ) => ReactElement | null
 
-export default WaydGrid2
+export default WaydGrid

@@ -1,10 +1,10 @@
 'use client'
 
 import {
-  WaydGrid2,
+  WaydGrid,
   renderPortfolioLink,
   renderProgramLink,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import LifecycleStatusTag from '@/src/components/common/lifecycle-status-tag'
 import { ProgramListDto } from '@/src/services/wayd-api'
 import { getSortedNames } from '@/src/utils'
@@ -96,7 +96,7 @@ const ProgramsGrid: FC<ProgramsGridProps> = (props: ProgramsGridProps) => {
   }
 
   return (
-    <WaydGrid2
+    <WaydGrid
       columns={columns}
       data={props.programs}
       onRefresh={refresh}

@@ -1,7 +1,7 @@
 'use client'
 
 import PageTitle from '@/src/components/common/page-title'
-import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
+import { WaydGrid } from '@/src/components/common/wayd-grid'
 import { useMemo, useState } from 'react'
 import { BackgroundJobDto } from '@/src/services/wayd-api'
 import { getBackgroundJobsClient } from '@/src/services/clients'
@@ -154,7 +154,7 @@ const BackgroundJobsListPage = () => {
         actions={<PageActions actionItems={actionsMenuItems} />}
       />
 
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={backgroundJobs}
         onRefresh={getRunningJobs}

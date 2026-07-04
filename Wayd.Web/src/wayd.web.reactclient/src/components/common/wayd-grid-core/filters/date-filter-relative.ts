@@ -1,5 +1,5 @@
 /**
- * Relative date quick-filters for the WaydGrid2 date filter panel — the "Date
+ * Relative date quick-filters for the WaydGrid date filter panel — the "Date
  * Filters" submenu in Excel (Today, This Week, Last Month, Year to Date, …).
  *
  * Each period resolves, *at click time*, to a concrete {@link DateFilterModel}

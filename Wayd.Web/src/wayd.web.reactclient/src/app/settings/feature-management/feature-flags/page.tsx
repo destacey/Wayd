@@ -2,9 +2,9 @@
 
 import PageTitle from '@/src/components/common/page-title'
 import {
-  WaydGrid2,
+  WaydGrid,
   createActionsColumn,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import { useMemo, useState } from 'react'
 import { Button } from 'antd'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -167,7 +167,7 @@ const FeatureFlagsListPage = () => {
   return (
     <>
       <PageTitle title="Feature Flags" />
-      <WaydGrid2
+      <WaydGrid
         height={600}
         columns={columns}
         data={featureFlags}

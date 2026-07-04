@@ -4,7 +4,7 @@ import type { DraftItem } from '../wayd-grid-core/draft-utils'
 import type { MoveValidator } from '../wayd-grid-core/dnd/tree-projection'
 
 // Column meta + filter option types moved to the shared grid core (including
-// the TanStack ColumnMeta module augmentation); re-exported so wayd-grid2
+// the TanStack ColumnMeta module augmentation); re-exported so wayd-grid
 // consumers keep a single import surface.
 export type {
   FilterOption,
@@ -40,7 +40,7 @@ export interface GridColumnContext {
 }
 
 /**
- * Inline editing configuration for WaydGrid2 consumers.
+ * Inline editing configuration for WaydGrid consumers.
  * The grid fills in `data`, `tableWrapperClassName`, `fieldErrors`,
  * `setFieldErrors`, and `onCancelDraft` internally.
  */
@@ -64,12 +64,12 @@ export interface GridInlineEditingConfig<T> {
 }
 
 /**
- * Props for the WaydGrid2 component — flat by default; provide `getSubRows`
+ * Props for the WaydGrid component — flat by default; provide `getSubRows`
  * to turn on tree mode (expansion, indentation via caller columns,
  * filterFromLeafRows, and — when configured — reparenting DnD, inline
  * editing, and draft rows).
  */
-export interface WaydGrid2Props<T> {
+export interface WaydGridProps<T> {
   /** Row data. In tree mode, the root nodes (children come from getSubRows). */
   data: T[]
   /** Loading state. */
@@ -183,7 +183,7 @@ export interface WaydGrid2Props<T> {
   onDraftsChange?: (drafts: DraftItem[]) => void
 }
 
-/** Payload for {@link WaydGrid2Props.onRowReorder}. */
+/** Payload for {@link WaydGridProps.onRowReorder}. */
 export interface RowReorderEvent<T> {
   /** All displayed rows in their post-drop order. */
   orderedData: T[]
@@ -196,9 +196,9 @@ export interface RowReorderEvent<T> {
 }
 
 /**
- * Handle exposed by WaydGrid2 via ref.
+ * Handle exposed by WaydGrid via ref.
  */
-export interface WaydGrid2Handle {
+export interface WaydGridHandle {
   /** The underlying TanStack table instance. */
   table: any
   /** The currently selected row ID (from the editing hook), or null. */

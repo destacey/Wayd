@@ -1,11 +1,11 @@
 'use client'
 
 import {
-  WaydGrid2,
+  WaydGrid,
   renderPortfolioLink,
   renderProgramLink,
   renderProjectLink,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import LifecycleStatusTag from '@/src/components/common/lifecycle-status-tag'
 import ProjectHealthCheckTag from '@/src/app/ppm/projects/_components/project-health-check-tag'
 import { ProjectListDto } from '@/src/services/wayd-api'
@@ -140,7 +140,7 @@ const ProjectsGrid: FC<ProjectsGridProps> = (props: ProjectsGridProps) => {
   }
 
   return (
-    <WaydGrid2
+    <WaydGrid
       columns={columns}
       data={props.projects}
       onRefresh={refresh}

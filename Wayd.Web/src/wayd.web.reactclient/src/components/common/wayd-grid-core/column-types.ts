@@ -6,7 +6,7 @@ import type { WaydColumnType, WaydGridColumnMeta } from './types'
 // WaydColumnType keys the registry below.
 
 /**
- * WaydGrid2 column types — a declarative registry mirroring AG Grid's
+ * WaydGrid column types — a declarative registry mirroring AG Grid's
  * `columnTypes` + `type: 'dateOnly'` ergonomics. A column opts into a type via
  * `meta: { columnType: 'dateOnly' }`; the grid resolves the type's display,
  * sort, and filter config from this registry (see {@link applyColumnType}).

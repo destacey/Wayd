@@ -1,5 +1,5 @@
 /**
- * WaydGrid2 filter model.
+ * WaydGrid filter model.
  *
  * One filter descriptor per column, stored as the column's TanStack filter
  * value. The floating-filter row and the filter popup are two UIs over this

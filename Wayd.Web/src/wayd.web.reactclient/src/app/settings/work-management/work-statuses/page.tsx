@@ -1,7 +1,7 @@
 'use client'
 
 import { PageTitle } from '@/src/components/common'
-import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
+import { WaydGrid } from '@/src/components/common/wayd-grid'
 import { useAppDispatch, useAppSelector, useDocumentTitle } from '@/src/hooks'
 import { WorkStatusDto } from '@/src/services/wayd-api'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -78,7 +78,7 @@ const WorkStatusesPage = () => {
     <>
       <PageTitle title="Work Statuses" />
 
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={workStatuses ?? []}
         onRefresh={refresh}

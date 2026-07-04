@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { PageActions, PageTitle } from '../../../components/common'
-import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
+import { WaydGrid } from '@/src/components/common/wayd-grid'
 import { authorizePage } from '../../../components/hoc'
 import { useDocumentTitle } from '../../../hooks'
 import useAuth from '../../../components/contexts/auth'
@@ -120,7 +120,7 @@ const ConnectionsPage = () => {
         actions={<PageActions actionItems={actionsMenuItems} />}
       />
 
-      <WaydGrid2
+      <WaydGrid
         columns={columns}
         data={connectionsData ?? []}
         onRefresh={refresh}

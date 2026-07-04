@@ -1,6 +1,6 @@
 'use client'
 
-import { WaydGrid2 } from '@/src/components/common/wayd-grid2'
+import { WaydGrid } from '@/src/components/common/wayd-grid'
 import { RoadmapListDto } from '@/src/services/wayd-api'
 import { getSortedNames } from '@/src/utils'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -70,7 +70,7 @@ const RoadmapsGrid: FC<RoadmapsGridProps> = (props: RoadmapsGridProps) => {
   )
 
   return (
-    <WaydGrid2
+    <WaydGrid
       height={props.gridHeight ?? 650}
       columns={columns}
       data={props.roadmapsData}

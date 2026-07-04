@@ -13,8 +13,8 @@ import { createRef } from 'react'
 import { render, screen, fireEvent, within, act } from '@testing-library/react'
 import type { ColumnDef } from '@tanstack/react-table'
 
-import WaydGrid2 from './wayd-grid2'
-import type { WaydGrid2Handle, WaydGridColumnMeta } from './types'
+import WaydGrid from './wayd-grid'
+import type { WaydGridHandle, WaydGridColumnMeta } from './types'
 import { downloadCsvWithTimestamp } from '@/src/utils/csv-utils'
 
 const mockDownloadCsv = downloadCsvWithTimestamp as jest.Mock
@@ -54,12 +54,12 @@ const columns: ColumnDef<Flag, unknown>[] = [
   },
 ]
 
-type GridProps = Partial<Parameters<typeof WaydGrid2<Flag>>[0]> & {
-  ref?: React.Ref<WaydGrid2Handle>
+type GridProps = Partial<Parameters<typeof WaydGrid<Flag>>[0]> & {
+  ref?: React.Ref<WaydGridHandle>
 }
 
 const renderGrid = ({ ref, ...props }: GridProps = {}) =>
-  render(<WaydGrid2<Flag> ref={ref} data={DATA} columns={columns} {...props} />)
+  render(<WaydGrid<Flag> ref={ref} data={DATA} columns={columns} {...props} />)
 
 /** Cells for a given column id across all body rows. */
 const bodyCells = (columnId: string) =>
@@ -67,7 +67,7 @@ const bodyCells = (columnId: string) =>
     document.querySelectorAll(`tbody td[data-column-id="${columnId}"]`),
   ) as HTMLTableCellElement[]
 
-describe('WaydGrid2', () => {
+describe('WaydGrid', () => {
   describe('basics', () => {
     it('renders a header cell per column', () => {
       // Arrange / Act
@@ -128,7 +128,7 @@ describe('WaydGrid2', () => {
       ]
 
       // Act
-      render(<WaydGrid2<Flag> data={DATA} columns={hiddenCols} />)
+      render(<WaydGrid<Flag> data={DATA} columns={hiddenCols} />)
 
       // Assert — Type header absent, its cells absent, Name still present
       expect(screen.queryByText('Type')).not.toBeInTheDocument()
@@ -149,7 +149,7 @@ describe('WaydGrid2', () => {
       ]
 
       // Act
-      render(<WaydGrid2<Flag> data={DATA} columns={cols} />)
+      render(<WaydGrid<Flag> data={DATA} columns={cols} />)
 
       // Assert
       expect(screen.getByText('Type')).toBeInTheDocument()
@@ -205,7 +205,7 @@ describe('WaydGrid2', () => {
     const exportCsv = (cols: ColumnDef<Obj, unknown>[]) => {
       mockDownloadCsv.mockClear()
       const { container } = render(
-        <WaydGrid2<Obj> data={OBJ_DATA} columns={cols} />,
+        <WaydGrid<Obj> data={OBJ_DATA} columns={cols} />,
       )
       const exportBtn = container
         .querySelector('[aria-label="download"]')
@@ -268,7 +268,7 @@ describe('WaydGrid2', () => {
       ]
 
       // Act
-      render(<WaydGrid2<Flag> data={DATA} columns={cols} />)
+      render(<WaydGrid<Flag> data={DATA} columns={cols} />)
 
       // Assert — the numeric column's floating input is a spinbutton
       // (antd InputNumber), while the text column is a plain textbox.
@@ -286,7 +286,7 @@ describe('WaydGrid2', () => {
       ]
 
       // Act
-      render(<WaydGrid2<Flag> data={DATA} columns={cols} />)
+      render(<WaydGrid<Flag> data={DATA} columns={cols} />)
 
       // Assert — no number spinner; a text input is present
       const row = floatingRow()
@@ -371,7 +371,7 @@ describe('WaydGrid2', () => {
   describe('set filter behavior (through the grid)', () => {
     it('filters a set column to the chosen value via the descriptor engine', () => {
       // Arrange
-      const ref = createRef<WaydGrid2Handle>()
+      const ref = createRef<WaydGridHandle>()
       renderGrid({ ref })
 
       // Act
@@ -389,7 +389,7 @@ describe('WaydGrid2', () => {
 
     it('filters a yesNo column on the Yes/No display value (not true/false)', () => {
       // Arrange
-      const ref = createRef<WaydGrid2Handle>()
+      const ref = createRef<WaydGridHandle>()
       renderGrid({ ref })
 
       // Act — filter Enabled to "Yes"
@@ -543,7 +543,7 @@ describe('WaydGrid2', () => {
 
     const renderTree = () =>
       render(
-        <WaydGrid2<Node>
+        <WaydGrid<Node>
           data={TREE}
           columns={treeColumns}
           getSubRows={(row) => row.children}
@@ -793,7 +793,7 @@ describe('WaydGrid2', () => {
 
     it('exposes the displayed rows via the handle', () => {
       // Arrange
-      const ref = createRef<WaydGrid2Handle>()
+      const ref = createRef<WaydGridHandle>()
       renderGrid({ ref })
 
       // Act — filter, then read the handle
@@ -917,7 +917,7 @@ describe('WaydGrid2', () => {
 
       try {
         // Act
-        render(<WaydGrid2<Row> data={rows} columns={cols} />)
+        render(<WaydGrid<Row> data={rows} columns={cols} />)
 
         // Assert — value renders, and no "deeply nested key" warning fired
         expect(screen.getByText('Juice')).toBeInTheDocument()
@@ -932,7 +932,7 @@ describe('WaydGrid2', () => {
 
     it('keeps the TanStack-derived column id (dots to underscores)', () => {
       // Arrange / Act
-      render(<WaydGrid2<Row> data={rows} columns={cols} />)
+      render(<WaydGrid<Row> data={rows} columns={cols} />)
 
       // Assert — body cells carry the derived data-column-id
       expect(

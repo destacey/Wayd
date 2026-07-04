@@ -1,10 +1,10 @@
 'use client'
 
 import {
-  WaydGrid2,
+  WaydGrid,
   renderSprintLink,
   renderTeamLink,
-} from '@/src/components/common/wayd-grid2'
+} from '@/src/components/common/wayd-grid'
 import { SprintListDto } from '@/src/services/wayd-api'
 import type { ColumnDef } from '@tanstack/react-table'
 import dayjs from 'dayjs'
@@ -77,7 +77,7 @@ const SprintsGrid: FC<SprintsGridProps> = (props: SprintsGridProps) => {
   ], [props.hideTeam])
 
   return (
-    <WaydGrid2
+    <WaydGrid
       columns={columns}
       data={sprints}
       onRefresh={refetch}

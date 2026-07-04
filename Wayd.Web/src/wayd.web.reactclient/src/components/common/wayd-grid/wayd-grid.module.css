@@ -171,11 +171,14 @@
   padding-right: var(--ant-padding-sm);
 }
 
+/* Fills the th (not shrink-to-fit) so the column-menu trigger can anchor to
+   the far right edge via margin-left: auto; the label and sort/filter icons
+   stay left, hugging the text. */
 .thContent {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: var(--ant-margin-xs);
-  max-width: 100%;
+  width: 100%;
   min-width: 0;
   overflow: hidden;
 }
@@ -185,7 +188,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
-  flex: 1;
+  flex: 0 1 auto;
 }
 
 /* Floating-filter cell: input fills the width, filter-popup icon on the right. */
@@ -556,6 +559,77 @@
 .trSelected .inlineRowAction {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* ─── Pinned columns ────────────────────────────────────── */
+
+/*
+ * Pinning is position: sticky + a left/right inset (set inline from
+ * TanStack's pinning offsets) on the pinned column's cells in BOTH tables.
+ * TanStack already reorders pinned columns to the table edges in the shared
+ * colgroup, so the header and body stick identically. Pinned cells must paint
+ * OPAQUE — the zebra/hover/selected tints are semi-transparent overlays, so
+ * they composite over the container background as a flat gradient (same
+ * technique as the header band) or scrolled-under content would bleed
+ * through.
+ */
+
+/* Header cells are already sticky (top) and opaque; pinning adds the
+   horizontal stick via the inline inset and a z-index above unpinned
+   header cells so those slide beneath on horizontal scroll. */
+.thPinned {
+  z-index: 22;
+}
+
+.filterThPinned {
+  z-index: 21;
+}
+
+.tdPinned {
+  position: sticky;
+  z-index: 2;
+  background: var(--ant-color-bg-container);
+}
+
+.trAlt .tdPinned {
+  background: linear-gradient(
+      var(--ant-color-fill-quaternary),
+      var(--ant-color-fill-quaternary)
+    )
+    var(--ant-color-bg-container);
+}
+
+.trSelected .tdPinned {
+  background: var(--ant-color-bg-container);
+}
+
+.tr[data-dragging='true'] .tdPinned {
+  background: linear-gradient(
+      var(--ant-color-fill-tertiary),
+      var(--ant-color-fill-tertiary)
+    )
+    var(--ant-color-bg-container);
+}
+
+/* After the alt/selected rules so the hover tint wins on those rows too
+   (specificity ties break by order for the background-image component). */
+.tr:hover .tdPinned {
+  background: linear-gradient(
+      var(--ant-color-fill-secondary),
+      var(--ant-color-fill-secondary)
+    )
+    var(--ant-color-bg-container);
+}
+
+/* Divider edge between the pinned and scrolling sections: an inset shadow
+   line (no layout impact — border widths would desync the two tables'
+   scroll widths) on the last left-pinned / first right-pinned cells. */
+.pinnedLeftEdge {
+  box-shadow: inset -1px 0 0 var(--ant-color-border);
+}
+
+.pinnedRightEdge {
+  box-shadow: inset 1px 0 0 var(--ant-color-border);
 }
 
 /* ─── Tree mode: drag and drop ──────────────────────────── */

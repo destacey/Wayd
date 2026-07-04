@@ -1,6 +1,12 @@
 'use client'
 
-import { useRef, type MouseEvent, type ReactNode, type TouchEvent } from 'react'
+import {
+  useRef,
+  type CSSProperties,
+  type MouseEvent,
+  type ReactNode,
+  type TouchEvent,
+} from 'react'
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons'
 import { type Header, flexRender } from '@tanstack/react-table'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
@@ -85,6 +91,13 @@ export interface GridHeaderCellProps<T> {
   /** Optional filter affordance rendered after the sort icon (e.g. the
    *  wayd-grid filter popover trigger). */
   filterSlot?: ReactNode
+  /** Optional column-menu trigger rendered last in the header content (the
+   *  wayd-grid ⋮ dropdown). */
+  menuSlot?: ReactNode
+  /** Extra class for the `<th>` (e.g. the grid's pinned-column class). */
+  thClassName?: string
+  /** Extra inline style for the `<th>` (e.g. the sticky pinning inset). */
+  thStyle?: CSSProperties
 }
 
 /**
@@ -105,6 +118,9 @@ export function GridHeaderCell<T>({
   resizeGuard,
   classes,
   filterSlot,
+  menuSlot,
+  thClassName,
+  thStyle,
 }: GridHeaderCellProps<T>) {
   // eslint-disable-next-line react-compiler/react-compiler -- false-positive "unused directive"; see doc comment
   'use no memo'
@@ -133,17 +149,21 @@ export function GridHeaderCell<T>({
 
   return (
     <th
+      // Anchors autosize's header-label lookup (with the text marker below).
+      data-column-id={header.column.id}
       className={`${classes.th}${canSort ? ` ${classes.thSortable}` : ''}${
         canResize ? ` ${classes.thResizable}` : ''
-      }`}
+      }${thClassName ? ` ${thClassName}` : ''}`}
+      style={thStyle}
       onClick={handleSortClick}
     >
       <span className={classes.thContent}>
-        <span className={classes.thText}>
+        <span className={classes.thText} data-column-header-text="">
           <GridHeaderContent header={header} />
         </span>
         {sortIcon}
         {filterSlot}
+        {menuSlot}
       </span>
 
       {canResize && (

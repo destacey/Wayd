@@ -1116,4 +1116,88 @@ describe('WaydGrid', () => {
       expect(names).toEqual(['planning-poker', 'roadmap', 'insights'])
     })
   })
+
+  describe('column menu', () => {
+    it('renders a menu trigger in every leaf header cell', () => {
+      // Arrange / Act
+      renderGrid()
+
+      // Assert — one ⋮ trigger per column (portal-driven menu behavior is
+      // exercised in the browser, not jsdom)
+      expect(screen.getAllByLabelText('Column menu')).toHaveLength(
+        columns.length,
+      )
+    })
+
+    it('opening the menu does not toggle the column sort', () => {
+      // Arrange
+      renderGrid()
+      const namesBefore = bodyCells('name').map((c) => c.textContent)
+
+      // Act — the trigger sits inside the sortable <th>
+      fireEvent.click(screen.getAllByLabelText('Column menu')[0])
+
+      // Assert — row order untouched
+      expect(bodyCells('name').map((c) => c.textContent)).toEqual(namesBefore)
+    })
+  })
+
+  describe('column pinning', () => {
+    it('reorders a left-pinned column to the front of both tables', () => {
+      // Arrange
+      const ref = createRef<WaydGridHandle>()
+      renderGrid({ ref })
+
+      // Act
+      act(() => {
+        ref.current!.table.getColumn('type').pin('left')
+      })
+
+      // Assert — header and body cells lead with the pinned column
+      const headerRow = document.querySelector('thead tr') as HTMLElement
+      const firstTh = headerRow.querySelector('th[data-column-id]')
+      expect(firstTh?.getAttribute('data-column-id')).toBe('type')
+      const firstBodyRow = document.querySelector('tbody tr') as HTMLElement
+      const firstTd = firstBodyRow.querySelector('td[data-column-id]')
+      expect(firstTd?.getAttribute('data-column-id')).toBe('type')
+    })
+
+    it('applies the sticky inset to pinned header and body cells', () => {
+      // Arrange
+      const ref = createRef<WaydGridHandle>()
+      renderGrid({ ref })
+
+      // Act — pin two columns left; the second is offset by the first's width
+      act(() => {
+        ref.current!.table.getColumn('name').pin('left')
+        ref.current!.table.getColumn('type').pin('left')
+      })
+
+      // Assert
+      const nameTh = document.querySelector(
+        'th[data-column-id="name"]',
+      ) as HTMLElement
+      const typeTh = document.querySelector(
+        'th[data-column-id="type"]',
+      ) as HTMLElement
+      expect(nameTh.style.left).toBe('0px')
+      expect(typeTh.style.left).toBe(
+        `${ref.current!.table.getColumn('name').getSize()}px`,
+      )
+      const nameTd = bodyCells('name')[0]
+      expect(nameTd.style.left).toBe('0px')
+    })
+
+    it('leaves unpinned cells without a sticky inset', () => {
+      // Arrange / Act
+      renderGrid()
+
+      // Assert
+      const nameTh = document.querySelector(
+        'th[data-column-id="name"]',
+      ) as HTMLElement
+      expect(nameTh.style.left).toBe('')
+      expect(bodyCells('name')[0].style.left).toBe('')
+    })
+  })
 })

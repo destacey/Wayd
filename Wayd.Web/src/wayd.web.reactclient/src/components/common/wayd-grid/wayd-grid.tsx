@@ -59,6 +59,21 @@ import {
 } from '../wayd-grid-core/filters'
 
 import { applySafeAccessor } from '../wayd-grid-core/column-accessors'
+import {
+  computeAutosizeWidth,
+  measureColumnContent,
+} from '../wayd-grid-core/column-autosize'
+import {
+  ColumnChooserModal,
+  ColumnMenuTrigger,
+} from '../wayd-grid-core/column-menu'
+import {
+  getPinnedBandOffsets,
+  getPinnedOffsets,
+  pinnedCellClassNames,
+  pinnedCellStyle,
+  type PinnedCellClasses,
+} from '../wayd-grid-core/column-pinning'
 import { applyColumnType } from '../wayd-grid-core/column-types'
 import { useGridDndSensors } from '../wayd-grid-core/dnd/grid-dnd'
 import {
@@ -95,7 +110,11 @@ import {
   useGridEditing,
   type GridEditingConfig,
 } from '../wayd-grid-core/use-grid-editing'
-import { useGridState, useGridTable } from '../wayd-grid-core/use-grid-table'
+import {
+  mergeColumnVisibility,
+  useGridState,
+  useGridTable,
+} from '../wayd-grid-core/use-grid-table'
 import styles from './wayd-grid.module.css'
 import type {
   GridColumnContext,
@@ -195,10 +214,29 @@ const headerCellClasses: GridHeaderCellClasses = {
   resizerActive: styles.resizerActive,
 }
 
+// Pinned-column sticky classes per cell kind. The edge classes (the divider
+// between the pinned and scrolling sections) are shared.
+const headerPinnedClasses: PinnedCellClasses = {
+  pinned: styles.thPinned,
+  pinnedLeftEdge: styles.pinnedLeftEdge,
+  pinnedRightEdge: styles.pinnedRightEdge,
+}
+
+const filterPinnedClasses: PinnedCellClasses = {
+  pinned: styles.filterThPinned,
+  pinnedLeftEdge: styles.pinnedLeftEdge,
+  pinnedRightEdge: styles.pinnedRightEdge,
+}
+
 const rowClasses: GridRowClasses = {
   tr: styles.tr,
   trAlt: styles.trAlt,
   td: styles.td,
+  pinned: {
+    pinned: styles.tdPinned,
+    pinnedLeftEdge: styles.pinnedLeftEdge,
+    pinnedRightEdge: styles.pinnedRightEdge,
+  },
 }
 
 const treeRowClasses: TreeGridRowClasses = {
@@ -541,12 +579,25 @@ function WaydGridInner<T>(
 
   // ─── State ───────────────────────────────────────────────
   const gridState = useGridState({ initialSorting })
-  const { searchValue, onSearchChange, onClearFilters, hasActiveFilters } =
-    gridState
+  const {
+    searchValue,
+    onSearchChange,
+    onClearFilters,
+    hasActiveFilters,
+    setColumnSizing,
+    userColumnVisibility,
+    setUserColumnVisibility,
+    resetColumnState,
+  } = gridState
   const resizeGuard = useResizeClickGuard()
   const [openFilterColumnId, setOpenFilterColumnId] = useState<string | null>(
     null,
   )
+  // One open column menu at a time, owned here (same anchor-stability pattern
+  // as openFilterColumnId — a controlled dropdown must keep its trigger DOM).
+  const [openMenuColumnId, setOpenMenuColumnId] = useState<string | null>(null)
+  // Choose Columns modal — one per grid, opened from any column's menu.
+  const [isColumnChooserOpen, setIsColumnChooserOpen] = useState(false)
   // Expanded date-tree node keys per column, owned here (above the filter
   // popover). The popover's content is rebuilt whenever the column filter
   // changes, so state kept inside the DateFilterPanel is lost on toggle; keeping
@@ -806,7 +857,7 @@ function WaydGridInner<T>(
 
   // meta.hide → columnVisibility (AG Grid `hide` style), recursing into
   // grouped defs (TanStack shrinks a band's colSpan as its leaves hide).
-  const columnVisibility = useMemo<VisibilityState>(() => {
+  const consumerColumnVisibility = useMemo<VisibilityState>(() => {
     const visibility: VisibilityState = {}
     const collect = (cols: typeof resolvedColumns) => {
       for (const col of cols) {
@@ -823,6 +874,14 @@ function WaydGridInner<T>(
     collect(resolvedColumns)
     return visibility
   }, [resolvedColumns])
+
+  // The user's Choose Columns choices layer on top: consumer-hidden columns
+  // stay hidden (and out of the chooser); user choices win everywhere else.
+  const columnVisibility = useMemo<VisibilityState>(
+    () =>
+      mergeColumnVisibility(consumerColumnVisibility, userColumnVisibility),
+    [consumerColumnVisibility, userColumnVisibility],
+  )
 
   // ─── Flattened tree for DnD ──────────────────────────────
   const flattenedNodes = useMemo(
@@ -1005,6 +1064,66 @@ function WaydGridInner<T>(
       return { ...prev, [columnId]: next }
     })
   }, [])
+
+  // ─── Column menu (sort / pin / autosize / choose / reset) ──
+  /**
+   * Sizes columns to their rendered content (header label + the virtualized
+   * window's cells — all the DOM that exists; ag-grid measured the same way).
+   * Applies through columnSizing so the shared colgroup updates both tables.
+   */
+  const autosizeColumns = useCallback(
+    (columnIds: string[]) => {
+      const headerRoot = headerViewportRef.current
+      const bodyRoot = bodyViewportRef.current
+      if (!headerRoot || !bodyRoot) return
+      const measured = measureColumnContent(headerRoot, bodyRoot, columnIds)
+      setColumnSizing((prev) => {
+        const next = { ...prev }
+        for (const [id, m] of measured) {
+          const columnDef = table.getColumn(id)?.columnDef
+          next[id] = computeAutosizeWidth({
+            maxCellContentWidth: m.maxCellContentWidth,
+            headerContentWidth: m.headerContentWidth,
+            minWidth: columnDef?.minSize,
+            maxWidth: columnDef?.maxSize,
+          })
+        }
+        return next
+      })
+    },
+    [setColumnSizing, table],
+  )
+
+  const autosizeAllColumns = useCallback(() => {
+    autosizeColumns(
+      table
+        .getVisibleLeafColumns()
+        .filter((column) => column.getCanResize())
+        .map((column) => column.id),
+    )
+  }, [autosizeColumns, table])
+
+  const handleUserToggleColumn = useCallback(
+    (columnId: string, visible: boolean) => {
+      setUserColumnVisibility((prev) => ({ ...prev, [columnId]: visible }))
+    },
+    [setUserColumnVisibility],
+  )
+
+  const renderColumnMenu = (header: Header<T, unknown>) => (
+    <ColumnMenuTrigger
+      header={header}
+      table={table}
+      open={openMenuColumnId === header.column.id}
+      onOpenChange={(open) =>
+        setOpenMenuColumnId(open ? header.column.id : null)
+      }
+      onOpenColumnChooser={() => setIsColumnChooserOpen(true)}
+      onAutosizeColumn={(columnId) => autosizeColumns([columnId])}
+      onAutosizeAllColumns={autosizeAllColumns}
+      onResetColumns={resetColumnState}
+    />
+  )
 
   // ─── CSV export ──────────────────────────────────────────
   const onExportCsv = useCallback(() => {
@@ -1274,11 +1393,22 @@ function WaydGridInner<T>(
   const leafHeaderGroup = headerGroups[headerGroups.length - 1]
   const groupHeaderRows = headerGroups.slice(0, -1)
 
+  // Visible leaf columns in RENDER order: left-pinned → center → right-pinned.
+  // getHeaderGroups() and row.getVisibleCells() emit this order when columns
+  // are pinned, but plain getVisibleLeafColumns() stays in def order — the
+  // colgroup must follow the rendered order or the shared <col> widths would
+  // apply to the wrong columns.
+  const orderedVisibleLeafColumns = [
+    ...table.getLeftVisibleLeafColumns(),
+    ...table.getCenterVisibleLeafColumns(),
+    ...table.getRightVisibleLeafColumns(),
+  ]
+
   // Rendered into BOTH tables (header + body) — with table-layout: fixed,
   // identical colgroups guarantee the two tables' columns align exactly.
   const colGroup = (
     <colgroup>
-      {table.getVisibleLeafColumns().map((column) => (
+      {orderedVisibleLeafColumns.map((column) => (
         <col key={column.id} width={column.getSize()} />
       ))}
       {/* Filler column absorbs leftover width so the table fills the
@@ -1306,22 +1436,33 @@ function WaydGridInner<T>(
               sort/filter/resize; placeholders render empty. */}
           {groupHeaderRows.map((headerGroup, bandIndex) => (
             <tr key={headerGroup.id} data-role="header-band">
-              {headerGroup.headers.map((header) => (
-                <th
-                  key={header.id}
-                  colSpan={header.colSpan}
-                  // Placeholders (ungrouped columns passing through the band
-                  // level) are empty — hide them from assistive tech so
-                  // screen readers don't announce blank column headers.
-                  aria-hidden={header.isPlaceholder || undefined}
-                  className={`${styles.th} ${styles.groupTh}`}
-                  style={{
-                    top: `calc(${bandIndex} * var(--wayd-grid-header-row-height))`,
-                  }}
-                >
-                  <GridHeaderContent header={header} />
-                </th>
-              ))}
+              {headerGroup.headers.map((header) => {
+                // TanStack splits a band spanning pinned + unpinned leaves
+                // into one cell per pin section; a pinned section's cell
+                // sticks at its leaves' offset.
+                const bandPinned = getPinnedBandOffsets(header)
+                return (
+                  <th
+                    key={header.id}
+                    colSpan={header.colSpan}
+                    // Placeholders (ungrouped columns passing through the band
+                    // level) are empty — hide them from assistive tech so
+                    // screen readers don't announce blank column headers.
+                    aria-hidden={header.isPlaceholder || undefined}
+                    className={`${styles.th} ${styles.groupTh}${
+                      bandPinned
+                        ? ` ${pinnedCellClassNames(bandPinned, headerPinnedClasses)}`
+                        : ''
+                    }`}
+                    style={{
+                      top: `calc(${bandIndex} * var(--wayd-grid-header-row-height))`,
+                      ...pinnedCellStyle(bandPinned),
+                    }}
+                  >
+                    <GridHeaderContent header={header} />
+                  </th>
+                )
+              })}
               {/* Filler band cell — carries the band across the empty width. */}
               <th
                 aria-hidden="true"
@@ -1343,6 +1484,7 @@ function WaydGridInner<T>(
                 !showFloatingFilters &&
                 !header.isPlaceholder &&
                 header.column.getCanFilter()
+              const pinned = getPinnedOffsets(header.column)
 
               return (
                 <GridHeaderCell
@@ -1355,6 +1497,17 @@ function WaydGridInner<T>(
                       ? renderFilterPopover(header)
                       : undefined
                   }
+                  menuSlot={
+                    !header.isPlaceholder
+                      ? renderColumnMenu(header)
+                      : undefined
+                  }
+                  thClassName={
+                    pinned
+                      ? pinnedCellClassNames(pinned, headerPinnedClasses)
+                      : undefined
+                  }
+                  thStyle={pinnedCellStyle(pinned)}
                 />
               )
             })}
@@ -1375,11 +1528,19 @@ function WaydGridInner<T>(
             >
               {leafHeaderGroup.headers.map((header) => {
                 const column = header.column
+                const pinned = getPinnedOffsets(column)
+                const filterThClassName = `${styles.filterTh}${
+                  pinned
+                    ? ` ${pinnedCellClassNames(pinned, filterPinnedClasses)}`
+                    : ''
+                }`
+                const filterThStyle = pinnedCellStyle(pinned)
                 if (header.isPlaceholder || !column.getCanFilter()) {
                   return (
                     <th
                       key={`${header.id}-floating`}
-                      className={styles.filterTh}
+                      className={filterThClassName}
+                      style={filterThStyle}
                     />
                   )
                 }
@@ -1394,7 +1555,8 @@ function WaydGridInner<T>(
                   return (
                     <th
                       key={`${header.id}-floating`}
-                      className={styles.filterTh}
+                      className={filterThClassName}
+                      style={filterThStyle}
                       onClick={(e) => e.stopPropagation()}
                     >
                       {renderSetFilter(header)}
@@ -1416,7 +1578,8 @@ function WaydGridInner<T>(
                 return (
                   <th
                     key={`${header.id}-floating`}
-                    className={styles.filterTh}
+                    className={filterThClassName}
+                    style={filterThStyle}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className={styles.floatingCell}>
@@ -1533,6 +1696,13 @@ function WaydGridInner<T>(
       ) : (
         tableContent
       )}
+
+      <ColumnChooserModal
+        table={table}
+        open={isColumnChooserOpen}
+        onClose={() => setIsColumnChooserOpen(false)}
+        onToggleColumn={handleUserToggleColumn}
+      />
     </div>
   )
 }

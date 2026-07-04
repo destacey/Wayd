@@ -1,10 +1,6 @@
 'use client'
 
-import {
-  AgGridTransfer,
-  asDeletableColDefs,
-  asDraggableColDefs,
-} from '@/src/components/common/grid/ag-grid-transfer'
+import WaydGridTransfer from '@/src/components/common/wayd-grid-transfer'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
 import {
@@ -17,7 +13,7 @@ import {
   useGetStrategicInitiativeProjectsQuery,
   useManageStrategicInitiativeProjectsMutation,
 } from '@/src/store/features/ppm/strategic-initiatives-api'
-import { ColDef } from 'ag-grid-community'
+import type { ColumnDef } from '@tanstack/react-table'
 import { Checkbox, Flex, Modal } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { isApiError, type ApiError } from '@/src/utils'
@@ -29,30 +25,28 @@ export interface ManageStrategicInitiativeProjectsFormProps {
   onFormCancel: () => void
 }
 
-const projectColDefs: ColDef<ProjectListDto>[] = [
+const projectColumns: ColumnDef<ProjectListDto, any>[] = [
   {
-    field: 'key',
-    headerName: 'Key',
-    width: 120,
+    accessorKey: 'key',
+    header: 'Key',
+    size: 120,
   },
   {
-    field: 'name',
-    headerName: 'Name',
-    width: 250,
+    accessorKey: 'name',
+    header: 'Name',
+    size: 250,
   },
   {
-    field: 'portfolio.name',
-    headerName: 'Portfolio',
-    width: 180,
+    accessorKey: 'portfolio.name',
+    header: 'Portfolio',
+    size: 180,
   },
   {
-    field: 'status.name',
-    headerName: 'Status',
-    width: 100,
+    accessorKey: 'status.name',
+    header: 'Status',
+    size: 100,
   },
 ]
-
-const leftColDefs = [...asDraggableColDefs(projectColDefs)]
 
 const defaultSort = (a: ProjectListDto, b: ProjectListDto) => {
   return a.name.localeCompare(b.name)
@@ -145,7 +139,7 @@ const ManageStrategicInitiativeProjectsForm = ({
       .sort(defaultSort)
   }, [projectData, targetProjects])
 
-  const onDragStop = (items: ProjectListDto[]) => {
+  const handleMove = (items: ProjectListDto[]) => {
     if (items.length === 0) return
 
     setTargetProjects((prevTarget) =>
@@ -160,8 +154,6 @@ const ManageStrategicInitiativeProjectsForm = ({
       prevTarget.filter((p) => p.id !== item.id),
     )
   }
-
-  const rightColDefs = asDeletableColDefs(projectColDefs, handleDelete)
 
   return (
     <Modal
@@ -182,14 +174,14 @@ const ManageStrategicInitiativeProjectsForm = ({
         >
           Include projects from other portfolios
         </Checkbox>
-        <AgGridTransfer
-          leftGridData={sourceProjects}
-          rightGridData={targetProjects}
-          leftColumnDef={leftColDefs}
-          rightColumnDef={rightColDefs}
-          onDragStop={onDragStop}
-          getRowId={(param) => param.data.id}
-          GridProps={{ defaultColDef: { filter: true } }}
+        <WaydGridTransfer
+          leftData={sourceProjects}
+          rightData={targetProjects}
+          columns={projectColumns}
+          getRowId={(item) => item.id}
+          getDragLabel={(item) => item.key}
+          onMove={handleMove}
+          onRemove={handleDelete}
         />
       </Flex>
     </Modal>

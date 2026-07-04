@@ -14,13 +14,8 @@ import { useSearchWorkItemsQuery } from '@/src/store/features/work-management/wo
 import { LoadingOutlined, SearchOutlined } from '@ant-design/icons'
 import { Flex, Input, Modal, Typography } from 'antd'
 import { ChangeEvent, useState } from 'react'
-import { ColDef } from 'ag-grid-community'
-import { CustomCellRendererProps } from 'ag-grid-react'
-import {
-  AgGridTransfer,
-  asDeletableColDefs,
-  asDraggableColDefs,
-} from '@/src/components/common/grid/ag-grid-transfer'
+import type { ColumnDef } from '@tanstack/react-table'
+import WaydGridTransfer from '@/src/components/common/wayd-grid-transfer'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { workItemKeyComparator, WorkItemTagsCell } from '@/src/components/common/work'
 import { isApiError, type ApiError } from '@/src/utils'
@@ -34,67 +29,58 @@ export interface ManagePlanningIntervalObjectiveWorkItemsFormProps {
   onFormCancel: () => void
 }
 
-const workItemColDefs: ColDef<WorkItemListDto>[] = [
+const workItemColumns: ColumnDef<WorkItemListDto, any>[] = [
   {
-    field: 'key',
-    headerName: 'Key',
-    width: 125,
+    accessorKey: 'key',
+    header: 'Key',
+    size: 125,
   },
   {
-    field: 'title',
-    headerName: 'Title',
-    width: 250,
+    accessorKey: 'title',
+    header: 'Title',
+    size: 250,
   },
   {
-    field: 'type.name',
-    headerName: 'Type',
-    width: 100,
+    accessorKey: 'type.name',
+    header: 'Type',
+    size: 100,
   },
   {
-    field: 'status',
-    headerName: 'Status',
-    width: 100,
+    accessorKey: 'status',
+    header: 'Status',
+    size: 100,
   },
   {
-    field: 'team.name',
-    headerName: 'Team',
-    width: 150,
+    accessorKey: 'team.name',
+    header: 'Team',
+    size: 150,
   },
   {
-    field: 'parent.key',
-    headerName: 'Parent Key',
-    width: 125,
+    accessorKey: 'parent.key',
+    header: 'Parent Key',
+    size: 125,
   },
   {
-    field: 'sprint.name',
-    headerName: 'Sprint',
-    width: 200,
+    accessorKey: 'sprint.name',
+    header: 'Sprint',
+    size: 200,
   },
   {
-    field: 'project.name',
-    headerName: 'Project',
-    width: 200,
+    accessorKey: 'project.name',
+    header: 'Project',
+    size: 200,
   },
   {
-    field: 'tags',
-    headerName: 'Tags',
-    width: 200,
-    valueGetter: (params) => params.data?.tags?.join(', ') ?? '',
-    cellRenderer: (params: CustomCellRendererProps<WorkItemListDto>) => (
-      <WorkItemTagsCell tags={params.data?.tags} />
-    ),
+    id: 'tags',
+    header: 'Tags',
+    size: 200,
+    accessorFn: (row) => row.tags?.join(', ') ?? '',
+    cell: ({ row }) => <WorkItemTagsCell tags={row.original.tags} />,
   },
 ]
 
-const leftColDefs = [...asDraggableColDefs(workItemColDefs)]
-
 const defaultSort = (a: WorkItemListDto, b: WorkItemListDto) => {
   return workItemKeyComparator(a.key, b.key)
-}
-
-const defaultColDef: ColDef = {
-  filter: true,
-  floatingFilter: true,
 }
 
 const ManagePlanningIntervalObjectiveWorkItemsForm = ({
@@ -179,10 +165,10 @@ const ManagePlanningIntervalObjectiveWorkItemsForm = ({
       'An error occurred while managing the work items. Please try again.',
   })
 
-  const onDragStop = (items: WorkItemListDto[]) => {
+  const handleMove = (items: WorkItemListDto[]) => {
     if (items.length === 0) return
 
-    // Items dragged from source to target: add them and un-remove if needed
+    // Items moved from source to target: add them and un-remove if needed
     setAddedItems((prev) => [...prev, ...items])
     setRemovedIds((prev) => {
       const next = new Set(prev)
@@ -207,8 +193,6 @@ const ManagePlanningIntervalObjectiveWorkItemsForm = ({
       setAddedItems((prev) => prev.filter((p) => p.id !== item.id))
     }
   }
-
-  const rightColDefs = asDeletableColDefs(workItemColDefs, handleDelete)
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value)
@@ -235,16 +219,14 @@ const ManagePlanningIntervalObjectiveWorkItemsForm = ({
             onChange={handleSearch}
             suffix={isSearching ? <LoadingOutlined spin /> : <SearchOutlined />}
           />
-          <AgGridTransfer
-            leftGridData={sourceWorkItems}
-            rightGridData={targetWorkItems}
-            leftColumnDef={leftColDefs}
-            rightColumnDef={rightColDefs}
-            onDragStop={onDragStop}
-            getRowId={(param) => param.data.id}
-            GridProps={{
-              defaultColDef,
-            }}
+          <WaydGridTransfer
+            leftData={sourceWorkItems}
+            rightData={targetWorkItems}
+            columns={workItemColumns}
+            getRowId={(item) => item.id}
+            getDragLabel={(item) => item.key}
+            onMove={handleMove}
+            onRemove={handleDelete}
           />
           <Text>Search results are limited to 50 records.</Text>
         </Flex>

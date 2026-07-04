@@ -44,6 +44,8 @@ import {
   DateFilterPanel,
   FilterPopup,
   FloatingFilter,
+  SET_FILTER_BLANK,
+  SET_FILTER_BLANK_LABEL,
   SetFilterPanel,
   canFloatingEditDate,
   describeDateFilter,
@@ -834,15 +836,21 @@ function WaydGridInner<T>(
   /**
    * All known set values for a column: prefer declared options (stable
    * order/labels), else the distinct values present in the data (faceted).
+   * When the data contains blank cells (null/undefined/''), a "(Blanks)"
+   * sentinel entry is appended so blanks can be filtered like any value.
    */
   const getSetValues = (header: Header<T, unknown>): string[] => {
     const meta = header.column.columnDef.meta
+    const facetedKeys = Array.from(header.column.getFacetedUniqueValues().keys())
+    const hasBlanks = facetedKeys.some((v) => v == null || v === '')
     const optionValues = meta?.filterOptions?.map((o) => o.value)
-    if (optionValues) return optionValues
-    return Array.from(header.column.getFacetedUniqueValues().keys())
-      .filter((v): v is string => v != null && v !== '')
-      .map(String)
-      .sort(caseInsensitiveCompare)
+    const values =
+      optionValues ??
+      facetedKeys
+        .filter((v): v is string => v != null && v !== '')
+        .map(String)
+        .sort(caseInsensitiveCompare)
+    return hasBlanks ? [...values, SET_FILTER_BLANK] : values
   }
 
   /**
@@ -882,8 +890,10 @@ function WaydGridInner<T>(
       !isFiltered || selected.length === allValues.length
         ? ''
         : selected.length === 1
-          ? meta?.filterOptions?.find((o) => o.value === selected[0])?.label ??
-            selected[0]
+          ? selected[0] === SET_FILTER_BLANK
+            ? SET_FILTER_BLANK_LABEL
+            : meta?.filterOptions?.find((o) => o.value === selected[0])
+                ?.label ?? selected[0]
           : `${selected.length} selected`
 
     return (

@@ -10,6 +10,7 @@ import {
   evaluateFilterModel,
   toDayKey,
 } from './filter-engine'
+import { SET_FILTER_BLANK } from './filter-model'
 import type {
   ColumnFilterModel,
   DateFilterModel,
@@ -257,12 +258,25 @@ describe('filter-engine', () => {
       expect(evaluateFilterModel(m, 3)).toBe(false)
     })
 
-    it('rejects null cells when a filter is active', () => {
+    it('rejects blank cells when a filter is active without the (Blanks) entry', () => {
       // Arrange
       const m = model(['System'])
 
       // Act / Assert
       expect(evaluateFilterModel(m, null)).toBe(false)
+      expect(evaluateFilterModel(m, undefined)).toBe(false)
+      expect(evaluateFilterModel(m, '')).toBe(false)
+    })
+
+    it('matches blank cells when the (Blanks) entry is selected', () => {
+      // Arrange
+      const m = model([SET_FILTER_BLANK])
+
+      // Act / Assert
+      expect(evaluateFilterModel(m, null)).toBe(true)
+      expect(evaluateFilterModel(m, undefined)).toBe(true)
+      expect(evaluateFilterModel(m, '')).toBe(true)
+      expect(evaluateFilterModel(m, 'System')).toBe(false)
     })
   })
 
@@ -349,6 +363,13 @@ describe('filter-engine', () => {
       // Act / Assert
       expect(run(['Engineer', 'Scrum Master'], m)).toBe(true)
       expect(run(['Engineer'], m)).toBe(false)
+    })
+
+    it('matches value-less rows only via the (Blanks) entry', () => {
+      // Arrange / Act / Assert — an empty list is a blank row
+      expect(run([], set([SET_FILTER_BLANK]))).toBe(true)
+      expect(run(['Owner'], set([SET_FILTER_BLANK]))).toBe(false)
+      expect(run([], set(['Owner', SET_FILTER_BLANK]))).toBe(true)
     })
 
     it('delegates non-set descriptors to the joined value (Text Filter)', () => {

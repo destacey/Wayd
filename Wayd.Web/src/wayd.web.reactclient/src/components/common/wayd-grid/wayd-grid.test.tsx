@@ -14,6 +14,7 @@ import { render, screen, fireEvent, within, act } from '@testing-library/react'
 import type { ColumnDef } from '@tanstack/react-table'
 
 import WaydGrid from './wayd-grid'
+import { SET_FILTER_BLANK } from '../wayd-grid-core/filters'
 import type { WaydGridHandle, WaydGridColumnMeta } from './types'
 import { downloadCsvWithTimestamp } from '@/src/utils/csv-utils'
 
@@ -385,6 +386,46 @@ describe('WaydGrid', () => {
       expect(bodyCells('name').map((c) => c.textContent)).toEqual([
         'planning-poker',
       ])
+    })
+
+    it('filters blank cells via the (Blanks) sentinel', () => {
+      // Arrange — a nullable Team column with one blank row
+      interface Item {
+        id: number
+        name: string
+        team: string | null
+      }
+      const data: Item[] = [
+        { id: 1, name: 'alpha', team: 'Juice' },
+        { id: 2, name: 'beta', team: null },
+      ]
+      const cols: ColumnDef<Item, unknown>[] = [
+        { id: 'name', accessorKey: 'name', header: 'Name' },
+        {
+          id: 'team',
+          accessorKey: 'team',
+          header: 'Team',
+          meta: { filterType: 'set' },
+        },
+      ]
+      const ref = createRef<WaydGridHandle>()
+      render(<WaydGrid<Item> ref={ref} data={data} columns={cols} />)
+
+      // Act / Assert — a value-only selection hides the blank row
+      act(() => {
+        ref.current!.table
+          .getColumn('team')!
+          .setFilterValue({ type: 'set', values: ['Juice'] })
+      })
+      expect(bodyCells('name').map((c) => c.textContent)).toEqual(['alpha'])
+
+      // Act / Assert — selecting only (Blanks) shows just the blank row
+      act(() => {
+        ref.current!.table
+          .getColumn('team')!
+          .setFilterValue({ type: 'set', values: [SET_FILTER_BLANK] })
+      })
+      expect(bodyCells('name').map((c) => c.textContent)).toEqual(['beta'])
     })
 
     it('filters a yesNo column on the Yes/No display value (not true/false)', () => {

@@ -111,6 +111,18 @@ export interface SetFilterModel {
 }
 
 /**
+ * Sentinel entry representing blank cells (null/undefined/'') in a set
+ * filter's value list — the Excel/AG Grid "(Blanks)" row. It is only offered
+ * when the column's data actually contains blanks; selecting it keeps blank
+ * rows visible, deselecting it hides them. The engine maps blank cell values
+ * to this sentinel when checking membership.
+ */
+export const SET_FILTER_BLANK = '__wayd-blank__'
+
+/** Display label for {@link SET_FILTER_BLANK}. */
+export const SET_FILTER_BLANK_LABEL = '(Blanks)'
+
+/**
  * Set-style selection over the distinct *days* present in a date column — the
  * Excel date tree. Values are `YYYY-MM-DD` day keys; the engine normalizes each
  * cell to a day before checking membership, so it matches regardless of the raw

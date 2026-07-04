@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 
 import SetFilterPanel from './set-filter-panel'
-import type { ColumnFilterModel } from './filter-model'
+import { SET_FILTER_BLANK, type ColumnFilterModel } from './filter-model'
 
 const ALL = ['System', 'User', 'Other']
 
@@ -37,6 +37,28 @@ describe('SetFilterPanel', () => {
       expect(checkboxIn(row('System')).checked).toBe(true)
       expect(checkboxIn(row('User')).checked).toBe(false)
       expect(checkboxIn(row('Other')).checked).toBe(false)
+    })
+
+    it('renders the blank sentinel as a checkable (Blanks) entry', () => {
+      // Arrange / Act
+      const onChange = jest.fn()
+      render(
+        <SetFilterPanel
+          allValues={[...ALL, SET_FILTER_BLANK]}
+          value={undefined}
+          onChange={onChange}
+        />,
+      )
+
+      // Assert — labeled "(Blanks)", checked while unfiltered
+      expect(checkboxIn(row('(Blanks)')).checked).toBe(true)
+
+      // Act — unchecking it emits the remaining real values
+      fireEvent.click(checkboxIn(row('(Blanks)')))
+      expect(onChange).toHaveBeenCalledWith({
+        type: 'set',
+        values: ALL,
+      })
     })
   })
 

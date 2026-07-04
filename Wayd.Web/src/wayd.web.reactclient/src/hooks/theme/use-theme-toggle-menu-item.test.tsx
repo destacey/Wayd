@@ -1,4 +1,3 @@
-import { themeBalham } from 'ag-grid-community'
 import useTheme, { ThemeContextType } from '../../components/contexts/theme'
 import useThemeToggleMenuItem from './use-theme-toggle-menu-item'
 import { Mock } from 'jest-mock'
@@ -34,7 +33,6 @@ const mockThemeContext: ThemeContextType = {
     subtleColor: 'rgba(255,255,255,0.88)',
   },
   allowsPrimaryOverride: true,
-  agGridTheme: themeBalham,
   token: mockToken as any,
   badgeColor: '#1890ff',
   defaultPrimaryColor: '#1890ff',

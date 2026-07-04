@@ -1,5 +1,4 @@
 import { theme } from 'antd'
-import { createPart, themeBalham } from 'ag-grid-community'
 import { useMemo } from 'react'
 import { AppThemeConfig, TimeLineStyles } from './theme-preset'
 const { darkAlgorithm } = theme
@@ -14,19 +13,6 @@ export const slateTimeLineColors: TimeLineStyles = {
     background: '#787878',
   },
 }
-
-const agGridGreyTheme = themeBalham.withPart(
-  createPart({
-    feature: 'colorScheme',
-    params: {
-      backgroundColor: '#2d2d2d',
-      foregroundColor: '#e0e0e0',
-      browserColorScheme: 'dark',
-    },
-  }),
-).withParams({
-  borderRadius: 4,
-})
 
 export const useSlateThemePreset = (): AppThemeConfig =>
   useMemo(
@@ -68,7 +54,6 @@ export const useSlateThemePreset = (): AppThemeConfig =>
         subtleColor: 'rgba(255, 255, 255, 0.88)',
       },
       integrations: {
-        agGridTheme: agGridGreyTheme,
         antDesignChartsTheme: 'classicDark',
         antvisG6ChartsTheme: 'dark',
       },

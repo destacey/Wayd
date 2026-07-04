@@ -64,7 +64,6 @@ const baseThemeContext: ThemeContextType = {
     color: '#ffffff',
   },
   allowsPrimaryOverride: true,
-  agGridTheme: {} as any,
   token: {
     colorPrimary: '#1890ff',
   } as any,

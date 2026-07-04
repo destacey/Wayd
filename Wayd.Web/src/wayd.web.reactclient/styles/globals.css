@@ -233,12 +233,6 @@ body {
   background: #fff;
 }
 
-/* AG Grid shell should inherit theme radius for outer container corners */
-.ag-root-wrapper {
-  border-radius: var(--ag-border-radius, 4px);
-  overflow: hidden;
-}
-
 /* Cartoon Theme Overrides */
 /* App-shell background texture */
 html[data-theme='cartoon'] body {
@@ -278,13 +272,11 @@ html[data-theme='cartoon'] .app-theme-cartoon .app-main-content {
 }
 
 /* Improve link contrast inside data-dense surfaces */
-html[data-theme='cartoon'] .app-theme-cartoon .ag-root a,
 html[data-theme='cartoon'] .app-theme-cartoon .tableElement a,
 html[data-theme='cartoon'] .app-theme-cartoon .ant-table a {
   color: #3f79a8;
 }
 
-html[data-theme='cartoon'] .app-theme-cartoon .ag-root a:hover,
 html[data-theme='cartoon'] .app-theme-cartoon .tableElement a:hover,
 html[data-theme='cartoon'] .app-theme-cartoon .ant-table a:hover {
   color: #4b89bb;

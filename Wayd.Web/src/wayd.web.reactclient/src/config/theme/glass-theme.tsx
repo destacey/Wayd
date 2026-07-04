@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { theme } from 'antd'
-import { themeBalham } from 'ag-grid-community'
 import { createStyles } from 'antd-style'
 import { AppThemeConfig, TimeLineStyles } from './theme-preset'
 
@@ -17,10 +16,6 @@ export const glassTimeLineStyles: TimeLineStyles = {
 
 const cx = (...classes: Array<string | false | null | undefined>) =>
   classes.filter(Boolean).join(' ')
-
-const glassAgGridTheme = themeBalham.withParams({
-  borderRadius: 12,
-})
 
 const useStyles = createStyles(({ css, cssVar }) => {
   const glassBorder = {
@@ -251,7 +246,6 @@ const useGlassTheme = (): AppThemeConfig => {
         subtleColor: 'rgba(255, 255, 255, 0.9)',
       },
       integrations: {
-        agGridTheme: glassAgGridTheme,
         antDesignChartsTheme: 'classic',
         antvisG6ChartsTheme: 'light',
       },

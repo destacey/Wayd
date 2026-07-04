@@ -1,5 +1,4 @@
 import { theme } from 'antd'
-import { colorSchemeDark, themeBalham } from 'ag-grid-community'
 import { useMemo } from 'react'
 import { AppThemeConfig, TimeLineStyles } from './theme-preset'
 const { darkAlgorithm } = theme
@@ -14,10 +13,6 @@ export const darkTimeLineColors: TimeLineStyles = {
     background: '#61646e',
   },
 }
-
-const agGridDarkTheme = themeBalham.withPart(colorSchemeDark).withParams({
-  borderRadius: 4,
-})
 
 export const useDarkThemePreset = (): AppThemeConfig =>
   useMemo(
@@ -55,7 +50,6 @@ export const useDarkThemePreset = (): AppThemeConfig =>
         subtleColor: 'rgba(255, 255, 255, 0.88)',
       },
       integrations: {
-        agGridTheme: agGridDarkTheme,
         antDesignChartsTheme: 'classicDark',
         antvisG6ChartsTheme: 'dark',
       },

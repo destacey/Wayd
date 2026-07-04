@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { theme } from 'antd'
-import { createPart, themeBalham } from 'ag-grid-community'
 import { createStyles } from 'antd-style'
 import { AppThemeConfig, TimeLineStyles } from './theme-preset'
 
@@ -49,21 +48,6 @@ export const cartoonThemeConfig: { timeLineColors: TimeLineStyles } = {
     },
   },
 }
-
-const agGridCartoonTheme = themeBalham
-  .withPart(
-    createPart({
-      feature: 'colorScheme',
-      params: {
-        backgroundColor: '#f7f1e4',
-        foregroundColor: '#51463B',
-        browserColorScheme: 'light',
-      },
-    }),
-  )
-  .withParams({
-    borderRadius: cartoonThemeTokens.shape.borderRadius,
-  })
 
 const useStyles = createStyles(({ css, cssVar }) => {
   const sharedBorder = {
@@ -173,7 +157,6 @@ const useCartoonTheme = () => {
         subtleColor: 'rgba(255, 255, 255, 0.9)',
       },
       integrations: {
-        agGridTheme: agGridCartoonTheme,
         antDesignChartsTheme: 'classic',
         antvisG6ChartsTheme: 'light',
       },

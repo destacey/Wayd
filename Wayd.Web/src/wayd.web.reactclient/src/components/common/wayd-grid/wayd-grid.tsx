@@ -298,47 +298,29 @@ function GridBody<T>({
     if (index >= 0) rowVirtualizer.scrollToIndex(index)
   }, [selectedRowId, rows, rowVirtualizer])
 
-  // While loading/empty, the table stretches to fill the wrapper so the
-  // single status row (and its spinner / empty message) centers vertically.
-  const showStatusRow = isLoading || rows.length === 0
+  // While loading (or with no rows) the rows are replaced by a status
+  // overlay. The overlay is a sibling of the scrolling wrapper — anchored to
+  // the VISIBLE body viewport, not the table: a wide table in a narrow window
+  // centers a spanning status <td> at half the scroll width, which can sit
+  // entirely off-screen.
+  const showStatusOverlay = isLoading || rows.length === 0
 
   return (
-    <div
-      className={styles.tableWrapper}
-      ref={bodyViewportRef}
-      onScroll={onBodyScroll}
-      // Measurement hook for jsdom tests: layoutless environments report a
-      // 0×0 rect here, which makes the row virtualizer render nothing —
-      // jest.setup.ts returns a fixed rect for this attribute instead.
-      data-grid-body-viewport=""
-    >
-      <table
-        className={`${styles.tableElement}${
-          showStatusRow ? ` ${styles.tableElementFill}` : ''
-        }`}
+    <div className={styles.bodyArea}>
+      <div
+        className={styles.tableWrapper}
+        ref={bodyViewportRef}
+        onScroll={onBodyScroll}
+        // Measurement hook for jsdom tests: layoutless environments report a
+        // 0×0 rect here, which makes the row virtualizer render nothing —
+        // jest.setup.ts returns a fixed rect for this attribute instead.
+        data-grid-body-viewport=""
       >
-        {colGroup}
-        <tbody>
-          {isLoading ? (
-            <tr>
-              {/* Centering lives on the inner div — `display: flex` directly
-                  on a <td> breaks table-cell rendering in browsers. */}
-              <td colSpan={visibleColumnCount + 1} className={styles.td}>
-                <div className={styles.loading}>
-                  <Spin size="large" />
-                </div>
-              </td>
-            </tr>
-          ) : rows.length === 0 ? (
-            <tr>
-              <td colSpan={visibleColumnCount + 1} className={styles.td}>
-                <div className={styles.empty}>
-                  <WaydEmpty message={emptyMessage} />
-                </div>
-              </td>
-            </tr>
-          ) : (
-            <>
+        <table className={styles.tableElement}>
+          {colGroup}
+          <tbody>
+            {!showStatusOverlay && (
+              <>
               {/* Virtual offset spacers: real table rows standing in for the
                   unrendered rows above/below the window. Zero padding/border
                   so they add no width — header/body scrollWidth must match. */}
@@ -445,10 +427,20 @@ function GridBody<T>({
                   />
                 </tr>
               )}
-            </>
+              </>
+            )}
+          </tbody>
+        </table>
+      </div>
+      {showStatusOverlay && (
+        <div className={styles.statusOverlay}>
+          {isLoading ? (
+            <Spin size="large" />
+          ) : (
+            <WaydEmpty message={emptyMessage} />
           )}
-        </tbody>
-      </table>
+        </div>
+      )}
     </div>
   )
 }

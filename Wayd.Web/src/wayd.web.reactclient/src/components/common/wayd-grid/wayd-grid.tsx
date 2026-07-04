@@ -105,6 +105,7 @@ import type {
  * mutated — toggles always copy before writing. */
 const EMPTY_NODE_SET: Set<string> = new Set<string>()
 
+const EMPTY_DATA: never[] = []
 const EMPTY_FIELD_ERRORS: Record<string, string> = {}
 const DRAFT_SCROLL_MARGIN = 8
 
@@ -206,7 +207,7 @@ function WaydGridInner<T>(
   // that behavior now that the call is behind the hook.
   'use no memo'
   const {
-    data,
+    data: dataProp,
     columns: columnsProp,
     isLoading = false,
     onRefresh,
@@ -236,6 +237,12 @@ function WaydGridInner<T>(
     onDraftCancelled,
     onDraftsChange,
   } = props
+
+  // Undefined data (a query hook still loading) renders as an empty grid —
+  // the old ag-grid WaydGrid tolerated undefined rowData the same way, and
+  // TanStack's row model throws on it. Stable fallback so the table's data
+  // identity doesn't churn while loading.
+  const data = dataProp ?? (EMPTY_DATA as T[])
 
   const isTree = !!getSubRows
 

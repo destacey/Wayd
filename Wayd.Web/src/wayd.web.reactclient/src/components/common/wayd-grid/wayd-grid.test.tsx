@@ -98,6 +98,16 @@ describe('WaydGrid', () => {
       expect(bodyCells('name')).toHaveLength(0)
     })
 
+    it('treats undefined data (query still loading) as an empty grid', () => {
+      // Arrange / Act — consumers pass query-hook data straight through, which
+      // is undefined until the fetch resolves (old ag-grid rowData tolerance)
+      renderGrid({ data: undefined, isLoading: true })
+
+      // Assert — loading spinner, no crash, zero row count
+      expect(document.querySelector('.ant-spin')).toBeInTheDocument()
+      expect(screen.getByText('0 of 0')).toBeInTheDocument()
+    })
+
     it('shows a loading spinner when isLoading', () => {
       // Arrange / Act
       const { container } = renderGrid({ isLoading: true })

@@ -70,8 +70,12 @@ export interface GridInlineEditingConfig<T> {
  * editing, and draft rows).
  */
 export interface WaydGridProps<T> {
-  /** Row data. In tree mode, the root nodes (children come from getSubRows). */
-  data: T[]
+  /**
+   * Row data. In tree mode, the root nodes (children come from getSubRows).
+   * May be undefined while loading (e.g. straight from a query hook) — treated
+   * as an empty grid, matching the old ag-grid `rowData` tolerance.
+   */
+  data: T[] | undefined
   /** Loading state. */
   isLoading?: boolean
   /**

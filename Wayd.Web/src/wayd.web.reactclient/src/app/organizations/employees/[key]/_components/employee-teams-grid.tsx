@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import {
   WaydGrid,
+  caseInsensitiveCompare,
   renderTeamLink,
   createMultiValueSetFilter,
 } from '@/src/components/common/wayd-grid'
@@ -45,7 +46,7 @@ const EmployeeTeamsGrid = ({ employeeId }: Props) => {
     const names = new Set<string>()
     memberships?.forEach((m) => m.roles.forEach((r) => names.add(r.name)))
     return Array.from(names)
-      .sort()
+      .sort(caseInsensitiveCompare)
       .map((name) => ({ label: name, value: name }))
   }, [memberships])
 

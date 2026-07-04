@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import {
   WaydGrid,
+  caseInsensitiveCompare,
   createActionsColumn,
   createMultiValueSetFilter,
 } from '@/src/components/common/wayd-grid'
@@ -75,7 +76,7 @@ const TeamMembersGrid = ({ teamId, teamType }: TeamMembersGridProps) => {
     const names = new Set<string>()
     members?.forEach((m) => m.roles.forEach((r) => names.add(r.name)))
     return Array.from(names)
-      .sort()
+      .sort(caseInsensitiveCompare)
       .map((name) => ({ label: name, value: name }))
   }, [members])
 

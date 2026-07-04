@@ -4,6 +4,7 @@ import PageTitle from '@/src/components/common/page-title'
 import { useEffect, useMemo, useState } from 'react'
 import {
   WaydGrid,
+  caseInsensitiveCompare,
   createActionsColumn,
   renderUserLink,
   formatDateTime,
@@ -132,7 +133,7 @@ const UsersListPage = () => {
         accessorFn: (row) =>
           row.roles
             ?.map((r) => r.name)
-            .sort()
+            .sort(caseInsensitiveCompare)
             .join(', ') ?? '',
         header: 'Roles',
       },

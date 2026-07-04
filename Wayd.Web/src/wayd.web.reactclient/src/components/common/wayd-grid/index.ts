@@ -37,6 +37,7 @@ export {
 
 // Sorting utilities
 export {
+  caseInsensitiveCompare,
   dateSortBy,
   sortEmptyLast,
   workItemKeySort,

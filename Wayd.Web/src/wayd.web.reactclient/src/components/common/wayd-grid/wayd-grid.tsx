@@ -81,7 +81,10 @@ import {
   type GridRowClasses,
   type TreeGridRowClasses,
 } from '../wayd-grid-core/grid-row'
-import { sortEmptyLast } from '../wayd-grid-core/grid-sorting'
+import {
+  caseInsensitiveCompare,
+  sortEmptyLast,
+} from '../wayd-grid-core/grid-sorting'
 import GridToolbar from '../wayd-grid-core/grid-toolbar'
 import { countTreeNodes, flattenTree } from '../wayd-grid-core/tree-utils'
 import {
@@ -839,7 +842,7 @@ function WaydGridInner<T>(
     return Array.from(header.column.getFacetedUniqueValues().keys())
       .filter((v): v is string => v != null && v !== '')
       .map(String)
-      .sort()
+      .sort(caseInsensitiveCompare)
   }
 
   /**

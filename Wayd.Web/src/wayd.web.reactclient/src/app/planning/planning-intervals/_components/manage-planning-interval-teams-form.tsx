@@ -45,6 +45,7 @@ const teamColumns: ColumnDef<PlanningIntervalTeamModel, any>[] = [
     accessorKey: 'teamOfTeams',
     header: 'Team of Teams',
     size: 220,
+    meta: { filterType: 'set' },
   },
 ]
 

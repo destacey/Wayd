@@ -40,11 +40,13 @@ const projectColumns: ColumnDef<ProjectListDto, any>[] = [
     accessorKey: 'portfolio.name',
     header: 'Portfolio',
     size: 180,
+    meta: { filterType: 'set' },
   },
   {
     accessorKey: 'status.name',
     header: 'Status',
     size: 100,
+    meta: { filterType: 'set' },
   },
 ]
 

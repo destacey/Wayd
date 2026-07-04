@@ -15,6 +15,10 @@ import { LoadingOutlined, SearchOutlined } from '@ant-design/icons'
 import { Flex, Input, Modal, Typography } from 'antd'
 import { ChangeEvent, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
+import {
+  caseInsensitiveCompare,
+  createMultiValueSetFilter,
+} from '@/src/components/common/wayd-grid'
 import WaydGridTransfer from '@/src/components/common/wayd-grid-transfer'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { workItemKeyComparator, WorkItemTagsCell } from '@/src/components/common/work'
@@ -29,55 +33,11 @@ export interface ManagePlanningIntervalObjectiveWorkItemsFormProps {
   onFormCancel: () => void
 }
 
-const workItemColumns: ColumnDef<WorkItemListDto, any>[] = [
-  {
-    accessorKey: 'key',
-    header: 'Key',
-    size: 125,
-  },
-  {
-    accessorKey: 'title',
-    header: 'Title',
-    size: 250,
-  },
-  {
-    accessorKey: 'type.name',
-    header: 'Type',
-    size: 100,
-  },
-  {
-    accessorKey: 'status',
-    header: 'Status',
-    size: 100,
-  },
-  {
-    accessorKey: 'team.name',
-    header: 'Team',
-    size: 150,
-  },
-  {
-    accessorKey: 'parent.key',
-    header: 'Parent Key',
-    size: 125,
-  },
-  {
-    accessorKey: 'sprint.name',
-    header: 'Sprint',
-    size: 200,
-  },
-  {
-    accessorKey: 'project.name',
-    header: 'Project',
-    size: 200,
-  },
-  {
-    id: 'tags',
-    header: 'Tags',
-    size: 200,
-    accessorFn: (row) => row.tags?.join(', ') ?? '',
-    cell: ({ row }) => <WorkItemTagsCell tags={row.original.tags} />,
-  },
-]
+/** A work item's tags (source for the cell, the Tags set filter, and CSV
+ *  export). */
+const workItemTags = (item: WorkItemListDto): string[] => item.tags ?? []
+
+const tagsFilter = createMultiValueSetFilter<WorkItemListDto>(workItemTags)
 
 const defaultSort = (a: WorkItemListDto, b: WorkItemListDto) => {
   return workItemKeyComparator(a.key, b.key)
@@ -135,6 +95,77 @@ const ManagePlanningIntervalObjectiveWorkItemsForm = ({
       .filter((item) => !targetIds.has(item.id))
       .sort(defaultSort)
   })()
+
+  // Distinct individual tags across both grids, for the Tags set filter's
+  // checkbox list (individual tags, not whole combinations).
+  const tagFilterOptions = (() => {
+    const names = new Set<string>()
+    for (const item of [...sourceWorkItems, ...targetWorkItems]) {
+      for (const tag of workItemTags(item)) {
+        names.add(tag)
+      }
+    }
+    return Array.from(names)
+      .sort(caseInsensitiveCompare)
+      .map((name) => ({ label: name, value: name }))
+  })()
+
+  const workItemColumns: ColumnDef<WorkItemListDto, any>[] = [
+    {
+      accessorKey: 'key',
+      header: 'Key',
+      size: 125,
+    },
+    {
+      accessorKey: 'title',
+      header: 'Title',
+      size: 250,
+    },
+    {
+      accessorKey: 'type.name',
+      header: 'Type',
+      size: 100,
+      meta: { filterType: 'set' },
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      size: 100,
+      meta: { filterType: 'set' },
+    },
+    {
+      accessorKey: 'team.name',
+      header: 'Team',
+      size: 150,
+      meta: { filterType: 'set' },
+    },
+    {
+      accessorKey: 'parent.key',
+      header: 'Parent Key',
+      size: 125,
+    },
+    {
+      accessorKey: 'sprint.name',
+      header: 'Sprint',
+      size: 200,
+      meta: { filterType: 'set' },
+    },
+    {
+      accessorKey: 'project.name',
+      header: 'Project',
+      size: 200,
+      meta: { filterType: 'set' },
+    },
+    {
+      id: 'tags',
+      header: 'Tags',
+      size: 200,
+      accessorFn: (row) => workItemTags(row).join(', '),
+      filterFn: tagsFilter,
+      meta: { filterType: 'set', filterOptions: tagFilterOptions },
+      cell: ({ row }) => <WorkItemTagsCell tags={row.original.tags} />,
+    },
+  ]
 
   const { isOpen, isSaving, handleOk, handleCancel } = useConfirmModal({
     onSubmit: async () => {

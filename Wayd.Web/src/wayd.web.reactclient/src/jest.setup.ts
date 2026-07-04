@@ -306,6 +306,56 @@ if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = jest.fn()
 }
 
+// jsdom has no layout, so WaydGrid's scrolling body viewport measures 0×0 and
+// the row virtualizer would render zero rows (TanStack virtual bails on a
+// 0-height scroll rect; it reads offsetWidth/offsetHeight). Report a fixed
+// 800×600 viewport for that one element (marked data-grid-body-viewport) so
+// grids render a deterministic window: 600px ÷ 28px estimated rows = indexes
+// 0-21 visible, plus 10 overscan.
+const GRID_VIEWPORT_MARKER = 'data-grid-body-viewport'
+const GRID_VIEWPORT_WIDTH = 800
+const GRID_VIEWPORT_HEIGHT = 600
+
+const mockViewportDimension = (
+  property: 'offsetWidth' | 'offsetHeight' | 'clientWidth' | 'clientHeight',
+  value: number,
+) => {
+  const original = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    property,
+  )
+  Object.defineProperty(HTMLElement.prototype, property, {
+    configurable: true,
+    get(this: HTMLElement) {
+      if (this.hasAttribute?.(GRID_VIEWPORT_MARKER)) return value
+      return original?.get?.call(this) ?? 0
+    },
+  })
+}
+
+mockViewportDimension('offsetWidth', GRID_VIEWPORT_WIDTH)
+mockViewportDimension('offsetHeight', GRID_VIEWPORT_HEIGHT)
+mockViewportDimension('clientWidth', GRID_VIEWPORT_WIDTH)
+mockViewportDimension('clientHeight', GRID_VIEWPORT_HEIGHT)
+
+const originalGetBoundingClientRect = Element.prototype.getBoundingClientRect
+Element.prototype.getBoundingClientRect = function (this: Element) {
+  if (this.hasAttribute?.(GRID_VIEWPORT_MARKER)) {
+    return {
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: GRID_VIEWPORT_WIDTH,
+      bottom: GRID_VIEWPORT_HEIGHT,
+      width: GRID_VIEWPORT_WIDTH,
+      height: GRID_VIEWPORT_HEIGHT,
+      toJSON: () => ({}),
+    } as DOMRect
+  }
+  return originalGetBoundingClientRect.call(this)
+}
+
 // Suppress console errors during tests
 // beforeAll(() => {
 //   console.error = jest.fn()

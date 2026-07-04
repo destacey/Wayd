@@ -66,6 +66,18 @@
   border-bottom: 1px solid var(--ant-color-border);
 }
 
+/* Fills the area under the header: the scrolling wrapper plus the status
+   overlay's positioning context. The overlay must NOT live inside the
+   scrolling wrapper — absolutely-positioned children of a scroll container
+   ride along with its scroll offsets. */
+.bodyArea {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 /* The body viewport — the grid's one scrolling element (draft/editing
    scroll-into-view helpers target this class). */
 .tableWrapper {
@@ -395,6 +407,17 @@
   padding: 0;
 }
 
+/*
+ * Virtual-offset spacer cell (row virtualization). Height is set inline from
+ * the virtualizer's offsets. Zero padding and border so the spacer's height
+ * is exactly the inline value and it contributes no width — any width the
+ * body table gains over the header table desyncs their max horizontal scroll.
+ */
+.virtualSpacer {
+  padding: 0;
+  border: 0;
+}
+
 .tr {
   cursor: default;
 }
@@ -408,28 +431,19 @@
 }
 
 /*
- * Loading/empty status band. The classes go on a DIV inside the spanning
- * <td> (display:flex directly on a td breaks table-cell rendering), and
- * .tableElementFill stretches the table while the band is shown so the
- * single status row fills the wrapper and centers its content vertically
- * (the td is vertical-align: middle).
+ * Loading/empty status overlay: centered on the VISIBLE body viewport (via
+ * .bodyArea), not on the table — a wide table in a narrow window centers a
+ * spanning status <td> at half the scroll width, pushing it off-screen.
+ * pointer-events: none keeps the scrollbars beneath it usable.
  */
-.tableElementFill {
-  height: 100%;
-}
-
-.empty {
-  padding: var(--ant-padding-lg);
+.statusOverlay {
+  position: absolute;
+  inset: 0;
   display: flex;
   justify-content: center;
   align-items: center;
-}
-
-.loading {
   padding: var(--ant-padding-lg);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  pointer-events: none;
 }
 
 /* ─── Tree mode: inline editing ─────────────────────────── */

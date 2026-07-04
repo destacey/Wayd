@@ -25,6 +25,7 @@ import {
   getFacetedRowModel,
   getFacetedUniqueValues,
 } from '@tanstack/react-table'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import {
   DndContext,
   type DragCancelEvent,
@@ -109,6 +110,16 @@ const EMPTY_NODE_SET: Set<string> = new Set<string>()
 const EMPTY_DATA: never[] = []
 const EMPTY_FIELD_ERRORS: Record<string, string> = {}
 const DRAFT_SCROLL_MARGIN = 8
+
+/** Fixed row-height estimate for the virtualizer. Rows are uniform in
+ * practice (.td: 4px padding + 1px border + one no-wrap text line), so a
+ * fixed estimate avoids per-row measurement; positions stay self-consistent
+ * because the spacer rows use the same estimates. */
+const ROW_HEIGHT_ESTIMATE = 28
+/** Rows rendered beyond the visible window on each side. Also what keeps
+ * jsdom tests rendering rows at all: with no layout the viewport measures
+ * 0px, so the virtualizer renders indexes 0..overscan. */
+const ROW_OVERSCAN = 10
 
 const NOOP_FORM = {
   validateFields: async () => ({}),
@@ -195,6 +206,250 @@ const treeRowClasses: TreeGridRowClasses = {
   trEditable: styles.trEditable,
   trSelected: styles.trSelected,
   editableCell: styles.editableCell,
+}
+
+interface GridBodyProps<T> {
+  rows: Row<T>[]
+  /** The scrolling viewport ref — owned by the grid (scrollbar-width
+   *  measurement) but attached here. */
+  bodyViewportRef: React.RefObject<HTMLDivElement | null>
+  /** Mirrors scrollLeft into the header viewport. */
+  onBodyScroll: (e: React.UIEvent<HTMLDivElement>) => void
+  /** The shared colgroup element (same instance the header table renders).
+   *  Stable across scrolls, so React skips reconciling it. */
+  colGroup: ReactNode
+  isLoading: boolean
+  emptyMessage: string
+  visibleColumnCount: number
+  isTree: boolean
+  flatDndEnabled: boolean
+  isDragEnabled: boolean
+  canEdit: boolean
+  editableColumns: string[]
+  draftPrefix: string
+  selectedRowId: string | null
+  draggedNodeId: string | null
+  fieldErrors: Record<string, string>
+  flatRowId: (row: Row<T>) => string
+  onRowClick: (e: React.MouseEvent, rowId: string) => void
+  onCellClick: (e: React.MouseEvent) => void
+}
+
+/**
+ * The scrolling body viewport, split from the grid so it alone owns the row
+ * virtualizer: every overscan-window shift re-renders whichever component
+ * holds the virtualizer, and when that was the whole grid the header's antd
+ * controls (filter popovers, floating-filter inputs) re-rendered per shift —
+ * visible as scroll stutter. Confined here, a shift re-renders only the
+ * ~viewport of body rows; the header, toolbar, and filters stay untouched.
+ */
+function GridBody<T>({
+  rows,
+  bodyViewportRef,
+  onBodyScroll,
+  colGroup,
+  isLoading,
+  emptyMessage,
+  visibleColumnCount,
+  isTree,
+  flatDndEnabled,
+  isDragEnabled,
+  canEdit,
+  editableColumns,
+  draftPrefix,
+  selectedRowId,
+  draggedNodeId,
+  fieldErrors,
+  flatRowId,
+  onRowClick,
+  onCellClick,
+}: GridBodyProps<T>) {
+  // Owns virtualizer + TanStack row JSX — same staleness hazard as the grid.
+  'use no memo'
+
+  // ─── Row virtualization ──────────────────────────────────
+  // Only the visible window of rows (plus overscan) is mounted, ag-grid
+  // style. The virtualizer windows the already-flattened row model, so tree
+  // expand/collapse flows through naturally as a count change. Offsets render
+  // as spacer rows (real <tr>s) so the body stays a genuine table — colgroup
+  // column alignment with the header table is untouched.
+  // eslint-disable-next-line react-hooks/incompatible-library -- the warning is about compiler memoization, which 'use no memo' above already opts out of
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => bodyViewportRef.current,
+    estimateSize: () => ROW_HEIGHT_ESTIMATE,
+    overscan: ROW_OVERSCAN,
+  })
+  const virtualRows = rowVirtualizer.getVirtualItems()
+  const spacerTop = virtualRows.length > 0 ? virtualRows[0].start : 0
+  const spacerBottom =
+    virtualRows.length > 0
+      ? rowVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end
+      : 0
+
+  // Virtualized rows unmount when scrolled out, but the editing machinery
+  // (focusCellById, keyboard nav, draft scroll-into-view) targets rendered
+  // DOM — make sure the selected row's index is mounted before they run.
+  useEffect(() => {
+    if (!selectedRowId) return
+    const index = rows.findIndex(
+      (row) => (row.original as { id?: string }).id === selectedRowId,
+    )
+    if (index >= 0) rowVirtualizer.scrollToIndex(index)
+  }, [selectedRowId, rows, rowVirtualizer])
+
+  // While loading (or with no rows) the rows are replaced by a status
+  // overlay. The overlay is a sibling of the scrolling wrapper — anchored to
+  // the VISIBLE body viewport, not the table: a wide table in a narrow window
+  // centers a spanning status <td> at half the scroll width, which can sit
+  // entirely off-screen.
+  const showStatusOverlay = isLoading || rows.length === 0
+
+  return (
+    <div className={styles.bodyArea}>
+      <div
+        className={styles.tableWrapper}
+        ref={bodyViewportRef}
+        onScroll={onBodyScroll}
+        // Measurement hook for jsdom tests: layoutless environments report a
+        // 0×0 rect here, which makes the row virtualizer render nothing —
+        // jest.setup.ts returns a fixed rect for this attribute instead.
+        data-grid-body-viewport=""
+      >
+        <table className={styles.tableElement}>
+          {colGroup}
+          <tbody>
+            {!showStatusOverlay && (
+              <>
+              {/* Virtual offset spacers: real table rows standing in for the
+                  unrendered rows above/below the window. Zero padding/border
+                  so they add no width — header/body scrollWidth must match. */}
+              {spacerTop > 0 && (
+                <tr aria-hidden="true">
+                  <td
+                    className={styles.virtualSpacer}
+                    colSpan={visibleColumnCount + 1}
+                    style={{ height: spacerTop }}
+                  />
+                </tr>
+              )}
+              {virtualRows.map((virtualRow) => {
+                const row = rows[virtualRow.index]
+                // Zebra striping keys off the absolute display index so
+                // stripes don't shift as the window moves.
+                const index = virtualRow.index
+
+                if (isTree) {
+                  const nodeId = (row.original as { id: string }).id
+                  const isSelected = selectedRowId === nodeId
+                  const isRowDragging = draggedNodeId === nodeId
+                  const isDraftRow = nodeId.startsWith(draftPrefix)
+                  const rowElements = [
+                    <TreeGridRow
+                      key={row.id}
+                      row={row}
+                      index={index}
+                      classes={treeRowClasses}
+                      nodeId={nodeId}
+                      isSelected={isSelected}
+                      isDragging={isRowDragging}
+                      isDragEnabled={isDragEnabled && !isDraftRow}
+                      canEdit={canEdit}
+                      editableColumns={editableColumns}
+                      onRowClick={onRowClick}
+                      onCellClick={onCellClick}
+                    />,
+                  ]
+
+                  // The error band is an extra <tr> the virtualizer doesn't
+                  // model — its height is missing from the spacer math.
+                  // Accepted: it exists only while the selected row is
+                  // mounted (active inline editing), overscan absorbs the
+                  // offset, and the estimate-derived geometry snaps back the
+                  // moment the band unmounts. If it ever visibly drifts, the
+                  // fix is per-row measureElement, not restructuring.
+                  if (isSelected && Object.keys(fieldErrors).length > 0) {
+                    const errorItems = Object.entries(fieldErrors).map(
+                      ([field, error]) => (
+                        <div
+                          key={field}
+                          className={styles.validationErrorItem}
+                        >
+                          <span className={styles.validationErrorField}>
+                            {field}:
+                          </span>{' '}
+                          {error}
+                        </div>
+                      ),
+                    )
+
+                    rowElements.push(
+                      <tr
+                        key={`${row.id}-errors`}
+                        className={`${styles.tr} ${styles.validationErrorRow}`}
+                      >
+                        <td
+                          colSpan={visibleColumnCount + 1}
+                          className={`${styles.td} ${styles.validationErrorCell}`}
+                        >
+                          {errorItems}
+                        </td>
+                      </tr>,
+                    )
+                  }
+
+                  return rowElements
+                }
+
+                if (flatDndEnabled) {
+                  const nodeId = flatRowId(row)
+                  return (
+                    <SortableFlatGridRow
+                      key={row.id}
+                      row={row}
+                      index={index}
+                      classes={rowClasses}
+                      nodeId={nodeId}
+                      isDragging={draggedNodeId === nodeId}
+                      isDragEnabled={isDragEnabled}
+                    />
+                  )
+                }
+
+                return (
+                  <FlatGridRow
+                    key={row.id}
+                    row={row}
+                    index={index}
+                    classes={rowClasses}
+                  />
+                )
+              })}
+              {spacerBottom > 0 && (
+                <tr aria-hidden="true">
+                  <td
+                    className={styles.virtualSpacer}
+                    colSpan={visibleColumnCount + 1}
+                    style={{ height: spacerBottom }}
+                  />
+                </tr>
+              )}
+              </>
+            )}
+          </tbody>
+        </table>
+      </div>
+      {showStatusOverlay && (
+        <div className={styles.statusOverlay}>
+          {isLoading ? (
+            <Spin size="large" />
+          ) : (
+            <WaydEmpty message={emptyMessage} />
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function WaydGridInner<T>(
@@ -1012,10 +1267,6 @@ function WaydGridInner<T>(
     dndEnabled && !isLoading && !isEditing && !hasActiveFilters
 
   // ─── Render ──────────────────────────────────────────────
-  // While loading/empty, the table stretches to fill the wrapper so the
-  // single status row (and its spinner / empty message) centers vertically.
-  const showStatusRow = isLoading || rows.length === 0
-
   // TanStack returns one header group per depth; the LAST is always the leaf
   // columns, so any rows above it render as colspan bands. The band count
   // drives the sticky-offset CSS var (bands / leaf header / filter row stack).
@@ -1214,116 +1465,27 @@ function WaydGridInner<T>(
           aria-hidden="true"
         />
       </div>
-      <div
-        className={styles.tableWrapper}
-        ref={bodyViewportRef}
-        onScroll={handleBodyScroll}
-      >
-        <table
-          className={`${styles.tableElement}${
-            showStatusRow ? ` ${styles.tableElementFill}` : ''
-          }`}
-        >
-          {colGroup}
-          <tbody>
-          {isLoading ? (
-            <tr>
-              {/* Centering lives on the inner div — `display: flex` directly
-                  on a <td> breaks table-cell rendering in browsers. */}
-              <td colSpan={visibleColumnCount + 1} className={styles.td}>
-                <div className={styles.loading}>
-                  <Spin size="large" />
-                </div>
-              </td>
-            </tr>
-          ) : rows.length === 0 ? (
-            <tr>
-              <td colSpan={visibleColumnCount + 1} className={styles.td}>
-                <div className={styles.empty}>
-                  <WaydEmpty message={emptyMessage} />
-                </div>
-              </td>
-            </tr>
-          ) : isTree ? (
-            rows.flatMap((row, index) => {
-              const nodeId = (row.original as { id: string }).id
-              const isSelected = selectedRowId === nodeId
-              const isRowDragging = draggedNodeId === nodeId
-              const isDraftRow = nodeId.startsWith(draftPrefix)
-              const rowElements = [
-                <TreeGridRow
-                  key={row.id}
-                  row={row}
-                  index={index}
-                  classes={treeRowClasses}
-                  nodeId={nodeId}
-                  isSelected={isSelected}
-                  isDragging={isRowDragging}
-                  isDragEnabled={isDragEnabled && !isDraftRow}
-                  canEdit={canEdit}
-                  editableColumns={editableColumns}
-                  onRowClick={handleRowClickWithContext}
-                  onCellClick={handleCellClick}
-                />,
-              ]
-
-              if (isSelected && Object.keys(fieldErrors).length > 0) {
-                const errorItems = Object.entries(fieldErrors).map(
-                  ([field, error]) => (
-                    <div key={field} className={styles.validationErrorItem}>
-                      <span className={styles.validationErrorField}>
-                        {field}:
-                      </span>{' '}
-                      {error}
-                    </div>
-                  ),
-                )
-
-                rowElements.push(
-                  <tr
-                    key={`${row.id}-errors`}
-                    className={`${styles.tr} ${styles.validationErrorRow}`}
-                  >
-                    <td
-                      colSpan={visibleColumnCount + 1}
-                      className={`${styles.td} ${styles.validationErrorCell}`}
-                    >
-                      {errorItems}
-                    </td>
-                  </tr>,
-                )
-              }
-
-              return rowElements
-            })
-          ) : flatDndEnabled ? (
-            rows.map((row, index) => {
-              const nodeId = flatRowId(row)
-              return (
-                <SortableFlatGridRow
-                  key={row.id}
-                  row={row}
-                  index={index}
-                  classes={rowClasses}
-                  nodeId={nodeId}
-                  isDragging={draggedNodeId === nodeId}
-                  isDragEnabled={isDragEnabled}
-                />
-              )
-            })
-          ) : (
-            rows.map((row, index) => (
-              <FlatGridRow
-                key={row.id}
-                row={row}
-                index={index}
-                classes={rowClasses}
-              />
-            ))
-          )}
-          </tbody>
-        </table>
-      </div>
+      <GridBody
+        rows={rows}
+        bodyViewportRef={bodyViewportRef}
+        onBodyScroll={handleBodyScroll}
+        colGroup={colGroup}
+        isLoading={isLoading}
+        emptyMessage={emptyMessage}
+        visibleColumnCount={visibleColumnCount}
+        isTree={isTree}
+        flatDndEnabled={flatDndEnabled}
+        isDragEnabled={isDragEnabled}
+        canEdit={canEdit}
+        editableColumns={editableColumns}
+        draftPrefix={draftPrefix}
+        selectedRowId={selectedRowId}
+        draggedNodeId={draggedNodeId}
+        fieldErrors={fieldErrors}
+        flatRowId={flatRowId}
+        onRowClick={handleRowClickWithContext}
+        onCellClick={handleCellClick}
+      />
     </div>
   )
 
@@ -1384,7 +1546,8 @@ function WaydGridInner<T>(
  * and draft rows. Flat mode supports row-reorder drag-and-drop via
  * `onRowReorder`. Rows render through the row-renderer seam: the flat forms
  * ({@link FlatGridRow} / {@link SortableFlatGridRow}) or the tree form
- * ({@link TreeGridRow}).
+ * ({@link TreeGridRow}). Body rows are always virtualized (ag-grid style) —
+ * only the visible window plus overscan is mounted.
  */
 const WaydGrid = forwardRef(WaydGridInner) as <T>(
   props: WaydGridProps<T> & { ref?: Ref<WaydGridHandle> },

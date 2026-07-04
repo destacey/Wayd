@@ -40,7 +40,9 @@ const PiObjectiveHealthReportGrid = (
         header: 'Health',
         size: 115,
         meta: { filterType: 'set' },
-        cell: ({ row }) => <PiObjectiveHealthCheckTag healthCheck={row.original} />,
+        cell: ({ row }) => (
+          <PiObjectiveHealthCheckTag healthCheck={row.original} />
+        ),
       },
       {
         id: 'note',
@@ -92,7 +94,6 @@ const PiObjectiveHealthReportGrid = (
 
   return (
     <WaydGrid
-      height={550}
       columns={columns}
       data={healthReportData ?? []}
       onRefresh={refresh}

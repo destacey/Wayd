@@ -71,7 +71,7 @@ const RoadmapsGrid: FC<RoadmapsGridProps> = (props: RoadmapsGridProps) => {
 
   return (
     <WaydGrid
-      height={props.gridHeight ?? 650}
+      height={props.gridHeight}
       columns={columns}
       data={props.roadmapsData}
       onRefresh={props.refreshRoadmaps}

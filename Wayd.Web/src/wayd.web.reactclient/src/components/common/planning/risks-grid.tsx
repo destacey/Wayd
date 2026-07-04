@@ -1,10 +1,6 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import {
-  WaydGrid,
-  createActionsColumn,
-  renderTeamLink,
-} from '../wayd-grid'
+import { WaydGrid, createActionsColumn, renderTeamLink } from '../wayd-grid'
 import { RiskListDto } from '@/src/services/wayd-api'
 import { ItemType } from 'antd/es/menu/interface'
 import { Button } from 'antd'
@@ -33,7 +29,7 @@ const RisksGrid = ({
   refreshRisks,
   newRisksAllowed = false,
   hideTeamColumn = false,
-  gridHeight = 550,
+  gridHeight,
 }: RisksGridProps) => {
   const [includeClosed, setIncludeClosed] = useState<boolean>(false)
   const [hideTeam, setHideTeam] = useState<boolean>(hideTeamColumn)
@@ -114,87 +110,88 @@ const RisksGrid = ({
     }
 
     return [
-    createActionsColumn<RiskListDto>({
-      hide: !canUpdateRisks,
-      ariaLabel: 'Risk actions',
-      getItems: (risk): ItemType[] =>
-        canUpdateRisks
-          ? [
-              {
-                key: 'edit',
-                label: 'Edit',
-                onClick: () => editRiskButtonClicked(risk.key),
-              },
-            ]
-          : [],
-    }),
-    { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
-    {
-      id: 'summary',
-      accessorKey: 'summary',
-      header: 'Summary',
-      size: 300,
-      meta: { filterEnableSet: true },
-      cell: ({ row }) => (
-        <Link href={`/planning/risks/${row.original.key}`}>
-          {row.original.summary}
-        </Link>
-      ),
-    },
-    {
-      id: 'team',
-      accessorKey: 'team.name',
-      header: 'Team',
-      meta: { hide: hideTeam, filterEnableSet: true },
-      cell: ({ row }) => renderTeamLink(row.original.team),
-    },
-    {
-      id: 'status',
-      accessorKey: 'status',
-      header: 'Status',
-      size: 125,
-      meta: { hide: includeClosed === false, filterType: 'set' },
-    },
-    {
-      id: 'category',
-      accessorKey: 'category',
-      header: 'Category',
-      size: 125,
-      meta: { filterType: 'set' },
-    },
-    {
-      id: 'exposure',
-      accessorKey: 'exposure',
-      header: 'Exposure',
-      size: 125,
-      meta: { filterType: 'set' },
-    },
-    {
-      id: 'followUpDate',
-      accessorKey: 'followUpDate',
-      header: 'Follow Up Date',
-      meta: { columnType: 'dateOnly' },
-    },
-    {
-      id: 'assignee',
-      accessorKey: 'assignee.name',
-      header: 'Assignee',
-      cell: ({ row }) =>
-        row.original.assignee ? (
-          <Link
-            href={`/organizations/employees/${row.original.assignee.key}`}
-          >
-            {row.original.assignee.name}
+      createActionsColumn<RiskListDto>({
+        hide: !canUpdateRisks,
+        ariaLabel: 'Risk actions',
+        getItems: (risk): ItemType[] =>
+          canUpdateRisks
+            ? [
+                {
+                  key: 'edit',
+                  label: 'Edit',
+                  onClick: () => editRiskButtonClicked(risk.key),
+                },
+              ]
+            : [],
+      }),
+      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
+      {
+        id: 'summary',
+        accessorKey: 'summary',
+        header: 'Summary',
+        size: 300,
+        meta: { filterEnableSet: true },
+        cell: ({ row }) => (
+          <Link href={`/planning/risks/${row.original.key}`}>
+            {row.original.summary}
           </Link>
-        ) : null,
-    },
-    {
-      id: 'reportedOn',
-      accessorKey: 'reportedOn',
-      header: 'Reported On',
-      meta: { columnType: 'dateOnly' },
-    },
-  ]}, [canUpdateRisks, hideTeam, includeClosed])
+        ),
+      },
+      {
+        id: 'team',
+        accessorKey: 'team.name',
+        header: 'Team',
+        meta: { hide: hideTeam, filterEnableSet: true },
+        cell: ({ row }) => renderTeamLink(row.original.team),
+      },
+      {
+        id: 'status',
+        accessorKey: 'status',
+        header: 'Status',
+        size: 125,
+        meta: { hide: includeClosed === false, filterType: 'set' },
+      },
+      {
+        id: 'category',
+        accessorKey: 'category',
+        header: 'Category',
+        size: 125,
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'exposure',
+        accessorKey: 'exposure',
+        header: 'Exposure',
+        size: 125,
+        meta: { filterType: 'set' },
+      },
+      {
+        id: 'followUpDate',
+        accessorKey: 'followUpDate',
+        header: 'Follow Up Date',
+        meta: { columnType: 'dateOnly' },
+      },
+      {
+        id: 'assignee',
+        accessorKey: 'assignee.name',
+        header: 'Assignee',
+        cell: ({ row }) =>
+          row.original.assignee ? (
+            <Link
+              href={`/organizations/employees/${row.original.assignee.key}`}
+            >
+              {row.original.assignee.name}
+            </Link>
+          ) : null,
+      },
+      {
+        id: 'reportedOn',
+        accessorKey: 'reportedOn',
+        header: 'Reported On',
+        meta: { columnType: 'dateOnly' },
+      },
+    ]
+  }, [canUpdateRisks, hideTeam, includeClosed])
 
   return (
     <>

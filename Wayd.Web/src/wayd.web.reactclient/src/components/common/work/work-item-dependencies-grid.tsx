@@ -53,7 +53,9 @@ const WorkItemDependenciesGrid: FC<WorkItemDependenciesGridProps> = (props) => {
             size: 125,
             meta: { filterType: 'set' },
             cell: ({ row, getValue }) => (
-              <WaydTooltip title={dependencyTypeTooltip(row.original, workItem)}>
+              <WaydTooltip
+                title={dependencyTypeTooltip(row.original, workItem)}
+              >
                 <span>{getValue<string>()}</span>
               </WaydTooltip>
             ),
@@ -78,7 +80,10 @@ const WorkItemDependenciesGrid: FC<WorkItemDependenciesGridProps> = (props) => {
             accessorKey: 'scope.name',
             header: 'Scope',
             size: 100,
-            meta: { filterType: 'set', headerTooltip: DEPENDENCY_SCOPE_TOOLTIP },
+            meta: {
+              filterType: 'set',
+              headerTooltip: DEPENDENCY_SCOPE_TOOLTIP,
+            },
           },
         ],
       },
@@ -142,7 +147,6 @@ const WorkItemDependenciesGrid: FC<WorkItemDependenciesGridProps> = (props) => {
 
   return (
     <WaydGrid
-      height={550}
       columns={columns}
       data={props.dependencies}
       onRefresh={refresh}

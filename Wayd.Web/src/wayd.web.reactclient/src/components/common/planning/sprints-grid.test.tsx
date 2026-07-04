@@ -85,10 +85,30 @@ describe('SprintsGrid', () => {
     expect(screen.getByTestId('row-count')).toHaveTextContent('2')
   })
 
+  it('defaults the sort to Start descending (newest sprints first)', () => {
+    // Arrange / Act
+    render(
+      <SprintsGrid
+        sprints={mockSprints}
+        isLoading={false}
+        refetch={mockRefetch}
+      />,
+    )
+
+    // Assert — the grid receives the start-descending initial sort
+    const gridProps = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
+      .calls[0][0]
+    expect(gridProps.initialSorting).toEqual([{ id: 'start', desc: true }])
+  })
+
   it('passes the loading state through', () => {
     // Arrange / Act
     render(
-      <SprintsGrid sprints={mockSprints} isLoading={true} refetch={mockRefetch} />,
+      <SprintsGrid
+        sprints={mockSprints}
+        isLoading={true}
+        refetch={mockRefetch}
+      />,
     )
 
     // Assert
@@ -101,20 +121,6 @@ describe('SprintsGrid', () => {
 
     // Assert
     expect(screen.getByTestId('row-count')).toHaveTextContent('0')
-  })
-
-  it('uses the default grid height when not specified', () => {
-    // Arrange / Act
-    render(
-      <SprintsGrid
-        sprints={mockSprints}
-        isLoading={false}
-        refetch={mockRefetch}
-      />,
-    )
-
-    // Assert
-    expect(screen.getByTestId('height')).toHaveTextContent('650')
   })
 
   it('uses a custom grid height when specified', () => {
@@ -192,9 +198,7 @@ describe('SprintsGrid', () => {
     // Assert
     const call = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
       .calls[0][0]
-    const teamColumn = call.columns.find(
-      (c: { id: string }) => c.id === 'team',
-    )
+    const teamColumn = call.columns.find((c: { id: string }) => c.id === 'team')
     expect(teamColumn.meta.hide).toBe(true)
   })
 
@@ -211,9 +215,7 @@ describe('SprintsGrid', () => {
     // Assert
     const call = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
       .calls[0][0]
-    const teamColumn = call.columns.find(
-      (c: { id: string }) => c.id === 'team',
-    )
+    const teamColumn = call.columns.find((c: { id: string }) => c.id === 'team')
     expect(teamColumn.meta.hide).toBeUndefined()
   })
 })

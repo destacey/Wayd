@@ -267,7 +267,6 @@ const PlanningIntervalObjectivesGrid = ({
   return (
     <>
       <WaydGrid
-        height={650}
         columns={columns}
         data={objectivesData}
         isLoading={isLoading}

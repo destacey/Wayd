@@ -22,7 +22,6 @@ export interface SprintBacklogGridProps {
   refetch: () => void
   hideTeamColumn?: boolean
   hideSprintColumn?: boolean
-  /** Grid height in pixels. Use -1 for auto-height (expands to fit all rows). Default: -1 */
   gridHeight?: number
 }
 
@@ -32,7 +31,7 @@ const SprintBacklogGrid = (props: SprintBacklogGridProps) => {
     refetch,
     hideTeamColumn = false,
     hideSprintColumn = false,
-    gridHeight = -1,
+    gridHeight,
   } = props
 
   const columns = useMemo<ColumnDef<SprintBacklogItemDto, any>[]>(

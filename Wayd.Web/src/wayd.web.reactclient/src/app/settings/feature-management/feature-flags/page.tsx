@@ -168,7 +168,6 @@ const FeatureFlagsListPage = () => {
     <>
       <PageTitle title="Feature Flags" />
       <WaydGrid
-        height={600}
         columns={columns}
         data={featureFlags}
         onRefresh={refresh}

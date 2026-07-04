@@ -140,7 +140,6 @@ const WorkItemsBacklogGrid = (props: WorkItemsBacklogGridProps) => {
 
   return (
     <WaydGrid
-      height={550}
       columns={columns}
       data={props.workItems ?? []}
       onRefresh={refresh}

@@ -49,7 +49,10 @@ const TeamDependenciesGrid: FC<TeamDependenciesGridProps> = (props) => {
             accessorKey: 'scope.name',
             header: 'Scope',
             size: 100,
-            meta: { filterType: 'set', headerTooltip: DEPENDENCY_SCOPE_TOOLTIP },
+            meta: {
+              filterType: 'set',
+              headerTooltip: DEPENDENCY_SCOPE_TOOLTIP,
+            },
           },
         ],
       },
@@ -163,7 +166,6 @@ const TeamDependenciesGrid: FC<TeamDependenciesGridProps> = (props) => {
 
   return (
     <WaydGrid
-      height={550}
       columns={columns}
       data={props.dependencies}
       onRefresh={refresh}

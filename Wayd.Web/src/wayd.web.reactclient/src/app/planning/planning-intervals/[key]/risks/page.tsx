@@ -51,7 +51,6 @@ const PlanningIntervalRisksPage = (props: {
         refreshRisks={refetchRisks}
         newRisksAllowed={true}
         hideTeamColumn={false}
-        gridHeight={650}
       />
     </>
   )

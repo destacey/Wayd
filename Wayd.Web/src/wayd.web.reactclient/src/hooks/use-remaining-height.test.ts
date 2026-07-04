@@ -84,8 +84,8 @@ describe('useRemainingHeight', () => {
       result.current[0](el)
     })
 
-    // 1000 - 200 - 30 (default offset) = 770
-    expect(result.current[1]).toBe(770)
+    // 1000 - 200 - 50 (default offset) = 750
+    expect(result.current[1]).toBe(750)
   })
 
   it('applies custom bottom offset', () => {
@@ -112,7 +112,7 @@ describe('useRemainingHeight', () => {
       result.current[0](el)
     })
 
-    // 400 - 250 - 30 = 120, but min is 300
+    // 400 - 250 - 50 = 100, but min is 300
     expect(result.current[1]).toBe(300)
   })
 
@@ -126,14 +126,14 @@ describe('useRemainingHeight', () => {
       result.current[0](el)
     })
 
-    expect(result.current[1]).toBe(870) // 1000 - 100 - 30
+    expect(result.current[1]).toBe(850) // 1000 - 100 - 50
 
     act(() => {
       setWindowHeight(800)
       window.dispatchEvent(new Event('resize'))
     })
 
-    expect(result.current[1]).toBe(670) // 800 - 100 - 30
+    expect(result.current[1]).toBe(650) // 800 - 100 - 50
   })
 
   it('cleans up resize listener on unmount', () => {
@@ -142,10 +142,7 @@ describe('useRemainingHeight', () => {
     const { unmount } = renderHook(() => useRemainingHeight())
     unmount()
 
-    expect(removeSpy).toHaveBeenCalledWith(
-      'resize',
-      expect.any(Function),
-    )
+    expect(removeSpy).toHaveBeenCalledWith('resize', expect.any(Function))
     removeSpy.mockRestore()
   })
 
@@ -159,7 +156,7 @@ describe('useRemainingHeight', () => {
       result.current[0](el)
     })
 
-    expect(result.current[1]).toBe(770)
+    expect(result.current[1]).toBe(750)
 
     // Detach
     act(() => {
@@ -168,6 +165,6 @@ describe('useRemainingHeight', () => {
 
     // Height remains at last calculated value (no reset to default)
     // The important thing is it doesn't crash
-    expect(result.current[1]).toBe(770)
+    expect(result.current[1]).toBe(750)
   })
 })

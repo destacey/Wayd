@@ -19,12 +19,13 @@ export interface EditWorkItemProjectFormProps {
   workItemId: string
   workItemKey: string
   workspaceId: string
+  hasParent: boolean
   onFormComplete: () => void
   onFormCancel: () => void
 }
 
 interface EditWorkItemProjectFormValues {
-  projectId: string
+  projectId?: string
 }
 
 const mapToRequestValues = (
@@ -33,7 +34,7 @@ const mapToRequestValues = (
 ): UpdateWorkItemProjectRequest => {
   return {
     workItemId: workItemId,
-    projectId: values.projectId,
+    projectId: values.projectId || undefined,
   }
 }
 
@@ -99,9 +100,12 @@ const EditWorkItemProjectForm = (props: EditWorkItemProjectFormProps) => {
 
   useEffect(() => {
     if (!workItemProjectInfoData || !isOpen) return
+
     const projectId =
-      workItemProjectInfoData.project?.id ??
-      workItemProjectInfoData.parentProject?.id
+      workItemProjectInfoData.projectSource === 'WorkItem'
+        ? workItemProjectInfoData.project?.id
+        : undefined
+
     form.setFieldsValue({ projectId })
   }, [workItemProjectInfoData, isOpen, form])
 
@@ -118,13 +122,30 @@ const EditWorkItemProjectForm = (props: EditWorkItemProjectFormProps) => {
     }
   }, [error, messageApi, projectOptionsError])
 
+  const hasParent = props.hasParent || workItemProjectInfoData?.hasParent === true
+
   const projectSourceText =
     workItemProjectInfoData &&
-    (workItemProjectInfoData.project
-      ? 'The work item is currently overriding the Parent Project.  Clear and save to inherit the Parent Project.'
-      : workItemProjectInfoData.parentProject
-        ? 'The work item is currently is inheriting the Project from its Parent. Select a Project and save to override.'
-        : 'The work item is currently not associated with any project.')
+    (workItemProjectInfoData.projectSource === 'WorkItem'
+      ? workItemProjectInfoData.parentProject
+        ? `This work item is using its own project assignment instead of inheriting ${workItemProjectInfoData.parentProject.name} from its parent. Clear the field and save to inherit the parent project again.`
+        : 'This work item is using its own project assignment. Clear the field and save to remove the project.'
+      : workItemProjectInfoData.projectSource === 'Parent'
+        ? workItemProjectInfoData.parentProject
+          ? `This work item is inheriting ${workItemProjectInfoData.parentProject.name} from its parent. Select a different project and save to override it on this work item.`
+          : 'This work item is inheriting its project from the parent. Select a different project and save to override it on this work item.'
+        : hasParent
+          ? 'This work item and its parent do not currently have a project. Select a project and save to assign one directly to this work item.'
+          : 'This work item is not associated with any project. Select a project and save to assign one directly.')
+
+  const projectSelectOptions =
+    workItemProjectInfoData?.parentProject?.id && projectOptions
+      ? projectOptions.filter(
+          (option) => option.value !== workItemProjectInfoData.parentProject?.id,
+        )
+      : projectOptions
+
+  const parentProjectName = workItemProjectInfoData?.parentProject?.name ?? 'No Project'
 
   return (
     <>
@@ -141,6 +162,9 @@ const EditWorkItemProjectForm = (props: EditWorkItemProjectFormProps) => {
       >
         <Space vertical>
           {projectSourceText && <Text italic>{projectSourceText}</Text>}
+          {hasParent && (
+            <Text>Parent Project: {parentProjectName}</Text>
+          )}
           <Form
             form={form}
             size="small"
@@ -150,7 +174,7 @@ const EditWorkItemProjectForm = (props: EditWorkItemProjectFormProps) => {
             <Item name="projectId" label="Project">
               <Select
                 allowClear
-                options={projectOptions ?? []}
+                options={projectSelectOptions ?? []}
                 placeholder="Select Project"
                 showSearch
                 optionFilterProp="label"

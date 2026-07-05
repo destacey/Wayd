@@ -51,12 +51,54 @@ export { dateSortBy, sortEmptyLast } from './grid-sorting'
 export { exportGridToCsv } from './grid-export'
 
 // Table config + shared state hooks
-export { useGridState, useGridTable } from './use-grid-table'
+export {
+  mergeColumnVisibility,
+  useGridState,
+  useGridTable,
+} from './use-grid-table'
 export type {
   GridState,
   UseGridStateOptions,
   UseGridTableOptions,
 } from './use-grid-table'
+
+// Column pinning (sticky rendering over TanStack's columnPinning state)
+export {
+  getPinnedBandOffsets,
+  getPinnedOffsets,
+  pinnedCellClassNames,
+  pinnedCellStyle,
+} from './column-pinning'
+export type {
+  PinnedCellClasses,
+  PinnedColumnOffsets,
+} from './column-pinning'
+
+// Column autosize (measure rendered content, apply via columnSizing)
+export {
+  AUTOSIZE_MAX_WIDTH,
+  AUTOSIZE_MIN_WIDTH,
+  computeAutosizeWidth,
+  measureColumnContent,
+} from './column-autosize'
+export type {
+  AutosizeWidthInput,
+  ColumnContentMeasurement,
+} from './column-autosize'
+
+// Per-column header menu (⋮ — sort, pin, autosize, choose columns, reset)
+export {
+  ColumnChooserModal,
+  ColumnMenuTrigger,
+  buildColumnMenuItems,
+  getColumnChooserOptions,
+} from './column-menu'
+export type {
+  ColumnChooserModalProps,
+  ColumnChooserOption,
+  ColumnMenuItemsInput,
+  ColumnMenuTriggerProps,
+} from './column-menu'
 
 // Toolbar (search, row count, refresh, clear, export, help)
 export { default as GridToolbar } from './grid-toolbar'

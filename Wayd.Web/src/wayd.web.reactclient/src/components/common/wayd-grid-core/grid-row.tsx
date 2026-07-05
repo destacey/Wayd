@@ -1,16 +1,40 @@
 'use client'
 
-import { type Row, flexRender } from '@tanstack/react-table'
+import { type Cell, type Row, flexRender } from '@tanstack/react-table'
 import { GridSortableRow } from './dnd/grid-dnd'
+import {
+  getPinnedOffsets,
+  pinnedCellClassNames,
+  pinnedCellStyle,
+  type PinnedCellClasses,
+} from './column-pinning'
 
 /**
  * CSS-module class names the owning grid supplies for body rows, so the shared
- * markup picks up the grid's own zebra/cell styling.
+ * markup picks up the grid's own zebra/cell styling. The pinned set is
+ * optional — a grid without column pinning just omits it.
  */
 export interface GridRowClasses {
   tr: string
   trAlt: string
   td: string
+  /** Sticky/edge classes for pinned columns' `td`s. */
+  pinned?: PinnedCellClasses
+}
+
+/** The pinned class suffix (starting with a space) + inline style for a body
+ *  cell, or empties when the column is unpinned / pinning classes not given. */
+const pinnedTdProps = <T,>(
+  cell: Cell<T, unknown>,
+  classes: GridRowClasses,
+): { className: string; style?: React.CSSProperties } => {
+  if (!classes.pinned) return { className: '' }
+  const offsets = getPinnedOffsets(cell.column)
+  if (!offsets) return { className: '' }
+  return {
+    className: ` ${pinnedCellClassNames(offsets, classes.pinned)}`,
+    style: pinnedCellStyle(offsets),
+  }
 }
 
 export interface FlatGridRowProps<T> {
@@ -39,15 +63,19 @@ export function FlatGridRow<T>({ row, index, classes }: FlatGridRowProps<T>) {
     <tr
       className={`${classes.tr}${index % 2 === 1 ? ` ${classes.trAlt}` : ''}`}
     >
-      {row.getVisibleCells().map((cell) => (
-        <td
-          key={cell.id}
-          data-column-id={cell.column.id}
-          className={classes.td}
-        >
-          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-        </td>
-      ))}
+      {row.getVisibleCells().map((cell) => {
+        const pinned = pinnedTdProps(cell, classes)
+        return (
+          <td
+            key={cell.id}
+            data-column-id={cell.column.id}
+            className={`${classes.td}${pinned.className}`}
+            style={pinned.style}
+          >
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </td>
+        )
+      })}
       {/* Filler data cell keeps the zebra/hover band edge-to-edge. */}
       <td aria-hidden="true" className={classes.td} />
     </tr>
@@ -89,15 +117,19 @@ export function SortableFlatGridRow<T>({
       isDragging={isDragging}
       className={`${classes.tr}${index % 2 === 1 ? ` ${classes.trAlt}` : ''}`}
     >
-      {row.getVisibleCells().map((cell) => (
-        <td
-          key={cell.id}
-          data-column-id={cell.column.id}
-          className={classes.td}
-        >
-          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-        </td>
-      ))}
+      {row.getVisibleCells().map((cell) => {
+        const pinned = pinnedTdProps(cell, classes)
+        return (
+          <td
+            key={cell.id}
+            data-column-id={cell.column.id}
+            className={`${classes.td}${pinned.className}`}
+            style={pinned.style}
+          >
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </td>
+        )
+      })}
       {/* Filler data cell keeps the zebra/hover band edge-to-edge. */}
       <td aria-hidden="true" className={classes.td} />
     </GridSortableRow>
@@ -170,6 +202,7 @@ export function TreeGridRow<T>({
       {row.getVisibleCells().map((cell) => {
         const isEditableCell =
           isSelected && editableColumns.includes(cell.column.id)
+        const pinned = pinnedTdProps(cell, classes)
 
         return (
           <td
@@ -178,7 +211,8 @@ export function TreeGridRow<T>({
             data-column-id={cell.column.id}
             className={`${classes.td}${
               isEditableCell ? ` ${classes.editableCell}` : ''
-            }`}
+            }${pinned.className}`}
+            style={pinned.style}
             onClick={onCellClick}
           >
             {flexRender(cell.column.columnDef.cell, cell.getContext())}

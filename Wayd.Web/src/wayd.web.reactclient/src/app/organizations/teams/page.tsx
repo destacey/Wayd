@@ -117,6 +117,7 @@ const TeamListPage = () => {
         }}
         isLoading={isLoading}
         csvFileName="teams"
+        persistStateKey="organizations-teams"
         rightSlot={<ControlItemsMenu items={controlItems} />}
       />
       {isCreateOpen && (

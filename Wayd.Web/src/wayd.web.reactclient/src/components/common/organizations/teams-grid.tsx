@@ -7,6 +7,8 @@ export interface TeamsGridProps {
   teams: PlanningIntervalTeamResponse[]
   isLoading: boolean
   refetch: () => void
+  /** Column layout persistence key for the hosting page (see WaydGridProps). */
+  persistStateKey?: string
 }
 
 const TeamsGrid: FC<TeamsGridProps> = (props) => {
@@ -58,6 +60,7 @@ const TeamsGrid: FC<TeamsGridProps> = (props) => {
       data={props.teams}
       onRefresh={refresh}
       isLoading={props.isLoading}
+      persistStateKey={props.persistStateKey}
       csvFileName="teams"
     />
   )

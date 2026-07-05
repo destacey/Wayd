@@ -58,6 +58,7 @@ const ProgramViewManager = (props: ProgramViewManagerProps) => {
           refetch={props.refetch}
           hidePortfolio={true}
           viewSelector={viewSelector}
+          persistStateKey="portfolio-programs"
         />
       )}
       {currentView === 'Timeline' && (

@@ -19,6 +19,8 @@ export interface SprintsGridProps {
   refetch: () => void
   hideTeam?: boolean
   gridHeight?: number | undefined
+  /** Column layout persistence key for the hosting page (see WaydGridProps). */
+  persistStateKey?: string
 }
 
 /**
@@ -47,14 +49,20 @@ const SprintsGrid: FC<SprintsGridProps> = (props: SprintsGridProps) => {
         cell: ({ row }) =>
           renderSprintLink(row.original, { showTeamCode: false }),
       },
-      {
-        id: 'team',
-        accessorKey: 'team.name',
-        header: 'Team',
-        size: 200,
-        meta: { hide: props.hideTeam, filterEnableSet: true },
-        cell: ({ row }) => renderTeamLink(row.original.team),
-      },
+      // Context-redundant column: excluded from the defs (not meta.hide) so
+      // it stays out of the column chooser and persisted layouts.
+      ...(props.hideTeam
+        ? []
+        : [
+            {
+              id: 'team',
+              accessorKey: 'team.name',
+              header: 'Team',
+              size: 200,
+              meta: { filterEnableSet: true },
+              cell: ({ row }) => renderTeamLink(row.original.team),
+            } satisfies ColumnDef<SprintListDto, any>,
+          ]),
       {
         id: 'state',
         accessorKey: 'state.name',
@@ -90,6 +98,7 @@ const SprintsGrid: FC<SprintsGridProps> = (props: SprintsGridProps) => {
       isLoading={props.isLoading}
       height={props.gridHeight}
       initialSorting={defaultSorting}
+      persistStateKey={props.persistStateKey}
       csvFileName="sprints"
       emptyMessage="No sprints found."
     />

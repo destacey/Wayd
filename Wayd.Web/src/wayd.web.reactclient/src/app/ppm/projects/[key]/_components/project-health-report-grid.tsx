@@ -82,6 +82,7 @@ const ProjectHealthReportGrid = ({
         refetch()
       }}
       isLoading={isLoading}
+      persistStateKey="project-health-report"
       csvFileName="project-health-report"
       emptyMessage="No health checks found."
     />

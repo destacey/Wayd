@@ -131,6 +131,7 @@ const PlanningIntervalIterationDetailsPage = (props: {
             isLoading={backlogIsLoading}
             refetch={refetchBacklog}
             gridHeight={550}
+            persistStateKey="iteration-backlog"
           />
         )
       default:

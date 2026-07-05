@@ -120,6 +120,7 @@ const ExpenditureCategoriesPage = () => {
         data={categoryData ?? []}
         onRefresh={refresh}
         isLoading={isLoading}
+        persistStateKey="settings-expenditure-categories"
         csvFileName="expenditure-categories"
       />
       {openCreateExpenditureCategoryForm && (

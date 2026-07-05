@@ -21,6 +21,8 @@ export interface ProjectsGridProps {
   hideProgram?: boolean
   gridHeight?: number | undefined
   viewSelector?: ReactNode | undefined
+  /** Column layout persistence key for the hosting page (see WaydGridProps). */
+  persistStateKey?: string
 }
 
 const ProjectsGrid: FC<ProjectsGridProps> = (props: ProjectsGridProps) => {
@@ -75,22 +77,33 @@ const ProjectsGrid: FC<ProjectsGridProps> = (props: ProjectsGridProps) => {
           )
         },
       },
-      {
-        id: 'portfolio',
-        accessorKey: 'portfolio.name',
-        header: 'Portfolio',
-        size: 200,
-        meta: { hide: props.hidePortfolio, filterEnableSet: true },
-        cell: ({ row }) => renderPortfolioLink(row.original.portfolio),
-      },
-      {
-        id: 'program',
-        accessorKey: 'program.name',
-        header: 'Program',
-        size: 200,
-        meta: { hide: props.hideProgram, filterEnableSet: true },
-        cell: ({ row }) => renderProgramLink(row.original.program),
-      },
+      // Context-redundant columns are excluded from the defs (not meta.hide):
+      // they never belong on the hosting page, so they shouldn't appear in
+      // the column chooser or the persisted layout either.
+      ...(props.hidePortfolio
+        ? []
+        : [
+            {
+              id: 'portfolio',
+              accessorKey: 'portfolio.name',
+              header: 'Portfolio',
+              size: 200,
+              meta: { filterEnableSet: true },
+              cell: ({ row }) => renderPortfolioLink(row.original.portfolio),
+            } satisfies ColumnDef<ProjectListDto, any>,
+          ]),
+      ...(props.hideProgram
+        ? []
+        : [
+            {
+              id: 'program',
+              accessorKey: 'program.name',
+              header: 'Program',
+              size: 200,
+              meta: { filterEnableSet: true },
+              cell: ({ row }) => renderProgramLink(row.original.program),
+            } satisfies ColumnDef<ProjectListDto, any>,
+          ]),
       {
         id: 'start',
         accessorKey: 'start',
@@ -148,6 +161,7 @@ const ProjectsGrid: FC<ProjectsGridProps> = (props: ProjectsGridProps) => {
       csvFileName="projects"
       rightSlot={props.viewSelector}
       height={props.gridHeight}
+      persistStateKey={props.persistStateKey}
       emptyMessage="No projects found."
     />
   )

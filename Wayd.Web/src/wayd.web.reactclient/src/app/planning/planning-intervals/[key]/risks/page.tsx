@@ -51,6 +51,7 @@ const PlanningIntervalRisksPage = (props: {
         refreshRisks={refetchRisks}
         newRisksAllowed={true}
         hideTeamColumn={false}
+        persistStateKey="planning-interval-risks"
       />
     </>
   )

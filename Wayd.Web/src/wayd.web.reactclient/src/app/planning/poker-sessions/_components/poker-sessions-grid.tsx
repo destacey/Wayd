@@ -139,6 +139,7 @@ const PokerSessionsGrid: FC<PokerSessionsGridProps> = ({
       data={sessions}
       onRefresh={refetch}
       isLoading={isLoading}
+      persistStateKey="poker-sessions"
       csvFileName="poker-sessions"
       emptyMessage="No poker sessions found."
       rightSlot={

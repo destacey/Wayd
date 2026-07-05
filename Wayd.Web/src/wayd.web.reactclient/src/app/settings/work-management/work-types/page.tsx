@@ -148,6 +148,7 @@ const WorkTypesPage = () => {
         data={workTypes ?? []}
         onRefresh={refresh}
         isLoading={isLoading}
+        persistStateKey="settings-work-types"
         csvFileName="work-types"
         rightSlot={<ControlItemsMenu items={controlItems} />}
       />

@@ -221,6 +221,7 @@ const EstimationScalesPage = () => {
         data={scaleData ?? []}
         onRefresh={refresh}
         isLoading={isLoading}
+        persistStateKey="settings-estimation-scales"
         csvFileName="estimation-scales"
       />
       {openCreateForm && (

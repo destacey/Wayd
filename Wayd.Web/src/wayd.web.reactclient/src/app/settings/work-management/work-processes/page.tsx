@@ -94,6 +94,7 @@ const WorkProcessesPage: React.FC = () => {
         data={workProcessesData ?? []}
         onRefresh={refresh}
         isLoading={isLoading}
+        persistStateKey="settings-work-processes"
         csvFileName="work-processes"
         rightSlot={<ControlItemsMenu items={controlItems} />}
       />

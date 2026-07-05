@@ -174,6 +174,7 @@ const TeamMemberRolesPage = () => {
           refetch()
         }}
         isLoading={isLoading}
+        persistStateKey="settings-team-member-roles"
         csvFileName="team-member-roles"
         rightSlot={<ControlItemsMenu items={controlItems} />}
       />

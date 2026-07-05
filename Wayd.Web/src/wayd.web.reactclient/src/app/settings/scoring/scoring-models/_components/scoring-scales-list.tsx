@@ -235,6 +235,7 @@ const ScoringScalesList = ({
           columns={makeLevelColumns(scale, sortedLevels)}
           data={sortedLevels}
           onRefresh={loadData}
+          persistStateKey="settings-scoring-scale-levels"
           csvFileName="scoring-scale-levels"
         />
       ),

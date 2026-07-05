@@ -262,6 +262,7 @@ const ProjectWorkItemsTreeGrid: FC<ProjectWorkItemsTreeGridProps> = ({
       height={gridHeight}
       onRefresh={async () => refetch()}
       rightSlot={viewSelector}
+      persistStateKey="project-work-items-tree"
       csvFileName="project-work-items"
       emptyMessage="No work items found"
     />

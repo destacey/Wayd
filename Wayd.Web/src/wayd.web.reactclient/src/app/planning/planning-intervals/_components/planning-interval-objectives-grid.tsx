@@ -29,6 +29,8 @@ export interface PlanningIntervalObjectivesGridProps {
   hidePlanningIntervalColumn?: boolean
   hideTeamColumn?: boolean
   viewSelector?: React.ReactNode
+  /** Column layout persistence key for the hosting page (see WaydGridProps). */
+  persistStateKey?: string
 }
 
 interface SelectedObjective {
@@ -49,6 +51,7 @@ const PlanningIntervalObjectivesGrid = ({
   hidePlanningIntervalColumn = false,
   hideTeamColumn = false,
   viewSelector,
+  persistStateKey,
 }: PlanningIntervalObjectivesGridProps) => {
   const [hidePlanningInterval, setHidePlanningInterval] = useState<boolean>(
     hidePlanningIntervalColumn,
@@ -138,14 +141,20 @@ const PlanningIntervalObjectivesGrid = ({
         header: 'Stretch',
         meta: { columnType: 'yesNo' },
       },
-      {
-        id: 'planningInterval',
-        accessorKey: 'planningInterval.name',
-        header: 'Planning Interval',
-        meta: { hide: hidePlanningInterval },
-        cell: ({ row }) =>
-          renderPlanningIntervalLink(row.original.planningInterval),
-      },
+      // Context-dependent columns are excluded from the defs (not meta.hide)
+      // so they stay out of the column chooser and persisted layouts; the
+      // memo rebuilds when the toolbar switches flip.
+      ...(hidePlanningInterval
+        ? []
+        : [
+            {
+              id: 'planningInterval',
+              accessorKey: 'planningInterval.name',
+              header: 'Planning Interval',
+              cell: ({ row }) =>
+                renderPlanningIntervalLink(row.original.planningInterval),
+            } satisfies ColumnDef<PlanningIntervalObjectiveListDto, any>,
+          ]),
       {
         id: 'status',
         accessorKey: 'status.name',
@@ -153,13 +162,17 @@ const PlanningIntervalObjectivesGrid = ({
         size: 125,
         meta: { filterType: 'set' },
       },
-      {
-        id: 'team',
-        accessorKey: 'team.name',
-        header: 'Team',
-        meta: { hide: hideTeam, filterEnableSet: true },
-        cell: ({ row }) => renderTeamLink(row.original.team),
-      },
+      ...(hideTeam
+        ? []
+        : [
+            {
+              id: 'team',
+              accessorKey: 'team.name',
+              header: 'Team',
+              meta: { filterEnableSet: true },
+              cell: ({ row }) => renderTeamLink(row.original.team),
+            } satisfies ColumnDef<PlanningIntervalObjectiveListDto, any>,
+          ]),
       {
         id: 'health',
         accessorFn: (row) => row.healthCheck?.status?.name ?? '',
@@ -272,6 +285,7 @@ const PlanningIntervalObjectivesGrid = ({
         isLoading={isLoading}
         onRefresh={refresh}
         csvFileName="pi-objectives"
+        persistStateKey={persistStateKey}
         rightSlot={
           <>
             <ControlItemsMenu items={controlItems} />

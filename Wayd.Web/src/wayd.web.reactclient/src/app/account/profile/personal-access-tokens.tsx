@@ -241,6 +241,7 @@ const PersonalAccessTokens: FC = () => {
         data={tokens ?? []}
         isLoading={isLoading}
         onRefresh={refresh}
+        persistStateKey="account-pats"
         csvFileName="personal-access-tokens"
         emptyMessage="No PATs found."
       />

@@ -184,8 +184,9 @@ describe('SprintsGrid', () => {
     expect(mockRefetch).toHaveBeenCalledTimes(1)
   })
 
-  it('hides the team column via meta.hide when hideTeam is set', () => {
-    // Arrange / Act
+  it('excludes the team column from the defs when hideTeam is set', () => {
+    // Arrange / Act — context-redundant columns are excluded, not meta-hidden,
+    // so they stay out of the column chooser and persisted layouts
     render(
       <SprintsGrid
         sprints={mockSprints}
@@ -198,11 +199,11 @@ describe('SprintsGrid', () => {
     // Assert
     const call = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
       .calls[0][0]
-    const teamColumn = call.columns.find((c: { id: string }) => c.id === 'team')
-    expect(teamColumn.meta.hide).toBe(true)
+    const ids = call.columns.map((c: { id: string }) => c.id)
+    expect(ids).not.toContain('team')
   })
 
-  it('does not hide the team column by default', () => {
+  it('includes the team column by default', () => {
     // Arrange / Act
     render(
       <SprintsGrid
@@ -217,5 +218,22 @@ describe('SprintsGrid', () => {
       .calls[0][0]
     const teamColumn = call.columns.find((c: { id: string }) => c.id === 'team')
     expect(teamColumn.meta.hide).toBeUndefined()
+  })
+
+  it('forwards persistStateKey to the grid', () => {
+    // Arrange / Act
+    render(
+      <SprintsGrid
+        sprints={mockSprints}
+        isLoading={false}
+        refetch={mockRefetch}
+        persistStateKey="team-sprints"
+      />,
+    )
+
+    // Assert
+    const call = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
+      .calls[0][0]
+    expect(call.persistStateKey).toBe('team-sprints')
   })
 })

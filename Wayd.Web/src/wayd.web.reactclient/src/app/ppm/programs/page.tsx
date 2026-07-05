@@ -87,6 +87,7 @@ const ProgramsPage: FC = () => {
         programs={programData ?? []}
         isLoading={isLoading}
         refetch={refetch}
+        persistStateKey="ppm-programs"
       />
       {openCreateProgramForm && (
         <CreateProgramForm

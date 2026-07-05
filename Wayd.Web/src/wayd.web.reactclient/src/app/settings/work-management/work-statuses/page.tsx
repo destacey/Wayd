@@ -83,6 +83,7 @@ const WorkStatusesPage = () => {
         data={workStatuses ?? []}
         onRefresh={refresh}
         isLoading={isLoading}
+        persistStateKey="settings-work-statuses"
         csvFileName="work-statuses"
         rightSlot={<ControlItemsMenu items={controlItems} />}
       />

@@ -67,6 +67,7 @@ const ActiveTenantMigrations = ({
       onRefresh={() => {
         refetch()
       }}
+      persistStateKey="settings-tenant-migrations"
       csvFileName="tenant-migrations"
       emptyMessage="No tenant migrations are currently in progress."
     />

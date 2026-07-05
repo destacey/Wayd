@@ -23,6 +23,8 @@ export interface SprintBacklogGridProps {
   hideTeamColumn?: boolean
   hideSprintColumn?: boolean
   gridHeight?: number
+  /** Column layout persistence key for the hosting page (see WaydGridProps). */
+  persistStateKey?: string
 }
 
 const SprintBacklogGrid = (props: SprintBacklogGridProps) => {
@@ -85,21 +87,32 @@ const SprintBacklogGrid = (props: SprintBacklogGridProps) => {
         sortingFn: workStatusCategorySort,
         meta: { filterType: 'set' },
       },
-      {
-        id: 'team',
-        accessorKey: 'team.name',
-        header: 'Team',
-        meta: { hide: hideTeamColumn, filterEnableSet: true },
-        cell: ({ row }) => renderTeamLink(row.original.team),
-      },
-      {
-        id: 'sprint',
-        accessorKey: 'sprint.name',
-        header: 'Sprint',
-        meta: { hide: hideSprintColumn, filterEnableSet: true },
-        cell: ({ row }) =>
-          renderSprintLink(row.original.sprint, { showTeamCode: false }),
-      },
+      // Context-redundant columns are excluded from the defs (not meta.hide):
+      // they never belong on the hosting page, so they shouldn't appear in
+      // the column chooser or the persisted layout either.
+      ...(hideTeamColumn
+        ? []
+        : [
+            {
+              id: 'team',
+              accessorKey: 'team.name',
+              header: 'Team',
+              meta: { filterEnableSet: true },
+              cell: ({ row }) => renderTeamLink(row.original.team),
+            } satisfies ColumnDef<SprintBacklogItemDto, any>,
+          ]),
+      ...(hideSprintColumn
+        ? []
+        : [
+            {
+              id: 'sprint',
+              accessorKey: 'sprint.name',
+              header: 'Sprint',
+              meta: { filterEnableSet: true },
+              cell: ({ row }) =>
+                renderSprintLink(row.original.sprint, { showTeamCode: false }),
+            } satisfies ColumnDef<SprintBacklogItemDto, any>,
+          ]),
       {
         id: 'parentKey',
         accessorKey: 'parent.key',
@@ -160,6 +173,7 @@ const SprintBacklogGrid = (props: SprintBacklogGridProps) => {
       data={workItems ?? []}
       onRefresh={refresh}
       isLoading={props.isLoading}
+      persistStateKey={props.persistStateKey}
       csvFileName="sprint-backlog"
       emptyMessage="No planned work items"
     />

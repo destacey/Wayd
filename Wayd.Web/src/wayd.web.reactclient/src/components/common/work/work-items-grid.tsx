@@ -27,6 +27,8 @@ export interface WorkItemsGridProps {
    *  changes — e.g. the cycle-time report syncs its chart to the grid. */
   onDisplayedRowsChange?: (workItems: WorkItemListDto[]) => void
   viewSelector?: ReactNode | undefined
+  /** Column layout persistence key for the hosting page (see WaydGridProps). */
+  persistStateKey?: string
 }
 
 const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
@@ -91,31 +93,36 @@ const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
         meta: { filterEnableSet: true },
         cell: ({ row }) => renderSprintLink(row.original.sprint),
       },
-      {
-        id: 'parentKey',
-        accessorKey: 'parent.key',
-        header: 'Parent Key',
-        sortingFn: workItemKeySort,
-        meta: { hide: props.hideParentColumn },
-        cell: ({ row }) =>
-          renderWorkItemLink(
-            row.original.parent
-              ? {
-                  key: row.original.parent.key,
-                  workspaceKey: row.original.parent.workspaceKey,
-                  externalViewWorkItemUrl:
-                    row.original.parent.externalViewWorkItemUrl,
-                }
-              : null,
-          ),
-      },
-      {
-        id: 'parentTitle',
-        accessorKey: 'parent.title',
-        header: 'Parent',
-        size: 400,
-        meta: { hide: props.hideParentColumn },
-      },
+      // Context-redundant columns are excluded from the defs (not meta.hide):
+      // they never belong on the hosting page, so they shouldn't appear in
+      // the column chooser or the persisted layout either.
+      ...(props.hideParentColumn
+        ? []
+        : [
+            {
+              id: 'parentKey',
+              accessorKey: 'parent.key',
+              header: 'Parent Key',
+              sortingFn: workItemKeySort,
+              cell: ({ row }) =>
+                renderWorkItemLink(
+                  row.original.parent
+                    ? {
+                        key: row.original.parent.key,
+                        workspaceKey: row.original.parent.workspaceKey,
+                        externalViewWorkItemUrl:
+                          row.original.parent.externalViewWorkItemUrl,
+                      }
+                    : null,
+                ),
+            } satisfies ColumnDef<WorkItemListDto, any>,
+            {
+              id: 'parentTitle',
+              accessorKey: 'parent.title',
+              header: 'Parent',
+              size: 400,
+            } satisfies ColumnDef<WorkItemListDto, any>,
+          ]),
       {
         id: 'assignedTo',
         accessorKey: 'assignedTo.name',
@@ -123,14 +130,22 @@ const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
         meta: { filterEnableSet: true },
         cell: ({ row }) => renderAssignedToLink(row.original.assignedTo),
       },
-      {
-        id: 'project',
-        accessorKey: 'project.name',
-        header: 'Project',
-        size: 300,
-        meta: { hide: props.hideProjectColumn, filterEnableSet: true },
-        cell: ({ row }) => renderProjectLink(row.original.project),
-      },
+      ...(props.hideProjectColumn
+        ? []
+        : [
+            {
+              id: 'project',
+              accessorKey: 'project.name',
+              header: 'Project',
+              size: 300,
+              meta: { filterEnableSet: true },
+              cell: ({ row }) => renderProjectLink(row.original.project),
+            } satisfies ColumnDef<WorkItemListDto, any>,
+          ]),
+      // The stats columns stay on meta.hide (NOT def-exclusion): the grid's
+      // initialSorting sorts by the hidden 'done' column, and TanStack drops
+      // sort entries whose column has no def — excluding them would silently
+      // change the default row order on non-stats pages.
       {
         id: 'activated',
         accessorKey: 'activated',
@@ -168,6 +183,7 @@ const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
       initialSorting={[{ id: 'done', desc: true }]}
       onDisplayedRowsChange={props.onDisplayedRowsChange}
       rightSlot={props.viewSelector}
+      persistStateKey={props.persistStateKey}
       csvFileName="work-items"
     />
   )

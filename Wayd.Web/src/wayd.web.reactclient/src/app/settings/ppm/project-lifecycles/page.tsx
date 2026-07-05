@@ -104,6 +104,7 @@ const ProjectLifecyclesPage = () => {
         data={lifecycleData ?? []}
         onRefresh={refresh}
         isLoading={isLoading}
+        persistStateKey="settings-project-lifecycles"
         csvFileName="project-lifecycles"
       />
       {openCreateForm && (

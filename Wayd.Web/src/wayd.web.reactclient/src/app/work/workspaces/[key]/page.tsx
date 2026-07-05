@@ -76,6 +76,7 @@ const WorkspaceDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             workItems={workItemsQuery.data ?? []}
             isLoading={workItemsQuery.isLoading}
             refetch={workItemsQuery.refetch}
+            persistStateKey="workspace-work-items"
           />
         )
       default:

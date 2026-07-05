@@ -44,6 +44,8 @@ interface ProjectViewManagerProps {
   hideProgram?: boolean
   groupByProgram?: boolean
   defaultView?: ProjectView
+  /** Column layout persistence key for the list view (see WaydGridProps). */
+  persistStateKey?: string
 }
 
 const ProjectViewManager = (props: ProjectViewManagerProps) => {
@@ -94,6 +96,7 @@ const ProjectViewManager = (props: ProjectViewManagerProps) => {
           hidePortfolio={props.hidePortfolio}
           hideProgram={props.hideProgram}
           viewSelector={viewSelector}
+          persistStateKey={props.persistStateKey}
         />
       )}
       {currentView === 'Timeline' && (

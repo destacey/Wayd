@@ -170,6 +170,7 @@ const TeamDependenciesGrid: FC<TeamDependenciesGridProps> = (props) => {
       data={props.dependencies}
       onRefresh={refresh}
       isLoading={props.isLoading}
+      persistStateKey="team-dependencies"
       csvFileName="team-dependencies"
     />
   )

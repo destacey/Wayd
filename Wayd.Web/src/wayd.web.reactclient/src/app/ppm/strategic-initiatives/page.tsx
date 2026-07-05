@@ -97,6 +97,7 @@ const StrategicInitiativesPage: FC = () => {
         strategicInitiatives={strategicInitiativeData ?? []}
         isLoading={isLoading}
         refetch={refetch}
+        persistStateKey="ppm-strategic-initiatives"
       />
       {openCreateStrategicInitiativeForm && (
         <CreateStrategicInitiativeForm

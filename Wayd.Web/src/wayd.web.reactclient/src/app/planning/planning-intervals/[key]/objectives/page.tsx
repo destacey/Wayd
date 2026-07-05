@@ -124,6 +124,7 @@ const PlanningIntervalObjectivesPage = (props: {
           hidePlanningIntervalColumn={true}
           hideTeamColumn={false}
           viewSelector={viewSelector}
+          persistStateKey="planning-interval-objectives"
         />
       )}
       {currentView === 'Timeline' && (

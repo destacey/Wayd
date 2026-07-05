@@ -109,6 +109,7 @@ const WorkItemDetailsPage = (props: {
             isLoading={childWorkItemsQuery.isLoading}
             refetch={childWorkItemsQuery.refetch}
             hideParentColumn={true}
+            persistStateKey="work-item-children"
           />
         )
       case WorkItemTabs.Dashboard:

@@ -17,6 +17,7 @@ const TeamBacklog: FC<TeamBacklogProps> = ({ teamId }) => {
       hideTeamColumn={true}
       isLoading={backlogQuery.isLoading}
       refetch={backlogQuery.refetch}
+      persistStateKey="team-backlog"
     />
   )
 }

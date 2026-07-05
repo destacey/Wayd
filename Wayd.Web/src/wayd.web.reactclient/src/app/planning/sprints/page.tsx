@@ -19,6 +19,7 @@ const SprintsPage: FC = () => {
         sprints={sprintsData ?? []}
         isLoading={isLoading}
         refetch={refetch}
+        persistStateKey="planning-sprints"
       />
     </>
   )

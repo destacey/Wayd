@@ -57,6 +57,7 @@ const WorkspacesGrid = (props: WorkspacesGridProps) => {
       data={props.workspaces ?? []}
       onRefresh={refresh}
       isLoading={props.isLoading}
+      persistStateKey="work-workspaces"
       csvFileName="workspaces"
       rightSlot={props.viewSelector}
     />

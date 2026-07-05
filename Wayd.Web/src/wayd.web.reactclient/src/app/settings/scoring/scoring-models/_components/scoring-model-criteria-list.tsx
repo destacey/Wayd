@@ -277,6 +277,7 @@ const ScoringModelCriteriaList = ({
         data={sortedCriteria}
         leftSlot={actions}
         onRefresh={loadData}
+        persistStateKey="settings-scoring-model-criteria"
         csvFileName="scoring-criteria"
       />
       {openAddForm && (

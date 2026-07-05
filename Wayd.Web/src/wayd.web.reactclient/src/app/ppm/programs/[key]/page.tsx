@@ -257,6 +257,7 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
                 hidePortfolio={true}
                 hideProgram={true}
                 defaultView="Card"
+                persistStateKey="program-projects"
               />
             </Flex>
           </Flex>

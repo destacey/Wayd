@@ -18,6 +18,7 @@ const ClaimsGrid = () => {
     <WaydGrid
       columns={columns}
       data={user?.claims ?? []}
+      persistStateKey="account-claims"
       csvFileName="claims"
     />
   )

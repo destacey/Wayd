@@ -19,7 +19,7 @@ describe('column-autosize', () => {
     })
 
     it('sizes to the widest cell plus the cell allowance', () => {
-      // Arrange / Act — cell 200 + 18 beats header 50 + 76
+      // Arrange / Act — cell 200 + 18 beats header 50 + 48
       const width = computeAutosizeWidth({
         maxCellContentWidth: 200,
         headerContentWidth: 50,
@@ -30,14 +30,14 @@ describe('column-autosize', () => {
     })
 
     it('sizes to the header plus the header allowance when it is wider', () => {
-      // Arrange / Act — header 200 + 76 beats cell 100 + 18
+      // Arrange / Act — header 200 + 48 beats cell 100 + 18
       const width = computeAutosizeWidth({
         maxCellContentWidth: 100,
         headerContentWidth: 200,
       })
 
       // Assert
-      expect(width).toBe(276)
+      expect(width).toBe(248)
     })
 
     it('rounds fractional measurements up', () => {

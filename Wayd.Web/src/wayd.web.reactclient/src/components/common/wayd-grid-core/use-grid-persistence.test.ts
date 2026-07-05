@@ -253,17 +253,19 @@ describe('use-grid-persistence', () => {
           columnPinning: { left: [], right: [] },
         }),
       ],
-    ])('ignores a stored entry with %s', (_label, raw) => {
+    ])('discards a stored entry with %s', (_label, raw) => {
       // Arrange
       window.localStorage.setItem(STORAGE_KEY, raw)
 
       // Act
       const { result } = renderHook(() => useHarness('test-grid'))
 
-      // Assert — defaults retained, no throw
+      // Assert — defaults retained, no throw, and the unusable entry is
+      // removed so it isn't re-reported on every mount
       expect(result.current.columnSizing).toEqual({})
       expect(result.current.userColumnVisibility).toEqual({})
       expect(result.current.columnPinning).toEqual({ left: [], right: [] })
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
     })
 
     it('flushes a pending debounced write on unmount', () => {

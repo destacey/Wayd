@@ -167,6 +167,14 @@ function removeStaleVersions(persistStateKey: string, storageKey: string) {
   keysToRemove.forEach((key) => window.localStorage.removeItem(key))
 }
 
+const tryParseJson = (raw: string): unknown => {
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return undefined
+  }
+}
+
 interface PendingWrite {
   storageKey: string
   /** null = remove the entry (all-default layout). */
@@ -244,7 +252,7 @@ export function useGridColumnStatePersistence(
       removeStaleVersions(persistStateKey, storageKey)
       const raw = window.localStorage.getItem(storageKey)
       if (raw) {
-        const parsed: unknown = JSON.parse(raw)
+        const parsed = tryParseJson(raw)
         if (isPersistedColumnState(parsed)) {
           setColumnSizing(parsed.columnSizing)
           setUserColumnVisibility(parsed.userColumnVisibility)
@@ -255,6 +263,13 @@ export function useGridColumnStatePersistence(
             parsed.userColumnVisibility,
             parsed.columnPinning,
           )
+        } else {
+          // Unusable entry (malformed JSON or wrong shape): discard it so the
+          // grid self-heals instead of re-reporting it on every mount.
+          console.error(
+            `Discarding unusable persisted grid state under "${storageKey}"`,
+          )
+          window.localStorage.removeItem(storageKey)
         }
       }
     } catch (error) {

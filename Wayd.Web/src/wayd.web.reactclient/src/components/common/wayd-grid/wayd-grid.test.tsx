@@ -1335,4 +1335,57 @@ describe('WaydGrid', () => {
     })
   })
 
+  describe('numeric cell alignment', () => {
+    // `id` is numeric in DATA, so its filter/data type infers to 'number'.
+    const numericColumns: ColumnDef<Flag, unknown>[] = [
+      ...columns,
+      { id: 'id', accessorKey: 'id', header: 'Id' },
+    ]
+
+    it('right-aligns body cells of a data-inferred numeric column, but not its header', () => {
+      // Arrange / Act
+      renderGrid({ columns: numericColumns })
+
+      // Assert — numeric cells carry the alignment class; the header and
+      // text-column cells do not
+      expect(bodyCells('id')[0].className).toContain('tdNumeric')
+      expect(
+        document.querySelector('th[data-column-id="id"]')?.className,
+      ).not.toContain('tdNumeric')
+      expect(bodyCells('name')[0].className).not.toContain('tdNumeric')
+    })
+
+    it('meta.align overrides the default in both directions', () => {
+      // Arrange
+      const overriddenColumns: ColumnDef<Flag, unknown>[] = [
+        {
+          id: 'name',
+          accessorKey: 'name',
+          header: 'Name',
+          meta: { align: 'right' } satisfies WaydGridColumnMeta,
+        },
+        {
+          id: 'id',
+          accessorKey: 'id',
+          header: 'Id',
+          meta: { align: 'left' } satisfies WaydGridColumnMeta,
+        },
+      ]
+
+      // Act
+      renderGrid({ columns: overriddenColumns })
+
+      // Assert
+      expect(bodyCells('name')[0].className).toContain('tdNumeric')
+      expect(bodyCells('id')[0].className).not.toContain('tdNumeric')
+    })
+
+    it('leaves boolean (yesNo set-filter) columns left-aligned', () => {
+      // Arrange / Act
+      renderGrid()
+
+      // Assert
+      expect(bodyCells('isEnabled')[0].className).not.toContain('tdNumeric')
+    })
+  })
 })

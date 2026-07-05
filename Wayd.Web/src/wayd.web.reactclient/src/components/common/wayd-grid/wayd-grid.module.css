@@ -184,6 +184,12 @@
   flex: 0 1 auto;
 }
 
+/* Numeric columns right-align their body cells so magnitudes line up;
+   headers deliberately stay left-aligned (see meta.align). */
+.tdNumeric {
+  text-align: right;
+}
+
 /* Floating-filter cell: input fills the width, filter-popup icon on the right. */
 .floatingCell {
   display: flex;

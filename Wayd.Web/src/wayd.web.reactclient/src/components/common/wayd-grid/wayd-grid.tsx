@@ -17,6 +17,7 @@ import { Popover, Spin } from 'antd'
 import type { FormInstance } from 'antd'
 import { FilterFilled, FilterOutlined } from '@ant-design/icons'
 import {
+  type Column,
   type ColumnDef,
   type Header,
   type Row,
@@ -234,6 +235,7 @@ const rowClasses: GridRowClasses = {
   tr: styles.tr,
   trAlt: styles.trAlt,
   td: styles.td,
+  tdNumeric: styles.tdNumeric,
   pinned: {
     pinned: styles.tdPinned,
     pinnedLeftEdge: styles.pinnedLeftEdge,
@@ -246,6 +248,37 @@ const treeRowClasses: TreeGridRowClasses = {
   trEditable: styles.trEditable,
   trSelected: styles.trSelected,
   editableCell: styles.editableCell,
+}
+
+/**
+ * Resolves a column's filter/data type. An explicit `meta.filterType`
+ * (including one applied by a `columnType`) always wins; otherwise the type is
+ * inferred from the column's data by sampling its faceted unique values:
+ *   - all sampled values are numbers      → 'number'
+ *   - all sampled values are Dates        → 'date'
+ *   - otherwise                           → 'text'
+ * Empty/mixed data falls back to 'text'. Drives both the per-column filter UI
+ * and numeric cell alignment, so the two never disagree.
+ */
+const resolveColumnFilterType = <T,>(column: Column<T, unknown>): FilterType => {
+  const meta = column.columnDef.meta
+  if (meta?.filterType) return resolveFilterType(meta.filterType)
+
+  // Display columns (actions, checkboxes — no accessor) have no values to
+  // sample; TanStack's faceted-values util throws on them.
+  if (!column.accessorFn) return 'text'
+
+  const sample: unknown[] = []
+  for (const v of column.getFacetedUniqueValues().keys()) {
+    if (v === null || v === undefined || v === '') continue
+    sample.push(v)
+    if (sample.length >= 20) break // enough to infer; avoid scanning huge sets
+  }
+  if (sample.length === 0) return 'text'
+
+  if (sample.every((v) => typeof v === 'number')) return 'number'
+  if (sample.every((v) => v instanceof Date)) return 'date'
+  return 'text'
 }
 
 interface GridBodyProps<T> {
@@ -261,6 +294,8 @@ interface GridBodyProps<T> {
   isLoading: boolean
   emptyMessage: string
   visibleColumnCount: number
+  /** Column ids whose body cells right-align (numeric columns). */
+  numericColumnIds: ReadonlySet<string>
   isTree: boolean
   flatDndEnabled: boolean
   isDragEnabled: boolean
@@ -291,6 +326,7 @@ function GridBody<T>({
   isLoading,
   emptyMessage,
   visibleColumnCount,
+  numericColumnIds,
   isTree,
   flatDndEnabled,
   isDragEnabled,
@@ -390,6 +426,7 @@ function GridBody<T>({
                       row={row}
                       index={index}
                       classes={treeRowClasses}
+                      numericColumnIds={numericColumnIds}
                       nodeId={nodeId}
                       isSelected={isSelected}
                       isDragging={isRowDragging}
@@ -449,6 +486,7 @@ function GridBody<T>({
                       row={row}
                       index={index}
                       classes={rowClasses}
+                      numericColumnIds={numericColumnIds}
                       nodeId={nodeId}
                       isDragging={draggedNodeId === nodeId}
                       isDragEnabled={isDragEnabled}
@@ -462,6 +500,7 @@ function GridBody<T>({
                     row={row}
                     index={index}
                     classes={rowClasses}
+                    numericColumnIds={numericColumnIds}
                   />
                 )
               })}
@@ -1059,6 +1098,26 @@ function WaydGridInner<T>(
     : data.length
   const visibleColumnCount = table.getVisibleLeafColumns().length
 
+  // Columns whose BODY cells right-align: explicit meta.align wins, otherwise
+  // numeric columns (same resolution as the filter UI). Headers stay
+  // left-aligned regardless. Recomputed when the data changes — the inference
+  // samples the faceted values, which are empty until rows arrive.
+  const numericColumnIds = useMemo(() => {
+    // The table is a stable identity whose faceted samples mutate underneath;
+    // data and resolvedColumns are the real recompute triggers.
+    void data
+    void resolvedColumns
+    const ids = new Set<string>()
+    for (const column of table.getAllLeafColumns()) {
+      const align = column.columnDef.meta?.align
+      if (align === 'left') continue
+      if (align === 'right' || resolveColumnFilterType(column) === 'number') {
+        ids.add(column.id)
+      }
+    }
+    return ids
+  }, [table, data, resolvedColumns])
+
   const toggleDateTreeNode = useCallback((columnId: string, nodeKey: string) => {
     setDateTreeExpanded((prev) => {
       const current = prev[columnId] ?? EMPTY_NODE_SET
@@ -1148,31 +1207,8 @@ function WaydGridInner<T>(
 
   const showFloatingFilters = showColumnFilters && includeFloatingFilters
 
-  /**
-   * Resolves a column's filter type. An explicit `meta.filterType` (including
-   * one applied by a `columnType`) always wins; otherwise the type is inferred
-   * from the column's data by sampling its faceted unique values:
-   *   - all sampled values are numbers      → 'number'
-   *   - all sampled values are Dates        → 'date'
-   *   - otherwise                           → 'text'
-   * Empty/mixed data falls back to 'text'.
-   */
-  const columnFilterType = (header: Header<T, unknown>): FilterType => {
-    const meta = header.column.columnDef.meta
-    if (meta?.filterType) return resolveFilterType(meta.filterType)
-
-    const sample: unknown[] = []
-    for (const v of header.column.getFacetedUniqueValues().keys()) {
-      if (v === null || v === undefined || v === '') continue
-      sample.push(v)
-      if (sample.length >= 20) break // enough to infer; avoid scanning huge sets
-    }
-    if (sample.length === 0) return 'text'
-
-    if (sample.every((v) => typeof v === 'number')) return 'number'
-    if (sample.every((v) => v instanceof Date)) return 'date'
-    return 'text'
-  }
+  const columnFilterType = (header: Header<T, unknown>): FilterType =>
+    resolveColumnFilterType(header.column)
 
   /**
    * Wraps a trigger element in the multi-condition {@link FilterPopup} popover.
@@ -1645,6 +1681,7 @@ function WaydGridInner<T>(
         isLoading={isLoading}
         emptyMessage={emptyMessage}
         visibleColumnCount={visibleColumnCount}
+        numericColumnIds={numericColumnIds}
         isTree={isTree}
         flatDndEnabled={flatDndEnabled}
         isDragEnabled={isDragEnabled}

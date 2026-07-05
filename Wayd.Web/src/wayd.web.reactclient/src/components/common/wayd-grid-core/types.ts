@@ -47,6 +47,13 @@ export interface WaydGridColumnMeta {
    * `select` → `set`, `numericRange` → `number`. Omit to default to `text`.
    */
   filterType?: FilterType | 'select' | 'numericRange'
+  /**
+   * Cell text alignment override. By default, columns the grid resolves as
+   * numeric (explicit `filterType: 'number'` or all-number sampled data)
+   * right-align their BODY cells — headers always stay left-aligned. Set
+   * 'left' to opt a numeric column out, or 'right' to force it on.
+   */
+  align?: 'left' | 'right'
   /** Options for the 'set' (aka legacy 'select') filter type. */
   filterOptions?: FilterOption[]
   /**

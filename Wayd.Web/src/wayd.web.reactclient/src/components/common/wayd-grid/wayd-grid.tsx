@@ -111,6 +111,7 @@ import {
   useGridEditing,
   type GridEditingConfig,
 } from '../wayd-grid-core/use-grid-editing'
+import { useGridColumnStatePersistence } from '../wayd-grid-core/use-grid-persistence'
 import {
   mergeColumnVisibility,
   useGridState,
@@ -518,6 +519,7 @@ function WaydGridInner<T>(
     includeColumnFilters = true,
     includeFloatingFilters = true,
     getRowId,
+    persistStateKey,
     onDisplayedRowsChange,
     onRowReorder,
     getSubRows,
@@ -580,6 +582,7 @@ function WaydGridInner<T>(
 
   // ─── State ───────────────────────────────────────────────
   const gridState = useGridState({ initialSorting })
+  useGridColumnStatePersistence(gridState, persistStateKey)
   const {
     searchValue,
     onSearchChange,

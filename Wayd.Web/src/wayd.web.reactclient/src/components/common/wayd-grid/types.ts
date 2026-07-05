@@ -137,6 +137,15 @@ export interface WaydGridProps<T> {
 
   // -- Grid state --
   /**
+   * Opt-in localStorage persistence of the user's column layout (sizing,
+   * show/hide choices, pinning) under `wayd-grid:{key}:v1`. Keys are per page
+   * context — stable, human-readable, route-independent kebab-case (e.g.
+   * 'ppm-projects', 'team-backlog'); shared grid components should expose
+   * this as a pass-through prop so each page site supplies its own. Omit for
+   * no persistence. Sorting/filters/search are deliberately not persisted.
+   */
+  persistStateKey?: string
+  /**
    * Fires with the displayed rows (post filter + sort, in display order)
    * whenever that set changes — including on mount. For consumers deriving
    * external UI (e.g. a chart) from the grid state.

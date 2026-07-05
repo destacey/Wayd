@@ -30,9 +30,9 @@ import { stringContainsFilter } from './grid-filters'
  *
  * Every user-adjustable column state slice (columnSizing,
  * userColumnVisibility, columnPinning, sorting) lives here as plain
- * serializable state — grid state persistence will serialize exactly these
- * slices, so new column state must be added here, not scattered into
- * components.
+ * serializable state — useGridColumnStatePersistence (use-grid-persistence.ts)
+ * serializes the column-layout slices, so new column state must be added
+ * here, not scattered into components.
  */
 export interface GridState {
   sorting: SortingState

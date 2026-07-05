@@ -92,6 +92,13 @@ export type {
   DependencyHealthTarget,
 } from '../wayd-grid-core/cell-renderers'
 
+// Column layout persistence (opt-in via WaydGrid's persistStateKey prop) —
+// the account-page controls live outside the grid, hence the re-export
+export {
+  GRID_PERSISTENCE_ENABLED_KEY,
+  clearAllGridColumnState,
+} from '../wayd-grid-core/use-grid-persistence'
+
 // Components (toolbar reconciled into the shared grid core; aliases kept)
 export { default as WaydGridToolbar } from '../wayd-grid-core/grid-toolbar'
 export type { GridToolbarProps as WaydGridToolbarProps } from '../wayd-grid-core/grid-toolbar'

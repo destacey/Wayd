@@ -60,36 +60,36 @@ const EditWorkItemProjectForm = (props: EditWorkItemProjectFormProps) => {
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditWorkItemProjectFormValues>({
       onSubmit: async (values: EditWorkItemProjectFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values, props.workItemId)
+        try {
+          const request = mapToRequestValues(values, props.workItemId)
 
-            const response = await updateWorkItemProject({
-              workspaceId: props.workspaceId,
-              request: request,
-              cacheKey: props.workItemKey,
-            })
+          const response = await updateWorkItemProject({
+            workspaceId: props.workspaceId,
+            request: request,
+            cacheKey: props.workItemKey,
+          })
 
-            if (response.error) {
-              throw response.error
-            }
-
-            messageApi.success('Work item project updated successfully.')
-            return true
-          } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                apiError.detail ??
-                  'An error occurred while updating the work item. Please try again.',
-              )
-            }
-            return false
+          if (response.error) {
+            throw response.error
           }
-        },
+
+          messageApi.success('Work item project updated successfully.')
+          return true
+        } catch (error) {
+          const apiError: ApiError = isApiError(error) ? error : {}
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              apiError.detail ??
+                'An error occurred while updating the work item. Please try again.',
+            )
+          }
+          return false
+        }
+      },
       onComplete: props.onFormComplete,
       onCancel: props.onFormCancel,
       errorMessage:
@@ -110,7 +110,9 @@ const EditWorkItemProjectForm = (props: EditWorkItemProjectFormProps) => {
       console.error(error ?? projectOptionsError)
       messageApi.error(
         (isApiError(error) ? error.detail : undefined) ??
-          (isApiError(projectOptionsError) ? projectOptionsError.detail : undefined) ??
+          (isApiError(projectOptionsError)
+            ? projectOptionsError.detail
+            : undefined) ??
           'An error occurred while loading form data. Please try again.',
       )
     }
@@ -145,16 +147,7 @@ const EditWorkItemProjectForm = (props: EditWorkItemProjectFormProps) => {
             layout="vertical"
             name="edit-workitem-project-form"
           >
-            <Item
-              name="projectId"
-              label="Project"
-              rules={[
-                {
-                  required: !workItemProjectInfoData?.project,
-                  message: 'Project is required',
-                },
-              ]}
-            >
+            <Item name="projectId" label="Project">
               <Select
                 allowClear
                 options={projectOptions ?? []}

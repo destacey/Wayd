@@ -21,10 +21,12 @@ export const AUTOSIZE_MAX_WIDTH = 600
  *  computed width. */
 export const AUTOSIZE_CELL_ALLOWANCE = 18
 
-/** Horizontal overhead around the header label: th + content padding, plus
- *  reserved room for the sort icon and the column menu trigger (both live in
- *  the header cell whether currently visible or not). */
-export const AUTOSIZE_HEADER_ALLOWANCE = 76
+/** Horizontal overhead around the header label: th padding (8px per side),
+ *  plus reserved room for the sort icon, filter trigger, and column menu
+ *  trigger with the 4px flex gaps between them (the triggers occupy layout
+ *  space whether currently visible or not). Must track the header CSS —
+ *  thContent gap and .th padding in wayd-grid.module.css. */
+export const AUTOSIZE_HEADER_ALLOWANCE = 48
 
 export interface AutosizeWidthInput {
   /** Widest measured content among the rendered cells, px (0 = no cells). */

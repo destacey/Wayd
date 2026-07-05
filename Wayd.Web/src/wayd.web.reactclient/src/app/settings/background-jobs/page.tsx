@@ -158,6 +158,7 @@ const BackgroundJobsListPage = () => {
         columns={columns}
         data={backgroundJobs}
         onRefresh={getRunningJobs}
+        persistStateKey="settings-background-jobs"
         csvFileName="background-jobs"
       />
       {openCreateRecurringJobForm && (

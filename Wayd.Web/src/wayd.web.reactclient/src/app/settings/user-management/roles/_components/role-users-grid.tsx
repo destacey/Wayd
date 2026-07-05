@@ -60,6 +60,7 @@ const RoleUsersGrid: FC<RoleUsersGridProps> = (props: RoleUsersGridProps) => {
       data={usersData ?? []}
       onRefresh={refresh}
       isLoading={isLoading}
+      persistStateKey="settings-role-users"
       csvFileName="role-users"
     />
   )

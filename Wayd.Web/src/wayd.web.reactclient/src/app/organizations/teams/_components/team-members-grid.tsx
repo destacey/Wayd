@@ -160,6 +160,9 @@ const TeamMembersGrid = ({ teamId, teamType }: TeamMembersGridProps) => {
           refetch()
         }}
         csvFileName="team-members"
+        persistStateKey={
+          teamType === 'Team' ? 'team-members' : 'team-of-teams-members'
+        }
       />
       {editingMember && (
         <EditTeamMemberForm

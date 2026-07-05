@@ -211,6 +211,7 @@ const UsersListPage = () => {
         data={usersData ?? []}
         onRefresh={refresh}
         isLoading={isLoading}
+        persistStateKey="settings-users"
         csvFileName="users"
       />
 

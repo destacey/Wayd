@@ -189,6 +189,7 @@ const TeamOperatingModelsGrid = ({
         data={operatingModelsData ?? []}
         isLoading={isLoading}
         onRefresh={refresh}
+        persistStateKey="team-operating-models"
         csvFileName="team-operating-models"
       />
 

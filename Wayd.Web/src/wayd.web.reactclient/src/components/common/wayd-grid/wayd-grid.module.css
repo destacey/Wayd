@@ -109,7 +109,7 @@
 }
 
 .th {
-  padding: 5px var(--ant-padding-sm);
+  padding: 5px var(--ant-padding-xs);
   background: var(--wayd-grid-header-bg);
   border-bottom: 1px solid var(--ant-color-border);
   /* Secondary (muted) text keeps headers from overpowering the data rows —
@@ -162,22 +162,15 @@
   display: none;
 }
 
-.thResizable {
-  padding-left: var(--ant-padding-sm);
-}
-
-/* Gap between the header title and the column divider on the right edge. */
-.thResizable .thContent {
-  padding-right: var(--ant-padding-sm);
-}
-
 /* Fills the th (not shrink-to-fit) so the column-menu trigger can anchor to
    the far right edge via margin-left: auto; the label and sort/filter icons
-   stay left, hugging the text. */
+   stay left, hugging the text. No extra right padding for the resizer — its
+   10px hit strip mostly overlays the th's own 8px padding, so the label
+   keeps every pixel it can get in narrow columns. */
 .thContent {
   display: flex;
   align-items: center;
-  gap: var(--ant-margin-xs);
+  gap: var(--ant-margin-xxs);
   width: 100%;
   min-width: 0;
   overflow: hidden;
@@ -189,6 +182,12 @@
   white-space: nowrap;
   min-width: 0;
   flex: 0 1 auto;
+}
+
+/* Numeric columns right-align their body cells so magnitudes line up;
+   headers deliberately stay left-aligned (see meta.align). */
+.tdNumeric {
+  text-align: right;
 }
 
 /* Floating-filter cell: input fills the width, filter-popup icon on the right. */

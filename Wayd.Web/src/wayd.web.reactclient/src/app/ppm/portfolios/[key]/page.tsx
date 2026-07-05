@@ -276,6 +276,7 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               isLoading={isLoadingProjects}
               refetch={refetchProjects}
               groupByProgram={true}
+              persistStateKey="portfolio-projects"
             />
           </>
         )

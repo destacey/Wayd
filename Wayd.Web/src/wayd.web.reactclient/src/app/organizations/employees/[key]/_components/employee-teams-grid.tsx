@@ -100,6 +100,7 @@ const EmployeeTeamsGrid = ({ employeeId }: Props) => {
       onRefresh={() => {
         refetch()
       }}
+      persistStateKey="employee-teams"
       csvFileName="employee-teams"
     />
   )

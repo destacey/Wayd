@@ -152,6 +152,7 @@ const WorkItemDependenciesGrid: FC<WorkItemDependenciesGridProps> = (props) => {
       onRefresh={refresh}
       isLoading={props.isLoading}
       initialSorting={[{ id: 'type', desc: false }]}
+      persistStateKey="work-item-dependencies"
       csvFileName="work-item-dependencies"
     />
   )

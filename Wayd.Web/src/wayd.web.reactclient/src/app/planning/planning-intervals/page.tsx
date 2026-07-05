@@ -112,6 +112,7 @@ const PlanningIntervalListPage = () => {
         data={data}
         isLoading={isLoading}
         onRefresh={refresh}
+        persistStateKey="planning-intervals"
         csvFileName="planning-intervals"
       />
       {openCreatePlanningIntervalForm && (

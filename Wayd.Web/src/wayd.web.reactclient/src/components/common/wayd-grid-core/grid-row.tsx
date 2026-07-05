@@ -18,6 +18,9 @@ export interface GridRowClasses {
   tr: string
   trAlt: string
   td: string
+  /** Applied to `td`s of numeric columns (right-aligned cells; headers are
+   *  unaffected — alignment is a body-cell concern only). */
+  tdNumeric?: string
   /** Sticky/edge classes for pinned columns' `td`s. */
   pinned?: PinnedCellClasses
 }
@@ -37,11 +40,25 @@ const pinnedTdProps = <T,>(
   }
 }
 
+/** The numeric-alignment class suffix (starting with a space) for a body
+ *  cell, or '' when the column isn't numeric / no class was supplied. */
+const numericTdClass = <T,>(
+  cell: Cell<T, unknown>,
+  classes: GridRowClasses,
+  numericColumnIds: ReadonlySet<string> | undefined,
+): string =>
+  classes.tdNumeric && numericColumnIds?.has(cell.column.id)
+    ? ` ${classes.tdNumeric}`
+    : ''
+
 export interface FlatGridRowProps<T> {
   row: Row<T>
   /** Display index within the rendered row list (drives zebra striping). */
   index: number
   classes: GridRowClasses
+  /** Column ids whose cells right-align (numeric columns); resolved once at
+   *  the grid level — see the grid's numericColumnIds. */
+  numericColumnIds?: ReadonlySet<string>
 }
 
 /**
@@ -56,7 +73,12 @@ export interface FlatGridRowProps<T> {
  * (the grids do); a directive here alone could not force a memoized parent to
  * re-create the element.
  */
-export function FlatGridRow<T>({ row, index, classes }: FlatGridRowProps<T>) {
+export function FlatGridRow<T>({
+  row,
+  index,
+  classes,
+  numericColumnIds,
+}: FlatGridRowProps<T>) {
   // eslint-disable-next-line react-compiler/react-compiler -- false-positive "unused directive"; see GridHeaderCell
   'use no memo'
   return (
@@ -69,7 +91,7 @@ export function FlatGridRow<T>({ row, index, classes }: FlatGridRowProps<T>) {
           <td
             key={cell.id}
             data-column-id={cell.column.id}
-            className={`${classes.td}${pinned.className}`}
+            className={`${classes.td}${numericTdClass(cell, classes, numericColumnIds)}${pinned.className}`}
             style={pinned.style}
           >
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -104,6 +126,7 @@ export function SortableFlatGridRow<T>({
   row,
   index,
   classes,
+  numericColumnIds,
   nodeId,
   isDragging,
   isDragEnabled,
@@ -123,7 +146,7 @@ export function SortableFlatGridRow<T>({
           <td
             key={cell.id}
             data-column-id={cell.column.id}
-            className={`${classes.td}${pinned.className}`}
+            className={`${classes.td}${numericTdClass(cell, classes, numericColumnIds)}${pinned.className}`}
             style={pinned.style}
           >
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -148,6 +171,8 @@ export interface TreeGridRowProps<T> {
   /** Display index within the rendered row list (drives zebra striping). */
   index: number
   classes: TreeGridRowClasses
+  /** Column ids whose cells right-align (numeric columns). */
+  numericColumnIds?: ReadonlySet<string>
   /** The row's data id (not TanStack's row.id). */
   nodeId: string
   /** Whether this row is selected for inline editing. */
@@ -178,6 +203,7 @@ export function TreeGridRow<T>({
   row,
   index,
   classes,
+  numericColumnIds,
   nodeId,
   isSelected,
   isDragging,
@@ -209,7 +235,7 @@ export function TreeGridRow<T>({
             key={cell.id}
             data-cell-id={`${nodeId}-${cell.column.id}`}
             data-column-id={cell.column.id}
-            className={`${classes.td}${
+            className={`${classes.td}${numericTdClass(cell, classes, numericColumnIds)}${
               isEditableCell ? ` ${classes.editableCell}` : ''
             }${pinned.className}`}
             style={pinned.style}

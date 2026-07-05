@@ -60,6 +60,7 @@ const StrategicInitiativeViewManager = (
           refetch={props.refetch}
           hidePortfolio={true}
           viewSelector={viewSelector}
+          persistStateKey="portfolio-strategic-initiatives"
         />
       )}
       {currentView === 'Timeline' && (

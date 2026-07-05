@@ -18,6 +18,8 @@ export interface ProgramsGridProps {
   hidePortfolio?: boolean
   gridHeight?: number | undefined
   viewSelector?: React.ReactNode | undefined
+  /** Column layout persistence key for the hosting page (see WaydGridProps). */
+  persistStateKey?: string
 }
 
 const ProgramsGrid: FC<ProgramsGridProps> = (props: ProgramsGridProps) => {
@@ -45,14 +47,20 @@ const ProgramsGrid: FC<ProgramsGridProps> = (props: ProgramsGridProps) => {
             <LifecycleStatusTag status={row.original.status} />
           ) : null,
       },
-      {
-        id: 'portfolio',
-        accessorKey: 'portfolio.name',
-        header: 'Portfolio',
-        size: 200,
-        meta: { hide: props.hidePortfolio, filterEnableSet: true },
-        cell: ({ row }) => renderPortfolioLink(row.original.portfolio),
-      },
+      // Context-redundant column: excluded from the defs (not meta.hide) so
+      // it stays out of the column chooser and persisted layouts.
+      ...(props.hidePortfolio
+        ? []
+        : [
+            {
+              id: 'portfolio',
+              accessorKey: 'portfolio.name',
+              header: 'Portfolio',
+              size: 200,
+              meta: { filterEnableSet: true },
+              cell: ({ row }) => renderPortfolioLink(row.original.portfolio),
+            } satisfies ColumnDef<ProgramListDto, any>,
+          ]),
       {
         id: 'start',
         accessorKey: 'start',
@@ -104,6 +112,7 @@ const ProgramsGrid: FC<ProgramsGridProps> = (props: ProgramsGridProps) => {
       csvFileName="programs"
       rightSlot={props.viewSelector}
       height={props.gridHeight}
+      persistStateKey={props.persistStateKey}
       emptyMessage="No programs found."
     />
   )

@@ -1,26 +1,25 @@
 ﻿<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk">
-  <PropertyGroup>
-    <!-- Folder where production build objects will be placed -->
-    <BuildOutputFolder>$(MSBuildProjectDirectory)\build</BuildOutputFolder>
-    <!-- Exclude heavy folders from Visual Studio project scanning -->
-    <ShouldRunNpmInstall>false</ShouldRunNpmInstall>
-    <ShouldRunBuildScript>false</ShouldRunBuildScript>
-  </PropertyGroup>
-  <ItemGroup>
-    <Folder Remove="node_modules\**" />
-    <Content Remove="node_modules\**" />
-    <None Remove="node_modules\**" />
-    <Folder Remove=".next\**" />
-    <Content Remove=".next\**" />
-    <None Remove=".next\**" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include=".docker\Dockerfile" />
-  </ItemGroup>
-  <ItemGroup>
-    <TypeScriptConfiguration Remove=".docker\**" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Remove=".docker\**" />
-  </ItemGroup>
+    <PropertyGroup>
+        <!-- Folder where production build objects will be placed -->
+        <BuildOutputFolder>$(MSBuildProjectDirectory)\build</BuildOutputFolder>
+        <!-- Exclude heavy folders from Visual Studio project scanning -->
+        <ShouldRunNpmInstall>false</ShouldRunNpmInstall>
+        <ShouldRunBuildScript>false</ShouldRunBuildScript>
+    </PropertyGroup>
+    <ItemGroup>
+        <Folder Remove="node_modules\**;.next\**;build\**;dist\**;coverage\**" />
+        <Content Remove="node_modules\**;.next\**;build\**;dist\**;coverage\**" />
+        <None Remove="node_modules\**;.next\**;build\**;dist\**;coverage\**" />
+        <TypeScriptCompile Remove="node_modules\**;.next\**;build\**;dist\**;coverage\**" />
+        <TypeScriptConfiguration Remove="node_modules\**;.next\**;build\**;dist\**;coverage\**" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Include=".docker\Dockerfile" />
+    </ItemGroup>
+    <ItemGroup>
+        <TypeScriptConfiguration Remove=".docker\**" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Remove=".docker\**" />
+    </ItemGroup>
 </Project>

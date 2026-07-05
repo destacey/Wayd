@@ -11,6 +11,8 @@ export interface PortfoliosGridProps {
   viewSelector: ReactElement
   isLoading: boolean
   refetch: () => void
+  /** Column layout persistence key for the hosting page (see WaydGridProps). */
+  persistStateKey?: string
 }
 
 const PortfoliosGrid: React.FC<PortfoliosGridProps> = (
@@ -66,6 +68,7 @@ const PortfoliosGrid: React.FC<PortfoliosGridProps> = (
       isLoading={props.isLoading}
       csvFileName="portfolios"
       rightSlot={props.viewSelector}
+      persistStateKey={props.persistStateKey}
       emptyMessage="No portfolios found."
     />
   )

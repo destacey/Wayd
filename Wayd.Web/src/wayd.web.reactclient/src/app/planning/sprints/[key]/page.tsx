@@ -132,6 +132,7 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             isLoading={workItemsDataIsLoading}
             refetch={refetchWorkItemsData}
             hideTeamColumn={true}
+            persistStateKey="sprint-backlog"
           />
         </Flex>
         <Divider size="small" />

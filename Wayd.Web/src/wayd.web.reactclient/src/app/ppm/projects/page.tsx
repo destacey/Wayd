@@ -108,6 +108,7 @@ const ProjectsPage: FC = () => {
         projects={projectData ?? []}
         isLoading={isLoading}
         refetch={refetch}
+        persistStateKey="ppm-projects"
       />
       {openCreateProjectForm && (
         <CreateProjectForm

@@ -99,6 +99,7 @@ const PortfoliosPage: FC = () => {
           viewSelector={viewSelector}
           isLoading={isLoading}
           refetch={refetch}
+          persistStateKey="ppm-portfolios"
         />
       )}
       {openCreatePortfolioForm && (

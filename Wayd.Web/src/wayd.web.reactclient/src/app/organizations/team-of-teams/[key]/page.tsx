@@ -171,6 +171,7 @@ const TeamOfTeamsDetailsPage = (props: {
           newRisksAllowed: true,
           teamId: team?.id,
           hideTeamColumn: true,
+          persistStateKey: 'team-of-teams-risks',
         } as RisksGridProps)
       case TeamOfTeamsTabs.TeamMemberships:
         return createElement(TeamMembershipsGrid, {

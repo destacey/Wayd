@@ -326,6 +326,7 @@ const StrategicInitiativeKpisGrid: FC<StrategicInitiativeKpisGridProps> = (
         isLoading={isLoading}
         height={gridHeight}
         emptyMessage="No KPIs found."
+        persistStateKey="strategic-initiative-kpis"
         getRowId={(kpi) => kpi.id}
         rightSlot={viewSelector}
         onRowReorder={canReorder ? onRowReorder : undefined}

@@ -76,6 +76,7 @@ const RoadmapsGrid: FC<RoadmapsGridProps> = (props: RoadmapsGridProps) => {
       data={props.roadmapsData}
       onRefresh={props.refreshRoadmaps}
       isLoading={props.roadmapsLoading}
+      persistStateKey="planning-roadmaps"
       csvFileName="roadmaps"
       rightSlot={props.viewSelector}
     />

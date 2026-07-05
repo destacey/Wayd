@@ -416,6 +416,7 @@ const ProjectRankingBoard = ({
         isLoading={isLoading}
         onRefresh={refetch}
         emptyMessage="No projects to rank."
+        persistStateKey="portfolio-project-ranking"
         csvFileName="portfolio-ranking"
         onRowReorder={canManage ? onRowReorder : undefined}
       />

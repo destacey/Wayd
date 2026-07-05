@@ -164,6 +164,7 @@ const ObjectiveHealthReportPage = (props: {
         data={healthReport ?? []}
         isLoading={isLoading}
         onRefresh={refresh}
+        persistStateKey="pi-objectives-health-report"
         csvFileName="pi-objectives-health-report"
       />
     </>

@@ -19,6 +19,8 @@ export interface RisksGridProps {
   newRisksAllowed?: boolean
   hideTeamColumn?: boolean
   gridHeight?: number
+  /** Column layout persistence key for the hosting page (see WaydGridProps). */
+  persistStateKey?: string
 }
 
 const RisksGrid = ({
@@ -30,6 +32,7 @@ const RisksGrid = ({
   newRisksAllowed = false,
   hideTeamColumn = false,
   gridHeight,
+  persistStateKey,
 }: RisksGridProps) => {
   const [includeClosed, setIncludeClosed] = useState<boolean>(false)
   const [hideTeam, setHideTeam] = useState<boolean>(hideTeamColumn)
@@ -137,20 +140,33 @@ const RisksGrid = ({
           </Link>
         ),
       },
-      {
-        id: 'team',
-        accessorKey: 'team.name',
-        header: 'Team',
-        meta: { hide: hideTeam, filterEnableSet: true },
-        cell: ({ row }) => renderTeamLink(row.original.team),
-      },
-      {
-        id: 'status',
-        accessorKey: 'status',
-        header: 'Status',
-        size: 125,
-        meta: { hide: includeClosed === false, filterType: 'set' },
-      },
+      // Context/mode-dependent columns are excluded from the defs (not
+      // meta.hide) so they stay out of the column chooser and persisted
+      // layouts; the memo rebuilds when the toolbar switches flip.
+      ...(hideTeam
+        ? []
+        : [
+            {
+              id: 'team',
+              accessorKey: 'team.name',
+              header: 'Team',
+              meta: { filterEnableSet: true },
+              cell: ({ row }) => renderTeamLink(row.original.team),
+            } satisfies ColumnDef<RiskListDto, any>,
+          ]),
+      // Status is only informative when closed risks are included — open
+      // risks all share one status.
+      ...(includeClosed
+        ? [
+            {
+              id: 'status',
+              accessorKey: 'status',
+              header: 'Status',
+              size: 125,
+              meta: { filterType: 'set' },
+            } satisfies ColumnDef<RiskListDto, any>,
+          ]
+        : []),
       {
         id: 'category',
         accessorKey: 'category',
@@ -202,6 +218,7 @@ const RisksGrid = ({
         isLoading={isLoadingRisks}
         onRefresh={refreshRisks}
         csvFileName="risks"
+        persistStateKey={persistStateKey}
         leftSlot={showActions ? actions() : undefined}
         rightSlot={<ControlItemsMenu items={controlItems} />}
       />

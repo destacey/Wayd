@@ -98,6 +98,7 @@ const PiObjectiveHealthReportGrid = (
       data={healthReportData ?? []}
       onRefresh={refresh}
       isLoading={isLoading}
+      persistStateKey="pi-objective-health-report"
       csvFileName="pi-objective-health-report"
     />
   )

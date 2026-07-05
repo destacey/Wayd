@@ -44,11 +44,14 @@ interface CycleTimeReportContentProps {
     | { type: 'team'; teamCode: string }
     | { type: 'employee'; employeeId: string }
   workItemsScope: string
+  /** Column layout persistence key for the hosting page (see WaydGridProps). */
+  persistStateKey?: string
 }
 
 const CycleTimeReportContent: FC<CycleTimeReportContentProps> = ({
   source,
   workItemsScope,
+  persistStateKey,
 }) => {
   const doneFromPresets = [30, 60, 90, 120, 180].map((days) => ({
     label: `${days} Days`,
@@ -220,6 +223,7 @@ const CycleTimeReportContent: FC<CycleTimeReportContentProps> = ({
         refetch={refetch}
         showStats={true}
         onDisplayedRowsChange={setChartWorkItems}
+        persistStateKey={persistStateKey}
       />
     </Flex>
   )
@@ -230,6 +234,7 @@ export const CycleTimeReport: FC<CycleTimeReportProps> = ({ teamCode }) => {
     <CycleTimeReportContent
       source={{ type: 'team', teamCode }}
       workItemsScope="Shows work items owned by the selected team."
+      persistStateKey="team-cycle-time"
     />
   )
 }
@@ -241,6 +246,7 @@ export const EmployeeCycleTimeReport: FC<EmployeeCycleTimeReportProps> = ({
     <CycleTimeReportContent
       source={{ type: 'employee', employeeId }}
       workItemsScope="Shows work items assigned to this employee."
+      persistStateKey="employee-cycle-time"
     />
   )
 }

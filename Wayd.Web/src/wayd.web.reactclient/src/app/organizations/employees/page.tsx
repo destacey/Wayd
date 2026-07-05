@@ -133,6 +133,7 @@ const EmployeeListPage = () => {
         isLoading={isLoading}
         onRefresh={refresh}
         csvFileName="employees"
+        persistStateKey="organizations-employees"
         rightSlot={<ControlItemsMenu items={controlItems} />}
       />
     </>

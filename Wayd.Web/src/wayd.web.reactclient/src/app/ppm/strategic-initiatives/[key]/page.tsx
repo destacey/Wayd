@@ -379,6 +379,7 @@ const StrategicInitiativeDetailsPage = (props: {
                 hidePortfolio={false}
                 groupByProgram={true}
                 defaultView="Card"
+                persistStateKey="strategic-initiative-projects"
               />
             </Flex>
           </Flex>

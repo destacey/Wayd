@@ -63,6 +63,7 @@ const ProjectTeamGrid: FC<ProjectTeamGridProps> = ({ projectIdOrKey }) => {
       data={teamData ?? []}
       onRefresh={refresh}
       isLoading={isLoading}
+      persistStateKey="project-team"
       csvFileName="project-team"
       emptyMessage="No team members assigned."
     />

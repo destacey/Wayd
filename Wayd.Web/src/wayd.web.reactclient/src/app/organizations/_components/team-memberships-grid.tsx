@@ -143,6 +143,11 @@ const TeamMembershipsGrid = ({
         isLoading={isLoading}
         onRefresh={refresh}
         csvFileName="team-memberships"
+        persistStateKey={
+          teamType === 'Team'
+            ? 'team-memberships'
+            : 'team-of-teams-memberships'
+        }
       />
       {openEditTeamMembershipForm && selectedTeamMembership && (
         <EditTeamMembershipForm

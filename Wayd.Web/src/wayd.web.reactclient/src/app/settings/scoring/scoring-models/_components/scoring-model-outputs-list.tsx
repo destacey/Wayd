@@ -288,6 +288,7 @@ const ScoringModelOutputsList = ({
         data={sortedOutputs}
         leftSlot={actions}
         onRefresh={loadData}
+        persistStateKey="settings-scoring-model-outputs"
         csvFileName="scoring-outputs"
       />
       {openAddForm && (

@@ -73,6 +73,7 @@ const RoleListPage = () => {
         data={roleData ?? []}
         onRefresh={refresh}
         isLoading={isLoading}
+        persistStateKey="settings-roles"
         csvFileName="roles"
       />
 

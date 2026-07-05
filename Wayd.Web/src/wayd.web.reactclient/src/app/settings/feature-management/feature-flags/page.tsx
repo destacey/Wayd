@@ -134,12 +134,19 @@ const FeatureFlagsListPage = () => {
         header: 'Enabled',
         meta: { columnType: 'yesNo' },
       },
-      {
-        id: 'isArchived',
-        accessorKey: 'isArchived',
-        header: 'Archived',
-        meta: { columnType: 'yesNo', hide: !includeArchived },
-      },
+      // Mode-dependent column: excluded from the defs (not meta.hide) so it
+      // stays out of the column chooser and persisted layouts; the memo
+      // rebuilds when the Include Archived switch flips.
+      ...(includeArchived
+        ? [
+            {
+              id: 'isArchived',
+              accessorKey: 'isArchived',
+              header: 'Archived',
+              meta: { columnType: 'yesNo' },
+            } satisfies ColumnDef<FeatureFlagListDto, any>,
+          ]
+        : []),
     ]
   }, [
     showRowActions,
@@ -172,6 +179,7 @@ const FeatureFlagsListPage = () => {
         data={featureFlags}
         onRefresh={refresh}
         isLoading={isLoading}
+        persistStateKey="settings-feature-flags"
         csvFileName="feature-flags"
         rightSlot={<ControlItemsMenu items={controlItems} />}
       />

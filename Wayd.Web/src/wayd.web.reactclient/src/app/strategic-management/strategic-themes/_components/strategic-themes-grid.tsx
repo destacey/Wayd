@@ -50,6 +50,7 @@ const StrategicThemesGrid: React.FC<StrategicThemesGridProps> = (
       data={props.strategicThemesData}
       isLoading={props.strategicThemesLoading}
       onRefresh={props.refreshStrategicThemes}
+      persistStateKey="strategic-themes"
       csvFileName="strategic-themes"
     />
   )

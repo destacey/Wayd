@@ -124,6 +124,7 @@ const PlanningIntervalDetailsPage = (props: {
           teams: teamsData,
           isLoading: teamsIsLoading,
           refetch: refetchTeams,
+          persistStateKey: 'planning-interval-teams',
         } as TeamsGridProps)
       case PlanningIntervalTabs.SprintMappings:
         return (

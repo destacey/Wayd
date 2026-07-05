@@ -62,6 +62,19 @@ export type {
   UseGridTableOptions,
 } from './use-grid-table'
 
+// Column layout persistence (opt-in via WaydGrid's persistStateKey prop)
+export {
+  GRID_PERSISTENCE_ENABLED_KEY,
+  GRID_STATE_KEY_PREFIX,
+  GRID_STATE_VERSION,
+  clearAllGridColumnState,
+  gridStateStorageKey,
+  isGridPersistenceEnabled,
+  isPersistedColumnState,
+  useGridColumnStatePersistence,
+} from './use-grid-persistence'
+export type { PersistedColumnState } from './use-grid-persistence'
+
 // Column pinning (sticky rendering over TanStack's columnPinning state)
 export {
   getPinnedBandOffsets,

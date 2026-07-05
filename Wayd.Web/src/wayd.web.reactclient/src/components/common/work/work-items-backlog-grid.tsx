@@ -21,6 +21,8 @@ export interface WorkItemsBacklogGridProps {
   hideTeamColumn: boolean
   isLoading: boolean
   refetch: () => void
+  /** Column layout persistence key for the hosting page (see WaydGridProps). */
+  persistStateKey?: string
 }
 
 const WorkItemsBacklogGrid = (props: WorkItemsBacklogGridProps) => {
@@ -71,13 +73,19 @@ const WorkItemsBacklogGrid = (props: WorkItemsBacklogGridProps) => {
         sortingFn: workStatusCategorySort,
         meta: { filterType: 'set' },
       },
-      {
-        id: 'team',
-        accessorKey: 'team.name',
-        header: 'Team',
-        meta: { hide: props.hideTeamColumn, filterEnableSet: true },
-        cell: ({ row }) => renderTeamLink(row.original.team),
-      },
+      // Context-redundant column: excluded from the defs (not meta.hide) so
+      // it stays out of the column chooser and persisted layouts.
+      ...(props.hideTeamColumn
+        ? []
+        : [
+            {
+              id: 'team',
+              accessorKey: 'team.name',
+              header: 'Team',
+              meta: { filterEnableSet: true },
+              cell: ({ row }) => renderTeamLink(row.original.team),
+            } satisfies ColumnDef<WorkItemBacklogItemDto, any>,
+          ]),
       {
         id: 'sprint',
         accessorKey: 'sprint.name',
@@ -144,6 +152,7 @@ const WorkItemsBacklogGrid = (props: WorkItemsBacklogGridProps) => {
       data={props.workItems ?? []}
       onRefresh={refresh}
       isLoading={props.isLoading}
+      persistStateKey={props.persistStateKey}
       csvFileName="work-items-backlog"
     />
   )

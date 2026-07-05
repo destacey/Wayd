@@ -15,6 +15,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 
 import WaydGrid from './wayd-grid'
 import { SET_FILTER_BLANK } from '../wayd-grid-core/filters'
+import { gridStateStorageKey } from '../wayd-grid-core/use-grid-persistence'
 import type { WaydGridHandle, WaydGridColumnMeta } from './types'
 import { downloadCsvWithTimestamp } from '@/src/utils/csv-utils'
 
@@ -1202,6 +1203,189 @@ describe('WaydGrid', () => {
       ) as HTMLElement
       expect(nameTh.style.left).toBe('')
       expect(bodyCells('name')[0].style.left).toBe('')
+    })
+  })
+
+  describe('column state persistence (persistStateKey)', () => {
+    const STORAGE_KEY = gridStateStorageKey('test-grid')
+
+    beforeEach(() => {
+      // jest.setup's localStorage stub has no backing store — replace it with
+      // a real in-memory implementation for persistence round-trips
+      const localStorageMock = (() => {
+        let store: Record<string, string> = {}
+        return {
+          getItem: (key: string) => store[key] ?? null,
+          setItem: (key: string, value: string) => {
+            store[key] = value
+          },
+          removeItem: (key: string) => {
+            delete store[key]
+          },
+          clear: () => {
+            store = {}
+          },
+          get length() {
+            return Object.keys(store).length
+          },
+          key: (index: number) => {
+            const keys = Object.keys(store)
+            return keys[index] ?? null
+          },
+        }
+      })()
+      Object.defineProperty(window, 'localStorage', {
+        value: localStorageMock,
+        writable: true,
+      })
+      jest.useFakeTimers()
+    })
+
+    afterEach(() => {
+      jest.useRealTimers()
+    })
+
+    it('restores sizing, user visibility, and pinning from a stored entry', () => {
+      // Arrange
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          columnSizing: { name: 240 },
+          userColumnVisibility: { type: false },
+          columnPinning: { left: ['isEnabled'], right: [] },
+        }),
+      )
+      const ref = createRef<WaydGridHandle>()
+
+      // Act
+      renderGrid({ ref, persistStateKey: 'test-grid' })
+
+      // Assert — the user-hidden column is gone from the DOM (the raw user
+      // layer flows through mergeColumnVisibility), the pinned column leads,
+      // and the stored width is applied
+      expect(
+        document.querySelector('th[data-column-id="type"]'),
+      ).not.toBeInTheDocument()
+      const headerRow = document.querySelector(
+        'thead tr:not([data-role])',
+      ) as HTMLElement
+      expect(
+        headerRow
+          .querySelector('th[data-column-id]')
+          ?.getAttribute('data-column-id'),
+      ).toBe('isEnabled')
+      expect(ref.current!.table.getColumn('name').getSize()).toBe(240)
+    })
+
+    it('saves changes and restores them on a fresh mount', () => {
+      // Arrange
+      const ref = createRef<WaydGridHandle>()
+      const { unmount } = renderGrid({ ref, persistStateKey: 'test-grid' })
+
+      // Act — resize and pin through the table (wired to useGridState), let
+      // the debounce elapse, then remount
+      act(() => {
+        ref.current!.table.setColumnSizing({ name: 300 })
+        ref.current!.table.getColumn('type').pin('left')
+      })
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+      unmount()
+
+      // Assert — the entry holds the full payload
+      expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!)).toEqual({
+        columnSizing: { name: 300 },
+        userColumnVisibility: {},
+        columnPinning: { left: ['type'], right: [] },
+      })
+
+      // Act — fresh mount restores it
+      const ref2 = createRef<WaydGridHandle>()
+      renderGrid({ ref: ref2, persistStateKey: 'test-grid' })
+
+      // Assert
+      expect(ref2.current!.table.getColumn('name').getSize()).toBe(300)
+      const headerRow = document.querySelector(
+        'thead tr:not([data-role])',
+      ) as HTMLElement
+      expect(
+        headerRow
+          .querySelector('th[data-column-id]')
+          ?.getAttribute('data-column-id'),
+      ).toBe('type')
+    })
+
+    it('never touches storage without a persistStateKey', () => {
+      // Arrange
+      const getItemSpy = jest.spyOn(window.localStorage, 'getItem')
+      const setItemSpy = jest.spyOn(window.localStorage, 'setItem')
+      const ref = createRef<WaydGridHandle>()
+
+      // Act
+      renderGrid({ ref })
+      act(() => {
+        ref.current!.table.setColumnSizing({ name: 300 })
+        jest.advanceTimersByTime(1000)
+      })
+
+      // Assert
+      expect(getItemSpy).not.toHaveBeenCalled()
+      expect(setItemSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('numeric cell alignment', () => {
+    // `id` is numeric in DATA, so its filter/data type infers to 'number'.
+    const numericColumns: ColumnDef<Flag, unknown>[] = [
+      ...columns,
+      { id: 'id', accessorKey: 'id', header: 'Id' },
+    ]
+
+    it('right-aligns body cells of a data-inferred numeric column, but not its header', () => {
+      // Arrange / Act
+      renderGrid({ columns: numericColumns })
+
+      // Assert — numeric cells carry the alignment class; the header and
+      // text-column cells do not
+      expect(bodyCells('id')[0].className).toContain('tdNumeric')
+      expect(
+        document.querySelector('th[data-column-id="id"]')?.className,
+      ).not.toContain('tdNumeric')
+      expect(bodyCells('name')[0].className).not.toContain('tdNumeric')
+    })
+
+    it('meta.align overrides the default in both directions', () => {
+      // Arrange
+      const overriddenColumns: ColumnDef<Flag, unknown>[] = [
+        {
+          id: 'name',
+          accessorKey: 'name',
+          header: 'Name',
+          meta: { align: 'right' } satisfies WaydGridColumnMeta,
+        },
+        {
+          id: 'id',
+          accessorKey: 'id',
+          header: 'Id',
+          meta: { align: 'left' } satisfies WaydGridColumnMeta,
+        },
+      ]
+
+      // Act
+      renderGrid({ columns: overriddenColumns })
+
+      // Assert
+      expect(bodyCells('name')[0].className).toContain('tdNumeric')
+      expect(bodyCells('id')[0].className).not.toContain('tdNumeric')
+    })
+
+    it('leaves boolean (yesNo set-filter) columns left-aligned', () => {
+      // Arrange / Act
+      renderGrid()
+
+      // Assert
+      expect(bodyCells('isEnabled')[0].className).not.toContain('tdNumeric')
     })
   })
 })

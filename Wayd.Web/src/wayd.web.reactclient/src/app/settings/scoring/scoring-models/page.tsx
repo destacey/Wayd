@@ -116,6 +116,7 @@ const ScoringModelsPage = () => {
         data={scoringModelData ?? []}
         onRefresh={refresh}
         isLoading={isLoading}
+        persistStateKey="settings-scoring-models"
         csvFileName="scoring-models"
       />
       {openCreateForm && (

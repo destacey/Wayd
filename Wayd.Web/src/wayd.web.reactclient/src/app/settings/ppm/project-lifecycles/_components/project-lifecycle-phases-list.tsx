@@ -206,6 +206,7 @@ const ProjectLifecyclePhasesList = ({
         data={sortedPhases}
         leftSlot={actions}
         onRefresh={loadData}
+        persistStateKey="settings-project-lifecycle-phases"
         csvFileName="project-lifecycle-phases"
       />
       {openAddPhaseForm && (

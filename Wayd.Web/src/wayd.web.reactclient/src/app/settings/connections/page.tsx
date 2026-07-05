@@ -125,6 +125,7 @@ const ConnectionsPage = () => {
         data={connectionsData ?? []}
         onRefresh={refresh}
         isLoading={isLoading}
+        persistStateKey="settings-connections"
         csvFileName="connections"
         rightSlot={<ControlItemsMenu items={controlItems} />}
       />

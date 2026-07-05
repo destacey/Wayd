@@ -64,6 +64,7 @@ const ProjectWorkItemsViewManager = (
           hideProjectColumn={props.hideProjectColumn}
           viewSelector={viewSelector}
           gridHeight={props.gridHeight}
+          persistStateKey="project-work-items"
         />
       )}
     </>

@@ -307,6 +307,7 @@ const OidcProvidersPage = () => {
         data={providers ?? []}
         onRefresh={refresh}
         isLoading={isLoading}
+        persistStateKey="settings-identity-providers"
         csvFileName="identity-providers"
       />
 

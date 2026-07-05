@@ -8,6 +8,7 @@ import ProfileForm from './profile-form'
 import ChangePasswordForm from './change-password-form'
 import ClaimsGrid from './claims-grid'
 import PersonalAccessTokens from './personal-access-tokens'
+import Preferences from './preferences'
 import useAuth from '../../../components/contexts/auth'
 import { useDocumentTitle } from '../../../hooks/use-document-title'
 import { useAppDispatch } from '@/src/hooks'
@@ -16,12 +17,14 @@ import { useGetProfileQuery } from '@/src/store/features/user-management/profile
 import { useMessage } from '@/src/components/contexts/messaging'
 enum AccountTabs {
   Profile = 'profile',
+  Preferences = 'preferences',
   Claims = 'claims',
   PersonalAccessTokens = 'personalAccessTokens',
 }
 
 const tabs = [
   { key: AccountTabs.Profile, tab: 'Profile' },
+  { key: AccountTabs.Preferences, tab: 'Preferences' },
   { key: AccountTabs.PersonalAccessTokens, tab: 'PATs' },
   { key: AccountTabs.Claims, tab: 'Claims' },
 ]
@@ -49,6 +52,8 @@ const AccountProfilePage = () => {
     switch (activeTab) {
       case AccountTabs.Profile:
         return React.createElement(ProfileForm, profileData)
+      case AccountTabs.Preferences:
+        return <Preferences />
       case AccountTabs.PersonalAccessTokens:
         return <PersonalAccessTokens />
       case AccountTabs.Claims:

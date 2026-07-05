@@ -11,10 +11,6 @@ namespace Wayd.Work.Application.WorkItems.Dtos;
 
 public sealed record WorkItemDetailsDto : IMapFrom<WorkItem>
 {
-    public const string WorkItemProjectSource = "WorkItem";
-    public const string ParentProjectSource = "Parent";
-    public const string NoProjectSource = "None";
-
     public Guid Id { get; set; }
     public required string Key { get; set; }
     public int? ExternalId { get; set; }
@@ -57,10 +53,10 @@ public sealed record WorkItemDetailsDto : IMapFrom<WorkItem>
                     ? src.ParentProject
                     : null)
             .Map(dest => dest.ProjectSource, src => src.ProjectId.HasValue
-                ? WorkItemProjectSource
+                ? WorkItemProjectSource.WorkItem
                 : src.ParentProjectId.HasValue
-                    ? ParentProjectSource
-                    : NoProjectSource)
+                    ? WorkItemProjectSource.Parent
+                    : WorkItemProjectSource.None)
             .Map(dest => dest.ExternalViewWorkItemUrl, src => src.Workspace.ExternalViewWorkItemUrlTemplate == null ? null : $"{src.Workspace.ExternalViewWorkItemUrlTemplate}{src.ExternalId}")
             .Map(dest => dest.Tags, src => src.Tags.Select(t => t.Value).ToList());
     }

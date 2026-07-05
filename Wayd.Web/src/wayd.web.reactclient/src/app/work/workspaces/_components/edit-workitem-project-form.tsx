@@ -124,19 +124,26 @@ const EditWorkItemProjectForm = (props: EditWorkItemProjectFormProps) => {
 
   const hasParent = props.hasParent || workItemProjectInfoData?.hasParent === true
 
-  const projectSourceText =
-    workItemProjectInfoData &&
-    (workItemProjectInfoData.projectSource === 'WorkItem'
-      ? workItemProjectInfoData.parentProject
-        ? `This work item is using its own project assignment instead of inheriting ${workItemProjectInfoData.parentProject.name} from its parent. Clear the field and save to inherit the parent project again.`
-        : 'This work item is using its own project assignment. Clear the field and save to remove the project.'
-      : workItemProjectInfoData.projectSource === 'Parent'
-        ? workItemProjectInfoData.parentProject
+  const getProjectSourceText = () => {
+    if (!workItemProjectInfoData) return undefined
+
+    switch (workItemProjectInfoData.projectSource) {
+      case 'WorkItem':
+        return workItemProjectInfoData.parentProject
+          ? `This work item is using its own project assignment instead of inheriting ${workItemProjectInfoData.parentProject.name} from its parent. Clear the field and save to inherit the parent project again.`
+          : 'This work item is using its own project assignment. Clear the field and save to remove the project.'
+      case 'Parent':
+        return workItemProjectInfoData.parentProject
           ? `This work item is inheriting ${workItemProjectInfoData.parentProject.name} from its parent. Select a different project and save to override it on this work item.`
           : 'This work item is inheriting its project from the parent. Select a different project and save to override it on this work item.'
-        : hasParent
+      default:
+        return hasParent
           ? 'This work item and its parent do not currently have a project. Select a project and save to assign one directly to this work item.'
-          : 'This work item is not associated with any project. Select a project and save to assign one directly.')
+          : 'This work item is not associated with any project. Select a project and save to assign one directly.'
+    }
+  }
+
+  const projectSourceText = getProjectSourceText()
 
   const projectSelectOptions =
     workItemProjectInfoData?.parentProject?.id && projectOptions

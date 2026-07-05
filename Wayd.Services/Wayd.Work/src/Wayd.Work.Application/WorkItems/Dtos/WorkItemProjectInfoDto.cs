@@ -23,9 +23,9 @@ public class WorkItemProjectInfoDto : IMapFrom<WorkItem>
                 ? src.ParentProject
                 : null)
             .Map(dest => dest.ProjectSource, src => src.ProjectId.HasValue
-                ? WorkItemDetailsDto.WorkItemProjectSource
+                ? WorkItemProjectSource.WorkItem
                 : src.ParentProjectId.HasValue
-                    ? WorkItemDetailsDto.ParentProjectSource
-                    : WorkItemDetailsDto.NoProjectSource);
+                    ? WorkItemProjectSource.Parent
+                    : WorkItemProjectSource.None);
     }
 }

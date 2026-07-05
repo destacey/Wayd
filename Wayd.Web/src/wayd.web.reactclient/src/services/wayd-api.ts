@@ -31630,6 +31630,7 @@ export interface WorkItemDetailsDto {
     activatedTimestamp?: Date | undefined;
     doneTimestamp?: Date | undefined;
     project?: WorkProjectNavigationDto | undefined;
+    projectSource: string;
     externalViewWorkItemUrl?: string | undefined;
     storyPoints?: number | undefined;
     tags: string[];
@@ -31638,8 +31639,10 @@ export interface WorkItemDetailsDto {
 export interface WorkItemProjectInfoDto {
     id: string;
     key: string;
+    hasParent: boolean;
     project?: WorkProjectNavigationDto | undefined;
     parentProject?: WorkProjectNavigationDto | undefined;
+    projectSource: string;
 }
 
 export interface UpdateWorkItemProjectRequest {

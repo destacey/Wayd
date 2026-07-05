@@ -201,6 +201,7 @@ const WorkItemDetailsPage = (props: {
           workItemId={workItemData!.id}
           workItemKey={workItemData!.key}
           workspaceId={workItemData!.workspace.id}
+          hasParent={!!workItemData!.parent}
           onFormCancel={() => setOpenEditWorkItemProjectForm(false)}
           onFormComplete={() => {
             setOpenEditWorkItemProjectForm(false)

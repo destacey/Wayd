@@ -19,12 +19,13 @@ export interface EditWorkItemProjectFormProps {
   workItemId: string
   workItemKey: string
   workspaceId: string
+  hasParent: boolean
   onFormComplete: () => void
   onFormCancel: () => void
 }
 
 interface EditWorkItemProjectFormValues {
-  projectId: string
+  projectId?: string
 }
 
 const mapToRequestValues = (
@@ -33,7 +34,7 @@ const mapToRequestValues = (
 ): UpdateWorkItemProjectRequest => {
   return {
     workItemId: workItemId,
-    projectId: values.projectId,
+    projectId: values.projectId || undefined,
   }
 }
 
@@ -60,36 +61,36 @@ const EditWorkItemProjectForm = (props: EditWorkItemProjectFormProps) => {
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditWorkItemProjectFormValues>({
       onSubmit: async (values: EditWorkItemProjectFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values, props.workItemId)
+        try {
+          const request = mapToRequestValues(values, props.workItemId)
 
-            const response = await updateWorkItemProject({
-              workspaceId: props.workspaceId,
-              request: request,
-              cacheKey: props.workItemKey,
-            })
+          const response = await updateWorkItemProject({
+            workspaceId: props.workspaceId,
+            request: request,
+            cacheKey: props.workItemKey,
+          })
 
-            if (response.error) {
-              throw response.error
-            }
-
-            messageApi.success('Work item project updated successfully.')
-            return true
-          } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                apiError.detail ??
-                  'An error occurred while updating the work item. Please try again.',
-              )
-            }
-            return false
+          if (response.error) {
+            throw response.error
           }
-        },
+
+          messageApi.success('Work item project updated successfully.')
+          return true
+        } catch (error) {
+          const apiError: ApiError = isApiError(error) ? error : {}
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              apiError.detail ??
+                'An error occurred while updating the work item. Please try again.',
+            )
+          }
+          return false
+        }
+      },
       onComplete: props.onFormComplete,
       onCancel: props.onFormCancel,
       errorMessage:
@@ -99,9 +100,12 @@ const EditWorkItemProjectForm = (props: EditWorkItemProjectFormProps) => {
 
   useEffect(() => {
     if (!workItemProjectInfoData || !isOpen) return
+
     const projectId =
-      workItemProjectInfoData.project?.id ??
-      workItemProjectInfoData.parentProject?.id
+      workItemProjectInfoData.projectSource === 'WorkItem'
+        ? workItemProjectInfoData.project?.id
+        : undefined
+
     form.setFieldsValue({ projectId })
   }, [workItemProjectInfoData, isOpen, form])
 
@@ -110,19 +114,45 @@ const EditWorkItemProjectForm = (props: EditWorkItemProjectFormProps) => {
       console.error(error ?? projectOptionsError)
       messageApi.error(
         (isApiError(error) ? error.detail : undefined) ??
-          (isApiError(projectOptionsError) ? projectOptionsError.detail : undefined) ??
+          (isApiError(projectOptionsError)
+            ? projectOptionsError.detail
+            : undefined) ??
           'An error occurred while loading form data. Please try again.',
       )
     }
   }, [error, messageApi, projectOptionsError])
 
-  const projectSourceText =
-    workItemProjectInfoData &&
-    (workItemProjectInfoData.project
-      ? 'The work item is currently overriding the Parent Project.  Clear and save to inherit the Parent Project.'
-      : workItemProjectInfoData.parentProject
-        ? 'The work item is currently is inheriting the Project from its Parent. Select a Project and save to override.'
-        : 'The work item is currently not associated with any project.')
+  const hasParent = props.hasParent || workItemProjectInfoData?.hasParent === true
+
+  const getProjectSourceText = () => {
+    if (!workItemProjectInfoData) return undefined
+
+    switch (workItemProjectInfoData.projectSource) {
+      case 'WorkItem':
+        return workItemProjectInfoData.parentProject
+          ? `This work item is using its own project assignment instead of inheriting ${workItemProjectInfoData.parentProject.name} from its parent. Clear the field and save to inherit the parent project again.`
+          : 'This work item is using its own project assignment. Clear the field and save to remove the project.'
+      case 'Parent':
+        return workItemProjectInfoData.parentProject
+          ? `This work item is inheriting ${workItemProjectInfoData.parentProject.name} from its parent. Select a different project and save to override it on this work item.`
+          : 'This work item is inheriting its project from the parent. Select a different project and save to override it on this work item.'
+      default:
+        return hasParent
+          ? 'This work item and its parent do not currently have a project. Select a project and save to assign one directly to this work item.'
+          : 'This work item is not associated with any project. Select a project and save to assign one directly.'
+    }
+  }
+
+  const projectSourceText = getProjectSourceText()
+
+  const projectSelectOptions =
+    workItemProjectInfoData?.parentProject?.id && projectOptions
+      ? projectOptions.filter(
+          (option) => option.value !== workItemProjectInfoData.parentProject?.id,
+        )
+      : projectOptions
+
+  const parentProjectName = workItemProjectInfoData?.parentProject?.name ?? 'No Project'
 
   return (
     <>
@@ -139,25 +169,19 @@ const EditWorkItemProjectForm = (props: EditWorkItemProjectFormProps) => {
       >
         <Space vertical>
           {projectSourceText && <Text italic>{projectSourceText}</Text>}
+          {hasParent && (
+            <Text>Parent Project: {parentProjectName}</Text>
+          )}
           <Form
             form={form}
             size="small"
             layout="vertical"
             name="edit-workitem-project-form"
           >
-            <Item
-              name="projectId"
-              label="Project"
-              rules={[
-                {
-                  required: !workItemProjectInfoData?.project,
-                  message: 'Project is required',
-                },
-              ]}
-            >
+            <Item name="projectId" label="Project">
               <Select
                 allowClear
-                options={projectOptions ?? []}
+                options={projectSelectOptions ?? []}
                 placeholder="Select Project"
                 showSearch
                 optionFilterProp="label"

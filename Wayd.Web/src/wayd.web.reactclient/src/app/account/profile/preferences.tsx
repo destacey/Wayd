@@ -42,9 +42,9 @@ const Preferences: FC = () => {
           <Text strong>Remember column layouts</Text>
           <br />
           <Text type="secondary">
-            Save each grid&apos;s column sizing, visibility, and pinning so
-            your layout is restored on your next visit. Turning this off keeps
-            existing saved layouts; they apply again when re-enabled.
+            Save each grid&apos;s column sizing, visibility, pinning, and order
+            so your layout is restored on your next visit. Turning this off
+            keeps existing saved layouts; they apply again when re-enabled.
           </Text>
         </div>
         <Switch

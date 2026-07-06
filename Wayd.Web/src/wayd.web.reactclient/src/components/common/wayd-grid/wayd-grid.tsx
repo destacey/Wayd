@@ -32,11 +32,13 @@ import {
   type DragCancelEvent,
   type DragEndEvent,
   type DragStartEvent,
+  type Modifier,
   closestCenter,
 } from '@dnd-kit/core'
 import {
   SortableContext,
   arrayMove,
+  horizontalListSortingStrategy,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 
@@ -60,6 +62,11 @@ import {
 } from '../wayd-grid-core/filters'
 
 import { applySafeAccessor } from '../wayd-grid-core/column-accessors'
+import {
+  getOrderedVisibleLeafColumns,
+  reconcileColumnOrder,
+  reorderIds,
+} from '../wayd-grid-core/column-order'
 import {
   computeAutosizeWidth,
   measureColumnContent,
@@ -90,8 +97,8 @@ import {
 } from '../wayd-grid-core/draft-utils'
 import { exportGridToCsv } from '../wayd-grid-core/grid-export'
 import {
-  GridHeaderCell,
   GridHeaderContent,
+  SortableHeaderCell,
   useResizeClickGuard,
   type GridHeaderCellClasses,
 } from '../wayd-grid-core/grid-header-row'
@@ -132,6 +139,13 @@ const EMPTY_NODE_SET: Set<string> = new Set<string>()
 const EMPTY_DATA: never[] = []
 const EMPTY_FIELD_ERRORS: Record<string, string> = {}
 const DRAFT_SCROLL_MARGIN = 8
+
+/** Column-reorder drags move along the header row only — lock the y axis.
+ *  (Inlined rather than pulling in @dnd-kit/modifiers for one function.) */
+const restrictToHorizontalAxis: Modifier = ({ transform }) => ({
+  ...transform,
+  y: 0,
+})
 
 /** Fixed row-height estimate for the virtualizer. Rows are uniform in
  * practice (.td: 4px padding + 1px border + one no-wrap text line), so a
@@ -215,6 +229,8 @@ const headerCellClasses: GridHeaderCellClasses = {
   thText: styles.thText,
   resizer: styles.resizer,
   resizerActive: styles.resizerActive,
+  thDraggable: styles.thDraggable,
+  thDragging: styles.thDragging,
 }
 
 // Pinned-column sticky classes per cell kind. The edge classes (the divider
@@ -630,6 +646,9 @@ function WaydGridInner<T>(
     setColumnSizing,
     userColumnVisibility,
     setUserColumnVisibility,
+    columnOrder,
+    setColumnOrder,
+    setColumnPinning,
     resetColumnState,
   } = gridState
   const resizeGuard = useResizeClickGuard()
@@ -926,6 +945,51 @@ function WaydGridInner<T>(
     [consumerColumnVisibility, userColumnVisibility],
   )
 
+  // Leaf column ids in DEF order (recursing bands), for reconciling the
+  // persisted/user column order against the live defs.
+  const leafColumnIds = useMemo<string[]>(() => {
+    const ids: string[] = []
+    const collect = (cols: typeof resolvedColumns) => {
+      for (const col of cols) {
+        const children = (col as { columns?: typeof resolvedColumns }).columns
+        if (children) {
+          collect(children)
+          continue
+        }
+        const id =
+          col.id ??
+          (col as { accessorKey?: string | number }).accessorKey?.toString()
+        if (id) ids.push(id)
+      }
+    }
+    collect(resolvedColumns)
+    return ids
+  }, [resolvedColumns])
+
+  // The order actually fed to TanStack: the user's order reconciled against the
+  // live defs so removed columns drop out and columns added since (or absent
+  // from a persisted order) land at their def position instead of being
+  // appended to the end. The RAW gridState.columnOrder is what persists — this
+  // derivative never round-trips to storage, so defs changing between pages
+  // can't rewrite the stored order.
+  const effectiveColumnOrder = useMemo(
+    () => reconcileColumnOrder(columnOrder, leafColumnIds),
+    [columnOrder, leafColumnIds],
+  )
+
+  // Column reordering is on for every flat/tree grid EXCEPT grouped-header
+  // grids: reordering leaves across band boundaries would split bands, so the
+  // simplest safe scope is to disable header-drag reordering when any def is a
+  // band. (The modal reorder is likewise gated on this.)
+  const hasGroupedHeaders = useMemo(
+    () =>
+      resolvedColumns.some(
+        (col) => (col as { columns?: unknown[] }).columns !== undefined,
+      ),
+    [resolvedColumns],
+  )
+  const columnReorderEnabled = !hasGroupedHeaders
+
   // ─── Flattened tree for DnD ──────────────────────────────
   const flattenedNodes = useMemo(
     () =>
@@ -1072,7 +1136,7 @@ function WaydGridInner<T>(
           }
         : {}),
     },
-    extraState: { columnVisibility },
+    extraState: { columnVisibility, columnOrder: effectiveColumnOrder },
   })
 
   tableRef.current = table
@@ -1083,6 +1147,63 @@ function WaydGridInner<T>(
     getDisplayedRows: () =>
       table.getRowModel().rows.map((row: Row<T>) => row.original),
   }))
+
+  // ─── Header column-reorder DnD ───────────────────────────
+  // Section-aware move shared by header-grip drag and the Choose Columns modal.
+  // Reorders WITHIN the active column's section only: the center section via
+  // columnOrder, each pinned side via its columnPinning array (TanStack orders
+  // pinned sections by the pin array, ignoring columnOrder). A cross-section
+  // move, a no-op, or a move touching a non-reorderable column is ignored —
+  // dragging never pins/unpins (that stays the column menu's job).
+  const moveColumn = useCallback(
+    (activeId: string, overId: string) => {
+      if (activeId === overId) return
+
+      const activeColumn = table.getColumn(activeId)
+      const overColumn = table.getColumn(overId)
+      if (
+        activeColumn?.columnDef.meta?.enableReordering === false ||
+        overColumn?.columnDef.meta?.enableReordering === false
+      ) {
+        return
+      }
+
+      const activeSide = activeColumn?.getIsPinned() ?? false
+      const overSide = overColumn?.getIsPinned() ?? false
+      if (activeSide !== overSide) return
+
+      if (activeSide === false) {
+        // Center: reorder within the full columnOrder (pinned ids ride along
+        // inertly). Seed from the reconciled order so a first-ever reorder
+        // persists a complete, self-consistent order.
+        setColumnOrder(reorderIds(effectiveColumnOrder, activeId, overId))
+        return
+      }
+
+      // Pinned: reorder that side's pin array.
+      setColumnPinning((prev) => {
+        const side = prev[activeSide] ?? []
+        const next = reorderIds(side, activeId, overId)
+        if (next === side) return prev
+        return { ...prev, [activeSide]: next }
+      })
+    },
+    [table, effectiveColumnOrder, setColumnOrder, setColumnPinning],
+  )
+
+  const handleColumnDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event
+      if (!over) return
+      // Sortable ids are namespaced `col:<id>` so a shared context could tell
+      // column drags from row drags; strip it back to the column id.
+      moveColumn(
+        String(active.id).replace(/^col:/, ''),
+        String(over.id).replace(/^col:/, ''),
+      )
+    },
+    [moveColumn],
+  )
 
   const rows = table.getRowModel().rows
 
@@ -1159,8 +1280,7 @@ function WaydGridInner<T>(
 
   const autosizeAllColumns = useCallback(() => {
     autosizeColumns(
-      table
-        .getVisibleLeafColumns()
+      getOrderedVisibleLeafColumns(table)
         .filter((column) => column.getCanResize())
         .map((column) => column.id),
     )
@@ -1285,6 +1405,8 @@ function WaydGridInner<T>(
               isFiltered ? ` ${styles.filterTriggerActive}` : ''
             }`}
             onClick={(e) => e.stopPropagation()}
+            // Header cell is a reorder drag handle — don't drag from the icon.
+            onPointerDown={(e) => e.stopPropagation()}
           >
             {isFiltered ? <FilterFilled /> : <FilterOutlined />}
           </span>
@@ -1438,16 +1560,19 @@ function WaydGridInner<T>(
   const leafHeaderGroup = headerGroups[headerGroups.length - 1]
   const groupHeaderRows = headerGroups.slice(0, -1)
 
-  // Visible leaf columns in RENDER order: left-pinned → center → right-pinned.
-  // getHeaderGroups() and row.getVisibleCells() emit this order when columns
-  // are pinned, but plain getVisibleLeafColumns() stays in def order — the
+  // Visible leaf columns in RENDER order: left-pinned → center → right-pinned
+  // (center honours columnOrder). getHeaderGroups() and row.getVisibleCells()
+  // emit this order, but plain getVisibleLeafColumns() stays in def order — the
   // colgroup must follow the rendered order or the shared <col> widths would
   // apply to the wrong columns.
-  const orderedVisibleLeafColumns = [
-    ...table.getLeftVisibleLeafColumns(),
-    ...table.getCenterVisibleLeafColumns(),
-    ...table.getRightVisibleLeafColumns(),
-  ]
+  const orderedVisibleLeafColumns = getOrderedVisibleLeafColumns(table)
+
+  // Sortable ids for the header row's SortableContext, namespaced `col:` (the
+  // same ids the header cells' useSortable use). In display order so dnd-kit's
+  // index math lines up with what the user sees.
+  const columnSortableIds = orderedVisibleLeafColumns.map(
+    (column) => `col:${column.id}`,
+  )
 
   // Rendered into BOTH tables (header + body) — with table-layout: fixed,
   // identical colgroups guarantee the two tables' columns align exactly.
@@ -1463,20 +1588,20 @@ function WaydGridInner<T>(
     </colgroup>
   )
 
-  const tableContent = (
-    <div className={styles.tableArea}>
-      <div className={styles.headerArea}>
-        <div className={styles.headerViewport} ref={headerViewportRef}>
-          <table
-            className={styles.tableElement}
-            style={
-              {
-                '--wayd-grid-group-header-rows': groupHeaderRows.length,
-              } as React.CSSProperties
-            }
-          >
-            {colGroup}
-            <thead>
+  // The header table, optionally wrapped in a column-reorder DnD context. The
+  // context is header-scoped and separate from the row/tree DnD context below,
+  // so column drags and row drags never share sensors or collision detection.
+  const headerTable = (
+    <table
+      className={styles.tableElement}
+      style={
+        {
+          '--wayd-grid-group-header-rows': groupHeaderRows.length,
+        } as React.CSSProperties
+      }
+    >
+      {colGroup}
+      <thead>
           {/* Grouped-header band rows — plain colspan cells, no
               sort/filter/resize; placeholders render empty. */}
           {groupHeaderRows.map((headerGroup, bandIndex) => (
@@ -1530,10 +1655,15 @@ function WaydGridInner<T>(
                 !header.isPlaceholder &&
                 header.column.getCanFilter()
               const pinned = getPinnedOffsets(header.column)
+              const reorderable =
+                columnReorderEnabled &&
+                !header.isPlaceholder &&
+                header.column.columnDef.meta?.enableReordering !== false
 
               return (
-                <GridHeaderCell
+                <SortableHeaderCell
                   key={header.id}
+                  reorderable={reorderable}
                   header={header}
                   resizeGuard={resizeGuard}
                   classes={headerCellClasses}
@@ -1663,7 +1793,32 @@ function WaydGridInner<T>(
             </tr>
           )}
         </thead>
-          </table>
+    </table>
+  )
+
+  const headerTableContent = columnReorderEnabled ? (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      modifiers={[restrictToHorizontalAxis]}
+      onDragEnd={handleColumnDragEnd}
+    >
+      <SortableContext
+        items={columnSortableIds}
+        strategy={horizontalListSortingStrategy}
+      >
+        {headerTable}
+      </SortableContext>
+    </DndContext>
+  ) : (
+    headerTable
+  )
+
+  const tableContent = (
+    <div className={styles.tableArea}>
+      <div className={styles.headerArea}>
+        <div className={styles.headerViewport} ref={headerViewportRef}>
+          {headerTableContent}
         </div>
         {/* Spacer above the body's vertical scrollbar — same header band
             styling, sized from the live scrollbar measurement. */}
@@ -1748,6 +1903,8 @@ function WaydGridInner<T>(
         open={isColumnChooserOpen}
         onClose={() => setIsColumnChooserOpen(false)}
         onToggleColumn={handleUserToggleColumn}
+        reorderEnabled={columnReorderEnabled}
+        onReorderColumn={moveColumn}
       />
     </div>
   )

@@ -39,8 +39,8 @@ describe('createActionsColumn', () => {
       expect(col.enableColumnFilter).toBe(false)
       expect(col.enableResizing).toBe(false)
       expect(col.header).toBe('')
-      // No meta.hide unless the caller opts in.
-      expect(col.meta).toBeUndefined()
+      // The actions column always opts out of reordering; no hide unless asked.
+      expect(col.meta).toEqual({ enableReordering: false })
     })
 
     it('honors id, size, and hide overrides', () => {
@@ -55,7 +55,7 @@ describe('createActionsColumn', () => {
       // Assert
       expect(col.id).toBe('rowMenu')
       expect(col.size).toBe(72)
-      expect(col.meta).toEqual({ hide: true })
+      expect(col.meta).toEqual({ enableReordering: false, hide: true })
     })
   })
 

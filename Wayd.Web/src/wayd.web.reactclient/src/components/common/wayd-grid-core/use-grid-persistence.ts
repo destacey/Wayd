@@ -1,5 +1,6 @@
 import { useEffect, useRef, type MutableRefObject } from 'react'
 import type {
+  ColumnOrderState,
   ColumnPinningState,
   ColumnSizingState,
   VisibilityState,
@@ -10,9 +11,9 @@ import type { GridState } from './use-grid-table'
 /**
  * Opt-in localStorage persistence of a grid's user column layout.
  *
- * Persists exactly three {@link GridState} slices — `columnSizing`,
+ * Persists exactly four {@link GridState} slices — `columnSizing`,
  * `userColumnVisibility` (the raw user layer, never the merged
- * columnVisibility), and `columnPinning` — under
+ * columnVisibility), `columnPinning`, and `columnOrder` — under
  * `wayd-grid:{persistStateKey}:v{GRID_STATE_VERSION}`. Sorting, filters, and
  * search are deliberately session-only.
  *
@@ -29,8 +30,13 @@ import type { GridState } from './use-grid-table'
  *   is written atomically.
  * - Persisted ids for columns absent from the current defs are inert:
  *   TanStack ignores unknown ids in sizing/visibility maps and filters them
- *   from pinning arrays. Bump {@link GRID_STATE_VERSION} on wholesale shape
- *   or column renames.
+ *   from pinning arrays. `columnOrder` is reconciled against the live defs by
+ *   the grid (reconcileColumnOrder) before it reaches the table, so a stale or
+ *   partial order can't strand columns. Bump {@link GRID_STATE_VERSION} on
+ *   wholesale shape or column renames.
+ * - `columnOrder` is optional in the persisted payload: v1 entries written
+ *   before column ordering existed have no `columnOrder` key and still load
+ *   (treated as no custom order), so the version stays at 1.
  */
 
 /** Prefix shared by every key this feature writes to localStorage. */
@@ -51,6 +57,8 @@ export interface PersistedColumnState {
   columnSizing: ColumnSizingState
   userColumnVisibility: VisibilityState
   columnPinning: ColumnPinningState
+  /** Optional so pre-ordering v1 entries stay valid; absent = no custom order. */
+  columnOrder?: ColumnOrderState
 }
 
 /** The versioned localStorage key for a grid's persisted column state. */
@@ -106,7 +114,8 @@ const isRecordOf = (
   isPlainObject(value) &&
   Object.values(value).every((entry) => typeof entry === entryType)
 
-const isPinningSide = (value: unknown): boolean =>
+/** A string[] (columnPinning side, columnOrder) or absent. */
+const isStringArrayOrAbsent = (value: unknown): boolean =>
   value === undefined ||
   (Array.isArray(value) && value.every((id) => typeof id === 'string'))
 
@@ -115,13 +124,15 @@ export function isPersistedColumnState(
   value: unknown,
 ): value is PersistedColumnState {
   if (!isPlainObject(value)) return false
-  const { columnSizing, userColumnVisibility, columnPinning } = value
+  const { columnSizing, userColumnVisibility, columnPinning, columnOrder } =
+    value
   return (
     isRecordOf(columnSizing, 'number') &&
     isRecordOf(userColumnVisibility, 'boolean') &&
     isPlainObject(columnPinning) &&
-    isPinningSide(columnPinning.left) &&
-    isPinningSide(columnPinning.right)
+    isStringArrayOrAbsent(columnPinning.left) &&
+    isStringArrayOrAbsent(columnPinning.right) &&
+    isStringArrayOrAbsent(columnOrder)
   )
 }
 
@@ -134,17 +145,22 @@ function buildPayloadJson(
   columnSizing: ColumnSizingState,
   userColumnVisibility: VisibilityState,
   columnPinning: ColumnPinningState,
+  columnOrder: ColumnOrderState,
 ): string | null {
   const isDefault =
     Object.keys(columnSizing).length === 0 &&
     Object.keys(userColumnVisibility).length === 0 &&
     !columnPinning.left?.length &&
-    !columnPinning.right?.length
+    !columnPinning.right?.length &&
+    columnOrder.length === 0
   if (isDefault) return null
   const payload: PersistedColumnState = {
     columnSizing,
     userColumnVisibility,
     columnPinning,
+    // Omit an empty order so the payload matches a grid that never reordered
+    // (keeps entries minimal; the load path defaults a missing order to []).
+    ...(columnOrder.length > 0 ? { columnOrder } : {}),
   }
   return JSON.stringify(payload)
 }
@@ -211,6 +227,8 @@ type PersistableGridState = Pick<
   | 'setUserColumnVisibility'
   | 'columnPinning'
   | 'setColumnPinning'
+  | 'columnOrder'
+  | 'setColumnOrder'
 >
 
 /**
@@ -231,6 +249,8 @@ export function useGridColumnStatePersistence(
     setUserColumnVisibility,
     columnPinning,
     setColumnPinning,
+    columnOrder,
+    setColumnOrder,
   } = gridState
 
   const storageKey = persistStateKey
@@ -254,14 +274,17 @@ export function useGridColumnStatePersistence(
       if (raw) {
         const parsed = tryParseJson(raw)
         if (isPersistedColumnState(parsed)) {
+          const loadedOrder = parsed.columnOrder ?? []
           setColumnSizing(parsed.columnSizing)
           setUserColumnVisibility(parsed.userColumnVisibility)
           setColumnPinning(parsed.columnPinning)
+          setColumnOrder(loadedOrder)
           // Normalized so the post-apply save pass short-circuits.
           lastWrittenRef.current = buildPayloadJson(
             parsed.columnSizing,
             parsed.userColumnVisibility,
             parsed.columnPinning,
+            loadedOrder,
           )
         } else {
           // Unusable entry (malformed JSON or wrong shape): discard it so the
@@ -282,6 +305,7 @@ export function useGridColumnStatePersistence(
     setColumnSizing,
     setUserColumnVisibility,
     setColumnPinning,
+    setColumnOrder,
   ])
 
   // ─── Save on change (trailing debounce) ─────────────────
@@ -291,6 +315,7 @@ export function useGridColumnStatePersistence(
       columnSizing,
       userColumnVisibility,
       columnPinning,
+      columnOrder,
     )
     if (json === lastWrittenRef.current) {
       // Values are back to what's stored — cancel any pending stale write.
@@ -303,7 +328,13 @@ export function useGridColumnStatePersistence(
       SAVE_DEBOUNCE_MS,
     )
     return () => clearTimeout(timer)
-  }, [storageKey, columnSizing, userColumnVisibility, columnPinning])
+  }, [
+    storageKey,
+    columnSizing,
+    userColumnVisibility,
+    columnPinning,
+    columnOrder,
+  ])
 
   // ─── Flush a pending write on unmount ───────────────────
   // Runs after the save effect's cleanup (declaration order), so the cleared

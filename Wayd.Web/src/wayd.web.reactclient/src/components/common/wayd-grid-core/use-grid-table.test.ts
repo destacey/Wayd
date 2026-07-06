@@ -33,13 +33,22 @@ describe('use-grid-table', () => {
   })
 
   describe('useGridState', () => {
-    it('resetColumnState restores sizing, user visibility, and pinning only', () => {
+    it('starts columnOrder empty', () => {
+      // Arrange / Act
+      const { result } = renderHook(() => useGridState())
+
+      // Assert
+      expect(result.current.columnOrder).toEqual([])
+    })
+
+    it('resetColumnState restores sizing, user visibility, pinning, and order only', () => {
       // Arrange — user-adjusted column state plus an active sort and filter
       const { result } = renderHook(() => useGridState())
       act(() => {
         result.current.setColumnSizing({ name: 240 })
         result.current.setUserColumnVisibility({ team: false })
         result.current.setColumnPinning({ left: ['name'], right: [] })
+        result.current.setColumnOrder(['team', 'name'])
         result.current.setSorting([{ id: 'name', desc: false }])
         result.current.setColumnFilters([{ id: 'name', value: 'x' }])
       })
@@ -49,11 +58,12 @@ describe('use-grid-table', () => {
         result.current.resetColumnState()
       })
 
-      // Assert — column state cleared; sort/filters untouched (that's the
-      // toolbar Clear button's job)
+      // Assert — column state cleared (incl. order); sort/filters untouched
+      // (that's the toolbar Clear button's job)
       expect(result.current.columnSizing).toEqual({})
       expect(result.current.userColumnVisibility).toEqual({})
       expect(result.current.columnPinning).toEqual({ left: [], right: [] })
+      expect(result.current.columnOrder).toEqual([])
       expect(result.current.sorting).toEqual([{ id: 'name', desc: false }])
       expect(result.current.columnFilters).toEqual([
         { id: 'name', value: 'x' },

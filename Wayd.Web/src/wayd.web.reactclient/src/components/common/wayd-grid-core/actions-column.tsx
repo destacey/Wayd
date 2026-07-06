@@ -92,7 +92,8 @@ export const createActionsColumn = <T,>({
   enableColumnFilter: false,
   enableResizing: false,
   enableGlobalFilter: false,
-  meta: hide === undefined ? undefined : { hide },
+  // The actions column always holds its position — no drag grip, rejects drops.
+  meta: { enableReordering: false, ...(hide === undefined ? {} : { hide }) },
   cell: ({ row }: { row: Row<T> }) => (
     <ActionsCell row={row.original} getItems={getItems} ariaLabel={ariaLabel} />
   ),

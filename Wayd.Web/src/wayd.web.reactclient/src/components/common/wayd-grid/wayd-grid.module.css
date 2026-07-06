@@ -184,6 +184,28 @@
   flex: 0 1 auto;
 }
 
+/*
+ * Reorderable header cell — the WHOLE cell is the drag handle (no separate grip
+ * taking up label width). A grab cursor signals it; dnd-kit's 8px activation
+ * distance means a plain click still sorts. touch-action:none lets a touch drag
+ * reorder instead of scrolling. The resizer overrides the cursor at the edge.
+ */
+.thDraggable {
+  cursor: grab;
+  touch-action: none;
+}
+
+.thDraggable:active {
+  cursor: grabbing;
+}
+
+/* The cell being dragged: lift it and drop the header background's opacity so
+   the drop target underneath reads through. */
+.thDragging {
+  opacity: 0.85;
+  background: var(--wayd-grid-header-bg);
+}
+
 /* Numeric columns right-align their body cells so magnitudes line up;
    headers deliberately stay left-aligned (see meta.align). */
 .tdNumeric {

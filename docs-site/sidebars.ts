@@ -101,6 +101,7 @@ const sidebars: SidebarsConfig = {
             'contributing/adding-a-feature',
             'contributing/database',
             'contributing/frontend',
+            'contributing/wayd-grid',
             'contributing/api',
           ],
         },

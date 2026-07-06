@@ -144,8 +144,11 @@ export function useHeaderCellSortable(
         ? CSS.Transform.toString({ ...transform, y: 0, scaleX: 1, scaleY: 1 })
         : undefined,
       transition,
-      // Keep the dragged cell above its neighbours' sticky/pinned stacking.
-      zIndex: isDragging ? 3 : undefined,
+      // Float the dragged cell above every other header while dragging. The
+      // grid's header cells are z-index 20 and pinned headers 22 (see
+      // wayd-grid.module.css); this inline value must clear both so the
+      // dragged column never slides behind a neighbour or a pinned column.
+      zIndex: isDragging ? 30 : undefined,
     },
     isDragging,
     handleProps: { ...listeners, ...attributes },

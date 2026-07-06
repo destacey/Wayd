@@ -3,6 +3,7 @@ import {
   type Column,
   type ColumnDef,
   type ColumnFiltersState,
+  type ColumnOrderState,
   type ColumnPinningState,
   type ColumnSizingState,
   type SortingState,
@@ -29,10 +30,10 @@ import { stringContainsFilter } from './grid-filters'
  * between creating the state and creating the table.
  *
  * Every user-adjustable column state slice (columnSizing,
- * userColumnVisibility, columnPinning, sorting) lives here as plain
- * serializable state — useGridColumnStatePersistence (use-grid-persistence.ts)
- * serializes the column-layout slices, so new column state must be added
- * here, not scattered into components.
+ * userColumnVisibility, columnPinning, columnOrder, sorting) lives here as
+ * plain serializable state — useGridColumnStatePersistence
+ * (use-grid-persistence.ts) serializes the column-layout slices, so new column
+ * state must be added here, not scattered into components.
  */
 export interface GridState {
   sorting: SortingState
@@ -52,6 +53,17 @@ export interface GridState {
   >
   columnPinning: ColumnPinningState
   setColumnPinning: React.Dispatch<React.SetStateAction<ColumnPinningState>>
+  /**
+   * The user's column order as a list of leaf column ids (TanStack
+   * columnOrder). Governs the CENTER section's order; each pinned section is
+   * ordered by its columnPinning array instead (TanStack builds pinned
+   * sections from the pin arrays, ignoring columnOrder). Ids absent from the
+   * list are appended by TanStack — the grid reconciles a persisted order
+   * against the live defs so newly added columns land at their def position;
+   * see reconcileColumnOrder.
+   */
+  columnOrder: ColumnOrderState
+  setColumnOrder: React.Dispatch<React.SetStateAction<ColumnOrderState>>
   searchValue: string
   setSearchValue: React.Dispatch<React.SetStateAction<string>>
   /** Toolbar search input change handler. */
@@ -59,9 +71,9 @@ export interface GridState {
   /** Clears search, sorting, and column filters (plus the grid's own extras). */
   onClearFilters: () => void
   /**
-   * Restores the column defs' defaults: sizing, user visibility, and pinning
-   * (the column menu's Reset Columns). Sort and filters are deliberately NOT
-   * reset — that's the toolbar Clear button ({@link onClearFilters}).
+   * Restores the column defs' defaults: sizing, user visibility, pinning, and
+   * order (the column menu's Reset Columns). Sort and filters are deliberately
+   * NOT reset — that's the toolbar Clear button ({@link onClearFilters}).
    */
   resetColumnState: () => void
   /** True when any search, column filter, or sort is active. */
@@ -95,6 +107,7 @@ export function useGridState(options?: UseGridStateOptions): GridState {
     useState<VisibilityState>({})
   const [columnPinning, setColumnPinning] =
     useState<ColumnPinningState>(EMPTY_COLUMN_PINNING)
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([])
   const [searchValue, setSearchValue] = useState('')
 
   const onSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -112,6 +125,7 @@ export function useGridState(options?: UseGridStateOptions): GridState {
     setColumnSizing({})
     setUserColumnVisibility({})
     setColumnPinning(EMPTY_COLUMN_PINNING)
+    setColumnOrder([])
   }
 
   const hasActiveFilters =
@@ -128,6 +142,8 @@ export function useGridState(options?: UseGridStateOptions): GridState {
     setUserColumnVisibility,
     columnPinning,
     setColumnPinning,
+    columnOrder,
+    setColumnOrder,
     searchValue,
     setSearchValue,
     onSearchChange,
@@ -212,6 +228,8 @@ export function useGridTable<T>({
     setColumnSizing,
     columnPinning,
     setColumnPinning,
+    columnOrder,
+    setColumnOrder,
     searchValue,
     setSearchValue,
   } = gridState
@@ -246,6 +264,7 @@ export function useGridTable<T>({
       columnFilters,
       columnSizing,
       columnPinning,
+      columnOrder,
       ...extraState,
     },
     onGlobalFilterChange: (value) => setSearchValue(String(value ?? '')),
@@ -253,5 +272,6 @@ export function useGridTable<T>({
     onColumnFiltersChange: setColumnFilters,
     onColumnSizingChange: setColumnSizing,
     onColumnPinningChange: setColumnPinning,
+    onColumnOrderChange: setColumnOrder,
   })
 }

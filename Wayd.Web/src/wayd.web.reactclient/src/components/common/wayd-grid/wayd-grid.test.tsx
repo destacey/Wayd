@@ -15,6 +15,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 
 import WaydGrid from './wayd-grid'
 import { SET_FILTER_BLANK } from '../wayd-grid-core/filters'
+import { createActionsColumn } from '../wayd-grid-core/actions-column'
 import { gridStateStorageKey } from '../wayd-grid-core/use-grid-persistence'
 import type { WaydGridHandle, WaydGridColumnMeta } from './types'
 import { downloadCsvWithTimestamp } from '@/src/utils/csv-utils'
@@ -1206,6 +1207,119 @@ describe('WaydGrid', () => {
     })
   })
 
+  describe('column reordering', () => {
+    /** data-column-id of every leaf header cell, in rendered order. */
+    const headerOrder = () => {
+      const headerRow = document.querySelector(
+        'thead tr:not([data-role])',
+      ) as HTMLElement
+      return Array.from(
+        headerRow.querySelectorAll('th[data-column-id]'),
+      ).map((th) => th.getAttribute('data-column-id'))
+    }
+
+    it('renders columns in the applied columnOrder', () => {
+      // Arrange
+      const ref = createRef<WaydGridHandle>()
+      renderGrid({ ref })
+      expect(headerOrder()).toEqual(['name', 'type', 'isEnabled'])
+
+      // Act — move isEnabled to the front
+      act(() => {
+        ref.current!.table.setColumnOrder(['isEnabled', 'name', 'type'])
+      })
+
+      // Assert — header and body cells both follow the new order
+      expect(headerOrder()).toEqual(['isEnabled', 'name', 'type'])
+      const firstBodyRow = document.querySelector('tbody tr') as HTMLElement
+      expect(
+        firstBodyRow
+          .querySelector('td[data-column-id]')
+          ?.getAttribute('data-column-id'),
+      ).toBe('isEnabled')
+    })
+
+    /** Leaf header cells that are drag-reorderable (whole cell is the handle;
+     *  dnd-kit stamps aria-roledescription="sortable" on it). */
+    const reorderableHeaders = () =>
+      document.querySelectorAll(
+        'thead tr:not([data-role]) th[data-column-id][aria-roledescription="sortable"]',
+      )
+
+    it('makes every reorderable leaf header cell a drag handle', () => {
+      // Arrange / Act
+      renderGrid()
+
+      // Assert — the whole cell is draggable (no separate grip element)
+      expect(reorderableHeaders().length).toBe(3)
+      expect(
+        document.querySelectorAll('[aria-label="Reorder column"]'),
+      ).toHaveLength(0)
+    })
+
+    it('makes no header cell a drag handle on a grouped-header grid', () => {
+      // Arrange — a band splits reordering, so it is disabled
+      const groupedColumns: ColumnDef<Flag, unknown>[] = [
+        {
+          id: 'group',
+          header: 'Group',
+          columns: [
+            { id: 'name', accessorKey: 'name', header: 'Name' },
+            { id: 'type', accessorKey: 'type', header: 'Type' },
+          ],
+        },
+      ]
+
+      // Act
+      renderGrid({ columns: groupedColumns })
+
+      // Assert
+      expect(reorderableHeaders()).toHaveLength(0)
+    })
+
+    it('keeps the actions column from becoming a drag handle', () => {
+      // Arrange — actions column opts out of reordering
+      const withActions: ColumnDef<Flag, unknown>[] = [
+        ...columns,
+        createActionsColumn<Flag>({
+          getItems: () => [{ key: 'edit', label: 'Edit' }],
+        }),
+      ]
+
+      // Act
+      renderGrid({ columns: withActions })
+
+      // Assert — the actions header is not draggable; the 3 data columns are
+      const actionsTh = document.querySelector(
+        'thead tr:not([data-role]) th[data-column-id="actions"]',
+      ) as HTMLElement
+      expect(actionsTh.getAttribute('aria-roledescription')).not.toBe(
+        'sortable',
+      )
+      expect(reorderableHeaders().length).toBe(3)
+    })
+
+    it('exports CSV in the displayed column order', () => {
+      // Arrange
+      mockDownloadCsv.mockClear()
+      const ref = createRef<WaydGridHandle>()
+      const { container } = renderGrid({ ref })
+
+      // Act — reorder, then click the toolbar export (download icon) button
+      act(() => {
+        ref.current!.table.setColumnOrder(['type', 'isEnabled', 'name'])
+      })
+      const exportBtn = container
+        .querySelector('[aria-label="download"]')
+        ?.closest('button') as HTMLButtonElement
+      fireEvent.click(exportBtn)
+
+      // Assert — the header row of the CSV follows the display order
+      const csv = mockDownloadCsv.mock.calls.at(-1)?.[0] as string
+      expect(csv.split('\n')[0]).toBe('Type,Enabled,Name')
+    })
+  })
+
   describe('column state persistence (persistStateKey)', () => {
     const STORAGE_KEY = gridStateStorageKey('test-grid')
 
@@ -1332,6 +1446,42 @@ describe('WaydGrid', () => {
       // Assert
       expect(getItemSpy).not.toHaveBeenCalled()
       expect(setItemSpy).not.toHaveBeenCalled()
+    })
+
+    it('persists a column reorder and restores it on a fresh mount', () => {
+      // Arrange
+      const ref = createRef<WaydGridHandle>()
+      const { unmount } = renderGrid({ ref, persistStateKey: 'test-grid' })
+
+      // Act — reorder, let the debounce elapse, remount
+      act(() => {
+        ref.current!.table.setColumnOrder(['isEnabled', 'name', 'type'])
+      })
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+      unmount()
+
+      // Assert — the payload carries the order
+      expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!)).toEqual({
+        columnSizing: {},
+        userColumnVisibility: {},
+        columnPinning: { left: [], right: [] },
+        columnOrder: ['isEnabled', 'name', 'type'],
+      })
+
+      // Act — fresh mount restores the display order
+      renderGrid({ persistStateKey: 'test-grid' })
+
+      // Assert
+      const headerRow = document.querySelector(
+        'thead tr:not([data-role])',
+      ) as HTMLElement
+      expect(
+        Array.from(headerRow.querySelectorAll('th[data-column-id]')).map((th) =>
+          th.getAttribute('data-column-id'),
+        ),
+      ).toEqual(['isEnabled', 'name', 'type'])
     })
   })
 

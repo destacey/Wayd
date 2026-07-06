@@ -95,7 +95,7 @@ describe('use-grid-persistence', () => {
       expect(setItemSpy).not.toHaveBeenCalled()
     })
 
-    it('applies a stored entry to all three slices on mount', () => {
+    it('applies a stored entry to all four slices on mount', () => {
       // Arrange
       window.localStorage.setItem(
         STORAGE_KEY,
@@ -103,6 +103,7 @@ describe('use-grid-persistence', () => {
           columnSizing: { name: 240 },
           userColumnVisibility: { team: false },
           columnPinning: { left: ['key'], right: [] },
+          columnOrder: ['team', 'name', 'key'],
         }),
       )
 
@@ -116,6 +117,74 @@ describe('use-grid-persistence', () => {
         left: ['key'],
         right: [],
       })
+      expect(result.current.columnOrder).toEqual(['team', 'name', 'key'])
+    })
+
+    it('loads a pre-ordering v1 entry (no columnOrder key) as an empty order', () => {
+      // Arrange — an entry written before column ordering existed
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          columnSizing: { name: 240 },
+          userColumnVisibility: {},
+          columnPinning: { left: [], right: [] },
+        }),
+      )
+      const setItemSpy = jest.spyOn(window.localStorage, 'setItem')
+
+      // Act
+      const { result } = renderHook(() => useHarness('test-grid'))
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
+      // Assert — still valid, order defaults to [], and nothing is rewritten
+      expect(result.current.columnSizing).toEqual({ name: 240 })
+      expect(result.current.columnOrder).toEqual([])
+      expect(setItemSpy).not.toHaveBeenCalled()
+    })
+
+    it('persists an order-only change and omits an empty order from the payload', () => {
+      // Arrange
+      const { result } = renderHook(() => useHarness('test-grid'))
+
+      // Act
+      act(() => {
+        result.current.setColumnOrder(['team', 'name'])
+      })
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
+      // Assert
+      expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!)).toEqual({
+        columnSizing: {},
+        userColumnVisibility: {},
+        columnPinning: { left: [], right: [] },
+        columnOrder: ['team', 'name'],
+      })
+    })
+
+    it('treats an empty order as default (no write)', () => {
+      // Arrange
+      const setItemSpy = jest.spyOn(window.localStorage, 'setItem')
+      const { result } = renderHook(() => useHarness('test-grid'))
+
+      // Act — set then clear the order back to empty
+      act(() => {
+        result.current.setColumnOrder(['team', 'name'])
+      })
+      act(() => {
+        result.current.setColumnOrder([])
+      })
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
+      // Assert — back to all-default: no residual entry
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+      // The set-then-clear collapses to a no-op write.
+      expect(setItemSpy).not.toHaveBeenCalled()
     })
 
     it('does not rewrite an unchanged loaded entry', () => {
@@ -200,6 +269,7 @@ describe('use-grid-persistence', () => {
           columnSizing: { name: 240 },
           userColumnVisibility: { team: false },
           columnPinning: { left: ['key'], right: [] },
+          columnOrder: ['team', 'name'],
         }),
       )
       const { result } = renderHook(() => useHarness('test-grid'))

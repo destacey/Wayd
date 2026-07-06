@@ -4,6 +4,7 @@ import {
   generateCsv,
   downloadCsvWithTimestamp,
 } from '@/src/utils/csv-utils'
+import { getOrderedVisibleLeafColumns } from './column-order'
 
 /** Header text for a column: meta.exportHeader → string header → column id. */
 const resolveExportHeader = <T>(column: Column<T, unknown>): string => {
@@ -31,9 +32,10 @@ const ancestorAtDepth = <T>(
 /**
  * Exports a grid to CSV and triggers the download (filename gets a timestamp).
  *
- * Exports only what's on screen: the currently *visible* leaf columns (so
- * hidden columns are excluded) and the *filtered/sorted* rows (getRowModel).
- * Values come from TanStack's own accessors (row.getValue), so nested
+ * Exports only what's on screen: the currently *visible* leaf columns in their
+ * displayed order (so hidden columns are excluded and reordered/pinned columns
+ * export in the order the user sees) and the *filtered/sorted* rows
+ * (getRowModel). Values come from TanStack's own accessors (row.getValue), so nested
  * accessorKeys like `status.name` resolve correctly and column-type
  * transforms (e.g. yesNo's boolean → "Yes"/"No") are reflected.
  *
@@ -45,12 +47,14 @@ const ancestorAtDepth = <T>(
  * overrides the header text, and `exportFormatter` maps each value.
  */
 export function exportGridToCsv<T>(table: Table<T>, csvFileName: string): void {
-  const exportableColumns = table.getVisibleLeafColumns().filter((column) => {
-    const meta = column.columnDef.meta
-    if (meta?.enableExport === false) return false
-    // Only columns with an accessor produce a value worth exporting.
-    return column.accessorFn != null
-  })
+  const exportableColumns = getOrderedVisibleLeafColumns(table).filter(
+    (column) => {
+      const meta = column.columnDef.meta
+      if (meta?.enableExport === false) return false
+      // Only columns with an accessor produce a value worth exporting.
+      return column.accessorFn != null
+    },
+  )
 
   const headers = exportableColumns.map(resolveExportHeader)
 

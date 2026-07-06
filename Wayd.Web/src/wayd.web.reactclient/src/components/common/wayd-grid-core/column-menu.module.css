@@ -68,6 +68,33 @@ th:hover .trigger,
   background-color: var(--ant-color-fill-tertiary);
 }
 
+/* The checkbox + label portion of a row — the flex child that grows so the
+   label truncates while the grip stays fixed-width. */
+.chooserRowLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-margin-xs);
+  min-width: 0;
+  flex: 1;
+  cursor: pointer;
+}
+
+/* Drag grip for reordering. Always visible while reordering is on (unlike the
+   header grip, which hover-reveals) so the list reads as sortable at a glance. */
+.chooserDragHandle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: var(--ant-color-text-quaternary);
+  cursor: grab;
+  touch-action: none;
+}
+
+.chooserDragHandle:active {
+  cursor: grabbing;
+}
+
 .chooserLabel {
   overflow: hidden;
   text-overflow: ellipsis;

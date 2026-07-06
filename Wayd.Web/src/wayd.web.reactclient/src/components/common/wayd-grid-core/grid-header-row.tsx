@@ -9,6 +9,8 @@ import {
 } from 'react'
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons'
 import { type Header, flexRender } from '@tanstack/react-table'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
 
 /**
@@ -80,6 +82,24 @@ export interface GridHeaderCellClasses {
   thText: string
   resizer: string
   resizerActive: string
+  /** Applied to the `<th>` when the column is reorderable (grab cursor). */
+  thDraggable?: string
+  /** Applied to the `<th>` while this column is being dragged. */
+  thDragging?: string
+}
+
+/**
+ * Sortable wiring for a reorderable header cell, produced by
+ * {@link useHeaderCellSortable} and threaded into {@link GridHeaderCell}. The
+ * whole `<th>` is the drag handle: it carries `handleProps` (drag listeners),
+ * `setNodeRef`, and `style` so it translates while dragging.
+ */
+export interface HeaderCellSortable {
+  setNodeRef: (node: HTMLElement | null) => void
+  style: CSSProperties
+  isDragging: boolean
+  /** Spread onto the `<th>` (drag listeners + a11y attributes). */
+  handleProps: Record<string, unknown>
 }
 
 export interface GridHeaderCellProps<T> {
@@ -98,6 +118,38 @@ export interface GridHeaderCellProps<T> {
   thClassName?: string
   /** Extra inline style for the `<th>` (e.g. the sticky pinning inset). */
   thStyle?: CSSProperties
+  /** Column-reorder sortable wiring from {@link useHeaderCellSortable}. When
+   *  omitted the cell isn't draggable (grouped-header grids, the actions
+   *  column, or a placeholder). */
+  sortable?: HeaderCellSortable
+}
+
+/**
+ * Per-header sortable hook for column reordering — the whole header cell is the
+ * drag handle. Ids are namespaced `col:<id>` so a shared DnD context can tell
+ * column drags from row drags. Disabled cells still call the hook (hooks must
+ * be unconditional) but return no listeners.
+ */
+export function useHeaderCellSortable(
+  columnId: string,
+  disabled: boolean,
+): HeaderCellSortable {
+  const { setNodeRef, transform, transition, isDragging, listeners, attributes } =
+    useSortable({ id: `col:${columnId}`, disabled })
+  return {
+    setNodeRef,
+    style: {
+      // Only translate horizontally — a header cell reorders along the row.
+      transform: transform
+        ? CSS.Transform.toString({ ...transform, y: 0, scaleX: 1, scaleY: 1 })
+        : undefined,
+      transition,
+      // Keep the dragged cell above its neighbours' sticky/pinned stacking.
+      zIndex: isDragging ? 3 : undefined,
+    },
+    isDragging,
+    handleProps: { ...listeners, ...attributes },
+  }
 }
 
 /**
@@ -121,6 +173,7 @@ export function GridHeaderCell<T>({
   menuSlot,
   thClassName,
   thStyle,
+  sortable,
 }: GridHeaderCellProps<T>) {
   // eslint-disable-next-line react-compiler/react-compiler -- false-positive "unused directive"; see doc comment
   'use no memo'
@@ -149,12 +202,22 @@ export function GridHeaderCell<T>({
 
   return (
     <th
+      // The WHOLE header cell is the drag handle: dnd-kit's PointerSensor only
+      // activates after ~8px of movement, so a plain click still falls through
+      // to onClick (sort). Interactive children (resizer, filter, menu) stop
+      // pointerdown propagation so grabbing them never starts a column drag.
+      {...sortable?.handleProps}
       // Anchors autosize's header-label lookup (with the text marker below).
       data-column-id={header.column.id}
+      ref={sortable?.setNodeRef}
       className={`${classes.th}${canSort ? ` ${classes.thSortable}` : ''}${
         canResize ? ` ${classes.thResizable}` : ''
+      }${sortable ? ` ${classes.thDraggable}` : ''}${
+        sortable?.isDragging && classes.thDragging
+          ? ` ${classes.thDragging}`
+          : ''
       }${thClassName ? ` ${thClassName}` : ''}`}
-      style={thStyle}
+      style={sortable ? { ...thStyle, ...sortable.style } : thStyle}
       onClick={handleSortClick}
     >
       <span className={classes.thContent}>
@@ -174,11 +237,33 @@ export function GridHeaderCell<T>({
           onTouchStart={handleResizeStart}
           onDoubleClick={() => header.column.resetSize()}
           onClick={(e) => e.stopPropagation()}
+          // Don't let a resize grab start a column drag (drag listens on the th).
+          onPointerDown={(e) => e.stopPropagation()}
           className={`${classes.resizer}${
             header.column.getIsResizing() ? ` ${classes.resizerActive}` : ''
           }`}
         />
       )}
     </th>
+  )
+}
+
+/**
+ * A {@link GridHeaderCell} wired for column-reorder drag. Calls
+ * {@link useHeaderCellSortable} (unconditionally — hooks rules) and threads the
+ * sortable wiring in; pass `reorderable: false` to render a plain,
+ * non-draggable cell (grouped-header grids, the actions column, placeholders).
+ * Extracted so the per-header hook lives in its own component instead of a map
+ * callback.
+ */
+export function SortableHeaderCell<T>({
+  reorderable,
+  ...cellProps
+}: GridHeaderCellProps<T> & { reorderable: boolean }) {
+  // eslint-disable-next-line react-compiler/react-compiler -- same mutable-header caveat as GridHeaderCell
+  'use no memo'
+  const sortable = useHeaderCellSortable(cellProps.header.column.id, !reorderable)
+  return (
+    <GridHeaderCell {...cellProps} sortable={reorderable ? sortable : undefined} />
   )
 }

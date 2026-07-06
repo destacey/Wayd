@@ -5,6 +5,7 @@ import { Button, Checkbox, Dropdown, Input, Modal } from 'antd'
 import type { MenuProps } from 'antd'
 import {
   CheckOutlined,
+  HolderOutlined,
   MoreOutlined,
   PushpinOutlined,
   ReloadOutlined,
@@ -15,7 +16,23 @@ import {
   ControlOutlined,
 } from '@ant-design/icons'
 import type { ColumnPinningPosition, Header, Table } from '@tanstack/react-table'
+import {
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
+import { getOrderedAllLeafColumns } from './column-order'
 import styles from './column-menu.module.css'
 
 /** A leaf column offered in the Choose Columns panel. */
@@ -37,16 +54,17 @@ const resolveChooserLabel = (columnDef: {
 }
 
 /**
- * The leaf columns the user may show/hide, in column-def order. Excludes
- * consumer-controlled columns (`meta.hide === true` — those stay reactive to
- * the consumer's flag), columns with hiding disabled, and structural columns
- * with no displayable label (e.g. the row-actions column).
+ * The leaf columns the user may show/hide, in on-screen display order (so the
+ * checkbox list matches the grid left-to-right, reflecting reorder + pinning).
+ * Excludes consumer-controlled columns (`meta.hide === true` — those stay
+ * reactive to the consumer's flag), columns with hiding disabled, and
+ * structural columns with no displayable label (e.g. the row-actions column).
  */
 export function getColumnChooserOptions<T>(
   table: Table<T>,
 ): ColumnChooserOption[] {
   const options: ColumnChooserOption[] = []
-  for (const column of table.getAllLeafColumns()) {
+  for (const column of getOrderedAllLeafColumns(table)) {
     if (column.columnDef.meta?.hide === true) continue
     if (!column.getCanHide()) continue
     const label = resolveChooserLabel(column.columnDef)
@@ -298,6 +316,9 @@ export function ColumnMenuTrigger<T>({
         aria-label="Column menu"
         className={`${styles.trigger}${open ? ` ${styles.triggerOpen}` : ''}`}
         onClick={(e) => e.stopPropagation()}
+        // The whole header cell is a column-reorder drag handle; keep a click on
+        // the menu button from starting a drag.
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <MoreOutlined />
       </button>
@@ -311,6 +332,58 @@ export interface ColumnChooserModalProps<T> {
   onClose: () => void
   /** Writes the USER visibility layer for one column. */
   onToggleColumn: (columnId: string, visible: boolean) => void
+  /** Whether drag-to-reorder is offered in the list (off for grouped-header
+   *  grids, matching header-drag). Default false. */
+  reorderEnabled?: boolean
+  /** Moves `activeId` to `overId`'s position (section-aware; the grid owns the
+   *  rules). Called on a list drop. */
+  onReorderColumn?: (activeId: string, overId: string) => void
+}
+
+/** One draggable chooser row: a grip, a visibility checkbox, and the label. */
+function ChooserRow({
+  option,
+  reorderEnabled,
+  lockedOn,
+  onToggle,
+}: {
+  option: ColumnChooserOption
+  reorderEnabled: boolean
+  /** Keep the last visible column checked-and-disabled. */
+  lockedOn: boolean
+  onToggle: (visible: boolean) => void
+}) {
+  const { setNodeRef, transform, transition, isDragging, listeners, attributes } =
+    useSortable({ id: option.id, disabled: !reorderEnabled })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : undefined,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className={styles.chooserRow}>
+      {reorderEnabled && (
+        <span
+          {...attributes}
+          {...listeners}
+          role="button"
+          aria-label="Reorder column"
+          className={styles.chooserDragHandle}
+        >
+          <HolderOutlined />
+        </span>
+      )}
+      <label className={styles.chooserRowLabel}>
+        <Checkbox
+          checked={option.visible}
+          disabled={lockedOn}
+          onChange={(e) => onToggle(e.target.checked)}
+        />
+        <span className={styles.chooserLabel}>{option.label}</span>
+      </label>
+    </div>
+  )
 }
 
 /**
@@ -327,10 +400,17 @@ export function ColumnChooserModal<T>({
   open,
   onClose,
   onToggleColumn,
+  reorderEnabled = false,
+  onReorderColumn,
 }: ColumnChooserModalProps<T>) {
   // eslint-disable-next-line react-compiler/react-compiler -- false-positive "unused directive"; see GridHeaderCell
   'use no memo'
   const [search, setSearch] = useState('')
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor),
+  )
 
   const options = getColumnChooserOptions(table)
   const visibleCount = options.filter((col) => col.visible).length
@@ -338,6 +418,37 @@ export function ColumnChooserModal<T>({
   const shownOptions = query
     ? options.filter((col) => col.label.toLowerCase().includes(query))
     : options
+
+  // Reordering is meaningful only over the full, unfiltered list — a filtered
+  // subset hides the drop neighbours. Grips show when the feature is on and no
+  // search is narrowing the list.
+  const canReorder = reorderEnabled && !!onReorderColumn && query === ''
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (over && active.id !== over.id) {
+      onReorderColumn?.(String(active.id), String(over.id))
+    }
+  }
+
+  const list = (
+    <div className={styles.chooserList}>
+      {shownOptions.map((col) => (
+        <ChooserRow
+          key={col.id}
+          option={col}
+          reorderEnabled={canReorder}
+          // Keep the last visible column locked on — hiding every column would
+          // leave an empty table with no header to reopen the chooser from.
+          lockedOn={col.visible && visibleCount === 1}
+          onToggle={(visible) => onToggleColumn(col.id, visible)}
+        />
+      ))}
+      {shownOptions.length === 0 && (
+        <div className={styles.chooserEmpty}>No matches</div>
+      )}
+    </div>
+  )
 
   return (
     <Modal
@@ -361,24 +472,22 @@ export function ColumnChooserModal<T>({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <div className={styles.chooserList}>
-          {shownOptions.map((col) => (
-            <label key={col.id} className={styles.chooserRow}>
-              <Checkbox
-                checked={col.visible}
-                // Keep the last visible column locked on — hiding every
-                // column would leave an empty table with no header to
-                // reopen the chooser from.
-                disabled={col.visible && visibleCount === 1}
-                onChange={(e) => onToggleColumn(col.id, e.target.checked)}
-              />
-              <span className={styles.chooserLabel}>{col.label}</span>
-            </label>
-          ))}
-          {shownOptions.length === 0 && (
-            <div className={styles.chooserEmpty}>No matches</div>
-          )}
-        </div>
+        {canReorder ? (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={shownOptions.map((col) => col.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {list}
+            </SortableContext>
+          </DndContext>
+        ) : (
+          list
+        )}
       </div>
     </Modal>
   )

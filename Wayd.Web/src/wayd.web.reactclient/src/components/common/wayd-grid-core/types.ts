@@ -75,6 +75,12 @@ export interface WaydGridColumnMeta {
   maxFilterConditions?: number
   /** Placeholder text for text/numericRange filter inputs. */
   filterPlaceholder?: string
+  /**
+   * Whether the user may drag this column to reorder it. Default: true.
+   * Structural columns that must hold their position (e.g. the row-actions
+   * column) set this to `false` so they get no drag grip and reject drops.
+   */
+  enableReordering?: boolean
   /** Whether to include this column in CSV export. Default: true if the column has an accessor. */
   enableExport?: boolean
   /** Custom CSV formatter for this column's values. */

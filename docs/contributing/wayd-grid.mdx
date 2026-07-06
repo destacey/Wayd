@@ -1,0 +1,237 @@
+---
+title: WaydGrid
+description: How to use the WaydGrid house component — data grids with filtering, sorting, pinning, reordering, column persistence, tree mode, and inline editing.
+sidebar_position: 7
+audience: [developer, agent]
+---
+
+# WaydGrid
+
+`WaydGrid` is Wayd's house data-grid component, built on [TanStack Table](https://tanstack.com/table). It's the single grid used across the app — flat lists, grouped headers, and hierarchical (tree) data — with a consistent toolbar, Excel-style column filters, sorting, column sizing/visibility/pinning/reordering, always-on row virtualization, CSV export, and (opt-in) inline editing and drag-and-drop.
+
+Import it from the barrel:
+
+```typescript
+import { WaydGrid, createActionsColumn } from '@/src/components/common/wayd-grid'
+import type { ColumnDef } from '@tanstack/react-table'
+```
+
+:::tip Always use `WaydGrid`
+Never reach for Ant Design's `Table` or raw TanStack Table directly. `WaydGrid` is the seam that keeps grids consistent and lets us swap the engine once. Columns are plain TanStack [`ColumnDef`](https://tanstack.com/table/latest/docs/api/core/column-def)s, extended with a small `meta` object (see [Column meta](#column-meta)).
+:::
+
+## Minimal example
+
+A read-only grid needs only `columns` and `data`:
+
+```tsx
+const columns: ColumnDef<Widget, any>[] = [
+  { id: 'name', accessorKey: 'name', header: 'Name', size: 250 },
+  { id: 'status', accessorKey: 'status', header: 'Status' },
+]
+
+<WaydGrid columns={columns} data={widgets} isLoading={isLoading} />
+```
+
+`data` may be `undefined` while a query is loading — the grid treats it as empty (no crash). Provide `isLoading` to show the spinner.
+
+## Feature flags at a glance
+
+Most functionality is **on by default**; you turn things _off_ with a prop, or turn opt-in behaviour _on_ by supplying its handler. This table is the quick reference for "how do I enable/disable X".
+
+| Capability | Default | How to change it |
+| --- | --- | --- |
+| Global quick-search box | On | `includeGlobalSearch={false}` to hide |
+| CSV export button | On | `includeExportButton={false}` to hide; `csvFileName="..."` names the file |
+| Per-column filters (popup) | On | `includeColumnFilters={false}` to disable all column filtering UI |
+| Floating filter row (under headers) | On | `includeFloatingFilters={false}` (ignored when `includeColumnFilters={false}`) |
+| Column sizing (resize handles) | On | Per column: `enableResizing: false` in the def |
+| Column sorting | On | Per column: `enableSorting: false` in the def |
+| Column show/hide (Choose Columns) | On | Per column: `enableHiding: false`, or hide reactively with `meta.hide` |
+| Column pinning (⋮ menu → Pin) | On | Per column: `enableColumnPinning`/`enablePinning: false` |
+| **Column reordering** (drag headers) | On | Auto-disabled on grouped-header grids; per column: `meta.enableReordering: false` |
+| **Column layout persistence** | Off | Provide `persistStateKey="..."` to turn it on |
+| Row virtualization | On (always) | Not configurable — the visible window plus overscan is mounted |
+| Initial sort on mount | Off | `initialSorting={[{ id: 'name', desc: false }]}` |
+| Toolbar refresh button | Off | Provide `onRefresh={() => refetch()}` |
+| Tree mode | Off | Provide `getSubRows` |
+| Row-reorder drag-and-drop (flat) | Off | Provide `onRowReorder` |
+| Reparenting drag-and-drop (tree) | Off | Provide `enableDragAndDrop` + `onNodeMove` |
+| Inline editing | Off | Provide `editingConfig` |
+
+## Core props
+
+```tsx
+<WaydGrid<Widget>
+  columns={columns}          // ColumnDef[] or (ctx) => ColumnDef[]
+  data={widgets}             // Widget[] | undefined
+  isLoading={isLoading}
+  onRefresh={() => refetch()}        // shows the toolbar refresh button
+  emptyMessage="No widgets found"
+  csvFileName="widgets"              // CSV download name prefix
+  persistStateKey="ppm-widgets"      // opt-in column persistence (see below)
+  initialSorting={[{ id: 'name', desc: false }]}
+  height={480}                       // fixed px; omit to fill remaining viewport height
+  rightSlot={<MyToolbarControls />}  // custom toolbar content (far right)
+  leftSlot={<CreateButton />}        // custom toolbar content (left)
+/>
+```
+
+- **`columns`** can be a function `(context) => ColumnDef[]` when the defs need editing/DnD/draft state (see [Tree mode & editing](#tree-mode--editing)).
+- **`height`** omitted → the grid auto-sizes to fill the remaining viewport height (ag-grid style). Pass a number for a fixed height.
+- **`leftSlot` / `rightSlot`** inject custom toolbar content; `helpContent` fills a help popover.
+- **`getRowId`** supplies a stable row id (required for `onRowReorder`); it falls back to `row.original.id`, then a TanStack index id.
+- **`onDisplayedRowsChange`** fires with the post-filter/sort rows whenever that set changes — for deriving external UI (e.g. a chart) from the grid.
+
+## Columns
+
+Columns are TanStack `ColumnDef`s. The most common shape:
+
+```tsx
+{
+  id: 'status',
+  accessorKey: 'status',        // supports dotted paths: 'status.name'
+  header: 'Status',             // keep this a plain string — CSV export and the
+                                //   column chooser read it
+  size: 120,                    // px; also resizable at runtime
+  meta: { /* WaydGrid extras — see below */ },
+}
+```
+
+### Column meta
+
+`meta` is TanStack's per-column bag, augmented with WaydGrid fields (`WaydGridColumnMeta`, strongly typed everywhere):
+
+| `meta` field | Purpose |
+| --- | --- |
+| `columnType` | Declarative type preset: `'yesNo'`, `'dateOnly'`, `'dateTime'` (see [Column types](#column-types)) |
+| `hide` | Reactively hide the column (AG Grid `hide` style) while keeping it defined. Stays out of the chooser; the user can't show it |
+| `filterType` | Filter/data type: `'text' \| 'number' \| 'date' \| 'dateTime' \| 'set'` (aliases `'select'`→`set`, `'numericRange'`→`number`). Defaults to `'text'` |
+| `filterOptions` | `{ label, value }[]` for a `set` filter (stable order + labels) |
+| `filterEnableSet` | On a text column, also offer the Excel-style checkbox set filter alongside the text filter |
+| `align` | `'left' \| 'right'` — override numeric right-alignment of body cells |
+| `headerTooltip` | Tooltip on the header label (keep `header` a plain string) |
+| `maxFilterConditions` | Cap AND/OR conditions in the filter popup (default 5) |
+| `enableReordering` | Set `false` so the column can't be dragged to reorder (and rejects drops). Used by the actions column |
+| `enableExport` | `false` excludes the column from CSV |
+| `exportHeader` / `exportFormatter` | Override the CSV header text / format each value |
+
+### Column types
+
+Instead of hand-wiring cell formatting + filter config, declare a type:
+
+```tsx
+{ id: 'active', accessorKey: 'isActive', header: 'Active', meta: { columnType: 'yesNo' } }
+{ id: 'due', accessorKey: 'dueDate', header: 'Due', meta: { columnType: 'dateOnly' } }
+{ id: 'created', accessorKey: 'createdOn', header: 'Created', meta: { columnType: 'dateTime' } }
+```
+
+- **`yesNo`** — boolean → "Yes"/"No" for both display and the set filter.
+- **`dateOnly` / `dateTime`** — formatted for display while the raw value drives chronological sort and the date filter.
+
+Explicit column fields always win over a type's defaults.
+
+### The actions column
+
+Row action menus use the shared `createActionsColumn` helper — a fixed-width `⋯` dropdown that renders nothing for rows with no items, always holds its position (never sorted, filtered, resized, or reordered), and hides itself when the user can't act on any row:
+
+```tsx
+createActionsColumn<Widget>({
+  hide: !canManage,                 // drop the column entirely when unusable
+  ariaLabel: 'Widget actions',
+  getItems: (widget) => [
+    canEdit && { key: 'edit', label: 'Edit', onClick: () => edit(widget) },
+    canDelete && { key: 'delete', label: 'Delete', danger: true, onClick: () => remove(widget) },
+  ].filter(Boolean) as ItemType[],
+})
+```
+
+## Filtering, sorting & the column menu
+
+These come for free — no wiring beyond the column defs:
+
+- **Global quick-search** filters across every column with an accessor (opt a column out with `enableGlobalFilter: false`).
+- **Per-column filters** — an Excel-style popup per column (text/number/date conditions, or a checkbox set list), plus a compact floating-filter row under the headers. The filter UI is inferred from the data or set explicitly via `meta.filterType`.
+- **Sorting** — click a header to sort; Ctrl/⌘-click adds a column to a multi-sort.
+- **The `⋮` column menu** on each header offers: Sort, Pin Column (left/right/none), Autosize (this column / all columns), Choose Columns, and **Reset Columns**.
+
+**Reset Columns** restores the columns' default sizing, visibility, pinning, **and order** — it deliberately does _not_ clear sorting or filters (the toolbar's Clear button does that).
+
+## Column reordering
+
+Reordering is **on by default**. The whole header cell is the drag handle — grab a header and drag it left/right to reorder. A plain click still sorts (a drag only starts after a few pixels of movement); the resize edge, filter icon, and `⋮` menu don't trigger a drag. Columns can also be reordered by dragging rows in the **Choose Columns** modal.
+
+Rules:
+
+- Reordering happens **within a section**: unpinned columns reorder among themselves, and each pinned side (left/right) reorders within itself. Dragging never pins or unpins — that's the `⋮` menu's job.
+- **Grouped-header grids** (defs with a `columns` band) disable reordering, so bands can't be split.
+- A column can opt out with `meta.enableReordering: false` (the actions column does this automatically).
+
+The order is persisted alongside the rest of the column layout when `persistStateKey` is set (see below).
+
+## Column layout persistence
+
+Persistence is **opt-in**: give the grid a `persistStateKey` and it saves the user's **column sizing, show/hide choices, pinning, and order** to this browser's `localStorage`, restoring them on the next visit.
+
+```tsx
+<WaydGrid columns={columns} data={data} persistStateKey="ppm-projects" />
+```
+
+- **Sorting, filters, and search are _not_ persisted** — they're session-only.
+- A pristine or reset grid stores nothing (the entry is removed), so **Reset Columns** also clears the saved layout.
+- Persisted state that references removed columns is ignored; columns added later appear at their def position.
+
+### Choosing a key
+
+`persistStateKey` is **per page context**, not per component — a stable, human-readable, route-independent kebab-case string, e.g. `'ppm-projects'`, `'settings-feature-flags'`, `'team-backlog'`. Two grids that should share a layout use the same key; two that shouldn't must differ.
+
+Shared grid components (used on more than one page) should expose `persistStateKey` as a pass-through prop so each page supplies its own key, rather than hardcoding one.
+
+Stored under `wayd-grid:{persistStateKey}:v1`. Give a **visible** column a plain-string `header` so it appears in the Choose Columns list.
+
+### The device-wide controls
+
+Two account-level controls (**Account → Preferences → Grids**) cover every persisted grid automatically — no per-grid wiring:
+
+- **Remember column layouts** — the kill switch. When off, grids neither save nor restore layouts; existing saved layouts are kept and re-apply when it's turned back on.
+- **Reset all grid layouts** — deletes every saved layout on this device.
+
+These act on this browser only (layouts live in `localStorage`, not on the server).
+
+## Tree mode & editing
+
+Providing `getSubRows` turns on **tree mode**: rows expand/collapse, and a filter match keeps the ancestor chain visible. Layered on top of tree mode are optional reparenting drag-and-drop, inline editing, and draft rows.
+
+```tsx
+<WaydGrid<WorkItemTreeNode>
+  data={rootNodes}
+  getSubRows={(node) => node.children}
+  columns={(ctx) => buildColumns(ctx)}   // function form: reads editing/DnD state
+  enableDragAndDrop
+  onNodeMove={async (nodeId, parentId, order) => reparent(nodeId, parentId, order)}
+  moveValidator={myMoveValidator}
+  editingConfig={editingConfig}
+/>
+```
+
+- **Flat row reorder**: instead of `getSubRows`, provide `onRowReorder` (and `getRowId`) for a draggable flat list. Dragging auto-disables while the grid is sorted, filtered, searched, loading, or editing.
+- **Reparenting DnD** (tree): `enableDragAndDrop` + `onNodeMove`; supply a `moveValidator` for domain rules and `onMoveRejected` to surface a reason.
+- **Inline editing**: pass an `editingConfig` (`GridInlineEditingConfig`). The `columns` function receives a `GridColumnContext` with the editing/DnD/draft state so cells can render editors and drag handles reactively.
+
+These features are involved — read the JSDoc on `WaydGridProps` in [`types.ts`](https://github.com/destacey/Wayd/blob/main/Wayd.Web/src/wayd.web.reactclient/src/components/common/wayd-grid/types.ts) and follow an existing consumer (e.g. the project work-items tree grid) when wiring them.
+
+## CSV export
+
+The toolbar export button downloads the **currently visible** columns (respecting hide/pinning/order) and the **filtered + sorted** rows, in display order. Grouped headers export as band rows above the leaf headers. Control it per column with `meta.enableExport`, `meta.exportHeader`, and `meta.exportFormatter`; name the file with the `csvFileName` prop.
+
+## Conventions
+
+- **Case-insensitive sorting** — never plain-`.sort()` user-facing lists; use `caseInsensitiveCompare` from the barrel.
+- **Context-redundant columns** (e.g. a Project column on a single project's page) — omit them from the defs conditionally rather than `meta.hide`, so they stay out of the chooser and persisted layouts. Don't def-exclude a column named in `initialSorting`.
+- **Theme tokens only** — the grid styles from Ant Design tokens; don't hardcode colors in cells.
+
+## Reference
+
+- Public API & JSDoc: `Wayd.Web/src/wayd.web.reactclient/src/components/common/wayd-grid/` (types in `types.ts`, component in `wayd-grid.tsx`).
+- Shared grid engine (filters, column menu, pinning, persistence, DnD): `components/common/wayd-grid-core/`.
+- The barrel `@/src/components/common/wayd-grid` is the single import surface for consumers.

@@ -61,6 +61,12 @@ Only use `theme.useToken()` when you need token values in JavaScript logic.
 - **React Context** for auth, theme, and messaging
 - **Local state** (`useState`) for component-specific state
 
+## Data Grids
+
+All data grids use the **`WaydGrid`** house component (built on TanStack Table) — never Ant Design's `Table` or raw TanStack Table. It provides a consistent toolbar, Excel-style column filters, sorting, column sizing/visibility/pinning/reordering, row virtualization, CSV export, opt-in column-layout persistence, and (opt-in) tree mode, drag-and-drop, and inline editing.
+
+See **[WaydGrid](./wayd-grid.mdx)** for the full usage guide — props, column `meta`, how to enable/disable each feature, and persistence.
+
 ## PWA (Progressive Web App)
 
 The client app is installable as a PWA, providing a native app-like experience with app shell caching and network-first API strategy.

@@ -1,0 +1,166 @@
+---
+title: Test Data Factories
+description: Faker-powered builders that generate whole organisations (people + cross-functional teams) as plans, materialised through commands by recipe loaders. Shared by tests and the test-data seeder.
+sidebar_position: 21
+audience: [developer, agent]
+---
+
+# Test Data Factories
+
+:::warning Partially superseded (2026-07-10)
+Test-data generation pivoted to a standalone **`wayd-data` CLI** (HTTP-only, CSV bulk imports); the
+in-app seeder and the plan/recipe **loader** described here were removed. What remains valid: the
+**build-vs-load separation**, the **two-hierarchy org model** (people management tree + cross-functional
+teams), and **fakers-as-value-shells**. What changed: fakers now emit **CSV rows** consumed by API
+import endpoints (not entities or in-process commands), the fakers live **test-only** (the CLI is a dev
+tool that may reference test projects), and the "loader" is now the CLI + server-side CSV import
+handlers. See the `wayd-data` CLI spec for the current design.
+:::
+
+Companion to [Test Data Seeding](./test-data-seeding). That spec covers *when* seeding runs and the
+command-driven, phase-ordered skeleton. This spec covers *how a rich, believable dataset is
+generated* — specifically a whole organisation — and how the same generators serve both unit/
+integration tests and the seeder.
+
+Current scope: **the organisation only** — people (with management) and cross-functional teams.
+Projects/portfolios/themes are explicitly out of scope for this pass.
+
+## The core principle: separate building from loading
+
+Two responsibilities, two layers, never merged:
+
+- **Build (the shape).** Faker-powered builders produce an in-memory **plan** — a description of what
+  the org looks like. No database, no commands, no real Ids. Pure data. Reusable by tests that just
+  want the shape in memory.
+- **Load (the recipe).** A separate executor walks a plan and materialises it through **MediatR
+  commands**, in dependency order, capturing each command's returned Id. This is the seeder side.
+
+Why the split matters here specifically: the existing `*Faker` classes stamp entities directly
+(including `Id`), which is perfect for tests but **cannot** be persisted by the seeder — persisting a
+stamped entity bypasses the command pipeline, so no domain events fire and cross-domain replication
+(Team → PpmTeam/PlanningTeam/WorkTeam) never happens. Splitting build from load lets one builder feed
+both: tests keep the stamped entities; the seeder reads the plan and re-materialises it via commands.
+
+The faker's stamped Ids are used **only as internal correlation keys** inside a plan (to express
+"this child belongs to that parent"). The loader translates those placeholder Ids to the real
+command-returned Ids as it walks. Placeholder Ids never reach the database.
+
+## Two independent hierarchies
+
+An organisation is **two different trees over the same people**, and they are deliberately *not* the
+same shape:
+
+| | People tree | Org tree |
+|---|---|---|
+| Structure | management: manager → direct reports | value stream (ToT) → programs (ToTs) → cross-functional teams |
+| Domain model | `Employee.ManagerId` / `DirectReports` | `TeamOfTeams` nesting + leaf `Team` attachments |
+| Built by | faker → `PeoplePlan` | faker → `OrgPlan` |
+| Loaded by | recipe, top-down (managers before reports) | recipe, top-down (ToTs before teams) |
+| Owns | employees + reporting structure + discipline tags | team structure + memberships |
+| References | — | employees, by discipline, resolved from the registry |
+
+They correlate but do not match: Wayd teams are **cross-functional** — a team pulls people across
+reporting lines (an engineer, a designer, a PM who each report to different managers). So team
+membership is *not* derivable from the management tree; it is a deliberate cross-cut. This is the
+reason the two hierarchies are separate plans rather than one.
+
+The two trees **meet at exactly one point**: team staffing. Everything else about them is independent.
+
+## Phase 1 — People (`PeoplePlan`)
+
+Owns employee creation. Not a flat list: it builds the **management tree**, and it tags each person
+with a **discipline** (engineering, design, product, data, …) and department, so the org phase can
+staff teams with a realistic function mix.
+
+- **Build:** faker produces a `PeoplePlan` — a management tree of people, each carrying generated
+  field values (name on `acme.example`, employee number, email, job title → discipline, department)
+  and a manager edge (placeholder correlation Id) + discipline tag.
+- **Load (recipe):** walk the tree **top-down from the roots** (people with no manager). A manager
+  must be created before their reports because `CreateEmployeeCommand.ManagerId` must reference an
+  already-created employee (the handler nulls an unknown manager). Each `CreateEmployeeCommand`
+  returns the real employee Id; register it into `TestDataRefs` **tagged by discipline** (e.g.
+  `people:engineering:{n}`) so Phase 2 can draw from disciplines.
+
+Parameters (volume-adaptive): `employeeCount`, per-discipline sizing (or `engineeringFraction` etc.),
+management `span` (reports per manager) and `depth` (levels).
+
+## Phase 2 — Org (`OrgPlan`)
+
+Owns team structure and memberships. References employees by discipline from the registry; never
+creates them.
+
+- **Build:** faker produces an `OrgPlan` — value stream (root ToT) → programs (child ToTs) → leaf
+  teams, plus the membership edges (ToT→ToT nesting, Team→ToT attachment) and, per team, a
+  **staffing spec** (primary discipline + a cross-functional spread).
+- **Load (recipe):** the org recipe is a fixed, ordered set of steps; only the plan varies:
+
+  1. Team-of-teams, top-down: `CreateTeamOfTeamsCommand` → record real Id.
+  2. ToT→ToT nesting: `TeamsOfTeams.AddTeamMembershipCommand` (parent Id known from step 1).
+  3. Leaf teams: `CreateTeamCommand` → record real Id.
+  4. Team→ToT attachment: `Teams.AddTeamMembershipCommand` (both Ids known).
+  5. Team staffing: `AddTeamMemberCommand`, drawing employees from the registry's disciplines per the
+     team's staffing spec.
+
+  Note: `CreateTeamCommand` and `CreateTeamOfTeamsCommand` return `ObjectIdAndKey` (they were updated
+  to the shared 201-created convention) so the recipe gets the Id back directly.
+
+Parameters: `programs`, `teamsPerProgram` (min/max), `membersPerTeam`.
+
+### Cross-functional staffing (the join)
+
+The one place the two trees touch. A team is **not** staffed from a single department — that would
+make it a department, not a cross-functional team. Each team draws:
+
+- **mostly** from a *primary* discipline (so it reads as "the Payments team"), plus
+- **a spread** from adjacent disciplines (a designer, a data analyst) so it is genuinely
+  cross-functional.
+
+The staffing spec (primary discipline + spread weights) lives in the `OrgPlan` and is a builder
+parameter — this "correlated but cross-functional" blend is the main realism knob.
+
+## Prerequisite: Team Member Roles
+
+`AddTeamMemberCommand` requires non-empty `RoleIds`, and roles are created by
+`CreateTeamMemberRoleCommand`. So a small **roles step must run before any team staffing** (once).
+Treat it as an early sub-step of the Org phase (or its own tiny phase) that creates a handful of roles
+(e.g. Member, Lead) and registers their Ids for the staffing step to use.
+
+## Placement
+
+- **Builders** (`PeoplePlan`/`OrgPlan` + `WithStructure`-style faker extensions) live in
+  `Wayd.Organization.TestData` (already extracted, Bogus-only, production-referenceable). Shared with
+  `Wayd.Organization.Domain.Tests`.
+- **Recipe loaders** live in the seeder (`Wayd.Web.Api/TestData`) — they need MediatR and knowledge of
+  multiple commands. The loader is the only part that knows about commands; the builders never do.
+- **`Employee`** is a Common-domain entity; if a `PeoplePlan` builder needs the `EmployeeFaker` shell,
+  that faker belongs in `Wayd.Common.TestData` once Common is extracted (not yet done — see open
+  items). Until then the People builder can construct command inputs directly.
+
+## Ordering guarantees (recap)
+
+- **Across phases:** `ITestDataSeeder.Order` (People before Org).
+- **Within a plan:** the recipe's traversal order — top-down for both trees — so parents/managers
+  always materialise before children/reports.
+- **Cross-domain replication:** relies on `SaveChanges` dispatching domain events synchronously within
+  the seeder scope, so a Team's projections exist before later steps reference them. **Still verified
+  only on paper** — see open items.
+- **Guardrails:** `TestDataRefs` throws on an unregistered reference ("check seeder Order"); a failed
+  command throws via `EnsureSeeded`. Ordering mistakes fail loud, not silent.
+
+## Data conventions
+
+Fictional only — RFC-reserved domains (`acme.example`), invented names/numbers. Faker-generated **team
+names and codes are not guaranteed unique**, but `CreateTeamCommand` enforces unique names and
+`TeamCode` a format; the builder must de-duplicate (e.g. suffix an index) when generating at volume.
+
+## Open items
+
+- **Verify replication against a running DB** — create one Team via the recipe and confirm
+  PpmTeam/PlanningTeam/WorkTeam rows appear before the next step. This is the outstanding risk behind
+  the whole command-driven approach.
+- **Common extraction** — a People builder that reuses `EmployeeFaker` needs `Wayd.Common.TestData`
+  (Common not yet extracted; also resolves the duplicate `EmployeeFaker` in Common vs. Planning).
+- **IR generality** — `PeoplePlan`/`OrgPlan` are org-specific by choice. Generalise to a shared tree IR
+  only if a second hierarchy (work-item hierarchies, roadmaps) later wants it.
+- **Team-member roles** — decide the canonical starter role set and whether roles are reference data or
+  test data.

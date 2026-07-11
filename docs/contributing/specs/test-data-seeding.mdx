@@ -1,0 +1,140 @@
+---
+title: Test Data Seeding
+description: Design for opt-in, cross-domain demo/test data seeding and database reset, and the ordering that keeps domains aligned.
+sidebar_position: 20
+audience: [developer, agent]
+---
+
+# Test Data Seeding
+
+:::warning Superseded (2026-07-10)
+The in-app, startup-triggered seeder described below was **removed**. Test-data generation has pivoted
+to a **standalone `wayd-data` CLI** that generates data exclusively through the **public HTTP API**
+(with CSV-based bulk imports), and **database reset stays out-of-band** as an Aspire dashboard command.
+See the `wayd-data` CLI spec for the current design. This document is kept for the parts that remain
+true — cross-domain replication rules, the two-hierarchy org model, and the seed-through-commands
+invariant — but the "gate on a setting / run at startup / in-app UI" mechanics no longer apply.
+:::
+
+This spec covers **opt-in demo / test data** — a rich, interconnected dataset a contributor can
+load to explore every feature, and a demo site can stand on. It is deliberately **separate from
+reference (app) seeding** (roles, feature flags, the starter WSJF model, estimation scales), which
+is not optional and always runs on startup via the existing `ICustomSeeder` path.
+
+Same *pattern* as reference seeding (auto-discovered seeders, idempotency guards, per-domain
+ownership); **different interface and different trigger**, so demo data can never leak into a real
+deployment.
+
+## Triggering (setting + Aspire, not CLI-first)
+
+Demo seeding and reset are controlled by a `DemoData` config section, and surfaced through
+Aspire so a contributor never edits JSON:
+
+```jsonc
+// appsettings.Development.json or user-secrets — absent/false in production
+"DemoData": {
+  "Enabled": true,        // opt-in; run the IDemoDataSeeder set after reference seeding
+  "ResetOnStartup": false // EnsureDeleted + Migrate + reference-seed, THEN demo-seed
+}
+```
+
+The AppHost forwards these as environment variables on the API resource
+(`DemoData__Enabled`, `DemoData__ResetOnStartup`) driven by launch profiles, alongside the
+existing `WAYD_SKIP_DB_INIT` handling in `Program.cs`. A thin `dotnet run -- db reset` CLI verb
+is a secondary path for CI/scripting.
+
+Reset is a **schema drop + recreate** (`EnsureDeleted` + `Migrate`), not row deletes — Wayd uses
+global soft deletes, so deleting rows would leave soft-deleted ghosts and filtered unique indexes
+in play.
+
+## The alignment problem
+
+Domains do **not** share entity rows. Each domain keeps its own local projection of shared
+concepts (`Organization.Team` is the source of truth; `PpmTeam`, `PlanningTeam`, `WorkTeam` are
+read-model copies). Two mechanisms keep them aligned — the seeder must ride them, never bypass them:
+
+1. **Event replication (copy).** The owning domain raises a domain event; consuming domains have
+   `IEventNotificationHandler<TEvent>` handlers that create a local projection carrying the **same
+   Id**. Every handler is idempotent (`if (await ctx.X.AnyAsync(x => x.Id == evt.Id)) return`).
+2. **Shared table.** `Employee` lives in `Wayd.Common.Domain` — one row, referenced by Guid
+   everywhere. No replication needed.
+
+### Replication edges
+
+| Source domain | Aggregate | Event(s) | Consumers (projection written) |
+|---|---|---|---|
+| Organization | `Team` / `TeamOfTeams` | `TeamCreated/Updated/Activated/Deactivated/Deleted` | PPM `PpmTeam`, Planning `PlanningTeam`, Work `WorkTeam` |
+| PPM | `Project` | `ProjectCreated/DetailsUpdated/Deleted` | Work `WorkProject` |
+| StrategicManagement | `StrategicTheme` (**the source**) | `StrategicThemeCreated/Updated/Deleted` | PPM `PpmStrategicThemes` |
+| Planning | `Iteration` | `IterationCreated/Updated/Deleted` | Work `WorkIteration` |
+| Common | `Employee` | — (shared table) | referenced by Guid everywhere |
+
+`StrategicTheme` is owned by **StrategicManagement**; PPM only holds a copy — author themes in
+StrategicManagement.
+
+### The load-bearing timing constraint
+
+`TeamCreatedEvent` and `StrategicThemeCreatedEvent` fire via **`AddPostPersistenceAction`** — after
+the source aggregate is saved. And `PlanningInterval.SetTeams(teamIds)` adds
+`PlanningIntervalTeam { TeamId }` with **no existence check** — so the replicated `PlanningTeam` row
+(written by the TeamCreated handler) must already exist or the save FK-faults. The same shape holds
+for a PPM Program/Project referencing a `PpmTeam`.
+
+## Rule: seed only through owning-domain create commands
+
+All demo seeders create data via **MediatR commands** (never raw DbContext inserts of a projection
+row). Each command's `SaveChanges` dispatches its events synchronously through the pipeline, so by
+the time the command returns, the downstream projections exist — the replication and ordering that
+production relies on happen for free, and the seed data is proof the real wiring works.
+
+If an entity that needs seeding has **no create command**, that is a gap to fill (or a deliberate
+carve-out to document here) — not a reason to drop to raw DbContext.
+
+## Execution order (topological)
+
+```
+Phase 0  Reference data (exists today: roles, feature flags, WSJF, estimation scales)
+Phase 1  Common       → Employees          (no deps; everyone references these Ids)
+Phase 2  Organization → Teams / TeamOfTeams (emits TeamCreated → PPM/Planning/Work projections)
+         ── barrier: TeamCreated handlers committed ──
+Phase 3  StrategicMgmt→ Strategic Themes    (emits → PPM PpmStrategicThemes)
+Phase 4  PPM          → Portfolios → Programs → Projects
+                         (Projects emit ProjectCreated → Work WorkProject)
+                         (reference PpmTeams from P2, themes from P3, employee Ids from P1)
+         ── barrier: ProjectCreated handlers committed ──
+Phase 5  Planning     → Planning Intervals → add teams (needs PlanningTeam from P2)
+                         → Iterations (emit IterationCreated → Work WorkIteration) → PI Objectives
+Phase 6  Work         → Work Items, dependencies, tags (all projections already present)
+Phase 7  Scoring      → apply scoring models to Projects/Portfolios (ProjectScore snapshots)
+```
+
+Because each command dispatches its events synchronously, the "barriers" are satisfied simply by
+running phases in order within the same seeding scope — no manual event re-dispatch.
+
+## Shared identity registry
+
+A `DemoIds` static class of well-known Guids so downstream phases reference the same entities
+deterministically, and reset → reseed reproduces byte-identical data (diff-stable and
+screenshot-stable for demos):
+
+```
+DemoIds.Employees.Ada, .Grace, …
+DemoIds.Teams.Payments, .Platform, .Mobile, …
+DemoIds.Portfolios.CoreBanking, …
+DemoIds.Themes.CustomerTrust, …
+```
+
+Owning-domain phases **mint** these Ids; downstream phases only **reference** them.
+
+## Data conventions
+
+Fictional data only — RFC-reserved domains (`acme.example`), invented names/numbers. Never copy
+values from real payloads or third-party (GPL-licensed) fixtures.
+
+## Open items before implementation
+
+- Confirm the MediatR pipeline dispatches `AddPostPersistenceAction` events within the seeder's DI
+  scope (it does at request time; verify in the seeder scope).
+- Inventory create commands per phase; flag any seed-needed entity lacking one.
+- Choose the `IDemoDataSeeder` discovery + ordering mechanism (explicit phase index vs. dependency
+  attributes).

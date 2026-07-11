@@ -18442,8 +18442,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "integer",
-                  "format": "int32"
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
                 }
               }
             }
@@ -20339,8 +20338,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "integer",
-                  "format": "int32"
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
                 }
               }
             }

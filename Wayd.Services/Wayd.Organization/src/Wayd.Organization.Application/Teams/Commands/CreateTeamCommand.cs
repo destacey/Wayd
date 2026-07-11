@@ -1,11 +1,12 @@
-﻿using Wayd.Common.Domain.Models.Organizations;
+﻿using Wayd.Common.Application.Models;
+using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Application.Teams.Models;
 using Wayd.Organization.Domain.Enums;
 using NodaTime;
 
 namespace Wayd.Organization.Application.Teams.Commands;
 
-public sealed record CreateTeamCommand(string Name, TeamCode Code, string? Description, LocalDate ActiveDate) : ICommand<int>;
+public sealed record CreateTeamCommand(string Name, TeamCode Code, string? Description, LocalDate ActiveDate) : ICommand<ObjectIdAndKey>;
 
 public sealed class CreateTeamCommandValidator : CustomValidator<CreateTeamCommand>
 {
@@ -39,7 +40,7 @@ public sealed class CreateTeamCommandValidator : CustomValidator<CreateTeamComma
     }
 }
 
-internal sealed class CreateTeamCommandHandler : ICommandHandler<CreateTeamCommand, int>
+internal sealed class CreateTeamCommandHandler : ICommandHandler<CreateTeamCommand, ObjectIdAndKey>
 {
     private const string RequestName = nameof(CreateTeamCommand);
 
@@ -54,7 +55,7 @@ internal sealed class CreateTeamCommandHandler : ICommandHandler<CreateTeamComma
         _logger = logger;
     }
 
-    public async Task<Result<int>> Handle(CreateTeamCommand request, CancellationToken cancellationToken)
+    public async Task<Result<ObjectIdAndKey>> Handle(CreateTeamCommand request, CancellationToken cancellationToken)
     {
         try
         {
@@ -79,13 +80,13 @@ internal sealed class CreateTeamCommandHandler : ICommandHandler<CreateTeamComma
 
             _logger.LogDebug("{RequestName}: synced TeamNode for Team with Id {TeamId}, Key {TeamKey}, and Code {TeamCode}", RequestName, team.Id, team.Key, team.Code);
 
-            return Result.Success(team.Key);
+            return Result.Success(new ObjectIdAndKey(team.Id, team.Key));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception for request {RequestName}: {@Request}", RequestName, request);
 
-            return Result.Failure<int>($"Exception for request {RequestName} {request}");
+            return Result.Failure<ObjectIdAndKey>($"Exception for request {RequestName} {request}");
         }
     }
 }

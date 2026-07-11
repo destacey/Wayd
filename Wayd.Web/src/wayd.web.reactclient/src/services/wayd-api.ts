@@ -22345,7 +22345,7 @@ export class TeamsClient {
     /**
      * Create a team.
      */
-    create(request: CreateTeamRequest, cancelToken?: CancelToken): Promise<number> {
+    create(request: CreateTeamRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
         let url_ = this.baseUrl + "/api/organization/teams";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -22373,7 +22373,7 @@ export class TeamsClient {
         });
     }
 
-    protected processCreate(response: AxiosResponse): Promise<number> {
+    protected processCreate(response: AxiosResponse): Promise<ObjectIdAndKey> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -22388,7 +22388,7 @@ export class TeamsClient {
             let result201: any = null;
             let resultData201  = _responseText;
             result201 = resultData201;
-            return Promise.resolve<number>(result201);
+            return Promise.resolve<ObjectIdAndKey>(result201);
 
         } else if (status === 422) {
             const _responseText = response.data;
@@ -22401,7 +22401,7 @@ export class TeamsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<number>(null as any);
+        return Promise.resolve<ObjectIdAndKey>(null as any);
     }
 
     /**
@@ -24389,7 +24389,7 @@ export class TeamsOfTeamsClient {
     /**
      * Create a team of teams.
      */
-    create(request: CreateTeamOfTeamsRequest, cancelToken?: CancelToken): Promise<number> {
+    create(request: CreateTeamOfTeamsRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
         let url_ = this.baseUrl + "/api/organization/teams-of-teams";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -24417,7 +24417,7 @@ export class TeamsOfTeamsClient {
         });
     }
 
-    protected processCreate(response: AxiosResponse): Promise<number> {
+    protected processCreate(response: AxiosResponse): Promise<ObjectIdAndKey> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -24432,7 +24432,7 @@ export class TeamsOfTeamsClient {
             let result201: any = null;
             let resultData201  = _responseText;
             result201 = resultData201;
-            return Promise.resolve<number>(result201);
+            return Promise.resolve<ObjectIdAndKey>(result201);
 
         } else if (status === 422) {
             const _responseText = response.data;
@@ -24445,7 +24445,7 @@ export class TeamsOfTeamsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<number>(null as any);
+        return Promise.resolve<ObjectIdAndKey>(null as any);
     }
 
     /**

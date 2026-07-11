@@ -1,9 +1,10 @@
-﻿using FluentAssertions.Extensions;
+using FluentAssertions.Extensions;
 using NodaTime;
 using NodaTime.Extensions;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Tests.Shared.Data;
 using Wayd.Work.Domain.Models;
+using Wayd.TestData.Core;
 
 namespace Wayd.Work.Domain.Tests.Data;
 

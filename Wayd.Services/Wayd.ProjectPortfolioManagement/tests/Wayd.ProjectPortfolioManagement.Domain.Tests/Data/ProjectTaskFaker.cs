@@ -1,4 +1,4 @@
-﻿using NodaTime;
+using NodaTime;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
@@ -7,6 +7,7 @@ using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Data;
 using Wayd.Tests.Shared.Extensions;
 using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
+using Wayd.TestData.Core;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 

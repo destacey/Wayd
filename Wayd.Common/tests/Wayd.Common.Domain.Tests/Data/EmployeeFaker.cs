@@ -1,6 +1,7 @@
-﻿using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Employees;
 using Wayd.Common.Models;
 using Wayd.Tests.Shared.Data;
+using Wayd.TestData.Core;
 
 namespace Wayd.Common.Domain.Tests.Data;
 

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!--
+    Test-only test-data base. Bogus only: no test SDK, no xUnit, no Moq, no domain references. Holds
+    the generic private-constructor faker machinery shared by every Wayd.{Domain}.TestData library and
+    by the test projects. Lives under tests/ to signal test-only.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Bogus" />
+  </ItemGroup>
+
+</Project>

@@ -1,5 +1,6 @@
-﻿using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
 using Wayd.Tests.Shared.Data;
+using Wayd.TestData.Core;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 

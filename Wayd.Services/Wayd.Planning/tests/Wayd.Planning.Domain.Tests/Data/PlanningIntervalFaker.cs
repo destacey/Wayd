@@ -1,7 +1,8 @@
-﻿using Wayd.Common.Models;
+using Wayd.Common.Models;
 using Wayd.Planning.Domain.Models;
 using Wayd.Tests.Shared.Data;
 using NodaTime.Extensions;
+using Wayd.TestData.Core;
 
 namespace Wayd.Planning.Domain.Tests.Data;
 

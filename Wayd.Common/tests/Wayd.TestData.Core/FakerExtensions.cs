@@ -1,7 +1,7 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Bogus;
 
-namespace Wayd.Tests.Shared.Extensions;
+namespace Wayd.TestData.Core;
 
 public static class FakerExtensions
 {

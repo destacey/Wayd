@@ -1,6 +1,7 @@
-﻿using Wayd.Common.Domain.Enums.StrategicManagement;
+using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.Tests.Shared.Data;
+using Wayd.TestData.Core;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 

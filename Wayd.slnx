@@ -9,6 +9,7 @@
     <Project Path="Wayd.Common/tests/Wayd.Common.Application.Tests/Wayd.Common.Application.Tests.csproj" />
     <Project Path="Wayd.Common/tests/Wayd.Common.Domain.Tests/Wayd.Common.Domain.Tests.csproj" />
     <Project Path="Wayd.Common/tests/Wayd.Common.Tests/Wayd.Common.Tests.csproj" />
+    <Project Path="Wayd.Common/tests/Wayd.TestData.Core/Wayd.TestData.Core.csproj" />
     <Project Path="Wayd.Common/tests/Wayd.Tests.Shared/Wayd.Tests.Shared.csproj" />
   </Folder>
   <Folder Name="/Wayd.Infrastructure/" />
@@ -66,6 +67,7 @@
   <Folder Name="/Wayd.Services/Wayd.Organization/tests/">
     <Project Path="Wayd.Services/Wayd.Organization/tests/Wayd.Organization.Application.Tests/Wayd.Organization.Application.Tests.csproj" />
     <Project Path="Wayd.Services/Wayd.Organization/tests/Wayd.Organization.Domain.Tests/Wayd.Organization.Domain.Tests.csproj" />
+    <Project Path="Wayd.Services/Wayd.Organization/tests/Wayd.Organization.TestData/Wayd.Organization.TestData.csproj" />
   </Folder>
   <Folder Name="/Wayd.Services/Wayd.Planning/" />
   <Folder Name="/Wayd.Services/Wayd.Planning/src/">

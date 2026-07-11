@@ -1,5 +1,5 @@
-﻿using Wayd.Organization.Domain.Models;
-using Wayd.Organization.Domain.Tests.Data;
+using Wayd.Organization.Domain.Models;
+using Wayd.Organization.TestData;
 
 namespace Wayd.Organization.Domain.Tests.Sut.Models;
 

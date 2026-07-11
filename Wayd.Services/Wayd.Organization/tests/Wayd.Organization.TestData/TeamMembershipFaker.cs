@@ -1,8 +1,8 @@
-﻿using Wayd.Organization.Domain.Models;
-using Wayd.Tests.Shared.Data;
+using Wayd.Organization.Domain.Models;
 using NodaTime;
+using Wayd.TestData.Core;
 
-namespace Wayd.Organization.Domain.Tests.Data;
+namespace Wayd.Organization.TestData;
 
 public sealed class TeamMembershipFaker : PrivateConstructorFaker<TeamMembership>
 {

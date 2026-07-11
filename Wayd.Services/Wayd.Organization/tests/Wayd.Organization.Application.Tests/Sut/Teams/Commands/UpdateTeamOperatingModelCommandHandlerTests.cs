@@ -1,8 +1,8 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Tests.Infrastructure;
 using Wayd.Organization.Domain.Enums;
-using Wayd.Organization.Domain.Tests.Data;
+using Wayd.Organization.TestData;
 using Wayd.Tests.Shared;
 using Moq;
 

@@ -1,10 +1,10 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Tests.Infrastructure;
 using Wayd.Organization.Domain.Enums;
 using Wayd.Organization.Domain.Models;
-using Wayd.Organization.Domain.Tests.Data;
+using Wayd.Organization.TestData;
 using Moq;
 using NodaTime;
 

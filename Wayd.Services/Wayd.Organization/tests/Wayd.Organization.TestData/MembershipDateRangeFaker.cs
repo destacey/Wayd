@@ -1,8 +1,8 @@
-﻿using Bogus;
+using Bogus;
 using Wayd.Organization.Domain.Models;
 using NodaTime;
 
-namespace Wayd.Organization.Domain.Tests.Data;
+namespace Wayd.Organization.TestData;
 
 public sealed class MembershipDateRangeFaker : Faker<MembershipDateRange>
 {

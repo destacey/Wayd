@@ -131,6 +131,14 @@ Using seed 193051458 (pass --random-seed 193051458 to reproduce this data).
 Re-run with that `--random-seed` to reproduce byte-identical data — for a **given build of the tool**. The seed
 pins the randomness, not the algorithm: if the generator changes, the same seed produces different data.
 
+:::note What "reproducible" means here
+The seed reproduces the **generated data** — the same names, emails, employee numbers, team codes, and
+hierarchy. It does **not** reproduce the database primary keys. Wayd assigns IDs (and other server-side
+keys) when the rows are created through the API, so seeding the same data twice yields different database
+IDs each time. Use the generated business keys (employee number, team code) to correlate across runs, not
+the database IDs.
+:::
+
 ## How it works (and why)
 
 The tool **never touches the database directly** — it POSTs CSV to the API's import endpoints, and each

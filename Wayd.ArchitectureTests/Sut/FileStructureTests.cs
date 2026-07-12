@@ -366,7 +366,8 @@ public class FileStructureTests
                 .Where(d =>
                 {
                     var name = Path.GetFileName(d);
-                    return !name.EndsWith(".Tests") && !name.EndsWith(".IntegrationTests");
+                    return !name.EndsWith(".Tests") && !name.EndsWith(".IntegrationTests") &&
+                           !ProjectConventions.IsExemptSupportProject(name);
                 })
                 .Select(Path.GetFileName)
                 .Where(name => name != null)
@@ -378,7 +379,7 @@ public class FileStructureTests
 
         // Assert
         invalidTestProjects.Should().BeEmpty(
-            "All service test projects should end with '.Tests' or '.IntegrationTests'. Invalid: {0}",
+            "All service test projects should end with '.Tests' or '.IntegrationTests' (except *.TestData faker libraries). Invalid: {0}",
             string.Join(", ", invalidTestProjects));
     }
 

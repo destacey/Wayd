@@ -123,6 +123,15 @@
     <File Path="global.json" />
     <File Path="README.md" />
   </Folder>
+  <Folder Name="/Wayd.Tools/" />
+  <Folder Name="/Wayd.Tools/DataGeneration/" />
+  <Folder Name="/Wayd.Tools/DataGeneration/src/">
+    <Project Path="Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli/Wayd.Tools.DataGeneration.Cli.csproj" />
+    <Project Path="Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli.Client/Wayd.Tools.DataGeneration.Cli.Client.csproj" />
+  </Folder>
+  <Folder Name="/Wayd.Tools/DataGeneration/tests/">
+    <Project Path="Wayd.Tools/DataGeneration/tests/Wayd.Tools.DataGeneration.Cli.Tests/Wayd.Tools.DataGeneration.Cli.Tests.csproj" />
+  </Folder>
   <Project Path="Wayd.AppHost/Wayd.AppHost.csproj" />
   <Project Path="Wayd.ArchitectureTests/Wayd.ArchitectureTests.csproj" />
 </Solution>

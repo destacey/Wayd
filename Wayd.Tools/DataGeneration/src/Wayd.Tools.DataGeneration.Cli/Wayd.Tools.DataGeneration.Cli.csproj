@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    wayd-data: a standalone dev tool that generates realistic organization data (people with a management
+    tree + cross-functional teams) and seeds it into a Wayd environment exclusively through the public
+    HTTP API's CSV import endpoints. Cross-platform (Windows + Linux containers). Authenticates with a
+    Personal Access Token via the x-api-key header. Not a deployed/production assembly.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>wayd-data</AssemblyName>
+    <RootNamespace>Wayd.Tools.DataGeneration.Cli</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Bogus" />
+    <PackageReference Include="CsvHelper" />
+    <PackageReference Include="System.CommandLine" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Wayd.Tools.DataGeneration.Cli.Client\Wayd.Tools.DataGeneration.Cli.Client.csproj" />
+  </ItemGroup>
+
+</Project>

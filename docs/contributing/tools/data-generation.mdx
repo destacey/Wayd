@@ -68,7 +68,7 @@ you will need a fresh Personal Access Token afterward.
 | `--value-streams`, `-v` | `3` | Number of value streams (product lines); larger ones become three-tier |
 | `--teams`, `-t` | `18` | Number of leaf delivery teams (overall headcount derives from this) |
 | `--former-employees` | `0.08` | Fraction of non-delivery ICs marked former (inactive) |
-| `--seed` | random | Fixed seed for reproducible output |
+| `--random-seed`, `-r` | random | Fixed RNG seed for reproducible output |
 | `--out`, `-o` | `./seed` | (`generate` only) output directory |
 | `--api`, `-a` | — | (`seed` only, required) API base URL |
 | `--api-key` | `WAYD_API_KEY` | (`seed` only) Personal Access Token |
@@ -122,13 +122,13 @@ Operations) has its own management chains and **no team memberships**.
 
 ## Reproducibility
 
-Every run resolves a concrete seed (random when `--seed` is omitted) and prints it:
+Every run resolves a concrete seed (random when `--random-seed` is omitted) and prints it:
 
 ```
-Using seed 193051458 (pass --seed 193051458 to reproduce this data).
+Using seed 193051458 (pass --random-seed 193051458 to reproduce this data).
 ```
 
-Re-run with that `--seed` to reproduce byte-identical data — for a **given build of the tool**. The seed
+Re-run with that `--random-seed` to reproduce byte-identical data — for a **given build of the tool**. The seed
 pins the randomness, not the algorithm: if the generator changes, the same seed produces different data.
 
 ## How it works (and why)

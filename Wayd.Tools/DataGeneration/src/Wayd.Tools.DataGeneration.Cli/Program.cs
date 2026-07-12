@@ -10,7 +10,7 @@ var companyTypeOption = new Option<CompanyType>("--company-type", "-c") { Descri
 var deliveryRatioOption = new Option<double?>("--delivery-ratio") { Description = "Override (0..1) for the share of employees inside the delivery team structure. Defaults to the company type." };
 var valueStreamsOption = new Option<int>("--value-streams", "-v") { Description = "Number of value streams (product lines). Larger ones become 3-tier, smaller ones 2-tier.", DefaultValueFactory = _ => 3 };
 var teamsOption = new Option<int>("--teams", "-t") { Description = "Number of leaf delivery teams to generate.", DefaultValueFactory = _ => 18 };
-var seedOption = new Option<int?>("--seed") { Description = "Fixed random seed for reproducible output." };
+var seedOption = new Option<int?>("--random-seed", "-r") { Description = "Fixed random seed for reproducible output." };
 var formerEmployeesOption = new Option<double>("--former-employees") { Description = "Fraction (0..1) of non-delivery individual contributors generated as former (inactive) employees.", DefaultValueFactory = _ => 0.08 };
 
 OrgOptions ReadOrgOptions(ParseResult parse) => new()
@@ -44,7 +44,7 @@ generateCommand.Add(outOption);
 generateCommand.SetAction((parse, _) =>
 {
     var options = ReadOrgOptions(parse);
-    Console.WriteLine($"Using seed {options.Seed} (pass --seed {options.Seed} to reproduce this data).");
+    Console.WriteLine($"Using seed {options.Seed} (pass --random-seed {options.Seed} to reproduce this data).");
 
     var org = new OrgGenerator(options).Generate();
     var outDir = parse.GetValue(outOption)!;
@@ -79,7 +79,7 @@ seedCommand.SetAction(async (parse, cancellationToken) =>
     }
 
     var options = ReadOrgOptions(parse);
-    Console.WriteLine($"Using seed {options.Seed} (pass --seed {options.Seed} to reproduce this data).");
+    Console.WriteLine($"Using seed {options.Seed} (pass --random-seed {options.Seed} to reproduce this data).");
 
     var org = new OrgGenerator(options).Generate();
     Console.WriteLine($"Generated {org.Employees.Count} employees, {org.Teams.Count} teams, {org.TeamMemberships.Count} hierarchy links, {org.Members.Count} staffing rows.");

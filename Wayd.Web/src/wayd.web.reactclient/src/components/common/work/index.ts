@@ -12,4 +12,3 @@ export {
   workStatusCategoryComparator,
 } from './work-item-utils'
 export { DEPENDENCY_SCOPE_TOOLTIP } from './dependency-constants'
-export { default as WorkItemTagsCell } from './work-item-tags-cell'

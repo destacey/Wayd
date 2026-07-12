@@ -23,6 +23,7 @@ import styles from '@/src/components/common/wayd-grid/wayd-grid.module.css'
 import {
   type FilterOption,
   type WaydGridColumnMeta,
+  TagListCell,
   dateSortBy,
   useGridDragHandle,
 } from '@/src/components/common/wayd-grid'
@@ -666,7 +667,7 @@ export const getProjectPlanTableColumns = ({
 
         if (!isSelected || !handleUpdateTask) {
           if (assignees.length === 0) return ''
-          return assignees.map((a) => a.name).join(', ')
+          return <TagListCell values={assignees.map((a) => a.name)} />
         }
 
         const error = getFieldError('assigneeIds')

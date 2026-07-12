@@ -12,7 +12,7 @@ export interface TagListCellProps {
 /**
  * Renders a list of string values as a single, non-wrapping row of antd Tags.
  * The display half of a multi-value ("CSV") grid column — pair with
- * {@link createCsvColumn}. Domain wrappers (e.g. WorkItemTagsCell) delegate here.
+ * {@link createCsvColumn}, which renders this cell for you.
  *
  * It behaves like a regular truncating text cell: all tags render in a row and
  * the row's right edge fades out where it overflows the column, signalling

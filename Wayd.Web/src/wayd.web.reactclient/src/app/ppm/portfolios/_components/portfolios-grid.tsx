@@ -1,10 +1,14 @@
 'use client'
 
-import { WaydGrid, renderPortfolioLink } from '@/src/components/common/wayd-grid'
+import {
+  WaydGrid,
+  createCsvColumn,
+  renderPortfolioLink,
+} from '@/src/components/common/wayd-grid'
 import { ProjectPortfolioListDto } from '@/src/services/wayd-api'
-import { getSortedNames } from '@/src/utils'
+import { getSortedNameList } from '@/src/utils'
 import type { ColumnDef } from '@tanstack/react-table'
-import { ReactElement, useMemo } from 'react'
+import { ReactElement } from 'react'
 
 export interface PortfoliosGridProps {
   portfolios: ProjectPortfolioListDto[]
@@ -20,41 +24,38 @@ const PortfoliosGrid: React.FC<PortfoliosGridProps> = (
 ) => {
   const { refetch } = props
 
-  const columns = useMemo<ColumnDef<ProjectPortfolioListDto, any>[]>(
-    () => [
-      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
-      {
-        id: 'name',
-        accessorKey: 'name',
-        header: 'Name',
-        size: 200,
-        meta: { filterEnableSet: true },
-        cell: ({ row }) => renderPortfolioLink(row.original),
-      },
-      {
-        id: 'status',
-        accessorKey: 'status.name',
-        header: 'Status',
-        meta: { filterType: 'set' },
-      },
-      {
-        id: 'portfolioManagers',
-        accessorFn: (row) => getSortedNames(row.portfolioManagers ?? []),
-        header: 'PMs',
-      },
-      {
-        id: 'portfolioOwners',
-        accessorFn: (row) => getSortedNames(row.portfolioOwners ?? []),
-        header: 'Owners',
-      },
-      {
-        id: 'portfolioSponsors',
-        accessorFn: (row) => getSortedNames(row.portfolioSponsors ?? []),
-        header: 'Sponsors',
-      },
-    ],
-    [],
-  )
+  const columns: ColumnDef<ProjectPortfolioListDto, any>[] = [
+    { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
+    {
+      id: 'name',
+      accessorKey: 'name',
+      header: 'Name',
+      size: 200,
+      meta: { filterEnableSet: true },
+      cell: ({ row }) => renderPortfolioLink(row.original),
+    },
+    {
+      id: 'status',
+      accessorKey: 'status.name',
+      header: 'Status',
+      meta: { filterType: 'set' },
+    },
+    createCsvColumn<ProjectPortfolioListDto>({
+      id: 'portfolioManagers',
+      header: 'PMs',
+      getValues: (row) => getSortedNameList(row.portfolioManagers ?? []),
+    }),
+    createCsvColumn<ProjectPortfolioListDto>({
+      id: 'portfolioOwners',
+      header: 'Owners',
+      getValues: (row) => getSortedNameList(row.portfolioOwners ?? []),
+    }),
+    createCsvColumn<ProjectPortfolioListDto>({
+      id: 'portfolioSponsors',
+      header: 'Sponsors',
+      getValues: (row) => getSortedNameList(row.portfolioSponsors ?? []),
+    }),
+  ]
 
   const refresh = async () => {
     refetch()

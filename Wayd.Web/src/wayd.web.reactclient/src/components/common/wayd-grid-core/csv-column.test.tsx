@@ -22,12 +22,6 @@ describe('createCsvColumn', () => {
     owners: string
   }
 
-  const data: Project[] = [
-    { owners: 'Bob, Alice' },
-    { owners: 'alice, Carol' },
-    { owners: '' },
-  ]
-
   // Minimal Row stand-in: the accessor/cell only read `.original`.
   const rowOf = (original: Project): Row<Project> =>
     ({ original }) as unknown as Row<Project>
@@ -35,7 +29,6 @@ describe('createCsvColumn', () => {
   const column = createCsvColumn<Project>({
     id: 'owners',
     header: 'Owners',
-    data,
   })
 
   // TanStack's ColumnDef is a union that only exposes accessorFn on the
@@ -51,18 +44,17 @@ describe('createCsvColumn', () => {
     expect(accessorFn({ owners: 'Bob, Alice' })).toBe('Bob, Alice')
   })
 
-  it('derives distinct filter options from individual values, case-insensitively sorted', () => {
-    // Arrange / Act
-    const options = column.meta?.filterOptions
+  it('marks the column for token faceting via meta.multiValueSplit', () => {
+    // Arrange / Act — the grid uses this to build the set list from individual
+    // tokens (round-trips the accessor's ", " join). No data/options are baked
+    // into the column; options come from live faceting.
+    expect(column.meta?.filterType).toBe('set')
+    expect(column.meta?.filterOptions).toBeUndefined()
 
-    // Assert — 'Alice' and 'alice' are distinct values but sort adjacent
-    // (case-insensitive compare is stable, so first-seen 'Alice' leads);
-    // both are offered, whole CSV combos are not.
-    expect(options).toEqual([
-      { label: 'Alice', value: 'Alice' },
-      { label: 'alice', value: 'alice' },
-      { label: 'Bob', value: 'Bob' },
-      { label: 'Carol', value: 'Carol' },
+    // Assert — the split recovers the tokens from a joined accessor value.
+    expect(column.meta?.multiValueSplit?.('Bob, Alice')).toEqual([
+      'Bob',
+      'Alice',
     ])
   })
 
@@ -76,30 +68,28 @@ describe('createCsvColumn', () => {
     const model: SetFilterModel = { type: 'set', values: ['Bob'] }
 
     // Act / Assert — a row with several owners still matches on one of them
-    expect(filterFn(rowOf({ owners: 'Bob, Alice' }), 'owners', model)).toBe(true)
+    expect(filterFn(rowOf({ owners: 'Bob, Alice' }), 'owners', model)).toBe(
+      true,
+    )
     expect(filterFn(rowOf({ owners: 'Carol' }), 'owners', model)).toBe(false)
   })
 
   it('supports an explicit getValues for array/object sources', () => {
     // Arrange
-    interface Row {
+    interface PeopleRow {
       people: { name: string }[]
     }
-    const col = createCsvColumn<Row>({
+    const col = createCsvColumn<PeopleRow>({
       id: 'people',
       header: 'People',
-      data: [{ people: [{ name: 'Zoe' }, { name: 'Amy' }] }],
       getValues: (row) => row.people.map((p) => p.name),
     })
 
-    // Act / Assert
-    expect(col.meta?.filterOptions).toEqual([
-      { label: 'Amy', value: 'Amy' },
-      { label: 'Zoe', value: 'Zoe' },
-    ])
-    const accessorFn = accessorOf<Row>(col)
+    // Act / Assert — accessor joins the extracted names
+    const accessorFn = accessorOf<PeopleRow>(col)
     expect(accessorFn({ people: [{ name: 'Zoe' }, { name: 'Amy' }] })).toBe(
       'Zoe, Amy',
     )
+    expect(col.meta?.multiValueSplit).toBe(column.meta?.multiValueSplit)
   })
 })

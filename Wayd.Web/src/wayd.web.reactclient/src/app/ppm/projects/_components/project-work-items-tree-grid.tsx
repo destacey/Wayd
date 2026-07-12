@@ -9,9 +9,8 @@ import {
   ExportOutlined,
 } from '@ant-design/icons'
 import { Button, Flex } from 'antd'
-import { WorkItemTagsCell } from '@/src/components/common/work'
 import treeGridStyles from '@/src/components/common/wayd-grid/wayd-grid.module.css'
-import { WaydGrid } from '@/src/components/common/wayd-grid'
+import { WaydGrid, createCsvColumn } from '@/src/components/common/wayd-grid'
 import type { WaydGridColumnMeta } from '@/src/components/common/wayd-grid'
 import { WorkItemListDto } from '@/src/services/wayd-api'
 import {
@@ -215,15 +214,17 @@ const getColumns = (
     sortingFn: 'text',
     cell: ({ row }) => <AssignedToCell item={row.original} />,
   },
+  // Tags render as overflow-aware chips and filter via the multi-value set
+  // panel (individual tags faceted from the displayed rows, tree children
+  // included).
   {
-    id: 'tags',
-    accessorFn: (row) => row.tags?.join(', ') ?? '',
-    header: 'Tags',
-    size: 200,
+    ...createCsvColumn<WorkItemTreeNode>({
+      id: 'tags',
+      header: 'Tags',
+      size: 200,
+      getValues: (row) => row.tags ?? [],
+    }),
     enableGlobalFilter: true,
-    enableColumnFilter: true,
-    sortingFn: 'text',
-    cell: ({ row }) => <WorkItemTagsCell tags={row.original.tags} />,
   },
   ...(!hideProjectColumn
     ? [
@@ -270,4 +271,3 @@ const ProjectWorkItemsTreeGrid: FC<ProjectWorkItemsTreeGridProps> = ({
 }
 
 export default ProjectWorkItemsTreeGrid
-

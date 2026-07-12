@@ -14,6 +14,7 @@ import { render, screen, fireEvent, within, act } from '@testing-library/react'
 import type { ColumnDef } from '@tanstack/react-table'
 
 import WaydGrid from './wayd-grid'
+import { createCsvColumn } from '../wayd-grid-core/csv-column'
 import { SET_FILTER_BLANK } from '../wayd-grid-core/filters'
 import { createActionsColumn } from '../wayd-grid-core/actions-column'
 import { gridStateStorageKey } from '../wayd-grid-core/use-grid-persistence'
@@ -210,7 +211,12 @@ describe('WaydGrid', () => {
     }
 
     const OBJ_DATA: Obj[] = [
-      { key: 1, name: 'Alpha', status: { name: 'Active' }, team: { name: 'Juice' } },
+      {
+        key: 1,
+        name: 'Alpha',
+        status: { name: 'Active' },
+        team: { name: 'Juice' },
+      },
       { key: 2, name: 'Beta', status: { name: 'Closed' }, team: null },
     ]
 
@@ -303,7 +309,9 @@ describe('WaydGrid', () => {
 
       // Assert — no number spinner; a text input is present
       const row = floatingRow()
-      expect(row.querySelector('input[role="spinbutton"]')).not.toBeInTheDocument()
+      expect(
+        row.querySelector('input[role="spinbutton"]'),
+      ).not.toBeInTheDocument()
       expect(row.querySelector('input[type="text"]')).toBeInTheDocument()
     })
   })
@@ -389,8 +397,8 @@ describe('WaydGrid', () => {
 
       // Act
       act(() => {
-        ref.current!.table
-          .getColumn('type')!
+        ref
+          .current!.table.getColumn('type')!
           .setFilterValue({ type: 'set', values: ['System'] })
       })
 
@@ -425,19 +433,57 @@ describe('WaydGrid', () => {
 
       // Act / Assert — a value-only selection hides the blank row
       act(() => {
-        ref.current!.table
-          .getColumn('team')!
+        ref
+          .current!.table.getColumn('team')!
           .setFilterValue({ type: 'set', values: ['Juice'] })
       })
       expect(bodyCells('name').map((c) => c.textContent)).toEqual(['alpha'])
 
       // Act / Assert — selecting only (Blanks) shows just the blank row
       act(() => {
-        ref.current!.table
-          .getColumn('team')!
+        ref
+          .current!.table.getColumn('team')!
           .setFilterValue({ type: 'set', values: [SET_FILTER_BLANK] })
       })
       expect(bodyCells('name').map((c) => c.textContent)).toEqual(['beta'])
+    })
+
+    it('filters a multi-value (createCsvColumn) column on an individual token', () => {
+      // Arrange — a Tags column whose rows each hold several tags
+      interface Item {
+        id: number
+        name: string
+        tags: string[]
+      }
+      const data: Item[] = [
+        { id: 1, name: 'alpha', tags: ['red', 'blue'] },
+        { id: 2, name: 'beta', tags: ['green'] },
+        { id: 3, name: 'gamma', tags: ['blue', 'green'] },
+      ]
+      const cols: ColumnDef<Item, unknown>[] = [
+        { id: 'name', accessorKey: 'name', header: 'Name' },
+        createCsvColumn<Item>({
+          id: 'tags',
+          header: 'Tags',
+          getValues: (row) => row.tags,
+        }) as ColumnDef<Item, unknown>,
+      ]
+      const ref = createRef<WaydGridHandle>()
+      render(<WaydGrid<Item> ref={ref} data={data} columns={cols} />)
+
+      // Act — filter to the 'blue' token
+      act(() => {
+        ref
+          .current!.table.getColumn('tags')!
+          .setFilterValue({ type: 'set', values: ['blue'] })
+      })
+
+      // Assert — rows sharing 'blue' remain (matched per-token, not on the
+      // whole joined "red, blue" string)
+      expect(bodyCells('name').map((c) => c.textContent)).toEqual([
+        'alpha',
+        'gamma',
+      ])
     })
 
     it('filters a yesNo column on the Yes/No display value (not true/false)', () => {
@@ -447,8 +493,8 @@ describe('WaydGrid', () => {
 
       // Act — filter Enabled to "Yes"
       act(() => {
-        ref.current!.table
-          .getColumn('isEnabled')!
+        ref
+          .current!.table.getColumn('isEnabled')!
           .setFilterValue({ type: 'set', values: ['Yes'] })
       })
 
@@ -493,7 +539,9 @@ describe('WaydGrid', () => {
       )
 
       // Header row ends in an aria-hidden filler th
-      const headerRow = container.querySelector('thead tr') as HTMLTableRowElement
+      const headerRow = container.querySelector(
+        'thead tr',
+      ) as HTMLTableRowElement
       const headerCells = headerRow.querySelectorAll('th')
       expect(headerCells[headerCells.length - 1]).toHaveAttribute(
         'aria-hidden',
@@ -501,7 +549,9 @@ describe('WaydGrid', () => {
       )
 
       // Each body row ends in an aria-hidden filler td
-      const firstBodyRow = container.querySelector('tbody tr') as HTMLTableRowElement
+      const firstBodyRow = container.querySelector(
+        'tbody tr',
+      ) as HTMLTableRowElement
       const bodyRowCells = firstBodyRow.querySelectorAll('td')
       expect(bodyRowCells[bodyRowCells.length - 1]).toHaveAttribute(
         'aria-hidden',
@@ -886,9 +936,7 @@ describe('WaydGrid', () => {
       renderGrid()
 
       // Assert
-      expect(
-        document.querySelectorAll('tbody tr[data-row-id]'),
-      ).toHaveLength(0)
+      expect(document.querySelectorAll('tbody tr[data-row-id]')).toHaveLength(0)
     })
 
     it('reports drag disabled through the column context while sorted', () => {
@@ -1213,9 +1261,9 @@ describe('WaydGrid', () => {
       const headerRow = document.querySelector(
         'thead tr:not([data-role])',
       ) as HTMLElement
-      return Array.from(
-        headerRow.querySelectorAll('th[data-column-id]'),
-      ).map((th) => th.getAttribute('data-column-id'))
+      return Array.from(headerRow.querySelectorAll('th[data-column-id]')).map(
+        (th) => th.getAttribute('data-column-id'),
+      )
     }
 
     it('renders columns in the applied columnOrder', () => {

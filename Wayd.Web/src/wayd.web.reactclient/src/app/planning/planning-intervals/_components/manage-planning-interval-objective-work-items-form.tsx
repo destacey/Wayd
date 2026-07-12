@@ -127,6 +127,7 @@ const ManagePlanningIntervalObjectiveWorkItemsForm = ({
       accessorKey: 'parent.key',
       header: 'Parent Key',
       size: 125,
+      meta: { filterType: 'set' },
     },
     {
       accessorKey: 'sprint.name',

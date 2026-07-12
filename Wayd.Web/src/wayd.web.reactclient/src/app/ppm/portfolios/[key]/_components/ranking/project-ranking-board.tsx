@@ -4,6 +4,7 @@ import { WaydTooltip } from '@/src/components/common'
 import LifecycleStatusTag from '@/src/components/common/lifecycle-status-tag'
 import {
   WaydGrid,
+  createCsvColumn,
   renderProgramLink,
   renderProjectLink,
   useGridDragHandle,
@@ -19,7 +20,7 @@ import {
 } from '@/src/services/wayd-api'
 import { useGetProjectScoringContextQuery } from '@/src/store/features/ppm/project-scores-api'
 import { useMovePortfolioProjectRanksMutation } from '@/src/store/features/ppm/portfolios-api'
-import { getSortedNames, isApiError } from '@/src/utils'
+import { getSortedNameList, isApiError } from '@/src/utils'
 import {
   HolderOutlined,
   LoadingOutlined,
@@ -383,16 +384,16 @@ const ProjectRankingBoard = ({
           size: 125,
           meta: { columnType: 'dateOnly' },
         },
-        {
+        createCsvColumn<ProjectListDto>({
           id: 'projectManagers',
-          accessorFn: (row) => getSortedNames(row.projectManagers ?? []),
           header: 'PMs',
-        },
-        {
+          getValues: (row) => getSortedNameList(row.projectManagers ?? []),
+        }),
+        createCsvColumn<ProjectListDto>({
           id: 'projectOwners',
-          accessorFn: (row) => getSortedNames(row.projectOwners ?? []),
           header: 'Owners',
-        },
+          getValues: (row) => getSortedNameList(row.projectOwners ?? []),
+        }),
       ],
     [
       canManage,

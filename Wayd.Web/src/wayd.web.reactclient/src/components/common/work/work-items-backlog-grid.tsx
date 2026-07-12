@@ -96,6 +96,7 @@ const WorkItemsBacklogGrid = (props: WorkItemsBacklogGridProps) => {
       accessorKey: 'parent.key',
       header: 'Parent Key',
       sortingFn: workItemKeySort,
+      meta: { filterType: 'set' },
       cell: ({ row }) =>
         renderWorkItemLink(
           row.original.parent

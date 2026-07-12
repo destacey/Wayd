@@ -1,6 +1,6 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common/wayd-grid'
+import { WaydGrid, createCsvColumn } from '@/src/components/common/wayd-grid'
 import { ProjectTeamMemberDto } from '@/src/services/wayd-api'
 import { useGetProjectTeamQuery } from '@/src/store/features/ppm/projects-api'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -22,18 +22,18 @@ const columns: ColumnDef<ProjectTeamMemberDto, any>[] = [
       </Link>
     ),
   },
-  {
+  createCsvColumn<ProjectTeamMemberDto>({
     id: 'roles',
-    accessorFn: (row) => row.roles?.join(', ') ?? '',
     header: 'Roles',
     size: 250,
-  },
-  {
+    getValues: (row) => row.roles ?? [],
+  }),
+  createCsvColumn<ProjectTeamMemberDto>({
     id: 'assignedPhases',
-    accessorFn: (row) => row.assignedPhases?.join(', ') || '',
     header: 'Assigned Phases',
     size: 250,
-  },
+    getValues: (row) => row.assignedPhases ?? [],
+  }),
   {
     id: 'activeWorkItemCount',
     accessorKey: 'activeWorkItemCount',

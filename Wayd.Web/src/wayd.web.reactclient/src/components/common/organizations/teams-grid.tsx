@@ -62,6 +62,7 @@ const TeamsGrid: FC<TeamsGridProps> = (props) => {
       isLoading={props.isLoading}
       persistStateKey={props.persistStateKey}
       csvFileName="teams"
+      initialSorting={[{ id: 'name', desc: false }]}
     />
   )
 }

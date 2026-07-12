@@ -530,6 +530,7 @@ export const getProjectPlanTableColumns = ({
       enableGlobalFilter: true,
       enableColumnFilter: true,
       meta: {
+        filterType: 'date',
         exportFormatter: (_value, row) => {
           const isMilestone = row.type?.name === 'Milestone'
           const date = isMilestone ? row.plannedDate : row.start
@@ -599,6 +600,7 @@ export const getProjectPlanTableColumns = ({
       enableGlobalFilter: true,
       enableColumnFilter: true,
       meta: {
+        filterType: 'date',
         exportFormatter: (value) =>
           value ? dayjs(value as string).format('MMM D, YYYY') : '',
       } satisfies WaydGridColumnMeta,

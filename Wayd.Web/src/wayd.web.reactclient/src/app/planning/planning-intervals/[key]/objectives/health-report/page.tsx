@@ -99,6 +99,7 @@ const ObjectiveHealthReportPage = (props: {
         accessorFn: (row) => row.healthStatus?.name ?? '',
         header: 'Health',
         size: 115,
+        meta: { filterType: 'set' },
         cell: ({ row }) => {
           const item = row.original
           if (!item.healthCheckId) return null

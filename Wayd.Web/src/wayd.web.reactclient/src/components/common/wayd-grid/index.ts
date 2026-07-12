@@ -48,6 +48,14 @@ export {
 // whose accessor is the comma-joined names). Pair with meta.filterOptions.
 export { createMultiValueSetFilter } from '../wayd-grid-core/filters'
 
+// Multi-value ("CSV") column factory — builds a tag-list cell + multi-value set
+// filter + derived filterOptions for a column whose data is comma-separated
+// values or an array. Prefer this over wiring those three pieces by hand.
+export { createCsvColumn, splitCsv } from '../wayd-grid-core/csv-column'
+export type { CsvColumnOptions } from '../wayd-grid-core/csv-column'
+export { default as TagListCell } from '../wayd-grid-core/tag-list-cell'
+export type { TagListCellProps } from '../wayd-grid-core/tag-list-cell'
+
 // Column types (declarative via meta.columnType) + helpers — moved to the
 // shared grid core; re-exported so consumers keep a single import surface
 export {

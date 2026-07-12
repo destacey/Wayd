@@ -1,4 +1,7 @@
-﻿using Wayd.Common.Domain.Enums.Work;
+﻿using CsvHelper;
+using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
+using Wayd.Common.Domain.Enums.Work;
 using Wayd.Organization.Application.Models;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Teams.Dtos;
@@ -20,10 +23,11 @@ namespace Wayd.Web.Api.Controllers.Organizations;
 [Route("api/organization/teams")]
 [ApiVersionNeutral]
 [ApiController]
-public class TeamsController(ILogger<TeamsController> logger, ISender sender) : ControllerBase
+public class TeamsController(ILogger<TeamsController> logger, ISender sender, ICsvService csvService) : ControllerBase
 {
     private readonly ILogger<TeamsController> _logger = logger;
     private readonly ISender _sender = sender;
+    private readonly ICsvService _csvService = csvService;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
@@ -53,14 +57,149 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender) : 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Teams)]
     [OpenApiOperation("Create a team.", "")]
-    [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Int))]
-    public async Task<ActionResult> Create([FromBody] CreateTeamRequest request, CancellationToken cancellationToken)
+    [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
+    public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateTeamRequest request, CancellationToken cancellationToken)
     {
         var result = await _sender.Send(request.ToCreateTeamCommand(), cancellationToken);
 
         return result.IsSuccess
-            ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
+            ? CreatedAtAction(nameof(GetById), new { id = result.Value.Key }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("import")]
+    [MustHavePermission(ApplicationAction.Import, ApplicationResource.Teams)]
+    [OpenApiOperation("Import teams and teams of teams from a csv file.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var importedTeams = _csvService.ReadCsv<ImportTeamRequest>(file.OpenReadStream());
+
+            List<ImportTeamDto> teams = [];
+            var validator = new ImportTeamRequestValidator();
+            foreach (var team in importedTeams)
+            {
+                var validationResults = await validator.ValidateAsync(team, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        error.ErrorMessage = $"{error.ErrorMessage} (Team Code: {team.Code})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(validationResults);
+                }
+
+                teams.Add(team.ToImportTeamDto());
+            }
+
+            if (teams.Count == 0)
+                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No teams imported.", HttpContext));
+
+            var result = await _sender.Send(new ImportTeamsCommand(teams), cancellationToken);
+
+            return result.IsSuccess
+                ? NoContent()
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.ToString(), HttpContext));
+        }
+    }
+
+    [HttpPost("members/import")]
+    [MustHavePermission(ApplicationAction.ManageTeamMemberships, ApplicationResource.Teams)]
+    [OpenApiOperation("Import team members (staffing) from a csv file.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> ImportMembers([FromForm] IFormFile file, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var importedMembers = _csvService.ReadCsv<ImportTeamMemberRequest>(file.OpenReadStream());
+
+            List<ImportTeamMemberDto> members = [];
+            var validator = new ImportTeamMemberRequestValidator();
+            foreach (var member in importedMembers)
+            {
+                var validationResults = await validator.ValidateAsync(member, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        error.ErrorMessage = $"{error.ErrorMessage} (Team Code: {member.TeamCode}, Employee Number: {member.EmployeeNumber})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(validationResults);
+                }
+
+                members.Add(member.ToImportTeamMemberDto());
+            }
+
+            if (members.Count == 0)
+                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No team members imported.", HttpContext));
+
+            var result = await _sender.Send(new ImportTeamMembersCommand(members), cancellationToken);
+
+            return result.IsSuccess
+                ? NoContent()
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.ToString(), HttpContext));
+        }
+    }
+
+    [HttpPost("team-memberships/import")]
+    [MustHavePermission(ApplicationAction.ManageTeamMemberships, ApplicationResource.Teams)]
+    [OpenApiOperation("Import the team hierarchy (parent/child team memberships) from a csv file.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> ImportTeamMemberships([FromForm] IFormFile file, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var importedMemberships = _csvService.ReadCsv<ImportTeamMembershipRequest>(file.OpenReadStream());
+
+            List<ImportTeamMembershipDto> memberships = [];
+            var validator = new ImportTeamMembershipRequestValidator();
+            foreach (var membership in importedMemberships)
+            {
+                var validationResults = await validator.ValidateAsync(membership, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        error.ErrorMessage = $"{error.ErrorMessage} (Child: {membership.ChildCode}, Parent: {membership.ParentCode})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(validationResults);
+                }
+
+                memberships.Add(membership.ToImportTeamMembershipDto());
+            }
+
+            if (memberships.Count == 0)
+                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No team memberships imported.", HttpContext));
+
+            var result = await _sender.Send(new ImportTeamMembershipsCommand(memberships), cancellationToken);
+
+            return result.IsSuccess
+                ? NoContent()
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.ToString(), HttpContext));
+        }
     }
 
     [HttpPut("{id}")]

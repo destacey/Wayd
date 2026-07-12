@@ -135,6 +135,43 @@ Wayd.Work.Application/
       WorkItemDto.cs
 ```
 
+### Cross-domain replication
+
+Domains do **not** share entity rows. Each domain keeps its own local projection of concepts owned by
+another domain, kept aligned two ways:
+
+1. **Event replication (copy).** The owning domain raises a domain event; consuming domains have
+   `IEventNotificationHandler<TEvent>` handlers that create a local projection carrying the **same Id**.
+   For example, `Organization.Team` is the source of truth; `PpmTeam`, `PlanningTeam`, and `WorkTeam` are
+   read-model copies written by handlers for `TeamCreated`/`Updated`/`Activated`/`Deactivated`/`Deleted`.
+   Every handler is idempotent (`if (await ctx.X.AnyAsync(x => x.Id == evt.Id)) return`).
+2. **Shared table.** `Employee` lives in `Wayd.Common.Domain` — one row, referenced by Guid everywhere.
+   No replication needed.
+
+#### Replication edges
+
+| Source domain | Aggregate | Event(s) | Consumers (projection written) |
+|---|---|---|---|
+| Organization | `Team` / `TeamOfTeams` | `TeamCreated/Updated/Activated/Deactivated/Deleted` | PPM `PpmTeam`, Planning `PlanningTeam`, Work `WorkTeam` |
+| PPM | `Project` | `ProjectCreated/DetailsUpdated/Deleted` | Work `WorkProject` |
+| StrategicManagement | `StrategicTheme` (**the source**) | `StrategicThemeCreated/Updated/Deleted` | PPM `PpmStrategicThemes` |
+| Planning | `Iteration` | `IterationCreated/Updated/Deleted` | Work `WorkIteration` |
+| Common | `Employee` | — (shared table) | referenced by Guid everywhere |
+
+`StrategicTheme` is owned by **StrategicManagement**; PPM only holds a copy — author themes in
+StrategicManagement.
+
+#### The load-bearing consequence
+
+Because these projections are populated by events, code that **creates** a replicated concept must go
+through the owning domain's command so its `SaveChanges` dispatches the events — never insert a projection
+row directly. The timing matters: `TeamCreatedEvent` and `StrategicThemeCreatedEvent` fire via
+`AddPostPersistenceAction` (after the source aggregate saves), and consumers such as
+`PlanningInterval.SetTeams(teamIds)` add `PlanningIntervalTeam { TeamId }` with **no existence check** — so
+the replicated `PlanningTeam` row must already exist or the save FK-faults. Creating through commands keeps
+this ordering correct for free; bulk operations (e.g. the [data generation tool](./tools/data-generation.mdx))
+must create per row via the domain path plus one `SaveChanges`, never a raw `AddRange`.
+
 ## Connector framework
 
 Customer-configured integrations (Azure DevOps, Entra, Azure OpenAI, future Jira / GitHub / Workday connectors) plug into a shared framework in the `Wayd.AppIntegration` service, the `Wayd.Integrations.*` projects, and a frontend registry pair. The goal is that adding a connector is *additive* — drop in new files, register them, no edits to the generic plumbing.

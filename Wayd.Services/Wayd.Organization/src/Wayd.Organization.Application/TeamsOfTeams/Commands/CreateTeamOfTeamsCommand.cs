@@ -1,10 +1,11 @@
-﻿using Wayd.Common.Domain.Models.Organizations;
+﻿using Wayd.Common.Application.Models;
+using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Application.Teams.Models;
 using NodaTime;
 
 namespace Wayd.Organization.Application.TeamsOfTeams.Commands;
 
-public sealed record CreateTeamOfTeamsCommand(string Name, TeamCode Code, string? Description, LocalDate ActiveDate) : ICommand<int>;
+public sealed record CreateTeamOfTeamsCommand(string Name, TeamCode Code, string? Description, LocalDate ActiveDate) : ICommand<ObjectIdAndKey>;
 
 public sealed class CreateTeamOfTeamsCommandValidator : CustomValidator<CreateTeamOfTeamsCommand>
 {
@@ -38,7 +39,7 @@ public sealed class CreateTeamOfTeamsCommandValidator : CustomValidator<CreateTe
     }
 }
 
-internal sealed class CreateTeamOfTeamsCommandHandler : ICommandHandler<CreateTeamOfTeamsCommand, int>
+internal sealed class CreateTeamOfTeamsCommandHandler : ICommandHandler<CreateTeamOfTeamsCommand, ObjectIdAndKey>
 {
     private const string RequestName = nameof(CreateTeamOfTeamsCommand);
 
@@ -53,7 +54,7 @@ internal sealed class CreateTeamOfTeamsCommandHandler : ICommandHandler<CreateTe
         _logger = logger;
     }
 
-    public async Task<Result<int>> Handle(CreateTeamOfTeamsCommand request, CancellationToken cancellationToken)
+    public async Task<Result<ObjectIdAndKey>> Handle(CreateTeamOfTeamsCommand request, CancellationToken cancellationToken)
     {
         try
         {
@@ -62,21 +63,21 @@ internal sealed class CreateTeamOfTeamsCommandHandler : ICommandHandler<CreateTe
 
             await _organizationDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogDebug("{RequestName}: created Team of Teams with Id {TeamId}, Key {TeamKey}, and Code {TeamCode}", RequestName, team.Id, team.Key, team.Code);
+            _logger.LogDebug("{RequestName}: created Team of Teams with Id {TeamId}, Key {TeamKey}, and Code {TeamCode}", RequestName, team.Id, team.Key, team.Code.Value);
 
             // Sync the new team with the graph database
             // TODO: move to more of an event based approach
             await _organizationDbContext.UpsertTeamNode(TeamNode.From(team), cancellationToken);
 
-            _logger.LogDebug("{RequestName}: synced TeamNode for Team of Teams with Id {TeamId}, Key {TeamKey}, and Code {TeamCode}", RequestName, team.Id, team.Key, team.Code);
+            _logger.LogDebug("{RequestName}: synced TeamNode for Team of Teams with Id {TeamId}, Key {TeamKey}, and Code {TeamCode}", RequestName, team.Id, team.Key, team.Code.Value);
 
-            return Result.Success(team.Key);
+            return Result.Success(new ObjectIdAndKey(team.Id, team.Key));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception for request {RequestName}: {@Request}", RequestName, request);
 
-            return Result.Failure<int>($"Exception for request {RequestName} {request}");
+            return Result.Failure<ObjectIdAndKey>($"Exception for request {RequestName} {request}");
         }
     }
 }

@@ -40,9 +40,6 @@ public class TestProjectTests
         // Arrange
         var testProjectPaths = FileSystemHelper.GetAllTestProjectPaths();
 
-        // Known exceptions: Shared test utilities projects
-        var exceptions = new[] { "Wayd.Tests.Shared" };
-
         // Act
         var invalidTestProjects = testProjectPaths
             .Where(path =>
@@ -50,14 +47,14 @@ public class TestProjectTests
                 var projectName = Path.GetFileNameWithoutExtension(path);
                 return !projectName.EndsWith(".Tests") &&
                        !projectName.EndsWith(".IntegrationTests") &&
-                       !exceptions.Contains(projectName);
+                       !ProjectConventions.IsExemptSupportProject(projectName);
             })
             .Select(Path.GetFileNameWithoutExtension)
             .ToList();
 
         // Assert
         invalidTestProjects.Should().BeEmpty(
-            "All test projects should end with '.Tests' or '.IntegrationTests' (except shared test utilities like Wayd.Tests.Shared). Invalid projects: {0}",
+            "All test projects should end with '.Tests' or '.IntegrationTests' (except shared test utilities like Wayd.Tests.Shared and *.TestData faker libraries). Invalid projects: {0}",
             string.Join(", ", invalidTestProjects));
     }
 
@@ -245,8 +242,8 @@ public class TestProjectTests
         foreach (var testProject in testProjects)
         {
             var projectName = Path.GetFileNameWithoutExtension(testProject);
-            (projectName.EndsWith(".Tests") || projectName == "Wayd.Tests.Shared").Should().BeTrue(
-                "Test project {0} should end with '.Tests' or be 'Wayd.Tests.Shared'", projectName);
+            (projectName.EndsWith(".Tests") || ProjectConventions.IsExemptSupportProject(projectName)).Should().BeTrue(
+                "Test project {0} should end with '.Tests', or be a shared/*.TestData support project", projectName);
         }
     }
 
@@ -305,17 +302,14 @@ public class TestProjectTests
         var allTestProjects = FileSystemHelper.GetAllTestProjectPaths();
         var projectsMissingXUnit = new List<string>();
 
-        // Known exceptions: Shared test utilities projects don't need test frameworks
-        var exceptions = new[] { "Wayd.Tests.Shared" };
-
         // Act
         foreach (var testProjectPath in allTestProjects)
         {
             var projectContent = File.ReadAllText(testProjectPath);
             var projectName = Path.GetFileNameWithoutExtension(testProjectPath);
 
-            // Skip exceptions
-            if (exceptions.Contains(projectName))
+            // Shared utilities and *.TestData faker libraries reference no test framework.
+            if (ProjectConventions.IsExemptSupportProject(projectName))
             {
                 continue;
             }
@@ -329,7 +323,7 @@ public class TestProjectTests
 
         // Assert
         projectsMissingXUnit.Should().BeEmpty(
-            "All test projects should use xUnit as the testing framework (except shared utilities). Projects missing xUnit: {0}",
+            "All test projects should use xUnit as the testing framework (except shared utilities and *.TestData faker libraries). Projects missing xUnit: {0}",
             string.Join(", ", projectsMissingXUnit));
     }
 

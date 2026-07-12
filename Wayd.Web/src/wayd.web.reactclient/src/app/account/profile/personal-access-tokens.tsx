@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, FC, useMemo } from 'react'
-import { Button, Tag, Alert, Flex, Typography, App, Space } from 'antd'
+import { Button, Tag, Alert, Typography, App, Space } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import {
   useGetMyPersonalAccessTokensQuery,
@@ -213,8 +213,8 @@ const PersonalAccessTokens: FC = () => {
   }
 
   return (
-    <Flex vertical gap={16}>
-      <Space vertical size={16}>
+    <div>
+      <Space vertical size={16} style={{ marginBottom: 16 }}>
         <Alert
           title="Personal Access Tokens (PATs)"
           description="Personal access tokens function like passwords for API authentication. Keep them secure and never share them. Each user can have up to 10 active tokens."
@@ -236,9 +236,8 @@ const PersonalAccessTokens: FC = () => {
       </Space>
 
       <WaydGrid
-        height={500}
         columns={columns}
-        data={tokens ?? []}
+        data={tokens}
         isLoading={isLoading}
         onRefresh={refresh}
         persistStateKey="account-pats"
@@ -267,7 +266,7 @@ const PersonalAccessTokens: FC = () => {
           onClose={handleTokenModalClose}
         />
       )}
-    </Flex>
+    </div>
   )
 }
 

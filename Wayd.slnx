@@ -9,6 +9,7 @@
     <Project Path="Wayd.Common/tests/Wayd.Common.Application.Tests/Wayd.Common.Application.Tests.csproj" />
     <Project Path="Wayd.Common/tests/Wayd.Common.Domain.Tests/Wayd.Common.Domain.Tests.csproj" />
     <Project Path="Wayd.Common/tests/Wayd.Common.Tests/Wayd.Common.Tests.csproj" />
+    <Project Path="Wayd.Common/tests/Wayd.TestData.Core/Wayd.TestData.Core.csproj" />
     <Project Path="Wayd.Common/tests/Wayd.Tests.Shared/Wayd.Tests.Shared.csproj" />
   </Folder>
   <Folder Name="/Wayd.Infrastructure/" />
@@ -66,6 +67,7 @@
   <Folder Name="/Wayd.Services/Wayd.Organization/tests/">
     <Project Path="Wayd.Services/Wayd.Organization/tests/Wayd.Organization.Application.Tests/Wayd.Organization.Application.Tests.csproj" />
     <Project Path="Wayd.Services/Wayd.Organization/tests/Wayd.Organization.Domain.Tests/Wayd.Organization.Domain.Tests.csproj" />
+    <Project Path="Wayd.Services/Wayd.Organization/tests/Wayd.Organization.TestData/Wayd.Organization.TestData.csproj" />
   </Folder>
   <Folder Name="/Wayd.Services/Wayd.Planning/" />
   <Folder Name="/Wayd.Services/Wayd.Planning/src/">
@@ -120,6 +122,15 @@
     <File Path="Directory.Packages.props" />
     <File Path="global.json" />
     <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Wayd.Tools/" />
+  <Folder Name="/Wayd.Tools/DataGeneration/" />
+  <Folder Name="/Wayd.Tools/DataGeneration/src/">
+    <Project Path="Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli/Wayd.Tools.DataGeneration.Cli.csproj" />
+    <Project Path="Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli.Client/Wayd.Tools.DataGeneration.Cli.Client.csproj" />
+  </Folder>
+  <Folder Name="/Wayd.Tools/DataGeneration/tests/">
+    <Project Path="Wayd.Tools/DataGeneration/tests/Wayd.Tools.DataGeneration.Cli.Tests/Wayd.Tools.DataGeneration.Cli.Tests.csproj" />
   </Folder>
   <Project Path="Wayd.AppHost/Wayd.AppHost.csproj" />
   <Project Path="Wayd.ArchitectureTests/Wayd.ArchitectureTests.csproj" />

@@ -29,4 +29,21 @@ public sealed record TeamMembershipEdge
             ToNode = TeamNode.From(membership.Target)
         };
     }
+
+    /// <summary>
+    /// Builds the edge from an explicit child and parent rather than the membership's Source/Target
+    /// navigations. Use this when the caller already holds both teams and does not want to depend on EF
+    /// relationship fixup having populated the navigations (e.g. bulk import).
+    /// </summary>
+    public static TeamMembershipEdge From(TeamMembership membership, BaseTeam child, TeamOfTeams parent)
+    {
+        return new TeamMembershipEdge
+        {
+            Id = membership.Id,
+            StartDate = membership.DateRange.Start,
+            EndDate = membership.DateRange.End,
+            FromNode = TeamNode.From(child),
+            ToNode = TeamNode.From(parent)
+        };
+    }
 }

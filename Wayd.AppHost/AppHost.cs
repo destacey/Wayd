@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -28,6 +30,44 @@ var waydApi = builder.AddProject<Projects.Wayd_Web_Api>("wayd-api")
     .WaitFor(waydDb)
     .WithHttpHealthCheck(global::Wayd.Infrastructure.ServiceEndpoints.HealthEndpointPath);
 
+// "Reset Database" command in the Aspire dashboard. Destruction lives here — in the orchestrator, out
+// of band from the running app — so it is never reachable via an HTTP request and simply does not exist
+// in any environment that isn't launched from this AppHost (i.e. production). That AppHost-only nature
+// is the gate; no additional env flag is needed. It drops and recreates the target database, then
+// restarts the API, which re-applies migrations and reference seeding on boot (the verified startup
+// path) and drops the operator into first-run setup.
+waydApi.WithCommand(
+    name: "reset-database",
+    displayName: "Reset Database",
+    executeCommand: async context =>
+    {
+        try
+        {
+            await DropAndRecreateDatabase(connectionString);
+
+            // Bounce the API so InitializeDatabases() re-migrates + reference-seeds against the fresh DB.
+            var orchestrator = context.ServiceProvider
+                .GetRequiredService<Aspire.Hosting.ApplicationModel.ResourceCommandService>();
+            await orchestrator.ExecuteCommandAsync(
+                waydApi.Resource,
+                Aspire.Hosting.ApplicationModel.KnownResourceCommands.RestartCommand,
+                context.CancellationToken);
+
+            return CommandResults.Success();
+        }
+        catch (Exception ex)
+        {
+            return CommandResults.Failure(ex);
+        }
+    },
+    commandOptions: new CommandOptions
+    {
+        Description = "Drops and recreates the database, then restarts the API so it re-migrates and "
+            + "re-seeds reference data. All application data is destroyed.",
+        IconName = "DatabaseWarning",
+        ConfirmationMessage = "This permanently deletes ALL data in the database and restarts the API. Continue?",
+    });
+
 #pragma warning disable ASPIREJAVASCRIPT001
 builder.AddNextJsApp("wayd-client", "../Wayd.Web/src/wayd.web.reactclient", runScriptName: "dev")
     .WithReference(waydApi)
@@ -41,3 +81,34 @@ builder.AddNextJsApp("wayd-client", "../Wayd.Web/src/wayd.web.reactclient", runS
 #pragma warning restore ASPIREJAVASCRIPT001
 
 builder.Build().Run();
+
+// Drops and recreates the target database by connecting to `master`. Forcing SINGLE_USER first rolls
+// back and disconnects any open sessions (e.g. the running API) so the DROP can proceed. Recreated
+// empty; the API's startup path re-applies migrations and reference seeding on its next boot.
+static async Task DropAndRecreateDatabase(string appConnectionString)
+{
+    var appBuilder = new SqlConnectionStringBuilder(appConnectionString);
+    var databaseName = appBuilder.InitialCatalog;
+    if (string.IsNullOrWhiteSpace(databaseName))
+        throw new InvalidOperationException("Connection string has no Initial Catalog / Database to reset.");
+
+    var masterBuilder = new SqlConnectionStringBuilder(appConnectionString) { InitialCatalog = "master" };
+
+    await using var connection = new SqlConnection(masterBuilder.ConnectionString);
+    await connection.OpenAsync();
+
+    // Bracket-quote the identifier to guard against unusual names; escape any embedded brackets.
+    var quoted = "[" + databaseName.Replace("]", "]]") + "]";
+
+    await using var command = connection.CreateCommand();
+    command.CommandText = $"""
+        IF DB_ID(@dbName) IS NOT NULL
+        BEGIN
+            ALTER DATABASE {quoted} SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+            DROP DATABASE {quoted};
+        END;
+        CREATE DATABASE {quoted};
+        """;
+    command.Parameters.AddWithValue("@dbName", databaseName);
+    await command.ExecuteNonQueryAsync();
+}

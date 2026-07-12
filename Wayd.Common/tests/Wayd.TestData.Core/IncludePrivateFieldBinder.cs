@@ -1,6 +1,6 @@
-﻿using System.Reflection;
+using System.Reflection;
 
-namespace Wayd.Tests.Shared.Data;
+namespace Wayd.TestData.Core;
 
 public class IncludePrivateFieldBinder : Bogus.Binder
 {

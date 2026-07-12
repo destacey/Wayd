@@ -1,0 +1,163 @@
+---
+title: Data Generation (wayd-data)
+description: The wayd-data CLI generates a realistic organization and seeds it into a Wayd environment through the public HTTP API.
+sidebar_position: 1
+audience: [developer, agent]
+---
+
+# Data Generation (`wayd-data`)
+
+`wayd-data` is a developer tool that **generates a realistic organization** — people, a management tree,
+and a cross-functional delivery hierarchy — and **seeds it into a Wayd environment through the public HTTP
+API**. Use it to stand up a believable environment for exploring features or demoing, without hand-crafting
+data. Every seed run also exercises the real API end to end, so it doubles as an integration smoke test.
+
+**Project:** `Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli` (the executable is `wayd-data`).
+
+:::info Scope
+Organization only — people and the team hierarchy. Projects, portfolios, planning, and work items are not
+generated. Database **reset** is a separate, out-of-band operation (an Aspire dashboard command), not part
+of this tool.
+:::
+
+## Quick start
+
+The tool has two verbs: **`generate`** (write CSVs to disk to inspect) and **`seed`** (generate and push
+through the API). They share the same generation options.
+
+```bash
+# Preview: write the CSVs to a folder, no API needed
+dotnet run --project Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli -- \
+  generate --value-streams 3 --teams 20 --out ./seed
+
+# Seed a running environment
+dotnet run --project Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli -- \
+  seed --api https://localhost:7021 --api-key <token> \
+  --company-type tech --value-streams 3 --teams 20
+```
+
+The API base URL is shown in the Aspire dashboard when you run the stack
+(`cd Wayd.AppHost && dotnet run`).
+
+## Authentication
+
+The tool authenticates with a **Personal Access Token** in the `x-api-key` header. Create one in the app
+under **Settings → Personal Access Tokens**, then pass it with `--api-key` or the `WAYD_API_KEY`
+environment variable:
+
+```bash
+export WAYD_API_KEY=<token>   # or set WAYD_API_KEY=<token> on Windows
+dotnet run --project Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli -- \
+  seed --api https://localhost:7021 --value-streams 3 --teams 20
+```
+
+No password is ever handled by the tool, and a token is scoped, expiring, and revocable on its own.
+
+:::tip Re-seeding
+The import is **additive** and rejects duplicates, so it expects a clean database. To re-seed, reset the
+database first (Aspire dashboard → the reset command), then run `seed` again. A reset wipes tokens too, so
+you will need a fresh Personal Access Token afterward.
+:::
+
+## Options
+
+| Option | Default | Purpose |
+|---|---|---|
+| `--company-type`, `-c` | `tech` | `tech` / `balanced` / `enterprise` — sets the share of employees inside the delivery team structure |
+| `--delivery-ratio` | (from type) | Override (0..1) for the inside-teams share |
+| `--value-streams`, `-v` | `3` | Number of value streams (product lines); larger ones become three-tier |
+| `--teams`, `-t` | `18` | Number of leaf delivery teams (overall headcount derives from this) |
+| `--former-employees` | `0.08` | Fraction of non-delivery ICs marked former (inactive) |
+| `--random-seed`, `-r` | random | Fixed RNG seed for reproducible output |
+| `--out`, `-o` | `./seed` | (`generate` only) output directory |
+| `--api`, `-a` | — | (`seed` only, required) API base URL |
+| `--api-key` | `WAYD_API_KEY` | (`seed` only) Personal Access Token |
+
+## What gets generated
+
+The generator builds a coherent company top-down.
+
+### The delivery hierarchy (value stream → ART → team)
+
+Wayd "teams" model the **cross-functional product-delivery structure** (a SAFe-style shape), not the whole
+company org chart:
+
+- **Value Stream** — a top-level Team of Teams (a product line).
+- **ART** — a mid-level Team of Teams grouping delivery teams.
+- **Team** — a leaf delivery team.
+
+Value streams are **mixed by size**: a large one becomes the full three tiers (value stream → ARTs →
+teams); a small one collapses to a single ART over its teams.
+
+### Who sits where (staffing)
+
+- **Team** — individual contributors, an **Engineering Manager who is also an IC on that team**, and a
+  **Product Manager acting as Product Owner**.
+- **ART** — an engineering lead (RTE) and a product lead who lead the ART but sit on no single team.
+- **Value Stream** — a VP of Engineering and a VP of Product.
+- **Executive** — a CEO with a CTO and CPO. The management tree mirrors the delivery hierarchy
+  (team EM → ART lead → VP → CTO/CPO → CEO).
+
+### The rest of the company
+
+Real companies have people outside the delivery structure. `--company-type` sets the split:
+
+| Company type | Inside the team structure | Rest of the company |
+|---|---|---|
+| `tech` (default) | ~85% | ~15% |
+| `balanced` | ~50% | ~50% |
+| `enterprise` | ~20% | ~80% |
+
+The non-delivery population (Sales, Customer Support/Success, Marketing, Finance, People, Legal, IT
+Operations) has its own management chains and **no team memberships**.
+
+### Realistic details
+
+- **Worker type** — most people are regular `Employee`s; a minority of non-manager ICs are `Contractor`,
+  `Contingent Worker`, `Intern`, or `Part-Time`. Every manager is a regular employee.
+- **Timeline** — the company is modeled as ~5 years old (hire dates span up to five years back); the current
+  team structure is ~2 years old (team active dates within two years).
+- **Former employees** — some non-delivery ICs are inactive (`--former-employees`). Inactive people are
+  never on a team.
+
+## Reproducibility
+
+Every run resolves a concrete seed (random when `--random-seed` is omitted) and prints it:
+
+```
+Using seed 193051458 (pass --random-seed 193051458 to reproduce this data).
+```
+
+Re-run with that `--random-seed` to reproduce byte-identical data — for a **given build of the tool**. The seed
+pins the randomness, not the algorithm: if the generator changes, the same seed produces different data.
+
+:::note What "reproducible" means here
+The seed reproduces the **generated data** — the same names, emails, employee numbers, team codes, and
+hierarchy. It does **not** reproduce the database primary keys. Wayd assigns IDs (and other server-side
+keys) when the rows are created through the API, so seeding the same data twice yields different database
+IDs each time. Use the generated business keys (employee number, team code) to correlate across runs, not
+the database IDs.
+:::
+
+## How it works (and why)
+
+The tool **never touches the database directly** — it POSTs CSV to the API's import endpoints, and each
+import handler creates rows **through the owning domain's commands**. This is deliberate: Wayd domains keep
+aligned local copies of shared concepts (creating an `Organization.Team` replicates it into the PPM,
+Planning, and Work read models via domain events). Going through the domain path means one `SaveChanges`
+fires those events, so the copies stay consistent — a direct insert would leave them empty. A useful side
+effect: seeding proves the real API and cross-domain wiring work.
+
+The `seed` verb imports in the order that replication requires:
+
+```
+employees → teams → team hierarchy → roles (created as needed) → team staffing
+```
+
+Each import is all-or-nothing: an unresolved reference fails the whole batch with a clear message, so the
+run stays re-runnable against a fresh database.
+
+## Data conventions
+
+Generated data is fictional — RFC-reserved domains (`acme.example`) and invented names and numbers. Never
+seed values copied from real payloads or third-party fixtures.

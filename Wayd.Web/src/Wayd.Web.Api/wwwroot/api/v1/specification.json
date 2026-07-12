@@ -17731,6 +17731,80 @@
         ]
       }
     },
+    "/api/organization/employees/import": {
+      "post": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Import employees from a csv file.",
+        "operationId": "Employees_Import",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "ContentType": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "ContentDisposition": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "Headers": {
+                    "type": "array",
+                    "nullable": true,
+                    "items": {}
+                  },
+                  "Length": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "Name": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "FileName": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/organization/employees/{id}": {
       "put": {
         "tags": [
@@ -18442,8 +18516,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "integer",
-                  "format": "int32"
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
                 }
               }
             }
@@ -18544,6 +18617,228 @@
           },
           "required": true,
           "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/teams/import": {
+      "post": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Import teams and teams of teams from a csv file.",
+        "operationId": "Teams_Import",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "ContentType": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "ContentDisposition": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "Headers": {
+                    "type": "array",
+                    "nullable": true,
+                    "items": {}
+                  },
+                  "Length": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "Name": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "FileName": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/teams/members/import": {
+      "post": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Import team members (staffing) from a csv file.",
+        "operationId": "Teams_ImportMembers",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "ContentType": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "ContentDisposition": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "Headers": {
+                    "type": "array",
+                    "nullable": true,
+                    "items": {}
+                  },
+                  "Length": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "Name": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "FileName": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/organization/teams/team-memberships/import": {
+      "post": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Import the team hierarchy (parent/child team memberships) from a csv file.",
+        "operationId": "Teams_ImportTeamMemberships",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "ContentType": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "ContentDisposition": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "Headers": {
+                    "type": "array",
+                    "nullable": true,
+                    "items": {}
+                  },
+                  "Length": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "Name": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "FileName": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
         },
         "responses": {
           "204": {
@@ -20339,8 +20634,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "integer",
-                  "format": "int32"
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
                 }
               }
             }

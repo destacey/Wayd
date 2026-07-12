@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Wayd.Common.Application\Wayd.Common.Application.csproj" />
+    <ProjectReference Include="..\Wayd.TestData.Core\Wayd.TestData.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

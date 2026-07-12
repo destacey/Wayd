@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!--
+    Test-only data fakers for the Organization domain. Bogus only: no test SDK, no xUnit, no Moq.
+    References only its own domain + the shared faker base, so a build issue in another domain cannot
+    block this one. Consumed by Wayd.Organization.Domain.Tests and by the wayd-data CLI dev tool (not
+    by any production/deployed assembly). Lives under tests/ to signal test-only.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Bogus" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Wayd.Organization.Domain\Wayd.Organization.Domain.csproj" />
+    <ProjectReference Include="..\..\..\..\Wayd.Common\tests\Wayd.TestData.Core\Wayd.TestData.Core.csproj" />
+  </ItemGroup>
+
+</Project>

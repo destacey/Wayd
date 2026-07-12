@@ -1,4 +1,5 @@
-﻿using Wayd.Organization.Application.Models;
+﻿using Wayd.Common.Application.Models;
+using Wayd.Organization.Application.Models;
 using Wayd.Organization.Application.Teams.Dtos;
 using TeamsMemberCommands = Wayd.Organization.Application.Teams.Commands;
 using TeamsMemberQueries = Wayd.Organization.Application.Teams.Queries;
@@ -58,13 +59,13 @@ public class TeamsOfTeamsController : ControllerBase
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Teams)]
     [OpenApiOperation("Create a team of teams.", "")]
-    [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Int))]
-    public async Task<ActionResult> Create(CreateTeamOfTeamsRequest request, CancellationToken cancellationToken)
+    [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
+    public async Task<ActionResult<ObjectIdAndKey>> Create(CreateTeamOfTeamsRequest request, CancellationToken cancellationToken)
     {
         var result = await _sender.Send(request.ToCreateTeamOfTeamsCommand(), cancellationToken);
 
         return result.IsSuccess
-            ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
+            ? CreatedAtAction(nameof(GetById), new { id = result.Value.Key }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 

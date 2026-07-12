@@ -1,7 +1,6 @@
-﻿using Bogus;
-using Wayd.Tests.Shared.Extensions;
+using Bogus;
 
-namespace Wayd.Tests.Shared.Data;
+namespace Wayd.TestData.Core;
 
 public class PrivateConstructorFaker<T> : Faker<T> where T : class
 {

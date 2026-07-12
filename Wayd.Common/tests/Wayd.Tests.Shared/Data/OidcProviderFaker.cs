@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Domain.Identity;
+using Wayd.Common.Domain.Identity;
+using Wayd.TestData.Core;
 
 namespace Wayd.Tests.Shared.Data;
 

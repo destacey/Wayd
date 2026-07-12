@@ -1,10 +1,10 @@
-﻿using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Domain.Models;
-using Wayd.Tests.Shared.Data;
 using NodaTime;
+using Wayd.TestData.Core;
 
-namespace Wayd.Organization.Domain.Tests.Data;
+namespace Wayd.Organization.TestData;
 
 public class TeamOfTeamsFaker : PrivateConstructorFaker<TeamOfTeams>
 {

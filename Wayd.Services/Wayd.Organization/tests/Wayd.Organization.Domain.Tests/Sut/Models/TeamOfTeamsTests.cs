@@ -1,8 +1,8 @@
-﻿using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Domain.Models;
-using Wayd.Organization.Domain.Tests.Data;
+using Wayd.Organization.TestData;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Extensions;
 using NodaTime;

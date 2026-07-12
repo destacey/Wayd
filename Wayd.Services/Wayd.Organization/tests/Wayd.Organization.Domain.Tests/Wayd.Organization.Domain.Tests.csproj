@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\Wayd.Common\tests\Wayd.Tests.Shared\Wayd.Tests.Shared.csproj" />
     <ProjectReference Include="..\..\src\Wayd.Organization.Domain\Wayd.Organization.Domain.csproj" />
+    <ProjectReference Include="..\Wayd.Organization.TestData\Wayd.Organization.TestData.csproj" />
   </ItemGroup>
 
 </Project>

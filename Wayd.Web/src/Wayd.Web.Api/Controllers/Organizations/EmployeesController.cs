@@ -1,6 +1,8 @@
-﻿using Wayd.Common.Application.Employees.Commands;
+﻿using CsvHelper;
+using Wayd.Common.Application.Employees.Commands;
 using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Application.Employees.Queries;
+using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Organization.Application.Teams.Dtos;
 using Wayd.Organization.Application.Teams.Queries;
@@ -15,10 +17,11 @@ namespace Wayd.Web.Api.Controllers.Organizations;
 [Route("api/organization/employees")]
 [ApiVersionNeutral]
 [ApiController]
-public class EmployeesController(ILogger<EmployeesController> logger, ISender sender) : ControllerBase
+public class EmployeesController(ILogger<EmployeesController> logger, ISender sender, ICsvService csvService) : ControllerBase
 {
     private readonly ILogger<EmployeesController> _logger = logger;
     private readonly ISender _sender = sender;
+    private readonly ICsvService _csvService = csvService;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Employees)]
@@ -57,6 +60,51 @@ public class EmployeesController(ILogger<EmployeesController> logger, ISender se
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetEmployee), new { idOrKey = result.Value.Id.ToString() }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("import")]
+    [MustHavePermission(ApplicationAction.Import, ApplicationResource.Employees)]
+    [OpenApiOperation("Import employees from a csv file.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var importedEmployees = _csvService.ReadCsv<ImportEmployeeRequest>(file.OpenReadStream());
+
+            List<ImportEmployeeDto> employees = [];
+            var validator = new ImportEmployeeRequestValidator();
+            foreach (var employee in importedEmployees)
+            {
+                var validationResults = await validator.ValidateAsync(employee, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        error.ErrorMessage = $"{error.ErrorMessage} (Employee Number: {employee.EmployeeNumber})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(validationResults);
+                }
+
+                employees.Add(employee.ToImportEmployeeDto());
+            }
+
+            if (employees.Count == 0)
+                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No employees imported.", HttpContext));
+
+            var result = await _sender.Send(new ImportEmployeesCommand(employees), cancellationToken);
+
+            return result.IsSuccess
+                ? NoContent()
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.ToString(), HttpContext));
+        }
     }
 
     [HttpPut("{id}")]

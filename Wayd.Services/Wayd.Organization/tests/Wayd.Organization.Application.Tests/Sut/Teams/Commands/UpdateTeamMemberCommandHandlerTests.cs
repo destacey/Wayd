@@ -1,9 +1,9 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Wayd.Common.Domain.Tests.Data;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Tests.Infrastructure;
-using Wayd.Organization.Domain.Tests.Data;
+using Wayd.Organization.TestData;
 
 namespace Wayd.Organization.Application.Tests.Sut.Teams.Commands;
 

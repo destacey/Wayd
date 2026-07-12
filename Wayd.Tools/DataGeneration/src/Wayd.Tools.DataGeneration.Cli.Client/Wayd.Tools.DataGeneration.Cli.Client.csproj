@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A NSwag-generated C# HTTP client for the Wayd API, used only by the wayd-data CLI dev tool. The
+    client is generated from the checked-in OpenAPI document (Wayd.Web.Api/wwwroot/api/v1/specification.json)
+    via NSwag.MSBuild, mirroring how the React client is generated. Not a deployed/production assembly.
+  -->
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <!-- The generated client is not our code; keep its warnings from failing or cluttering the build. -->
+    <NoWarn>$(NoWarn);CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8625;CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NSwag.MSBuild">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!--
+    Regenerate the client from the OpenAPI document before compiling, but only when the document is
+    newer than the generated file (Inputs/Outputs incremental build) so ordinary builds stay fast.
+  -->
+  <Target Name="GenerateWaydApiClient" BeforeTargets="BeforeCompile"
+          Inputs="nswag.csharp.json;../../../../Wayd.Web/src/Wayd.Web.Api/wwwroot/api/v1/specification.json"
+          Outputs="Generated/WaydApiClient.g.cs">
+    <MakeDir Directories="Generated" />
+    <Exec ConsoleToMSBuild="true" ContinueOnError="true" WorkingDirectory="$(ProjectDir)"
+          Command="$(NSwagExe_Net100) run nswag.csharp.json" >
+      <Output TaskParameter="ExitCode" PropertyName="NSwagExitCode" />
+      <Output TaskParameter="ConsoleOutput" PropertyName="NSwagOutput" />
+    </Exec>
+    <Message Text="$(NSwagOutput)" Condition="'$(NSwagExitCode)' == '0'" Importance="low" />
+    <Error Text="$(NSwagOutput)" Condition="'$(NSwagExitCode)' != '0'" />
+  </Target>
+
+</Project>

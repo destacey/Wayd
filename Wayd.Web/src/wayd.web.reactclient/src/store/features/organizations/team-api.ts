@@ -717,8 +717,8 @@ export const teamApi = apiSlice.injectEndpoints({
             ...newTeam,
             activeDate: (newTeam.activeDate as any)?.format('YYYY-MM-DD'),
           }
-          const id = await teamClient.create(request)
-          const data = await teamClient.getById(id)
+          const created = await teamClient.create(request)
+          const data = await teamClient.getById(created.key)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

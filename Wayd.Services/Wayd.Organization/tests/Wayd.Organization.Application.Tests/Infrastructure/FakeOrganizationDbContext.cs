@@ -82,23 +82,35 @@ public class FakeOrganizationDbContext : IOrganizationDbContext, IDisposable
     #region Graph Table Sync Methods
 
     /// <summary>
-    /// Graph table sync operations are not supported in the fake context.
-    /// These require actual database operations with SQL graph tables.
-    /// Use integration tests with a real DbContext for testing graph functionality.
+    /// Gets the number of times <see cref="UpsertTeamNode"/> has been called. Useful for asserting that a
+    /// handler synced each new team into the graph tables exactly once.
+    /// </summary>
+    public int UpsertTeamNodeCallCount { get; private set; }
+
+    /// <summary>
+    /// Records the call as a no-op. The real graph sync requires SQL graph tables, but handlers legitimately
+    /// call this after a relational save, so the fake counts calls rather than throwing.
     /// </summary>
     public Task<int> UpsertTeamNode(TeamNode teamNode, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException("Graph table sync operations are not supported in FakeOrganizationDbContext. Use integration tests with a real DbContext for graph-specific functionality.");
+        UpsertTeamNodeCallCount++;
+        return Task.FromResult(1);
     }
 
     /// <summary>
-    /// Graph table sync operations are not supported in the fake context.
-    /// These require actual database operations with SQL graph tables.
-    /// Use integration tests with a real DbContext for testing graph functionality.
+    /// Gets the number of times <see cref="UpsertTeamMembershipEdge"/> has been called. Useful for asserting
+    /// that a handler synced each new membership edge into the graph tables exactly once.
+    /// </summary>
+    public int UpsertTeamMembershipEdgeCallCount { get; private set; }
+
+    /// <summary>
+    /// Records the call as a no-op. The real graph sync requires SQL graph tables, but handlers legitimately
+    /// call this after a relational save, so the fake counts calls rather than throwing.
     /// </summary>
     public Task<int> UpsertTeamMembershipEdge(TeamMembershipEdge teamMembershipEdge, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException("Graph table sync operations are not supported in FakeOrganizationDbContext. Use integration tests with a real DbContext for graph-specific functionality.");
+        UpsertTeamMembershipEdgeCallCount++;
+        return Task.FromResult(1);
     }
 
     /// <summary>
@@ -177,6 +189,8 @@ public class FakeOrganizationDbContext : IOrganizationDbContext, IDisposable
         _externalEmployeeBlacklistItems.Clear();
         _personalAccessTokens.Clear();
         SaveChangesCallCount = 0;
+        UpsertTeamNodeCallCount = 0;
+        UpsertTeamMembershipEdgeCallCount = 0;
     }
 
     /// <summary>

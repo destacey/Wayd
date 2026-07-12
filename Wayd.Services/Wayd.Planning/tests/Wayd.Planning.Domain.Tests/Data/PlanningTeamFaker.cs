@@ -1,7 +1,8 @@
-﻿using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Planning.Domain.Models;
 using Wayd.Tests.Shared.Data;
+using Wayd.TestData.Core;
 
 namespace Wayd.Planning.Domain.Tests.Data;
 

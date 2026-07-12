@@ -1,6 +1,7 @@
-﻿using Wayd.Tests.Shared.Data;
+using Wayd.Tests.Shared.Data;
 using Wayd.Tests.Shared.Extensions;
 using Wayd.Work.Domain.Models;
+using Wayd.TestData.Core;
 
 namespace Wayd.Work.Domain.Tests.Data;
 

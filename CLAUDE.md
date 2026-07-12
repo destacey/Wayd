@@ -126,7 +126,7 @@ Architecture tests in `Wayd.ArchitectureTests` enforce these dependency rules.
 - **Theming**: Ant Design theme tokens only — never hardcode colors. Prefer CSS variables (`var(--ant-color-primary)`) in CSS modules over `theme.useToken()` in JS. Only use `theme.useToken()` when values are needed in JS logic.
 - **State**: Redux Toolkit + RTK Query for API data. React Context for auth/theme. `useState` for local UI state.
 - **PWA**: Installable via Serwist (`@serwist/turbopack`). See [Frontend Development docs](docs/contributing/frontend.mdx#pwa-progressive-web-app) for details.
-- **Ant Design reference**: For component APIs, usage examples, and design tokens, see <https://ant.design/llms-full.txt>
+- **Ant Design reference**: For component APIs, usage examples, and design tokens, fetch the machine-readable docs — per-component `https://ant.design/components/<name>.md` (e.g. `Table.md`), the full index at <https://ant.design/llms-full.txt>, and the design-token spec at <https://ant.design/design.md>. See <https://ant.design/docs/react/for-agents> for the full agent toolset (CLI + MCP server).
 
 ## Development Notes
 

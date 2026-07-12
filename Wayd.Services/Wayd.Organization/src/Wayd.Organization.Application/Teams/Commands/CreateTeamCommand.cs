@@ -72,13 +72,13 @@ internal sealed class CreateTeamCommandHandler : ICommandHandler<CreateTeamComma
             await _organizationDbContext.Teams.AddAsync(team, cancellationToken);
             await _organizationDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogDebug("{RequestName}: created Team with Id {TeamId}, Key {TeamKey}, and Code {TeamCode}", RequestName, team.Id, team.Key, team.Code);
+            _logger.LogDebug("{RequestName}: created Team with Id {TeamId}, Key {TeamKey}, and Code {TeamCode}", RequestName, team.Id, team.Key, team.Code.Value);
 
             // Sync the new team with the graph database
             // TODO: move to more of an event based approach
             await _organizationDbContext.UpsertTeamNode(TeamNode.From(team), cancellationToken);
 
-            _logger.LogDebug("{RequestName}: synced TeamNode for Team with Id {TeamId}, Key {TeamKey}, and Code {TeamCode}", RequestName, team.Id, team.Key, team.Code);
+            _logger.LogDebug("{RequestName}: synced TeamNode for Team with Id {TeamId}, Key {TeamKey}, and Code {TeamCode}", RequestName, team.Id, team.Key, team.Code.Value);
 
             return Result.Success(new ObjectIdAndKey(team.Id, team.Key));
         }

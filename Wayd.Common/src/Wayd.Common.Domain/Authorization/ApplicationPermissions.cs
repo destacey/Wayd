@@ -170,12 +170,14 @@ public static class ApplicationPermissions
         new("Create Employees", ApplicationAction.Create, ApplicationResource.Employees, OrganizationCategory),
         new("Update Employees", ApplicationAction.Update, ApplicationResource.Employees, OrganizationCategory),
         new("Delete Employees", ApplicationAction.Delete, ApplicationResource.Employees, OrganizationCategory),
+        new("Import Employees", ApplicationAction.Import, ApplicationResource.Employees, OrganizationCategory),
 
         new("View Teams and Teams of Teams", ApplicationAction.View, ApplicationResource.Teams, OrganizationCategory),
         new("Create Teams", ApplicationAction.Create, ApplicationResource.Teams, OrganizationCategory),
         new("Update Teams", ApplicationAction.Update, ApplicationResource.Teams, OrganizationCategory),
         new("Manage Team Memberships.  This includes adding, updating, and removing team memberships.", ApplicationAction.ManageTeamMemberships, ApplicationResource.Teams, OrganizationCategory),
         new("Delete Teams", ApplicationAction.Delete, ApplicationResource.Teams, OrganizationCategory),
+        new("Import Teams and Teams of Teams", ApplicationAction.Import, ApplicationResource.Teams, OrganizationCategory),
 
         new("View Team Member Roles", ApplicationAction.View, ApplicationResource.TeamMemberRoles, OrganizationCategory),
         new("Create Team Member Roles", ApplicationAction.Create, ApplicationResource.TeamMemberRoles, OrganizationCategory),

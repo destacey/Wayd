@@ -1,4 +1,5 @@
 using Wayd.Common.Application.Employees.Dtos;
+using Wayd.Common.Extensions;
 
 namespace Wayd.Web.Api.Models.Organizations.Employees;
 
@@ -70,7 +71,9 @@ public sealed class ImportEmployeeRequestValidator : CustomValidator<ImportEmplo
 
         RuleFor(e => e.Email)
             .NotEmpty()
-            .MaximumLength(256);
+            .MaximumLength(256)
+            .Must(email => email.IsValidEmailAddressFormat())
+            .WithMessage("'{PropertyName}' is not a valid email address.");
 
         RuleFor(e => e.JobTitle)
             .MaximumLength(256);

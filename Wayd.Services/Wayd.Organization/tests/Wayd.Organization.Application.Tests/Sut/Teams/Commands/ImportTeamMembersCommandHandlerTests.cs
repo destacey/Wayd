@@ -62,9 +62,10 @@ public class ImportTeamMembersCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_GroupsMultipleRoleRows_IntoOneMemberWithAllRoles()
+    public async Task Handle_GroupsMultipleRoleRows_IntoOneAddMemberCall_PerRoleMemberRow()
     {
-        // Arrange — same employee on the same team appears once per role.
+        // Arrange — same employee on the same team appears once per role. The rows are grouped into a
+        // single AddMember call carrying both roles, which the domain stores as one member row per role.
         var team = SeedTeam("PAY");
         SeedEmployee("E-1001");
         var engineer = SeedRole("Engineer");

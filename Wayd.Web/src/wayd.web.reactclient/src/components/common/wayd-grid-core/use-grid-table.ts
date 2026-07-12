@@ -234,6 +234,7 @@ export function useGridTable<T>({
     setSearchValue,
   } = gridState
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- the warning is about compiler memoization; WaydGrid, this hook's only consumer, carries 'use no memo' to opt its JSX out, which is where the stale-UI risk actually lives
   return useReactTable({
     data,
     columns,

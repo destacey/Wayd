@@ -18,6 +18,10 @@ const config: Config = {
   ],
   testPathIgnorePatterns: ['./.next/', './node_modules/'],
   moduleNameMapper: {
+    // @ant-design/icons' CommonJS build hard-requires the ESM `es/generate`
+    // entry of @ant-design/colors, which Jest can't parse. Redirect it to the
+    // package's CommonJS `lib` build. See: @ant-design/icons >= 6.3.x.
+    '^@ant-design/colors/es/(.*)$': '@ant-design/colors/lib/$1',
     '^@/(.*)$': '<rootDir>/$1',
   },
 }

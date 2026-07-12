@@ -5,9 +5,9 @@
   <ItemGroup>
     <PackageVersion Include="Ardalis.GuardClauses" Version="5.0.0" />
     <PackageVersion Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.0.0" />
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.4.5" />
-    <PackageVersion Include="Aspire.Hosting.JavaScript" Version="13.4.5" />
-    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.4.5" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.4.6" />
+    <PackageVersion Include="Aspire.Hosting.JavaScript" Version="13.4.6" />
+    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.4.6" />
     <PackageVersion Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.5.0" />
     <PackageVersion Include="Azure.Identity" Version="1.21.0" />
     <PackageVersion Include="CSharpFunctionalExtensions" Version="3.7.0" />
@@ -16,17 +16,17 @@
     <PackageVersion Include="FluentValidation.AspNetCore" Version="11.3.1" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageVersion Include="Hangfire" Version="1.8.23" />
-    <PackageVersion Include="Hangfire.Console.Extensions" Version="2.1.0" />
-    <PackageVersion Include="Hangfire.Console.Extensions.Serilog" Version="2.1.0" />
+    <PackageVersion Include="Hangfire.Console.Extensions" Version="2.1.2" />
+    <PackageVersion Include="Hangfire.Console.Extensions.Serilog" Version="2.1.2" />
     <PackageVersion Include="Hangfire.Dashboard.BasicAuthorization" Version="1.0.2" />
     <PackageVersion Include="Hangfire.SqlServer" Version="1.8.21" />
-    <PackageVersion Include="Mapster" Version="10.0.7" />
+    <PackageVersion Include="Mapster" Version="10.0.10" />
     <PackageVersion Include="MediatR" Version="[12.5.0]" />
     <PackageVersion Include="MediatR.Contracts" Version="2.0.1" />
     <PackageVersion Include="Microsoft.AspNetCore.DataProtection" Version="10.0.7" />
     <PackageVersion Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.11" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
-    <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.33.0" />
+    <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.33.1" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.9" />
     <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.9" />
     <PackageVersion Include="Microsoft.AspNetCore.JsonPatch.SystemTextJson" Version="10.0.9" />
@@ -45,18 +45,18 @@
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.9" />
-    <PackageVersion Include="Microsoft.FeatureManagement.AspNetCore" Version="4.5.0" />
+    <PackageVersion Include="Microsoft.FeatureManagement.AspNetCore" Version="4.6.0" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.7.0" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.7.0" />
     <PackageVersion Include="Microsoft.Graph" Version="6.2.0" />
-    <PackageVersion Include="Microsoft.Identity.Web" Version="4.10.0" />
-    <PackageVersion Include="Microsoft.Identity.Web.MicrosoftGraph" Version="4.10.0" />
+    <PackageVersion Include="Microsoft.Identity.Web" Version="4.13.0" />
+    <PackageVersion Include="Microsoft.Identity.Web.MicrosoftGraph" Version="4.13.0" />
     <PackageVersion Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
-    <PackageVersion Include="NCalc.Core" Version="6.2.0" />
-    <PackageVersion Include="NodaTime" Version="3.3.2" />
+    <PackageVersion Include="NCalc.Core" Version="6.4.0" />
+    <PackageVersion Include="NodaTime" Version="3.3.3" />
     <PackageVersion Include="NodaTime.Serialization.SystemTextJson" Version="1.4.0" />
     <PackageVersion Include="NSwag.AspNetCore" Version="14.7.1" />
     <PackageVersion Include="NSwag.CodeGeneration.CSharp" Version="14.7.1" />
@@ -66,12 +66,12 @@
     <PackageVersion Include="OneOf.Serialization.SystemTextJson" Version="1.1.1" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.16.0" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.16.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.15.2" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.16.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.16.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.16.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.16.0" />
     <PackageVersion Include="RestSharp" Version="114.0.0" />
-    <PackageVersion Include="Serilog" Version="4.3.1" />
+    <PackageVersion Include="Serilog" Version="4.4.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Serilog.Enrichers.AssemblyName" Version="2.0.0" />
     <PackageVersion Include="Serilog.Enrichers.Process" Version="3.0.0" />
@@ -98,11 +98,11 @@
     <PackageVersion Include="Bogus" Version="35.6.5" />
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />
     <PackageVersion Include="FluentAssertions" Version="[7.1.0]" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.6.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
     <PackageVersion Include="Moq" Version="4.20.72" />
     <PackageVersion Include="Moq.AutoMock" Version="4.0.2" />
     <PackageVersion Include="NetArchTest.Rules" Version="1.3.2" />
-    <PackageVersion Include="NodaTime.Testing" Version="3.3.2" />
+    <PackageVersion Include="NodaTime.Testing" Version="3.3.3" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
   </ItemGroup>

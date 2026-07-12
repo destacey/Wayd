@@ -4,6 +4,11 @@
       "type": "stdio",
       "command": "npx",
       "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "antd": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@ant-design/cli", "mcp"]
     }
   }
 }

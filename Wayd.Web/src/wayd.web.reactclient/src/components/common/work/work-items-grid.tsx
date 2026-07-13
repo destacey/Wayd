@@ -2,6 +2,7 @@
 
 import {
   WaydGrid,
+  createCsvColumn,
   renderAssignedToLink,
   renderProjectLink,
   renderSprintLink,
@@ -104,6 +105,7 @@ const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
               accessorKey: 'parent.key',
               header: 'Parent Key',
               sortingFn: workItemKeySort,
+              meta: { filterType: 'set' },
               cell: ({ row }) =>
                 renderWorkItemLink(
                   row.original.parent
@@ -142,6 +144,12 @@ const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
               cell: ({ row }) => renderProjectLink(row.original.project),
             } satisfies ColumnDef<WorkItemListDto, any>,
           ]),
+      createCsvColumn<WorkItemListDto>({
+        id: 'tags',
+        header: 'Tags',
+        size: 200,
+        getValues: (row) => row.tags ?? [],
+      }),
       // The stats columns stay on meta.hide (NOT def-exclusion): the grid's
       // initialSorting sorts by the hidden 'done' column, and TanStack drops
       // sort entries whose column has no def — excluding them would silently
@@ -163,7 +171,8 @@ const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
         accessorKey: 'cycleTime',
         header: 'Cycle Time (Days)',
         meta: { hide: !props.showStats },
-        cell: ({ getValue }) => getValue<number | undefined>()?.toFixed(2) ?? '',
+        cell: ({ getValue }) =>
+          getValue<number | undefined>()?.toFixed(2) ?? '',
       },
     ],
     [props.hideParentColumn, props.hideProjectColumn, props.showStats],

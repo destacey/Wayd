@@ -57,6 +57,16 @@ export interface WaydGridColumnMeta {
   /** Options for the 'set' (aka legacy 'select') filter type. */
   filterOptions?: FilterOption[]
   /**
+   * Marks a "multi-value" set column — one whose accessor is several values
+   * joined into one string (e.g. a Tags column accessor `"a, b, c"`). The grid
+   * builds the set filter's checkbox list from the *individual* tokens rather
+   * than the whole joined string, by splitting each faceted value with this
+   * function. Pair with a multi-value `filterFn` (see `createMultiValueSetFilter`)
+   * so matching is per-token too; {@link createCsvColumn} wires both. Makes
+   * declared `filterOptions` unnecessary — options are faceted from live data.
+   */
+  multiValueSplit?: (accessorValue: string) => string[]
+  /**
    * For a text column, also offer the Excel-style set (checkbox list) filter
    * alongside the text filter — a combined panel (Text Filter expander + set
    * list). One descriptor is active at a time; last-updated wins. The floating
@@ -96,6 +106,8 @@ export interface WaydGridColumnMeta {
  * table in the app — harmless, and the Wayd grids are the only consumers.
  */
 declare module '@tanstack/react-table' {
-  interface ColumnMeta<TData extends RowData, TValue>
-    extends WaydGridColumnMeta {}
+  interface ColumnMeta<
+    TData extends RowData,
+    TValue,
+  > extends WaydGridColumnMeta {}
 }

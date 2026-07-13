@@ -10,12 +10,7 @@ import {
 } from '@/src/store/features/planning/sprints-api'
 import { Divider, Flex, Space, Typography } from 'antd'
 import { notFound, usePathname, useRouter } from 'next/navigation'
-import {
-  ReactNode,
-  use,
-  useEffect,
-  useState,
-} from 'react'
+import { ReactNode, use, useEffect, useState } from 'react'
 import SprintDetailsLoading from './loading'
 import { SprintBacklogGrid, SprintDetails } from '../_components'
 import { IterationStateTag } from '@/src/components/common/planning'
@@ -61,9 +56,12 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   useDocumentTitle(`${sprintData?.name ?? sprintKey} - Sprint Details`)
 
-  const { data: teamSprints } = useGetTeamSprintsQuery(sprintData?.team.id ?? '', {
-    skip: !sprintData?.team.id,
-  })
+  const { data: teamSprints } = useGetTeamSprintsQuery(
+    sprintData?.team.id ?? '',
+    {
+      skip: !sprintData?.team.id,
+    },
+  )
 
   useEffect(() => {
     if (!sprintData) return
@@ -78,7 +76,9 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const sprintsItems = !teamSprints
     ? []
     : [...teamSprints]
-        .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime())
+        .sort(
+          (a, b) => new Date(b.start).getTime() - new Date(a.start).getTime(),
+        )
         .map((option) => ({
           label: option.name,
           extra: option.state.name,

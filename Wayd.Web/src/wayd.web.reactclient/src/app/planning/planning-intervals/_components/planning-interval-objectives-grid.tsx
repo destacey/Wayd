@@ -178,6 +178,7 @@ const PlanningIntervalObjectivesGrid = ({
         accessorFn: (row) => row.healthCheck?.status?.name ?? '',
         header: 'Health',
         size: 125,
+        meta: { filterType: 'set' },
         cell: ({ row }) => {
           const obj = row.original
           if (!obj.healthCheck) return null
@@ -223,7 +224,7 @@ const PlanningIntervalObjectivesGrid = ({
         accessorKey: 'order',
         header: 'Order',
         size: 100,
-        enableColumnFilter: false,
+        meta: { filterType: 'number' },
         // Empties sort last (asc) via the grid's default sortEmptyLast sortingFn.
       },
     ]

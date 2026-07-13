@@ -2,6 +2,7 @@
 
 import {
   WaydGrid,
+  createCsvColumn,
   renderPortfolioLink,
 } from '@/src/components/common/wayd-grid'
 import LifecycleStatusTag from '@/src/components/common/lifecycle-status-tag'
@@ -9,10 +10,10 @@ import {
   NavigationDto,
   StrategicInitiativeListDto,
 } from '@/src/services/wayd-api'
-import { getSortedNames } from '@/src/utils'
+import { getSortedNameList } from '@/src/utils'
 import type { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
-import { FC, useMemo } from 'react'
+import { FC } from 'react'
 
 export interface StrategicInitiativesGridProps {
   strategicInitiatives: StrategicInitiativeListDto[]
@@ -42,71 +43,68 @@ const StrategicInitiativesGrid: FC<StrategicInitiativesGridProps> = (
 ) => {
   const { refetch } = props
 
-  const columns = useMemo<ColumnDef<StrategicInitiativeListDto, any>[]>(
-    () => [
-      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
-      {
-        id: 'name',
-        accessorKey: 'name',
-        header: 'Name',
-        size: 300,
-        meta: { filterEnableSet: true },
-        cell: ({ row }) => renderStrategicInitiativeLink(row.original),
-      },
-      {
-        id: 'status',
-        accessorKey: 'status.name',
-        header: 'Status',
-        size: 125,
-        meta: { filterType: 'set' },
-        cell: ({ row }) =>
-          row.original.status ? (
-            <LifecycleStatusTag status={row.original.status} />
-          ) : null,
-      },
-      // Context-redundant column: excluded from the defs (not meta.hide) so
-      // it stays out of the column chooser and persisted layouts.
-      ...(props.hidePortfolio
-        ? []
-        : [
-            {
-              id: 'portfolio',
-              accessorKey: 'portfolio.name',
-              header: 'Portfolio',
-              size: 200,
-              meta: { filterEnableSet: true },
-              cell: ({ row }) => renderPortfolioLink(row.original.portfolio),
-            } satisfies ColumnDef<StrategicInitiativeListDto, any>,
-          ]),
-      {
-        id: 'start',
-        accessorKey: 'start',
-        header: 'Start',
-        size: 125,
-        meta: { columnType: 'dateOnly' },
-      },
-      {
-        id: 'end',
-        accessorKey: 'end',
-        header: 'End',
-        size: 125,
-        meta: { columnType: 'dateOnly' },
-      },
-      {
-        id: 'strategicInitiativeSponsors',
-        accessorFn: (row) =>
-          getSortedNames(row.strategicInitiativeSponsors ?? []),
-        header: 'Sponsors',
-      },
-      {
-        id: 'strategicInitiativeOwners',
-        accessorFn: (row) =>
-          getSortedNames(row.strategicInitiativeOwners ?? []),
-        header: 'Owners',
-      },
-    ],
-    [props.hidePortfolio],
-  )
+  const columns: ColumnDef<StrategicInitiativeListDto, any>[] = [
+    { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
+    {
+      id: 'name',
+      accessorKey: 'name',
+      header: 'Name',
+      size: 300,
+      meta: { filterEnableSet: true },
+      cell: ({ row }) => renderStrategicInitiativeLink(row.original),
+    },
+    {
+      id: 'status',
+      accessorKey: 'status.name',
+      header: 'Status',
+      size: 125,
+      meta: { filterType: 'set' },
+      cell: ({ row }) =>
+        row.original.status ? (
+          <LifecycleStatusTag status={row.original.status} />
+        ) : null,
+    },
+    // Context-redundant column: excluded from the defs (not meta.hide) so
+    // it stays out of the column chooser and persisted layouts.
+    ...(props.hidePortfolio
+      ? []
+      : [
+          {
+            id: 'portfolio',
+            accessorKey: 'portfolio.name',
+            header: 'Portfolio',
+            size: 200,
+            meta: { filterEnableSet: true },
+            cell: ({ row }) => renderPortfolioLink(row.original.portfolio),
+          } satisfies ColumnDef<StrategicInitiativeListDto, any>,
+        ]),
+    {
+      id: 'start',
+      accessorKey: 'start',
+      header: 'Start',
+      size: 125,
+      meta: { columnType: 'dateOnly' },
+    },
+    {
+      id: 'end',
+      accessorKey: 'end',
+      header: 'End',
+      size: 125,
+      meta: { columnType: 'dateOnly' },
+    },
+    createCsvColumn<StrategicInitiativeListDto>({
+      id: 'strategicInitiativeSponsors',
+      header: 'Sponsors',
+      getValues: (row) =>
+        getSortedNameList(row.strategicInitiativeSponsors ?? []),
+    }),
+    createCsvColumn<StrategicInitiativeListDto>({
+      id: 'strategicInitiativeOwners',
+      header: 'Owners',
+      getValues: (row) =>
+        getSortedNameList(row.strategicInitiativeOwners ?? []),
+    }),
+  ]
 
   const refresh = async () => {
     refetch()

@@ -1,9 +1,7 @@
 .grid {
   width: 100%;
-  flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
 
 /* Toolbar styles live in wayd-grid-core/grid-toolbar.module.css. */
@@ -252,7 +250,6 @@
 .floatingCell:hover .setSummary {
   border-color: var(--ant-color-primary-hover);
 }
-
 
 .filterTrigger {
   display: inline-flex;
@@ -571,8 +568,8 @@
 .colorPickerFocusTarget:focus-visible :global(.ant-color-picker-trigger),
 .colorPickerFocusTarget:focus-within :global(.ant-color-picker-trigger) {
   border-color: var(--ant-color-primary);
-  box-shadow:
-    0 0 0 var(--ant-control-outline-width, 2px) var(--ant-control-outline);
+  box-shadow: 0 0 0 var(--ant-control-outline-width, 2px)
+    var(--ant-control-outline);
   outline: none;
 }
 

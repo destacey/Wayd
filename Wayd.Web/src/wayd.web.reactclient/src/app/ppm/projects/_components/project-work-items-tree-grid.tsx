@@ -2,23 +2,27 @@
 
 import { FC, ReactNode } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
-import Link from 'next/link'
-import {
-  CaretDownOutlined,
-  CaretRightOutlined,
-  ExportOutlined,
-} from '@ant-design/icons'
+import { CaretDownOutlined, CaretRightOutlined } from '@ant-design/icons'
 import { Button, Flex } from 'antd'
-import { WorkItemTagsCell } from '@/src/components/common/work'
 import treeGridStyles from '@/src/components/common/wayd-grid/wayd-grid.module.css'
-import { WaydGrid } from '@/src/components/common/wayd-grid'
+import {
+  WaydGrid,
+  createCsvColumn,
+  renderAssignedToLink,
+  renderProjectLink,
+  renderSprintLink,
+  renderTeamLink,
+  renderWorkItemLink,
+  renderWorkStatusTag,
+  workItemKeySort,
+  workStatusCategorySort,
+} from '@/src/components/common/wayd-grid'
 import type { WaydGridColumnMeta } from '@/src/components/common/wayd-grid'
 import { WorkItemListDto } from '@/src/services/wayd-api'
 import {
   WorkItemTreeNode,
   buildWorkItemTree,
 } from '@/src/components/common/work/work-item-tree-utils'
-import WorkStatusTag from '@/src/components/common/work/work-status-tag'
 import styles from './project-work-items-tree-grid.module.css'
 
 export interface ProjectWorkItemsTreeGridProps {
@@ -30,66 +34,6 @@ export interface ProjectWorkItemsTreeGridProps {
   gridHeight?: number
 }
 
-function WorkItemKeyCell({ item }: { item: WorkItemTreeNode }) {
-  return (
-    <>
-      <Link
-        href={`/work/workspaces/${item.workspace.key}/work-items/${item.key}`}
-        prefetch={false}
-      >
-        {item.key}
-      </Link>
-      {item.externalViewWorkItemUrl && (
-        <Link
-          href={item.externalViewWorkItemUrl}
-          target="_blank"
-          title="Open in external system"
-          style={{ marginLeft: '5px' }}
-        >
-          <ExportOutlined style={{ width: '10px' }} />
-        </Link>
-      )}
-    </>
-  )
-}
-
-function TeamCell({ item }: { item: WorkItemTreeNode }) {
-  if (!item.team) return null
-  const teamLink =
-    item.team.type === 'Team'
-      ? `/organizations/teams/${item.team.key}`
-      : `/organizations/team-of-teams/${item.team.key}`
-  return <Link href={teamLink}>{item.team.name}</Link>
-}
-
-function SprintCell({ item }: { item: WorkItemTreeNode }) {
-  if (!item.sprint) return null
-  return (
-    <Link href={`/planning/sprints/${item.sprint.key}`}>
-      {item.sprint.name}
-    </Link>
-  )
-}
-
-function AssignedToCell({ item }: { item: WorkItemTreeNode }) {
-  if (!item.assignedTo) return null
-  return (
-    <Link
-      href={`/organizations/employees/${item.assignedTo.key}`}
-      prefetch={false}
-    >
-      {item.assignedTo.name}
-    </Link>
-  )
-}
-
-function ProjectCell({ item }: { item: WorkItemTreeNode }) {
-  if (!item.project) return null
-  return (
-    <Link href={`/ppm/projects/${item.project.key}`}>{item.project.name}</Link>
-  )
-}
-
 const getColumns = (
   hideProjectColumn: boolean,
 ): ColumnDef<WorkItemTreeNode>[] => [
@@ -97,18 +41,18 @@ const getColumns = (
     accessorKey: 'key',
     header: 'Key',
     size: 120,
-    enableGlobalFilter: true,
-    enableColumnFilter: true,
-    sortingFn: 'alphanumeric',
-    cell: ({ row }) => <WorkItemKeyCell item={row.original} />,
+    sortingFn: workItemKeySort,
+    cell: ({ row }) =>
+      renderWorkItemLink({
+        key: row.original.key,
+        workspaceKey: row.original.workspace.key,
+        externalViewWorkItemUrl: row.original.externalViewWorkItemUrl,
+      }),
   },
   {
     accessorKey: 'title',
     header: 'Title',
     size: 400,
-    enableGlobalFilter: true,
-    enableColumnFilter: true,
-    sortingFn: 'text',
     cell: ({ row }) => {
       const depth = row.depth
       return (
@@ -143,34 +87,23 @@ const getColumns = (
     accessorFn: (row) => row.type?.name ?? '',
     header: 'Type',
     size: 125,
-    enableGlobalFilter: true,
-    enableColumnFilter: true,
-    sortingFn: 'text',
+    meta: { filterType: 'set' },
   },
   {
     id: 'status',
     accessorFn: (row) => row.status ?? '',
     header: 'Status',
     size: 125,
-    enableGlobalFilter: true,
-    enableColumnFilter: true,
-    sortingFn: 'text',
-    cell: ({ row }) => {
-      const item = row.original
-      if (!item.status) return null
-      return (
-        <WorkStatusTag status={item.status} category={item.statusCategory.id} />
-      )
-    },
+    meta: { filterType: 'set' },
+    cell: ({ row }) => renderWorkStatusTag(row.original),
   },
   {
     id: 'statusCategory',
     accessorFn: (row) => row.statusCategory?.name ?? '',
     header: 'Status Category',
     size: 140,
-    enableGlobalFilter: true,
-    enableColumnFilter: true,
-    sortingFn: 'text',
+    sortingFn: workStatusCategorySort,
+    meta: { filterType: 'set' },
   },
   {
     id: 'storyPoints',
@@ -178,7 +111,6 @@ const getColumns = (
     header: 'SPs',
     size: 100,
     enableGlobalFilter: false,
-    enableColumnFilter: true,
     sortingFn: 'basic',
     sortUndefined: -1,
     meta: {
@@ -190,55 +122,47 @@ const getColumns = (
     accessorFn: (row) => row.team?.name ?? '',
     header: 'Team',
     size: 150,
-    enableGlobalFilter: true,
-    enableColumnFilter: true,
-    sortingFn: 'text',
-    cell: ({ row }) => <TeamCell item={row.original} />,
+    meta: { filterType: 'set' },
+    cell: ({ row }) => renderTeamLink(row.original.team),
   },
   {
     id: 'sprint',
     accessorFn: (row) => row.sprint?.name ?? '',
     header: 'Sprint',
     size: 150,
-    enableGlobalFilter: true,
-    enableColumnFilter: true,
-    sortingFn: 'text',
-    cell: ({ row }) => <SprintCell item={row.original} />,
+    meta: { filterType: 'set' },
+    cell: ({ row }) =>
+      renderSprintLink(row.original.sprint, { showTeamCode: false }),
   },
   {
     id: 'assignedTo',
     accessorFn: (row) => row.assignedTo?.name ?? '',
     header: 'Assigned To',
     size: 150,
-    enableGlobalFilter: true,
-    enableColumnFilter: true,
-    sortingFn: 'text',
-    cell: ({ row }) => <AssignedToCell item={row.original} />,
+    meta: { filterType: 'set' },
+    cell: ({ row }) => renderAssignedToLink(row.original.assignedTo),
   },
-  {
+  // Tags render as overflow-aware chips and filter via the multi-value set
+  // panel (individual tags faceted from the displayed rows, tree children
+  // included).
+  createCsvColumn<WorkItemTreeNode>({
     id: 'tags',
-    accessorFn: (row) => row.tags?.join(', ') ?? '',
     header: 'Tags',
     size: 200,
-    enableGlobalFilter: true,
-    enableColumnFilter: true,
-    sortingFn: 'text',
-    cell: ({ row }) => <WorkItemTagsCell tags={row.original.tags} />,
-  },
-  ...(!hideProjectColumn
-    ? [
+    getValues: (row) => row.tags ?? [],
+  }),
+  ...(hideProjectColumn
+    ? []
+    : [
         {
           id: 'project',
-          accessorFn: (row: WorkItemTreeNode) => row.project?.name ?? '',
+          accessorFn: (row) => row.project?.name ?? '',
           header: 'Project',
           size: 300,
-          enableGlobalFilter: true,
-          enableColumnFilter: true,
-          sortingFn: 'text' as const,
-          cell: ({ row }: { row: any }) => <ProjectCell item={row.original} />,
-        } as ColumnDef<WorkItemTreeNode>,
-      ]
-    : []),
+          meta: { filterType: 'set' },
+          cell: ({ row }) => renderProjectLink(row.original.project),
+        } satisfies ColumnDef<WorkItemTreeNode>,
+      ]),
 ]
 
 const ProjectWorkItemsTreeGrid: FC<ProjectWorkItemsTreeGridProps> = ({
@@ -270,4 +194,3 @@ const ProjectWorkItemsTreeGrid: FC<ProjectWorkItemsTreeGridProps> = ({
 }
 
 export default ProjectWorkItemsTreeGrid
-

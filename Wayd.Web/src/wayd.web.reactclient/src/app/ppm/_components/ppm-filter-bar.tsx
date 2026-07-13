@@ -107,7 +107,7 @@ const PpmFilterBar: FC<PpmFilterBarProps> = (props) => {
 
         {hasRoleFilter(props) && (
           <Space size="small" align="center">
-            <span className={styles.filterLabel}>Role:</span>
+            <span className={styles.filterLabel}>My Role:</span>
             <Select
               placeholder="No Filter"
               size="small"

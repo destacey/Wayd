@@ -15,13 +15,10 @@ import { LoadingOutlined, SearchOutlined } from '@ant-design/icons'
 import { Flex, Input, Modal, Typography } from 'antd'
 import { ChangeEvent, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import {
-  caseInsensitiveCompare,
-  createMultiValueSetFilter,
-} from '@/src/components/common/wayd-grid'
+import { createCsvColumn } from '@/src/components/common/wayd-grid'
 import WaydGridTransfer from '@/src/components/common/wayd-grid-transfer'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { workItemKeyComparator, WorkItemTagsCell } from '@/src/components/common/work'
+import { workItemKeyComparator } from '@/src/components/common/work'
 import { isApiError, type ApiError } from '@/src/utils'
 
 const { Text } = Typography
@@ -32,12 +29,6 @@ export interface ManagePlanningIntervalObjectiveWorkItemsFormProps {
   onFormComplete: () => void
   onFormCancel: () => void
 }
-
-/** A work item's tags (source for the cell, the Tags set filter, and CSV
- *  export). */
-const workItemTags = (item: WorkItemListDto): string[] => item.tags ?? []
-
-const tagsFilter = createMultiValueSetFilter<WorkItemListDto>(workItemTags)
 
 const defaultSort = (a: WorkItemListDto, b: WorkItemListDto) => {
   return workItemKeyComparator(a.key, b.key)
@@ -73,9 +64,10 @@ const ManagePlanningIntervalObjectiveWorkItemsForm = ({
   })
 
   const debounceSearchQuery = useDebounce(searchQuery, 500)
-  const { data: searchResult, isFetching: isSearching } = useSearchWorkItemsQuery(debounceSearchQuery, {
-    skip: debounceSearchQuery === '',
-  })
+  const { data: searchResult, isFetching: isSearching } =
+    useSearchWorkItemsQuery(debounceSearchQuery, {
+      skip: debounceSearchQuery === '',
+    })
 
   const [manageObjectiveWorkItems] = useManageObjectiveWorkItemsMutation()
 
@@ -100,20 +92,6 @@ const ManagePlanningIntervalObjectiveWorkItemsForm = ({
     return (searchResult ?? [])
       .filter((item) => !targetIds.has(item.id))
       .sort(defaultSort)
-  })()
-
-  // Distinct individual tags across both grids, for the Tags set filter's
-  // checkbox list (individual tags, not whole combinations).
-  const tagFilterOptions = (() => {
-    const names = new Set<string>()
-    for (const item of [...sourceWorkItems, ...targetWorkItems]) {
-      for (const tag of workItemTags(item)) {
-        names.add(tag)
-      }
-    }
-    return Array.from(names)
-      .sort(caseInsensitiveCompare)
-      .map((name) => ({ label: name, value: name }))
   })()
 
   const workItemColumns: ColumnDef<WorkItemListDto, any>[] = [
@@ -149,6 +127,7 @@ const ManagePlanningIntervalObjectiveWorkItemsForm = ({
       accessorKey: 'parent.key',
       header: 'Parent Key',
       size: 125,
+      meta: { filterType: 'set' },
     },
     {
       accessorKey: 'sprint.name',
@@ -162,15 +141,14 @@ const ManagePlanningIntervalObjectiveWorkItemsForm = ({
       size: 200,
       meta: { filterType: 'set' },
     },
-    {
+    // Tag options are faceted per grid from the rows shown (like the other set
+    // columns here) — individual tags, not whole combinations.
+    createCsvColumn<WorkItemListDto>({
       id: 'tags',
       header: 'Tags',
       size: 200,
-      accessorFn: (row) => workItemTags(row).join(', '),
-      filterFn: tagsFilter,
-      meta: { filterType: 'set', filterOptions: tagFilterOptions },
-      cell: ({ row }) => <WorkItemTagsCell tags={row.original.tags} />,
-    },
+      getValues: (row) => row.tags ?? [],
+    }),
   ]
 
   const { isOpen, isSaving, handleOk, handleCancel } = useConfirmModal({

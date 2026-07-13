@@ -1,0 +1,32 @@
+/* A single non-wrapping row of tags that clips like a regular text cell. When
+   the tags overflow the column, the right edge fades out — the same "there's
+   more, cut off here" affordance a truncated string field gives, with no
+   measurement or "+N" counting. */
+.container {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0 2px;
+  overflow: hidden;
+  width: 100%;
+  min-width: 0;
+  /* Fade the trailing edge so a clipped tag trails off instead of being cut
+     mid-glyph. Applied always; on non-overflowing rows there's nothing under
+     the fade region so it's invisible. */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 calc(100% - 32px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    #000 calc(100% - 32px),
+    transparent 100%
+  );
+}
+
+.tag {
+  margin: 0;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}

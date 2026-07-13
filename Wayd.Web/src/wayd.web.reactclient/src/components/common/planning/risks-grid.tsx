@@ -191,6 +191,7 @@ const RisksGrid = ({
         id: 'assignee',
         accessorKey: 'assignee.name',
         header: 'Assignee',
+        meta: { filterType: 'set' },
         cell: ({ row }) =>
           row.original.assignee ? (
             <Link

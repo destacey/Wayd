@@ -49,8 +49,9 @@ export {
 export { createMultiValueSetFilter } from '../wayd-grid-core/filters'
 
 // Multi-value ("CSV") column factory — builds a tag-list cell + multi-value set
-// filter + derived filterOptions for a column whose data is comma-separated
-// values or an array. Prefer this over wiring those three pieces by hand.
+// filter for a column whose data is comma-separated values or an array. The set
+// panel's checkbox list is faceted from live data (via meta.multiValueSplit), so
+// no option list is passed. Prefer this over wiring those pieces by hand.
 export { createCsvColumn, splitCsv } from '../wayd-grid-core/csv-column'
 export type { CsvColumnOptions } from '../wayd-grid-core/csv-column'
 export { default as TagListCell } from '../wayd-grid-core/tag-list-cell'

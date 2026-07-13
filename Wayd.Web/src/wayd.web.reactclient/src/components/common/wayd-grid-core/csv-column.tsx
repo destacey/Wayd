@@ -41,9 +41,9 @@ export interface CsvColumnOptions<T> {
  * It bundles the pieces such a column always needs, so callers don't hand-roll
  * them per model:
  * - a **tag-list cell** ({@link TagListCell}) rendering each value as a Tag;
- * - a **multi-value set filter** ({@link createMultiValueSetFilter}) that
- *   matches on *individual* values (a row matches if it shares ANY selected
- *   value), while the Text Filter still works over the joined label;
+ * - a **multi-value set filter** ({@link createMultiValueSetFilter}) — the
+ *   column's filter UI is the set (checkbox) panel, matching on *individual*
+ *   values (a row matches if it shares ANY selected value);
  * - `meta.multiValueSplit`, which tells the grid to build the set panel's
  *   checkbox list from the individual tokens faceted out of the live data
  *   rather than the whole joined string — so no data or option list is passed

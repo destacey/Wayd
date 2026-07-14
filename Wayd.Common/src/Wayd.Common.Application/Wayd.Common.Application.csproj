@@ -22,6 +22,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="Wayd.Common.Application.Tests" />
+        <InternalsVisibleTo Include="Wayd.Organization.IntegrationTests" />
         <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
     </ItemGroup>
 

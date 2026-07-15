@@ -12,11 +12,16 @@ using Wayd.Infrastructure.Persistence.Context;
 namespace Wayd.Organization.IntegrationTests.Infrastructure;
 
 /// <summary>
-/// Starts a single SQL Server container per test class and applies the real
-/// <c>Wayd.Infrastructure.Migrators.MSSQL</c> migrations against it, then hands out <see cref="WaydDbContext"/>
-/// instances pointed at that container. This exercises the production EF provider, so value converters
-/// (e.g. <c>TeamCode</c> → <c>varchar</c>), NodaTime mapping, and the SQL-graph node/edge tables all behave
-/// exactly as they do in production — the very reason Testcontainers is used here instead of SQLite.
+/// Starts a SQL Server container and applies the real <c>Wayd.Infrastructure.Migrators.MSSQL</c> migrations
+/// against it, then hands out <see cref="WaydDbContext"/> instances pointed at that container. This exercises
+/// the production EF provider, so value converters (e.g. <c>TeamCode</c> → <c>varchar</c>), NodaTime mapping,
+/// and the SQL-graph node/edge tables all behave exactly as they do in production — the very reason
+/// Testcontainers is used here instead of SQLite.
+/// <para>
+/// This is a collection fixture (see <see cref="SqlServerTestCollection"/>): one container and one migrated
+/// schema are shared by every test class in the collection, so tests must not assume a private database.
+/// Reset the rows you touch with <see cref="ResetOrganizationData"/> at the start of each test.
+/// </para>
 /// </summary>
 /// <remarks>Requires Docker to be running on the machine executing the tests.</remarks>
 public sealed class SqlServerDbContextFixture : IAsyncLifetime
@@ -24,9 +29,11 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
     // A fixed instant so audit/system columns are deterministic and no test ever reaches for DateTime.UtcNow.
     public static readonly Instant FixedNow = Instant.FromUtc(2026, 1, 15, 9, 30, 0);
 
-    // Pin the image so the schema is built against a known SQL Server engine on every machine/CI run.
-    private readonly MsSqlContainer _container =
-        new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest").Build();
+    // Pinned to a concrete CU rather than a floating tag (e.g. 2022-latest), so the schema is built against
+    // the same SQL Server engine on every machine and CI run. Bump deliberately.
+    private const string SqlServerImage = "mcr.microsoft.com/mssql/server:2022-CU25-GDR2-ubuntu-22.04";
+
+    private readonly MsSqlContainer _container = new MsSqlBuilder(SqlServerImage).Build();
 
     private DbContextOptions<WaydDbContext> _options = null!;
     private IOptions<DatabaseSettings> _databaseSettings = null!;

@@ -129,8 +129,8 @@ public sealed class WorkTypeHierarchy : BaseAuditableEntity<int>
             if (hasChanged)
             {
                 // TODO: raise a concrete "hierarchy changed" domain event here once a real
-                // subscriber exists (the generic entity events were removed; see
-                // docs/contributing/specs/mediatr-to-wolverine-migration.md, Phase 0).
+                // subscriber exists. The generic Entity*Event records were removed because
+                // nothing consumed them; this gate preserves the change detection.
             }
 
             return Result.Success();

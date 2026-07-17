@@ -152,7 +152,7 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
     /// <param name="officeLocation">The office location.</param>
     /// <param name="managerId">The manager identifier.</param>
     /// <param name="isActive">if set to <c>true</c> [is active].</param>
-    /// <param name="timestamp">The timestamp for the event.</param>
+    /// <param name="timestamp">The timestamp of the update.</param>
     /// <returns>Result</returns>
     public Result Update(
         PersonName name,
@@ -221,7 +221,7 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
     /// <param name="department">The department.</param>
     /// <param name="officeLocation">The office location.</param>
     /// <param name="managerId">The manager identifier.</param>
-    /// <param name="timestamp">The timestamp for the domain event.</param>
+    /// <param name="timestamp">The timestamp of the creation.</param>
     /// <returns>An Employee</returns>
     public static Employee Create(
         PersonName personName,

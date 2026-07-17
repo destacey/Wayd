@@ -154,8 +154,8 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
             if (hasChanges)
             {
                 // TODO: raise a concrete "connection configuration changed" domain event here
-                // once a real subscriber exists (the generic entity events were removed; see
-                // docs/contributing/specs/mediatr-to-wolverine-migration.md, Phase 0).
+                // once a real subscriber exists. The generic Entity*Event records were removed
+                // because nothing consumed them; this gate preserves the change detection.
             }
 
             return Result.Success();
@@ -222,8 +222,8 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
             if (hasChanges)
             {
                 // TODO: raise a concrete "connection configuration changed" domain event here
-                // once a real subscriber exists (the generic entity events were removed; see
-                // docs/contributing/specs/mediatr-to-wolverine-migration.md, Phase 0).
+                // once a real subscriber exists. The generic Entity*Event records were removed
+                // because nothing consumed them; this gate preserves the change detection.
             }
 
             return Result.Success();
@@ -285,8 +285,8 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
             if (hasChanges)
             {
                 // TODO: raise a concrete "connection configuration changed" domain event here
-                // once a real subscriber exists (the generic entity events were removed; see
-                // docs/contributing/specs/mediatr-to-wolverine-migration.md, Phase 0).
+                // once a real subscriber exists. The generic Entity*Event records were removed
+                // because nothing consumed them; this gate preserves the change detection.
             }
 
             return Result.Success();

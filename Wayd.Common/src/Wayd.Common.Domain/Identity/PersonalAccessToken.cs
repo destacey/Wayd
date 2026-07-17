@@ -221,7 +221,7 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
     /// <param name="employeeId">Optional employee ID.</param>
     /// <param name="expiresAt">When the token expires.</param>
     /// <param name="scopes">Optional scopes to limit token permissions.</param>
-    /// <param name="timestamp">The timestamp for the creation event.</param>
+    /// <param name="timestamp">The timestamp of the creation.</param>
     /// <returns>A Result containing the new PersonalAccessToken or an error.</returns>
     public static Result<PersonalAccessToken> Create(
         string name,

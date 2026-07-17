@@ -121,7 +121,6 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
         {
             // TODO is there logic that would prevent activation?
             IsActive = true;
-            AddDomainEvent(EntityActivatedEvent.WithEntity(this, timestamp));
         }
 
         return Result.Success();
@@ -138,7 +137,6 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
         {
             // TODO is there logic that would prevent deactivation?
             IsActive = false;
-            AddDomainEvent(EntityDeactivatedEvent.WithEntity(this, timestamp));
         }
 
         return Result.Success();
@@ -154,7 +152,7 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
     /// <param name="officeLocation">The office location.</param>
     /// <param name="managerId">The manager identifier.</param>
     /// <param name="isActive">if set to <c>true</c> [is active].</param>
-    /// <param name="timestamp">The timestamp for the event.</param>
+    /// <param name="timestamp">The timestamp of the update.</param>
     /// <returns>Result</returns>
     public Result Update(
         PersonName name,
@@ -197,8 +195,6 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
                 }
             }
 
-            AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
-
             return Result.Success();
         }
         catch (Exception ex)
@@ -212,11 +208,10 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
     public void UpdateManagerId(Guid? managerId, Instant timestamp)
     {
         ManagerId = managerId;
-        AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
     }
 
     /// <summary>
-    /// Creates an Employee and adds a domain event with the timestamp.
+    /// Creates an Employee.
     /// </summary>
     /// <param name="personName">Name of the person.</param>
     /// <param name="employeeNumber">The employee identifier.</param>
@@ -226,7 +221,7 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
     /// <param name="department">The department.</param>
     /// <param name="officeLocation">The office location.</param>
     /// <param name="managerId">The manager identifier.</param>
-    /// <param name="timestamp">The timestamp for the domain event.</param>
+    /// <param name="timestamp">The timestamp of the creation.</param>
     /// <returns>An Employee</returns>
     public static Employee Create(
         PersonName personName,
@@ -242,7 +237,6 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
         Instant timestamp)
     {
         Employee employee = new(personName, employeeNumber, hireDate, email, jobTitle, department, officeLocation, managerId, isActive, employeeType);
-        employee.AddDomainEvent(EntityCreatedEvent.WithEntity(employee, timestamp));
         return employee;
     }
 }

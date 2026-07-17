@@ -46,8 +46,6 @@ public class AzureOpenAIConnection : Connection<AzureOpenAIConnectionConfigurati
             Configuration.ApiKey = newApiKey;
             Configuration.DeploymentName = newDeploymentName;
 
-            AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
-
             return Result.Success();
         }
         catch (Exception ex)
@@ -82,8 +80,6 @@ public class AzureOpenAIConnection : Connection<AzureOpenAIConnectionConfigurati
             description,
             configurationIsValid,
             configuration);
-
-        connection.AddDomainEvent(EntityCreatedEvent.WithEntity(connection, timestamp));
 
         return connection;
     }

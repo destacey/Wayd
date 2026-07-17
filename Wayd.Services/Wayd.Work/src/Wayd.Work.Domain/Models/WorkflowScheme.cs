@@ -37,7 +37,6 @@ public sealed class WorkflowScheme : BaseSoftDeletableEntity, IActivatable
         if (!IsActive)
         {
             IsActive = true;
-            AddDomainEvent(EntityActivatedEvent.WithEntity(this, timestamp));
         }
 
         return Result.Success();
@@ -48,7 +47,6 @@ public sealed class WorkflowScheme : BaseSoftDeletableEntity, IActivatable
         if (IsActive)
         {
             IsActive = false;
-            AddDomainEvent(EntityDeactivatedEvent.WithEntity(this, timestamp));
         }
 
         return Result.Success();
@@ -60,8 +58,6 @@ public sealed class WorkflowScheme : BaseSoftDeletableEntity, IActivatable
         {
             WorkStatusCategory = workStatusCategory;
             Order = order;
-
-            AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
 
             return Result.Success();
         }

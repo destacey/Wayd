@@ -63,8 +63,6 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
             Configuration.Organization = newOrganization;
             Configuration.PersonalAccessToken = newPersonalAccessToken;
 
-            AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
-
             return Result.Success();
         }
         catch (Exception ex)
@@ -154,7 +152,11 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
             }
 
             if (hasChanges)
-                AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
+            {
+                // TODO: raise a concrete "connection configuration changed" domain event here
+                // once a real subscriber exists. The generic Entity*Event records were removed
+                // because nothing consumed them; this gate preserves the change detection.
+            }
 
             return Result.Success();
         }
@@ -217,9 +219,12 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
                 }
             }
 
-            // only raise domain event if something actually changed
             if (hasChanges)
-                AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
+            {
+                // TODO: raise a concrete "connection configuration changed" domain event here
+                // once a real subscriber exists. The generic Entity*Event records were removed
+                // because nothing consumed them; this gate preserves the change detection.
+            }
 
             return Result.Success();
         }
@@ -278,7 +283,11 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
             }
 
             if (hasChanges)
-                AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
+            {
+                // TODO: raise a concrete "connection configuration changed" domain event here
+                // once a real subscriber exists. The generic Entity*Event records were removed
+                // because nothing consumed them; this gate preserves the change detection.
+            }
 
             return Result.Success();
         }
@@ -331,9 +340,6 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
                     return setResult;
             }
 
-            // only raise domain event if something actually changed
-            AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
-
             return Result.Success();
         }
         catch (Exception ex)
@@ -358,8 +364,6 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
             var clearResult = workProcess.RemoveIntegrationState();
             if (clearResult.IsFailure)
                 return clearResult;
-
-            AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
 
             return Result.Success();
         }
@@ -399,9 +403,6 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
                     return setResult;
             }
 
-            // only raise domain event if something actually changed
-            AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
-
             return Result.Success();
         }
         catch (Exception ex)
@@ -413,8 +414,6 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
     public static AzureDevOpsBoardsConnection Create(string name, string? description, string? systemId, AzureDevOpsBoardsConnectionConfiguration configuration, bool configurationIsValid, AzureDevOpsBoardsTeamConfiguration? teamConfiguration, Instant timestamp)
     {
         var connector = new AzureDevOpsBoardsConnection(name, description, systemId, configuration, configurationIsValid, teamConfiguration);
-
-        connector.AddDomainEvent(EntityCreatedEvent.WithEntity(connector, timestamp));
 
         return connector;
     }

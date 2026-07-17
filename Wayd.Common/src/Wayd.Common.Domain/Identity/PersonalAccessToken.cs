@@ -160,8 +160,6 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
         RevokedAt = timestamp;
         RevokedBy = revokedBy;
 
-        AddDomainEvent(EntityDeletedEvent.WithEntity(this, timestamp));
-
         return Result.Success();
     }
 
@@ -181,7 +179,6 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
             }
 
             Name = name;
-            AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
 
             return Result.Success();
         }
@@ -210,7 +207,6 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
         }
 
         ExpiresAt = expiresAt;
-        AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
 
         return Result.Success();
     }
@@ -225,7 +221,7 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
     /// <param name="employeeId">Optional employee ID.</param>
     /// <param name="expiresAt">When the token expires.</param>
     /// <param name="scopes">Optional scopes to limit token permissions.</param>
-    /// <param name="timestamp">The timestamp for the creation event.</param>
+    /// <param name="timestamp">The timestamp of the creation.</param>
     /// <returns>A Result containing the new PersonalAccessToken or an error.</returns>
     public static Result<PersonalAccessToken> Create(
         string name,
@@ -248,8 +244,6 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
             {
                 Scopes = scopes
             };
-
-            token.AddDomainEvent(EntityCreatedEvent.WithEntity(token, timestamp));
 
             return Result.Success(token);
         }

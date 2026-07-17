@@ -73,8 +73,6 @@ public sealed class EntraConnection : Connection<EntraConnectionConfiguration>, 
             Configuration.MatchBy = matchBy;
             Configuration.NormalizeNameCasing = normalizeNameCasing;
 
-            AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
-
             return Result.Success();
         }
         catch (Exception ex)
@@ -116,8 +114,6 @@ public sealed class EntraConnection : Connection<EntraConnectionConfiguration>, 
         Instant timestamp)
     {
         var connection = new EntraConnection(name, description, configurationIsValid, configuration);
-
-        connection.AddDomainEvent(EntityCreatedEvent.WithEntity(connection, timestamp));
 
         return connection;
     }

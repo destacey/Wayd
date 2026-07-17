@@ -42,7 +42,6 @@ public sealed class WorkTypeHierarchy : BaseAuditableEntity<int>
         var level = WorkTypeLevel.Create(name, description, WorkTypeTier.Portfolio, Ownership.Owned, maxOrder + 1, timestamp);
 
         _levels.Add(level);
-        AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
         return Result.Success(level);
     }
 
@@ -70,7 +69,6 @@ public sealed class WorkTypeHierarchy : BaseAuditableEntity<int>
         if (result.IsFailure)
             return Result.Failure<int>(result.Error);
 
-        AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
         return Result.Success();
     }
 
@@ -103,8 +101,6 @@ public sealed class WorkTypeHierarchy : BaseAuditableEntity<int>
     public static WorkTypeHierarchy Initialize(Instant timestamp)
     {
         WorkTypeHierarchy scheme = new(timestamp);
-
-        scheme.AddDomainEvent(EntityCreatedEvent.WithEntity(scheme, timestamp));
         return scheme;
     }
     public Result Reinitialize(Instant timestamp)
@@ -131,7 +127,11 @@ public sealed class WorkTypeHierarchy : BaseAuditableEntity<int>
             }
 
             if (hasChanged)
-                AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
+            {
+                // TODO: raise a concrete "hierarchy changed" domain event here once a real
+                // subscriber exists. The generic Entity*Event records were removed because
+                // nothing consumed them; this gate preserves the change detection.
+            }
 
             return Result.Success();
         }

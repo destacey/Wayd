@@ -18,7 +18,7 @@ public sealed record GetVisionQuery : IQuery<VisionDto?>
     public Expression<Func<Vision, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetVisionQueryHandler(IStrategicManagementDbContext strategicManagementDbContext) : IQueryHandler<GetVisionQuery, VisionDto?>
+public sealed class GetVisionQueryHandler(IStrategicManagementDbContext strategicManagementDbContext) : IQueryHandler<GetVisionQuery, VisionDto?>
 {
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
 

@@ -11,7 +11,7 @@ public sealed record GetEmployeeWorkItemsQuery(
     Instant? DoneTo = null)
     : IQuery<List<WorkItemListDto>>;
 
-internal sealed class GetEmployeeWorkItemsQueryHandler(
+public sealed class GetEmployeeWorkItemsQueryHandler(
     IWorkDbContext workDbContext)
     : IQueryHandler<GetEmployeeWorkItemsQuery, List<WorkItemListDto>>
 {

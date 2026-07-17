@@ -4,7 +4,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 
 public sealed record GetProjectPhasesQuery(Guid ProjectId) : IQuery<List<ProjectPhaseListDto>>;
 
-internal sealed class GetProjectPhasesQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
+public sealed class GetProjectPhasesQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
     : IQueryHandler<GetProjectPhasesQuery, List<ProjectPhaseListDto>>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;

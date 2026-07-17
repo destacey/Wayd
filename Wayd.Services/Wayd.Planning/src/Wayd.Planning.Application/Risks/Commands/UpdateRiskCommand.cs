@@ -43,7 +43,7 @@ public sealed class UpdateRiskCommandValidator : CustomValidator<UpdateRiskComma
     }
 }
 
-internal sealed class UpdateRiskCommandHandler : ICommandHandler<UpdateRiskCommand, int>
+public sealed class UpdateRiskCommandHandler : ICommandHandler<UpdateRiskCommand, int>
 {
     private readonly IPlanningDbContext _planningDbContext;
     private readonly IDateTimeProvider _dateTimeProvider;

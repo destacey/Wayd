@@ -19,7 +19,7 @@ public sealed record GetTeamNavigationQuery : IQuery<TeamNavigationDto?>
     public int? TeamKey { get; }
 }
 
-internal sealed class GetTeamNavigationQueryHandler : IQueryHandler<GetTeamNavigationQuery, TeamNavigationDto?>
+public sealed class GetTeamNavigationQueryHandler : IQueryHandler<GetTeamNavigationQuery, TeamNavigationDto?>
 {
     private readonly IOrganizationDbContext _organizationDbContext;
     private readonly ILogger<GetTeamNavigationQueryHandler> _logger;

@@ -4,7 +4,7 @@ using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkTypeLevels.Queries;
 
-internal sealed class GetWorkTypeLevelsQueryHandler : IQueryHandler<GetWorkTypeLevelsQuery, IReadOnlyList<IWorkTypeLevelDto>>
+public sealed class GetWorkTypeLevelsQueryHandler : IQueryHandler<GetWorkTypeLevelsQuery, IReadOnlyList<IWorkTypeLevelDto>>
 {
     private readonly IWorkDbContext _workDbContext;
 

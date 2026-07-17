@@ -6,7 +6,7 @@ namespace Wayd.Work.Application.WorkItems.Queries;
 // TODO: change this to IdOrKey parameter
 public sealed record GetProjectWorkItemsQuery(Guid ProjectId) : IQuery<Result<List<WorkItemListDto>>>;
 
-internal sealed class GetProjectWorkItemsQueryHandler(IWorkDbContext workDbContext)
+public sealed class GetProjectWorkItemsQueryHandler(IWorkDbContext workDbContext)
     : IQueryHandler<GetProjectWorkItemsQuery, Result<List<WorkItemListDto>>>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;

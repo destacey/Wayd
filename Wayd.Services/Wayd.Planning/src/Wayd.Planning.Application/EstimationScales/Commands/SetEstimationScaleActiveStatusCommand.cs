@@ -11,7 +11,7 @@ public sealed class SetEstimationScaleActiveStatusCommandValidator : CustomValid
     }
 }
 
-internal sealed class SetEstimationScaleActiveStatusCommandHandler(IPlanningDbContext planningDbContext, ILogger<SetEstimationScaleActiveStatusCommandHandler> logger) : ICommandHandler<SetEstimationScaleActiveStatusCommand>
+public sealed class SetEstimationScaleActiveStatusCommandHandler(IPlanningDbContext planningDbContext, ILogger<SetEstimationScaleActiveStatusCommandHandler> logger) : ICommandHandler<SetEstimationScaleActiveStatusCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ILogger<SetEstimationScaleActiveStatusCommandHandler> _logger = logger;

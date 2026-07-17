@@ -18,7 +18,7 @@ public sealed record GetStrategicThemeQuery : IQuery<StrategicThemeDetailsDto?>
     public Expression<Func<StrategicTheme, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetStrategicThemeQueryHandler(IStrategicManagementDbContext strategicManagementDbContext) : IQueryHandler<GetStrategicThemeQuery, StrategicThemeDetailsDto?>
+public sealed class GetStrategicThemeQueryHandler(IStrategicManagementDbContext strategicManagementDbContext) : IQueryHandler<GetStrategicThemeQuery, StrategicThemeDetailsDto?>
 {
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
 

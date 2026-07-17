@@ -3,7 +3,7 @@ using Wayd.Common.Domain.Enums;
 
 namespace Wayd.Planning.Application.Iterations.Queries;
 
-internal sealed class GetIterationMappingsQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetIterationMappingsQueryHandler> logger) : IQueryHandler<GetIterationMappingsQuery, Dictionary<string, Guid>>
+public sealed class GetIterationMappingsQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetIterationMappingsQueryHandler> logger) : IQueryHandler<GetIterationMappingsQuery, Dictionary<string, Guid>>
 {
     private const string AppRequestName = nameof(GetIterationMappingsQuery);
 

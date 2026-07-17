@@ -44,7 +44,7 @@ public sealed class UpdateRoadmapCommandValidator : AbstractValidator<UpdateRoad
     }
 }
 
-internal sealed class UpdateRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<UpdateRoadmapCommandHandler> logger) : ICommandHandler<UpdateRoadmapCommand>
+public sealed class UpdateRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<UpdateRoadmapCommandHandler> logger) : ICommandHandler<UpdateRoadmapCommand>
 {
     private const string AppRequestName = nameof(UpdateRoadmapCommand);
 

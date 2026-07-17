@@ -12,7 +12,7 @@ public sealed record SyncAzureDevOpsConnectionConfigurationCommand(
     List<IExternalTeam> Teams)
     : ICommand;
 
-internal sealed class SyncAzureDevOpsConnectionConfigurationCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, IDateTimeProvider dateTimeProvider, ILogger<SyncAzureDevOpsConnectionConfigurationCommandHandler> logger, IAzureDevOpsService azureDevOpsService, IDispatcher dispatcher) : ICommandHandler<SyncAzureDevOpsConnectionConfigurationCommand>
+public sealed class SyncAzureDevOpsConnectionConfigurationCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, IDateTimeProvider dateTimeProvider, ILogger<SyncAzureDevOpsConnectionConfigurationCommandHandler> logger, IAzureDevOpsService azureDevOpsService, IDispatcher dispatcher) : ICommandHandler<SyncAzureDevOpsConnectionConfigurationCommand>
 {
     private const string AppRequestName = nameof(SyncAzureDevOpsConnectionConfigurationCommand);
 

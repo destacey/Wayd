@@ -13,7 +13,7 @@ public sealed record GetWorkTypesQuery : IQuery<IReadOnlyList<WorkTypeDto>>
     public bool IncludeInactive { get; }
 }
 
-internal sealed class GetWorkTypesQueryHandler : IQueryHandler<GetWorkTypesQuery, IReadOnlyList<WorkTypeDto>>
+public sealed class GetWorkTypesQueryHandler : IQueryHandler<GetWorkTypesQuery, IReadOnlyList<WorkTypeDto>>
 {
     private readonly IWorkDbContext _workDbContext;
 

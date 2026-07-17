@@ -4,7 +4,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 
 public sealed record GetProjectIdQuery(ProjectKey Key) : IQuery<Guid?>;
 
-internal sealed class GetProjectIdQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
+public sealed class GetProjectIdQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
     : IQueryHandler<GetProjectIdQuery, Guid?>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;

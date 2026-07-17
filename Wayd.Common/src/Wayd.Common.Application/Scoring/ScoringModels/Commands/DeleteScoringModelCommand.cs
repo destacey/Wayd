@@ -12,7 +12,7 @@ public sealed class DeleteScoringModelCommandValidator : AbstractValidator<Delet
     }
 }
 
-internal sealed class DeleteScoringModelCommandHandler(
+public sealed class DeleteScoringModelCommandHandler(
     IWaydDbContext waydDbContext,
     ILogger<DeleteScoringModelCommandHandler> logger)
     : ICommandHandler<DeleteScoringModelCommand>

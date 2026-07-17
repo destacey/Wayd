@@ -11,7 +11,7 @@ public sealed class DeleteEstimationScaleCommandValidator : CustomValidator<Dele
     }
 }
 
-internal sealed class DeleteEstimationScaleCommandHandler(IPlanningDbContext planningDbContext, ILogger<DeleteEstimationScaleCommandHandler> logger) : ICommandHandler<DeleteEstimationScaleCommand>
+public sealed class DeleteEstimationScaleCommandHandler(IPlanningDbContext planningDbContext, ILogger<DeleteEstimationScaleCommandHandler> logger) : ICommandHandler<DeleteEstimationScaleCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ILogger<DeleteEstimationScaleCommandHandler> _logger = logger;

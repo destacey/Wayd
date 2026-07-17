@@ -16,7 +16,7 @@ public sealed record TeamExistsQuery : IQuery<bool>
     public int? TeamKey { get; }
 }
 
-internal sealed class TeamExistsQueryHandler : IQueryHandler<TeamExistsQuery, bool>
+public sealed class TeamExistsQueryHandler : IQueryHandler<TeamExistsQuery, bool>
 {
     private readonly IOrganizationDbContext _organizationDbContext;
     private readonly ILogger<TeamExistsQueryHandler> _logger;

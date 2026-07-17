@@ -5,7 +5,7 @@ namespace Wayd.Work.Application.WorkTypeTiers.Queries;
 
 public sealed record GetWorkTypeTiersQuery : IQuery<IReadOnlyList<WorkTypeTierDto>> { }
 
-internal sealed class GetWorkTypeTiersQueryHandler : IQueryHandler<GetWorkTypeTiersQuery, IReadOnlyList<WorkTypeTierDto>>
+public sealed class GetWorkTypeTiersQueryHandler : IQueryHandler<GetWorkTypeTiersQuery, IReadOnlyList<WorkTypeTierDto>>
 {
     public Task<IReadOnlyList<WorkTypeTierDto>> Handle(GetWorkTypeTiersQuery request, CancellationToken cancellationToken)
     {

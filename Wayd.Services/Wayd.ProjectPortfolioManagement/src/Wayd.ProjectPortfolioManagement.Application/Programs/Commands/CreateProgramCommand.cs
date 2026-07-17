@@ -39,7 +39,7 @@ public sealed class CreateProgramCommandValidator : AbstractValidator<CreateProg
     }
 }
 
-internal sealed class CreateProgramCommandHandler(
+public sealed class CreateProgramCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ILogger<CreateProgramCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)

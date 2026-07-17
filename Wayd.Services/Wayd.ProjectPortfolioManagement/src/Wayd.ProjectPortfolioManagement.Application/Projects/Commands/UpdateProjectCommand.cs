@@ -52,7 +52,7 @@ public sealed class UpdateProjectCommandValidator : AbstractValidator<UpdateProj
     }
 }
 
-internal sealed class UpdateProjectCommandHandler(
+public sealed class UpdateProjectCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<UpdateProjectCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)

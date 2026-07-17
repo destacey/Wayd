@@ -17,7 +17,7 @@ public sealed class RemoveProjectLifecyclePhaseCommandValidator : AbstractValida
     }
 }
 
-internal sealed class RemoveProjectLifecyclePhaseCommandHandler(
+public sealed class RemoveProjectLifecyclePhaseCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<RemoveProjectLifecyclePhaseCommandHandler> logger)
     : ICommandHandler<RemoveProjectLifecyclePhaseCommand>

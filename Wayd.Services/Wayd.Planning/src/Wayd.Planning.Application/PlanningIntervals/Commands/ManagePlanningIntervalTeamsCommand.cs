@@ -2,7 +2,7 @@
 
 public sealed record ManagePlanningIntervalTeamsCommand(Guid Id, IEnumerable<Guid> TeamIds) : ICommand;
 
-internal sealed class ManagePlanningIntervalTeamsCommandHandler : ICommandHandler<ManagePlanningIntervalTeamsCommand>
+public sealed class ManagePlanningIntervalTeamsCommandHandler : ICommandHandler<ManagePlanningIntervalTeamsCommand>
 {
     private const string AppRequestName = nameof(ManagePlanningIntervalTeamsCommand);
 

@@ -19,7 +19,7 @@ public sealed class DeletePlanningIntervalObjectiveHealthCheckCommandValidator
     }
 }
 
-internal sealed class DeletePlanningIntervalObjectiveHealthCheckCommandHandler(
+public sealed class DeletePlanningIntervalObjectiveHealthCheckCommandHandler(
     IPlanningDbContext planningDbContext,
     ILogger<DeletePlanningIntervalObjectiveHealthCheckCommandHandler> logger)
     : ICommandHandler<DeletePlanningIntervalObjectiveHealthCheckCommand>

@@ -14,7 +14,7 @@ public sealed class ManageStrategicInitiativeProjectsCommandValidator : Abstract
     }
 }
 
-internal sealed class ManageStrategicInitiativeProjectsCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<ManageStrategicInitiativeProjectsCommandHandler> logger) : ICommandHandler<ManageStrategicInitiativeProjectsCommand>
+public sealed class ManageStrategicInitiativeProjectsCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<ManageStrategicInitiativeProjectsCommandHandler> logger) : ICommandHandler<ManageStrategicInitiativeProjectsCommand>
 {
     private const string AppRequestName = nameof(ManageStrategicInitiativeProjectsCommand);
 

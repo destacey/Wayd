@@ -7,7 +7,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Scoring.Queries;
 public sealed record GetProjectScoringContextQuery(Guid ProjectId)
     : IQuery<ProjectScoringContextDto?>;
 
-internal sealed class GetProjectScoringContextQueryHandler(
+public sealed class GetProjectScoringContextQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext)
     : IQueryHandler<GetProjectScoringContextQuery, ProjectScoringContextDto?>
 {

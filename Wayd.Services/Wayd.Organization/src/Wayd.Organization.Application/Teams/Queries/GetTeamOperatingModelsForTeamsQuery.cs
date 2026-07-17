@@ -11,7 +11,7 @@ namespace Wayd.Organization.Application.Teams.Queries;
 public sealed record GetTeamOperatingModelsForTeamsQuery(IEnumerable<Guid> TeamIds, LocalDate? AsOfDate = null)
     : IQuery<List<TeamOperatingModelDetailsDto>>;
 
-internal sealed class GetTeamOperatingModelsForTeamsQueryHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider)
+public sealed class GetTeamOperatingModelsForTeamsQueryHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetTeamOperatingModelsForTeamsQuery, List<TeamOperatingModelDetailsDto>>
 {
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;

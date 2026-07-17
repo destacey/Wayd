@@ -8,7 +8,7 @@ namespace Wayd.StrategicManagement.Application.StrategicThemes.Queries;
 /// <param name="StateFilter"></param>
 public sealed record GetStrategicThemesDataQuery() : IQuery<List<IStrategicThemeData>>;
 
-internal sealed class GetStrategicThemesDataQueryHandler(IStrategicManagementDbContext strategicManagementDbContext) : IQueryHandler<GetStrategicThemesDataQuery, List<IStrategicThemeData>>
+public sealed class GetStrategicThemesDataQueryHandler(IStrategicManagementDbContext strategicManagementDbContext) : IQueryHandler<GetStrategicThemesDataQuery, List<IStrategicThemeData>>
 {
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
 

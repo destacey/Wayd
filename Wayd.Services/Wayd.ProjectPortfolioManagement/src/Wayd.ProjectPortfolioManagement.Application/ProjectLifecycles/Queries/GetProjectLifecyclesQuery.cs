@@ -5,7 +5,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.ProjectLifecycles.Queries;
 
 public sealed record GetProjectLifecyclesQuery(ProjectLifecycleState? StateFilter = null) : IQuery<List<ProjectLifecycleListDto>>;
 
-internal sealed class GetProjectLifecyclesQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
+public sealed class GetProjectLifecyclesQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
     : IQueryHandler<GetProjectLifecyclesQuery, List<ProjectLifecycleListDto>>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = projectPortfolioManagementDbContext;

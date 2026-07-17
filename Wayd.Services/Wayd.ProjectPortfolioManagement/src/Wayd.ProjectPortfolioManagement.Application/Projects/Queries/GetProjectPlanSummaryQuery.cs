@@ -22,7 +22,7 @@ public sealed record GetProjectPlanSummaryQuery : IQuery<ProjectPlanSummaryDto>
     public Guid? EmployeeId { get; }
 }
 
-internal sealed class GetProjectPlanSummaryQueryHandler(
+public sealed class GetProjectPlanSummaryQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetProjectPlanSummaryQuery, ProjectPlanSummaryDto>

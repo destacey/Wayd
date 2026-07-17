@@ -16,7 +16,7 @@ public sealed class SubmitVoteCommandValidator : CustomValidator<SubmitVoteComma
     }
 }
 
-internal sealed class SubmitVoteCommandHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, IPokerSessionNotifier notifier, ILogger<SubmitVoteCommandHandler> logger) : ICommandHandler<SubmitVoteCommand>
+public sealed class SubmitVoteCommandHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, IPokerSessionNotifier notifier, ILogger<SubmitVoteCommandHandler> logger) : ICommandHandler<SubmitVoteCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;

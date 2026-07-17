@@ -23,7 +23,7 @@ public sealed class ChangeProjectKeyCommandValidator : AbstractValidator<ChangeP
     }
 }
 
-internal sealed class ChangeProjectKeyCommandHandler(
+public sealed class ChangeProjectKeyCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<ChangeProjectKeyCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)

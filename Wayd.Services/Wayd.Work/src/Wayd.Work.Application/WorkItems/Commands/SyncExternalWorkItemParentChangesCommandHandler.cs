@@ -4,7 +4,7 @@ using Wayd.Work.Application.WorkItems.Dtos;
 
 namespace Wayd.Work.Application.WorkItems.Commands;
 
-internal sealed class SyncExternalWorkItemParentChangesCommandHandler(IWorkDbContext workDbContext, ILogger<SyncExternalWorkItemParentChangesCommandHandler> logger) : ICommandHandler<SyncExternalWorkItemParentChangesCommand>
+public sealed class SyncExternalWorkItemParentChangesCommandHandler(IWorkDbContext workDbContext, ILogger<SyncExternalWorkItemParentChangesCommandHandler> logger) : ICommandHandler<SyncExternalWorkItemParentChangesCommand>
 {
     private const string AppRequestName = nameof(SyncExternalWorkItemParentChangesCommand);
 

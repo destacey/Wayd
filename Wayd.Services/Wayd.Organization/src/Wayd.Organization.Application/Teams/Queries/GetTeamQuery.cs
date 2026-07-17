@@ -18,7 +18,7 @@ public sealed record GetTeamQuery : IQuery<TeamDetailsDto?>
     public int? TeamKey { get; }
 }
 
-internal sealed class GetTeamQueryHandler(
+public sealed class GetTeamQueryHandler(
     IOrganizationDbContext organizationDbContext,
     ILogger<GetTeamQueryHandler> logger,
     IDateTimeProvider dateTimeProvider)

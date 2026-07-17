@@ -23,7 +23,7 @@ public sealed record GetWorkItemProjectInfoQuery : IQuery<Result<WorkItemProject
     public WorkItemKey WorkItemKey { get; }
 }
 
-internal sealed class GetWorkItemProjectInfoQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkItemProjectInfoQueryHandler> logger) : IQueryHandler<GetWorkItemProjectInfoQuery, Result<WorkItemProjectInfoDto?>>
+public sealed class GetWorkItemProjectInfoQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkItemProjectInfoQueryHandler> logger) : IQueryHandler<GetWorkItemProjectInfoQuery, Result<WorkItemProjectInfoDto?>>
 {
     private const string AppRequestName = nameof(GetWorkItemProjectInfoQuery);
 

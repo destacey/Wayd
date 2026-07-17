@@ -5,7 +5,7 @@ namespace Wayd.Work.Application.WorkItems.Queries;
 
 public sealed record GetExternalObjectWorkItemMetricsQuery(Guid ObjectiveId, DateOnly Start, DateOnly End) : IQuery<List<WorkItemProgressDailyRollupDto>>;
 
-internal sealed class GetExternalObjectWorkItemMetricsQueryHandler(IWorkDbContext workDbContext) : IQueryHandler<GetExternalObjectWorkItemMetricsQuery, List<WorkItemProgressDailyRollupDto>>
+public sealed class GetExternalObjectWorkItemMetricsQueryHandler(IWorkDbContext workDbContext) : IQueryHandler<GetExternalObjectWorkItemMetricsQuery, List<WorkItemProgressDailyRollupDto>>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
 

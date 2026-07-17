@@ -31,7 +31,7 @@ public sealed class UpdateProjectTaskPlacementCommandValidator : CustomValidator
     }
 }
 
-internal sealed class UpdateProjectTaskPlacementCommandHandler(
+public sealed class UpdateProjectTaskPlacementCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ILogger<UpdateProjectTaskPlacementCommandHandler> logger)
     : ICommandHandler<UpdateProjectTaskPlacementCommand>

@@ -12,7 +12,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Queries
 /// </summary>
 public sealed record GetPortfolioIdsToRebalanceQuery : IQuery<List<Guid>>;
 
-internal sealed class GetPortfolioIdsToRebalanceQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
+public sealed class GetPortfolioIdsToRebalanceQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
     : IQueryHandler<GetPortfolioIdsToRebalanceQuery, List<Guid>>
 {
     // Adjacent ranks start RankStep (1000) apart and halve on each midpoint insert into the same gap

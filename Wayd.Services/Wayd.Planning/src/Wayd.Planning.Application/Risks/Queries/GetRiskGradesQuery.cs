@@ -6,7 +6,7 @@ namespace Wayd.Planning.Application.Risks.Queries;
 
 public sealed record GetRiskGradesQuery : IQuery<IReadOnlyList<RiskGradeDto>> { }
 
-internal sealed class GetRiskGradesQueryHandler : IQueryHandler<GetRiskGradesQuery, IReadOnlyList<RiskGradeDto>>
+public sealed class GetRiskGradesQueryHandler : IQueryHandler<GetRiskGradesQuery, IReadOnlyList<RiskGradeDto>>
 {
     public Task<IReadOnlyList<RiskGradeDto>> Handle(GetRiskGradesQuery request, CancellationToken cancellationToken)
     {

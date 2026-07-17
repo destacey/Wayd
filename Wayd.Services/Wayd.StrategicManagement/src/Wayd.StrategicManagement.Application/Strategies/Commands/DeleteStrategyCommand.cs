@@ -12,7 +12,7 @@ public sealed class DeleteStrategyCommandValidator : AbstractValidator<DeleteStr
     }
 }
 
-internal sealed class DeleteStrategyCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<DeleteStrategyCommandHandler> logger) : ICommandHandler<DeleteStrategyCommand>
+public sealed class DeleteStrategyCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<DeleteStrategyCommandHandler> logger) : ICommandHandler<DeleteStrategyCommand>
 {
     private const string AppRequestName = nameof(DeleteStrategyCommand);
 

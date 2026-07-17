@@ -11,7 +11,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Queri
 /// <param name="PortfolioIdOrKey"></param>
 public sealed record GetStrategicInitiativesQuery(StrategicInitiativeStatus[]? StatusFilter = null, IdOrKey? PortfolioIdOrKey = null) : IQuery<List<StrategicInitiativeListDto>>;
 
-internal sealed class GetStrategicInitiativesQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
+public sealed class GetStrategicInitiativesQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
     : IQueryHandler<GetStrategicInitiativesQuery, List<StrategicInitiativeListDto>>
 {
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;

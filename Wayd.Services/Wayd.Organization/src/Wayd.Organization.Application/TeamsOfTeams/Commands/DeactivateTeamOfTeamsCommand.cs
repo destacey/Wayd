@@ -17,7 +17,7 @@ public sealed class DeactivateTeamOfTeamsCommandValidator : CustomValidator<Deac
     }
 }
 
-internal sealed class DeactivateTeamOfTeamsCommandHandler(IOrganizationDbContext organizationDbContext, ILogger<DeactivateTeamOfTeamsCommand> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<DeactivateTeamOfTeamsCommand>
+public sealed class DeactivateTeamOfTeamsCommandHandler(IOrganizationDbContext organizationDbContext, ILogger<DeactivateTeamOfTeamsCommand> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<DeactivateTeamOfTeamsCommand>
 {
     private const string RequestName = nameof(DeactivateTeamOfTeamsCommand);
 

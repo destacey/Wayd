@@ -5,7 +5,7 @@ namespace Wayd.Work.Application.WorkItems.Queries;
 
 public sealed record GetExternalObjectWorkItemsQuery(Guid ObjectId) : IQuery<WorkItemsSummaryDto>;
 
-internal sealed class GetExternalObjectWorkItemsQueryHandler(IWorkDbContext workDbContext) : IQueryHandler<GetExternalObjectWorkItemsQuery, WorkItemsSummaryDto>
+public sealed class GetExternalObjectWorkItemsQueryHandler(IWorkDbContext workDbContext) : IQueryHandler<GetExternalObjectWorkItemsQuery, WorkItemsSummaryDto>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
 

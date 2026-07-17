@@ -6,7 +6,7 @@ namespace Wayd.Common.Application.Employees.Queries;
 
 public sealed record GetDirectReportsQuery(Guid EmployeeId) : IQuery<IReadOnlyList<EmployeeListDto>>;
 
-internal sealed class GetDirectReportsQueryHandler : IQueryHandler<GetDirectReportsQuery, IReadOnlyList<EmployeeListDto>>
+public sealed class GetDirectReportsQueryHandler : IQueryHandler<GetDirectReportsQuery, IReadOnlyList<EmployeeListDto>>
 {
     private readonly IWaydDbContext _waydDbContext;
     private readonly ILogger<GetDirectReportsQueryHandler> _logger;

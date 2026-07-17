@@ -6,7 +6,7 @@ namespace Wayd.Planning.Application.PlanningIntervals.Queries;
 
 public sealed record GetPlanningIntervalObjectiveStatusesQuery : IQuery<IReadOnlyList<PlanningIntervalObjectiveStatusDto>> { }
 
-internal sealed class GetPlanningIntervalObjectiveStatusesQueryHandler : IQueryHandler<GetPlanningIntervalObjectiveStatusesQuery, IReadOnlyList<PlanningIntervalObjectiveStatusDto>>
+public sealed class GetPlanningIntervalObjectiveStatusesQueryHandler : IQueryHandler<GetPlanningIntervalObjectiveStatusesQuery, IReadOnlyList<PlanningIntervalObjectiveStatusDto>>
 {
     public Task<IReadOnlyList<PlanningIntervalObjectiveStatusDto>> Handle(GetPlanningIntervalObjectiveStatusesQuery request, CancellationToken cancellationToken)
     {

@@ -33,7 +33,7 @@ public sealed class UpdateProjectPortfolioCommandValidator : AbstractValidator<U
     }
 }
 
-internal sealed class UpdateProjectPortfolioCommandHandler(
+public sealed class UpdateProjectPortfolioCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<UpdateProjectPortfolioCommandHandler> logger)
     : ICommandHandler<UpdateProjectPortfolioCommand>

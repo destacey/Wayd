@@ -34,7 +34,7 @@ public sealed class AddScoringModelOutputCommandValidator : AbstractValidator<Ad
     }
 }
 
-internal sealed class AddScoringModelOutputCommandHandler(
+public sealed class AddScoringModelOutputCommandHandler(
     IWaydDbContext waydDbContext,
     ILogger<AddScoringModelOutputCommandHandler> logger)
     : ICommandHandler<AddScoringModelOutputCommand, Guid>

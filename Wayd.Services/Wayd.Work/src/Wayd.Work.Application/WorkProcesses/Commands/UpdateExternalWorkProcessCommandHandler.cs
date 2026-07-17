@@ -5,7 +5,7 @@ using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkProcesses.Commands;
 
-internal sealed class UpdateExternalWorkProcessCommandHandler(IWorkDbContext workDbContext, IDateTimeProvider dateTimeProvider, ILogger<UpdateExternalWorkProcessCommandHandler> logger) : ICommandHandler<UpdateExternalWorkProcessCommand>
+public sealed class UpdateExternalWorkProcessCommandHandler(IWorkDbContext workDbContext, IDateTimeProvider dateTimeProvider, ILogger<UpdateExternalWorkProcessCommandHandler> logger) : ICommandHandler<UpdateExternalWorkProcessCommand>
 {
     private const string AppRequestName = nameof(UpdateExternalWorkProcessCommand);
 

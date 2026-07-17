@@ -2,7 +2,7 @@
 
 public sealed record SyncTeamMembershipEdgesCommand() : ICommand, ILongRunningRequest;
 
-internal sealed class SyncTeamMembershipEdgesCommandHandler(IOrganizationDbContext organizationDbContext, ILogger<SyncTeamMembershipEdgesCommandHandler> logger) : ICommandHandler<SyncTeamMembershipEdgesCommand>
+public sealed class SyncTeamMembershipEdgesCommandHandler(IOrganizationDbContext organizationDbContext, ILogger<SyncTeamMembershipEdgesCommandHandler> logger) : ICommandHandler<SyncTeamMembershipEdgesCommand>
 {
     private const string RequestName = nameof(SyncTeamMembershipEdgesCommand);
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;

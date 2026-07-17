@@ -18,7 +18,7 @@ public sealed record CheckPlanningIntervalObjectiveExistsQuery : IQuery<Guid?>
     public Expression<Func<PlanningIntervalObjective, bool>> ObjectiveIdOrKeyFilter { get; }
 }
 
-internal sealed class CheckPlanningIntervalObjectiveExistsQueryHandler(IPlanningDbContext planningDbContext) : IQueryHandler<CheckPlanningIntervalObjectiveExistsQuery, Guid?>
+public sealed class CheckPlanningIntervalObjectiveExistsQueryHandler(IPlanningDbContext planningDbContext) : IQueryHandler<CheckPlanningIntervalObjectiveExistsQuery, Guid?>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
 

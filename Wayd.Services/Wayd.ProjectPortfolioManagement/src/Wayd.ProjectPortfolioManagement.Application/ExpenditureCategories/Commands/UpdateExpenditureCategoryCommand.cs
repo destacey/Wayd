@@ -29,7 +29,7 @@ public sealed class UpdateExpenditureCategoryCommandValidator : AbstractValidato
     }
 }
 
-internal sealed class UpdateExpenditureCategoryCommandHandler(
+public sealed class UpdateExpenditureCategoryCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<UpdateExpenditureCategoryCommandHandler> logger)
     : ICommandHandler<UpdateExpenditureCategoryCommand>

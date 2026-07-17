@@ -4,7 +4,7 @@ namespace Wayd.Planning.Application.EstimationScales.Queries;
 
 public sealed record GetEstimationScalesQuery(bool IncludeInactive = false) : IQuery<IReadOnlyList<EstimationScaleDto>>;
 
-internal sealed class GetEstimationScalesQueryHandler(IPlanningDbContext planningDbContext) : IQueryHandler<GetEstimationScalesQuery, IReadOnlyList<EstimationScaleDto>>
+public sealed class GetEstimationScalesQueryHandler(IPlanningDbContext planningDbContext) : IQueryHandler<GetEstimationScalesQuery, IReadOnlyList<EstimationScaleDto>>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
 

@@ -15,7 +15,7 @@ public sealed class WithdrawVoteCommandValidator : CustomValidator<WithdrawVoteC
     }
 }
 
-internal sealed class WithdrawVoteCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IPokerSessionNotifier notifier, ILogger<WithdrawVoteCommandHandler> logger) : ICommandHandler<WithdrawVoteCommand>
+public sealed class WithdrawVoteCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IPokerSessionNotifier notifier, ILogger<WithdrawVoteCommandHandler> logger) : ICommandHandler<WithdrawVoteCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IPokerSessionNotifier _notifier = notifier;

@@ -5,7 +5,7 @@ namespace Wayd.Work.Application.WorkTeams.Commands;
 
 public sealed record SyncWorkTeamsCommand(IEnumerable<ISimpleTeam> Teams) : ICommand, ILongRunningRequest;
 
-internal sealed class SyncWorkTeamsCommandHandler(
+public sealed class SyncWorkTeamsCommandHandler(
     IWorkDbContext workDbContext,
     ILogger<SyncWorkTeamsCommandHandler> logger)
     : ICommandHandler<SyncWorkTeamsCommand>

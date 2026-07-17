@@ -6,7 +6,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Queries;
 
 public sealed record GetProjectTaskPrioritiesQuery : IQuery<IReadOnlyList<TaskPriorityDto>> { }
 
-internal sealed class GetProjectTaskPrioritiesQueryHandler : IQueryHandler<GetProjectTaskPrioritiesQuery, IReadOnlyList<TaskPriorityDto>>
+public sealed class GetProjectTaskPrioritiesQueryHandler : IQueryHandler<GetProjectTaskPrioritiesQuery, IReadOnlyList<TaskPriorityDto>>
 {
     public Task<IReadOnlyList<TaskPriorityDto>> Handle(GetProjectTaskPrioritiesQuery request, CancellationToken cancellationToken)
     {

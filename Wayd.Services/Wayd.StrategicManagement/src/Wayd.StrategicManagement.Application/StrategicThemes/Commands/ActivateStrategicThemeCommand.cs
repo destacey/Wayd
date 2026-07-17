@@ -11,7 +11,7 @@ public sealed class ActivateStrategicThemeCommandValidator : AbstractValidator<A
     }
 }
 
-internal sealed class ActivateStrategicThemeCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<ActivateStrategicThemeCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ActivateStrategicThemeCommand>
+public sealed class ActivateStrategicThemeCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<ActivateStrategicThemeCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ActivateStrategicThemeCommand>
 {
     private const string AppRequestName = nameof(ActivateStrategicThemeCommand);
 

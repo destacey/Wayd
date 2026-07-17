@@ -5,7 +5,7 @@ namespace Wayd.StrategicManagement.Application.StrategicThemes.Queries;
 
 public sealed record GetStrategicThemeOptionsQuery(bool? IncludeArchived) : IQuery<List<StrategicThemeOptionDto>>;
 
-internal sealed class GetStrategicThemeOptionsQueryHandler(IStrategicManagementDbContext strategicManagementDbContext) : IQueryHandler<GetStrategicThemeOptionsQuery, List<StrategicThemeOptionDto>>
+public sealed class GetStrategicThemeOptionsQueryHandler(IStrategicManagementDbContext strategicManagementDbContext) : IQueryHandler<GetStrategicThemeOptionsQuery, List<StrategicThemeOptionDto>>
 {
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
 

@@ -20,7 +20,7 @@ public sealed class AddScoringScaleCommandValidator : AbstractValidator<AddScori
     }
 }
 
-internal sealed class AddScoringScaleCommandHandler(
+public sealed class AddScoringScaleCommandHandler(
     IWaydDbContext waydDbContext,
     ILogger<AddScoringScaleCommandHandler> logger)
     : ICommandHandler<AddScoringScaleCommand, Guid>

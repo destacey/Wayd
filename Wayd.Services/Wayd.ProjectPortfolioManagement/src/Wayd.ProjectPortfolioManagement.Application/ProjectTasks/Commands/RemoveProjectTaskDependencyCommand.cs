@@ -17,7 +17,7 @@ public sealed class RemoveProjectTaskDependencyCommandValidator : CustomValidato
     }
 }
 
-internal sealed class RemoveProjectTaskDependencyCommandHandler(
+public sealed class RemoveProjectTaskDependencyCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     IDateTimeProvider dateTimeProvider,
     ILogger<RemoveProjectTaskDependencyCommandHandler> logger)

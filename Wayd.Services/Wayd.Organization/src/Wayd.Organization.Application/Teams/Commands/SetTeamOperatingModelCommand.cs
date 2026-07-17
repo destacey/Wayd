@@ -29,7 +29,7 @@ public sealed class SetTeamOperatingModelCommandValidator : CustomValidator<SetT
     }
 }
 
-internal sealed class SetTeamOperatingModelCommandHandler(
+public sealed class SetTeamOperatingModelCommandHandler(
     IOrganizationDbContext organizationDbContext,
     ILogger<SetTeamOperatingModelCommandHandler> logger) : ICommandHandler<SetTeamOperatingModelCommand, Guid>
 {

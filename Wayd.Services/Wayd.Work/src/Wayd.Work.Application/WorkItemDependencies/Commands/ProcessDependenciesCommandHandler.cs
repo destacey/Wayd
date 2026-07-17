@@ -4,7 +4,7 @@ using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkItemDependencies.Commands;
 
-internal sealed class ProcessDependenciesCommandHandler(
+public sealed class ProcessDependenciesCommandHandler(
     IWorkDbContext workDbContext,
     ILogger<ProcessDependenciesCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)

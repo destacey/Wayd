@@ -16,7 +16,7 @@ public sealed record GetPlanningIntervalIterationQuery : IQuery<PlanningInterval
     public Expression<Func<PlanningIntervalIteration, bool>> IterationIdOrKeyFilter { get; }
 }
 
-internal sealed class GetPlanningIntervalIterationQueryHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider)
+public sealed class GetPlanningIntervalIterationQueryHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetPlanningIntervalIterationQuery, PlanningIntervalIterationDetailsDto?>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;

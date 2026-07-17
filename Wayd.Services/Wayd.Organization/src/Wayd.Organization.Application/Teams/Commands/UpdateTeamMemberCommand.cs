@@ -13,7 +13,7 @@ public sealed class UpdateTeamMemberCommandValidator : CustomValidator<UpdateTea
     }
 }
 
-internal sealed class UpdateTeamMemberCommandHandler(
+public sealed class UpdateTeamMemberCommandHandler(
     IOrganizationDbContext organizationDbContext,
     IWaydDbContext waydDbContext,
     ILogger<UpdateTeamMemberCommandHandler> logger)

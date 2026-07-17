@@ -20,7 +20,7 @@ public sealed class ChangeProjectProgramCommandValidator : AbstractValidator<Cha
     }
 }
 
-internal sealed class ChangeProjectProgramCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<ChangeProjectProgramCommandHandler> logger) : ICommandHandler<ChangeProjectProgramCommand>
+public sealed class ChangeProjectProgramCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<ChangeProjectProgramCommandHandler> logger) : ICommandHandler<ChangeProjectProgramCommand>
 {
     private const string AppRequestName = nameof(ChangeProjectProgramCommand);
 

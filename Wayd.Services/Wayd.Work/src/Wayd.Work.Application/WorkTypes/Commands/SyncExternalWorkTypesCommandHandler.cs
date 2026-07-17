@@ -3,7 +3,7 @@ using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkTypes.Commands;
 
-internal sealed class SyncExternalWorkTypesCommandHandler(IWorkDbContext workDbContext, IDateTimeProvider dateTimeProvider, ILogger<SyncExternalWorkTypesCommandHandler> logger) : ICommandHandler<SyncExternalWorkTypesCommand>
+public sealed class SyncExternalWorkTypesCommandHandler(IWorkDbContext workDbContext, IDateTimeProvider dateTimeProvider, ILogger<SyncExternalWorkTypesCommandHandler> logger) : ICommandHandler<SyncExternalWorkTypesCommand>
 {
     private const string AppRequestName = nameof(SyncExternalWorkTypesCommand);
 

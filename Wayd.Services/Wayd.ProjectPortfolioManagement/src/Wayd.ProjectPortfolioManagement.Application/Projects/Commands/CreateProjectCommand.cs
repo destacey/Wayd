@@ -66,7 +66,7 @@ public sealed class CreateProjectCommandValidator : AbstractValidator<CreateProj
     }
 }
 
-internal sealed class CreateProjectCommandHandler(
+public sealed class CreateProjectCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<CreateProjectCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)

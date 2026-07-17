@@ -17,7 +17,7 @@ public sealed class ReorderProjectLifecyclePhasesCommandValidator : AbstractVali
     }
 }
 
-internal sealed class ReorderProjectLifecyclePhasesCommandHandler(
+public sealed class ReorderProjectLifecyclePhasesCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<ReorderProjectLifecyclePhasesCommandHandler> logger)
     : ICommandHandler<ReorderProjectLifecyclePhasesCommand>

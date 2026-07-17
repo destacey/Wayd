@@ -5,7 +5,7 @@ namespace Wayd.Planning.Application.Iterations.Queries;
 
 public sealed record GetSimpleIterationsQuery() : IQuery<List<ISimpleIteration>>;
 
-internal sealed class GetSimpleIterationsQueryHandler(IPlanningDbContext planningDbContext)
+public sealed class GetSimpleIterationsQueryHandler(IPlanningDbContext planningDbContext)
     : IQueryHandler<GetSimpleIterationsQuery, List<ISimpleIteration>>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;

@@ -3,7 +3,7 @@ using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.Workspaces.Queries;
 
-internal sealed class GetWorkspaceMostRecentChangeDateQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkspaceMostRecentChangeDateQueryHandler> logger) : IQueryHandler<GetWorkspaceMostRecentChangeDateQuery, Result<Instant?>>
+public sealed class GetWorkspaceMostRecentChangeDateQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkspaceMostRecentChangeDateQueryHandler> logger) : IQueryHandler<GetWorkspaceMostRecentChangeDateQuery, Result<Instant?>>
 {
     private const string AppRequestName = nameof(GetWorkspaceMostRecentChangeDateQuery);
 

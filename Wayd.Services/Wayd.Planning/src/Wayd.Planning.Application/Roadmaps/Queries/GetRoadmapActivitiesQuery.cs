@@ -18,7 +18,7 @@ public sealed record GetRoadmapActivitiesQuery : IQuery<List<RoadmapActivityList
     public Expression<Func<Roadmap, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetRoadmapActivitiesQueryHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser) : IQueryHandler<GetRoadmapActivitiesQuery, List<RoadmapActivityListDto>>
+public sealed class GetRoadmapActivitiesQueryHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser) : IQueryHandler<GetRoadmapActivitiesQuery, List<RoadmapActivityListDto>>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly Guid _currentUserEmployeeId = Guard.Against.NullOrEmpty(currentUser.GetEmployeeId());

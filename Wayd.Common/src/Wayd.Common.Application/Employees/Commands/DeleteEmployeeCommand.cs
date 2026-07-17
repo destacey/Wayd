@@ -13,7 +13,7 @@ public sealed class DeleteEmployeeCommandValidator : CustomValidator<DeleteEmplo
     }
 }
 
-internal sealed class DeleteEmployeeCommandHandler(IWaydDbContext waydDbContext, ILogger<DeleteEmployeeCommandHandler> logger) : ICommandHandler<DeleteEmployeeCommand>
+public sealed class DeleteEmployeeCommandHandler(IWaydDbContext waydDbContext, ILogger<DeleteEmployeeCommandHandler> logger) : ICommandHandler<DeleteEmployeeCommand>
 {
     private const string AppRequestName = nameof(DeleteEmployeeCommand);
 

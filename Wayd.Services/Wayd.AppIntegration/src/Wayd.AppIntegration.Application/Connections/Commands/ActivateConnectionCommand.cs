@@ -8,7 +8,7 @@ namespace Wayd.AppIntegration.Application.Connections.Commands;
 /// </summary>
 public sealed record ActivateConnectionCommand(Guid Id) : ICommand;
 
-internal sealed class ActivateConnectionCommandHandler(
+public sealed class ActivateConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
     IDateTimeProvider dateTimeProvider,
     ILogger<ActivateConnectionCommandHandler> logger) : ICommandHandler<ActivateConnectionCommand>

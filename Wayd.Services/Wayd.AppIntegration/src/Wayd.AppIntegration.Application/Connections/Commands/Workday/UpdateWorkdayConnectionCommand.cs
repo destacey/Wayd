@@ -42,7 +42,7 @@ public sealed class UpdateWorkdayConnectionCommandValidator : CustomValidator<Up
     private static bool BeParseable(string url) => WorkdayConnectionConfiguration.TryParse(url, out _);
 }
 
-internal sealed class UpdateWorkdayConnectionCommandHandler(
+public sealed class UpdateWorkdayConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
     IDateTimeProvider dateTimeProvider,
     IWorkdayConnectionInitializer initializer,

@@ -5,7 +5,7 @@ namespace Wayd.Planning.Application.PokerSessions.Queries;
 
 public sealed record GetPokerSessionsQuery(PokerSessionStatus? Status = null) : IQuery<IReadOnlyList<PokerSessionListDto>>;
 
-internal sealed class GetPokerSessionsQueryHandler(IPlanningDbContext planningDbContext) : IQueryHandler<GetPokerSessionsQuery, IReadOnlyList<PokerSessionListDto>>
+public sealed class GetPokerSessionsQueryHandler(IPlanningDbContext planningDbContext) : IQueryHandler<GetPokerSessionsQuery, IReadOnlyList<PokerSessionListDto>>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
 

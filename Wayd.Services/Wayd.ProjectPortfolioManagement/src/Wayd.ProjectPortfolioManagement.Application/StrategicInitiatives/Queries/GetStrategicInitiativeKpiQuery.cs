@@ -18,7 +18,7 @@ public sealed record GetStrategicInitiativeKpiQuery : IQuery<StrategicInitiative
     public IdOrKey KpiIdOrKey { get; }
 }
 
-internal sealed class GetStrategicInitiativeKpiQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
+public sealed class GetStrategicInitiativeKpiQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
     : IQueryHandler<GetStrategicInitiativeKpiQuery, StrategicInitiativeKpiDetailsDto?>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = projectPortfolioManagementDbContext;

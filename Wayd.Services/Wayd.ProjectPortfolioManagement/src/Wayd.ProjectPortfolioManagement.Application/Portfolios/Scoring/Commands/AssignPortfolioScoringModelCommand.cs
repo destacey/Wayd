@@ -11,7 +11,7 @@ public sealed class AssignPortfolioScoringModelCommandValidator : AbstractValida
     }
 }
 
-internal sealed class AssignPortfolioScoringModelCommandHandler(
+public sealed class AssignPortfolioScoringModelCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ILogger<AssignPortfolioScoringModelCommandHandler> logger)
     : ICommandHandler<AssignPortfolioScoringModelCommand>

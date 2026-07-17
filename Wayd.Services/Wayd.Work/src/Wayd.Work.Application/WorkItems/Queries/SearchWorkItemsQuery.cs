@@ -5,7 +5,7 @@ namespace Wayd.Work.Application.WorkItems.Queries;
 
 public sealed record SearchWorkItemsQuery(string SearchTerm, int Top) : IQuery<Result<IReadOnlyCollection<WorkItemListDto>>>;
 
-internal sealed class SearchWorkItemsQueryHandler(IWorkDbContext workDbContext, ILogger<SearchWorkItemsQueryHandler> logger) : IQueryHandler<SearchWorkItemsQuery, Result<IReadOnlyCollection<WorkItemListDto>>>
+public sealed class SearchWorkItemsQueryHandler(IWorkDbContext workDbContext, ILogger<SearchWorkItemsQueryHandler> logger) : IQueryHandler<SearchWorkItemsQuery, Result<IReadOnlyCollection<WorkItemListDto>>>
 {
     private const string AppRequestName = nameof(SearchWorkItemsQuery);
 

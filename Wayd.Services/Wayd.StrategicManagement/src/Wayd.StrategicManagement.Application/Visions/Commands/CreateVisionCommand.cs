@@ -15,7 +15,7 @@ public sealed class CreateVisionCommandValidator : AbstractValidator<CreateVisio
     }
 }
 
-internal sealed class CreateVisionCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<CreateVisionCommandHandler> logger) : ICommandHandler<CreateVisionCommand, ObjectIdAndKey>
+public sealed class CreateVisionCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<CreateVisionCommandHandler> logger) : ICommandHandler<CreateVisionCommand, ObjectIdAndKey>
 {
     private const string AppRequestName = nameof(CreateVisionCommand);
 

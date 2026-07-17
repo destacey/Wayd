@@ -16,7 +16,7 @@ public sealed record GetSprintBacklogQuery : IQuery<List<SprintBacklogItemDto>?>
     public Expression<Func<WorkIteration, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetSprintBacklogQueryHandler(IWorkDbContext workDbContext, ILogger<GetSprintBacklogQueryHandler> logger) : IQueryHandler<GetSprintBacklogQuery, List<SprintBacklogItemDto>?>
+public sealed class GetSprintBacklogQueryHandler(IWorkDbContext workDbContext, ILogger<GetSprintBacklogQueryHandler> logger) : IQueryHandler<GetSprintBacklogQuery, List<SprintBacklogItemDto>?>
 {
     private const string AppRequestName = nameof(GetSprintBacklogQuery);
 

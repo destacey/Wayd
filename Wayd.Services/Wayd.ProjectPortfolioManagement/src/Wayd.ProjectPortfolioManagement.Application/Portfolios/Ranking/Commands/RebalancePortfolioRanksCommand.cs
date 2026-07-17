@@ -12,7 +12,7 @@ public sealed class RebalancePortfolioRanksCommandValidator : AbstractValidator<
     }
 }
 
-internal sealed class RebalancePortfolioRanksCommandHandler(
+public sealed class RebalancePortfolioRanksCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ICurrentUser currentUser,
     ILogger<RebalancePortfolioRanksCommandHandler> logger)

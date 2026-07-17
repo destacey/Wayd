@@ -4,7 +4,7 @@ using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.Workspaces.Commands;
 
-internal sealed class SetSystemIdOnExternalWorkspacesCommandHandler(IWorkDbContext workDbContext, ILogger<SetSystemIdOnExternalWorkspacesCommandHandler> logger) : ICommandHandler<SetSystemIdOnExternalWorkspacesCommand>
+public sealed class SetSystemIdOnExternalWorkspacesCommandHandler(IWorkDbContext workDbContext, ILogger<SetSystemIdOnExternalWorkspacesCommandHandler> logger) : ICommandHandler<SetSystemIdOnExternalWorkspacesCommand>
 {
     private const string AppRequestName = nameof(SetSystemIdOnExternalWorkspacesCommand);
 

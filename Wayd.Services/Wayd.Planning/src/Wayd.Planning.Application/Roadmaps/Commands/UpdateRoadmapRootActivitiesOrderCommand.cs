@@ -21,7 +21,7 @@ public sealed class UpdateRoadmapRootActivitiesOrderCommandValidator : CustomVal
     }
 }
 
-internal sealed class UpdateRoadmapRootActivitiesOrderCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<UpdateRoadmapRootActivitiesOrderCommandHandler> logger) : ICommandHandler<UpdateRoadmapRootActivitiesOrderCommand>
+public sealed class UpdateRoadmapRootActivitiesOrderCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<UpdateRoadmapRootActivitiesOrderCommandHandler> logger) : ICommandHandler<UpdateRoadmapRootActivitiesOrderCommand>
 {
     private const string AppRequestName = nameof(UpdateRoadmapRootActivitiesOrderCommand);
 

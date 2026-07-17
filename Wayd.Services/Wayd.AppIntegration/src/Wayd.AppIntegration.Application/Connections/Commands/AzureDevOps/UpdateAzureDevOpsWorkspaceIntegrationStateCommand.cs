@@ -5,7 +5,7 @@ namespace Wayd.AppIntegration.Application.Connections.Commands;
 
 public sealed record UpdateAzureDevOpsWorkspaceIntegrationStateCommand(Guid ConnectionId, IntegrationRegistration<Guid, Guid> IntegrationRegistration) : ICommand;
 
-internal sealed class UpdateAzureDevOpsBoardsWorkspaceIntegrationStateCommandHandler : ICommandHandler<UpdateAzureDevOpsWorkspaceIntegrationStateCommand>
+public sealed class UpdateAzureDevOpsBoardsWorkspaceIntegrationStateCommandHandler : ICommandHandler<UpdateAzureDevOpsWorkspaceIntegrationStateCommand>
 {
     private const string AppRequestName = nameof(UpdateAzureDevOpsWorkspaceIntegrationStateCommand);
 

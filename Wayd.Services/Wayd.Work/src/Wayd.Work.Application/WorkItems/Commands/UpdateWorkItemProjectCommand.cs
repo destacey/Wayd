@@ -21,7 +21,7 @@ public sealed class UpdateWorkItemProjectCommandValidator : AbstractValidator<Up
     }
 }
 
-internal sealed class UpdateWorkItemProjectCommandHandler(
+public sealed class UpdateWorkItemProjectCommandHandler(
     IWorkDbContext workDbContext,
     ILogger<UpdateWorkItemProjectCommandHandler> logger) : ICommandHandler<UpdateWorkItemProjectCommand>
 {

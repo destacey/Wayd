@@ -7,7 +7,7 @@ namespace Wayd.Links.Queries;
 
 public sealed record GetLinksQuery(Guid ObjectId) : IQuery<IReadOnlyList<LinkDto>>;
 
-internal sealed class GetLinksQueryHandler : IQueryHandler<GetLinksQuery, IReadOnlyList<LinkDto>>
+public sealed class GetLinksQueryHandler : IQueryHandler<GetLinksQuery, IReadOnlyList<LinkDto>>
 {
     private readonly ILinksDbContext _linksDbContext;
 

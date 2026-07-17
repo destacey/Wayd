@@ -20,7 +20,7 @@ public sealed class UpdatePlanningIntervalObjectivesOrderCommandValidator : Cust
     }
 }
 
-internal sealed class UpdatePlanningIntervalObjectivesOrderCommandHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, ILogger<UpdatePlanningIntervalObjectivesOrderCommandHandler> logger) : ICommandHandler<UpdatePlanningIntervalObjectivesOrderCommand>
+public sealed class UpdatePlanningIntervalObjectivesOrderCommandHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, ILogger<UpdatePlanningIntervalObjectivesOrderCommandHandler> logger) : ICommandHandler<UpdatePlanningIntervalObjectivesOrderCommand>
 {
     private const string AppRequestName = nameof(UpdatePlanningIntervalObjectivesOrderCommand);
 

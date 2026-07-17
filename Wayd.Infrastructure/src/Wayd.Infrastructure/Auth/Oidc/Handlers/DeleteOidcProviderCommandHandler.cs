@@ -12,7 +12,7 @@ namespace Wayd.Infrastructure.Auth.Oidc.Handlers;
 /// and the application layer shouldn't need to know about <c>UserIdentity</c>
 /// internals just to support OIDC provider deletion.
 /// </summary>
-internal sealed class DeleteOidcProviderCommandHandler(
+public sealed class DeleteOidcProviderCommandHandler(
     IWaydDbContext dbContext,
     IUserIdentityStore userIdentityStore,
     IOidcProviderRegistry registry,

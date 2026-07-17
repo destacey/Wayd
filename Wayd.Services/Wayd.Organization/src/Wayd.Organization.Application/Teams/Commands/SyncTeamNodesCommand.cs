@@ -2,7 +2,7 @@
 
 public sealed record SyncTeamNodesCommand() : ICommand, ILongRunningRequest;
 
-internal sealed class SyncTeamNodesCommandHandler(IOrganizationDbContext organizationDbContext, ILogger<SyncTeamNodesCommandHandler> logger) : ICommandHandler<SyncTeamNodesCommand>
+public sealed class SyncTeamNodesCommandHandler(IOrganizationDbContext organizationDbContext, ILogger<SyncTeamNodesCommandHandler> logger) : ICommandHandler<SyncTeamNodesCommand>
 {
     private const string RequestName = nameof(SyncTeamNodesCommand);
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;

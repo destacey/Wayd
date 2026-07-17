@@ -46,7 +46,7 @@ public sealed class CreateEntraConnectionCommandValidator : CustomValidator<Crea
     }
 }
 
-internal sealed class CreateEntraConnectionCommandHandler(
+public sealed class CreateEntraConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
     IDateTimeProvider dateTimeProvider,
     ILogger<CreateEntraConnectionCommandHandler> logger)

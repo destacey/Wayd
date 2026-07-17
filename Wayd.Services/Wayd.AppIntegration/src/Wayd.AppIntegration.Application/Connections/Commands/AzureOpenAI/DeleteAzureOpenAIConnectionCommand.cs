@@ -4,7 +4,7 @@ namespace Wayd.AppIntegration.Application.Connections.Commands.AzureOpenAI;
 
 public sealed record DeleteAzureOpenAIConnectionCommand(Guid Id) : ICommand;
 
-internal sealed class DeleteAzureOpenAIConnectionCommandHandler : ICommandHandler<DeleteAzureOpenAIConnectionCommand>
+public sealed class DeleteAzureOpenAIConnectionCommandHandler : ICommandHandler<DeleteAzureOpenAIConnectionCommand>
 {
     private readonly IAppIntegrationDbContext _appIntegrationDbContext;
     private readonly ILogger<DeleteAzureOpenAIConnectionCommandHandler> _logger;

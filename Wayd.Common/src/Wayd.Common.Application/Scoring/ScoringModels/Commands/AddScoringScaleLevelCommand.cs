@@ -25,7 +25,7 @@ public sealed class AddScoringScaleLevelCommandValidator : AbstractValidator<Add
     }
 }
 
-internal sealed class AddScoringScaleLevelCommandHandler(
+public sealed class AddScoringScaleLevelCommandHandler(
     IWaydDbContext waydDbContext,
     ILogger<AddScoringScaleLevelCommandHandler> logger)
     : ICommandHandler<AddScoringScaleLevelCommand, Guid>

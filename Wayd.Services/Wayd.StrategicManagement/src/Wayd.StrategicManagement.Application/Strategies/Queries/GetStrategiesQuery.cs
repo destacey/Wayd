@@ -9,7 +9,7 @@ namespace Wayd.StrategicManagement.Application.Strategies.Queries;
 /// <param name="StatusFilter"></param>
 public sealed record GetStrategiesQuery(StrategyStatus? StatusFilter) : IQuery<List<StrategyListDto>>;
 
-internal sealed class GetStrategysQueryHandler(IStrategicManagementDbContext strategicManagementDbContext) : IQueryHandler<GetStrategiesQuery, List<StrategyListDto>>
+public sealed class GetStrategysQueryHandler(IStrategicManagementDbContext strategicManagementDbContext) : IQueryHandler<GetStrategiesQuery, List<StrategyListDto>>
 {
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
 

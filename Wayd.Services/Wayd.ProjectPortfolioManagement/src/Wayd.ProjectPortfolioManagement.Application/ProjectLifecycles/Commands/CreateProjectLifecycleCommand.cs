@@ -36,7 +36,7 @@ public sealed class CreateProjectLifecycleCommandValidator : AbstractValidator<C
     }
 }
 
-internal sealed class CreateProjectLifecycleCommandHandler(
+public sealed class CreateProjectLifecycleCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<CreateProjectLifecycleCommandHandler> logger)
     : ICommandHandler<CreateProjectLifecycleCommand, Guid>

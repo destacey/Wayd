@@ -4,7 +4,7 @@ using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkItems.Commands;
 
-internal sealed class SyncExternalWorkItemDependencyChangesCommandHandler(IWorkDbContext workDbContext, ILogger<SyncExternalWorkItemDependencyChangesCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<SyncExternalWorkItemDependencyChangesCommand>
+public sealed class SyncExternalWorkItemDependencyChangesCommandHandler(IWorkDbContext workDbContext, ILogger<SyncExternalWorkItemDependencyChangesCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<SyncExternalWorkItemDependencyChangesCommand>
 {
     private const string AppRequestName = nameof(SyncExternalWorkItemDependencyChangesCommand);
     private const int DefaultBatchSize = 500;

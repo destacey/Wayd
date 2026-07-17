@@ -4,7 +4,7 @@ using Wayd.Goals.Application.Persistence;
 
 namespace Wayd.Goals.Application.Objectives.Queries;
 
-internal sealed class SearchObjectivesByNameQueryHandler(IGoalsDbContext goalsDbContext)
+public sealed class SearchObjectivesByNameQueryHandler(IGoalsDbContext goalsDbContext)
     : IQueryHandler<SearchObjectivesByNameQuery, IReadOnlyList<ObjectiveSearchResultDto>>
 {
     public async Task<IReadOnlyList<ObjectiveSearchResultDto>> Handle(SearchObjectivesByNameQuery request, CancellationToken cancellationToken)

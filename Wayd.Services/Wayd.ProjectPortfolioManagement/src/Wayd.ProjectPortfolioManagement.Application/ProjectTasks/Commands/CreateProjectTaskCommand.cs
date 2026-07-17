@@ -82,7 +82,7 @@ public sealed class CreateProjectTaskCommandValidator : AbstractValidator<Create
     }
 }
 
-internal sealed class CreateProjectTaskCommandHandler(
+public sealed class CreateProjectTaskCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ILogger<CreateProjectTaskCommandHandler> logger)
     : ICommandHandler<CreateProjectTaskCommand, ProjectTaskIdAndKey>

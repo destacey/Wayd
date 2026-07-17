@@ -31,7 +31,7 @@ public sealed class CreateProjectPortfolioCommandValidator : AbstractValidator<C
     }
 }
 
-internal sealed class CreateProjectPortfolioCommandHandler(
+public sealed class CreateProjectPortfolioCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<CreateProjectPortfolioCommandHandler> logger)
     : ICommandHandler<CreateProjectPortfolioCommand, ObjectIdAndKey>

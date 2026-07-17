@@ -36,7 +36,7 @@ public sealed class MoveProjectRanksCommandValidator : AbstractValidator<MovePro
     }
 }
 
-internal sealed class MoveProjectRanksCommandHandler(
+public sealed class MoveProjectRanksCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ICurrentUser currentUser,
     ILogger<MoveProjectRanksCommandHandler> logger)

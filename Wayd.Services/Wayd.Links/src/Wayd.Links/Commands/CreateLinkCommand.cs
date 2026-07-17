@@ -27,7 +27,7 @@ public sealed class CreateLinkCommandValidator : CustomValidator<CreateLinkComma
     }
 }
 
-internal sealed class CreateLinkCommandHandler : ICommandHandler<CreateLinkCommand, Guid>
+public sealed class CreateLinkCommandHandler : ICommandHandler<CreateLinkCommand, Guid>
 {
     private readonly ILinksDbContext _linksDbContext;
     private readonly ILogger<CreateLinkCommandHandler> _logger;

@@ -4,7 +4,7 @@ namespace Wayd.AppIntegration.Application.Connectors.Queries;
 
 public sealed record GetConnectorsQuery : IQuery<IReadOnlyList<ConnectorListDto>> { }
 
-internal sealed class GetConnectorsQueryHandler : IQueryHandler<GetConnectorsQuery, IReadOnlyList<ConnectorListDto>>
+public sealed class GetConnectorsQueryHandler : IQueryHandler<GetConnectorsQuery, IReadOnlyList<ConnectorListDto>>
 {
     public Task<IReadOnlyList<ConnectorListDto>> Handle(GetConnectorsQuery request, CancellationToken cancellationToken)
     {

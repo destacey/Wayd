@@ -20,7 +20,7 @@ public sealed record GetWorkStatusQuery : IQuery<WorkStatusDto?>
     public string? Name { get; }
 }
 
-internal sealed class GetWorkStatusQueryHandler : IQueryHandler<GetWorkStatusQuery, WorkStatusDto?>
+public sealed class GetWorkStatusQueryHandler : IQueryHandler<GetWorkStatusQuery, WorkStatusDto?>
 {
     private readonly IWorkDbContext _workDbContext;
     private readonly ILogger<GetWorkStatusQueryHandler> _logger;

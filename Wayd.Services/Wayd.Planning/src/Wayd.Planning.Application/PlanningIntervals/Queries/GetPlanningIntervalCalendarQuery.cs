@@ -14,7 +14,7 @@ public sealed record GetPlanningIntervalCalendarQuery : IQuery<PlanningIntervalC
     public Expression<Func<PlanningInterval, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetPlanningIntervalCalendarQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetPlanningIntervalCalendarQueryHandler> logger) : IQueryHandler<GetPlanningIntervalCalendarQuery, PlanningIntervalCalendarDto?>
+public sealed class GetPlanningIntervalCalendarQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetPlanningIntervalCalendarQueryHandler> logger) : IQueryHandler<GetPlanningIntervalCalendarQuery, PlanningIntervalCalendarDto?>
 {
     private const string AppRequestName = nameof(GetPlanningIntervalCalendarQuery);
 

@@ -32,7 +32,7 @@ public sealed class CreatePlanningIntervalObjectiveHealthCheckCommandValidator
     }
 }
 
-internal sealed class CreatePlanningIntervalObjectiveHealthCheckCommandHandler(
+public sealed class CreatePlanningIntervalObjectiveHealthCheckCommandHandler(
     IPlanningDbContext planningDbContext,
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser,

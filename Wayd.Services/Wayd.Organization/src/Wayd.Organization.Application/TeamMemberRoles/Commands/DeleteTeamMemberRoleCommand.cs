@@ -10,7 +10,7 @@ public sealed class DeleteTeamMemberRoleCommandValidator : CustomValidator<Delet
     }
 }
 
-internal sealed class DeleteTeamMemberRoleCommandHandler(
+public sealed class DeleteTeamMemberRoleCommandHandler(
     IOrganizationDbContext organizationDbContext,
     ILogger<DeleteTeamMemberRoleCommandHandler> logger)
     : ICommandHandler<DeleteTeamMemberRoleCommand>

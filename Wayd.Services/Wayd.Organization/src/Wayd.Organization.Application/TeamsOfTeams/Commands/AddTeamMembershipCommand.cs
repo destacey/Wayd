@@ -21,7 +21,7 @@ public sealed class AddTeamMembershipCommandValidator : CustomValidator<AddTeamM
     }
 }
 
-internal sealed class AddTeamMembershipCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ILogger<AddTeamMembershipCommandHandler> logger) : ICommandHandler<AddTeamMembershipCommand>
+public sealed class AddTeamMembershipCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ILogger<AddTeamMembershipCommandHandler> logger) : ICommandHandler<AddTeamMembershipCommand>
 {
     private const string RequestName = nameof(AddTeamMembershipCommand);
 

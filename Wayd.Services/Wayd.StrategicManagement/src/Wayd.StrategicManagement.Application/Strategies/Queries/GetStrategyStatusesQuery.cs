@@ -5,7 +5,7 @@ namespace Wayd.StrategicManagement.Application.Strategies.Queries;
 
 public sealed record GetStrategyStatusesQuery : IQuery<List<StrategyStatusDto>> { }
 
-internal sealed class GetStrategyStatusesQueryHandler : IQueryHandler<GetStrategyStatusesQuery, List<StrategyStatusDto>>
+public sealed class GetStrategyStatusesQueryHandler : IQueryHandler<GetStrategyStatusesQuery, List<StrategyStatusDto>>
 {
     public Task<List<StrategyStatusDto>> Handle(GetStrategyStatusesQuery request, CancellationToken cancellationToken)
     {

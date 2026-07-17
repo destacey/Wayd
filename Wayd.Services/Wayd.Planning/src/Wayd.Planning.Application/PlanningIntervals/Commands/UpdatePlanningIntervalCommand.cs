@@ -28,7 +28,7 @@ public sealed class UpdatePlanningIntervalCommandValidator : CustomValidator<Upd
     }
 }
 
-internal sealed class UpdatePlanningIntervalCommandHandler : ICommandHandler<UpdatePlanningIntervalCommand, int>
+public sealed class UpdatePlanningIntervalCommandHandler : ICommandHandler<UpdatePlanningIntervalCommand, int>
 {
     private readonly IPlanningDbContext _planningDbContext;
     private readonly IDateTimeProvider _dateTimeProvider;

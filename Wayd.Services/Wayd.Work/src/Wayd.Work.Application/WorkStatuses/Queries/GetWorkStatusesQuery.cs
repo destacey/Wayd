@@ -5,7 +5,7 @@ namespace Wayd.Work.Application.WorkStatuses.Queries;
 
 public sealed record GetWorkStatusesQuery(bool IncludeInactive = false) : IQuery<IReadOnlyList<WorkStatusDto>>;
 
-internal sealed class GetWorkStatusesQueryHandler : IQueryHandler<GetWorkStatusesQuery, IReadOnlyList<WorkStatusDto>>
+public sealed class GetWorkStatusesQueryHandler : IQueryHandler<GetWorkStatusesQuery, IReadOnlyList<WorkStatusDto>>
 {
     private readonly IWorkDbContext _workDbContext;
 

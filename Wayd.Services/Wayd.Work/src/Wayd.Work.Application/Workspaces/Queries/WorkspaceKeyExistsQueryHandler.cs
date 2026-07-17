@@ -3,7 +3,7 @@ using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.Workspaces.Queries;
 
-internal sealed class WorkspaceKeyExistsQueryHandler(IWorkDbContext workDbContext) : IQueryHandler<WorkspaceKeyExistsQuery, bool>
+public sealed class WorkspaceKeyExistsQueryHandler(IWorkDbContext workDbContext) : IQueryHandler<WorkspaceKeyExistsQuery, bool>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
 

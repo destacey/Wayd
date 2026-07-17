@@ -21,7 +21,7 @@ public sealed class AzdoConnectionTeamMappingsRequestValidator : CustomValidator
     }
 }
 
-internal sealed class UpdateAzureDevOpsConnectionTeamMappingsCommandHandler : ICommandHandler<UpdateAzureDevOpsConnectionTeamMappingsCommand>
+public sealed class UpdateAzureDevOpsConnectionTeamMappingsCommandHandler : ICommandHandler<UpdateAzureDevOpsConnectionTeamMappingsCommand>
 {
     private const string AppRequestName = nameof(UpdateAzureDevOpsConnectionTeamMappingsCommand);
 

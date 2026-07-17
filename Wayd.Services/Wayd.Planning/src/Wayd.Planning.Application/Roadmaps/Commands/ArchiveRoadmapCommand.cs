@@ -13,7 +13,7 @@ public sealed class ArchiveRoadmapCommandValidator : AbstractValidator<ArchiveRo
     }
 }
 
-internal sealed class ArchiveRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<ArchiveRoadmapCommandHandler> logger) : ICommandHandler<ArchiveRoadmapCommand>
+public sealed class ArchiveRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<ArchiveRoadmapCommandHandler> logger) : ICommandHandler<ArchiveRoadmapCommand>
 {
     private const string AppRequestName = nameof(ArchiveRoadmapCommand);
 

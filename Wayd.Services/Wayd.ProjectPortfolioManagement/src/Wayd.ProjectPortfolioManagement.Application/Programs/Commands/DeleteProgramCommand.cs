@@ -12,7 +12,7 @@ public sealed class DeleteProgramCommandValidator : AbstractValidator<DeleteProg
     }
 }
 
-internal sealed class DeleteProgramCommandHandler(
+public sealed class DeleteProgramCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ILogger<DeleteProgramCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)

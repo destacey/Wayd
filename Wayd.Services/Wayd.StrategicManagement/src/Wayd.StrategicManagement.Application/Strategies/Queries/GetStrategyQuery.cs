@@ -18,7 +18,7 @@ public sealed record GetStrategyQuery : IQuery<StrategyDetailsDto?>
     public Expression<Func<Strategy, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetStrategyQueryHandler(IStrategicManagementDbContext strategicManagementDbContext) : IQueryHandler<GetStrategyQuery, StrategyDetailsDto?>
+public sealed class GetStrategyQueryHandler(IStrategicManagementDbContext strategicManagementDbContext) : IQueryHandler<GetStrategyQuery, StrategyDetailsDto?>
 {
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
 

@@ -16,7 +16,7 @@ public sealed record GetSprintQuery : IQuery<SprintDetailsDto?>
     public Expression<Func<Iteration, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetSprintQueryHandler(IPlanningDbContext planningDbContext)
+public sealed class GetSprintQueryHandler(IPlanningDbContext planningDbContext)
     : IQueryHandler<GetSprintQuery, SprintDetailsDto?>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;

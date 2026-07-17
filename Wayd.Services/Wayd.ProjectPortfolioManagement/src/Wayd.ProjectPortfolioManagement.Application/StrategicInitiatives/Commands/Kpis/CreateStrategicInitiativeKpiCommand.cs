@@ -19,7 +19,7 @@ public sealed class CreateStrategicInitiativeKpiCommandValidator : AbstractValid
     }
 }
 
-internal sealed class CreateStrategicInitiativeKpiCommandHandler(
+public sealed class CreateStrategicInitiativeKpiCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<CreateStrategicInitiativeKpiCommandHandler> logger)
     : ICommandHandler<CreateStrategicInitiativeKpiCommand, ObjectIdAndKey>

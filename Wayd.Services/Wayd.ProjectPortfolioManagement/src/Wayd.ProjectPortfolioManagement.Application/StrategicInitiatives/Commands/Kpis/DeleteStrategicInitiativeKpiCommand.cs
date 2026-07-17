@@ -14,7 +14,7 @@ public sealed class DeleteStrategicInitiativeKpiCommandValidator : AbstractValid
     }
 }
 
-internal sealed class DeleteStrategicInitiativeKpiCommandHandler(
+public sealed class DeleteStrategicInitiativeKpiCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<DeleteStrategicInitiativeKpiCommandHandler> logger)
     : ICommandHandler<DeleteStrategicInitiativeKpiCommand>

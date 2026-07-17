@@ -6,7 +6,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Queries;
 
 public sealed record GetProjectPortfolioStatusesQuery : IQuery<IReadOnlyList<ProjectPortfolioStatusDto>> { }
 
-internal sealed class GetProjectPortfolioStatusesQueryHandler : IQueryHandler<GetProjectPortfolioStatusesQuery, IReadOnlyList<ProjectPortfolioStatusDto>>
+public sealed class GetProjectPortfolioStatusesQueryHandler : IQueryHandler<GetProjectPortfolioStatusesQuery, IReadOnlyList<ProjectPortfolioStatusDto>>
 {
     public Task<IReadOnlyList<ProjectPortfolioStatusDto>> Handle(GetProjectPortfolioStatusesQuery request, CancellationToken cancellationToken)
     {

@@ -19,7 +19,7 @@ public sealed class CreateStrategicThemeCommandValidator : AbstractValidator<Cre
     }
 }
 
-internal sealed class CreateStrategicThemeCommandHandler(
+public sealed class CreateStrategicThemeCommandHandler(
     IStrategicManagementDbContext strategicManagementDbContext,
     ILogger<CreateStrategicThemeCommandHandler> logger,
     IDateTimeProvider dateTimeProvider) : ICommandHandler<CreateStrategicThemeCommand, ObjectIdAndKey>

@@ -10,7 +10,7 @@ public sealed class ActivateTeamMemberRoleCommandValidator : CustomValidator<Act
     }
 }
 
-internal sealed class ActivateTeamMemberRoleCommandHandler(
+public sealed class ActivateTeamMemberRoleCommandHandler(
     IOrganizationDbContext organizationDbContext,
     ILogger<ActivateTeamMemberRoleCommandHandler> logger)
     : ICommandHandler<ActivateTeamMemberRoleCommand>

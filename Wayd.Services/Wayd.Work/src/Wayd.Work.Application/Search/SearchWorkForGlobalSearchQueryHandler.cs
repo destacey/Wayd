@@ -4,7 +4,7 @@ using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.Search;
 
-internal sealed class SearchWorkForGlobalSearchQueryHandler(IWorkDbContext workDbContext)
+public sealed class SearchWorkForGlobalSearchQueryHandler(IWorkDbContext workDbContext)
     : IQueryHandler<SearchWorkForGlobalSearchQuery, ServiceSearchResponse>
 {
     public async Task<ServiceSearchResponse> Handle(SearchWorkForGlobalSearchQuery request, CancellationToken cancellationToken)

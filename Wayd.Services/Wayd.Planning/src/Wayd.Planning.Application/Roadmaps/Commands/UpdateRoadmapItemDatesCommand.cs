@@ -53,7 +53,7 @@ public sealed class UpdateRoadmapItemDatesCommandValidator : AbstractValidator<U
     }
 }
 
-internal sealed class UpdateRoadmapItemDatesCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<UpdateRoadmapItemDatesCommandHandler> logger) : ICommandHandler<UpdateRoadmapItemDatesCommand>
+public sealed class UpdateRoadmapItemDatesCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<UpdateRoadmapItemDatesCommandHandler> logger) : ICommandHandler<UpdateRoadmapItemDatesCommand>
 {
     private const string AppRequestName = nameof(UpdateRoadmapItemDatesCommand);
 

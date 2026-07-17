@@ -13,7 +13,7 @@ public sealed class ArchiveVisionCommandValidator : AbstractValidator<ArchiveVis
     }
 }
 
-internal sealed class ArchiveVisionCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<ArchiveVisionCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ArchiveVisionCommand>
+public sealed class ArchiveVisionCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<ArchiveVisionCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ArchiveVisionCommand>
 {
     private const string AppRequestName = nameof(ArchiveVisionCommand);
 

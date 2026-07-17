@@ -17,7 +17,7 @@ public sealed class ReorderStrategicInitiativeKpisCommandValidator : AbstractVal
     }
 }
 
-internal sealed class ReorderStrategicInitiativeKpisCommandHandler(
+public sealed class ReorderStrategicInitiativeKpisCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<ReorderStrategicInitiativeKpisCommandHandler> logger)
     : ICommandHandler<ReorderStrategicInitiativeKpisCommand>

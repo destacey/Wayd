@@ -54,7 +54,7 @@ public sealed class CreatePlanningIntervalObjectiveCommandValidator : CustomVali
     }
 }
 
-internal sealed class CreatePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, ILogger<CreatePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<CreatePlanningIntervalObjectiveCommand, ObjectIdAndKey>
+public sealed class CreatePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, ILogger<CreatePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<CreatePlanningIntervalObjectiveCommand, ObjectIdAndKey>
 {
     private const string AppRequestName = nameof(CreatePlanningIntervalCommand);
 

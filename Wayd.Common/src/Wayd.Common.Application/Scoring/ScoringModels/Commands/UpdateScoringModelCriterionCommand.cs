@@ -38,7 +38,7 @@ public sealed class UpdateScoringModelCriterionCommandValidator : AbstractValida
     }
 }
 
-internal sealed class UpdateScoringModelCriterionCommandHandler(
+public sealed class UpdateScoringModelCriterionCommandHandler(
     IWaydDbContext waydDbContext,
     ILogger<UpdateScoringModelCriterionCommandHandler> logger)
     : ICommandHandler<UpdateScoringModelCriterionCommand>

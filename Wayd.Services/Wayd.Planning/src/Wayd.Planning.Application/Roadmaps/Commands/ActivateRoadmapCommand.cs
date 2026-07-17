@@ -13,7 +13,7 @@ public sealed class ActivateRoadmapCommandValidator : AbstractValidator<Activate
     }
 }
 
-internal sealed class ActivateRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<ActivateRoadmapCommandHandler> logger) : ICommandHandler<ActivateRoadmapCommand>
+public sealed class ActivateRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<ActivateRoadmapCommandHandler> logger) : ICommandHandler<ActivateRoadmapCommand>
 {
     private const string AppRequestName = nameof(ActivateRoadmapCommand);
 

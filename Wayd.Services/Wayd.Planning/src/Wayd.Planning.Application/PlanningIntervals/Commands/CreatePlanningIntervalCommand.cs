@@ -34,7 +34,7 @@ public sealed class CreatePlanningIntervalCommandValidator : CustomValidator<Cre
     }
 }
 
-internal sealed class CreatePlanningIntervalCommandHandler(IPlanningDbContext planningDbContext, ILogger<CreatePlanningIntervalCommandHandler> logger) : ICommandHandler<CreatePlanningIntervalCommand, ObjectIdAndKey>
+public sealed class CreatePlanningIntervalCommandHandler(IPlanningDbContext planningDbContext, ILogger<CreatePlanningIntervalCommandHandler> logger) : ICommandHandler<CreatePlanningIntervalCommand, ObjectIdAndKey>
 {
     private const string AppRequestName = nameof(CreatePlanningIntervalCommand);
 

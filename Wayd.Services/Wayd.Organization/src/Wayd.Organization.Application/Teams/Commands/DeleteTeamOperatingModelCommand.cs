@@ -16,7 +16,7 @@ public sealed class DeleteTeamOperatingModelCommandValidator : CustomValidator<D
     }
 }
 
-internal sealed class DeleteTeamOperatingModelCommandHandler(
+public sealed class DeleteTeamOperatingModelCommandHandler(
     IOrganizationDbContext organizationDbContext,
     ILogger<DeleteTeamOperatingModelCommandHandler> logger) : ICommandHandler<DeleteTeamOperatingModelCommand>
 {

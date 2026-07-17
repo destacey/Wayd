@@ -5,7 +5,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.StrategicThemes.Commands;
 
 public sealed record SyncStrategicThemesCommand(IEnumerable<IStrategicThemeData> StrategicThemes) : ICommand;
 
-internal sealed class SyncStrategicThemesCommandHandler(
+public sealed class SyncStrategicThemesCommandHandler(
     IProjectPortfolioManagementDbContext ppmContext,
     ILogger<SyncStrategicThemesCommandHandler> logger)
     : ICommandHandler<SyncStrategicThemesCommand>

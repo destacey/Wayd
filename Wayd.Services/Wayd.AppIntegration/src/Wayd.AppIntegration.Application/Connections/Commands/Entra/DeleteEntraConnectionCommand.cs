@@ -4,7 +4,7 @@ namespace Wayd.AppIntegration.Application.Connections.Commands.Entra;
 
 public sealed record DeleteEntraConnectionCommand(Guid Id) : ICommand;
 
-internal sealed class DeleteEntraConnectionCommandHandler : ICommandHandler<DeleteEntraConnectionCommand>
+public sealed class DeleteEntraConnectionCommandHandler : ICommandHandler<DeleteEntraConnectionCommand>
 {
     private readonly IAppIntegrationDbContext _appIntegrationDbContext;
     private readonly ILogger<DeleteEntraConnectionCommandHandler> _logger;

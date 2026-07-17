@@ -24,7 +24,7 @@ public sealed record GetWorkItemMetricsQuery : IQuery<Result<IReadOnlyCollection
     public WorkItemKey WorkItemKey { get; }
 }
 
-internal sealed class GetWorkItemMetricsQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkItemMetricsQueryHandler> logger, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetWorkItemMetricsQuery, Result<IReadOnlyCollection<WorkItemProgressDailyRollupDto>>>
+public sealed class GetWorkItemMetricsQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkItemMetricsQueryHandler> logger, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetWorkItemMetricsQuery, Result<IReadOnlyCollection<WorkItemProgressDailyRollupDto>>>
 {
     private const string AppRequestName = nameof(GetExternalObjectWorkItemMetricsQuery);
 

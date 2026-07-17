@@ -5,7 +5,7 @@ namespace Wayd.Common.Application.FeatureManagement.Queries;
 
 public sealed record GetFeatureFlagsQuery(bool IncludeArchived = false) : IQuery<List<FeatureFlagListDto>>;
 
-internal sealed class GetFeatureFlagsQueryHandler(IFeatureManagementDbContext dbContext) : IQueryHandler<GetFeatureFlagsQuery, List<FeatureFlagListDto>>
+public sealed class GetFeatureFlagsQueryHandler(IFeatureManagementDbContext dbContext) : IQueryHandler<GetFeatureFlagsQuery, List<FeatureFlagListDto>>
 {
     private readonly IFeatureManagementDbContext _dbContext = dbContext;
 

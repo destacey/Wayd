@@ -11,7 +11,7 @@ public sealed class CompleteProgramCommandValidator : AbstractValidator<Complete
     }
 }
 
-internal sealed class CompleteProgramCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<CompleteProgramCommandHandler> logger) : ICommandHandler<CompleteProgramCommand>
+public sealed class CompleteProgramCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<CompleteProgramCommandHandler> logger) : ICommandHandler<CompleteProgramCommand>
 {
     private const string AppRequestName = nameof(CompleteProgramCommand);
 

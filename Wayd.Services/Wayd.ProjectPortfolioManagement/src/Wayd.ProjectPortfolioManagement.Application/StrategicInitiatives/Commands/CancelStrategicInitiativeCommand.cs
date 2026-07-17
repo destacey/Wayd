@@ -11,7 +11,7 @@ public sealed class CancelStrategicInitiativeCommandValidator : AbstractValidato
     }
 }
 
-internal sealed class CancelStrategicInitiativeCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<CancelStrategicInitiativeCommandHandler> logger) : ICommandHandler<CancelStrategicInitiativeCommand>
+public sealed class CancelStrategicInitiativeCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<CancelStrategicInitiativeCommandHandler> logger) : ICommandHandler<CancelStrategicInitiativeCommand>
 {
     private const string AppRequestName = nameof(CancelStrategicInitiativeCommand);
 

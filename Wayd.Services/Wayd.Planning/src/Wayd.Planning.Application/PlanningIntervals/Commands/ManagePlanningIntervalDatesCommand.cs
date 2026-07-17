@@ -36,7 +36,7 @@ public sealed class ManagePlanningIntervalDatesCommandValidator : CustomValidato
 }
 
 
-internal sealed class ManagePlanningIntervalDatesCommandHandler(IPlanningDbContext planningDbContext, ILogger<ManagePlanningIntervalDatesCommandHandler> logger) : ICommandHandler<ManagePlanningIntervalDatesCommand>
+public sealed class ManagePlanningIntervalDatesCommandHandler(IPlanningDbContext planningDbContext, ILogger<ManagePlanningIntervalDatesCommandHandler> logger) : ICommandHandler<ManagePlanningIntervalDatesCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ILogger<ManagePlanningIntervalDatesCommandHandler> _logger = logger;

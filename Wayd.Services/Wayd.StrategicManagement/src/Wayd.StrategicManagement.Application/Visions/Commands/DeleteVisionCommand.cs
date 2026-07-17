@@ -12,7 +12,7 @@ public sealed class DeleteVisionCommandValidator : AbstractValidator<DeleteVisio
     }
 }
 
-internal sealed class DeleteVisionCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<DeleteVisionCommandHandler> logger) : ICommandHandler<DeleteVisionCommand>
+public sealed class DeleteVisionCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<DeleteVisionCommandHandler> logger) : ICommandHandler<DeleteVisionCommand>
 {
     private const string AppRequestName = nameof(DeleteVisionCommand);
 

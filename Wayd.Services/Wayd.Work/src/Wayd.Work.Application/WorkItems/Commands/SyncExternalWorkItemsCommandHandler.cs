@@ -11,7 +11,7 @@ namespace Wayd.Work.Application.WorkItems.Commands;
 
 // TODO: add validation
 
-internal sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbContext, ILogger<SyncExternalWorkItemsCommandHandler> logger) : ICommandHandler<SyncExternalWorkItemsCommand>
+public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbContext, ILogger<SyncExternalWorkItemsCommandHandler> logger) : ICommandHandler<SyncExternalWorkItemsCommand>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly ILogger<SyncExternalWorkItemsCommandHandler> _logger = logger;

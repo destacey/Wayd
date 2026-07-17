@@ -28,7 +28,7 @@ public sealed class UpdateTeamOperatingModelCommandValidator : CustomValidator<U
     }
 }
 
-internal sealed class UpdateTeamOperatingModelCommandHandler(
+public sealed class UpdateTeamOperatingModelCommandHandler(
     IOrganizationDbContext organizationDbContext,
     ILogger<UpdateTeamOperatingModelCommandHandler> logger) : ICommandHandler<UpdateTeamOperatingModelCommand>
 {

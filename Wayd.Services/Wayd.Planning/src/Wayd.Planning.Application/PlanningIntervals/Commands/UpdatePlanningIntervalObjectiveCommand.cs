@@ -62,7 +62,7 @@ public sealed class UpdatePlanningIntervalObjectiveCommandValidator : CustomVali
     }
 }
 
-internal sealed class UpdatePlanningIntervalObjectiveCommandHandler : ICommandHandler<UpdatePlanningIntervalObjectiveCommand, int>
+public sealed class UpdatePlanningIntervalObjectiveCommandHandler : ICommandHandler<UpdatePlanningIntervalObjectiveCommand, int>
 {
     private readonly IPlanningDbContext _planningDbContext;
     private readonly IDispatcher _dispatcher;

@@ -5,7 +5,7 @@ namespace Wayd.Work.Application.WorkIterations.Commands;
 
 public sealed record SyncWorkIterationsCommand(IEnumerable<ISimpleIteration> Iterations) : ICommand, ILongRunningRequest;
 
-internal sealed class SyncWorkIterationsCommandHandler(
+public sealed class SyncWorkIterationsCommandHandler(
     IWorkDbContext workDbContext,
     ILogger<SyncWorkIterationsCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)

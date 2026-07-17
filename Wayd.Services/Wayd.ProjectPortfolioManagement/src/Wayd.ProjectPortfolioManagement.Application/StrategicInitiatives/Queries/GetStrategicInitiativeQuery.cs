@@ -15,7 +15,7 @@ public sealed record GetStrategicInitiativeQuery : IQuery<StrategicInitiativeDet
     public Expression<Func<StrategicInitiative, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetStrategicInitiativeQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
+public sealed class GetStrategicInitiativeQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
     : IQueryHandler<GetStrategicInitiativeQuery, StrategicInitiativeDetailsDto?>
 {
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;

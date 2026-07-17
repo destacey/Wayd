@@ -37,7 +37,7 @@ public sealed class UpdateProjectHealthCheckCommandValidator
     }
 }
 
-internal sealed class UpdateProjectHealthCheckCommandHandler(
+public sealed class UpdateProjectHealthCheckCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser,

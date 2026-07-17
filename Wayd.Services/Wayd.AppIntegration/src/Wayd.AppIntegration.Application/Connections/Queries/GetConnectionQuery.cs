@@ -12,7 +12,7 @@ namespace Wayd.AppIntegration.Application.Connections.Queries;
 
 public sealed record GetConnectionQuery(Guid Id) : IQuery<ConnectionDetailsDto?>;
 
-internal sealed class GetConnectionQueryHandler(IAppIntegrationDbContext appIntegrationDbContext) : IQueryHandler<GetConnectionQuery, ConnectionDetailsDto?>
+public sealed class GetConnectionQueryHandler(IAppIntegrationDbContext appIntegrationDbContext) : IQueryHandler<GetConnectionQuery, ConnectionDetailsDto?>
 {
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
 

@@ -17,7 +17,7 @@ public sealed record GetTeamPlanningIntervalPredictabilityQuery : IQuery<double?
     public Guid TeamId { get; }
 }
 
-internal sealed class GetTeamPlanningIntervalPredictabilityQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetTeamPlanningIntervalPredictabilityQueryHandler> logger, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetTeamPlanningIntervalPredictabilityQuery, double?>
+public sealed class GetTeamPlanningIntervalPredictabilityQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetTeamPlanningIntervalPredictabilityQueryHandler> logger, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetTeamPlanningIntervalPredictabilityQuery, double?>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ILogger<GetTeamPlanningIntervalPredictabilityQueryHandler> _logger = logger;

@@ -15,7 +15,7 @@ public sealed class AddTeamMemberCommandValidator : CustomValidator<AddTeamMembe
     }
 }
 
-internal sealed class AddTeamMemberCommandHandler(
+public sealed class AddTeamMemberCommandHandler(
     IOrganizationDbContext organizationDbContext,
     IWaydDbContext waydDbContext,
     ILogger<AddTeamMemberCommandHandler> logger)

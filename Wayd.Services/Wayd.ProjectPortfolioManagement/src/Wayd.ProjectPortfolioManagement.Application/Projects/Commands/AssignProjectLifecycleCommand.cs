@@ -14,7 +14,7 @@ public sealed class AssignProjectLifecycleCommandValidator : CustomValidator<Ass
     }
 }
 
-internal sealed class AssignProjectLifecycleCommandHandler(
+public sealed class AssignProjectLifecycleCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ILogger<AssignProjectLifecycleCommandHandler> logger)
     : ICommandHandler<AssignProjectLifecycleCommand>

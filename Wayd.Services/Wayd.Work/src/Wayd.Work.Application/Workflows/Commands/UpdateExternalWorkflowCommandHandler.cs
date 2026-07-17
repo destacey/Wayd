@@ -3,7 +3,7 @@ using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.Workflows.Commands;
 
-internal sealed class UpdateExternalWorkflowCommandHandler(IWorkDbContext workDbContext, ILogger<UpdateExternalWorkflowCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<UpdateExternalWorkflowCommand>
+public sealed class UpdateExternalWorkflowCommandHandler(IWorkDbContext workDbContext, ILogger<UpdateExternalWorkflowCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<UpdateExternalWorkflowCommand>
 {
     private const string AppRequestName = nameof(UpdateExternalWorkflowCommand);
 

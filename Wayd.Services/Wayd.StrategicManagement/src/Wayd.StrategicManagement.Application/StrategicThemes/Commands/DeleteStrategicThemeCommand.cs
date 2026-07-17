@@ -14,7 +14,7 @@ public sealed class DeleteStrategicThemeCommandValidator : AbstractValidator<Del
     }
 }
 
-internal sealed class DeleteStrategicThemeCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<DeleteStrategicThemeCommandHandler> logger, IDateTimeProvider dateTimeProvider, IEventPublisher eventPublisher) : ICommandHandler<DeleteStrategicThemeCommand>
+public sealed class DeleteStrategicThemeCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<DeleteStrategicThemeCommandHandler> logger, IDateTimeProvider dateTimeProvider, IEventPublisher eventPublisher) : ICommandHandler<DeleteStrategicThemeCommand>
 {
     private const string AppRequestName = nameof(DeleteStrategicThemeCommand);
 

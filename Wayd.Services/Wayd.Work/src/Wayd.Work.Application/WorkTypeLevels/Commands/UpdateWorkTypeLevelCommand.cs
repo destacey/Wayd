@@ -51,7 +51,7 @@ public sealed class UpdateWorkTypeLevelCommandValidator : CustomValidator<Update
     }
 }
 
-internal sealed class UpdateWorkTypeLevelCommandHandler : ICommandHandler<UpdateWorkTypeLevelCommand>
+public sealed class UpdateWorkTypeLevelCommandHandler : ICommandHandler<UpdateWorkTypeLevelCommand>
 {
     private const string AppRequestName = nameof(UpdateWorkTypeLevelCommand);
 

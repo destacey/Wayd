@@ -20,7 +20,7 @@ public sealed record GetWorkspaceQuery : IQuery<Result<WorkspaceDto?>>
     public WorkspaceKey? Key { get; }
 }
 
-internal sealed class GetWorkspaceQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkspaceQueryHandler> logger) : IQueryHandler<GetWorkspaceQuery, Result<WorkspaceDto?>>
+public sealed class GetWorkspaceQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkspaceQueryHandler> logger) : IQueryHandler<GetWorkspaceQuery, Result<WorkspaceDto?>>
 {
     private const string AppRequestName = nameof(GetWorkspaceQuery);
 

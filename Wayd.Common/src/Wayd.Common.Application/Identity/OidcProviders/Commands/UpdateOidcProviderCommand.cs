@@ -69,7 +69,7 @@ public sealed class UpdateOidcProviderCommandValidator : CustomValidator<UpdateO
     }
 }
 
-internal sealed class UpdateOidcProviderCommandHandler(
+public sealed class UpdateOidcProviderCommandHandler(
     IWaydDbContext dbContext,
     IDateTimeProvider dateTimeProvider,
     IOidcProviderRegistry registry,

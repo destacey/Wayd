@@ -5,7 +5,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.PpmTeams.Commands;
 
 public sealed record SyncPpmTeamsCommand(IEnumerable<ISimpleTeam> Teams) : ICommand, ILongRunningRequest;
 
-internal sealed class SyncPpmTeamsCommandHandler(
+public sealed class SyncPpmTeamsCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ILogger<SyncPpmTeamsCommandHandler> logger)
     : ICommandHandler<SyncPpmTeamsCommand>

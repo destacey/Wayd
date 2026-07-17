@@ -14,7 +14,7 @@ public sealed record GetTeamOfTeamsListQuery : IQuery<IReadOnlyList<TeamOfTeamsL
     public List<Guid> TeamIds { get; }
 }
 
-internal sealed class GetTeamOfTeamsListQueryHandler(
+public sealed class GetTeamOfTeamsListQueryHandler(
     IOrganizationDbContext organizationDbContext,
     IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetTeamOfTeamsListQuery, IReadOnlyList<TeamOfTeamsListDto>>

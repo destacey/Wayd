@@ -26,7 +26,7 @@ public sealed record GetRisksQuery : IQuery<IReadOnlyList<RiskListDto>>
     public bool IncludeClosed { get; private set; }
 }
 
-internal sealed class GetRisksQueryHandler : IQueryHandler<GetRisksQuery, IReadOnlyList<RiskListDto>>
+public sealed class GetRisksQueryHandler : IQueryHandler<GetRisksQuery, IReadOnlyList<RiskListDto>>
 {
     private readonly IPlanningDbContext _planningDbContext;
 

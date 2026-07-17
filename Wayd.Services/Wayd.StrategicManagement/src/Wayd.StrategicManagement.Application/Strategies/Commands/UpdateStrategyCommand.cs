@@ -24,7 +24,7 @@ public sealed class UpdateStrategyCommandValidator : AbstractValidator<UpdateStr
     }
 }
 
-internal sealed class UpdateStrategyCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<UpdateStrategyCommandHandler> logger) : ICommandHandler<UpdateStrategyCommand>
+public sealed class UpdateStrategyCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<UpdateStrategyCommandHandler> logger) : ICommandHandler<UpdateStrategyCommand>
 {
     private const string AppRequestName = nameof(UpdateStrategyCommand);
 

@@ -17,7 +17,7 @@ public sealed class UpdateVisionCommandValidator : AbstractValidator<UpdateVisio
     }
 }
 
-internal sealed class UpdateVisionCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<UpdateVisionCommandHandler> logger) : ICommandHandler<UpdateVisionCommand>
+public sealed class UpdateVisionCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<UpdateVisionCommandHandler> logger) : ICommandHandler<UpdateVisionCommand>
 {
     private const string AppRequestName = nameof(UpdateVisionCommand);
 

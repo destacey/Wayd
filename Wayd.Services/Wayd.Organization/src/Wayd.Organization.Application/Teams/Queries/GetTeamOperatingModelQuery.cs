@@ -9,7 +9,7 @@ namespace Wayd.Organization.Application.Teams.Queries;
 public sealed record GetTeamOperatingModelQuery(Guid TeamId, Guid TeamOperatingModelId)
     : IQuery<TeamOperatingModelDetailsDto?>;
 
-internal sealed class GetTeamOperatingModelQueryHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider)
+public sealed class GetTeamOperatingModelQueryHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetTeamOperatingModelQuery, TeamOperatingModelDetailsDto?>
 {
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;

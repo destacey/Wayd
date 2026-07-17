@@ -23,7 +23,7 @@ public sealed record GetRisksByPlanningIntervalQuery : IQuery<IReadOnlyList<Risk
     public Guid? TeamId { get; }
 }
 
-internal sealed class GetRisksByPlanningIntervalQueryHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher) : IQueryHandler<GetRisksByPlanningIntervalQuery, IReadOnlyList<RiskListDto>>
+public sealed class GetRisksByPlanningIntervalQueryHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher) : IQueryHandler<GetRisksByPlanningIntervalQuery, IReadOnlyList<RiskListDto>>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;

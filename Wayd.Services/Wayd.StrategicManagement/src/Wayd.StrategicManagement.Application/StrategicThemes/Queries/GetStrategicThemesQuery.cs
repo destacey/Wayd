@@ -9,7 +9,7 @@ namespace Wayd.StrategicManagement.Application.StrategicThemes.Queries;
 /// <param name="StateFilter"></param>
 public sealed record GetStrategicThemesQuery(StrategicThemeState[]? StateFilter = null) : IQuery<List<StrategicThemeListDto>>;
 
-internal sealed class GetStrategicThemesQueryHandler(IStrategicManagementDbContext strategicManagementDbContext) : IQueryHandler<GetStrategicThemesQuery, List<StrategicThemeListDto>>
+public sealed class GetStrategicThemesQueryHandler(IStrategicManagementDbContext strategicManagementDbContext) : IQueryHandler<GetStrategicThemesQuery, List<StrategicThemeListDto>>
 {
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
 

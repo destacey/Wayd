@@ -6,7 +6,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Queri
 
 public sealed record GetStrategicInitiativeStatusesQuery : IQuery<IReadOnlyList<StrategicInitiativeStatusDto>> { }
 
-internal sealed class GetStrategicInitiativeStatusesQueryHandler : IQueryHandler<GetStrategicInitiativeStatusesQuery, IReadOnlyList<StrategicInitiativeStatusDto>>
+public sealed class GetStrategicInitiativeStatusesQueryHandler : IQueryHandler<GetStrategicInitiativeStatusesQuery, IReadOnlyList<StrategicInitiativeStatusDto>>
 {
     public Task<IReadOnlyList<StrategicInitiativeStatusDto>> Handle(GetStrategicInitiativeStatusesQuery request, CancellationToken cancellationToken)
     {

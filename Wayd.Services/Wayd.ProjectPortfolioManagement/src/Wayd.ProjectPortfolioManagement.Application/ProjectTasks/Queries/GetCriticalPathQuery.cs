@@ -8,7 +8,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Queries;
 /// </summary>
 public sealed record GetCriticalPathQuery(string ProjectIdOrKey) : IQuery<IReadOnlyList<Guid>>;
 
-internal sealed class GetCriticalPathQueryHandler(
+public sealed class GetCriticalPathQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ILogger<GetCriticalPathQueryHandler> logger)
     : IQueryHandler<GetCriticalPathQuery, IReadOnlyList<Guid>>

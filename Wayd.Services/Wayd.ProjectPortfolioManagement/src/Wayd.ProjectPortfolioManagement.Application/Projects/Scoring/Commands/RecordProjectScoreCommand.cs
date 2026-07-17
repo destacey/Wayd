@@ -33,7 +33,7 @@ public sealed class RecordProjectScoreCommandValidator : AbstractValidator<Recor
     }
 }
 
-internal sealed class RecordProjectScoreCommandHandler(
+public sealed class RecordProjectScoreCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser,

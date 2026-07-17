@@ -57,7 +57,7 @@ public sealed class UpdatePersonalAccessTokenCommandValidator : CustomValidator<
     }
 }
 
-internal sealed class UpdatePersonalAccessTokenCommandHandler(
+public sealed class UpdatePersonalAccessTokenCommandHandler(
     IWaydDbContext dbContext,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,

@@ -9,7 +9,7 @@ namespace Wayd.StrategicManagement.Application.Visions.Queries;
 /// <param name="StateFilter"></param>
 public sealed record GetVisionsQuery(VisionState? StateFilter) : IQuery<List<VisionDto>>;
 
-internal sealed class GetVisionsQueryHandler(IStrategicManagementDbContext strategicManagementDbContext) : IQueryHandler<GetVisionsQuery, List<VisionDto>>
+public sealed class GetVisionsQueryHandler(IStrategicManagementDbContext strategicManagementDbContext) : IQueryHandler<GetVisionsQuery, List<VisionDto>>
 {
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
 

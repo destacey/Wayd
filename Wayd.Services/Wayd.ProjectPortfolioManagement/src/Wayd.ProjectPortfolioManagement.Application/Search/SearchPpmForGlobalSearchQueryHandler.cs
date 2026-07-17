@@ -6,7 +6,7 @@ using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Search;
 
-internal sealed class SearchPpmForGlobalSearchQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
+public sealed class SearchPpmForGlobalSearchQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
     : IQueryHandler<SearchPpmForGlobalSearchQuery, ServiceSearchResponse>
 {
     public async Task<ServiceSearchResponse> Handle(SearchPpmForGlobalSearchQuery request, CancellationToken cancellationToken)

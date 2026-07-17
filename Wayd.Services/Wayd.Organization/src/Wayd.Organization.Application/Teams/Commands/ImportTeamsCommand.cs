@@ -42,7 +42,7 @@ public sealed class ImportTeamsCommandValidator : CustomValidator<ImportTeamsCom
     }
 }
 
-internal sealed class ImportTeamsCommandHandler(
+public sealed class ImportTeamsCommandHandler(
     IOrganizationDbContext organizationDbContext,
     IDateTimeProvider dateTimeProvider,
     ILogger<ImportTeamsCommandHandler> logger) : ICommandHandler<ImportTeamsCommand>

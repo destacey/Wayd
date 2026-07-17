@@ -11,7 +11,7 @@ public sealed class ArchiveProjectLifecycleCommandValidator : AbstractValidator<
     }
 }
 
-internal sealed class ArchiveProjectLifecycleCommandHandler(
+public sealed class ArchiveProjectLifecycleCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<ArchiveProjectLifecycleCommandHandler> logger)
     : ICommandHandler<ArchiveProjectLifecycleCommand>

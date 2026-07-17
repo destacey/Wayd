@@ -5,7 +5,7 @@ namespace Wayd.Organization.Application.Teams.Queries;
 
 public sealed record GetEmployeeTeamMembershipsQuery(Guid EmployeeId) : IQuery<IReadOnlyList<TeamMemberDto>>;
 
-internal sealed class GetEmployeeTeamMembershipsQueryHandler(IOrganizationDbContext organizationDbContext) : IQueryHandler<GetEmployeeTeamMembershipsQuery, IReadOnlyList<TeamMemberDto>>
+public sealed class GetEmployeeTeamMembershipsQueryHandler(IOrganizationDbContext organizationDbContext) : IQueryHandler<GetEmployeeTeamMembershipsQuery, IReadOnlyList<TeamMemberDto>>
 {
     public async Task<IReadOnlyList<TeamMemberDto>> Handle(GetEmployeeTeamMembershipsQuery request, CancellationToken cancellationToken)
     {

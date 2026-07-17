@@ -32,7 +32,7 @@ public sealed class CreateProjectHealthCheckCommandValidator
     }
 }
 
-internal sealed class CreateProjectHealthCheckCommandHandler(
+public sealed class CreateProjectHealthCheckCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser,

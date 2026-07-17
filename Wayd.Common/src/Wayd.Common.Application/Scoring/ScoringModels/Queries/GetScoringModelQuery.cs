@@ -17,7 +17,7 @@ public sealed record GetScoringModelQuery : IQuery<ScoringModelDetailsDto?>
     public Expression<Func<ScoringModel, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetScoringModelQueryHandler(IWaydDbContext waydDbContext)
+public sealed class GetScoringModelQueryHandler(IWaydDbContext waydDbContext)
     : IQueryHandler<GetScoringModelQuery, ScoringModelDetailsDto?>
 {
     private readonly IWaydDbContext _waydDbContext = waydDbContext;

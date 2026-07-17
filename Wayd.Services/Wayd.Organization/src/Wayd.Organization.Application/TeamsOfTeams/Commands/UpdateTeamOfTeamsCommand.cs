@@ -37,7 +37,7 @@ public sealed class UpdateTeamOfTeamsCommandValidator : CustomValidator<UpdateTe
     }
 }
 
-internal sealed class UpdateTeamOfTeamsCommandHandler : ICommandHandler<UpdateTeamOfTeamsCommand, int>
+public sealed class UpdateTeamOfTeamsCommandHandler : ICommandHandler<UpdateTeamOfTeamsCommand, int>
 {
     private const string RequestName = nameof(UpdateTeamOfTeamsCommand);
 

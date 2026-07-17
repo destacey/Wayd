@@ -3,7 +3,7 @@ using Wayd.Goals.Application.Persistence;
 
 namespace Wayd.Goals.Application.Objectives.Commands;
 
-internal sealed class UpdateObjectiveCommandHandler(IGoalsDbContext goalsDbContext, IDateTimeProvider dateTimeProvider, ILogger<UpdateObjectiveCommandHandler> logger) : ICommandHandler<UpdateObjectiveCommand, Guid>
+public sealed class UpdateObjectiveCommandHandler(IGoalsDbContext goalsDbContext, IDateTimeProvider dateTimeProvider, ILogger<UpdateObjectiveCommandHandler> logger) : ICommandHandler<UpdateObjectiveCommand, Guid>
 {
     private readonly IGoalsDbContext _goalsDbContext = goalsDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;

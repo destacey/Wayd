@@ -33,7 +33,7 @@ public sealed class UpdateTeamMemberRoleCommandValidator : CustomValidator<Updat
     }
 }
 
-internal sealed class UpdateTeamMemberRoleCommandHandler(
+public sealed class UpdateTeamMemberRoleCommandHandler(
     IOrganizationDbContext organizationDbContext,
     ILogger<UpdateTeamMemberRoleCommandHandler> logger)
     : ICommandHandler<UpdateTeamMemberRoleCommand>

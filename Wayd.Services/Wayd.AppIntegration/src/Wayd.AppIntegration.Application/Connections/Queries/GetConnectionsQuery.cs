@@ -16,7 +16,7 @@ public sealed record GetConnectionsQuery(
     Connector? Type = null,
     ConnectorCapability? Capability = null) : IQuery<IReadOnlyList<ConnectionListDto>>;
 
-internal sealed class GetConnectionsQueryHandler(IAppIntegrationDbContext appIntegrationDbContext) : IQueryHandler<GetConnectionsQuery, IReadOnlyList<ConnectionListDto>>
+public sealed class GetConnectionsQueryHandler(IAppIntegrationDbContext appIntegrationDbContext) : IQueryHandler<GetConnectionsQuery, IReadOnlyList<ConnectionListDto>>
 {
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
 

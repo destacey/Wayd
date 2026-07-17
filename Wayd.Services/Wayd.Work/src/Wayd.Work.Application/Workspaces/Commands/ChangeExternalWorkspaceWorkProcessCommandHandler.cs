@@ -3,7 +3,7 @@ using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.Workspaces.Commands;
 
-internal sealed class ChangeExternalWorkspaceWorkProcessCommandHandler(IWorkDbContext workDbContext, IDateTimeProvider dateTimeProvider, ILogger<ChangeExternalWorkspaceWorkProcessCommandHandler> logger) : ICommandHandler<ChangeExternalWorkspaceWorkProcessCommand>
+public sealed class ChangeExternalWorkspaceWorkProcessCommandHandler(IWorkDbContext workDbContext, IDateTimeProvider dateTimeProvider, ILogger<ChangeExternalWorkspaceWorkProcessCommandHandler> logger) : ICommandHandler<ChangeExternalWorkspaceWorkProcessCommand>
 {
     private const string AppRequestName = nameof(ChangeExternalWorkspaceWorkProcessCommand);
 

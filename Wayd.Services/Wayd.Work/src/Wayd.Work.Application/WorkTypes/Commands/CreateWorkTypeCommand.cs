@@ -33,7 +33,7 @@ public sealed class CreateWorkTypeCommandValidator : CustomValidator<CreateWorkT
     }
 }
 
-internal sealed class CreateWorkTypeCommandHandler : ICommandHandler<CreateWorkTypeCommand, int>
+public sealed class CreateWorkTypeCommandHandler : ICommandHandler<CreateWorkTypeCommand, int>
 {
     private readonly IWorkDbContext _workDbContext;
     private readonly Instant _timestamp;

@@ -50,7 +50,7 @@ public sealed class CreateWorkdayConnectionCommandValidator : CustomValidator<Cr
     private static bool BeParseable(string url) => WorkdayConnectionConfiguration.TryParse(url, out _);
 }
 
-internal sealed class CreateWorkdayConnectionCommandHandler(
+public sealed class CreateWorkdayConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
     IDateTimeProvider dateTimeProvider,
     IWorkdayConnectionInitializer initializer,

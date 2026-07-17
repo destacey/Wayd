@@ -27,7 +27,7 @@ public sealed class CreateEstimationScaleCommandValidator : CustomValidator<Crea
     }
 }
 
-internal sealed class CreateEstimationScaleCommandHandler(IPlanningDbContext planningDbContext, ILogger<CreateEstimationScaleCommandHandler> logger) : ICommandHandler<CreateEstimationScaleCommand, int>
+public sealed class CreateEstimationScaleCommandHandler(IPlanningDbContext planningDbContext, ILogger<CreateEstimationScaleCommandHandler> logger) : ICommandHandler<CreateEstimationScaleCommand, int>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ILogger<CreateEstimationScaleCommandHandler> _logger = logger;

@@ -53,7 +53,7 @@ public sealed class CreateRoadmapCommandValidator : AbstractValidator<CreateRoad
     }
 }
 
-internal sealed class CreateRoadmapCommandHandler(IPlanningDbContext planningDbContext, ILogger<CreateRoadmapCommandHandler> logger) : ICommandHandler<CreateRoadmapCommand, ObjectIdAndKey>
+public sealed class CreateRoadmapCommandHandler(IPlanningDbContext planningDbContext, ILogger<CreateRoadmapCommandHandler> logger) : ICommandHandler<CreateRoadmapCommand, ObjectIdAndKey>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ILogger<CreateRoadmapCommandHandler> _logger = logger;

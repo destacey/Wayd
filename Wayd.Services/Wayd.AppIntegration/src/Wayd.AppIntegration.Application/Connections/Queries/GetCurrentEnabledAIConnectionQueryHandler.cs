@@ -3,7 +3,7 @@ using Wayd.Common.Application.Requests.AppIntegration;
 
 namespace Wayd.AppIntegration.Application.Connections.Queries;
 
-internal sealed class GetAIConnectionQueryHandler(IAppIntegrationDbContext appIntegrationDbContext) : IQueryHandler<GetAIConnectionQuery, EnabledAIConnectionDto>
+public sealed class GetAIConnectionQueryHandler(IAppIntegrationDbContext appIntegrationDbContext) : IQueryHandler<GetAIConnectionQuery, EnabledAIConnectionDto>
 {
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
 

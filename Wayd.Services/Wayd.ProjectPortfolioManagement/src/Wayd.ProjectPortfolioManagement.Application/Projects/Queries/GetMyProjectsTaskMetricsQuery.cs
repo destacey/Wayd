@@ -9,7 +9,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 /// </summary>
 public sealed record GetMyProjectsTaskMetricsQuery(ProjectStatus[]? StatusFilter = null, ProjectMemberRole[]? RoleFilter = null) : IQuery<MyProjectsTaskMetricsDto>;
 
-internal sealed class GetMyProjectsTaskMetricsQueryHandler(
+public sealed class GetMyProjectsTaskMetricsQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider)

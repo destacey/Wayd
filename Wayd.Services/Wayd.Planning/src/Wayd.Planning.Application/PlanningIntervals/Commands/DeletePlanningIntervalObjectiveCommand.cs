@@ -1,15 +1,14 @@
-﻿using MediatR;
-using Wayd.Common.Application.Requests.Goals.Commands;
+﻿using Wayd.Common.Application.Requests.Goals.Commands;
 using Wayd.Common.Application.Requests.Goals.Queries;
 
 namespace Wayd.Planning.Application.PlanningIntervals.Commands;
 
 public sealed record DeletePlanningIntervalObjectiveCommand(Guid PlanningIntervalId, Guid PlanningIntervalObjectiveId) : ICommand;
 
-internal sealed class DeletePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, ISender sender, ILogger<DeletePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<DeletePlanningIntervalObjectiveCommand>
+internal sealed class DeletePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, ILogger<DeletePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<DeletePlanningIntervalObjectiveCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ILogger<DeletePlanningIntervalObjectiveCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeletePlanningIntervalObjectiveCommand request, CancellationToken cancellationToken)
@@ -32,7 +31,7 @@ internal sealed class DeletePlanningIntervalObjectiveCommandHandler(IPlanningDbC
                 return Result.Failure($"Planning Interval Objective {request.PlanningIntervalObjectiveId} not found.");
             }
 
-            var currentObjective = await _sender.Send(new GetObjectiveForPlanningIntervalQuery(piObjective.ObjectiveId, planningInterval.Id), cancellationToken);
+            var currentObjective = await _dispatcher.Send(new GetObjectiveForPlanningIntervalQuery(piObjective.ObjectiveId, planningInterval.Id), cancellationToken);
             if (currentObjective is null)
                 return Result.Failure<int>($"Objective {request.PlanningIntervalObjectiveId} not found.");
 
@@ -48,7 +47,7 @@ internal sealed class DeletePlanningIntervalObjectiveCommandHandler(IPlanningDbC
             await _planningDbContext.SaveChangesAsync(cancellationToken);
 
             // TODO: this the correct order?  pi objective first, then objective?
-            var deleteObjectiveResult = await _sender.Send(new DeleteObjectiveCommand(currentObjective.Id), cancellationToken);
+            var deleteObjectiveResult = await _dispatcher.Send(new DeleteObjectiveCommand(currentObjective.Id), cancellationToken);
             if (deleteObjectiveResult.IsFailure)
             {
                 _logger.LogError("Unable to delete objective {ObjectiveId}.  Error: {Error}", currentObjective.Id, deleteObjectiveResult.Error);

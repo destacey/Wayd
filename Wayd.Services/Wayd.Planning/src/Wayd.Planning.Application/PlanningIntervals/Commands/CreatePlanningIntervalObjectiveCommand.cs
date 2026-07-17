@@ -1,5 +1,4 @@
-﻿using MediatR;
-using Wayd.Common.Application.Models;
+﻿using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Requests.Goals.Commands;
 using Wayd.Common.Domain.Enums.Goals;
 
@@ -55,12 +54,12 @@ public sealed class CreatePlanningIntervalObjectiveCommandValidator : CustomVali
     }
 }
 
-internal sealed class CreatePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, ISender sender, ILogger<CreatePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<CreatePlanningIntervalObjectiveCommand, ObjectIdAndKey>
+internal sealed class CreatePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, ILogger<CreatePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<CreatePlanningIntervalObjectiveCommand, ObjectIdAndKey>
 {
     private const string AppRequestName = nameof(CreatePlanningIntervalCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ILogger<CreatePlanningIntervalObjectiveCommandHandler> _logger = logger;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreatePlanningIntervalObjectiveCommand request, CancellationToken cancellationToken)
@@ -90,7 +89,7 @@ internal sealed class CreatePlanningIntervalObjectiveCommandHandler(IPlanningDbC
                 return Result.Failure<ObjectIdAndKey>("Team not found.");
             }
 
-            var objectiveResult = await _sender.Send(new CreateObjectiveCommand(
+            var objectiveResult = await _dispatcher.Send(new CreateObjectiveCommand(
                 request.Name,
                 request.Description,
                 ObjectiveType.PlanningInterval,
@@ -108,7 +107,7 @@ internal sealed class CreatePlanningIntervalObjectiveCommandHandler(IPlanningDbC
             var result = planningInterval.CreateObjective(team, objectiveResult.Value, request.IsStretch);
             if (result.IsFailure)
             {
-                var deleteResult = await _sender.Send(new DeleteObjectiveCommand(objectiveResult.Value), cancellationToken);
+                var deleteResult = await _dispatcher.Send(new DeleteObjectiveCommand(objectiveResult.Value), cancellationToken);
                 if (deleteResult.IsFailure)
                     _logger.LogError("Unable to delete objective.  Error: {Error}", deleteResult.Error);
 

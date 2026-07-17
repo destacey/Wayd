@@ -10,10 +10,10 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 [Route("api/ppm/project-lifecycles")]
 [ApiVersionNeutral]
 [ApiController]
-public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> logger, ISender sender) : ControllerBase
+public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> logger, IDispatcher dispatcher) : ControllerBase
 {
     private readonly ILogger<ProjectLifecyclesController> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ProjectLifecycles)]
@@ -22,7 +22,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ProjectLifecycleListDto>>> GetProjectLifecycles([FromQuery] ProjectLifecycleState? state, CancellationToken cancellationToken)
     {
-        var lifecycles = await _sender.Send(new GetProjectLifecyclesQuery(state), cancellationToken);
+        var lifecycles = await _dispatcher.Send(new GetProjectLifecyclesQuery(state), cancellationToken);
 
         return Ok(lifecycles);
     }
@@ -34,7 +34,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProjectLifecycleDetailsDto>> GetProjectLifecycle(string idOrKey, CancellationToken cancellationToken)
     {
-        var lifecycle = await _sender.Send(new GetProjectLifecycleQuery(idOrKey), cancellationToken);
+        var lifecycle = await _dispatcher.Send(new GetProjectLifecycleQuery(idOrKey), cancellationToken);
 
         return lifecycle is not null
             ? Ok(lifecycle)
@@ -47,7 +47,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> Create([FromBody] CreateProjectLifecycleRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateProjectLifecycleCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateProjectLifecycleCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetProjectLifecycle), new { idOrKey = result.Value }, result.Value)
@@ -62,7 +62,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Update(Guid id, [FromBody] UpdateProjectLifecycleRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToUpdateProjectLifecycleCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateProjectLifecycleCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -76,7 +76,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeleteProjectLifecycleCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new DeleteProjectLifecycleCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -91,7 +91,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ActivateProjectLifecycleCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ActivateProjectLifecycleCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -106,7 +106,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Archive(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ArchiveProjectLifecycleCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ArchiveProjectLifecycleCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -119,7 +119,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> AddPhase(Guid id, [FromBody] ProjectLifecyclePhaseRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToAddCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToAddCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetProjectLifecycle), new { idOrKey = id.ToString() }, result.Value)
@@ -134,7 +134,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> UpdatePhase(Guid id, Guid phaseId, [FromBody] ProjectLifecyclePhaseRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToUpdateCommand(id, phaseId), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateCommand(id, phaseId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -148,7 +148,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemovePhase(Guid id, Guid phaseId, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new RemoveProjectLifecyclePhaseCommand(id, phaseId), cancellationToken);
+        var result = await _dispatcher.Send(new RemoveProjectLifecyclePhaseCommand(id, phaseId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -163,7 +163,7 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ReorderPhases(Guid id, [FromBody] ReorderProjectLifecyclePhasesRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToReorderProjectLifecyclePhasesCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToReorderProjectLifecyclePhasesCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

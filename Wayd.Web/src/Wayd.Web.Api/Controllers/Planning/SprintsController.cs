@@ -9,10 +9,10 @@ namespace Wayd.Web.Api.Controllers.Planning;
 [Route("api/planning/[controller]")]
 [ApiVersionNeutral]
 [ApiController]
-public class SprintsController(ILogger<SprintsController> logger, ISender sender) : ControllerBase
+public class SprintsController(ILogger<SprintsController> logger, IDispatcher dispatcher) : ControllerBase
 {
     private readonly ILogger<SprintsController> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Iterations)]
@@ -21,7 +21,7 @@ public class SprintsController(ILogger<SprintsController> logger, ISender sender
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<SprintListDto>>> GetSprints([FromQuery] Guid? teamId, CancellationToken cancellationToken)
     {
-        var sprints = await _sender.Send(new GetSprintsQuery(teamId), cancellationToken);
+        var sprints = await _dispatcher.Send(new GetSprintsQuery(teamId), cancellationToken);
 
         return Ok(sprints);
     }
@@ -33,7 +33,7 @@ public class SprintsController(ILogger<SprintsController> logger, ISender sender
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<SprintDetailsDto>> GetSprint(string idOrKey, CancellationToken cancellationToken)
     {
-        var sprint = await _sender.Send(new GetSprintQuery(idOrKey), cancellationToken);
+        var sprint = await _dispatcher.Send(new GetSprintQuery(idOrKey), cancellationToken);
 
         return sprint is not null
             ? Ok(sprint)
@@ -48,7 +48,7 @@ public class SprintsController(ILogger<SprintsController> logger, ISender sender
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<SprintBacklogItemDto>>> GetSprintBacklog(string idOrKey, CancellationToken cancellationToken)
     {
-        var backlogItems = await _sender.Send(new GetSprintBacklogQuery(idOrKey), cancellationToken);
+        var backlogItems = await _dispatcher.Send(new GetSprintBacklogQuery(idOrKey), cancellationToken);
 
         return backlogItems is not null
             ? Ok(backlogItems)
@@ -62,7 +62,7 @@ public class SprintsController(ILogger<SprintsController> logger, ISender sender
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<SprintWorkItemMetricsDto>> GetSprintMetrics(string idOrKey, CancellationToken cancellationToken)
     {
-        var metrics = await _sender.Send(new GetSprintWorkItemMetricsQuery(idOrKey), cancellationToken);
+        var metrics = await _dispatcher.Send(new GetSprintWorkItemMetricsQuery(idOrKey), cancellationToken);
 
         return metrics is not null
             ? Ok(metrics)
@@ -75,7 +75,7 @@ public class SprintsController(ILogger<SprintsController> logger, ISender sender
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<NavigationDto>>> GetPlanningIntervals(int key, CancellationToken cancellationToken)
     {
-        var planningIntervals = await _sender.Send(new GetSprintPlanningIntervalsQuery(key), cancellationToken);
+        var planningIntervals = await _dispatcher.Send(new GetSprintPlanningIntervalsQuery(key), cancellationToken);
         return Ok(planningIntervals);
     }
 }

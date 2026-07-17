@@ -1,9 +1,6 @@
-﻿using MediatR;
-using Microsoft.EntityFrameworkCore;
-using Wayd.Common.Application.Interfaces.ExternalWork;
+﻿using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Domain.Models;
-using NodaTime;
 
 namespace Wayd.AppIntegration.Application.Connections.Commands.AzureDevOps;
 
@@ -15,7 +12,7 @@ public sealed record SyncAzureDevOpsConnectionConfigurationCommand(
     List<IExternalTeam> Teams)
     : ICommand;
 
-internal sealed class SyncAzureDevOpsConnectionConfigurationCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, IDateTimeProvider dateTimeProvider, ILogger<SyncAzureDevOpsConnectionConfigurationCommandHandler> logger, IAzureDevOpsService azureDevOpsService, ISender sender) : ICommandHandler<SyncAzureDevOpsConnectionConfigurationCommand>
+internal sealed class SyncAzureDevOpsConnectionConfigurationCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, IDateTimeProvider dateTimeProvider, ILogger<SyncAzureDevOpsConnectionConfigurationCommandHandler> logger, IAzureDevOpsService azureDevOpsService, IDispatcher dispatcher) : ICommandHandler<SyncAzureDevOpsConnectionConfigurationCommand>
 {
     private const string AppRequestName = nameof(SyncAzureDevOpsConnectionConfigurationCommand);
 
@@ -23,7 +20,7 @@ internal sealed class SyncAzureDevOpsConnectionConfigurationCommandHandler(IAppI
     private readonly Instant _timestamp = dateTimeProvider.Now;
     private readonly ILogger<SyncAzureDevOpsConnectionConfigurationCommandHandler> _logger = logger;
     private readonly IAzureDevOpsService _azureDevOpsService = azureDevOpsService;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     public async Task<Result> Handle(SyncAzureDevOpsConnectionConfigurationCommand request, CancellationToken cancellationToken)
     {
@@ -49,7 +46,7 @@ internal sealed class SyncAzureDevOpsConnectionConfigurationCommandHandler(IAppI
             // get workspace internal ids after setting system id
             var workspaceIds = connection.Configuration.Workspaces.Where(w => w.IntegrationState?.InternalId != null).Select(w => w.IntegrationState!.InternalId).ToList();
 
-            var setSystemIdOnWorkspacesResult = await _sender.Send(new SetSystemIdOnExternalWorkspacesCommand(workspaceIds, connection.Connector, connection.SystemId!), cancellationToken);
+            var setSystemIdOnWorkspacesResult = await _dispatcher.Send(new SetSystemIdOnExternalWorkspacesCommand(workspaceIds, connection.Connector, connection.SystemId!), cancellationToken);
             if (setSystemIdOnWorkspacesResult.IsFailure)
             {
                 _logger.LogError("Failed to set SystemId on external workspaces for connection {ConnectionId}. {Error}", connection.Id, setSystemIdOnWorkspacesResult.Error);
@@ -151,7 +148,7 @@ internal sealed class SyncAzureDevOpsConnectionConfigurationCommandHandler(IAppI
                 "Detected work process change for workspace {WorkspaceId}: {OldProcessId} -> {NewProcessId}. Updating Wayd workspace.",
                 workspaceInternalId, previousProcessId, workspace.WorkProcessId);
     
-            var changeResult = await _sender.Send(
+            var changeResult = await _dispatcher.Send(
                 new ChangeExternalWorkspaceWorkProcessCommand(workspaceInternalId, workspace.WorkProcessId.Value),
                 cancellationToken);
 

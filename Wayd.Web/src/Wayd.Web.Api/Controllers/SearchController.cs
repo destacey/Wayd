@@ -9,9 +9,9 @@ namespace Wayd.Web.Api.Controllers;
 [ApiVersionNeutral]
 [ApiController]
 [Authorize]
-public class SearchController(ISender sender) : ControllerBase
+public class SearchController(IDispatcher dispatcher) : ControllerBase
 {
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [OpenApiOperation("Global search across all modules.", "")]
@@ -20,7 +20,7 @@ public class SearchController(ISender sender) : ControllerBase
     public async Task<ActionResult<GlobalSearchResultDto>> Search(
         [FromQuery] string query, CancellationToken cancellationToken, [FromQuery] int maxResultsPerCategory = 5)
     {
-        var result = await _sender.Send(
+        var result = await _dispatcher.Send(
             new GlobalSearchQuery(query, maxResultsPerCategory), cancellationToken);
 
         return result.IsSuccess

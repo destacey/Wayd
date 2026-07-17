@@ -1,6 +1,4 @@
 ﻿using System.Text.Json;
-using MediatR;
-using Wayd.AppIntegration.Application.Connections.Dtos;
 using Wayd.AppIntegration.Application.Connections.Queries;
 using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.Common.Application.Enums;
@@ -18,14 +16,14 @@ namespace Wayd.AppIntegration.Application.Connections.Managers;
 /// </summary>
 public sealed class WorkSyncRunner(
     ILogger<WorkSyncRunner> logger,
-    ISender sender,
+    IDispatcher dispatcher,
     IWorkItemSourceFactory sourceFactory,
     IAppIntegrationDbContext db,
     IDateTimeProvider clock,
     IEnumerable<ISyncableConnectionDescriptorBuilder> descriptorBuilders) : IWorkSyncRunner
 {
     private readonly ILogger<WorkSyncRunner> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly IWorkItemSourceFactory _sourceFactory = sourceFactory;
     private readonly IAppIntegrationDbContext _db = db;
     private readonly IDateTimeProvider _clock = clock;
@@ -51,7 +49,7 @@ public sealed class WorkSyncRunner(
         {
             try
             {
-                var connections = await _sender.Send(
+                var connections = await _dispatcher.Send(
                     new GetConnectionsQuery(IncludeInactive: false, Capability: ConnectorCapability.WorkItems),
                     cancellationToken);
                 var active = connections
@@ -102,7 +100,7 @@ public sealed class WorkSyncRunner(
         var syncId = Guid.CreateVersion7();
         using (_logger.BeginScope(new Dictionary<string, object> { ["SyncId"] = syncId, ["ConnectionId"] = connectionId }))
         {
-            var connection = await _sender.Send(new GetConnectionQuery(connectionId), cancellationToken);
+            var connection = await _dispatcher.Send(new GetConnectionQuery(connectionId), cancellationToken);
             if (connection is null)
                 return Result.Failure($"Connection {connectionId} not found.");
 
@@ -194,7 +192,7 @@ public sealed class WorkSyncRunner(
                 }
             }
 
-            var dependenciesResult = await _sender.Send(new ProcessDependenciesCommand(descriptorResult.Value.SystemId!), cancellationToken);
+            var dependenciesResult = await _dispatcher.Send(new ProcessDependenciesCommand(descriptorResult.Value.SystemId!), cancellationToken);
             if (dependenciesResult.IsFailure)
             {
                 _logger.LogError("ProcessDependencies failed for connection {ConnectionId}: {Error}", connectionId, dependenciesResult.Error);

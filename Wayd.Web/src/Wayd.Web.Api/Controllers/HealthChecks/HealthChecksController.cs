@@ -8,11 +8,11 @@ namespace Wayd.Web.Api.Controllers.HealthChecks;
 [ApiController]
 public class HealthChecksController : ControllerBase
 {
-    private readonly ISender _sender;
+    private readonly IDispatcher _dispatcher;
 
-    public HealthChecksController(ISender sender)
+    public HealthChecksController(IDispatcher dispatcher)
     {
-        _sender = sender;
+        _dispatcher = dispatcher;
     }
 
     [HttpGet("statuses")]
@@ -21,7 +21,7 @@ public class HealthChecksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<HealthStatusDto>>> GetStatuses(CancellationToken cancellationToken)
     {
-        var items = await _sender.Send(new GetHealthStatusesQuery(), cancellationToken);
+        var items = await _dispatcher.Send(new GetHealthStatusesQuery(), cancellationToken);
         return Ok(items.OrderBy(c => c.Order));
     }
 }

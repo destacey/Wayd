@@ -23,9 +23,9 @@ namespace Wayd.Web.Api.Controllers.AppIntegrations;
 [Route("api/app-integrations/connections")]
 [ApiVersionNeutral]
 [ApiController]
-public class ConnectionsController(ISender sender) : ControllerBase
+public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
 {
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Connections)]
@@ -35,7 +35,7 @@ public class ConnectionsController(ISender sender) : ControllerBase
         CancellationToken cancellationToken,
         bool includeDisabled = false)
     {
-        var connections = await _sender.Send(new GetConnectionsQuery(includeDisabled), cancellationToken);
+        var connections = await _dispatcher.Send(new GetConnectionsQuery(includeDisabled), cancellationToken);
         return Ok(connections);
     }
 
@@ -45,7 +45,7 @@ public class ConnectionsController(ISender sender) : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<ConnectorListDto>>> GetConnectors(CancellationToken cancellationToken)
     {
-        var connectors = await _sender.Send(new GetConnectorsQuery(), cancellationToken);
+        var connectors = await _dispatcher.Send(new GetConnectorsQuery(), cancellationToken);
         return Ok(connectors.OrderBy(c => c.Name));
     }
 
@@ -56,7 +56,7 @@ public class ConnectionsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ConnectionDetailsDto>> GetConnection(Guid id, CancellationToken cancellationToken)
     {
-        var connection = await _sender.Send(new GetConnectionQuery(id), cancellationToken);
+        var connection = await _dispatcher.Send(new GetConnectionQuery(id), cancellationToken);
 
         if (connection is null)
             return NotFound();
@@ -93,13 +93,13 @@ public class ConnectionsController(ISender sender) : ControllerBase
         Result<Guid> result = request switch
         {
             CreateAzureDevOpsConnectionRequest azdo =>
-                await _sender.Send(azdo.ToCommand(), cancellationToken),
+                await _dispatcher.Send(azdo.ToCommand(), cancellationToken),
             CreateAzureOpenAIConnectionRequest aoai =>
-                await _sender.Send(aoai.ToCommand(), cancellationToken),
+                await _dispatcher.Send(aoai.ToCommand(), cancellationToken),
             CreateEntraConnectionRequest entra =>
-                await _sender.Send(entra.ToCommand(), cancellationToken),
+                await _dispatcher.Send(entra.ToCommand(), cancellationToken),
             CreateWorkdayConnectionRequest workday =>
-                await _sender.Send(workday.ToCommand(), cancellationToken),
+                await _dispatcher.Send(workday.ToCommand(), cancellationToken),
             _ => Result.Failure<Guid>($"Connector type not supported")
         };
 
@@ -124,13 +124,13 @@ public class ConnectionsController(ISender sender) : ControllerBase
         Result result = request switch
         {
             UpdateAzureDevOpsConnectionRequest azdo =>
-                await _sender.Send(azdo.ToCommand(), cancellationToken),
+                await _dispatcher.Send(azdo.ToCommand(), cancellationToken),
             UpdateAzureOpenAIConnectionRequest aoai =>
-                await _sender.Send(aoai.ToCommand(), cancellationToken),
+                await _dispatcher.Send(aoai.ToCommand(), cancellationToken),
             UpdateEntraConnectionRequest entra =>
-                await _sender.Send(entra.ToCommand(), cancellationToken),
+                await _dispatcher.Send(entra.ToCommand(), cancellationToken),
             UpdateWorkdayConnectionRequest workday =>
-                await _sender.Send(workday.ToCommand(), cancellationToken),
+                await _dispatcher.Send(workday.ToCommand(), cancellationToken),
             _ => Result.Failure($"Connector type not supported")
         };
 
@@ -148,11 +148,11 @@ public class ConnectionsController(ISender sender) : ControllerBase
     {
         // Pre-check existence so a missing connection surfaces as 404 rather than 400 — matches
         // the DeleteConnection pattern and the documented OpenAPI responses.
-        var connection = await _sender.Send(new GetConnectionQuery(id), cancellationToken);
+        var connection = await _dispatcher.Send(new GetConnectionQuery(id), cancellationToken);
         if (connection is null)
             return NotFound();
 
-        var result = await _sender.Send(new ActivateConnectionCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ActivateConnectionCommand(id), cancellationToken);
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
@@ -167,11 +167,11 @@ public class ConnectionsController(ISender sender) : ControllerBase
     {
         // Pre-check existence so a missing connection surfaces as 404 rather than 400 — matches
         // the DeleteConnection pattern and the documented OpenAPI responses.
-        var connection = await _sender.Send(new GetConnectionQuery(id), cancellationToken);
+        var connection = await _dispatcher.Send(new GetConnectionQuery(id), cancellationToken);
         if (connection is null)
             return NotFound();
 
-        var result = await _sender.Send(new DeactivateConnectionCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new DeactivateConnectionCommand(id), cancellationToken);
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
@@ -188,7 +188,7 @@ public class ConnectionsController(ISender sender) : ControllerBase
         CancellationToken cancellationToken,
         SyncType syncType = SyncType.Differential)
     {
-        var connection = await _sender.Send(new GetConnectionQuery(id), cancellationToken);
+        var connection = await _dispatcher.Send(new GetConnectionQuery(id), cancellationToken);
         if (connection is null)
             return NotFound();
 
@@ -235,7 +235,7 @@ public class ConnectionsController(ISender sender) : ControllerBase
         [FromServices] IServiceProvider serviceProvider,
         CancellationToken cancellationToken)
     {
-        var connection = await _sender.Send(new GetConnectionQuery(id), cancellationToken);
+        var connection = await _dispatcher.Send(new GetConnectionQuery(id), cancellationToken);
         if (connection is null)
             return NotFound();
 
@@ -267,14 +267,14 @@ public class ConnectionsController(ISender sender) : ControllerBase
         if (string.IsNullOrWhiteSpace(typeId))
             return BadRequest(ProblemDetailsExtensions.ForBadRequest("typeId is required.", HttpContext));
 
-        var connection = await _sender.Send(new GetConnectionQuery(id), cancellationToken);
+        var connection = await _dispatcher.Send(new GetConnectionQuery(id), cancellationToken);
         if (connection is null)
             return NotFound();
         if (connection is not WorkdayConnectionDetailsDto)
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(
                 "This endpoint is only available for Workday connections.", HttpContext));
 
-        var result = await _sender.Send(new GetWorkdayOrgsByTypeCommand(id, typeId), cancellationToken);
+        var result = await _dispatcher.Send(new GetWorkdayOrgsByTypeCommand(id, typeId), cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
@@ -296,7 +296,7 @@ public class ConnectionsController(ISender sender) : ControllerBase
             sinceInstant = Instant.FromDateTimeUtc(s);
         }
 
-        var runs = await _sender.Send(new GetSyncRunsQuery(id, sinceInstant), cancellationToken);
+        var runs = await _dispatcher.Send(new GetSyncRunsQuery(id, sinceInstant), cancellationToken);
         return Ok(runs);
     }
 
@@ -307,7 +307,7 @@ public class ConnectionsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<SyncRunDetailsDto>> GetSyncRun(Guid syncRunId, CancellationToken cancellationToken)
     {
-        var run = await _sender.Send(new GetSyncRunQuery(syncRunId), cancellationToken);
+        var run = await _dispatcher.Send(new GetSyncRunQuery(syncRunId), cancellationToken);
 
         return run is not null ? Ok(run) : NotFound();
     }
@@ -321,20 +321,20 @@ public class ConnectionsController(ISender sender) : ControllerBase
     public async Task<ActionResult> DeleteConnection(Guid id, CancellationToken cancellationToken)
     {
         // Determine connection type first to dispatch correct command
-        var connection = await _sender.Send(new GetConnectionQuery(id), cancellationToken);
+        var connection = await _dispatcher.Send(new GetConnectionQuery(id), cancellationToken);
         if (connection is null)
             return NotFound();
 
         Result result = connection switch
         {
             AzureDevOpsConnectionDetailsDto =>
-                await _sender.Send(new DeleteAzureDevOpsConnectionCommand(id), cancellationToken),
+                await _dispatcher.Send(new DeleteAzureDevOpsConnectionCommand(id), cancellationToken),
             AzureOpenAIConnectionDetailsDto =>
-                await _sender.Send(new DeleteAzureOpenAIConnectionCommand(id), cancellationToken),
+                await _dispatcher.Send(new DeleteAzureOpenAIConnectionCommand(id), cancellationToken),
             EntraConnectionDetailsDto =>
-                await _sender.Send(new DeleteEntraConnectionCommand(id), cancellationToken),
+                await _dispatcher.Send(new DeleteEntraConnectionCommand(id), cancellationToken),
             WorkdayConnectionDetailsDto =>
-                await _sender.Send(new DeleteWorkdayConnectionCommand(id), cancellationToken),
+                await _dispatcher.Send(new DeleteWorkdayConnectionCommand(id), cancellationToken),
             _ => Result.Failure($"Connector type not supported")
         };
 

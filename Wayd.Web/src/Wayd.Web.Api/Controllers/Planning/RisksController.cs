@@ -1,5 +1,4 @@
 ﻿using CsvHelper;
-using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Planning.Application.Risks.Commands;
 using Wayd.Planning.Application.Risks.Dtos;
@@ -14,13 +13,13 @@ namespace Wayd.Web.Api.Controllers.Planning;
 [ApiController]
 public class RisksController : ControllerBase
 {
-    private readonly ISender _sender;
+    private readonly IDispatcher _dispatcher;
     private readonly ICsvService _csvService;
     private readonly IDateTimeProvider _dateTimeProvider;
 
-    public RisksController(ISender sender, ICsvService csvService, IDateTimeProvider dateTimeProvider)
+    public RisksController(IDispatcher dispatcher, ICsvService csvService, IDateTimeProvider dateTimeProvider)
     {
-        _sender = sender;
+        _dispatcher = dispatcher;
         _csvService = csvService;
         _dateTimeProvider = dateTimeProvider;
     }
@@ -32,7 +31,7 @@ public class RisksController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<RiskListDto>>> GetList(CancellationToken cancellationToken, bool includeClosed = false)
     {
-        var risks = await _sender.Send(new GetRisksQuery(includeClosed), cancellationToken);
+        var risks = await _dispatcher.Send(new GetRisksQuery(includeClosed), cancellationToken);
         return Ok(risks);
     }
 
@@ -43,7 +42,7 @@ public class RisksController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<RiskDetailsDto>> GetRisk(string idOrKey, CancellationToken cancellationToken)
     {
-        var risk = await _sender.Send(new GetRiskQuery(idOrKey), cancellationToken);
+        var risk = await _dispatcher.Send(new GetRiskQuery(idOrKey), cancellationToken);
 
         return risk is not null
             ? Ok(risk)
@@ -57,7 +56,7 @@ public class RisksController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<RiskListDto>>> GetMyRisks(CancellationToken cancellationToken)
     {
-        var risks = await _sender.Send(new GetMyRisksQuery(), cancellationToken);
+        var risks = await _dispatcher.Send(new GetMyRisksQuery(), cancellationToken);
         return Ok(risks);
     }
 
@@ -67,7 +66,7 @@ public class RisksController : ControllerBase
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateRiskRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateRiskCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateRiskCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetRisk), new { idOrKey = result.Value.Id.ToString() }, result.Value)
@@ -85,7 +84,7 @@ public class RisksController : ControllerBase
         if (id != request.RiskId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(id), nameof(request.RiskId), HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateRiskCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateRiskCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -130,7 +129,7 @@ public class RisksController : ControllerBase
             if (risks.Count == 0)
                 return BadRequest(ProblemDetailsExtensions.ForBadRequest("No risks imported.", HttpContext));
 
-            var result = await _sender.Send(new ImportRisksCommand(risks), cancellationToken);
+            var result = await _dispatcher.Send(new ImportRisksCommand(risks), cancellationToken);
 
             return result.IsSuccess
                 ? NoContent()
@@ -150,7 +149,7 @@ public class RisksController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<RiskStatusDto>>> GetStatuses(CancellationToken cancellationToken)
     {
-        var items = await _sender.Send(new GetRiskStatusesQuery(), cancellationToken);
+        var items = await _dispatcher.Send(new GetRiskStatusesQuery(), cancellationToken);
         return Ok(items.OrderBy(c => c.Order));
     }
 
@@ -161,7 +160,7 @@ public class RisksController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<RiskCategoryDto>>> GetCategories(CancellationToken cancellationToken)
     {
-        var items = await _sender.Send(new GetRiskCategoriesQuery(), cancellationToken);
+        var items = await _dispatcher.Send(new GetRiskCategoriesQuery(), cancellationToken);
         return Ok(items.OrderBy(c => c.Order));
     }
 
@@ -172,7 +171,7 @@ public class RisksController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<RiskGradeDto>>> GetGrades(CancellationToken cancellationToken)
     {
-        var items = await _sender.Send(new GetRiskGradesQuery(), cancellationToken);
+        var items = await _dispatcher.Send(new GetRiskGradesQuery(), cancellationToken);
         return Ok(items.OrderBy(c => c.Order));
     }
 }

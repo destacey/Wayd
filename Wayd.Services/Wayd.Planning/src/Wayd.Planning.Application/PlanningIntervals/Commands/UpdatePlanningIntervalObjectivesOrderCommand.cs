@@ -1,5 +1,4 @@
-﻿using MediatR;
-using Wayd.Common.Application.Requests.Goals.Commands;
+﻿using Wayd.Common.Application.Requests.Goals.Commands;
 
 namespace Wayd.Planning.Application.PlanningIntervals.Commands;
 
@@ -21,12 +20,12 @@ public sealed class UpdatePlanningIntervalObjectivesOrderCommandValidator : Cust
     }
 }
 
-internal sealed class UpdatePlanningIntervalObjectivesOrderCommandHandler(IPlanningDbContext planningDbContext, ISender sender, ILogger<UpdatePlanningIntervalObjectivesOrderCommandHandler> logger) : ICommandHandler<UpdatePlanningIntervalObjectivesOrderCommand>
+internal sealed class UpdatePlanningIntervalObjectivesOrderCommandHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, ILogger<UpdatePlanningIntervalObjectivesOrderCommandHandler> logger) : ICommandHandler<UpdatePlanningIntervalObjectivesOrderCommand>
 {
     private const string AppRequestName = nameof(UpdatePlanningIntervalObjectivesOrderCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ILogger<UpdatePlanningIntervalObjectivesOrderCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdatePlanningIntervalObjectivesOrderCommand request, CancellationToken cancellationToken)
@@ -60,7 +59,7 @@ internal sealed class UpdatePlanningIntervalObjectivesOrderCommandHandler(IPlann
                 updatedGoalObjectives.Add(piObjective.ObjectiveId, request.Objectives[piObjective.Id]);
             }
 
-            var objectivResult = await _sender.Send(new UpdateObjectivesOrderCommand(updatedGoalObjectives), cancellationToken);
+            var objectivResult = await _dispatcher.Send(new UpdateObjectivesOrderCommand(updatedGoalObjectives), cancellationToken);
 
             return objectivResult.IsSuccess
                 ? Result.Success()

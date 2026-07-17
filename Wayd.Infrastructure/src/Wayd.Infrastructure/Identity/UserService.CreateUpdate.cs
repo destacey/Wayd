@@ -942,7 +942,7 @@ internal partial class UserService
         // User-to-Employee linkage is keyed on email regardless of which PeopleSync connector
         // is currently active. EmployeeNumber's value depends on the source's preferences
         // (Entra User.Id, Workday Employee_ID, etc.) and isn't a stable cross-source key.
-        var employeeId = await _sender.Send(new GetEmployeeByEmailQuery(email));
+        var employeeId = await _dispatcher.Send(new GetEmployeeByEmailQuery(email));
         if (employeeId.IsNullEmptyOrDefault())
         {
             employeeId = null;

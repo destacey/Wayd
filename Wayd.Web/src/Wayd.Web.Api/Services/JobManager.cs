@@ -24,7 +24,7 @@ public class JobManager(
     ILogger<JobManager> logger,
     IWorkSyncRunner workSyncRunner,
     IPeopleSyncRunner peopleSyncRunner,
-    ISender sender)
+    IDispatcher dispatcher)
     : IJobManager
 {
     // TODO: does this belong in JobService/HangfireService?
@@ -32,7 +32,7 @@ public class JobManager(
     private readonly ILogger<JobManager> _logger = logger;
     private readonly IWorkSyncRunner _workSyncRunner = workSyncRunner;
     private readonly IPeopleSyncRunner _peopleSyncRunner = peopleSyncRunner;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [DisableConcurrentExecution(60 * 3)]
     [AutomaticRetry(Attempts = 3, DelaysInSeconds = [30, 60, 120])]
@@ -75,13 +75,13 @@ public class JobManager(
     {
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncTeamsWithGraphTables));
 
-        var teamNodesresult = await _sender.Send(new SyncTeamNodesCommand(), cancellationToken);
+        var teamNodesresult = await _dispatcher.Send(new SyncTeamNodesCommand(), cancellationToken);
         if (teamNodesresult.IsFailure)
         {
             _logger.LogError("Failed to sync teams with graph tables: {Error}", teamNodesresult.Error);
         }
 
-        var teamMembershipEdgesResult = await _sender.Send(new SyncTeamMembershipEdgesCommand(), cancellationToken);
+        var teamMembershipEdgesResult = await _dispatcher.Send(new SyncTeamMembershipEdgesCommand(), cancellationToken);
         if (teamMembershipEdgesResult.IsFailure)
         {
             _logger.LogError("Failed to sync team memberships with graph tables: {Error}", teamMembershipEdgesResult.Error);
@@ -95,9 +95,9 @@ public class JobManager(
     {
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncIterations));
 
-        var iterations = await _sender.Send(new GetSimpleIterationsQuery(), cancellationToken);
+        var iterations = await _dispatcher.Send(new GetSimpleIterationsQuery(), cancellationToken);
 
-        var result = await _sender.Send(new SyncWorkIterationsCommand(iterations), cancellationToken);
+        var result = await _dispatcher.Send(new SyncWorkIterationsCommand(iterations), cancellationToken);
         if (result.IsFailure)
         {
             _logger.LogError("Failed to sync iterations: {Error}", result.Error);
@@ -112,9 +112,9 @@ public class JobManager(
     {
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncStrategicThemes));
 
-        var strategicThemes = await _sender.Send(new GetStrategicThemesDataQuery(), cancellationToken);
+        var strategicThemes = await _dispatcher.Send(new GetStrategicThemesDataQuery(), cancellationToken);
 
-        var result = await _sender.Send(new PpmSyncStrategicThemesCommand(strategicThemes), cancellationToken);
+        var result = await _dispatcher.Send(new PpmSyncStrategicThemesCommand(strategicThemes), cancellationToken);
         if (result.IsFailure)
         {
             _logger.LogError("Failed to sync strategic themes: {Error}", result.Error);
@@ -128,9 +128,9 @@ public class JobManager(
     {
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncProjects));
 
-        var projects = await _sender.Send(new GetSimpleProjectsQuery(), cancellationToken);
+        var projects = await _dispatcher.Send(new GetSimpleProjectsQuery(), cancellationToken);
 
-        var result = await _sender.Send(new SyncWorkProjectsCommand(projects), cancellationToken);
+        var result = await _dispatcher.Send(new SyncWorkProjectsCommand(projects), cancellationToken);
         if (result.IsFailure)
         {
             _logger.LogError("Failed to sync projects: {Error}", result.Error);
@@ -145,21 +145,21 @@ public class JobManager(
     {
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncTeams));
 
-        var teams = await _sender.Send(new GetSimpleTeamsQuery(), cancellationToken);
+        var teams = await _dispatcher.Send(new GetSimpleTeamsQuery(), cancellationToken);
 
-        var planningSyncResult = await _sender.Send(new SyncPlanningTeamsCommand(teams), cancellationToken);
+        var planningSyncResult = await _dispatcher.Send(new SyncPlanningTeamsCommand(teams), cancellationToken);
         if (planningSyncResult.IsFailure)
         {
             _logger.LogError("Failed to sync planning teams: {Error}", planningSyncResult.Error);
         }
 
-        var ppmSyncResult = await _sender.Send(new SyncPpmTeamsCommand(teams), cancellationToken);
+        var ppmSyncResult = await _dispatcher.Send(new SyncPpmTeamsCommand(teams), cancellationToken);
         if (ppmSyncResult.IsFailure)
         {
             _logger.LogError("Failed to sync PPM teams: {Error}", ppmSyncResult.Error);
         }
 
-        var workSyncResult = await _sender.Send(new SyncWorkTeamsCommand(teams), cancellationToken);
+        var workSyncResult = await _dispatcher.Send(new SyncWorkTeamsCommand(teams), cancellationToken);
         if (workSyncResult.IsFailure)
         {
             _logger.LogError("Failed to sync work teams: {Error}", workSyncResult.Error);
@@ -176,11 +176,11 @@ public class JobManager(
 
         // Runs as the system identity (set by the Hangfire activator), so the rebalance command
         // bypasses the per-actor Owner/Manager check for this maintenance pass.
-        var portfolioIds = await _sender.Send(new GetPortfolioIdsToRebalanceQuery(), cancellationToken);
+        var portfolioIds = await _dispatcher.Send(new GetPortfolioIdsToRebalanceQuery(), cancellationToken);
 
         foreach (var portfolioId in portfolioIds)
         {
-            var result = await _sender.Send(new RebalancePortfolioRanksCommand(portfolioId), cancellationToken);
+            var result = await _dispatcher.Send(new RebalancePortfolioRanksCommand(portfolioId), cancellationToken);
             if (result.IsFailure)
             {
                 _logger.LogWarning("Failed to rebalance ranks for portfolio {PortfolioId}: {Error}", portfolioId, result.Error);

@@ -1,6 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
 using FluentAssertions;
-using MediatR;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.AutoMock;
@@ -114,7 +113,7 @@ public class WorkSyncRunnerTests
             CanSync = e.CanSync
         }).ToList().AsReadOnly() as IReadOnlyList<ConnectionListDto>;
 
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<GetConnectionsQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(dtos);
     }
@@ -141,7 +140,7 @@ public class WorkSyncRunnerTests
         _source.Setup(s => s.SyncWorkItems(It.IsAny<WorkspaceSyncTarget>(), It.IsAny<SyncType>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new WorkspaceItemsSyncResult(workItemsPerWorkspace, 0, 0, 0)));
 
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<ProcessDependenciesCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
     }
@@ -214,7 +213,7 @@ public class WorkSyncRunnerTests
             .Callback(() => sequence.Add(nameof(IWorkItemSource.SyncWorkItems)))
             .ReturnsAsync(Result.Success(WorkspaceItemsSyncResult.Zero));
 
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<ProcessDependenciesCommand>(), It.IsAny<CancellationToken>()))
             .Callback(() => sequence.Add(nameof(ProcessDependenciesCommand)))
             .ReturnsAsync(Result.Success());
@@ -357,7 +356,7 @@ public class WorkSyncRunnerTests
         var connection = SeedActiveAzdoConnection();
         SetupConnectionsQuery(connection);
         StubHappyPathSource();
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<ProcessDependenciesCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Failure("Dependencies failed"));
 
@@ -447,7 +446,7 @@ public class WorkSyncRunnerTests
         // Critical invariant: the runner must only see WorkSync connectors. If this assertion
         // is changed to allow unfiltered queries, future People/AI-sync connectors will be
         // pulled into the work-sync pipeline.
-        _mocker.GetMock<ISender>().Verify(s => s.Send(
+        _mocker.GetMock<IDispatcher>().Verify(s => s.Send(
             It.Is<GetConnectionsQuery>(q =>
                 q.IncludeInactive == false
                 && q.Capability == ConnectorCapability.WorkItems),
@@ -499,7 +498,7 @@ public class WorkSyncRunnerTests
             },
         };
 
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.Is<GetConnectionQuery>(q => q.Id == connectionId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(details);
     }
@@ -528,7 +527,7 @@ public class WorkSyncRunnerTests
         run.WorkItemsProcessed.Should().Be(4);
 
         // Org-wide query must not be used by the per-connection overload.
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Verify(s => s.Send(It.IsAny<GetConnectionsQuery>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 

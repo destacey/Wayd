@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Text.Json;
-using MediatR;
 using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.AppIntegration.Domain.Interfaces;
 using Wayd.Common.Application.Employees.Commands;
@@ -22,7 +21,7 @@ namespace Wayd.AppIntegration.Application.Connections.Managers;
 /// </summary>
 public sealed class PeopleSyncRunner(
     ILogger<PeopleSyncRunner> logger,
-    ISender sender,
+    IDispatcher dispatcher,
     IAppIntegrationDbContext db,
     IDateTimeProvider clock,
     IEmployeeSourceFactory sourceFactory,
@@ -30,7 +29,7 @@ public sealed class PeopleSyncRunner(
     IUserService userService) : IPeopleSyncRunner
 {
     private readonly ILogger<PeopleSyncRunner> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly IAppIntegrationDbContext _db = db;
     private readonly IDateTimeProvider _clock = clock;
     private readonly IEmployeeSourceFactory _sourceFactory = sourceFactory;
@@ -212,7 +211,7 @@ public sealed class PeopleSyncRunner(
             }
 
             stageTimer.Restart();
-            var upsertResult = await _sender.Send(
+            var upsertResult = await _dispatcher.Send(
                 new BulkUpsertEmployeesCommand(employees, matchBy: source.MatchBy, deactivateMissing: !incremental),
                 cancellationToken);
             upsertMs = stageTimer.ElapsedMilliseconds;

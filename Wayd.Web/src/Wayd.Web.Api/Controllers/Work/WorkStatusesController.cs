@@ -11,12 +11,12 @@ namespace Wayd.Web.Api.Controllers.Work;
 public class WorkStatusesController : ControllerBase
 {
     private readonly ILogger<WorkStatusesController> _logger;
-    private readonly ISender _sender;
+    private readonly IDispatcher _dispatcher;
 
-    public WorkStatusesController(ILogger<WorkStatusesController> logger, ISender sender)
+    public WorkStatusesController(ILogger<WorkStatusesController> logger, IDispatcher dispatcher)
     {
         _logger = logger;
-        _sender = sender;
+        _dispatcher = dispatcher;
     }
 
     [HttpGet]
@@ -26,7 +26,7 @@ public class WorkStatusesController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<WorkStatusDto>>> GetList(CancellationToken cancellationToken, bool includeInactive = false)
     {
-        var workStatuses = await _sender.Send(new GetWorkStatusesQuery(includeInactive), cancellationToken);
+        var workStatuses = await _dispatcher.Send(new GetWorkStatusesQuery(includeInactive), cancellationToken);
         return Ok(workStatuses.OrderBy(s => s.Name));
     }
 
@@ -38,7 +38,7 @@ public class WorkStatusesController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<WorkStatusDto>> GetById(int id)
     {
-        var workStatus = await _sender.Send(new GetWorkStatusQuery(id));
+        var workStatus = await _dispatcher.Send(new GetWorkStatusQuery(id));
 
         return workStatus is not null
             ? Ok(workStatus)
@@ -51,7 +51,7 @@ public class WorkStatusesController : ControllerBase
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Int))]
     public async Task<ActionResult> Create(CreateWorkStatusRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateWorkStatusCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateWorkStatusCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
@@ -69,7 +69,7 @@ public class WorkStatusesController : ControllerBase
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateWorkStatusCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateWorkStatusCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

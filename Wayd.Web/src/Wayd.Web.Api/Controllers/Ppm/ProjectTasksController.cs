@@ -14,10 +14,10 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 [Route("api/ppm/projects/{projectIdOrKey}/tasks")]
 [ApiVersionNeutral]
 [ApiController]
-public class ProjectTasksController(ILogger<ProjectTasksController> logger, ISender sender, IValidator<UpdateProjectTaskRequest> updateProjectTaskValidator) : ControllerBase
+public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDispatcher dispatcher, IValidator<UpdateProjectTaskRequest> updateProjectTaskValidator) : ControllerBase
 {
     private readonly ILogger<ProjectTasksController> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly IValidator<UpdateProjectTaskRequest> _updateProjectTaskValidator = updateProjectTaskValidator;
 
     [HttpGet]
@@ -33,7 +33,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, ISen
     {
         TaskStatus? statusFilter = status.HasValue ? (TaskStatus)status.Value : null;
 
-        var tasks = await _sender.Send(
+        var tasks = await _dispatcher.Send(
             new GetProjectTasksQuery(projectIdOrKey, statusFilter, parentId),
             cancellationToken);
 
@@ -50,7 +50,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, ISen
         string taskIdOrKey,
         CancellationToken cancellationToken)
     {
-        var task = await _sender.Send(new GetProjectTaskQuery(taskIdOrKey), cancellationToken);
+        var task = await _dispatcher.Send(new GetProjectTaskQuery(taskIdOrKey), cancellationToken);
 
         return task is not null
             ? Ok(task)
@@ -73,7 +73,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, ISen
         if (projectId is null)
             return NotFound($"Project with identifier '{projectIdOrKey}' not found.");
 
-        var result = await _sender.Send(request.ToCreateProjectTaskCommand(projectId.Value), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateProjectTaskCommand(projectId.Value), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(
@@ -98,7 +98,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, ISen
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateProjectTaskCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateProjectTaskCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -122,7 +122,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, ISen
             return BadRequest("Patch document cannot be null.");
 
         // Get the current task state
-        var taskDto = await _sender.Send(new GetProjectTaskQuery(id.ToString()), cancellationToken);
+        var taskDto = await _dispatcher.Send(new GetProjectTaskQuery(id.ToString()), cancellationToken);
         if (taskDto is null)
             return NotFound($"Project task with ID '{id}' not found.");
 
@@ -151,7 +151,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, ISen
                 modelStateDictionary: ModelState,
                 statusCode: StatusCodes.Status422UnprocessableEntity);
 
-        var result = await _sender.Send(updateRequest.ToUpdateProjectTaskCommand(), cancellationToken);
+        var result = await _dispatcher.Send(updateRequest.ToUpdateProjectTaskCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -169,7 +169,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, ISen
         Guid id,
         CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeleteProjectTaskCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new DeleteProjectTaskCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -195,7 +195,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, ISen
         if (projectId is null)
             return NotFound($"Project with identifier '{projectIdOrKey}' not found.");
 
-        var result = await _sender.Send(request.ToUpdateProjectTaskPlacementCommand(projectId.Value), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateProjectTaskPlacementCommand(projectId.Value), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -211,7 +211,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, ISen
         string projectIdOrKey,
         CancellationToken cancellationToken)
     {
-        var criticalPath = await _sender.Send(new GetCriticalPathQuery(projectIdOrKey), cancellationToken);
+        var criticalPath = await _dispatcher.Send(new GetCriticalPathQuery(projectIdOrKey), cancellationToken);
 
         return Ok(criticalPath);
     }
@@ -235,7 +235,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, ISen
         if (projectId is null)
             return NotFound($"Project with identifier '{projectIdOrKey}' not found.");
 
-        var result = await _sender.Send(new AddProjectTaskDependencyCommand(projectId.Value, request.PredecessorId, request.SuccessorId), cancellationToken);
+        var result = await _dispatcher.Send(new AddProjectTaskDependencyCommand(projectId.Value, request.PredecessorId, request.SuccessorId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -258,7 +258,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, ISen
         if (projectId is null)
             return NotFound($"Project with identifier '{projectIdOrKey}' not found.");
 
-        var result = await _sender.Send(new RemoveProjectTaskDependencyCommand(projectId.Value, id, successorId), cancellationToken);
+        var result = await _dispatcher.Send(new RemoveProjectTaskDependencyCommand(projectId.Value, id, successorId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -272,7 +272,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, ISen
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ProjectTaskTypeDto>>> GetTaskTypes(CancellationToken cancellationToken)
     {
-        var items = await _sender.Send(new GetProjectTaskTypesQuery(), cancellationToken);
+        var items = await _dispatcher.Send(new GetProjectTaskTypesQuery(), cancellationToken);
         return Ok(items.OrderBy(c => c.Order));
     }
 
@@ -283,7 +283,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, ISen
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<TaskStatusDto>>> GetTaskStatuses(CancellationToken cancellationToken)
     {
-        var items = await _sender.Send(new GetProjectTaskStatusesQuery(), cancellationToken);
+        var items = await _dispatcher.Send(new GetProjectTaskStatusesQuery(), cancellationToken);
         return Ok(items.OrderBy(c => c.Order));
     }
 
@@ -294,7 +294,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, ISen
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<TaskPriorityDto>>> GetTaskPriorities(CancellationToken cancellationToken)
     {
-        var items = await _sender.Send(new GetProjectTaskPrioritiesQuery(), cancellationToken);
+        var items = await _dispatcher.Send(new GetProjectTaskPrioritiesQuery(), cancellationToken);
         return Ok(items.OrderBy(c => c.Order));
     }
 
@@ -308,7 +308,7 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, ISen
         try
         {
             var key = new ProjectKey(projectIdOrKey);
-            return await _sender.Send(new GetProjectIdQuery(key), cancellationToken);
+            return await _dispatcher.Send(new GetProjectIdQuery(key), cancellationToken);
         }
         catch
         {

@@ -11,10 +11,10 @@ namespace Wayd.Web.Api.Controllers.StrategicManagement;
 [Route("api/strategic-management/[controller]")]
 [ApiVersionNeutral]
 [ApiController]
-public class StrategiesController(ILogger<StrategiesController> logger, ISender sender) : ControllerBase
+public class StrategiesController(ILogger<StrategiesController> logger, IDispatcher dispatcher) : ControllerBase
 {
     private readonly ILogger<StrategiesController> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Strategies)]
@@ -25,7 +25,7 @@ public class StrategiesController(ILogger<StrategiesController> logger, ISender 
     {
         StrategyStatus? filter = status.HasValue ? (StrategyStatus)status.Value : null;
 
-        var strategies = await _sender.Send(new GetStrategiesQuery(filter), cancellationToken);
+        var strategies = await _dispatcher.Send(new GetStrategiesQuery(filter), cancellationToken);
 
         return Ok(strategies);
     }
@@ -37,7 +37,7 @@ public class StrategiesController(ILogger<StrategiesController> logger, ISender 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<StrategyDetailsDto>> GetStrategy(string idOrKey, CancellationToken cancellationToken)
     {
-        var strategy = await _sender.Send(new GetStrategyQuery(idOrKey), cancellationToken);
+        var strategy = await _dispatcher.Send(new GetStrategyQuery(idOrKey), cancellationToken);
 
         return strategy is not null
             ? Ok(strategy)
@@ -50,7 +50,7 @@ public class StrategiesController(ILogger<StrategiesController> logger, ISender 
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateStrategyRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateStrategyCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateStrategyCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetStrategy), new { idOrKey = result.Value.Id.ToString() }, result.Value)
@@ -68,7 +68,7 @@ public class StrategiesController(ILogger<StrategiesController> logger, ISender 
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateStrategyCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateStrategyCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -82,7 +82,7 @@ public class StrategiesController(ILogger<StrategiesController> logger, ISender 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeleteStrategyCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new DeleteStrategyCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -96,7 +96,7 @@ public class StrategiesController(ILogger<StrategiesController> logger, ISender 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<StrategyStatusDto>>> GetStatusOptions(CancellationToken cancellationToken)
     {
-        var items = await _sender.Send(new GetStrategyStatusesQuery(), cancellationToken);
+        var items = await _dispatcher.Send(new GetStrategyStatusesQuery(), cancellationToken);
         return Ok(items.OrderBy(s => s.Order));
     }
 }

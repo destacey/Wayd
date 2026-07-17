@@ -1,5 +1,4 @@
-﻿using MediatR;
-using Wayd.Common.Application.Requests.Goals.Commands;
+﻿using Wayd.Common.Application.Requests.Goals.Commands;
 using Wayd.Common.Application.Requests.Goals.Queries;
 using Wayd.Planning.Application.PlanningIntervals.Extensions;
 using Wayd.Planning.Domain.Enums;
@@ -66,13 +65,13 @@ public sealed class UpdatePlanningIntervalObjectiveCommandValidator : CustomVali
 internal sealed class UpdatePlanningIntervalObjectiveCommandHandler : ICommandHandler<UpdatePlanningIntervalObjectiveCommand, int>
 {
     private readonly IPlanningDbContext _planningDbContext;
-    private readonly ISender _sender;
+    private readonly IDispatcher _dispatcher;
     private readonly ILogger<UpdatePlanningIntervalObjectiveCommandHandler> _logger;
 
-    public UpdatePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, ISender sender, ILogger<UpdatePlanningIntervalObjectiveCommandHandler> logger)
+    public UpdatePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, ILogger<UpdatePlanningIntervalObjectiveCommandHandler> logger)
     {
         _planningDbContext = planningDbContext;
-        _sender = sender;
+        _dispatcher = dispatcher;
         _logger = logger;
     }
 
@@ -102,7 +101,7 @@ internal sealed class UpdatePlanningIntervalObjectiveCommandHandler : ICommandHa
             var objectiveName = request.Name;
             if (planningInterval.ObjectivesLocked)
             {
-                var currentObjective = await _sender.Send(new GetObjectiveForPlanningIntervalQuery(updatePiObjectiveResult.Value.ObjectiveId, planningInterval.Id), cancellationToken);
+                var currentObjective = await _dispatcher.Send(new GetObjectiveForPlanningIntervalQuery(updatePiObjectiveResult.Value.ObjectiveId, planningInterval.Id), cancellationToken);
                 if (currentObjective is null)
                     return Result.Failure<int>($"Objective {request.PlanningIntervalObjectiveId} not found.");
 
@@ -111,7 +110,7 @@ internal sealed class UpdatePlanningIntervalObjectiveCommandHandler : ICommandHa
 
             var mappedStatus = request.Status.ToGoalObjectiveStatus();
 
-            var objectiveResult = await _sender.Send(new UpdateObjectiveCommand(
+            var objectiveResult = await _dispatcher.Send(new UpdateObjectiveCommand(
                 updatePiObjectiveResult.Value.ObjectiveId,
                 objectiveName,
                 request.Description,

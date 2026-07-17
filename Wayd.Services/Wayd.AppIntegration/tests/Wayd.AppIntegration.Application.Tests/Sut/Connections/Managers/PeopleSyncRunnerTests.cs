@@ -1,6 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
 using FluentAssertions;
-using MediatR;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.AutoMock;
@@ -65,7 +64,7 @@ public class PeopleSyncRunnerTests
         };
         _mocker.Use<IEnumerable<ISyncableConnectionDescriptorBuilder>>(descriptorBuilders);
 
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<BulkUpsertEmployeesCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
         _mocker.GetMock<IUserService>()
@@ -170,7 +169,7 @@ public class PeopleSyncRunnerTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        _mocker.GetMock<ISender>().Verify(s => s.Send(
+        _mocker.GetMock<IDispatcher>().Verify(s => s.Send(
             It.Is<BulkUpsertEmployeesCommand>(c =>
                 c.MatchBy == EmployeeMatchProperty.EmployeeNumber && c.DeactivateMissing),
             It.IsAny<CancellationToken>()), Times.Once);
@@ -193,7 +192,7 @@ public class PeopleSyncRunnerTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         _source.Verify(s => s.GetEmployees(priorRun.FinishedAt, It.IsAny<CancellationToken>()), Times.Once);
-        _mocker.GetMock<ISender>().Verify(s => s.Send(
+        _mocker.GetMock<IDispatcher>().Verify(s => s.Send(
             It.Is<BulkUpsertEmployeesCommand>(c => !c.DeactivateMissing),
             It.IsAny<CancellationToken>()), Times.Once);
 
@@ -217,7 +216,7 @@ public class PeopleSyncRunnerTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         _source.Verify(s => s.GetEmployees(It.Is<Instant?>(i => i == null), It.IsAny<CancellationToken>()), Times.Once);
-        _mocker.GetMock<ISender>().Verify(s => s.Send(
+        _mocker.GetMock<IDispatcher>().Verify(s => s.Send(
             It.Is<BulkUpsertEmployeesCommand>(c => c.DeactivateMissing),
             It.IsAny<CancellationToken>()), Times.Once);
 

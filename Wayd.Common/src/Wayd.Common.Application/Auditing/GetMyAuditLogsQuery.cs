@@ -2,7 +2,7 @@
 
 namespace Wayd.Common.Application.Auditing;
 
-public sealed record GetMyAuditLogsQuery : IRequest<List<AuditDto>>
+public sealed record GetMyAuditLogsQuery : IQuery<List<AuditDto>>
 {
 }
 

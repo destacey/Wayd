@@ -13,10 +13,10 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 [Route("api/ppm/strategic-initiatives")]
 [ApiVersionNeutral]
 [ApiController]
-public class StrategicInitiativesController(ILogger<StrategicInitiativesController> logger, ISender sender) : ControllerBase
+public class StrategicInitiativesController(ILogger<StrategicInitiativesController> logger, IDispatcher dispatcher) : ControllerBase
 {
     private readonly ILogger<StrategicInitiativesController> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicInitiatives)]
@@ -33,7 +33,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
             ? new IdOrKey(portfolioId.Value)
             : null;
 
-        var initiatives = await _sender.Send(new GetStrategicInitiativesQuery(StatusFilter: filter, PortfolioIdOrKey: portfolioIdOrKey), cancellationToken);
+        var initiatives = await _dispatcher.Send(new GetStrategicInitiativesQuery(StatusFilter: filter, PortfolioIdOrKey: portfolioIdOrKey), cancellationToken);
 
         return Ok(initiatives);
     }
@@ -45,7 +45,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<StrategicInitiativeDetailsDto>> GetStrategicInitiative(string idOrKey, CancellationToken cancellationToken)
     {
-        var initiative = await _sender.Send(new GetStrategicInitiativeQuery(idOrKey), cancellationToken);
+        var initiative = await _dispatcher.Send(new GetStrategicInitiativeQuery(idOrKey), cancellationToken);
 
         return initiative is not null
             ? Ok(initiative)
@@ -58,7 +58,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateStrategicInitiativeRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateStrategicInitiativeCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateStrategicInitiativeCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetStrategicInitiative), new { idOrKey = result.Value.Id.ToString() }, result.Value)
@@ -76,7 +76,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateStrategicInitiativeCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateStrategicInitiativeCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -91,7 +91,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Approve(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ApproveStrategicInitiativeCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ApproveStrategicInitiativeCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -106,7 +106,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ActivateStrategicInitiativeCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ActivateStrategicInitiativeCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -121,7 +121,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Complete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new CompleteStrategicInitiativeCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new CompleteStrategicInitiativeCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -136,7 +136,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Cancel(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new CancelStrategicInitiativeCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new CancelStrategicInitiativeCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -150,7 +150,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeleteStrategicInitiativeCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new DeleteStrategicInitiativeCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -164,7 +164,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<StrategicInitiativeStatusDto>>> GetStrategicInitiativeStatuses(CancellationToken cancellationToken)
     {
-        var items = await _sender.Send(new GetStrategicInitiativeStatusesQuery(), cancellationToken);
+        var items = await _dispatcher.Send(new GetStrategicInitiativeStatusesQuery(), cancellationToken);
         return Ok(items.OrderBy(c => c.Order));
     }
 
@@ -177,7 +177,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<StrategicInitiativeKpiListDto>>> GetKpis(string id, CancellationToken cancellationToken)
     {
-        var kpis = await _sender.Send(new GetStrategicInitiativeKpisQuery(id), cancellationToken);
+        var kpis = await _dispatcher.Send(new GetStrategicInitiativeKpisQuery(id), cancellationToken);
 
         return kpis is not null
             ? Ok(kpis)
@@ -191,7 +191,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<StrategicInitiativeKpiDetailsDto>> GetKpi(string id, string kpiId, CancellationToken cancellationToken)
     {
-        var kpi = await _sender.Send(new GetStrategicInitiativeKpiQuery(id, kpiId), cancellationToken);
+        var kpi = await _dispatcher.Send(new GetStrategicInitiativeKpiQuery(id, kpiId), cancellationToken);
 
         return kpi is not null
             ? Ok(kpi)
@@ -207,7 +207,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
         if (id != request.StrategicInitiativeId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToCreateStrategicInitiativeKpiCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateStrategicInitiativeKpiCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetKpi), new { id = id, kpiId = result.Value }, result.Value)
@@ -225,7 +225,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
         if (id != request.StrategicInitiativeId || kpiId != request.KpiId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateStrategicInitiativeKpiCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateStrategicInitiativeKpiCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -240,7 +240,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult> DeleteKpi(Guid id, Guid kpiId, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeleteStrategicInitiativeKpiCommand(id, kpiId), cancellationToken);
+        var result = await _dispatcher.Send(new DeleteStrategicInitiativeKpiCommand(id, kpiId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -255,7 +255,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ReorderKpis(Guid id, [FromBody] ReorderStrategicInitiativeKpisRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToReorderStrategicInitiativeKpisCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToReorderStrategicInitiativeKpisCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -269,7 +269,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<StrategicInitiativeKpiCheckpointDto>>> GetKpiCheckpoints(string id, string kpiId, CancellationToken cancellationToken)
     {
-        var checkpoints = await _sender.Send(new GetStrategicInitiativeKpiCheckpointsQuery(id, kpiId), cancellationToken);
+        var checkpoints = await _dispatcher.Send(new GetStrategicInitiativeKpiCheckpointsQuery(id, kpiId), cancellationToken);
 
         return checkpoints is not null
             ? Ok(checkpoints)
@@ -283,7 +283,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<StrategicInitiativeKpiCheckpointDetailsDto>>> GetKpiCheckpointPlan(string id, string kpiId, CancellationToken cancellationToken)
     {
-        var checkpointPlan = await _sender.Send(new GetStrategicInitiativeKpiCheckpointPlanQuery(id, kpiId), cancellationToken);
+        var checkpointPlan = await _dispatcher.Send(new GetStrategicInitiativeKpiCheckpointPlanQuery(id, kpiId), cancellationToken);
 
         return checkpointPlan is not null
             ? Ok(checkpointPlan)
@@ -301,7 +301,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
         if (id != request.StrategicInitiativeId || kpiId != request.KpiId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToManageStrategicInitiativeKpiCheckpointPlanCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToManageStrategicInitiativeKpiCheckpointPlanCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -315,7 +315,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<StrategicInitiativeKpiMeasurementDto>>> GetKpiMeasurements(string id, string kpiId, CancellationToken cancellationToken)
     {
-        var measurements = await _sender.Send(new GetStrategicInitiativeKpiMeasurementsQuery(id, kpiId), cancellationToken);
+        var measurements = await _dispatcher.Send(new GetStrategicInitiativeKpiMeasurementsQuery(id, kpiId), cancellationToken);
 
         return measurements is not null
             ? Ok(measurements)
@@ -333,7 +333,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
         if (id != request.StrategicInitiativeId || kpiId != request.KpiId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToAddStrategicInitiativeKpiMeasurementCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToAddStrategicInitiativeKpiMeasurementCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -348,7 +348,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> RemoveKpiMeasurement(Guid id, Guid kpiId, Guid measurementId, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new RemoveStrategicInitiativeKpiMeasurementCommand(id, kpiId, measurementId), cancellationToken);
+        var result = await _dispatcher.Send(new RemoveStrategicInitiativeKpiMeasurementCommand(id, kpiId, measurementId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -367,7 +367,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<ProjectListDto>>> GetProjects(string idOrKey, CancellationToken cancellationToken)
     {
-        var projects = await _sender.Send(new GetStrategicInitiativeProjectsQuery(idOrKey), cancellationToken);
+        var projects = await _dispatcher.Send(new GetStrategicInitiativeProjectsQuery(idOrKey), cancellationToken);
 
         return projects is not null
             ? Ok(projects)
@@ -385,7 +385,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToManageStrategicInitiativeProjectsCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToManageStrategicInitiativeProjectsCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

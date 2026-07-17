@@ -11,10 +11,10 @@ namespace Wayd.Web.Api.Controllers.StrategicManagement;
 [Route("api/strategic-management/strategic-themes")]
 [ApiVersionNeutral]
 [ApiController]
-public class StrategicThemesController(ILogger<StrategicThemesController> logger, ISender sender) : ControllerBase
+public class StrategicThemesController(ILogger<StrategicThemesController> logger, IDispatcher dispatcher) : ControllerBase
 {
     private readonly ILogger<StrategicThemesController> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicThemes)]
@@ -27,7 +27,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
             ? [.. state.Select(s => (StrategicThemeState)s)]
             : null;
 
-        var themes = await _sender.Send(new GetStrategicThemesQuery(filter), cancellationToken);
+        var themes = await _dispatcher.Send(new GetStrategicThemesQuery(filter), cancellationToken);
 
         return Ok(themes);
     }
@@ -39,7 +39,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<StrategicThemeDetailsDto>> GetStrategicTheme(string idOrKey, CancellationToken cancellationToken)
     {
-        var theme = await _sender.Send(new GetStrategicThemeQuery(idOrKey), cancellationToken);
+        var theme = await _dispatcher.Send(new GetStrategicThemeQuery(idOrKey), cancellationToken);
 
         return theme is not null
             ? Ok(theme)
@@ -52,7 +52,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateStrategicThemeRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateStrategicThemeCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateStrategicThemeCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetStrategicTheme), new { idOrKey = result.Value.Id.ToString() }, result.Value)
@@ -70,7 +70,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateStrategicThemeCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateStrategicThemeCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -85,7 +85,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ActivateStrategicThemeCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ActivateStrategicThemeCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -100,7 +100,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Archive(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ArchiveStrategicThemeCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ArchiveStrategicThemeCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -114,7 +114,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeleteStrategicThemeCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new DeleteStrategicThemeCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -128,7 +128,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<StrategicThemeOptionDto>>> GetStrategicThemeOptions([FromQuery] bool? includeArchived, CancellationToken cancellationToken)
     {
-        var options = await _sender.Send(new GetStrategicThemeOptionsQuery(includeArchived), cancellationToken);
+        var options = await _dispatcher.Send(new GetStrategicThemeOptionsQuery(includeArchived), cancellationToken);
 
         return Ok(options);
     }
@@ -140,7 +140,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<StrategicThemeStateDto>>> GetStateOptions(CancellationToken cancellationToken)
     {
-        var items = await _sender.Send(new GetStrategicThemeStatesQuery(), cancellationToken);
+        var items = await _dispatcher.Send(new GetStrategicThemeStatesQuery(), cancellationToken);
         return Ok(items.OrderBy(s => s.Order));
     }
 }

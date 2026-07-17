@@ -1,5 +1,4 @@
 ﻿using System.Security.Claims;
-using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore.Query;
@@ -27,7 +26,7 @@ public class UserServiceTests
     private readonly Mock<IEventPublisher> _mockEvents;
     private readonly Mock<ILogger<UserService>> _mockLogger;
     private readonly TestingDateTimeProvider _dateTimeProvider;
-    private readonly Mock<ISender> _mockSender;
+    private readonly Mock<IDispatcher> _mockSender;
     private readonly Mock<ICurrentUser> _mockCurrentUser;
     private readonly Mock<IUserIdentityStore> _mockUserIdentityStore;
     private readonly Mock<IOidcProviderRegistry> _mockOidcProviderRegistry;
@@ -55,7 +54,7 @@ public class UserServiceTests
         _mockEvents = new Mock<IEventPublisher>();
         _mockLogger = new Mock<ILogger<UserService>>();
         _dateTimeProvider = new TestingDateTimeProvider(DateTime.UtcNow);
-        _mockSender = new Mock<ISender>();
+        _mockSender = new Mock<IDispatcher>();
         _mockCurrentUser = new Mock<ICurrentUser>();
         _mockCurrentUser.Setup(x => x.GetUserId()).Returns("current-user-id");
         _mockUserIdentityStore = new Mock<IUserIdentityStore>();

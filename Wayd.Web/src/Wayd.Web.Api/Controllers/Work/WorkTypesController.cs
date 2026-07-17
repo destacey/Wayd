@@ -11,12 +11,12 @@ namespace Wayd.Web.Api.Controllers.Work;
 public class WorkTypesController : ControllerBase
 {
     private readonly ILogger<WorkTypesController> _logger;
-    private readonly ISender _sender;
+    private readonly IDispatcher _dispatcher;
 
-    public WorkTypesController(ILogger<WorkTypesController> logger, ISender sender)
+    public WorkTypesController(ILogger<WorkTypesController> logger, IDispatcher dispatcher)
     {
         _logger = logger;
-        _sender = sender;
+        _dispatcher = dispatcher;
     }
 
     [HttpGet]
@@ -26,7 +26,7 @@ public class WorkTypesController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<WorkTypeDto>>> GetList(CancellationToken cancellationToken, bool includeInactive = false)
     {
-        var workTypes = await _sender.Send(new GetWorkTypesQuery(includeInactive), cancellationToken);
+        var workTypes = await _dispatcher.Send(new GetWorkTypesQuery(includeInactive), cancellationToken);
         return Ok(workTypes.OrderBy(s => s.Name));
     }
 
@@ -38,7 +38,7 @@ public class WorkTypesController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<WorkTypeDto>> GetById(int id, CancellationToken cancellationToken)
     {
-        var workType = await _sender.Send(new GetWorkTypeQuery(id), cancellationToken);
+        var workType = await _dispatcher.Send(new GetWorkTypeQuery(id), cancellationToken);
 
         return workType is not null
             ? Ok(workType)
@@ -51,7 +51,7 @@ public class WorkTypesController : ControllerBase
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Int))]
     public async Task<ActionResult> Create(CreateWorkTypeRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateWorkTypeCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateWorkTypeCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
@@ -69,7 +69,7 @@ public class WorkTypesController : ControllerBase
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateWorkTypeCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateWorkTypeCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

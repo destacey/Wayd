@@ -9,10 +9,10 @@ namespace Wayd.Web.Api.Controllers.Work;
 [Route("api/work/work-processes")]
 [ApiVersionNeutral]
 [ApiController]
-public class WorkProcessesController(ILogger<WorkProcessesController> logger, ISender sender) : ControllerBase
+public class WorkProcessesController(ILogger<WorkProcessesController> logger, IDispatcher dispatcher) : ControllerBase
 {
     private readonly ILogger<WorkProcessesController> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkProcesses)]
@@ -21,7 +21,7 @@ public class WorkProcessesController(ILogger<WorkProcessesController> logger, IS
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<WorkProcessListDto>>> GetList(CancellationToken cancellationToken, bool includeInactive = false)
     {
-        var workProcesses = await _sender.Send(new GetWorkProcessesQuery(includeInactive), cancellationToken);
+        var workProcesses = await _dispatcher.Send(new GetWorkProcessesQuery(includeInactive), cancellationToken);
         return Ok(workProcesses.OrderBy(s => s.Name));
     }
 
@@ -47,7 +47,7 @@ public class WorkProcessesController(ILogger<WorkProcessesController> logger, IS
             return BadRequest(ProblemDetailsExtensions.ForUnknownIdOrKeyType(HttpContext));
         }
 
-        var result = await _sender.Send(query, cancellationToken);
+        var result = await _dispatcher.Send(query, cancellationToken);
 
         return result.IsFailure
             ? BadRequest(result.ToBadRequestObject(HttpContext))
@@ -63,7 +63,7 @@ public class WorkProcessesController(ILogger<WorkProcessesController> logger, IS
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ActivateWorkProcessCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ActivateWorkProcessCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -77,7 +77,7 @@ public class WorkProcessesController(ILogger<WorkProcessesController> logger, IS
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeactivateWorkProcessCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new DeactivateWorkProcessCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -93,7 +93,7 @@ public class WorkProcessesController(ILogger<WorkProcessesController> logger, IS
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<WorkProcessSchemeDto>>> GetSchemes(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new GetWorkProcessSchemesQuery(id), cancellationToken);
+        var result = await _dispatcher.Send(new GetWorkProcessSchemesQuery(id), cancellationToken);
 
         return result is not null
                 ? Ok(result)

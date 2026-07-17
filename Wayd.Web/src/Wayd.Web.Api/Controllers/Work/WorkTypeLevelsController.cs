@@ -13,12 +13,12 @@ namespace Wayd.Web.Api.Controllers.Work;
 public class WorkTypeLevelsController : ControllerBase
 {
     private readonly ILogger<WorkTypeLevelsController> _logger;
-    private readonly ISender _sender;
+    private readonly IDispatcher _dispatcher;
 
-    public WorkTypeLevelsController(ILogger<WorkTypeLevelsController> logger, ISender sender)
+    public WorkTypeLevelsController(ILogger<WorkTypeLevelsController> logger, IDispatcher dispatcher)
     {
         _logger = logger;
-        _sender = sender;
+        _dispatcher = dispatcher;
     }
 
     [HttpGet]
@@ -28,7 +28,7 @@ public class WorkTypeLevelsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<WorkTypeLevelDto>>> GetList(CancellationToken cancellationToken)
     {
-        var levels = await _sender.Send(new GetWorkTypeLevelsQuery(), cancellationToken);
+        var levels = await _dispatcher.Send(new GetWorkTypeLevelsQuery(), cancellationToken);
 
         return Ok(levels.OrderBy(l => l.Tier.Id).ThenByDescending(s => s.Order));
     }
@@ -41,7 +41,7 @@ public class WorkTypeLevelsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<WorkTypeLevelDto>> GetById(int id)
     {
-        var backlogLevel = await _sender.Send(new GetWorkTypeLevelQuery(id));
+        var backlogLevel = await _dispatcher.Send(new GetWorkTypeLevelQuery(id));
 
         return backlogLevel is not null
             ? Ok(backlogLevel)
@@ -54,7 +54,7 @@ public class WorkTypeLevelsController : ControllerBase
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Int))]
     public async Task<ActionResult> Create(CreateWorkTypeLevelRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateWorkTypeLevelCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateWorkTypeLevelCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
@@ -72,7 +72,7 @@ public class WorkTypeLevelsController : ControllerBase
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateWorkTypeLevelCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateWorkTypeLevelCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -88,7 +88,7 @@ public class WorkTypeLevelsController : ControllerBase
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> UpdateOrder([FromBody] UpdateWorkTypeLevelsOrderRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new UpdateWorkTypeLevelsOrderCommand(request.Levels), cancellationToken);
+        var result = await _dispatcher.Send(new UpdateWorkTypeLevelsOrderCommand(request.Levels), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

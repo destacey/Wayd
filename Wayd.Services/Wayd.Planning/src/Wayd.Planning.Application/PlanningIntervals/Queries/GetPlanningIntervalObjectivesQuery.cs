@@ -1,5 +1,4 @@
 ﻿using System.Linq.Expressions;
-using MediatR;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Requests.Goals.Queries;
@@ -19,11 +18,11 @@ public sealed record GetPlanningIntervalObjectivesQuery : IQuery<IReadOnlyList<P
     public Guid? TeamId { get; set; }
 }
 
-internal sealed class GetPlanningIntervalObjectivesQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetPlanningIntervalObjectivesQueryHandler> logger, ISender sender, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetPlanningIntervalObjectivesQuery, IReadOnlyList<PlanningIntervalObjectiveListDto>>
+internal sealed class GetPlanningIntervalObjectivesQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetPlanningIntervalObjectivesQueryHandler> logger, IDispatcher dispatcher, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetPlanningIntervalObjectivesQuery, IReadOnlyList<PlanningIntervalObjectiveListDto>>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ILogger<GetPlanningIntervalObjectivesQueryHandler> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<IReadOnlyList<PlanningIntervalObjectiveListDto>> Handle(GetPlanningIntervalObjectivesQuery request, CancellationToken cancellationToken)
@@ -66,7 +65,7 @@ internal sealed class GetPlanningIntervalObjectivesQueryHandler(IPlanningDbConte
 
         // call the objective query handler
         var teamIds = request.TeamId.HasValue ? new Guid[] { request.TeamId.Value } : null;
-        var objectives = await _sender.Send(new GetObjectivesForPlanningIntervalsQuery([planningInterval.Id], teamIds), cancellationToken);
+        var objectives = await _dispatcher.Send(new GetObjectivesForPlanningIntervalsQuery([planningInterval.Id], teamIds), cancellationToken);
         if (!objectives.Any() || planningInterval.Objectives.Count != objectives.Count)
             ThrowAndLogException(request, $"Error mapping objectives for planning interval {planningInterval.Id}.");
 

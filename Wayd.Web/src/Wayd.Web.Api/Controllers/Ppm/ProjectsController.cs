@@ -15,10 +15,10 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 [Route("api/ppm/[controller]")]
 [ApiVersionNeutral]
 [ApiController]
-public class ProjectsController(ILogger<ProjectsController> logger, ISender sender) : ControllerBase
+public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher dispatcher) : ControllerBase
 {
     private readonly ILogger<ProjectsController> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
@@ -35,7 +35,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
             ? new IdOrKey(portfolioId.Value)
             : null;
 
-        var projects = await _sender.Send(new GetProjectsQuery(StatusFilter: filter, PortfolioIdOrKey: portfolioIdOrKey, RoleFilter: roleFilter), cancellationToken);
+        var projects = await _dispatcher.Send(new GetProjectsQuery(StatusFilter: filter, PortfolioIdOrKey: portfolioIdOrKey, RoleFilter: roleFilter), cancellationToken);
 
         return projects is not null
             ? Ok(projects)
@@ -50,7 +50,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     {
         var statusFilter = ParseStatusFilter(status);
 
-        var summary = await _sender.Send(new GetMyProjectsSummaryQuery(StatusFilter: statusFilter), cancellationToken);
+        var summary = await _dispatcher.Send(new GetMyProjectsSummaryQuery(StatusFilter: statusFilter), cancellationToken);
 
         return summary is not null
             ? Ok(summary)
@@ -66,7 +66,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
         var statusFilter = ParseStatusFilter(status);
         var roleFilter = ParseRoleFilter(role);
 
-        return Ok(await _sender.Send(new GetMyProjectsTaskMetricsQuery(StatusFilter: statusFilter, RoleFilter: roleFilter), cancellationToken));
+        return Ok(await _dispatcher.Send(new GetMyProjectsTaskMetricsQuery(StatusFilter: statusFilter, RoleFilter: roleFilter), cancellationToken));
     }
 
     [HttpGet("{idOrKey}")]
@@ -76,7 +76,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProjectDetailsDto>> GetProject(string idOrKey, CancellationToken cancellationToken)
     {
-        var project = await _sender.Send(new GetProjectQuery(idOrKey), cancellationToken);
+        var project = await _dispatcher.Send(new GetProjectQuery(idOrKey), cancellationToken);
 
         return project is not null
             ? Ok(project)
@@ -89,7 +89,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateProjectRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateProjectCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateProjectCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetProject), new { idOrKey = result.Value.Id.ToString() }, result.Value)
@@ -107,7 +107,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateProjectCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateProjectCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -123,7 +123,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ChangeProgram(Guid id, [FromBody] ChangeProjectProgramRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToChangeProjectProgramCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToChangeProjectProgramCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -138,7 +138,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ChangeKey(Guid id, [FromBody] ChangeProjectKeyRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToChangeProjectKeyCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToChangeProjectKeyCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -153,7 +153,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Approve(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ApproveProjectCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ApproveProjectCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -168,7 +168,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ActivateProjectCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ActivateProjectCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -183,7 +183,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Complete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new CompleteProjectCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new CompleteProjectCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -198,7 +198,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Cancel(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new CancelProjectCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new CancelProjectCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -212,7 +212,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeleteProjectCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new DeleteProjectCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -226,7 +226,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ProjectStatusDto>>> GetProjectStatuses(CancellationToken cancellationToken)
     {
-        var items = await _sender.Send(new GetProjectStatusesQuery(), cancellationToken);
+        var items = await _dispatcher.Send(new GetProjectStatusesQuery(), cancellationToken);
         return Ok(items.OrderBy(c => c.Order));
     }
 
@@ -237,7 +237,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<ProjectTeamMemberDto>>> GetProjectTeam(string idOrKey, CancellationToken cancellationToken)
     {
-        var team = await _sender.Send(new GetProjectTeamQuery(idOrKey), cancellationToken);
+        var team = await _dispatcher.Send(new GetProjectTeamQuery(idOrKey), cancellationToken);
 
         return team is not null
             ? Ok(team)
@@ -252,7 +252,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<WorkItemListDto>>> GetProjectWorkItems(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new GetProjectWorkItemsQuery(id), cancellationToken);
+        var result = await _dispatcher.Send(new GetProjectWorkItemsQuery(id), cancellationToken);
 
         return result.IsSuccess
             ? Ok(result.Value.OrderBy(w => w.StackRank))
@@ -266,7 +266,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> AssignLifecycle(Guid id, [FromBody] AssignProjectLifecycleRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -284,7 +284,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
         [FromBody] ChangeProjectLifecycleRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -298,7 +298,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ProjectPhaseListDto>>> GetProjectPhases(Guid id, CancellationToken cancellationToken)
     {
-        var phases = await _sender.Send(new GetProjectPhasesQuery(id), cancellationToken);
+        var phases = await _dispatcher.Send(new GetProjectPhasesQuery(id), cancellationToken);
 
         return Ok(phases);
     }
@@ -310,7 +310,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ProjectPlanNodeDto>>> GetProjectPlanTree(string idOrKey, CancellationToken cancellationToken)
     {
-        var nodes = await _sender.Send(new GetProjectPlanTreeQuery(idOrKey), cancellationToken);
+        var nodes = await _dispatcher.Send(new GetProjectPlanTreeQuery(idOrKey), cancellationToken);
 
         return Ok(nodes);
     }
@@ -322,7 +322,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ProjectPlanSummaryDto>> GetProjectPlanSummary(string idOrKey, [FromQuery] Guid? employeeId, CancellationToken cancellationToken)
     {
-        var summary = await _sender.Send(new GetProjectPlanSummaryQuery(idOrKey, employeeId), cancellationToken);
+        var summary = await _dispatcher.Send(new GetProjectPlanSummaryQuery(idOrKey, employeeId), cancellationToken);
 
         return Ok(summary);
     }
@@ -335,7 +335,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     {
         var roleFilter = ParseRoleFilter(role);
 
-        var summaries = await _sender.Send(new GetProjectsPlanSummariesQuery(projectId, roleFilter), cancellationToken);
+        var summaries = await _dispatcher.Send(new GetProjectsPlanSummariesQuery(projectId, roleFilter), cancellationToken);
 
         return Ok(summaries);
     }
@@ -347,7 +347,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProjectPhaseDetailsDto>> GetProjectPhase(Guid id, Guid phaseId, CancellationToken cancellationToken)
     {
-        var phase = await _sender.Send(new GetProjectPhaseQuery(id, phaseId), cancellationToken);
+        var phase = await _dispatcher.Send(new GetProjectPhaseQuery(id, phaseId), cancellationToken);
 
         return phase is not null
             ? Ok(phase)
@@ -361,7 +361,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> UpdateProjectPhase(Guid id, Guid phaseId, [FromBody] UpdateProjectPhaseRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCommand(id, phaseId), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCommand(id, phaseId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -385,7 +385,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
         if (patchDocument == null)
             return BadRequest("Patch document cannot be null.");
 
-        var phaseDto = await _sender.Send(new GetProjectPhaseQuery(id, phaseId), cancellationToken);
+        var phaseDto = await _dispatcher.Send(new GetProjectPhaseQuery(id, phaseId), cancellationToken);
         if (phaseDto is null)
             return NotFound($"Project phase with ID '{phaseId}' not found.");
 
@@ -402,7 +402,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, ISender send
         if (!TryValidateModel(updateRequest))
             return ValidationProblem(ModelState);
 
-        var result = await _sender.Send(updateRequest.ToCommand(id, phaseId), cancellationToken);
+        var result = await _dispatcher.Send(updateRequest.ToCommand(id, phaseId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

@@ -13,10 +13,10 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 [Route("api/ppm/[controller]")]
 [ApiVersionNeutral]
 [ApiController]
-public class ProgramsController(ILogger<ProgramsController> logger, ISender sender) : ControllerBase
+public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher dispatcher) : ControllerBase
 {
     private readonly ILogger<ProgramsController> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Programs)]
@@ -35,7 +35,7 @@ public class ProgramsController(ILogger<ProgramsController> logger, ISender send
             ? new IdOrKey(portfolioId.Value)
             : null;
 
-        var programs = await _sender.Send(new GetProgramsQuery(StatusFilter: filter, PortfolioIdOrKey: portfolioIdOrKey), cancellationToken);
+        var programs = await _dispatcher.Send(new GetProgramsQuery(StatusFilter: filter, PortfolioIdOrKey: portfolioIdOrKey), cancellationToken);
 
         return programs is not null
             ? Ok(programs)
@@ -49,7 +49,7 @@ public class ProgramsController(ILogger<ProgramsController> logger, ISender send
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProgramDetailsDto>> GetProgram(string idOrKey, CancellationToken cancellationToken)
     {
-        var program = await _sender.Send(new GetProgramQuery(idOrKey), cancellationToken);
+        var program = await _dispatcher.Send(new GetProgramQuery(idOrKey), cancellationToken);
 
         return program is not null
             ? Ok(program)
@@ -62,7 +62,7 @@ public class ProgramsController(ILogger<ProgramsController> logger, ISender send
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateProgramRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateProgramCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateProgramCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetProgram), new { idOrKey = result.Value.Id.ToString() }, result.Value)
@@ -80,7 +80,7 @@ public class ProgramsController(ILogger<ProgramsController> logger, ISender send
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateProgramCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateProgramCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -95,7 +95,7 @@ public class ProgramsController(ILogger<ProgramsController> logger, ISender send
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ActivateProgramCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ActivateProgramCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -110,7 +110,7 @@ public class ProgramsController(ILogger<ProgramsController> logger, ISender send
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Complete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new CompleteProgramCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new CompleteProgramCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -125,7 +125,7 @@ public class ProgramsController(ILogger<ProgramsController> logger, ISender send
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Cancel(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new CancelProgramCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new CancelProgramCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -139,7 +139,7 @@ public class ProgramsController(ILogger<ProgramsController> logger, ISender send
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeleteProgramCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new DeleteProgramCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -155,7 +155,7 @@ public class ProgramsController(ILogger<ProgramsController> logger, ISender send
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ProgramStatusDto>>> GetProgramStatuses(CancellationToken cancellationToken)
     {
-        var items = await _sender.Send(new GetProgramStatusesQuery(), cancellationToken);
+        var items = await _dispatcher.Send(new GetProgramStatusesQuery(), cancellationToken);
         return Ok(items.OrderBy(c => c.Order));
     }
 
@@ -171,7 +171,7 @@ public class ProgramsController(ILogger<ProgramsController> logger, ISender send
             ? [.. status.Select(s => (ProjectStatus)s)]
             : null;
 
-        var projects = await _sender.Send(new GetProjectsQuery(StatusFilter: filter, ProgramIdOrKey: idOrKey), cancellationToken);
+        var projects = await _dispatcher.Send(new GetProjectsQuery(StatusFilter: filter, ProgramIdOrKey: idOrKey), cancellationToken);
 
         return projects is not null
             ? Ok(projects)

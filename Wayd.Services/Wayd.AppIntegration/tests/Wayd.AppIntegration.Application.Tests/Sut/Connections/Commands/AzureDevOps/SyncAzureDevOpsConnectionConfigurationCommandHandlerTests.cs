@@ -1,5 +1,4 @@
 ﻿using FluentAssertions;
-using MediatR;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Wayd.AppIntegration.Application.Connections.Commands.AzureDevOps;
@@ -16,7 +15,7 @@ public class SyncAzureDevOpsConnectionConfigurationCommandHandlerTests
     private readonly FakeAppIntegrationDbContext _db = new();
     private readonly TestingDateTimeProvider _clock = new(new DateTime(2026, 5, 1, 12, 0, 0));
     private readonly Mock<IAzureDevOpsService> _azureDevOpsService = new();
-    private readonly Mock<ISender> _sender = new();
+    private readonly Mock<IDispatcher> _sender = new();
     private readonly SyncAzureDevOpsConnectionConfigurationCommandHandler _sut;
 
     public SyncAzureDevOpsConnectionConfigurationCommandHandlerTests()

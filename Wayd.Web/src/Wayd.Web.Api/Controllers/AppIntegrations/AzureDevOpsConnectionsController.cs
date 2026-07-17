@@ -13,9 +13,9 @@ namespace Wayd.Web.Api.Controllers.AppIntegrations;
 [Route("api/app-integrations/connections/azure-devops")]
 [ApiVersionNeutral]
 [ApiController]
-public class AzureDevOpsConnectionsController(ISender sender) : ControllerBase
+public class AzureDevOpsConnectionsController(IDispatcher dispatcher) : ControllerBase
 {
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpPost("{id}/sync-organization")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
@@ -78,7 +78,7 @@ public class AzureDevOpsConnectionsController(ISender sender) : ControllerBase
     public async Task<ActionResult<IEnumerable<AzureDevOpsWorkspaceTeamDto>>> GetConnectionTeams(
         Guid id, Guid? workspaceId, CancellationToken cancellationToken)
     {
-        var teams = await _sender.Send(new GetAzureDevOpsConnectionTeamsQuery(id, workspaceId), cancellationToken);
+        var teams = await _dispatcher.Send(new GetAzureDevOpsConnectionTeamsQuery(id, workspaceId), cancellationToken);
         return Ok(teams);
     }
 
@@ -95,8 +95,8 @@ public class AzureDevOpsConnectionsController(ISender sender) : ControllerBase
         if (id != request.ConnectionId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(id), nameof(request.ConnectionId), HttpContext));
 
-        var teamIds = await _sender.Send(new GetValidBaseTeamIdsQuery(), cancellationToken);
-        var result = await _sender.Send(request.ToUpdateAzureDevOpsConnectionTeamMappingsCommand(teamIds), cancellationToken);
+        var teamIds = await _dispatcher.Send(new GetValidBaseTeamIdsQuery(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateAzureDevOpsConnectionTeamMappingsCommand(teamIds), cancellationToken);
 
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }

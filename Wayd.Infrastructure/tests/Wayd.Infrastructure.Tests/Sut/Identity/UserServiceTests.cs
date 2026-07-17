@@ -26,7 +26,7 @@ public class UserServiceTests
     private readonly Mock<IEventPublisher> _mockEvents;
     private readonly Mock<ILogger<UserService>> _mockLogger;
     private readonly TestingDateTimeProvider _dateTimeProvider;
-    private readonly Mock<IDispatcher> _mockSender;
+    private readonly Mock<IDispatcher> _mockDispatcher;
     private readonly Mock<ICurrentUser> _mockCurrentUser;
     private readonly Mock<IUserIdentityStore> _mockUserIdentityStore;
     private readonly Mock<IOidcProviderRegistry> _mockOidcProviderRegistry;
@@ -54,7 +54,7 @@ public class UserServiceTests
         _mockEvents = new Mock<IEventPublisher>();
         _mockLogger = new Mock<ILogger<UserService>>();
         _dateTimeProvider = new TestingDateTimeProvider(DateTime.UtcNow);
-        _mockSender = new Mock<IDispatcher>();
+        _mockDispatcher = new Mock<IDispatcher>();
         _mockCurrentUser = new Mock<ICurrentUser>();
         _mockCurrentUser.Setup(x => x.GetUserId()).Returns("current-user-id");
         _mockUserIdentityStore = new Mock<IUserIdentityStore>();
@@ -76,7 +76,7 @@ public class UserServiceTests
             _mockRoleManager.Object,
             null!, // WaydDbContext - not used by these methods
             _mockEvents.Object,
-            _mockSender.Object,
+            _mockDispatcher.Object,
             _dateTimeProvider,
             _mockCurrentUser.Object,
             _mockUserIdentityStore.Object,
@@ -1264,7 +1264,7 @@ public class UserServiceTests
         _mockRoleManager.Setup(x => x.FindByIdAsync(It.IsAny<string>()))
             .ReturnsAsync((string id) => new ApplicationRole("Contributor") { Id = id });
 
-        _mockSender.Setup(s => s.Send(It.IsAny<Wayd.Common.Application.Employees.Queries.GetEmployeeByEmailQuery>(), It.IsAny<CancellationToken>()))
+        _mockDispatcher.Setup(s => s.Send(It.IsAny<Wayd.Common.Application.Employees.Queries.GetEmployeeByEmailQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(employeeId);
     }
 

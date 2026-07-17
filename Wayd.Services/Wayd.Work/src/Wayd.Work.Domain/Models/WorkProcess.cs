@@ -84,8 +84,6 @@ public sealed class WorkProcess : BaseSoftDeletableEntity, IActivatable, IHasIdA
             Name = name;
             Description = description;
 
-            AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
-
             return Result.Success();
         }
         catch (Exception ex)
@@ -106,7 +104,6 @@ public sealed class WorkProcess : BaseSoftDeletableEntity, IActivatable, IHasIdA
         {
             // TODO is there logic that would prevent activation?
             IsActive = true;
-            AddDomainEvent(EntityActivatedEvent.WithEntity(this, timestamp));
 
             TryAddIntegrationStateChangedEvent(timestamp);
         }
@@ -138,7 +135,6 @@ public sealed class WorkProcess : BaseSoftDeletableEntity, IActivatable, IHasIdA
             }
 
             IsActive = false;
-            AddDomainEvent(EntityDeactivatedEvent.WithEntity(this, timestamp));
 
             TryAddIntegrationStateChangedEvent(timestamp);
         }
@@ -163,8 +159,6 @@ public sealed class WorkProcess : BaseSoftDeletableEntity, IActivatable, IHasIdA
 
         _schemes.Add(scheme);
 
-        AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
-
         return Result.Success();
     }
 
@@ -186,8 +180,6 @@ public sealed class WorkProcess : BaseSoftDeletableEntity, IActivatable, IHasIdA
         var deactivateResult = scheme.Deactivate(timestamp);
         if (deactivateResult.IsFailure)
             return Result.Failure(deactivateResult.Error);
-
-        AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
 
         return Result.Success();
     }
@@ -211,8 +203,6 @@ public sealed class WorkProcess : BaseSoftDeletableEntity, IActivatable, IHasIdA
         if (activateResult.IsFailure)
             return Result.Failure(activateResult.Error);
 
-        AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
-
         return Result.Success();
     }
 
@@ -225,8 +215,6 @@ public sealed class WorkProcess : BaseSoftDeletableEntity, IActivatable, IHasIdA
         var addWorkflowResult = scheme.ChangeWorkflow(workflowId);
         if (addWorkflowResult.IsFailure)
             return Result.Failure(addWorkflowResult.Error);
-
-        AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
 
         return Result.Success();
     }
@@ -251,8 +239,6 @@ public sealed class WorkProcess : BaseSoftDeletableEntity, IActivatable, IHasIdA
     public static WorkProcess Create(string name, string? description, Instant timestamp)
     {
         WorkProcess workProcess = new(name, description, Ownership.Owned, null);
-
-        workProcess.AddDomainEvent(EntityCreatedEvent.WithEntity(workProcess, timestamp));
         return workProcess;
     }
 
@@ -265,8 +251,6 @@ public sealed class WorkProcess : BaseSoftDeletableEntity, IActivatable, IHasIdA
     public static WorkProcess CreateExternal(string name, string? description, Guid externalId, Instant timestamp)
     {
         WorkProcess workProcess = new(name, description, Ownership.Managed, externalId);
-
-        workProcess.AddDomainEvent(EntityCreatedEvent.WithEntity(workProcess, timestamp));
         return workProcess;
     }
 }

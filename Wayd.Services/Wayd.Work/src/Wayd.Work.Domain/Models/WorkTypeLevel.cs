@@ -62,8 +62,6 @@ public sealed class WorkTypeLevel : BaseAuditableEntity<int>
             Name = name;
             Description = description;
 
-            AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
-
             return Result.Success();
         }
         catch (Exception ex)
@@ -94,8 +92,6 @@ public sealed class WorkTypeLevel : BaseAuditableEntity<int>
     internal static WorkTypeLevel Create(string name, string? description, WorkTypeTier tier, Ownership ownership, int order, Instant timestamp)
     {
         WorkTypeLevel workTypeLevel = new(name, description, tier, ownership, order);
-
-        workTypeLevel.AddDomainEvent(EntityCreatedEvent.WithEntity(workTypeLevel, timestamp));
         return workTypeLevel;
     }
 }

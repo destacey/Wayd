@@ -32,7 +32,6 @@ public sealed class WorkProcessScheme : BaseSoftDeletableEntity, IActivatable
         if (!IsActive)
         {
             IsActive = true;
-            AddDomainEvent(EntityActivatedEvent.WithEntity(this, timestamp));
         }
 
         return Result.Success();
@@ -50,7 +49,6 @@ public sealed class WorkProcessScheme : BaseSoftDeletableEntity, IActivatable
         if (IsActive)
         {
             IsActive = false;
-            AddDomainEvent(EntityDeactivatedEvent.WithEntity(this, timestamp));
         }
 
         return Result.Success();

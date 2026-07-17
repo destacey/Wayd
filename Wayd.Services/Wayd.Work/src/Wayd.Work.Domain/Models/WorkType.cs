@@ -56,8 +56,6 @@ public sealed class WorkType : BaseSoftDeletableEntity<int>, IActivatable
             Description = description;
             LevelId = levelId;
 
-            AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
-
             return Result.Success();
         }
         catch (Exception ex)
@@ -77,7 +75,6 @@ public sealed class WorkType : BaseSoftDeletableEntity<int>, IActivatable
         {
             // TODO is there logic that would prevent activation?
             IsActive = true;
-            AddDomainEvent(EntityActivatedEvent.WithEntity(this, timestamp));
         }
 
         return Result.Success();
@@ -93,7 +90,6 @@ public sealed class WorkType : BaseSoftDeletableEntity<int>, IActivatable
         if (IsActive)
         {
             IsActive = false;
-            AddDomainEvent(EntityDeactivatedEvent.WithEntity(this, timestamp));
         }
 
         return Result.Success();
@@ -108,8 +104,6 @@ public sealed class WorkType : BaseSoftDeletableEntity<int>, IActivatable
     public static WorkType Create(string name, string? description, int levelId, Instant timestamp)
     {
         WorkType workType = new(name, description, levelId);
-
-        workType.AddDomainEvent(EntityCreatedEvent.WithEntity(workType, timestamp));
         return workType;
     }
 }

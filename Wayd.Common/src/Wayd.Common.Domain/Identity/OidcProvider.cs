@@ -199,8 +199,6 @@ public sealed class OidcProvider : BaseAuditableEntity
                 isEnabled,
                 registrationPolicy ?? RegistrationPolicy.Disabled());
 
-            provider.AddDomainEvent(EntityCreatedEvent.WithEntity(provider, timestamp));
-
             return Result.Success(provider);
         }
         catch (Exception ex)
@@ -257,8 +255,6 @@ public sealed class OidcProvider : BaseAuditableEntity
             IsEnabled = isEnabled;
             RegistrationPolicy = registrationPolicy ?? RegistrationPolicy.Disabled();
 
-            AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
-
             return Result.Success();
         }
         catch (Exception ex)
@@ -269,15 +265,13 @@ public sealed class OidcProvider : BaseAuditableEntity
 
     /// <summary>
     /// Convenience for the test-connection / disable / enable admin actions
-    /// without rewriting the whole record. Emits an update event so audit
-    /// captures who flipped the switch.
+    /// without rewriting the whole record.
     /// </summary>
     public Result SetEnabled(bool isEnabled, Instant timestamp)
     {
         if (IsEnabled == isEnabled) return Result.Success();
 
         IsEnabled = isEnabled;
-        AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
         return Result.Success();
     }
 

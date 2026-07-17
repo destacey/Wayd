@@ -1,5 +1,4 @@
 ﻿using CSharpFunctionalExtensions;
-using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Identity;
 using Wayd.Tests.Shared.Data;
 
@@ -209,25 +208,12 @@ public sealed class OidcProviderTests
         result.Value.AllowedTenantIds.Should().Contain("22222222-2222-2222-2222-222222222222");
     }
 
-    // --- Domain events ---
-
-    [Fact]
-    public void Create_AddsEntityCreatedEvent()
-    {
-        var result = CreateEntra();
-
-        result.IsSuccess.Should().BeTrue();
-        result.Value.DomainEvents.Should().HaveCount(1);
-        result.Value.DomainEvents.Single().Should().BeOfType<EntityCreatedEvent<OidcProvider>>();
-    }
-
     // --- Update: happy path ---
 
     [Fact]
     public void Update_WithValidFields_ChangesMutableFieldsOnly()
     {
         var provider = EntraFixture().Generate();
-        provider.ClearDomainEvents();
 
         var result = provider.Update(
             displayName: "Renamed",
@@ -254,8 +240,6 @@ public sealed class OidcProviderTests
         // pins that Update doesn't accept them.
         provider.Name.Should().Be(ValidName);
         provider.ProviderType.Should().Be(OidcProviderType.MicrosoftEntraId);
-
-        provider.DomainEvents.Should().ContainSingle(e => e is EntityUpdatedEvent<OidcProvider>);
     }
 
     // --- Update: invariants still enforced ---
@@ -339,32 +323,26 @@ public sealed class OidcProviderTests
     // --- SetEnabled ---
 
     [Fact]
-    public void SetEnabled_FromEnabledToDisabled_AddsUpdateEvent()
+    public void SetEnabled_FromEnabledToDisabled_DisablesProvider()
     {
         var provider = EntraFixture().AsEnabled().Generate();
-        provider.ClearDomainEvents();
 
         var result = provider.SetEnabled(false, Timestamp);
 
         result.IsSuccess.Should().BeTrue();
         provider.IsEnabled.Should().BeFalse();
-        provider.DomainEvents.Should().ContainSingle(e => e is EntityUpdatedEvent<OidcProvider>);
     }
 
     [Fact]
-    public void SetEnabled_WithNoChange_NoOpsAndAddsNoEvent()
+    public void SetEnabled_WithNoChange_NoOps()
     {
-        // Idempotent: re-applying the current state shouldn't generate an
-        // audit event. Saves event-handler work for admins clicking the toggle
-        // twice.
+        // Idempotent: re-applying the current state succeeds without changes.
         var provider = EntraFixture().AsEnabled().Generate();
-        provider.ClearDomainEvents();
 
         var result = provider.SetEnabled(true, Timestamp);
 
         result.IsSuccess.Should().BeTrue();
         provider.IsEnabled.Should().BeTrue();
-        provider.DomainEvents.Should().BeEmpty();
     }
 
     // --- Registration policy ---

@@ -57,7 +57,6 @@ public abstract class Connection : BaseSoftDeletableEntity, IActivatable
             // Rules
             // AzDO Organization uniqueness is currently enforced by the command
             IsActive = true;
-            AddDomainEvent(EntityActivatedEvent.WithEntity(this, timestamp));
         }
 
         return Result.Success();
@@ -75,7 +74,6 @@ public abstract class Connection : BaseSoftDeletableEntity, IActivatable
         if (IsActive)
         {
             IsActive = false;
-            AddDomainEvent(EntityDeactivatedEvent.WithEntity(this, timestamp));
         }
 
         return Result.Success();

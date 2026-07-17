@@ -160,8 +160,6 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
         RevokedAt = timestamp;
         RevokedBy = revokedBy;
 
-        AddDomainEvent(EntityDeletedEvent.WithEntity(this, timestamp));
-
         return Result.Success();
     }
 
@@ -181,7 +179,6 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
             }
 
             Name = name;
-            AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
 
             return Result.Success();
         }
@@ -210,7 +207,6 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
         }
 
         ExpiresAt = expiresAt;
-        AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
 
         return Result.Success();
     }
@@ -248,8 +244,6 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
             {
                 Scopes = scopes
             };
-
-            token.AddDomainEvent(EntityCreatedEvent.WithEntity(token, timestamp));
 
             return Result.Success(token);
         }

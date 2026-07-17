@@ -92,8 +92,6 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
             Configuration.WsdlVersion = parts.WsdlVersion;
             Configuration.SoapEndpoint = parts.SoapEndpoint;
 
-            AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
-
             return Result.Success();
         }
         catch (Exception ex)
@@ -182,8 +180,6 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
         Instant timestamp)
     {
         var connection = new WorkdayConnection(name, description, configurationIsValid, configuration);
-
-        connection.AddDomainEvent(EntityCreatedEvent.WithEntity(connection, timestamp));
 
         return connection;
     }

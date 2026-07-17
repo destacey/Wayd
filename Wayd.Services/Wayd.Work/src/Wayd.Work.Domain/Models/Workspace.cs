@@ -152,8 +152,6 @@ public sealed class Workspace : BaseSoftDeletableEntity, IActivatable<WorkspaceA
         Name = newName;
         Description = newDescription;
 
-        AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
-
         return Result.Success();
     }
 
@@ -199,8 +197,6 @@ public sealed class Workspace : BaseSoftDeletableEntity, IActivatable<WorkspaceA
 
         ExternalViewWorkItemUrlTemplate = newExternalWorkItemUrlTemplate;
 
-        AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
-
         return Result.Success();
     }
 
@@ -223,7 +219,6 @@ public sealed class Workspace : BaseSoftDeletableEntity, IActivatable<WorkspaceA
             return Result.Success();
 
         WorkProcessId = newWorkProcessId;
-        AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
 
         return Result.Success();
     }
@@ -242,7 +237,6 @@ public sealed class Workspace : BaseSoftDeletableEntity, IActivatable<WorkspaceA
         if (!IsActive)
         {
             IsActive = true;
-            AddDomainEvent(EntityActivatedEvent.WithEntity(this, args.Timestamp));
         }
 
         return Result.Success();
@@ -257,7 +251,6 @@ public sealed class Workspace : BaseSoftDeletableEntity, IActivatable<WorkspaceA
         {
             // TODO is there logic that would prevent deactivation?
             IsActive = false;
-            AddDomainEvent(EntityDeactivatedEvent.WithEntity(this, timestamp));
         }
 
         return Result.Success();
@@ -274,8 +267,6 @@ public sealed class Workspace : BaseSoftDeletableEntity, IActivatable<WorkspaceA
     {
         var workspace = new Workspace(key, name, description, OwnershipInfo.CreateWaydOwned(), workProcessId, null);
 
-        workspace.AddDomainEvent(EntityCreatedEvent.WithEntity(workspace, timestamp));
-
         return workspace;
     }
 
@@ -291,8 +282,6 @@ public sealed class Workspace : BaseSoftDeletableEntity, IActivatable<WorkspaceA
     public static Workspace CreateExternal(WorkspaceKey key, string name, string? description, OwnershipInfo ownershipInfo, Guid workProcessId, string? externalViewWorkItemUrlTemplate, Instant timestamp)
     {
         var workspace = new Workspace(key, name, description, ownershipInfo, workProcessId, externalViewWorkItemUrlTemplate);
-
-        workspace.AddDomainEvent(EntityCreatedEvent.WithEntity(workspace, timestamp));
 
         return workspace;
     }

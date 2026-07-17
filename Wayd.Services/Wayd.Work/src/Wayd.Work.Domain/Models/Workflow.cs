@@ -72,7 +72,6 @@ public sealed class Workflow : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
         {
             // TODO is there logic that would prevent activation?
             IsActive = true;
-            AddDomainEvent(EntityActivatedEvent.WithEntity(this, timestamp));
         }
 
         return Result.Success();
@@ -98,8 +97,6 @@ public sealed class Workflow : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
                     return Result.Failure(deactivateResult.Error);
                 }
             }
-
-            AddDomainEvent(EntityDeactivatedEvent.WithEntity(this, timestamp));
         }
 
         return Result.Success();
@@ -109,8 +106,6 @@ public sealed class Workflow : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
     {
         Name = name;
         Description = description;
-
-        AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
 
         return Result.Success();
     }

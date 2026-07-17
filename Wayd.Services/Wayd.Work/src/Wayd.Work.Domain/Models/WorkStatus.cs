@@ -48,8 +48,6 @@ public sealed class WorkStatus : BaseSoftDeletableEntity<int>, IActivatable
         {
             Description = description;
 
-            AddDomainEvent(EntityUpdatedEvent.WithEntity(this, timestamp));
-
             return Result.Success();
         }
         catch (Exception ex)
@@ -68,7 +66,6 @@ public sealed class WorkStatus : BaseSoftDeletableEntity<int>, IActivatable
         if (!IsActive)
         {
             IsActive = true;
-            AddDomainEvent(EntityActivatedEvent.WithEntity(this, timestamp));
         }
 
         return Result.Success();
@@ -84,7 +81,6 @@ public sealed class WorkStatus : BaseSoftDeletableEntity<int>, IActivatable
         if (IsActive)
         {
             IsActive = false;
-            AddDomainEvent(EntityDeactivatedEvent.WithEntity(this, timestamp));
         }
 
         return Result.Success();
@@ -98,8 +94,6 @@ public sealed class WorkStatus : BaseSoftDeletableEntity<int>, IActivatable
     public static WorkStatus Create(string name, string? description, Instant timestamp)
     {
         WorkStatus status = new(name, description);
-
-        status.AddDomainEvent(EntityCreatedEvent.WithEntity(status, timestamp));
         return status;
     }
 }

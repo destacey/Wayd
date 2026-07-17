@@ -21,11 +21,11 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 [Route("api/ppm/[controller]")]
 [ApiVersionNeutral]
 [ApiController]
-public class PortfoliosController(ILogger<PortfoliosController> logger, ISender sender)
+public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatcher dispatcher)
     : ControllerBase
 {
     private readonly ILogger<PortfoliosController> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ProjectPortfolios)]
@@ -38,7 +38,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
             ? [.. status.Select(s => (ProjectPortfolioStatus)s)]
             : null;
 
-        var portfolios = await _sender.Send(new GetProjectPortfoliosQuery(filter), cancellationToken);
+        var portfolios = await _dispatcher.Send(new GetProjectPortfoliosQuery(filter), cancellationToken);
 
         return Ok(portfolios);
     }
@@ -50,7 +50,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProjectPortfolioDetailsDto>> GetPortfolio(string idOrKey, CancellationToken cancellationToken)
     {
-        var portfolio = await _sender.Send(new GetProjectPortfolioQuery(idOrKey), cancellationToken);
+        var portfolio = await _dispatcher.Send(new GetProjectPortfolioQuery(idOrKey), cancellationToken);
 
         return portfolio is not null
             ? Ok(portfolio)
@@ -63,7 +63,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreatePortfolioRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateProjectPortfolioCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateProjectPortfolioCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetPortfolio), new { idOrKey = result.Value.Id.ToString() }, result.Value)
@@ -81,7 +81,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateProjectPortfolioCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateProjectPortfolioCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -96,7 +96,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ActivateProjectPortfolioCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ActivateProjectPortfolioCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -111,7 +111,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Close(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new CloseProjectPortfolioCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new CloseProjectPortfolioCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -126,7 +126,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Archive(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ArchiveProjectPortfolioCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ArchiveProjectPortfolioCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -140,7 +140,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeleteProjectPortfolioCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new DeleteProjectPortfolioCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -155,7 +155,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> AssignScoringModel(Guid id, [FromBody] AssignPortfolioScoringModelRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new AssignPortfolioScoringModelCommand(id, request.ScoringModelId), cancellationToken);
+        var result = await _dispatcher.Send(new AssignPortfolioScoringModelCommand(id, request.ScoringModelId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -169,7 +169,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> ClearScoringModel(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ClearPortfolioScoringModelCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ClearPortfolioScoringModelCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -184,7 +184,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> MoveProjectRanks(Guid id, [FromBody] MoveProjectRanksRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -198,7 +198,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RebalanceProjectRanks(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new RebalancePortfolioRanksCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new RebalancePortfolioRanksCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -212,7 +212,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PortfolioRankingScoreboardDto>> GetRankingScoreboard(Guid id, CancellationToken cancellationToken)
     {
-        var scoreboard = await _sender.Send(new GetPortfolioRankingScoreboardQuery(id), cancellationToken);
+        var scoreboard = await _dispatcher.Send(new GetPortfolioRankingScoreboardQuery(id), cancellationToken);
 
         return scoreboard is not null
             ? Ok(scoreboard)
@@ -231,7 +231,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
             ? [.. status.Select(s => (ProgramStatus)s)]
             : null;
 
-        var programs = await _sender.Send(new GetProgramsQuery(PortfolioIdOrKey: idOrKey, StatusFilter: filter), cancellationToken);
+        var programs = await _dispatcher.Send(new GetProgramsQuery(PortfolioIdOrKey: idOrKey, StatusFilter: filter), cancellationToken);
 
         return programs is not null
             ? Ok(programs)
@@ -250,7 +250,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
             ? [.. status.Select(s => (ProjectStatus)s)]
             : null;
 
-        var projects = await _sender.Send(new GetProjectsQuery(StatusFilter: filter, PortfolioIdOrKey: idOrKey), cancellationToken);
+        var projects = await _dispatcher.Send(new GetProjectsQuery(StatusFilter: filter, PortfolioIdOrKey: idOrKey), cancellationToken);
 
         return projects is not null
             ? Ok(projects)
@@ -268,7 +268,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
             ? [.. status.Select(s => (StrategicInitiativeStatus)s)]
             : null;
 
-        var initiatives = await _sender.Send(new GetStrategicInitiativesQuery(filter, idOrKey), cancellationToken);
+        var initiatives = await _dispatcher.Send(new GetStrategicInitiativesQuery(filter, idOrKey), cancellationToken);
 
         return Ok(initiatives);
     }
@@ -280,7 +280,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ProjectPortfolioStatusDto>>> GetPortfolioStatuses(CancellationToken cancellationToken)
     {
-        var items = await _sender.Send(new GetProjectPortfolioStatusesQuery(), cancellationToken);
+        var items = await _dispatcher.Send(new GetProjectPortfolioStatusesQuery(), cancellationToken);
         return Ok(items.OrderBy(c => c.Order));
     }
 
@@ -291,7 +291,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, ISender 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ProjectPortfolioOptionDto>>> GetPortfolioOptions(CancellationToken cancellationToken)
     {
-        var options = await _sender.Send(new GetProjectPortfolioOptionsQuery(), cancellationToken);
+        var options = await _dispatcher.Send(new GetProjectPortfolioOptionsQuery(), cancellationToken);
 
         return Ok(options);
     }

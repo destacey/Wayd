@@ -9,7 +9,7 @@ namespace Wayd.Web.Api.Controllers.Organizations;
 [Route("api/organization/team-member-roles")]
 [ApiVersionNeutral]
 [ApiController]
-public class TeamMemberRolesController(ISender sender) : ControllerBase
+public class TeamMemberRolesController(IDispatcher dispatcher) : ControllerBase
 {
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.TeamMemberRoles)]
@@ -17,7 +17,7 @@ public class TeamMemberRolesController(ISender sender) : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<TeamMemberRoleDto>>> GetList(CancellationToken cancellationToken, bool includeInactive = false)
     {
-        var roles = await sender.Send(new GetTeamMemberRolesQuery(includeInactive), cancellationToken);
+        var roles = await dispatcher.Send(new GetTeamMemberRolesQuery(includeInactive), cancellationToken);
         return Ok(roles);
     }
 
@@ -28,7 +28,7 @@ public class TeamMemberRolesController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TeamMemberRoleDto>> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var role = await sender.Send(new GetTeamMemberRoleQuery(id), cancellationToken);
+        var role = await dispatcher.Send(new GetTeamMemberRoleQuery(id), cancellationToken);
         return role is not null ? Ok(role) : NotFound();
     }
 
@@ -38,7 +38,7 @@ public class TeamMemberRolesController(ISender sender) : ControllerBase
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult> Create([FromBody] CreateTeamMemberRoleRequest request, CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new CreateTeamMemberRoleCommand(request.Name, request.Description), cancellationToken);
+        var result = await dispatcher.Send(new CreateTeamMemberRoleCommand(request.Name, request.Description), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
@@ -55,7 +55,7 @@ public class TeamMemberRolesController(ISender sender) : ControllerBase
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await sender.Send(new UpdateTeamMemberRoleCommand(request.Id, request.Name, request.Description), cancellationToken);
+        var result = await dispatcher.Send(new UpdateTeamMemberRoleCommand(request.Id, request.Name, request.Description), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -69,7 +69,7 @@ public class TeamMemberRolesController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new DeleteTeamMemberRoleCommand(id), cancellationToken);
+        var result = await dispatcher.Send(new DeleteTeamMemberRoleCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -83,7 +83,7 @@ public class TeamMemberRolesController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new ActivateTeamMemberRoleCommand(id), cancellationToken);
+        var result = await dispatcher.Send(new ActivateTeamMemberRoleCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -97,7 +97,7 @@ public class TeamMemberRolesController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new DeactivateTeamMemberRoleCommand(id), cancellationToken);
+        var result = await dispatcher.Send(new DeactivateTeamMemberRoleCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

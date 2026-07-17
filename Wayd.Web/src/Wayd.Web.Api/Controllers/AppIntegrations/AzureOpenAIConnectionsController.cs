@@ -6,9 +6,9 @@ namespace Wayd.Web.Api.Controllers.AppIntegrations;
 [Route("api/app-integrations/connections/azure-openai")]
 [ApiVersionNeutral]
 [ApiController]
-public class AzureOpenAIConnectionsController(ISender sender) : ControllerBase
+public class AzureOpenAIConnectionsController(IDispatcher dispatcher) : ControllerBase
 {
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpPost("test")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]

@@ -1,5 +1,4 @@
-﻿using MediatR;
-using Wayd.Work.Application.Persistence;
+﻿using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkTypeLevels.Commands;
 
@@ -10,13 +9,13 @@ internal sealed class UpdateWorkTypeLevelsOrderCommandHandler : ICommandHandler<
     private const string AppRequestName = nameof(UpdateWorkTypeLevelsOrderCommand);
 
     private readonly IWorkDbContext _workDbContext;
-    private readonly ISender _sender;
+    private readonly IDispatcher _dispatcher;
     private readonly ILogger<UpdateWorkTypeLevelsOrderCommandHandler> _logger;
 
-    public UpdateWorkTypeLevelsOrderCommandHandler(IWorkDbContext planningDbContext, ISender sender, ILogger<UpdateWorkTypeLevelsOrderCommandHandler> logger)
+    public UpdateWorkTypeLevelsOrderCommandHandler(IWorkDbContext planningDbContext, IDispatcher dispatcher, ILogger<UpdateWorkTypeLevelsOrderCommandHandler> logger)
     {
         _workDbContext = planningDbContext;
-        _sender = sender;
+        _dispatcher = dispatcher;
         _logger = logger;
     }
 

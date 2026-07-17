@@ -14,9 +14,9 @@ namespace Wayd.Web.Api.Controllers.Work;
 [Route("api/work/workspaces")]
 [ApiVersionNeutral]
 [ApiController]
-public class WorkspacesController(ISender sender) : ControllerBase
+public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
 {
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Workspaces)]
@@ -25,7 +25,7 @@ public class WorkspacesController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkspaceListDto>>> GetList(CancellationToken cancellationToken, bool includeInactive = false)
     {
-        var workspaces = await _sender.Send(new GetWorkspacesQuery(includeInactive), cancellationToken);
+        var workspaces = await _dispatcher.Send(new GetWorkspacesQuery(includeInactive), cancellationToken);
         return Ok(workspaces);
     }
 
@@ -51,7 +51,7 @@ public class WorkspacesController(ISender sender) : ControllerBase
             return BadRequest(ProblemDetailsExtensions.ForUnknownIdOrKeyType(HttpContext));
         }
 
-        var result = await _sender.Send(query, cancellationToken);
+        var result = await _dispatcher.Send(query, cancellationToken);
 
         return result.IsFailure
             ? BadRequest(result.ToBadRequestObject(HttpContext))
@@ -67,7 +67,7 @@ public class WorkspacesController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SetExternalUrlTemplates(Guid id, [FromBody] SetExternalUrlTemplatesRequest dto, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new SetExternalViewWorkItemUrlTemplateCommand(id, dto.ExternalViewWorkItemUrlTemplate), cancellationToken);
+        var result = await _dispatcher.Send(new SetExternalViewWorkItemUrlTemplateCommand(id, dto.ExternalViewWorkItemUrlTemplate), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -97,7 +97,7 @@ public class WorkspacesController(ISender sender) : ControllerBase
             return BadRequest(ProblemDetailsExtensions.ForUnknownIdOrKeyType(HttpContext));
         }
 
-        var result = await _sender.Send(query, cancellationToken);
+        var result = await _dispatcher.Send(query, cancellationToken);
 
         return result.IsSuccess
             ? Ok(result.Value.OrderByKey(true))
@@ -128,7 +128,7 @@ public class WorkspacesController(ISender sender) : ControllerBase
             return BadRequest(ProblemDetailsExtensions.ForUnknownIdOrKeyType(HttpContext));
         }
 
-        var result = await _sender.Send(query, cancellationToken);
+        var result = await _dispatcher.Send(query, cancellationToken);
 
         return result.IsFailure
             ? BadRequest(result.ToBadRequestObject(HttpContext))
@@ -161,7 +161,7 @@ public class WorkspacesController(ISender sender) : ControllerBase
             return BadRequest(ProblemDetailsExtensions.ForUnknownIdOrKeyType(HttpContext));
         }
 
-        var result = await _sender.Send(query, cancellationToken);
+        var result = await _dispatcher.Send(query, cancellationToken);
 
         return result.IsFailure
             ? BadRequest(result.ToBadRequestObject(HttpContext))
@@ -180,7 +180,7 @@ public class WorkspacesController(ISender sender) : ControllerBase
         if (workItemId != request.WorkItemId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateWorkItemProjectCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateWorkItemProjectCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -210,7 +210,7 @@ public class WorkspacesController(ISender sender) : ControllerBase
             return BadRequest(ProblemDetailsExtensions.ForUnknownIdOrKeyType(HttpContext));
         }
 
-        var result = await _sender.Send(query, cancellationToken);
+        var result = await _dispatcher.Send(query, cancellationToken);
 
         return result.IsSuccess
             ? Ok(result.Value.OrderBy(w => w.StackRank))
@@ -227,7 +227,7 @@ public class WorkspacesController(ISender sender) : ControllerBase
     {
         var key = new WorkItemKey(workItemKey);
 
-        var result = await _sender.Send(new GetWorkItemDependenciesQuery(idOrKey, key), cancellationToken);
+        var result = await _dispatcher.Send(new GetWorkItemDependenciesQuery(idOrKey, key), cancellationToken);
 
 
         return result.IsFailure
@@ -260,7 +260,7 @@ public class WorkspacesController(ISender sender) : ControllerBase
             return BadRequest(ProblemDetailsExtensions.ForUnknownIdOrKeyType(HttpContext));
         }
 
-        var result = await _sender.Send(query, cancellationToken);
+        var result = await _dispatcher.Send(query, cancellationToken);
 
         return result.IsSuccess
             ? Ok(result.Value)
@@ -274,7 +274,7 @@ public class WorkspacesController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkItemListDto>>> SearchWorkItems(string query, CancellationToken cancellationToken, int top = 50)
     {
-        var result = await _sender.Send(new SearchWorkItemsQuery(query, top), cancellationToken);
+        var result = await _dispatcher.Send(new SearchWorkItemsQuery(query, top), cancellationToken);
 
         return result.IsSuccess
             ? Ok(result.Value.OrderByKey(true))

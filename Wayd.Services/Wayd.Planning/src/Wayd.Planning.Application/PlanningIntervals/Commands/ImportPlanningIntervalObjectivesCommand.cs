@@ -1,5 +1,4 @@
-﻿using MediatR;
-using Wayd.Common.Application.Requests.Goals.Commands;
+﻿using Wayd.Common.Application.Requests.Goals.Commands;
 using Wayd.Common.Domain.Enums.Goals;
 using Wayd.Planning.Application.PlanningIntervals.Dtos;
 using Wayd.Planning.Application.PlanningIntervals.Extensions;
@@ -32,10 +31,10 @@ public sealed class ImportPlanningIntervalObjectivesCommandValidator : CustomVal
     }
 }
 
-internal sealed class ImportPlanningIntervalObjectivesCommandHandler(IPlanningDbContext planningDbContext, ISender sender, ILogger<ImportPlanningIntervalObjectivesCommandHandler> logger) : ICommandHandler<ImportPlanningIntervalObjectivesCommand>
+internal sealed class ImportPlanningIntervalObjectivesCommandHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, ILogger<ImportPlanningIntervalObjectivesCommandHandler> logger) : ICommandHandler<ImportPlanningIntervalObjectivesCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ILogger<ImportPlanningIntervalObjectivesCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ImportPlanningIntervalObjectivesCommand request, CancellationToken cancellationToken)
@@ -66,7 +65,7 @@ internal sealed class ImportPlanningIntervalObjectivesCommandHandler(IPlanningDb
 
                 var mappedStatus = importedObjective.Status.ToGoalObjectiveStatus();
 
-                var objectiveResult = await _sender.Send(new ImportObjectiveCommand(
+                var objectiveResult = await _dispatcher.Send(new ImportObjectiveCommand(
                     importedObjective.Name,
                     importedObjective.Description,
                     ObjectiveType.PlanningInterval,
@@ -84,7 +83,7 @@ internal sealed class ImportPlanningIntervalObjectivesCommandHandler(IPlanningDb
                 var result = planningInterval.CreateObjective(team, objectiveResult.Value, importedObjective.IsStretch);
                 if (result.IsFailure)
                 {
-                    var deleteResult = await _sender.Send(new DeleteObjectiveCommand(objectiveResult.Value), cancellationToken);
+                    var deleteResult = await _dispatcher.Send(new DeleteObjectiveCommand(objectiveResult.Value), cancellationToken);
                     if (deleteResult.IsFailure)
                         _logger.LogError("Unable to delete objective. (Import Id: {ImportId}).  Error: {Error}", importedObjective.ImportId, deleteResult.Error);
 

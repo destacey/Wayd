@@ -8,10 +8,10 @@ namespace Wayd.Web.Api.Controllers.UserManagement;
 [Route("api/user-management/profiles")]
 [ApiVersionNeutral]
 [ApiController]
-public class ProfileController(IUserService userService, ISender sender, ICurrentUser currentUser) : ControllerBase
+public class ProfileController(IUserService userService, IDispatcher dispatcher, ICurrentUser currentUser) : ControllerBase
 {
     private readonly IUserService _userService = userService;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICurrentUser _currentUser = currentUser;
 
     [HttpGet]
@@ -129,6 +129,6 @@ public class ProfileController(IUserService userService, ISender sender, ICurren
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public Task<List<AuditDto>> GetLogs(CancellationToken cancellationToken)
     {
-        return _sender.Send(new GetMyAuditLogsQuery(), cancellationToken);
+        return _dispatcher.Send(new GetMyAuditLogsQuery(), cancellationToken);
     }
 }

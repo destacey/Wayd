@@ -1,5 +1,4 @@
 ﻿using System.Linq.Expressions;
-using MediatR;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Extensions;
 using Wayd.Planning.Application.PlanningIntervals.Queries;
@@ -24,14 +23,14 @@ public sealed record GetRisksByPlanningIntervalQuery : IQuery<IReadOnlyList<Risk
     public Guid? TeamId { get; }
 }
 
-internal sealed class GetRisksByPlanningIntervalQueryHandler(IPlanningDbContext planningDbContext, ISender sender) : IQueryHandler<GetRisksByPlanningIntervalQuery, IReadOnlyList<RiskListDto>>
+internal sealed class GetRisksByPlanningIntervalQueryHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher) : IQueryHandler<GetRisksByPlanningIntervalQuery, IReadOnlyList<RiskListDto>>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     public async Task<IReadOnlyList<RiskListDto>> Handle(GetRisksByPlanningIntervalQuery request, CancellationToken cancellationToken)
     {
-        var teamIds = await _sender.Send(new GetPlanningIntervalTeamsQuery(request.IdOrKey), cancellationToken);
+        var teamIds = await _dispatcher.Send(new GetPlanningIntervalTeamsQuery(request.IdOrKey), cancellationToken);
         if (!teamIds.Any())
             return [];
 

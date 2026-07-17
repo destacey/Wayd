@@ -10,10 +10,10 @@ namespace Wayd.Web.Api.Controllers.Admin;
 [Route("api/scoring-models")]
 [ApiVersionNeutral]
 [ApiController]
-public class ScoringModelsController(ILogger<ScoringModelsController> logger, ISender sender) : ControllerBase
+public class ScoringModelsController(ILogger<ScoringModelsController> logger, IDispatcher dispatcher) : ControllerBase
 {
     private readonly ILogger<ScoringModelsController> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ScoringModels)]
@@ -22,7 +22,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ScoringModelListDto>>> GetScoringModels([FromQuery] ScoringModelState? state, CancellationToken cancellationToken)
     {
-        var models = await _sender.Send(new GetScoringModelsQuery(state), cancellationToken);
+        var models = await _dispatcher.Send(new GetScoringModelsQuery(state), cancellationToken);
 
         return Ok(models);
     }
@@ -34,7 +34,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ScoringModelDetailsDto>> GetScoringModel(string idOrKey, CancellationToken cancellationToken)
     {
-        var model = await _sender.Send(new GetScoringModelQuery(idOrKey), cancellationToken);
+        var model = await _dispatcher.Send(new GetScoringModelQuery(idOrKey), cancellationToken);
 
         return model is not null
             ? Ok(model)
@@ -47,7 +47,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> Create([FromBody] CreateScoringModelRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateScoringModelCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateScoringModelCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetScoringModel), new { idOrKey = result.Value }, result.Value)
@@ -62,7 +62,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Update(Guid id, [FromBody] UpdateScoringModelRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToUpdateScoringModelCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateScoringModelCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -76,7 +76,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeleteScoringModelCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new DeleteScoringModelCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -91,7 +91,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ActivateScoringModelCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ActivateScoringModelCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -106,7 +106,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Archive(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ArchiveScoringModelCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ArchiveScoringModelCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -121,7 +121,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<ScoringModelEvaluationDto>> Evaluate(Guid id, [FromBody] EvaluateScoringModelRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToQuery(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToQuery(id), cancellationToken);
 
         return result.IsSuccess
             ? Ok(result.Value)
@@ -136,7 +136,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> AddCriterion(Guid id, [FromBody] ScoringModelCriterionRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToAddCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToAddCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetScoringModel), new { idOrKey = id.ToString() }, result.Value)
@@ -151,7 +151,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> UpdateCriterion(Guid id, Guid criterionId, [FromBody] ScoringModelCriterionRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToUpdateCommand(id, criterionId), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateCommand(id, criterionId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -165,7 +165,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveCriterion(Guid id, Guid criterionId, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new RemoveScoringModelCriterionCommand(id, criterionId), cancellationToken);
+        var result = await _dispatcher.Send(new RemoveScoringModelCriterionCommand(id, criterionId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -180,7 +180,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ReorderCriteria(Guid id, [FromBody] ReorderScoringModelCriteriaRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToReorderScoringModelCriteriaCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToReorderScoringModelCriteriaCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -197,7 +197,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> AddScale(Guid id, [FromBody] ScoringScaleRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToAddCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToAddCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetScoringModel), new { idOrKey = id.ToString() }, result.Value)
@@ -212,7 +212,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> UpdateScale(Guid id, Guid scaleId, [FromBody] ScoringScaleRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToUpdateCommand(id, scaleId), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateCommand(id, scaleId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -226,7 +226,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveScale(Guid id, Guid scaleId, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new RemoveScoringScaleCommand(id, scaleId), cancellationToken);
+        var result = await _dispatcher.Send(new RemoveScoringScaleCommand(id, scaleId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -241,7 +241,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ReorderScales(Guid id, [FromBody] ReorderScoringScalesRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToReorderScoringScalesCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToReorderScoringScalesCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -258,7 +258,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> AddScaleLevel(Guid id, Guid scaleId, [FromBody] ScoringScaleLevelRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToAddCommand(id, scaleId), cancellationToken);
+        var result = await _dispatcher.Send(request.ToAddCommand(id, scaleId), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetScoringModel), new { idOrKey = id.ToString() }, result.Value)
@@ -273,7 +273,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> UpdateScaleLevel(Guid id, Guid scaleId, Guid levelId, [FromBody] ScoringScaleLevelRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToUpdateCommand(id, scaleId, levelId), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateCommand(id, scaleId, levelId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -287,7 +287,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveScaleLevel(Guid id, Guid scaleId, Guid levelId, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new RemoveScoringScaleLevelCommand(id, scaleId, levelId), cancellationToken);
+        var result = await _dispatcher.Send(new RemoveScoringScaleLevelCommand(id, scaleId, levelId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -302,7 +302,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ReorderScaleLevels(Guid id, Guid scaleId, [FromBody] ReorderScoringScaleLevelsRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToReorderScoringScaleLevelsCommand(id, scaleId), cancellationToken);
+        var result = await _dispatcher.Send(request.ToReorderScoringScaleLevelsCommand(id, scaleId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -319,7 +319,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> AddOutput(Guid id, [FromBody] ScoringModelOutputRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToAddCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToAddCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetScoringModel), new { idOrKey = id.ToString() }, result.Value)
@@ -334,7 +334,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> UpdateOutput(Guid id, Guid outputId, [FromBody] ScoringModelOutputRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToUpdateCommand(id, outputId), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateCommand(id, outputId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -348,7 +348,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveOutput(Guid id, Guid outputId, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new RemoveScoringModelOutputCommand(id, outputId), cancellationToken);
+        var result = await _dispatcher.Send(new RemoveScoringModelOutputCommand(id, outputId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -363,7 +363,7 @@ public class ScoringModelsController(ILogger<ScoringModelsController> logger, IS
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ReorderOutputs(Guid id, [FromBody] ReorderScoringModelOutputsRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToReorderScoringModelOutputsCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToReorderScoringModelOutputsCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

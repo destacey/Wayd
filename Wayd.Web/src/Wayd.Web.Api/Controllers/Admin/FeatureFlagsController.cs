@@ -9,9 +9,9 @@ namespace Wayd.Web.Api.Controllers.Admin;
 [Route("api/admin/feature-flags")]
 [ApiVersionNeutral]
 [ApiController]
-public class FeatureFlagsController(ISender sender) : ControllerBase
+public class FeatureFlagsController(IDispatcher dispatcher) : ControllerBase
 {
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.FeatureFlags)]
@@ -20,7 +20,7 @@ public class FeatureFlagsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<FeatureFlagListDto>>> FeatureFlags(CancellationToken cancellationToken, [FromQuery] bool includeArchived = false)
     {
-        var flags = await _sender.Send(new GetFeatureFlagsQuery(includeArchived), cancellationToken);
+        var flags = await _dispatcher.Send(new GetFeatureFlagsQuery(includeArchived), cancellationToken);
         return Ok(flags);
     }
 
@@ -31,7 +31,7 @@ public class FeatureFlagsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<FeatureFlagDto>> FeatureFlag(int id, CancellationToken cancellationToken)
     {
-        var flag = await _sender.Send(new GetFeatureFlagQuery(id), cancellationToken);
+        var flag = await _dispatcher.Send(new GetFeatureFlagQuery(id), cancellationToken);
         return flag is not null
             ? Ok(flag)
             : NotFound();
@@ -48,7 +48,7 @@ public class FeatureFlagsController(ISender sender) : ControllerBase
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(id), nameof(request.Id), HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateFeatureFlagCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateFeatureFlagCommand(), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
@@ -64,7 +64,7 @@ public class FeatureFlagsController(ISender sender) : ControllerBase
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(id), nameof(request.Id), HttpContext));
 
-        var result = await _sender.Send(new ToggleFeatureFlagCommand(id, request.IsEnabled), cancellationToken);
+        var result = await _dispatcher.Send(new ToggleFeatureFlagCommand(id, request.IsEnabled), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
@@ -77,7 +77,7 @@ public class FeatureFlagsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Archive(int id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ArchiveFeatureFlagCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ArchiveFeatureFlagCommand(id), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));

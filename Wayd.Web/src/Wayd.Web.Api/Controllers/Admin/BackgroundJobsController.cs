@@ -11,11 +11,11 @@ namespace Wayd.Web.Api.Controllers.Admin;
 [Route("api/admin/background-jobs")]
 [ApiVersionNeutral]
 [ApiController]
-public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, IJobService jobService, ISender sender) : ControllerBase
+public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, IJobService jobService, IDispatcher dispatcher) : ControllerBase
 {
     private readonly ILogger<BackgroundJobsController> _logger = logger;
     private readonly IJobService _jobService = jobService;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet("job-types")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.BackgroundJobs)]
@@ -25,7 +25,7 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
     public async Task<ActionResult<IReadOnlyList<BackgroundJobTypeDto>>> GetJobTypes(CancellationToken cancellationToken)
     {
         // TODO how do we determine what is active rather than returning all types
-        var types = await _sender.Send(new GetBackgroundJobTypesQuery(), cancellationToken);
+        var types = await _dispatcher.Send(new GetBackgroundJobTypesQuery(), cancellationToken);
         return Ok(types.OrderBy(c => c.Order));
     }
 

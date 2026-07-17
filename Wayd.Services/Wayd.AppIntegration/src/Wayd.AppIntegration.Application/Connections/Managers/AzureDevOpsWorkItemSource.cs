@@ -1,6 +1,5 @@
 ﻿using System.Text.Json;
 using Ardalis.GuardClauses;
-using MediatR;
 using NodaTime;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Queries.AzureDevOps;
@@ -24,7 +23,7 @@ namespace Wayd.AppIntegration.Application.Connections.Managers;
 public sealed class AzureDevOpsWorkItemSource(
     ILogger<AzureDevOpsWorkItemSource> logger,
     IAzureDevOpsService azureDevOpsService,
-    ISender sender,
+    IDispatcher dispatcher,
     IAzureDevOpsInitManager initManager) : IWorkItemSource
 {
     public const string TeamSettingsFilterKey = "azdo.teamSettings";
@@ -33,7 +32,7 @@ public sealed class AzureDevOpsWorkItemSource(
 
     private readonly ILogger<AzureDevOpsWorkItemSource> _logger = logger;
     private readonly IAzureDevOpsService _azureDevOpsService = azureDevOpsService;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly IAzureDevOpsInitManager _initManager = initManager;
 
     private SyncableConnectionDescriptor? _descriptor;
@@ -87,7 +86,7 @@ public sealed class AzureDevOpsWorkItemSource(
 
         // Load fresh state so workspace/process integration flags reflect the most recent
         // RefreshOrganizationConfiguration() result.
-        var connection = await _sender.Send(new GetAzureDevOpsConnectionQuery(connectionId), cancellationToken);
+        var connection = await _dispatcher.Send(new GetAzureDevOpsConnectionQuery(connectionId), cancellationToken);
         if (connection is null)
             return Result.Failure<IReadOnlyList<WorkspaceSyncTarget>>($"Unable to load Azure DevOps connection {connectionId}.");
 
@@ -158,7 +157,7 @@ public sealed class AzureDevOpsWorkItemSource(
         if (workspaceResult.IsFailure)
             return workspaceResult.ConvertFailure();
 
-        var updateResult = await _sender.Send(new UpdateExternalWorkspaceCommand(workspaceResult.Value), cancellationToken);
+        var updateResult = await _dispatcher.Send(new UpdateExternalWorkspaceCommand(workspaceResult.Value), cancellationToken);
         return updateResult;
     }
 
@@ -172,7 +171,7 @@ public sealed class AzureDevOpsWorkItemSource(
         if (iterationsResult.IsFailure)
             return iterationsResult.ConvertFailure();
 
-        return await _sender.Send(new SyncAzureDevOpsIterationsCommand(systemId, iterationsResult.Value, teamMappings), cancellationToken);
+        return await _dispatcher.Send(new SyncAzureDevOpsIterationsCommand(systemId, iterationsResult.Value, teamMappings), cancellationToken);
     }
 
     public async Task<Result<WorkspaceItemsSyncResult>> SyncWorkItems(WorkspaceSyncTarget target, SyncType syncType, Guid syncId, CancellationToken cancellationToken)
@@ -187,7 +186,7 @@ public sealed class AzureDevOpsWorkItemSource(
             _ => _minSyncDate
         };
 
-        var workTypesResult = await _sender.Send(new GetWorkspaceWorkTypesQuery(target.InternalWorkspaceId), cancellationToken);
+        var workTypesResult = await _dispatcher.Send(new GetWorkspaceWorkTypesQuery(target.InternalWorkspaceId), cancellationToken);
         if (workTypesResult.IsFailure)
             return workTypesResult.ConvertFailure<WorkspaceItemsSyncResult>();
 
@@ -208,8 +207,8 @@ public sealed class AzureDevOpsWorkItemSource(
         }
         else if (workItemsResult.Value.Count > 0)
         {
-            var iterationMappings = await _sender.Send(new GetIterationMappingsQuery(Connector.AzureDevOps, ctx.SystemId), cancellationToken);
-            var syncResult = await _sender.Send(new SyncExternalWorkItemsCommand(target.InternalWorkspaceId, workItemsResult.Value, teamMappings, iterationMappings), cancellationToken);
+            var iterationMappings = await _dispatcher.Send(new GetIterationMappingsQuery(Connector.AzureDevOps, ctx.SystemId), cancellationToken);
+            var syncResult = await _dispatcher.Send(new SyncExternalWorkItemsCommand(target.InternalWorkspaceId, workItemsResult.Value, teamMappings, iterationMappings), cancellationToken);
             if (syncResult.IsFailure)
             {
                 hadPartialFailure = true;
@@ -234,7 +233,7 @@ public sealed class AzureDevOpsWorkItemSource(
             }
             else if (parentsResult.Value.Count > 0)
             {
-                var syncResult = await _sender.Send(new SyncExternalWorkItemParentChangesCommand(target.InternalWorkspaceId, parentsResult.Value), cancellationToken);
+                var syncResult = await _dispatcher.Send(new SyncExternalWorkItemParentChangesCommand(target.InternalWorkspaceId, parentsResult.Value), cancellationToken);
                 if (syncResult.IsFailure)
                 {
                     hadPartialFailure = true;
@@ -258,7 +257,7 @@ public sealed class AzureDevOpsWorkItemSource(
         }
         else if (depsResult.Value.Count > 0)
         {
-            var syncResult = await _sender.Send(new SyncExternalWorkItemDependencyChangesCommand(target.InternalWorkspaceId, depsResult.Value), cancellationToken);
+            var syncResult = await _dispatcher.Send(new SyncExternalWorkItemDependencyChangesCommand(target.InternalWorkspaceId, depsResult.Value), cancellationToken);
             if (syncResult.IsFailure)
             {
                 hadPartialFailure = true;
@@ -281,7 +280,7 @@ public sealed class AzureDevOpsWorkItemSource(
         }
         else if (deletedResult.Value.Length > 0)
         {
-            var syncResult = await _sender.Send(new DeleteExternalWorkItemsCommand(target.InternalWorkspaceId, deletedResult.Value), cancellationToken);
+            var syncResult = await _dispatcher.Send(new DeleteExternalWorkItemsCommand(target.InternalWorkspaceId, deletedResult.Value), cancellationToken);
             if (syncResult.IsFailure)
             {
                 hadPartialFailure = true;
@@ -334,7 +333,7 @@ public sealed class AzureDevOpsWorkItemSource(
         var workTypes = processResult.Value.WorkTypes.OfType<Wayd.Common.Application.Interfaces.ExternalWork.IExternalWorkType>().ToList();
         if (workTypes.Count != 0)
         {
-            var levels = await _sender.Send(new GetWorkTypeLevelsQuery(), cancellationToken);
+            var levels = await _dispatcher.Send(new GetWorkTypeLevelsQuery(), cancellationToken);
             if (levels is null)
                 return Result.Failure("Unable to get work type levels.");
 
@@ -351,19 +350,19 @@ public sealed class AzureDevOpsWorkItemSource(
             if (defaultLevelId == -1)
                 return Result.Failure("Unable to get work type levels.");
 
-            var syncWorkTypesResult = await _sender.Send(new SyncExternalWorkTypesCommand(workTypes, defaultLevelId), cancellationToken);
+            var syncWorkTypesResult = await _dispatcher.Send(new SyncExternalWorkTypesCommand(workTypes, defaultLevelId), cancellationToken);
             if (syncWorkTypesResult.IsFailure)
                 return syncWorkTypesResult;
         }
 
         if (processResult.Value.WorkStatuses.Count != 0)
         {
-            var syncWorkStatusesResult = await _sender.Send(new SyncExternalWorkStatusesCommand(processResult.Value.WorkStatuses), cancellationToken);
+            var syncWorkStatusesResult = await _dispatcher.Send(new SyncExternalWorkStatusesCommand(processResult.Value.WorkStatuses), cancellationToken);
             if (syncWorkStatusesResult.IsFailure)
                 return syncWorkStatusesResult;
         }
 
-        var workProcessSchemes = await _sender.Send(new GetWorkProcessSchemesQuery(workProcessInternalId), cancellationToken);
+        var workProcessSchemes = await _dispatcher.Send(new GetWorkProcessSchemesQuery(workProcessInternalId), cancellationToken);
         var workProcessSchemesByWorkTypeName = workProcessSchemes.ToDictionary(s => s.WorkType.Name);
 
         var workflowMappings = new List<CreateWorkProcessSchemeDto>(processResult.Value.WorkTypes.Count);
@@ -372,7 +371,7 @@ public sealed class AzureDevOpsWorkItemSource(
             workProcessSchemesByWorkTypeName.TryGetValue(workType.Name, out var scheme);
             if (scheme is null || scheme.Workflow is null)
             {
-                var createWorkflowResult = await _sender.Send(new CreateExternalWorkflowCommand(
+                var createWorkflowResult = await _dispatcher.Send(new CreateExternalWorkflowCommand(
                     $"{processResult.Value.Name} - {workType.Name}",
                     "Auto-generated workflow for Azure DevOps work process.",
                     workType), cancellationToken);
@@ -383,7 +382,7 @@ public sealed class AzureDevOpsWorkItemSource(
             }
             else
             {
-                var syncWorkflowResult = await _sender.Send(new UpdateExternalWorkflowCommand(scheme.Workflow.Id, scheme.Workflow.Name, scheme.Workflow.Description, workType), cancellationToken);
+                var syncWorkflowResult = await _dispatcher.Send(new UpdateExternalWorkflowCommand(scheme.Workflow.Id, scheme.Workflow.Name, scheme.Workflow.Description, workType), cancellationToken);
                 if (syncWorkflowResult.IsFailure)
                     return syncWorkflowResult;
 
@@ -391,7 +390,7 @@ public sealed class AzureDevOpsWorkItemSource(
             }
         }
 
-        var updateWorkProcessResult = await _sender.Send(new UpdateExternalWorkProcessCommand(processResult.Value, processResult.Value.WorkTypes, workflowMappings), cancellationToken);
+        var updateWorkProcessResult = await _dispatcher.Send(new UpdateExternalWorkProcessCommand(processResult.Value, processResult.Value.WorkTypes, workflowMappings), cancellationToken);
         return updateWorkProcessResult.IsSuccess ? Result.Success() : updateWorkProcessResult;
     }
 
@@ -427,7 +426,7 @@ public sealed class AzureDevOpsWorkItemSource(
 
     private async Task<DateTime> GetWorkspaceMostRecentChangeDate(Guid workspaceId, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new GetWorkspaceMostRecentChangeDateQuery(workspaceId), cancellationToken);
+        var result = await _dispatcher.Send(new GetWorkspaceMostRecentChangeDateQuery(workspaceId), cancellationToken);
         return result.IsSuccess && result.Value != null
             ? ((Instant)result.Value).ToDateTimeUtc()
             : _minSyncDate;

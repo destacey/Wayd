@@ -23,10 +23,10 @@ namespace Wayd.Web.Api.Controllers.Organizations;
 [Route("api/organization/teams")]
 [ApiVersionNeutral]
 [ApiController]
-public class TeamsController(ILogger<TeamsController> logger, ISender sender, ICsvService csvService) : ControllerBase
+public class TeamsController(ILogger<TeamsController> logger, IDispatcher dispatcher, ICsvService csvService) : ControllerBase
 {
     private readonly ILogger<TeamsController> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICsvService _csvService = csvService;
 
     [HttpGet]
@@ -36,7 +36,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<TeamListDto>>> GetList(CancellationToken cancellationToken, bool includeInactive = false)
     {
-        var teams = await _sender.Send(new GetTeamsQuery(includeInactive), cancellationToken);
+        var teams = await _dispatcher.Send(new GetTeamsQuery(includeInactive), cancellationToken);
         return Ok(teams.OrderBy(e => e.Name));
     }
 
@@ -47,7 +47,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TeamDetailsDto>> GetById(int id)
     {
-        var team = await _sender.Send(new GetTeamQuery(id));
+        var team = await _dispatcher.Send(new GetTeamQuery(id));
 
         return team is not null
             ? Ok(team)
@@ -60,7 +60,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateTeamRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateTeamCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateTeamCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value.Key }, result.Value)
@@ -100,7 +100,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
             if (teams.Count == 0)
                 return BadRequest(ProblemDetailsExtensions.ForBadRequest("No teams imported.", HttpContext));
 
-            var result = await _sender.Send(new ImportTeamsCommand(teams), cancellationToken);
+            var result = await _dispatcher.Send(new ImportTeamsCommand(teams), cancellationToken);
 
             return result.IsSuccess
                 ? NoContent()
@@ -145,7 +145,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
             if (members.Count == 0)
                 return BadRequest(ProblemDetailsExtensions.ForBadRequest("No team members imported.", HttpContext));
 
-            var result = await _sender.Send(new ImportTeamMembersCommand(members), cancellationToken);
+            var result = await _dispatcher.Send(new ImportTeamMembersCommand(members), cancellationToken);
 
             return result.IsSuccess
                 ? NoContent()
@@ -190,7 +190,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
             if (memberships.Count == 0)
                 return BadRequest(ProblemDetailsExtensions.ForBadRequest("No team memberships imported.", HttpContext));
 
-            var result = await _sender.Send(new ImportTeamMembershipsCommand(memberships), cancellationToken);
+            var result = await _dispatcher.Send(new ImportTeamMembershipsCommand(memberships), cancellationToken);
 
             return result.IsSuccess
                 ? NoContent()
@@ -213,7 +213,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateTeamCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateTeamCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -231,7 +231,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToDeactivateTeamCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToDeactivateTeamCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -255,7 +255,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<TeamMembershipDto>>> GetTeamMemberships(Guid id, CancellationToken cancellationToken)
     {
-        return Ok(await _sender.Send(new GetTeamMembershipsQuery(id), cancellationToken));
+        return Ok(await _dispatcher.Send(new GetTeamMembershipsQuery(id), cancellationToken));
     }
 
     [HttpPost("{id}/team-memberships")]
@@ -269,7 +269,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
         if (id != request.TeamId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(id), nameof(request.TeamId), HttpContext));
 
-        var result = await _sender.Send(request.ToTeamAddParentTeamMembershipCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToTeamAddParentTeamMembershipCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -289,7 +289,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
         else if (teamMembershipId != request.TeamMembershipId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(teamMembershipId), nameof(request.TeamMembershipId), HttpContext));
 
-        var result = await _sender.Send(request.ToTeamUpdateTeamMembershipCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToTeamUpdateTeamMembershipCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -303,7 +303,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveTeamMembership(Guid id, Guid teamMembershipId, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new RemoveTeamMembershipCommand(id, teamMembershipId), cancellationToken);
+        var result = await _dispatcher.Send(new RemoveTeamMembershipCommand(id, teamMembershipId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -322,7 +322,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkItemBacklogItemDto>>> GetTeamBacklog(string idOrCode, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new GetTeamBacklogQuery(idOrCode), cancellationToken);
+        var result = await _dispatcher.Send(new GetTeamBacklogQuery(idOrCode), cancellationToken);
 
         return result.IsSuccess
             ? Ok(result.Value)
@@ -358,7 +358,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
             doneToInstant = Instant.FromDateTimeUtc(dt);
         }
 
-        var workItems = await _sender.Send(new GetTeamWorkItemsQuery(idOrCode, statusCategories, doneFromInstant, doneToInstant), cancellationToken);
+        var workItems = await _dispatcher.Send(new GetTeamWorkItemsQuery(idOrCode, statusCategories, doneFromInstant, doneToInstant), cancellationToken);
 
         return workItems is null
             ? NotFound()
@@ -373,7 +373,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<DependencyDto>>> GetTeamDependencies(Guid id, CancellationToken cancellationToken)
     {
-        var dependencies = await _sender.Send(new GetTeamDependenciesQuery(id, [DependencyState.ToDo, DependencyState.InProgress]), cancellationToken);
+        var dependencies = await _dispatcher.Send(new GetTeamDependenciesQuery(id, [DependencyState.ToDo, DependencyState.InProgress]), cancellationToken);
 
         return dependencies is null
             ? NotFound()
@@ -392,11 +392,11 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<RiskListDto>>> GetRisks(Guid id, CancellationToken cancellationToken, bool includeClosed = false)
     {
-        var teamExists = await _sender.Send(new TeamExistsQuery(id), cancellationToken);
+        var teamExists = await _dispatcher.Send(new TeamExistsQuery(id), cancellationToken);
         if (!teamExists)
             return NotFound();
 
-        var risks = await _sender.Send(new GetRisksQuery(id, includeClosed), cancellationToken);
+        var risks = await _dispatcher.Send(new GetRisksQuery(id, includeClosed), cancellationToken);
 
         return Ok(risks);
     }
@@ -409,11 +409,11 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<RiskDetailsDto>> GetRiskById(Guid id, string riskIdOrKey, CancellationToken cancellationToken)
     {
-        var teamExists = await _sender.Send(new TeamExistsQuery(id), cancellationToken);
+        var teamExists = await _dispatcher.Send(new TeamExistsQuery(id), cancellationToken);
         if (!teamExists)
             return NotFound();
 
-        var risk = await _sender.Send(new GetRiskQuery(riskIdOrKey), cancellationToken);
+        var risk = await _dispatcher.Send(new GetRiskQuery(riskIdOrKey), cancellationToken);
 
         return risk is not null && risk.Team?.Id == id
             ? Ok(risk)
@@ -432,11 +432,11 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
         if (id != request.TeamId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(id), nameof(request.TeamId), HttpContext));
 
-        var teamExists = await _sender.Send(new TeamExistsQuery(id), cancellationToken);
+        var teamExists = await _dispatcher.Send(new TeamExistsQuery(id), cancellationToken);
         if (!teamExists)
             return NotFound();
 
-        var result = await _sender.Send(request.ToCreateRiskCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateRiskCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetRiskById), new { id, riskId = result.Value }, result.Value)
@@ -456,7 +456,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
         else if (riskId != request.RiskId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(riskId), nameof(request.RiskId), HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateRiskCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateRiskCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -474,11 +474,11 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TeamOperatingModelDetailsDto>> GetOperatingModel(Guid id, Guid operatingModelId, CancellationToken cancellationToken)
     {
-        var teamExists = await _sender.Send(new TeamExistsQuery(id), cancellationToken);
+        var teamExists = await _dispatcher.Send(new TeamExistsQuery(id), cancellationToken);
         if (!teamExists)
             return NotFound();
 
-        var operatingModel = await _sender.Send(new GetTeamOperatingModelQuery(id, operatingModelId), cancellationToken);
+        var operatingModel = await _dispatcher.Send(new GetTeamOperatingModelQuery(id, operatingModelId), cancellationToken);
 
         return operatingModel is not null
             ? Ok(operatingModel)
@@ -492,7 +492,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<TeamOperatingModelDetailsDto>>> GetOperatingModels(Guid id, CancellationToken cancellationToken)
     {
-        var history = await _sender.Send(new GetTeamOperatingModelsQuery(id), cancellationToken);
+        var history = await _dispatcher.Send(new GetTeamOperatingModelsQuery(id), cancellationToken);
 
         return history is not null
             ? Ok(history)
@@ -512,7 +512,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
             ? LocalDate.FromDateTime(asOfDate.Value)
             : null;
 
-        var operatingModel = await _sender.Send(new GetTeamOperatingModelAsOfQuery(id, localDate), cancellationToken);
+        var operatingModel = await _dispatcher.Send(new GetTeamOperatingModelAsOfQuery(id, localDate), cancellationToken);
 
         return operatingModel is not null
             ? Ok(operatingModel)
@@ -535,7 +535,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
             ? LocalDate.FromDateTime(asOfDate.Value)
             : null;
 
-        var operatingModels = await _sender.Send(new GetTeamOperatingModelsForTeamsQuery(teamIds, localDate), cancellationToken);
+        var operatingModels = await _dispatcher.Send(new GetTeamOperatingModelsForTeamsQuery(teamIds, localDate), cancellationToken);
 
         return Ok(operatingModels);
     }
@@ -547,7 +547,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<bool>> HasEverBeenScrum(Guid id, CancellationToken cancellationToken)
     {
-        var hasBeenScrum = await _sender.Send(new TeamHasEverBeenScrumQuery(id), cancellationToken);
+        var hasBeenScrum = await _dispatcher.Send(new TeamHasEverBeenScrumQuery(id), cancellationToken);
 
         return hasBeenScrum is not null
             ? Ok(hasBeenScrum)
@@ -563,11 +563,11 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> SetOperatingModel(Guid id, [FromBody] SetTeamOperatingModelRequest request, CancellationToken cancellationToken)
     {
-        var teamExists = await _sender.Send(new TeamExistsQuery(id), cancellationToken);
+        var teamExists = await _dispatcher.Send(new TeamExistsQuery(id), cancellationToken);
         if (!teamExists)
             return NotFound();
 
-        var result = await _sender.Send(request.ToSetTeamOperatingModelCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToSetTeamOperatingModelCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetOperatingModel), new { id, operatingModelId = result.Value }, result.Value)
@@ -583,7 +583,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> UpdateOperatingModel(Guid id, Guid operatingModelId, [FromBody] UpdateTeamOperatingModelRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToUpdateTeamOperatingModelCommand(id, operatingModelId), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateTeamOperatingModelCommand(id, operatingModelId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -598,7 +598,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult> DeleteOperatingModel(Guid id, Guid operatingModelId, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeleteTeamOperatingModelCommand(id, operatingModelId), cancellationToken);
+        var result = await _dispatcher.Send(new DeleteTeamOperatingModelCommand(id, operatingModelId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -614,7 +614,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<SprintListDto>>> GetSprints(Guid id, CancellationToken cancellationToken)
     {
-        var sprints = await _sender.Send(new GetSprintsQuery(id), cancellationToken);
+        var sprints = await _dispatcher.Send(new GetSprintsQuery(id), cancellationToken);
 
         return Ok(sprints);
     }
@@ -626,7 +626,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<SprintDetailsDto>> GetActiveSprint(Guid id, CancellationToken cancellationToken)
     {
-        var sprint = await _sender.Send(new GetTeamActiveSprintQuery(id), cancellationToken);
+        var sprint = await _dispatcher.Send(new GetTeamActiveSprintQuery(id), cancellationToken);
 
         return Ok(sprint);
     }
@@ -642,7 +642,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
         LocalDate? dateOnlyAsOfDate = asOfDate.HasValue
             ? LocalDate.FromDateTime(asOfDate.Value)
             : null;
-        var orgChart = await _sender.Send(new GetFunctionalOrganizationChartQuery(dateOnlyAsOfDate), cancellationToken);
+        var orgChart = await _dispatcher.Send(new GetFunctionalOrganizationChartQuery(dateOnlyAsOfDate), cancellationToken);
 
         return Ok(orgChart);
     }
@@ -655,7 +655,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<TeamMemberDto>>> GetMembers(Guid id, CancellationToken cancellationToken)
     {
-        return Ok(await _sender.Send(new GetTeamMembersQuery(id), cancellationToken));
+        return Ok(await _dispatcher.Send(new GetTeamMembersQuery(id), cancellationToken));
     }
 
     [HttpPost("{id}/members")]
@@ -665,7 +665,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> AddMember(Guid id, [FromBody] AddTeamMemberRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new AddTeamMemberCommand(id, request.EmployeeId, request.RoleIds), cancellationToken);
+        var result = await _dispatcher.Send(new AddTeamMemberCommand(id, request.EmployeeId, request.RoleIds), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -679,7 +679,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> UpdateMember(Guid id, Guid employeeId, [FromBody] UpdateTeamMemberRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new UpdateTeamMemberCommand(id, employeeId, request.RoleIds), cancellationToken);
+        var result = await _dispatcher.Send(new UpdateTeamMemberCommand(id, employeeId, request.RoleIds), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -693,7 +693,7 @@ public class TeamsController(ILogger<TeamsController> logger, ISender sender, IC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveMember(Guid id, Guid employeeId, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new RemoveTeamMemberCommand(id, employeeId), cancellationToken);
+        var result = await _dispatcher.Send(new RemoveTeamMemberCommand(id, employeeId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

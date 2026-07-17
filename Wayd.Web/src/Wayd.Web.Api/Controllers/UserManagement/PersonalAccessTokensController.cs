@@ -11,11 +11,11 @@ namespace Wayd.Web.Api.Controllers.UserManagement;
 [ApiController]
 public class PersonalAccessTokensController : ControllerBase
 {
-    private readonly ISender _sender;
+    private readonly IDispatcher _dispatcher;
 
-    public PersonalAccessTokensController(ISender sender)
+    public PersonalAccessTokensController(IDispatcher dispatcher)
     {
-        _sender = sender;
+        _dispatcher = dispatcher;
     }
 
     [HttpGet]
@@ -24,7 +24,7 @@ public class PersonalAccessTokensController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<List<PersonalAccessTokenDto>>> GetMyTokens(CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new GetMyPersonalAccessTokensQuery(), cancellationToken);
+        var result = await _dispatcher.Send(new GetMyPersonalAccessTokensQuery(), cancellationToken);
 
         return result.IsSuccess
             ? Ok(result.Value)
@@ -38,7 +38,7 @@ public class PersonalAccessTokensController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PersonalAccessTokenDto>> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new GetPersonalAccessTokenQuery(id), cancellationToken);
+        var result = await _dispatcher.Send(new GetPersonalAccessTokenQuery(id), cancellationToken);
 
         return result.IsSuccess
             ? Ok(result.Value)
@@ -53,7 +53,7 @@ public class PersonalAccessTokensController : ControllerBase
     public async Task<ActionResult<CreatePersonalAccessTokenResult>> Create(CreatePersonalAccessTokenRequest request, CancellationToken cancellationToken)
     {
         var command = request.ToCreatePersonalAccessTokenCommand();
-        var result = await _sender.Send(command, cancellationToken);
+        var result = await _dispatcher.Send(command, cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, result.Value)
@@ -69,7 +69,7 @@ public class PersonalAccessTokensController : ControllerBase
     public async Task<ActionResult> Update(Guid id, UpdatePersonalAccessTokenRequest request, CancellationToken cancellationToken)
     {
         var command = request.ToUpdatePersonalAccessTokenCommand(id);
-        var result = await _sender.Send(command, cancellationToken);
+        var result = await _dispatcher.Send(command, cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -83,7 +83,7 @@ public class PersonalAccessTokensController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult> Revoke(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new RevokePersonalAccessTokenCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new RevokePersonalAccessTokenCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -97,7 +97,7 @@ public class PersonalAccessTokensController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeletePersonalAccessTokenCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new DeletePersonalAccessTokenCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

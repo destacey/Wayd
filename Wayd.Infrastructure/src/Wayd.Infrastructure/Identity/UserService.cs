@@ -1,6 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
 using Mapster;
-using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -16,7 +15,7 @@ internal partial class UserService(
     RoleManager<ApplicationRole> roleManager,
     WaydDbContext db,
     IEventPublisher events,
-    ISender sender,
+    IDispatcher dispatcher,
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser,
     IUserIdentityStore userIdentityStore,
@@ -28,7 +27,7 @@ internal partial class UserService(
     private readonly RoleManager<ApplicationRole> _roleManager = roleManager;
     private readonly WaydDbContext _db = db;
     private readonly IEventPublisher _events = events;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IUserIdentityStore _userIdentityStore = userIdentityStore;

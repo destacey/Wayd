@@ -17,10 +17,10 @@ namespace Wayd.Web.Api.Controllers.Organizations;
 [Route("api/organization/employees")]
 [ApiVersionNeutral]
 [ApiController]
-public class EmployeesController(ILogger<EmployeesController> logger, ISender sender, ICsvService csvService) : ControllerBase
+public class EmployeesController(ILogger<EmployeesController> logger, IDispatcher dispatcher, ICsvService csvService) : ControllerBase
 {
     private readonly ILogger<EmployeesController> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICsvService _csvService = csvService;
 
     [HttpGet]
@@ -30,7 +30,7 @@ public class EmployeesController(ILogger<EmployeesController> logger, ISender se
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<EmployeeListDto>>> GetList(CancellationToken cancellationToken, bool includeInactive = false)
     {
-        var employees = await _sender.Send(new GetEmployeesQuery(includeInactive), cancellationToken);
+        var employees = await _dispatcher.Send(new GetEmployeesQuery(includeInactive), cancellationToken);
         return Ok(employees.OrderBy(e => e.LastName));
     }
 
@@ -42,7 +42,7 @@ public class EmployeesController(ILogger<EmployeesController> logger, ISender se
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<EmployeeDetailsDto>> GetEmployee(string idOrKey, CancellationToken cancellationToken)
     {
-        var employee = await _sender.Send(new GetEmployeeQuery(idOrKey), cancellationToken);
+        var employee = await _dispatcher.Send(new GetEmployeeQuery(idOrKey), cancellationToken);
 
         return employee is not null
             ? Ok(employee)
@@ -55,7 +55,7 @@ public class EmployeesController(ILogger<EmployeesController> logger, ISender se
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create(CreateEmployeeRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateEmployeeCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateEmployeeCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetEmployee), new { idOrKey = result.Value.Id.ToString() }, result.Value)
@@ -95,7 +95,7 @@ public class EmployeesController(ILogger<EmployeesController> logger, ISender se
             if (employees.Count == 0)
                 return BadRequest(ProblemDetailsExtensions.ForBadRequest("No employees imported.", HttpContext));
 
-            var result = await _sender.Send(new ImportEmployeesCommand(employees), cancellationToken);
+            var result = await _dispatcher.Send(new ImportEmployeesCommand(employees), cancellationToken);
 
             return result.IsSuccess
                 ? NoContent()
@@ -117,7 +117,7 @@ public class EmployeesController(ILogger<EmployeesController> logger, ISender se
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateEmployeeCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateEmployeeCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -131,7 +131,7 @@ public class EmployeesController(ILogger<EmployeesController> logger, ISender se
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(string id)
     {
-        var result = await _sender.Send(new DeleteEmployeeCommand(Guid.Parse(id)));
+        var result = await _dispatcher.Send(new DeleteEmployeeCommand(Guid.Parse(id)));
 
         return result.IsSuccess
             ? NoContent()
@@ -145,7 +145,7 @@ public class EmployeesController(ILogger<EmployeesController> logger, ISender se
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<EmployeeListDto>>> GetDirectReports(Guid id, CancellationToken cancellationToken)
     {
-        var directReports = await _sender.Send(new GetDirectReportsQuery(id), cancellationToken);
+        var directReports = await _dispatcher.Send(new GetDirectReportsQuery(id), cancellationToken);
         return Ok(directReports.OrderBy(e => e.LastName));
     }
 
@@ -157,7 +157,7 @@ public class EmployeesController(ILogger<EmployeesController> logger, ISender se
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveInvalid(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new RemoveInvalidEmployeeCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new RemoveInvalidEmployeeCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -170,7 +170,7 @@ public class EmployeesController(ILogger<EmployeesController> logger, ISender se
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<TeamMemberDto>>> GetTeamMemberships(Guid id, CancellationToken cancellationToken)
     {
-        return Ok(await _sender.Send(new GetEmployeeTeamMembershipsQuery(id), cancellationToken));
+        return Ok(await _dispatcher.Send(new GetEmployeeTeamMembershipsQuery(id), cancellationToken));
     }
 
     [HttpGet("{id}/work-items")]
@@ -202,6 +202,6 @@ public class EmployeesController(ILogger<EmployeesController> logger, ISender se
             doneToInstant = Instant.FromDateTimeUtc(dt);
         }
 
-        return Ok(await _sender.Send(new GetEmployeeWorkItemsQuery(id, statusCategories, doneFromInstant, doneToInstant), cancellationToken));
+        return Ok(await _dispatcher.Send(new GetEmployeeWorkItemsQuery(id, statusCategories, doneFromInstant, doneToInstant), cancellationToken));
     }
 }

@@ -3,7 +3,6 @@
     <ItemGroup>
         <PackageReference Include="CSharpFunctionalExtensions" />
         <PackageReference Include="FluentValidation" />
-        <PackageReference Include="MediatR.Contracts" />
         <PackageReference Include="NCalc.Core" />
         <PackageReference Include="NodaTime" />
     </ItemGroup>

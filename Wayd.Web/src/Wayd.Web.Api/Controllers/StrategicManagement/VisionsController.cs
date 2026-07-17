@@ -11,10 +11,10 @@ namespace Wayd.Web.Api.Controllers.StrategicManagement;
 [Route("api/strategic-management/[controller]")]
 [ApiVersionNeutral]
 [ApiController]
-public class VisionsController(ILogger<VisionsController> logger, ISender sender) : ControllerBase
+public class VisionsController(ILogger<VisionsController> logger, IDispatcher dispatcher) : ControllerBase
 {
     private readonly ILogger<VisionsController> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Visions)]
@@ -25,7 +25,7 @@ public class VisionsController(ILogger<VisionsController> logger, ISender sender
     {
         VisionState? filter = state.HasValue ? (VisionState)state.Value : null;
 
-        var visions = await _sender.Send(new GetVisionsQuery(filter), cancellationToken);
+        var visions = await _dispatcher.Send(new GetVisionsQuery(filter), cancellationToken);
 
         return Ok(visions);
     }
@@ -37,7 +37,7 @@ public class VisionsController(ILogger<VisionsController> logger, ISender sender
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<VisionDto>> GetVision(string idOrKey, CancellationToken cancellationToken)
     {
-        var vision = await _sender.Send(new GetVisionQuery(idOrKey), cancellationToken);
+        var vision = await _dispatcher.Send(new GetVisionQuery(idOrKey), cancellationToken);
 
         return vision is not null
             ? Ok(vision)
@@ -50,7 +50,7 @@ public class VisionsController(ILogger<VisionsController> logger, ISender sender
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateVisionRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateVisionCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateVisionCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetVision), new { idOrKey = result.Value.Id.ToString() }, result.Value)
@@ -68,7 +68,7 @@ public class VisionsController(ILogger<VisionsController> logger, ISender sender
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateVisionCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateVisionCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -83,7 +83,7 @@ public class VisionsController(ILogger<VisionsController> logger, ISender sender
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ActivateVisionCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ActivateVisionCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -98,7 +98,7 @@ public class VisionsController(ILogger<VisionsController> logger, ISender sender
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Archive(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ArchiveVisionCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ArchiveVisionCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -112,7 +112,7 @@ public class VisionsController(ILogger<VisionsController> logger, ISender sender
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeleteVisionCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new DeleteVisionCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -126,7 +126,7 @@ public class VisionsController(ILogger<VisionsController> logger, ISender sender
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<VisionStateDto>>> GetStateOptions(CancellationToken cancellationToken)
     {
-        var items = await _sender.Send(new GetVisionStatesQuery(), cancellationToken);
+        var items = await _dispatcher.Send(new GetVisionStatesQuery(), cancellationToken);
         return Ok(items.OrderBy(s => s.Order));
     }
 }

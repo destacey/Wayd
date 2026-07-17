@@ -9,10 +9,10 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 [Route("api/ppm/expenditure-categories")]
 [ApiVersionNeutral]
 [ApiController]
-public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesController> logger, ISender sender) : ControllerBase
+public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesController> logger, IDispatcher dispatcher) : ControllerBase
 {
     private readonly ILogger<ExpenditureCategoriesController> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ExpenditureCategories)]
@@ -21,7 +21,7 @@ public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesContro
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ExpenditureCategoryListDto>>> GetExpenditureCategories(CancellationToken cancellationToken)
     {
-        var expenditures = await _sender.Send(new GetExpenditureCategoriesQuery(), cancellationToken);
+        var expenditures = await _dispatcher.Send(new GetExpenditureCategoriesQuery(), cancellationToken);
 
         return Ok(expenditures);
     }
@@ -33,7 +33,7 @@ public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesContro
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ExpenditureCategoryDetailsDto>> GetExpenditureCategory(int id, CancellationToken cancellationToken)
     {
-        var expenditure = await _sender.Send(new GetExpenditureCategoryQuery(id), cancellationToken);
+        var expenditure = await _dispatcher.Send(new GetExpenditureCategoryQuery(id), cancellationToken);
 
         return expenditure is not null
             ? Ok(expenditure)
@@ -46,7 +46,7 @@ public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesContro
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Int))]
     public async Task<ActionResult<int>> Create([FromBody] CreateExpenditureCategoryRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateExpenditureCategoryCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateExpenditureCategoryCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetExpenditureCategory), new { id = result.Value }, result.Value)
@@ -64,7 +64,7 @@ public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesContro
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateExpenditureCategoryCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateExpenditureCategoryCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -79,7 +79,7 @@ public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesContro
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Activate(int id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ActivateExpenditureCategoryCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ActivateExpenditureCategoryCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -94,7 +94,7 @@ public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesContro
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Archive(int id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ArchiveExpenditureCategoryCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new ArchiveExpenditureCategoryCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -108,7 +108,7 @@ public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesContro
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeleteExpenditureCategoryCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new DeleteExpenditureCategoryCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -122,7 +122,7 @@ public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesContro
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ExpenditureCategoryOptionDto>>> GetExpenditureCategoryOptions([FromQuery] bool? includeArchived, CancellationToken cancellationToken)
     {
-        var options = await _sender.Send(new GetExpenditureCategoryOptionsQuery(includeArchived), cancellationToken);
+        var options = await _dispatcher.Send(new GetExpenditureCategoryOptionsQuery(includeArchived), cancellationToken);
 
         return Ok(options);
     }

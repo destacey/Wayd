@@ -8,11 +8,11 @@ namespace Wayd.Web.Api.Controllers.Work;
 [ApiController]
 public class WorkStatusCategoriesController : ControllerBase
 {
-    private readonly ISender _sender;
+    private readonly IDispatcher _dispatcher;
 
-    public WorkStatusCategoriesController(ISender sender)
+    public WorkStatusCategoriesController(IDispatcher dispatcher)
     {
-        _sender = sender;
+        _dispatcher = dispatcher;
     }
 
     [HttpGet]
@@ -22,7 +22,7 @@ public class WorkStatusCategoriesController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<WorkStatusCategoryListDto>>> GetList(CancellationToken cancellationToken)
     {
-        var categories = await _sender.Send(new GetWorkStatusCategoriesQuery(), cancellationToken);
+        var categories = await _dispatcher.Send(new GetWorkStatusCategoriesQuery(), cancellationToken);
         return Ok(categories.OrderBy(c => c.Order));
     }
 }

@@ -14,9 +14,9 @@ namespace Wayd.Web.Api.Controllers.Planning;
 [ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.PlanningPoker)]
-public class PokerSessionsController(ISender sender) : ControllerBase
+public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
 {
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
@@ -25,7 +25,7 @@ public class PokerSessionsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<PokerSessionListDto>>> GetList(CancellationToken cancellationToken, [FromQuery] PokerSessionStatus? status = null)
     {
-        var sessions = await _sender.Send(new GetPokerSessionsQuery(status), cancellationToken);
+        var sessions = await _dispatcher.Send(new GetPokerSessionsQuery(status), cancellationToken);
         return Ok(sessions);
     }
 
@@ -36,7 +36,7 @@ public class PokerSessionsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PokerSessionDetailsDto>> GetSession(string idOrKey, CancellationToken cancellationToken)
     {
-        var session = await _sender.Send(new GetPokerSessionQuery(idOrKey), cancellationToken);
+        var session = await _dispatcher.Send(new GetPokerSessionQuery(idOrKey), cancellationToken);
         return session is not null
             ? Ok(session)
             : NotFound();
@@ -48,7 +48,7 @@ public class PokerSessionsController(ISender sender) : ControllerBase
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreatePokerSessionRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreatePokerSessionCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreatePokerSessionCommand(), cancellationToken);
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetSession), new { idOrKey = result.Value.Id.ToString() }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
@@ -61,7 +61,7 @@ public class PokerSessionsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Update(Guid id, [FromBody] UpdatePokerSessionRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToUpdatePokerSessionCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdatePokerSessionCommand(id), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
@@ -74,7 +74,7 @@ public class PokerSessionsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeletePokerSessionCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new DeletePokerSessionCommand(id), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
@@ -87,7 +87,7 @@ public class PokerSessionsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Complete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new CompletePokerSessionCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new CompletePokerSessionCommand(id), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
@@ -100,7 +100,7 @@ public class PokerSessionsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PokerRoundDto>> AddRound(Guid id, [FromBody] AddPokerRoundRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToAddPokerRoundCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToAddPokerRoundCommand(id), cancellationToken);
         return result.IsSuccess
             ? Ok(result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
@@ -113,7 +113,7 @@ public class PokerSessionsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveRound(Guid id, Guid roundId, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new RemovePokerRoundCommand(id, roundId), cancellationToken);
+        var result = await _dispatcher.Send(new RemovePokerRoundCommand(id, roundId), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
@@ -126,7 +126,7 @@ public class PokerSessionsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RevealRound(Guid id, Guid roundId, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new RevealPokerRoundCommand(id, roundId), cancellationToken);
+        var result = await _dispatcher.Send(new RevealPokerRoundCommand(id, roundId), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
@@ -139,7 +139,7 @@ public class PokerSessionsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> ResetRound(Guid id, Guid roundId, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new ResetPokerRoundCommand(id, roundId), cancellationToken);
+        var result = await _dispatcher.Send(new ResetPokerRoundCommand(id, roundId), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
@@ -152,7 +152,7 @@ public class PokerSessionsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SetConsensus(Guid id, Guid roundId, [FromBody] SetConsensusRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToSetConsensusCommand(id, roundId), cancellationToken);
+        var result = await _dispatcher.Send(request.ToSetConsensusCommand(id, roundId), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
@@ -165,7 +165,7 @@ public class PokerSessionsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> UpdateRoundLabel(Guid id, Guid roundId, [FromBody] UpdatePokerRoundLabelRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToUpdatePokerRoundLabelCommand(id, roundId), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdatePokerRoundLabelCommand(id, roundId), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
@@ -178,7 +178,7 @@ public class PokerSessionsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SubmitVote(Guid id, Guid roundId, [FromBody] SubmitVoteRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToSubmitVoteCommand(id, roundId), cancellationToken);
+        var result = await _dispatcher.Send(request.ToSubmitVoteCommand(id, roundId), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
@@ -191,7 +191,7 @@ public class PokerSessionsController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> WithdrawVote(Guid id, Guid roundId, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new WithdrawVoteCommand(id, roundId), cancellationToken);
+        var result = await _dispatcher.Send(new WithdrawVoteCommand(id, roundId), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));

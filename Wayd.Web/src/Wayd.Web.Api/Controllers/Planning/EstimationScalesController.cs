@@ -12,9 +12,9 @@ namespace Wayd.Web.Api.Controllers.Planning;
 [ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.PlanningPoker)]
-public class EstimationScalesController(ISender sender) : ControllerBase
+public class EstimationScalesController(IDispatcher dispatcher) : ControllerBase
 {
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.EstimationScales)]
@@ -23,7 +23,7 @@ public class EstimationScalesController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<EstimationScaleDto>>> GetScales(CancellationToken cancellationToken, [FromQuery] bool includeInactive = false)
     {
-        var scales = await _sender.Send(new GetEstimationScalesQuery(includeInactive), cancellationToken);
+        var scales = await _dispatcher.Send(new GetEstimationScalesQuery(includeInactive), cancellationToken);
         return Ok(scales.OrderBy(s => s.Name));
     }
 
@@ -34,7 +34,7 @@ public class EstimationScalesController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<EstimationScaleDto>> GetScale(int id, CancellationToken cancellationToken)
     {
-        var scale = await _sender.Send(new GetEstimationScaleQuery(id), cancellationToken);
+        var scale = await _dispatcher.Send(new GetEstimationScaleQuery(id), cancellationToken);
         return scale is not null
             ? Ok(scale)
             : NotFound();
@@ -46,7 +46,7 @@ public class EstimationScalesController(ISender sender) : ControllerBase
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Int))]
     public async Task<ActionResult<int>> Create([FromBody] CreateEstimationScaleRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateEstimationScaleCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateEstimationScaleCommand(), cancellationToken);
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetScale), new { id = result.Value }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
@@ -63,7 +63,7 @@ public class EstimationScalesController(ISender sender) : ControllerBase
         if (id != request.EstimationScaleId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(id), nameof(request.EstimationScaleId), HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateEstimationScaleCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateEstimationScaleCommand(), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
@@ -79,7 +79,7 @@ public class EstimationScalesController(ISender sender) : ControllerBase
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(id), nameof(request.Id), HttpContext));
 
-        var result = await _sender.Send(new SetEstimationScaleActiveStatusCommand(id, request.IsActive), cancellationToken);
+        var result = await _dispatcher.Send(new SetEstimationScaleActiveStatusCommand(id, request.IsActive), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
@@ -92,7 +92,7 @@ public class EstimationScalesController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeleteEstimationScaleCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new DeleteEstimationScaleCommand(id), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));

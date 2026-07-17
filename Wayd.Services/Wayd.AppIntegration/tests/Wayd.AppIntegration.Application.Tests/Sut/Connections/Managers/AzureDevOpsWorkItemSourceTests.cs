@@ -1,6 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
 using FluentAssertions;
-using MediatR;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.AutoMock;
@@ -117,11 +116,11 @@ public class AzureDevOpsWorkItemSourceTests
             .Setup(s => s.GetWorkProcess(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(workProcessConfig.Object));
 
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<GetWorkProcessSchemesQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<IWorkProcessSchemeDto>().AsReadOnly() as IReadOnlyList<IWorkProcessSchemeDto>);
 
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<UpdateExternalWorkProcessCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
 
@@ -130,18 +129,18 @@ public class AzureDevOpsWorkItemSourceTests
             .Setup(s => s.GetWorkspace(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new Mock<IExternalWorkspaceConfiguration>().Object));
 
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<UpdateExternalWorkspaceCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
     }
 
     private void StubWorkItemSubSteps()
     {
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<GetWorkspaceWorkTypesQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new List<IWorkTypeDto>().AsReadOnly() as IReadOnlyList<IWorkTypeDto>));
 
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<GetWorkspaceMostRecentChangeDateQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success<Instant?>(null));
 
@@ -226,7 +225,7 @@ public class AzureDevOpsWorkItemSourceTests
             processes: [Process(externalId: processId)],
             workspaces: [Workspace(processId, externalId: workspaceId, name: "ProjectA")]);
 
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.Is<GetAzureDevOpsConnectionQuery>(q => q.ConnectionId == descriptor.ConnectionId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(details);
 
@@ -254,7 +253,7 @@ public class AzureDevOpsWorkItemSourceTests
             processes: [Process(externalId: inactiveProcessId, isActive: false)],
             workspaces: [Workspace(inactiveProcessId)]);
 
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(details);
 
@@ -276,7 +275,7 @@ public class AzureDevOpsWorkItemSourceTests
             processes: [Process(externalId: processId)],
             workspaces: [Workspace(processId, isActive: false)]);
 
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(details);
 
@@ -311,7 +310,7 @@ public class AzureDevOpsWorkItemSourceTests
                 InternalTeamId = internalTeamId
             }]);
 
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(details);
 
@@ -330,7 +329,7 @@ public class AzureDevOpsWorkItemSourceTests
         var descriptor = BuildDescriptor();
         _sut.Bind(descriptor);
 
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((AzureDevOpsConnectionDetailsDto?)null);
 
@@ -356,7 +355,7 @@ public class AzureDevOpsWorkItemSourceTests
                 Workspace(processId, name: "ProjectB")
             ]);
 
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(details);
 
@@ -391,7 +390,7 @@ public class AzureDevOpsWorkItemSourceTests
             processes: [Process(externalId: processId)],
             workspaces: [Workspace(processId)]);
 
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(details);
 
@@ -476,10 +475,10 @@ public class AzureDevOpsWorkItemSourceTests
         var descriptor = BuildDescriptor();
         _sut.Bind(descriptor);
 
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<GetWorkspaceWorkTypesQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new List<IWorkTypeDto>().AsReadOnly() as IReadOnlyList<IWorkTypeDto>));
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<GetWorkspaceMostRecentChangeDateQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success<Instant?>(null));
 
@@ -506,19 +505,19 @@ public class AzureDevOpsWorkItemSourceTests
             .Setup(s => s.GetDeletedWorkItemIds(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new[] { 1, 2, 3, 4 }));
 
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<GetIterationMappingsQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, Guid>());
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<SyncExternalWorkItemsCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<SyncExternalWorkItemParentChangesCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<SyncExternalWorkItemDependencyChangesCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
-        _mocker.GetMock<ISender>()
+        _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<DeleteExternalWorkItemsCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
 

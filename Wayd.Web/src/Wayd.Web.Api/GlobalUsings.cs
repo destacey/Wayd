@@ -1,6 +1,5 @@
 ﻿global using Asp.Versioning;
 global using FluentValidation;
-global using MediatR;
 global using Microsoft.AspNetCore.Mvc;
 global using Wayd.AppIntegration.Application.Connections.Commands;
 global using Wayd.AppIntegration.Application.Connections.Dtos;
@@ -10,6 +9,7 @@ global using Wayd.AppIntegration.Application.Connectors.Queries;
 global using Wayd.Common.Application.Auditing;
 global using Wayd.Common.Application.Identity.Roles;
 global using Wayd.Common.Application.Identity.Users;
+global using Wayd.Common.Application.Interfaces;
 global using Wayd.Common.Application.Validation;
 global using Wayd.Common.Domain.Authorization;
 global using Wayd.Common.Models;

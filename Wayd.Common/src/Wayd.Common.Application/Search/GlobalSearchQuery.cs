@@ -1,5 +1,4 @@
-﻿using MediatR;
-using Wayd.Common.Application.Search.Dtos;
+﻿using Wayd.Common.Application.Search.Dtos;
 using Wayd.Common.Domain.Authorization;
 
 namespace Wayd.Common.Application.Search;
@@ -7,7 +6,7 @@ namespace Wayd.Common.Application.Search;
 public sealed record GlobalSearchQuery(string SearchTerm, int MaxResultsPerCategory = 5)
     : IQuery<Result<GlobalSearchResultDto>>;
 
-internal sealed class GlobalSearchQueryHandler(ISender sender, ICurrentUser currentUser, ILogger<GlobalSearchQueryHandler> logger)
+internal sealed class GlobalSearchQueryHandler(IDispatcher dispatcher, ICurrentUser currentUser, ILogger<GlobalSearchQueryHandler> logger)
     : IQueryHandler<GlobalSearchQuery, Result<GlobalSearchResultDto>>
 {
     private const string AppRequestName = nameof(GlobalSearchQuery);
@@ -79,7 +78,7 @@ internal sealed class GlobalSearchQueryHandler(ISender sender, ICurrentUser curr
     {
         try
         {
-            var response = await sender.Send(query, cancellationToken);
+            var response = await dispatcher.Send(query, cancellationToken);
             return response.Categories;
         }
         catch (Exception ex)

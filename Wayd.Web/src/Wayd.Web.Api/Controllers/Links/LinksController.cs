@@ -12,12 +12,12 @@ namespace Wayd.Web.Api.Controllers.Links;
 public class LinksController : ControllerBase
 {
     private readonly ILogger<LinksController> _logger;
-    private readonly ISender _sender;
+    private readonly IDispatcher _dispatcher;
 
-    public LinksController(ILogger<LinksController> logger, ISender sender)
+    public LinksController(ILogger<LinksController> logger, IDispatcher dispatcher)
     {
         _logger = logger;
-        _sender = sender;
+        _dispatcher = dispatcher;
     }
 
     [HttpGet("{objectId}/list")]
@@ -27,7 +27,7 @@ public class LinksController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<LinkDto>>> GetList(Guid objectId, CancellationToken cancellationToken)
     {
-        var links = await _sender.Send(new GetLinksQuery(objectId), cancellationToken);
+        var links = await _dispatcher.Send(new GetLinksQuery(objectId), cancellationToken);
         return Ok(links);
     }
 
@@ -38,7 +38,7 @@ public class LinksController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<LinkDto>> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var link = await _sender.Send(new GetLinkQuery(id), cancellationToken);
+        var link = await _dispatcher.Send(new GetLinkQuery(id), cancellationToken);
         return link is not null
             ? Ok(link)
             : NotFound();
@@ -50,7 +50,7 @@ public class LinksController : ControllerBase
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult> Create([FromBody] CreateLinkRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateLinkCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateLinkCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
@@ -68,7 +68,7 @@ public class LinksController : ControllerBase
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateLinkCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateLinkCommand(), cancellationToken);
 
         return result.IsSuccess
             ? Ok(result.Value)
@@ -82,7 +82,7 @@ public class LinksController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeleteLinkCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new DeleteLinkCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

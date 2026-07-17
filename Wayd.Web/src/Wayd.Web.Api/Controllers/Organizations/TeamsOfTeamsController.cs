@@ -23,12 +23,12 @@ namespace Wayd.Web.Api.Controllers.Organizations;
 public class TeamsOfTeamsController : ControllerBase
 {
     private readonly ILogger<TeamsOfTeamsController> _logger;
-    private readonly ISender _sender;
+    private readonly IDispatcher _dispatcher;
 
-    public TeamsOfTeamsController(ILogger<TeamsOfTeamsController> logger, ISender sender)
+    public TeamsOfTeamsController(ILogger<TeamsOfTeamsController> logger, IDispatcher dispatcher)
     {
         _logger = logger;
-        _sender = sender;
+        _dispatcher = dispatcher;
     }
 
     [HttpGet]
@@ -38,7 +38,7 @@ public class TeamsOfTeamsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<TeamOfTeamsListDto>>> GetList(CancellationToken cancellationToken, bool includeInactive = false)
     {
-        var teams = await _sender.Send(new GetTeamOfTeamsListQuery(includeInactive), cancellationToken);
+        var teams = await _dispatcher.Send(new GetTeamOfTeamsListQuery(includeInactive), cancellationToken);
         return Ok(teams.OrderBy(e => e.Name));
     }
 
@@ -49,7 +49,7 @@ public class TeamsOfTeamsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TeamOfTeamsDetailsDto>> GetById(int id)
     {
-        var team = await _sender.Send(new GetTeamOfTeamsQuery(id));
+        var team = await _dispatcher.Send(new GetTeamOfTeamsQuery(id));
 
         return team is not null
             ? Ok(team)
@@ -62,7 +62,7 @@ public class TeamsOfTeamsController : ControllerBase
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create(CreateTeamOfTeamsRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(request.ToCreateTeamOfTeamsCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateTeamOfTeamsCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value.Key }, result.Value)
@@ -80,7 +80,7 @@ public class TeamsOfTeamsController : ControllerBase
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateTeamOfTeamsCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateTeamOfTeamsCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -98,7 +98,7 @@ public class TeamsOfTeamsController : ControllerBase
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToDeactivateTeamOfTeamsCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToDeactivateTeamOfTeamsCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -122,7 +122,7 @@ public class TeamsOfTeamsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<TeamMembershipDto>>> GetTeamMemberships(Guid id, CancellationToken cancellationToken)
     {
-        var memberships = await _sender.Send(new GetTeamMembershipsQuery(id), cancellationToken);
+        var memberships = await _dispatcher.Send(new GetTeamMembershipsQuery(id), cancellationToken);
 
         return Ok(memberships);
     }
@@ -138,7 +138,7 @@ public class TeamsOfTeamsController : ControllerBase
         if (id != request.TeamId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
-        var result = await _sender.Send(request.ToTeamOfTeamsAddParentTeamMembershipCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToTeamOfTeamsAddParentTeamMembershipCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -158,7 +158,7 @@ public class TeamsOfTeamsController : ControllerBase
         else if (teamMembershipId != request.TeamMembershipId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(teamMembershipId), nameof(request.TeamMembershipId), HttpContext));
 
-        var result = await _sender.Send(request.ToTeamOfTeamsUpdateTeamMembershipCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToTeamOfTeamsUpdateTeamMembershipCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -172,7 +172,7 @@ public class TeamsOfTeamsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveTeamMembership(Guid id, Guid teamMembershipId, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new RemoveTeamMembershipCommand(id, teamMembershipId), cancellationToken);
+        var result = await _dispatcher.Send(new RemoveTeamMembershipCommand(id, teamMembershipId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -191,11 +191,11 @@ public class TeamsOfTeamsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IReadOnlyList<RiskListDto>>> GetRisks(Guid id, CancellationToken cancellationToken, bool includeClosed = false)
     {
-        var teamExists = await _sender.Send(new TeamOfTeamsExistsQuery(id), cancellationToken);
+        var teamExists = await _dispatcher.Send(new TeamOfTeamsExistsQuery(id), cancellationToken);
         if (!teamExists)
             return NotFound();
 
-        var risks = await _sender.Send(new GetRisksQuery(id, includeClosed), cancellationToken);
+        var risks = await _dispatcher.Send(new GetRisksQuery(id, includeClosed), cancellationToken);
 
         return Ok(risks);
     }
@@ -208,11 +208,11 @@ public class TeamsOfTeamsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<RiskDetailsDto>> GetRiskById(Guid id, string riskIdOrKey, CancellationToken cancellationToken)
     {
-        var teamExists = await _sender.Send(new TeamOfTeamsExistsQuery(id), cancellationToken);
+        var teamExists = await _dispatcher.Send(new TeamOfTeamsExistsQuery(id), cancellationToken);
         if (!teamExists)
             return NotFound();
 
-        var risk = await _sender.Send(new GetRiskQuery(riskIdOrKey), cancellationToken);
+        var risk = await _dispatcher.Send(new GetRiskQuery(riskIdOrKey), cancellationToken);
 
         return risk is not null && risk.Team?.Id == id
             ? Ok(risk)
@@ -231,11 +231,11 @@ public class TeamsOfTeamsController : ControllerBase
         if (id != request.TeamId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(id), nameof(request.TeamId), HttpContext));
 
-        var teamExists = await _sender.Send(new TeamOfTeamsExistsQuery(id), cancellationToken);
+        var teamExists = await _dispatcher.Send(new TeamOfTeamsExistsQuery(id), cancellationToken);
         if (!teamExists)
             return NotFound();
 
-        var result = await _sender.Send(request.ToCreateRiskCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCreateRiskCommand(), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetRiskById), new { id, riskId = result.Value }, result.Value)
@@ -255,7 +255,7 @@ public class TeamsOfTeamsController : ControllerBase
         else if (riskId != request.RiskId)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(riskId), nameof(request.RiskId), HttpContext));
 
-        var result = await _sender.Send(request.ToUpdateRiskCommand(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateRiskCommand(), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -272,7 +272,7 @@ public class TeamsOfTeamsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<TeamMemberDto>>> GetMembers(Guid id, CancellationToken cancellationToken)
     {
-        return Ok(await _sender.Send(new TeamsMemberQueries.GetTeamMembersQuery(id), cancellationToken));
+        return Ok(await _dispatcher.Send(new TeamsMemberQueries.GetTeamMembersQuery(id), cancellationToken));
     }
 
     [HttpPost("{id}/members")]
@@ -282,7 +282,7 @@ public class TeamsOfTeamsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> AddMember(Guid id, [FromBody] AddTeamMemberRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new TeamsMemberCommands.AddTeamMemberCommand(id, request.EmployeeId, request.RoleIds), cancellationToken);
+        var result = await _dispatcher.Send(new TeamsMemberCommands.AddTeamMemberCommand(id, request.EmployeeId, request.RoleIds), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -296,7 +296,7 @@ public class TeamsOfTeamsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> UpdateMember(Guid id, Guid employeeId, [FromBody] UpdateTeamMemberRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new TeamsMemberCommands.UpdateTeamMemberCommand(id, employeeId, request.RoleIds), cancellationToken);
+        var result = await _dispatcher.Send(new TeamsMemberCommands.UpdateTeamMemberCommand(id, employeeId, request.RoleIds), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -310,7 +310,7 @@ public class TeamsOfTeamsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RemoveMember(Guid id, Guid employeeId, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new TeamsMemberCommands.RemoveTeamMemberCommand(id, employeeId), cancellationToken);
+        var result = await _dispatcher.Send(new TeamsMemberCommands.RemoveTeamMemberCommand(id, employeeId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

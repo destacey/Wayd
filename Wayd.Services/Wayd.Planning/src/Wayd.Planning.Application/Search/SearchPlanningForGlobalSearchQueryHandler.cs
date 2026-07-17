@@ -1,5 +1,4 @@
 ﻿using Ardalis.GuardClauses;
-using MediatR;
 using Wayd.Common.Application.Requests.Goals.Queries;
 using Wayd.Common.Application.Search;
 using Wayd.Common.Application.Search.Dtos;
@@ -10,7 +9,7 @@ using Wayd.Planning.Domain.Models.Roadmaps;
 
 namespace Wayd.Planning.Application.Search;
 
-internal sealed class SearchPlanningForGlobalSearchQueryHandler(IPlanningDbContext planningDbContext, ISender sender, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser)
+internal sealed class SearchPlanningForGlobalSearchQueryHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser)
     : IQueryHandler<SearchPlanningForGlobalSearchQuery, ServiceSearchResponse>
 {
     public async Task<ServiceSearchResponse> Handle(SearchPlanningForGlobalSearchQuery request, CancellationToken cancellationToken)
@@ -167,7 +166,7 @@ internal sealed class SearchPlanningForGlobalSearchQueryHandler(IPlanningDbConte
     private async Task<GlobalSearchCategoryDto> SearchObjectives(string term, int max, CancellationToken cancellationToken)
     {
         // Search objective names via Goals service
-        var matchingObjectives = await sender.Send(
+        var matchingObjectives = await dispatcher.Send(
             new SearchObjectivesByNameQuery(term, max), cancellationToken);
 
         if (matchingObjectives.Count == 0)

@@ -8,11 +8,11 @@ namespace Wayd.Web.Api.Controllers.Work;
 [ApiController]
 public class TeamTypesController : ControllerBase
 {
-    private readonly ISender _sender;
+    private readonly IDispatcher _dispatcher;
 
-    public TeamTypesController(ISender sender)
+    public TeamTypesController(IDispatcher dispatcher)
     {
-        _sender = sender;
+        _dispatcher = dispatcher;
     }
 
     [HttpGet]
@@ -22,7 +22,7 @@ public class TeamTypesController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<TeamTypeDto>>> GetList(CancellationToken cancellationToken)
     {
-        var categories = await _sender.Send(new GetTeamTypesQuery(), cancellationToken);
+        var categories = await _dispatcher.Send(new GetTeamTypesQuery(), cancellationToken);
         return Ok(categories.OrderBy(c => c.Order));
     }
 }

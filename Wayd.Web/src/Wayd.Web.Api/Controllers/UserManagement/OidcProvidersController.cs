@@ -17,9 +17,9 @@ namespace Wayd.Web.Api.Controllers.UserManagement;
 [Route("api/user-management/oidc-providers")]
 [ApiVersionNeutral]
 [ApiController]
-public class OidcProvidersController(ISender sender, IUserService userService) : ControllerBase
+public class OidcProvidersController(IDispatcher dispatcher, IUserService userService) : ControllerBase
 {
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly IUserService _userService = userService;
 
     [HttpGet]
@@ -28,7 +28,7 @@ public class OidcProvidersController(ISender sender, IUserService userService) :
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<OidcProviderListItemDto>>> GetList(CancellationToken cancellationToken)
     {
-        var providers = await _sender.Send(new GetOidcProvidersQuery(), cancellationToken);
+        var providers = await _dispatcher.Send(new GetOidcProvidersQuery(), cancellationToken);
         return Ok(providers);
     }
 
@@ -39,7 +39,7 @@ public class OidcProvidersController(ISender sender, IUserService userService) :
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<OidcProviderDto>> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var provider = await _sender.Send(new GetOidcProviderQuery(id), cancellationToken);
+        var provider = await _dispatcher.Send(new GetOidcProviderQuery(id), cancellationToken);
         return provider is not null ? Ok(provider) : NotFound();
     }
 
@@ -65,7 +65,7 @@ public class OidcProvidersController(ISender sender, IUserService userService) :
             request.RequireEmployeeRecord,
             request.DefaultRoleId);
 
-        var result = await _sender.Send(command, cancellationToken);
+        var result = await _dispatcher.Send(command, cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, result.Value)
@@ -96,7 +96,7 @@ public class OidcProvidersController(ISender sender, IUserService userService) :
             request.RequireEmployeeRecord,
             request.DefaultRoleId);
 
-        var result = await _sender.Send(command, cancellationToken);
+        var result = await _dispatcher.Send(command, cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -111,7 +111,7 @@ public class OidcProvidersController(ISender sender, IUserService userService) :
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new DeleteOidcProviderCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new DeleteOidcProviderCommand(id), cancellationToken);
 
         if (result.IsFailure)
         {
@@ -134,7 +134,7 @@ public class OidcProvidersController(ISender sender, IUserService userService) :
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TestOidcProviderDiscoveryResult>> TestDiscovery(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new TestOidcProviderDiscoveryCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(new TestOidcProviderDiscoveryCommand(id), cancellationToken);
 
         // Note: a discovery failure (timeout, 404, bad JSON) returns 200 OK
         // with Success=false. The 400 path is reserved for the request being

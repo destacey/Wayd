@@ -1,5 +1,4 @@
 ﻿using System.Linq.Expressions;
-using MediatR;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Requests.Goals.Queries;
@@ -22,11 +21,11 @@ public sealed record GetPlanningIntervalObjectiveQuery : IQuery<PlanningInterval
     public IdOrKey ObjectiveIdOrKey { get; }
 }
 
-internal sealed class GetPlanningIntervalObjectiveQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetPlanningIntervalObjectiveQueryHandler> logger, ISender sender, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetPlanningIntervalObjectiveQuery, PlanningIntervalObjectiveDetailsDto?>
+internal sealed class GetPlanningIntervalObjectiveQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetPlanningIntervalObjectiveQueryHandler> logger, IDispatcher dispatcher, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetPlanningIntervalObjectiveQuery, PlanningIntervalObjectiveDetailsDto?>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ILogger<GetPlanningIntervalObjectiveQueryHandler> _logger = logger;
-    private readonly ISender _sender = sender;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<PlanningIntervalObjectiveDetailsDto?> Handle(GetPlanningIntervalObjectiveQuery request, CancellationToken cancellationToken)
@@ -53,7 +52,7 @@ internal sealed class GetPlanningIntervalObjectiveQueryHandler(IPlanningDbContex
             return null;
 
         // call the objective query handler
-        var objective = await _sender.Send(new GetObjectiveForPlanningIntervalQuery(planningInterval.Objectives.First().ObjectiveId, planningInterval.Id), cancellationToken);
+        var objective = await _dispatcher.Send(new GetObjectiveForPlanningIntervalQuery(planningInterval.Objectives.First().ObjectiveId, planningInterval.Id), cancellationToken);
         if (objective is null)
             return null;
 

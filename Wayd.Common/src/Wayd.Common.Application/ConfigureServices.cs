@@ -2,6 +2,7 @@
 using Mapster;
 using Mapster.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Wayd.Common.Application.Dispatching;
 
 namespace Wayd.Common.Application;
 
@@ -20,6 +21,8 @@ public static class ConfigureServices
             config.AddOpenBehavior(typeof(ValidationBehavior<,>));
             config.AddOpenBehavior(typeof(PerformanceBehavior<,>));
         });
+
+        services.AddScoped<IDispatcher, MediatRDispatcher>();
 
         TypeAdapterConfig.GlobalSettings.Scan(assembly);
         TypeAdapterConfig.GlobalSettings.ScanInheritedTypes(assembly);

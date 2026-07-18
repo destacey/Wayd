@@ -18,7 +18,7 @@ public sealed record GetPlanningIntervalObjectivesQuery : IQuery<IReadOnlyList<P
     public Guid? TeamId { get; set; }
 }
 
-internal sealed class GetPlanningIntervalObjectivesQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetPlanningIntervalObjectivesQueryHandler> logger, IDispatcher dispatcher, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetPlanningIntervalObjectivesQuery, IReadOnlyList<PlanningIntervalObjectiveListDto>>
+public sealed class GetPlanningIntervalObjectivesQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetPlanningIntervalObjectivesQueryHandler> logger, IDispatcher dispatcher, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetPlanningIntervalObjectivesQuery, IReadOnlyList<PlanningIntervalObjectiveListDto>>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ILogger<GetPlanningIntervalObjectivesQueryHandler> _logger = logger;

@@ -19,7 +19,7 @@ public sealed class DeletePersonalAccessTokenCommandValidator : CustomValidator<
     }
 }
 
-internal sealed class DeletePersonalAccessTokenCommandHandler(
+public sealed class DeletePersonalAccessTokenCommandHandler(
     IWaydDbContext dbContext,
     ICurrentUser currentUser,
     ILogger<DeletePersonalAccessTokenCommandHandler> logger) : ICommandHandler<DeletePersonalAccessTokenCommand>

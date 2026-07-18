@@ -4,7 +4,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 
 public sealed record GetSimpleProjectsQuery() : IQuery<List<ISimpleProject>>;
 
-internal sealed class GetSimpleProjectsQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
+public sealed class GetSimpleProjectsQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
     : IQueryHandler<GetSimpleProjectsQuery, List<ISimpleProject>>
 {
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;

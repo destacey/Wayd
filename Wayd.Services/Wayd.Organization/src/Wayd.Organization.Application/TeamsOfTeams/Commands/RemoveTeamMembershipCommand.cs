@@ -16,7 +16,7 @@ public sealed class RemoveTeamMembershipCommandValidator : CustomValidator<Remov
     }
 }
 
-internal sealed class RemoveTeamMembershipCommandHandler : ICommandHandler<RemoveTeamMembershipCommand>
+public sealed class RemoveTeamMembershipCommandHandler : ICommandHandler<RemoveTeamMembershipCommand>
 {
     private const string RequestName = nameof(RemoveTeamMembershipCommand);
 

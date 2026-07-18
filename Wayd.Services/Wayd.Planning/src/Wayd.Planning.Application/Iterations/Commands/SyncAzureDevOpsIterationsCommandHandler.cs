@@ -12,7 +12,7 @@ using Wayd.Planning.Domain.Models.Iterations;
 
 namespace Wayd.Planning.Application.Iterations.Commands;
 
-internal sealed class SyncAzureDevOpsIterationsCommandHandler(IPlanningDbContext planningDbContext, ILogger<SyncAzureDevOpsIterationsCommandHandler> logger, IDateTimeProvider dateTimeProvider, IEventPublisher eventPublisher)
+public sealed class SyncAzureDevOpsIterationsCommandHandler(IPlanningDbContext planningDbContext, ILogger<SyncAzureDevOpsIterationsCommandHandler> logger, IDateTimeProvider dateTimeProvider, IEventPublisher eventPublisher)
  : ICommandHandler<SyncAzureDevOpsIterationsCommand>
 {
     private const string AppRequestName = nameof(SyncAzureDevOpsIterationsCommand);

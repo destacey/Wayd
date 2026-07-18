@@ -12,7 +12,7 @@ public sealed class ActivateScoringModelCommandValidator : AbstractValidator<Act
     }
 }
 
-internal sealed class ActivateScoringModelCommandHandler(
+public sealed class ActivateScoringModelCommandHandler(
     IWaydDbContext waydDbContext,
     ILogger<ActivateScoringModelCommandHandler> logger)
     : ICommandHandler<ActivateScoringModelCommand>

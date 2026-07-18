@@ -1,34 +1,30 @@
-﻿using Wayd.Common.Application.Events;
-using Wayd.Common.Domain.Enums;
+﻿using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events.StrategicManagement;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
 namespace Wayd.ProjectPortfolioManagement.Application.StrategicThemes.EventHandlers;
 
-internal sealed class StrategicThemeChangedHandler(IProjectPortfolioManagementDbContext ppmContext, ILogger<StrategicThemeChangedHandler> logger) :
-    IEventNotificationHandler<StrategicThemeCreatedEvent>,
-    IEventNotificationHandler<StrategicThemeUpdatedEvent>,
-    IEventNotificationHandler<StrategicThemeDeletedEvent>
+public sealed class StrategicThemeChangedHandler(IProjectPortfolioManagementDbContext ppmContext, ILogger<StrategicThemeChangedHandler> logger)
 {
     private readonly IProjectPortfolioManagementDbContext _ppmContext = ppmContext;
     private readonly ILogger<StrategicThemeChangedHandler> _logger = logger;
 
-    public async Task Handle(EventNotification<StrategicThemeCreatedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(StrategicThemeCreatedEvent @event, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Handling PPM {SystemActionType} for a new Strategic Theme {StrategicThemeId}.", SystemActionType.ServiceDataReplication, notification.Event.Id);
-        await CreateStrategicTheme(notification.Event, cancellationToken);
+        _logger.LogDebug("Handling PPM {SystemActionType} for a new Strategic Theme {StrategicThemeId}.", SystemActionType.ServiceDataReplication, @event.Id);
+        await CreateStrategicTheme(@event, cancellationToken);
     }
 
-    public async Task Handle(EventNotification<StrategicThemeUpdatedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(StrategicThemeUpdatedEvent @event, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Handling PPM {SystemActionType} for an updated Strategic Theme {StrategicThemeId}.", SystemActionType.ServiceDataReplication, notification.Event.Id);
-        await UpdateStrategicTheme(notification.Event, cancellationToken);
+        _logger.LogDebug("Handling PPM {SystemActionType} for an updated Strategic Theme {StrategicThemeId}.", SystemActionType.ServiceDataReplication, @event.Id);
+        await UpdateStrategicTheme(@event, cancellationToken);
     }
 
-    public async Task Handle(EventNotification<StrategicThemeDeletedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(StrategicThemeDeletedEvent @event, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Handling PPM {SystemActionType} for a deleted Strategic Theme {StrategicThemeId}.", SystemActionType.ServiceDataReplication, notification.Event.Id);
-        await DeleteStrategicTheme(notification.Event, cancellationToken);
+        _logger.LogDebug("Handling PPM {SystemActionType} for a deleted Strategic Theme {StrategicThemeId}.", SystemActionType.ServiceDataReplication, @event.Id);
+        await DeleteStrategicTheme(@event, cancellationToken);
     }
 
     private async Task CreateStrategicTheme(StrategicThemeCreatedEvent createdEvent, CancellationToken cancellationToken)

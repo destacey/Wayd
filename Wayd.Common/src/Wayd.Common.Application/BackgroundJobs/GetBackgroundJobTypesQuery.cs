@@ -2,7 +2,7 @@
 
 public sealed record GetBackgroundJobTypesQuery : IQuery<IReadOnlyList<BackgroundJobTypeDto>> { }
 
-internal sealed class GetBackgroundJobTypesQueryHandler : IQueryHandler<GetBackgroundJobTypesQuery, IReadOnlyList<BackgroundJobTypeDto>>
+public sealed class GetBackgroundJobTypesQueryHandler : IQueryHandler<GetBackgroundJobTypesQuery, IReadOnlyList<BackgroundJobTypeDto>>
 {
     public Task<IReadOnlyList<BackgroundJobTypeDto>> Handle(GetBackgroundJobTypesQuery request, CancellationToken cancellationToken)
     {

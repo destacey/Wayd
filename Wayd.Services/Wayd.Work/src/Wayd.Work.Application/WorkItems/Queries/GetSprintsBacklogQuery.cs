@@ -8,7 +8,7 @@ namespace Wayd.Work.Application.WorkItems.Queries;
 /// </summary>
 public sealed record GetSprintsBacklogQuery(IEnumerable<Guid> SprintIds) : IQuery<List<SprintBacklogItemDto>>;
 
-internal sealed class GetSprintsBacklogQueryHandler(
+public sealed class GetSprintsBacklogQueryHandler(
     IWorkDbContext workDbContext,
     ILogger<GetSprintsBacklogQueryHandler> logger)
     : IQueryHandler<GetSprintsBacklogQuery, List<SprintBacklogItemDto>>

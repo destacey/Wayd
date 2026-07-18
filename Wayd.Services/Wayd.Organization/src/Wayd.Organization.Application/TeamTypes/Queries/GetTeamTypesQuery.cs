@@ -5,7 +5,7 @@ namespace Wayd.Organization.Application.TeamTypes.Queries;
 
 public sealed record GetTeamTypesQuery : IQuery<IReadOnlyList<TeamTypeDto>> { }
 
-internal sealed class GetTeamTypesQueryHandler : IQueryHandler<GetTeamTypesQuery, IReadOnlyList<TeamTypeDto>>
+public sealed class GetTeamTypesQueryHandler : IQueryHandler<GetTeamTypesQuery, IReadOnlyList<TeamTypeDto>>
 {
     public Task<IReadOnlyList<TeamTypeDto>> Handle(GetTeamTypesQuery request, CancellationToken cancellationToken)
     {

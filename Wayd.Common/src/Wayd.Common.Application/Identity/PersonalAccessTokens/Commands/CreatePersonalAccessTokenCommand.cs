@@ -62,7 +62,7 @@ public sealed class CreatePersonalAccessTokenCommandValidator : CustomValidator<
     }
 }
 
-internal sealed class CreatePersonalAccessTokenCommandHandler(
+public sealed class CreatePersonalAccessTokenCommandHandler(
     IWaydDbContext dbContext,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,

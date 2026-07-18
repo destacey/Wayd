@@ -4,7 +4,7 @@ namespace Wayd.AppIntegration.Application.Connections.Commands.AzureDevOps;
 
 public sealed record DeleteAzureDevOpsConnectionCommand(Guid Id) : ICommand;
 
-internal sealed class DeleteAzureDevOpsConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, ILogger<DeleteAzureDevOpsConnectionCommandHandler> logger) : ICommandHandler<DeleteAzureDevOpsConnectionCommand>
+public sealed class DeleteAzureDevOpsConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, ILogger<DeleteAzureDevOpsConnectionCommandHandler> logger) : ICommandHandler<DeleteAzureDevOpsConnectionCommand>
 {
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
     private readonly ILogger<DeleteAzureDevOpsConnectionCommandHandler> _logger = logger;

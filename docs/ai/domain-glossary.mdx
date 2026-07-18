@@ -157,8 +157,8 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Aggregate Root** | The primary entity ensuring consistency in a cluster of related objects. Feature folders organized by aggregate root. |
 | **Value Object** | An immutable object defined by attributes, not identity (e.g., WorkItemKey, ProjectKey, FlexibleDateRange, Progress). |
 | **Domain Event** | A notification that something significant happened in a domain, published for cross-context communication (e.g., TeamCreatedEvent, StrategicThemeUpdatedEvent). |
-| **Command** | A request to change state (write operation). Handled via MediatR. Returns `Result&lt;T&gt;`. |
-| **Query** | A request to read state (read operation). Handled via MediatR. Returns `Result&lt;T&gt;`. |
+| **Command** | A request to change state (write operation). Dispatched through `IDispatcher` (Wolverine) to its handler. Returns `Result&lt;T&gt;`. |
+| **Query** | A request to read state (read operation). Dispatched through `IDispatcher` (Wolverine) to its handler. Returns `Result&lt;T&gt;`. |
 | **Result** | A functional return type (`Result&lt;T&gt;`) from CSharpFunctionalExtensions. Explicitly represents success or failure without exceptions. |
 | **Work Process Scheme** | Links a work type to a workflow within a work process. |
 | **Workflow Scheme** | Maps a work status to a position (order) and category within a workflow. |

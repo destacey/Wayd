@@ -4,7 +4,7 @@ namespace Wayd.Planning.Application.Iterations.Queries;
 
 public sealed record GetSprintPlanningIntervalsQuery(int SprintKey) : IQuery<IReadOnlyList<NavigationDto>>;
 
-internal sealed class GetSprintPlanningIntervalsQueryHandler(IPlanningDbContext planningDbContext)
+public sealed class GetSprintPlanningIntervalsQueryHandler(IPlanningDbContext planningDbContext)
     : IQueryHandler<GetSprintPlanningIntervalsQuery, IReadOnlyList<NavigationDto>>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;

@@ -19,7 +19,7 @@ namespace Wayd.Infrastructure.Auth.Oidc.Handlers;
 /// latency, short enough that the operator sees a clear failure instead of
 /// staring at a spinner.
 /// </remarks>
-internal sealed class TestOidcProviderDiscoveryCommandHandler(
+public sealed class TestOidcProviderDiscoveryCommandHandler(
     IWaydDbContext dbContext,
     IOidcConfigurationManagerFactory configManagerFactory,
     ILogger<TestOidcProviderDiscoveryCommandHandler> logger)

@@ -4,7 +4,7 @@ namespace Wayd.Work.Application.WorkStatusCategories.Queries;
 
 public sealed record GetWorkStatusCategoriesQuery : IQuery<IReadOnlyList<WorkStatusCategoryListDto>> { }
 
-internal sealed class GetWorkStatusCategoriesQueryHandler : IQueryHandler<GetWorkStatusCategoriesQuery, IReadOnlyList<WorkStatusCategoryListDto>>
+public sealed class GetWorkStatusCategoriesQueryHandler : IQueryHandler<GetWorkStatusCategoriesQuery, IReadOnlyList<WorkStatusCategoryListDto>>
 {
     public Task<IReadOnlyList<WorkStatusCategoryListDto>> Handle(GetWorkStatusCategoriesQuery request, CancellationToken cancellationToken)
     {

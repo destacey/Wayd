@@ -70,7 +70,7 @@ public sealed class MapPlanningIntervalSprintsCommandValidator : CustomValidator
     }
 }
 
-internal sealed class MapPlanningIntervalSprintsCommandHandler(
+public sealed class MapPlanningIntervalSprintsCommandHandler(
 IPlanningDbContext planningDbContext,
 ILogger<MapPlanningIntervalSprintsCommandHandler> logger) : ICommandHandler<MapPlanningIntervalSprintsCommand>
 {

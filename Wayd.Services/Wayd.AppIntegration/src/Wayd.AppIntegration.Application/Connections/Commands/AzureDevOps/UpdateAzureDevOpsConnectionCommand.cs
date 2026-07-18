@@ -44,7 +44,7 @@ public sealed class UpdateAzureDevOpsConnectionCommandValidator : CustomValidato
     }
 }
 
-internal sealed class UpdateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, IDateTimeProvider dateTimeProvider, ILogger<UpdateAzureDevOpsConnectionCommandHandler> logger, IAzureDevOpsService azureDevOpsService) : ICommandHandler<UpdateAzureDevOpsConnectionCommand, Guid>
+public sealed class UpdateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, IDateTimeProvider dateTimeProvider, ILogger<UpdateAzureDevOpsConnectionCommandHandler> logger, IAzureDevOpsService azureDevOpsService) : ICommandHandler<UpdateAzureDevOpsConnectionCommand, Guid>
 {
     private const string AppRequestName = nameof(UpdateAzureDevOpsConnectionCommandHandler);
 

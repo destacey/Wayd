@@ -115,6 +115,7 @@
     </Project>
   </Folder>
   <Folder Name="/Wayd.Web/tests/">
+    <Project Path="Wayd.Web/tests/Wayd.Web.Api.IntegrationTests/Wayd.Web.Api.IntegrationTests.csproj" />
     <Project Path="Wayd.Web/tests/Wayd.Web.Api.Tests/Wayd.Web.Api.Tests.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">

@@ -39,7 +39,7 @@ public sealed class CreateTeamOfTeamsCommandValidator : CustomValidator<CreateTe
     }
 }
 
-internal sealed class CreateTeamOfTeamsCommandHandler : ICommandHandler<CreateTeamOfTeamsCommand, ObjectIdAndKey>
+public sealed class CreateTeamOfTeamsCommandHandler : ICommandHandler<CreateTeamOfTeamsCommand, ObjectIdAndKey>
 {
     private const string RequestName = nameof(CreateTeamOfTeamsCommand);
 

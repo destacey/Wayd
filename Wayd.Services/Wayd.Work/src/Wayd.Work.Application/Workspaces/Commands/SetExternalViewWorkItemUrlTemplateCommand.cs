@@ -4,7 +4,7 @@ namespace Wayd.Work.Application.Workspaces.Commands;
 
 public sealed record SetExternalViewWorkItemUrlTemplateCommand(Guid WorkspaceId, string? ExternalViewWorkItemUrlTemplate) : ICommand;
 
-internal sealed class SetExternalViewWorkItemUrlTemplateCommandHandler(IWorkDbContext workDbContext, ILogger<SetExternalViewWorkItemUrlTemplateCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<SetExternalViewWorkItemUrlTemplateCommand>
+public sealed class SetExternalViewWorkItemUrlTemplateCommandHandler(IWorkDbContext workDbContext, ILogger<SetExternalViewWorkItemUrlTemplateCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<SetExternalViewWorkItemUrlTemplateCommand>
 {
     private const string AppRequestName = nameof(SetExternalViewWorkItemUrlTemplateCommand);
 

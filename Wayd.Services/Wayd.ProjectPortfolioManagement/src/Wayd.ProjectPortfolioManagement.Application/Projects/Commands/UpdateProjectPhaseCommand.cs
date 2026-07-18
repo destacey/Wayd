@@ -27,7 +27,7 @@ public sealed class UpdateProjectPhaseCommandValidator : CustomValidator<UpdateP
     }
 }
 
-internal sealed class UpdateProjectPhaseCommandHandler(
+public sealed class UpdateProjectPhaseCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ILogger<UpdateProjectPhaseCommandHandler> logger)
     : ICommandHandler<UpdateProjectPhaseCommand>

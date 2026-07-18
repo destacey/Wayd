@@ -5,7 +5,7 @@ namespace Wayd.StrategicManagement.Application.Visions.Queries;
 
 public sealed record GetVisionStatesQuery : IQuery<List<VisionStateDto>> { }
 
-internal sealed class GetVisionStatesQueryHandler : IQueryHandler<GetVisionStatesQuery, List<VisionStateDto>>
+public sealed class GetVisionStatesQueryHandler : IQueryHandler<GetVisionStatesQuery, List<VisionStateDto>>
 {
     public Task<List<VisionStateDto>> Handle(GetVisionStatesQuery request, CancellationToken cancellationToken)
     {

@@ -11,7 +11,7 @@ public sealed class CompleteStrategicInitiativeCommandValidator : AbstractValida
     }
 }
 
-internal sealed class CompleteStrategicInitiativeCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<CompleteStrategicInitiativeCommandHandler> logger) : ICommandHandler<CompleteStrategicInitiativeCommand>
+public sealed class CompleteStrategicInitiativeCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<CompleteStrategicInitiativeCommandHandler> logger) : ICommandHandler<CompleteStrategicInitiativeCommand>
 {
     private const string AppRequestName = nameof(CompleteStrategicInitiativeCommand);
 

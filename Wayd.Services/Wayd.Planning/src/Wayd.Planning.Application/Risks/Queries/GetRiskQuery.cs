@@ -14,7 +14,7 @@ public sealed record GetRiskQuery : IQuery<RiskDetailsDto?>
     public Expression<Func<Risk, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetRiskQueryHandler : IQueryHandler<GetRiskQuery, RiskDetailsDto?>
+public sealed class GetRiskQueryHandler : IQueryHandler<GetRiskQuery, RiskDetailsDto?>
 {
     private readonly IPlanningDbContext _planningDbContext;
     private readonly ILogger<GetRiskQueryHandler> _logger;

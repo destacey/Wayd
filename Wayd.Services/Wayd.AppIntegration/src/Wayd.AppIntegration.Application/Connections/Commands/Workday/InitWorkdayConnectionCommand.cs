@@ -12,7 +12,7 @@ namespace Wayd.AppIntegration.Application.Connections.Commands.Workday;
 /// </summary>
 public sealed record InitWorkdayConnectionCommand(Guid Id) : ICommand<ConnectionInitResult>;
 
-internal sealed class InitWorkdayConnectionCommandHandler(
+public sealed class InitWorkdayConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
     IDateTimeProvider dateTimeProvider,
     IWorkdayConnectionInitializer initializer,

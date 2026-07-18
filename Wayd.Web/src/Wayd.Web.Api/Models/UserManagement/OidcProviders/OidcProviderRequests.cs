@@ -63,8 +63,8 @@ public static class OidcProviderRequestMessages
 
 /// <summary>
 /// Structural validation for the create request — guarantees a well-formed shape
-/// at the API boundary. The command validator in the MediatR pipeline still owns
-/// the checks that need services (default-role existence, name uniqueness).
+/// at the API boundary. The command validator in the Wolverine handler pipeline still
+/// owns the checks that need services (default-role existence, name uniqueness).
 /// </summary>
 /// <remarks>
 /// The registration-policy invariant is expressed with model-level <c>Must</c>

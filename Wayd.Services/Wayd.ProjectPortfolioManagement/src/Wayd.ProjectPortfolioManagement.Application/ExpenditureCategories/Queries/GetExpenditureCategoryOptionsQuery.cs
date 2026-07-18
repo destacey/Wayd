@@ -5,7 +5,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.ExpenditureCategories.Quer
 
 public sealed record GetExpenditureCategoryOptionsQuery(bool? IncludeArchived) : IQuery<List<ExpenditureCategoryOptionDto>>;
 
-internal sealed class GetExpenditureCategoryOptionsQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
+public sealed class GetExpenditureCategoryOptionsQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
     : IQueryHandler<GetExpenditureCategoryOptionsQuery, List<ExpenditureCategoryOptionDto>>
 {
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;

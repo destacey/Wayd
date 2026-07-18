@@ -4,7 +4,7 @@ namespace Wayd.Organization.Application.Teams.Queries;
 
 public sealed record GetSimpleTeamsQuery() : IQuery<List<ISimpleTeam>>;
 
-internal sealed class GetSimpleTeamsQueryHandler(IOrganizationDbContext organizationDbContext)
+public sealed class GetSimpleTeamsQueryHandler(IOrganizationDbContext organizationDbContext)
     : IQueryHandler<GetSimpleTeamsQuery, List<ISimpleTeam>>
 {
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;

@@ -5,7 +5,7 @@ namespace Wayd.StrategicManagement.Application.StrategicThemes.Queries;
 
 public sealed record GetStrategicThemeStatesQuery : IQuery<List<StrategicThemeStateDto>> { }
 
-internal sealed class GetStrategicThemeStatesQueryHandler : IQueryHandler<GetStrategicThemeStatesQuery, List<StrategicThemeStateDto>>
+public sealed class GetStrategicThemeStatesQueryHandler : IQueryHandler<GetStrategicThemeStatesQuery, List<StrategicThemeStateDto>>
 {
     public Task<List<StrategicThemeStateDto>> Handle(GetStrategicThemeStatesQuery request, CancellationToken cancellationToken)
     {

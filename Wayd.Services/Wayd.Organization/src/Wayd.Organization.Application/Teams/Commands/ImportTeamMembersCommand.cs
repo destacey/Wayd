@@ -35,7 +35,7 @@ public sealed class ImportTeamMembersCommandValidator : CustomValidator<ImportTe
     }
 }
 
-internal sealed class ImportTeamMembersCommandHandler(
+public sealed class ImportTeamMembersCommandHandler(
     IOrganizationDbContext organizationDbContext,
     ILogger<ImportTeamMembersCommandHandler> logger) : ICommandHandler<ImportTeamMembersCommand>
 {

@@ -7,7 +7,7 @@ namespace Wayd.Common.Application.Scoring.ScoringModels.Queries;
 
 public sealed record GetScoringModelsQuery(ScoringModelState? StateFilter = null) : IQuery<List<ScoringModelListDto>>;
 
-internal sealed class GetScoringModelsQueryHandler(IWaydDbContext waydDbContext)
+public sealed class GetScoringModelsQueryHandler(IWaydDbContext waydDbContext)
     : IQueryHandler<GetScoringModelsQuery, List<ScoringModelListDto>>
 {
     private readonly IWaydDbContext _waydDbContext = waydDbContext;

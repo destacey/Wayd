@@ -5,7 +5,7 @@ namespace Wayd.Common.Application.Employees.Commands;
 
 public sealed record RemoveInvalidEmployeeCommand(Guid Id) : ICommand<int>;
 
-internal sealed class RemoveInvalidEmployeeCommandHandler : ICommandHandler<RemoveInvalidEmployeeCommand, int>
+public sealed class RemoveInvalidEmployeeCommandHandler : ICommandHandler<RemoveInvalidEmployeeCommand, int>
 {
     private readonly IWaydDbContext _waydDbContext;
     private readonly IDateTimeProvider _dateTimeProvider;

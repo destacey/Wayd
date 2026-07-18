@@ -16,7 +16,7 @@ public sealed record GetEmployeeQuery : IQuery<EmployeeDetailsDto?>
     public Expression<Func<Employee, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetEmployeeQueryHandler(
+public sealed class GetEmployeeQueryHandler(
     IWaydDbContext waydDbContext)
     : IQueryHandler<GetEmployeeQuery, EmployeeDetailsDto?>
 {

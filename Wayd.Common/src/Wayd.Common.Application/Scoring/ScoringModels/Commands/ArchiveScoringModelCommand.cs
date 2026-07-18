@@ -12,7 +12,7 @@ public sealed class ArchiveScoringModelCommandValidator : AbstractValidator<Arch
     }
 }
 
-internal sealed class ArchiveScoringModelCommandHandler(
+public sealed class ArchiveScoringModelCommandHandler(
     IWaydDbContext waydDbContext,
     ILogger<ArchiveScoringModelCommandHandler> logger)
     : ICommandHandler<ArchiveScoringModelCommand>

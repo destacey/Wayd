@@ -52,7 +52,7 @@ public sealed class UpdateRoadmapActivityPlacementCommandValidator : CustomValid
     }
 }
 
-internal sealed class UpdateRoadmapActivityPlacementCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<UpdateRoadmapActivityPlacementCommandHandler> logger) : ICommandHandler<UpdateRoadmapActivityPlacementCommand>
+public sealed class UpdateRoadmapActivityPlacementCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<UpdateRoadmapActivityPlacementCommandHandler> logger) : ICommandHandler<UpdateRoadmapActivityPlacementCommand>
 {
     private const string AppRequestName = nameof(UpdateRoadmapActivityPlacementCommand);
 

@@ -20,7 +20,7 @@ public sealed record GetPlanningIntervalIterationSprintsQuery : IQuery<List<Plan
     public Guid? IterationId { get; }
 }
 
-internal sealed class GetPlanningIntervalIterationSprintsQueryHandler(IPlanningDbContext planningDbContext)
+public sealed class GetPlanningIntervalIterationSprintsQueryHandler(IPlanningDbContext planningDbContext)
     : IQueryHandler<GetPlanningIntervalIterationSprintsQuery, List<PlanningIntervalIterationSprintsDto>?>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;

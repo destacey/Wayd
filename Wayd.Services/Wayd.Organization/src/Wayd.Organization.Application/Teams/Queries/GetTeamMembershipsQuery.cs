@@ -18,7 +18,7 @@ public sealed record GetTeamMembershipsQuery : IQuery<IReadOnlyList<TeamMembersh
     public int? TeamKey { get; }
 }
 
-internal sealed class GetTeamMembershipsQueryHandler : IQueryHandler<GetTeamMembershipsQuery, IReadOnlyList<TeamMembershipDto>>
+public sealed class GetTeamMembershipsQueryHandler : IQueryHandler<GetTeamMembershipsQuery, IReadOnlyList<TeamMembershipDto>>
 {
     private readonly IOrganizationDbContext _organizationDbContext;
     private readonly ILogger<GetTeamMembershipsQueryHandler> _logger;

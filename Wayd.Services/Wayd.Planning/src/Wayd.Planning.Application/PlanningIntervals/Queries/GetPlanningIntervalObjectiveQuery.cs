@@ -21,7 +21,7 @@ public sealed record GetPlanningIntervalObjectiveQuery : IQuery<PlanningInterval
     public IdOrKey ObjectiveIdOrKey { get; }
 }
 
-internal sealed class GetPlanningIntervalObjectiveQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetPlanningIntervalObjectiveQueryHandler> logger, IDispatcher dispatcher, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetPlanningIntervalObjectiveQuery, PlanningIntervalObjectiveDetailsDto?>
+public sealed class GetPlanningIntervalObjectiveQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetPlanningIntervalObjectiveQueryHandler> logger, IDispatcher dispatcher, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetPlanningIntervalObjectiveQuery, PlanningIntervalObjectiveDetailsDto?>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ILogger<GetPlanningIntervalObjectiveQueryHandler> _logger = logger;

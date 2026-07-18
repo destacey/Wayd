@@ -28,7 +28,7 @@ public sealed class UpdateWorkStatusCommandValidator : CustomValidator<UpdateWor
     }
 }
 
-internal sealed class UpdateWorkStatusCommandHandler : ICommandHandler<UpdateWorkStatusCommand, int>
+public sealed class UpdateWorkStatusCommandHandler : ICommandHandler<UpdateWorkStatusCommand, int>
 {
     private readonly IWorkDbContext _workDbContext;
     private readonly IDateTimeProvider _dateTimeProvider;

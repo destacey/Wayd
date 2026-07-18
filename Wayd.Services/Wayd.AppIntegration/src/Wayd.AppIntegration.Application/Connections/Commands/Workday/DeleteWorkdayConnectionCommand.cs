@@ -4,7 +4,7 @@ namespace Wayd.AppIntegration.Application.Connections.Commands.Workday;
 
 public sealed record DeleteWorkdayConnectionCommand(Guid Id) : ICommand;
 
-internal sealed class DeleteWorkdayConnectionCommandHandler : ICommandHandler<DeleteWorkdayConnectionCommand>
+public sealed class DeleteWorkdayConnectionCommandHandler : ICommandHandler<DeleteWorkdayConnectionCommand>
 {
     private readonly IAppIntegrationDbContext _appIntegrationDbContext;
     private readonly ILogger<DeleteWorkdayConnectionCommandHandler> _logger;

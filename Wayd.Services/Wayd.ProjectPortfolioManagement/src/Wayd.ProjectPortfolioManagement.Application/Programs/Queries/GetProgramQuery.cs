@@ -15,7 +15,7 @@ public sealed record GetProgramQuery : IQuery<ProgramDetailsDto?>
     public Expression<Func<Program, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetProgramQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
+public sealed class GetProgramQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
     : IQueryHandler<GetProgramQuery, ProgramDetailsDto?>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;

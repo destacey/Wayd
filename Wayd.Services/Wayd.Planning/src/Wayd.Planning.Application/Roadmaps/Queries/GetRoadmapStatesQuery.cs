@@ -5,7 +5,7 @@ namespace Wayd.Planning.Application.Roadmaps.Queries;
 
 public sealed record GetRoadmapStatesQuery : IQuery<List<RoadmapStateDto>> { }
 
-internal sealed class GetRoadmapStatesQueryHandler : IQueryHandler<GetRoadmapStatesQuery, List<RoadmapStateDto>>
+public sealed class GetRoadmapStatesQueryHandler : IQueryHandler<GetRoadmapStatesQuery, List<RoadmapStateDto>>
 {
     public Task<List<RoadmapStateDto>> Handle(GetRoadmapStatesQuery request, CancellationToken cancellationToken)
     {

@@ -5,7 +5,7 @@ using Wayd.Work.Application.WorkTypes.Dtos;
 
 namespace Wayd.Work.Application.Workspaces.Queries;
 
-internal sealed class GetWorkspaceWorkTypesQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkspaceWorkTypesQueryHandler> logger) : IQueryHandler<GetWorkspaceWorkTypesQuery, Result<IReadOnlyList<IWorkTypeDto>>>
+public sealed class GetWorkspaceWorkTypesQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkspaceWorkTypesQueryHandler> logger) : IQueryHandler<GetWorkspaceWorkTypesQuery, Result<IReadOnlyList<IWorkTypeDto>>>
 {
     private const string AppRequestName = nameof(GetWorkspaceWorkTypesQuery);
 

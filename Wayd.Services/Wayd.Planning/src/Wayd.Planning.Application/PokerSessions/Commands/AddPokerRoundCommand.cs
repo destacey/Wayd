@@ -16,7 +16,7 @@ public sealed class AddPokerRoundCommandValidator : CustomValidator<AddPokerRoun
     }
 }
 
-internal sealed class AddPokerRoundCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionNotifier notifier, ILogger<AddPokerRoundCommandHandler> logger) : ICommandHandler<AddPokerRoundCommand, PokerRoundDto>
+public sealed class AddPokerRoundCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionNotifier notifier, ILogger<AddPokerRoundCommandHandler> logger) : ICommandHandler<AddPokerRoundCommand, PokerRoundDto>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IPokerSessionNotifier _notifier = notifier;

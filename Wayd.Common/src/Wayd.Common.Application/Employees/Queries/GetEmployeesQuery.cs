@@ -6,7 +6,7 @@ namespace Wayd.Common.Application.Employees.Queries;
 
 public sealed record GetEmployeesQuery(bool IncludeInactive = false) : IQuery<IReadOnlyList<EmployeeListDto>>;
 
-internal sealed class GetEmployeesQueryHandler : IQueryHandler<GetEmployeesQuery, IReadOnlyList<EmployeeListDto>>
+public sealed class GetEmployeesQueryHandler : IQueryHandler<GetEmployeesQuery, IReadOnlyList<EmployeeListDto>>
 {
     private readonly IWaydDbContext _waydDbContext;
 

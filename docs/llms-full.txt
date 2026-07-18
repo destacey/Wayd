@@ -405,8 +405,8 @@ Syncs employees/users from Azure AD into Organization domain.
 
 ## Architecture Patterns
 
-### CQRS with MediatR
-All operations are commands (writes) or queries (reads) dispatched through MediatR. Controllers are thin.
+### CQRS with Wolverine
+All operations are commands (writes) or queries (reads) dispatched through `IDispatcher` (backed by Wolverine). Controllers are thin. Handlers must be public.
 
 ### Result Pattern
 Handlers return Result<T> from CSharpFunctionalExtensions. No exceptions for business logic.

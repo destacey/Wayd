@@ -96,7 +96,7 @@ public sealed class CreateOidcProviderCommandValidator : CustomValidator<CreateO
     }
 }
 
-internal sealed class CreateOidcProviderCommandHandler(
+public sealed class CreateOidcProviderCommandHandler(
     IWaydDbContext dbContext,
     IDateTimeProvider dateTimeProvider,
     IOidcProviderRegistry registry,

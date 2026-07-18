@@ -19,7 +19,7 @@ public sealed class RevokePersonalAccessTokenCommandValidator : CustomValidator<
     }
 }
 
-internal sealed class RevokePersonalAccessTokenCommandHandler(
+public sealed class RevokePersonalAccessTokenCommandHandler(
     IWaydDbContext dbContext,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,

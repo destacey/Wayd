@@ -5,7 +5,7 @@ namespace Wayd.Planning.Application.Iterations.Queries;
 
 public sealed record GetSprintsQuery(Guid? TeamId = null) : IQuery<List<SprintListDto>>;
 
-internal sealed class GetSprintsQueryHandler(IPlanningDbContext planningDbContext)
+public sealed class GetSprintsQueryHandler(IPlanningDbContext planningDbContext)
     : IQueryHandler<GetSprintsQuery, List<SprintListDto>>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;

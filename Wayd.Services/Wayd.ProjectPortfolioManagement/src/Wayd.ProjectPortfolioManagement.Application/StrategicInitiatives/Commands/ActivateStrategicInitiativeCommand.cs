@@ -11,7 +11,7 @@ public sealed class ActivateStrategicInitiativeCommandValidator : AbstractValida
     }
 }
 
-internal sealed class ActivateStrategicInitiativeCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<ActivateStrategicInitiativeCommandHandler> logger) : ICommandHandler<ActivateStrategicInitiativeCommand>
+public sealed class ActivateStrategicInitiativeCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<ActivateStrategicInitiativeCommandHandler> logger) : ICommandHandler<ActivateStrategicInitiativeCommand>
 {
     private const string AppRequestName = nameof(ActivateStrategicInitiativeCommand);
 

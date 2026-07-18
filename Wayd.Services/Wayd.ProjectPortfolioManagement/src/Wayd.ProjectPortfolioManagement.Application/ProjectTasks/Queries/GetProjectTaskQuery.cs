@@ -15,7 +15,7 @@ public sealed record GetProjectTaskQuery : IQuery<ProjectTaskDto?>
     public Expression<Func<ProjectTask, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetProjectTaskQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
+public sealed class GetProjectTaskQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
     : IQueryHandler<GetProjectTaskQuery, ProjectTaskDto?>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;

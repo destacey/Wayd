@@ -3,7 +3,7 @@ using Wayd.Goals.Application.Persistence;
 
 namespace Wayd.Goals.Application.Objectives.Commands;
 
-internal sealed class UpdateObjectivesOrderCommandHandler(IGoalsDbContext goalsDbContext, ILogger<UpdateObjectivesOrderCommandHandler> logger) : ICommandHandler<UpdateObjectivesOrderCommand>
+public sealed class UpdateObjectivesOrderCommandHandler(IGoalsDbContext goalsDbContext, ILogger<UpdateObjectivesOrderCommandHandler> logger) : ICommandHandler<UpdateObjectivesOrderCommand>
 {
     private const string AppRequestName = nameof(UpdateObjectivesOrderCommand);
 

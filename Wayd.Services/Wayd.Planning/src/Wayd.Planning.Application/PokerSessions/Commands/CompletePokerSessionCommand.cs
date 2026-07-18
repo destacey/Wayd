@@ -12,7 +12,7 @@ public sealed class CompletePokerSessionCommandValidator : CustomValidator<Compl
     }
 }
 
-internal sealed class CompletePokerSessionCommandHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, IPokerSessionNotifier notifier, ILogger<CompletePokerSessionCommandHandler> logger) : ICommandHandler<CompletePokerSessionCommand>
+public sealed class CompletePokerSessionCommandHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, IPokerSessionNotifier notifier, ILogger<CompletePokerSessionCommandHandler> logger) : ICommandHandler<CompletePokerSessionCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;

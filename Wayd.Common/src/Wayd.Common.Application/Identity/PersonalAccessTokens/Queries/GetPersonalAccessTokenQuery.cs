@@ -17,7 +17,7 @@ public sealed class GetPersonalAccessTokenQueryValidator : CustomValidator<GetPe
     }
 }
 
-internal sealed class GetPersonalAccessTokenQueryHandler(IWaydDbContext dbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetPersonalAccessTokenQuery, Result<PersonalAccessTokenDto>>
+public sealed class GetPersonalAccessTokenQueryHandler(IWaydDbContext dbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetPersonalAccessTokenQuery, Result<PersonalAccessTokenDto>>
 {
     private readonly IWaydDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;

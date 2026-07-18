@@ -24,7 +24,7 @@ public sealed class AddProjectTaskDependencyCommandValidator : CustomValidator<A
     }
 }
 
-internal sealed class AddProjectTaskDependencyCommandHandler(
+public sealed class AddProjectTaskDependencyCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ILogger<AddProjectTaskDependencyCommandHandler> logger)
     : ICommandHandler<AddProjectTaskDependencyCommand>

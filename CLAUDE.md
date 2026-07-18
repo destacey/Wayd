@@ -103,7 +103,7 @@ Architecture tests in `Wayd.ArchitectureTests` enforce these dependency rules.
 
 ### Key Patterns
 
-- **CQRS with MediatR** — All operations are commands/queries. Controllers are thin.
+- **CQRS with Wolverine** — All operations are commands/queries dispatched through `IDispatcher`. Controllers are thin.
 - **Result Pattern** — Handlers return `Result<T>` from CSharpFunctionalExtensions. No exceptions for business logic.
 - **No Repository Pattern** — EF Core DbContext used directly in handlers.
 - **Vertical Slices** — Each service: `{ServiceName}.Domain/` + `{ServiceName}.Application/`
@@ -115,7 +115,7 @@ Architecture tests in `Wayd.ArchitectureTests` enforce these dependency rules.
 
 - **Time handling**: NodaTime (`Instant`, `LocalDate`). Never use `DateTime.UtcNow` — always inject `IDateTimeProvider`.
 - **Async naming**: Do NOT use `Async` suffix for new async methods.
-- **Validation**: FluentValidation, auto-registered with MediatR pipeline.
+- **Validation**: FluentValidation, run by the Wolverine handler pipeline (`WolverineFx.FluentValidation`).
 - **Mapping**: Mapster for DTOs.
 - **Entity configuration**: Fluent API in `IEntityTypeConfiguration<T>` classes. No data annotations.
 - **Package management**: Central Package Management via `Directory.Packages.props`.

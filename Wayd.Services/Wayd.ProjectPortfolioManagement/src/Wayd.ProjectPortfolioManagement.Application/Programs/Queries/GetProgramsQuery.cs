@@ -6,7 +6,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Programs.Queries;
 
 public sealed record GetProgramsQuery(ProgramStatus[]? StatusFilter = null, IdOrKey? PortfolioIdOrKey = null) : IQuery<List<ProgramListDto>?>;
 
-internal sealed class GetProgramsQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
+public sealed class GetProgramsQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
     : IQueryHandler<GetProgramsQuery, List<ProgramListDto>?>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;

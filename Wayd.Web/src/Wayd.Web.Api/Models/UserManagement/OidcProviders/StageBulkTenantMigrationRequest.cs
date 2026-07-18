@@ -16,8 +16,8 @@ public sealed class StageBulkTenantMigrationRequestValidator : CustomValidator<S
     public StageBulkTenantMigrationRequestValidator()
     {
         // Mirrors StageBulkTenantMigrationCommandValidator. The controller calls
-        // IUserService directly (not through MediatR), so duplicating the rules here
-        // produces 422s with field-level errors before reaching the service.
+        // IUserService directly (not through the dispatcher), so duplicating the rules
+        // here produces 422s with field-level errors before reaching the service.
         // Stop after the first failing rule per property so a NotEmpty failure (e.g. a
         // null UserIds list) short-circuits before later predicates dereference it.
         RuleLevelCascadeMode = CascadeMode.Stop;

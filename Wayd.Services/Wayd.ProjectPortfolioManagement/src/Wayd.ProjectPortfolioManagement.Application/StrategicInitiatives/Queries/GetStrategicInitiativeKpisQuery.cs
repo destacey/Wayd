@@ -15,7 +15,7 @@ public sealed record GetStrategicInitiativeKpisQuery : IQuery<List<StrategicInit
     public Expression<Func<StrategicInitiative, bool>> StrategicInitiativeIdOrKeyFilter { get; }
 }
 
-internal sealed class GetStrategicInitiativeKpisQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
+public sealed class GetStrategicInitiativeKpisQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
     : IQueryHandler<GetStrategicInitiativeKpisQuery, List<StrategicInitiativeKpiListDto>?>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = projectPortfolioManagementDbContext;

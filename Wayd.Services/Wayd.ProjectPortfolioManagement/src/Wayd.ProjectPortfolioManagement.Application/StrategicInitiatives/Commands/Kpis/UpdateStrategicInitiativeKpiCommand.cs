@@ -21,7 +21,7 @@ public sealed class UpdateStrategicInitiativeKpiCommandValidator : AbstractValid
     }
 }
 
-internal sealed class UpdateStrategicInitiativeKpiCommandHandler(
+public sealed class UpdateStrategicInitiativeKpiCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<UpdateStrategicInitiativeKpiCommandHandler> logger)
     : ICommandHandler<UpdateStrategicInitiativeKpiCommand>

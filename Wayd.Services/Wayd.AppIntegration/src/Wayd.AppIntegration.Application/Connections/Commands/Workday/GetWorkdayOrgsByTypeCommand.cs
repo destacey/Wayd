@@ -14,7 +14,7 @@ namespace Wayd.AppIntegration.Application.Connections.Commands.Workday;
 // (no DB writes).
 public sealed record GetWorkdayOrgsByTypeCommand(Guid ConnectionId, string OrganizationTypeId) : ICommand<IReadOnlyList<DiscoveredOrg>>;
 
-internal sealed class GetWorkdayOrgsByTypeCommandHandler(
+public sealed class GetWorkdayOrgsByTypeCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
     IWorkdayConnectionInitializer initializer,
     ILogger<GetWorkdayOrgsByTypeCommandHandler> logger) : ICommandHandler<GetWorkdayOrgsByTypeCommand, IReadOnlyList<DiscoveredOrg>>

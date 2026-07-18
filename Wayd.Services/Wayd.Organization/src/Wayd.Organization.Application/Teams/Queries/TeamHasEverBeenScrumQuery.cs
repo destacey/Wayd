@@ -8,7 +8,7 @@ namespace Wayd.Organization.Application.Teams.Queries;
 /// </summary>
 public sealed record TeamHasEverBeenScrumQuery(Guid TeamId) : IQuery<bool?>;
 
-internal sealed class TeamHasEverBeenScrumQueryHandler(IOrganizationDbContext organizationDbContext)
+public sealed class TeamHasEverBeenScrumQueryHandler(IOrganizationDbContext organizationDbContext)
     : IQueryHandler<TeamHasEverBeenScrumQuery, bool?>
 {
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;

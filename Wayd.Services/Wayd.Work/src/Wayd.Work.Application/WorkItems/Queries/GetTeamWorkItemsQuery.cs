@@ -23,7 +23,7 @@ public sealed record GetTeamWorkItemsQuery : IQuery<List<WorkItemListDto>>
     public Instant? DoneTo { get; }
 }
 
-internal sealed class GetTeamWorkItemsQueryHandler(
+public sealed class GetTeamWorkItemsQueryHandler(
     IWorkDbContext workDbContext)
     : IQueryHandler<GetTeamWorkItemsQuery, List<WorkItemListDto>>
 {

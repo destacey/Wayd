@@ -6,7 +6,7 @@ namespace Wayd.AppIntegration.Application.Connections.Queries;
 
 public sealed record GetSyncRunsQuery(Guid ConnectionId, Instant? Since = null) : IQuery<IReadOnlyList<SyncRunListDto>>;
 
-internal sealed class GetSyncRunsQueryHandler(IAppIntegrationDbContext db, IDateTimeProvider clock) : IQueryHandler<GetSyncRunsQuery, IReadOnlyList<SyncRunListDto>>
+public sealed class GetSyncRunsQueryHandler(IAppIntegrationDbContext db, IDateTimeProvider clock) : IQueryHandler<GetSyncRunsQuery, IReadOnlyList<SyncRunListDto>>
 {
     private readonly IAppIntegrationDbContext _db = db;
     private readonly IDateTimeProvider _clock = clock;

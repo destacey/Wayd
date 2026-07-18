@@ -50,7 +50,7 @@ public sealed class UpdateEntraConnectionCommandValidator : CustomValidator<Upda
     }
 }
 
-internal sealed class UpdateEntraConnectionCommandHandler(
+public sealed class UpdateEntraConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
     IDateTimeProvider dateTimeProvider,
     ILogger<UpdateEntraConnectionCommandHandler> logger)

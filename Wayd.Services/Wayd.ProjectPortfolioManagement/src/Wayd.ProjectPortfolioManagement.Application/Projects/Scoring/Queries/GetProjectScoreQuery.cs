@@ -5,7 +5,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Scoring.Queries;
 public sealed record GetProjectScoreQuery(Guid ProjectId, Guid ScoreId)
     : IQuery<ProjectScoreDetailsDto?>;
 
-internal sealed class GetProjectScoreQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
+public sealed class GetProjectScoreQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
     : IQueryHandler<GetProjectScoreQuery, ProjectScoreDetailsDto?>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;

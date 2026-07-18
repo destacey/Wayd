@@ -11,7 +11,7 @@ public sealed class CancelProjectCommandValidator : AbstractValidator<CancelProj
     }
 }
 
-internal sealed class CancelProjectCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<CancelProjectCommandHandler> logger) : ICommandHandler<CancelProjectCommand>
+public sealed class CancelProjectCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<CancelProjectCommandHandler> logger) : ICommandHandler<CancelProjectCommand>
 {
     private const string AppRequestName = nameof(CancelProjectCommand);
 

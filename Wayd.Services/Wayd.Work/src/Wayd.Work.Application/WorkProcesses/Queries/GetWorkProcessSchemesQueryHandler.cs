@@ -5,7 +5,7 @@ using Wayd.Work.Application.WorkProcesses.Dtos;
 
 namespace Wayd.Work.Application.WorkProcesses.Queries;
 
-internal sealed class GetWorkProcessSchemesQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkProcessSchemesQueryHandler> logger) : IQueryHandler<GetWorkProcessSchemesQuery, IReadOnlyList<IWorkProcessSchemeDto>>
+public sealed class GetWorkProcessSchemesQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkProcessSchemesQueryHandler> logger) : IQueryHandler<GetWorkProcessSchemesQuery, IReadOnlyList<IWorkProcessSchemeDto>>
 {
     private const string AppRequestName = nameof(GetWorkProcessSchemesQuery);
 

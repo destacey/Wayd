@@ -28,7 +28,7 @@ public sealed class UpdateEstimationScaleCommandValidator : CustomValidator<Upda
     }
 }
 
-internal sealed class UpdateEstimationScaleCommandHandler(IPlanningDbContext planningDbContext, ILogger<UpdateEstimationScaleCommandHandler> logger) : ICommandHandler<UpdateEstimationScaleCommand>
+public sealed class UpdateEstimationScaleCommandHandler(IPlanningDbContext planningDbContext, ILogger<UpdateEstimationScaleCommandHandler> logger) : ICommandHandler<UpdateEstimationScaleCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ILogger<UpdateEstimationScaleCommandHandler> _logger = logger;

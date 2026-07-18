@@ -17,7 +17,7 @@ public sealed class RemoveStrategicInitiativeKpiMeasurementCommandValidator : Ab
     }
 }
 
-internal sealed class RemoveStrategicInitiativeKpiMeasurementCommandHandler(
+public sealed class RemoveStrategicInitiativeKpiMeasurementCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<RemoveStrategicInitiativeKpiMeasurementCommandHandler> logger)
     : ICommandHandler<RemoveStrategicInitiativeKpiMeasurementCommand>

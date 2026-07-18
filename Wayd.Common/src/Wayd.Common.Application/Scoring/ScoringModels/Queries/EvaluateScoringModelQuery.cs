@@ -25,7 +25,7 @@ public sealed class EvaluateScoringModelQueryValidator : AbstractValidator<Evalu
     }
 }
 
-internal sealed class EvaluateScoringModelQueryHandler(
+public sealed class EvaluateScoringModelQueryHandler(
     IWaydDbContext waydDbContext,
     ILogger<EvaluateScoringModelQueryHandler> logger)
     : IQueryHandler<EvaluateScoringModelQuery, Result<ScoringModelEvaluationDto>>

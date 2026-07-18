@@ -5,7 +5,7 @@ namespace Wayd.Work.Application.WorkItems.Commands;
 
 public sealed record ManageExternalObjectWorkItemsCommand(Guid PlanningIntervalId, Guid ObjectiveId, SystemContext Context, IEnumerable<Guid> WorkItemIds) : ICommand;
 
-internal sealed class ManageExternalObjectWorkItemsCommandHandler(IWorkDbContext workDbContext, ILogger<ManageExternalObjectWorkItemsCommandHandler> logger) : ICommandHandler<ManageExternalObjectWorkItemsCommand>
+public sealed class ManageExternalObjectWorkItemsCommandHandler(IWorkDbContext workDbContext, ILogger<ManageExternalObjectWorkItemsCommandHandler> logger) : ICommandHandler<ManageExternalObjectWorkItemsCommand>
 {
     private const string AppRequestName = nameof(ManageExternalObjectWorkItemsCommand);
 

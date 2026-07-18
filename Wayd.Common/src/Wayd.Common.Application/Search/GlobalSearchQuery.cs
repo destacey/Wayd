@@ -6,7 +6,7 @@ namespace Wayd.Common.Application.Search;
 public sealed record GlobalSearchQuery(string SearchTerm, int MaxResultsPerCategory = 5)
     : IQuery<Result<GlobalSearchResultDto>>;
 
-internal sealed class GlobalSearchQueryHandler(IDispatcher dispatcher, ICurrentUser currentUser, ILogger<GlobalSearchQueryHandler> logger)
+public sealed class GlobalSearchQueryHandler(IDispatcher dispatcher, ICurrentUser currentUser, ILogger<GlobalSearchQueryHandler> logger)
     : IQueryHandler<GlobalSearchQuery, Result<GlobalSearchResultDto>>
 {
     private const string AppRequestName = nameof(GlobalSearchQuery);

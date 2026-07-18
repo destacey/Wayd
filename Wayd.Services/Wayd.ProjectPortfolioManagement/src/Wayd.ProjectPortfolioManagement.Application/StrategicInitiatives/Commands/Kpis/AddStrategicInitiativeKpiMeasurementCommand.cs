@@ -26,7 +26,7 @@ public sealed class AddStrategicInitiativeKpiMeasurementCommandValidator : Abstr
     }
 }
 
-internal sealed class AddStrategicInitiativeKpiMeasurementCommandHandler(
+public sealed class AddStrategicInitiativeKpiMeasurementCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<AddStrategicInitiativeKpiMeasurementCommandHandler> logger,
     IDateTimeProvider dateTimeProvider,

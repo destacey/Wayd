@@ -11,7 +11,7 @@ public sealed class DeleteStrategicInitiativeCommandValidator : AbstractValidato
     }
 }
 
-internal sealed class DeleteStrategicInitiativeCommandHandler(
+public sealed class DeleteStrategicInitiativeCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<DeleteStrategicInitiativeCommandHandler> logger)
     : ICommandHandler<DeleteStrategicInitiativeCommand>

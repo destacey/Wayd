@@ -15,7 +15,7 @@ public sealed record GetProjectLifecycleQuery : IQuery<ProjectLifecycleDetailsDt
     public Expression<Func<ProjectLifecycle, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetProjectLifecycleQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
+public sealed class GetProjectLifecycleQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
     : IQueryHandler<GetProjectLifecycleQuery, ProjectLifecycleDetailsDto?>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = projectPortfolioManagementDbContext;

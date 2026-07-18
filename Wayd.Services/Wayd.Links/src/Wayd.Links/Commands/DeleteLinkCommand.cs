@@ -7,7 +7,7 @@ namespace Wayd.Links.Commands;
 
 public sealed record DeleteLinkCommand(Guid LinkId) : ICommand;
 
-internal sealed class DeleteLinkCommandHandler : ICommandHandler<DeleteLinkCommand>
+public sealed class DeleteLinkCommandHandler : ICommandHandler<DeleteLinkCommand>
 {
     private readonly ILinksDbContext _linksDbContext;
     private readonly ILogger<DeleteLinkCommandHandler> _logger;

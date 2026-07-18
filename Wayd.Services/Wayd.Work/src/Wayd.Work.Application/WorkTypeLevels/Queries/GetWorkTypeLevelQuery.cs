@@ -4,7 +4,7 @@ namespace Wayd.Work.Application.WorkTypeLevels.Queries;
 
 public sealed record GetWorkTypeLevelQuery(int Id) : IQuery<WorkTypeLevelDto?>;
 
-internal sealed class GetWorkTypeLevelQueryHandler : IQueryHandler<GetWorkTypeLevelQuery, WorkTypeLevelDto?>
+public sealed class GetWorkTypeLevelQueryHandler : IQueryHandler<GetWorkTypeLevelQuery, WorkTypeLevelDto?>
 {
     private readonly IWorkDbContext _workDbContext;
     private readonly ILogger<GetWorkTypeLevelQueryHandler> _logger;

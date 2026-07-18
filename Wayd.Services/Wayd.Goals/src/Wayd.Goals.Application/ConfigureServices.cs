@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Mapster.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,7 +11,6 @@ public static class ConfigureServices
         var assembly = Assembly.GetExecutingAssembly();
 
         services.AddValidatorsFromAssembly(assembly);
-        services.AddMediatR(options => options.RegisterServicesFromAssembly(assembly));
 
         TypeAdapterConfig.GlobalSettings.Scan(assembly);
         TypeAdapterConfig.GlobalSettings.ScanInheritedTypes(assembly);

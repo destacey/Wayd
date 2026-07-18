@@ -19,7 +19,7 @@ public sealed record GetWorkProcessQuery : IQuery<Result<WorkProcessDto?>>
     public int? Key { get; }
 }
 
-internal sealed class GetWorkProcessQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkProcessQueryHandler> logger) : IQueryHandler<GetWorkProcessQuery, Result<WorkProcessDto?>>
+public sealed class GetWorkProcessQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkProcessQueryHandler> logger) : IQueryHandler<GetWorkProcessQuery, Result<WorkProcessDto?>>
 {
     private const string AppRequestName = nameof(GetWorkProcessQuery);
 

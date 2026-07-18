@@ -5,7 +5,7 @@ namespace Wayd.Planning.Application.PlanningIntervals.HealthChecks.Queries;
 public sealed record GetPlanningIntervalObjectiveHealthChecksQuery(Guid PlanningIntervalObjectiveId)
     : IQuery<IReadOnlyList<PlanningIntervalObjectiveHealthCheckDetailsDto>>;
 
-internal sealed class GetPlanningIntervalObjectiveHealthChecksQueryHandler(IPlanningDbContext planningDbContext)
+public sealed class GetPlanningIntervalObjectiveHealthChecksQueryHandler(IPlanningDbContext planningDbContext)
     : IQueryHandler<GetPlanningIntervalObjectiveHealthChecksQuery, IReadOnlyList<PlanningIntervalObjectiveHealthCheckDetailsDto>>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;

@@ -50,7 +50,7 @@ public sealed class CreateRoadmapItemCommandValidator : AbstractValidator<Create
     }
 }
 
-internal sealed class CreateRoadmapItemCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<CreateRoadmapItemCommandHandler> logger) : ICommandHandler<CreateRoadmapItemCommand, Guid>
+public sealed class CreateRoadmapItemCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<CreateRoadmapItemCommandHandler> logger) : ICommandHandler<CreateRoadmapItemCommand, Guid>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly Guid _currentUserEmployeeId = Guard.Against.NullOrEmpty(currentUser.GetEmployeeId());

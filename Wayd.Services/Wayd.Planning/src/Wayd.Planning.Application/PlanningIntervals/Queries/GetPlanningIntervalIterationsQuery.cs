@@ -14,7 +14,7 @@ public sealed record GetPlanningIntervalIterationsQuery : IQuery<IReadOnlyList<P
     public Expression<Func<PlanningInterval, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetPlanningIntervalIterationsQueryHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetPlanningIntervalIterationsQuery, IReadOnlyList<PlanningIntervalIterationListDto>>
+public sealed class GetPlanningIntervalIterationsQueryHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetPlanningIntervalIterationsQuery, IReadOnlyList<PlanningIntervalIterationListDto>>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;

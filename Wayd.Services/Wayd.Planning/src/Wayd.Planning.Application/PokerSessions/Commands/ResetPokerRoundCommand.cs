@@ -13,7 +13,7 @@ public sealed class ResetPokerRoundCommandValidator : CustomValidator<ResetPoker
     }
 }
 
-internal sealed class ResetPokerRoundCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionNotifier notifier, ILogger<ResetPokerRoundCommandHandler> logger) : ICommandHandler<ResetPokerRoundCommand>
+public sealed class ResetPokerRoundCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionNotifier notifier, ILogger<ResetPokerRoundCommandHandler> logger) : ICommandHandler<ResetPokerRoundCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IPokerSessionNotifier _notifier = notifier;

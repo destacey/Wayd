@@ -16,7 +16,7 @@ public sealed record GetPlanningIntervalPredictabilityQuery : IQuery<PlanningInt
     public Expression<Func<PlanningInterval, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetPlanningIntervalPredictabilityQueryHandler : IQueryHandler<GetPlanningIntervalPredictabilityQuery, PlanningIntervalPredictabilityDto?>
+public sealed class GetPlanningIntervalPredictabilityQueryHandler : IQueryHandler<GetPlanningIntervalPredictabilityQuery, PlanningIntervalPredictabilityDto?>
 {
     private readonly IPlanningDbContext _planningDbContext;
     private readonly ILogger<GetPlanningIntervalPredictabilityQueryHandler> _logger;

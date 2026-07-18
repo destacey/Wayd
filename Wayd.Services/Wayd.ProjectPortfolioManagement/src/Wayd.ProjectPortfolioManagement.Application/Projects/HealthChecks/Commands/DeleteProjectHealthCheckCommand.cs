@@ -19,7 +19,7 @@ public sealed class DeleteProjectHealthCheckCommandValidator
     }
 }
 
-internal sealed class DeleteProjectHealthCheckCommandHandler(
+public sealed class DeleteProjectHealthCheckCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ICurrentUser currentUser,
     ILogger<DeleteProjectHealthCheckCommandHandler> logger)

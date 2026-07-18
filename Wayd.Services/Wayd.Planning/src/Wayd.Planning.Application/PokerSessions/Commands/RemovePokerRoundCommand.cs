@@ -13,7 +13,7 @@ public sealed class RemovePokerRoundCommandValidator : CustomValidator<RemovePok
     }
 }
 
-internal sealed class RemovePokerRoundCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionNotifier notifier, ILogger<RemovePokerRoundCommandHandler> logger) : ICommandHandler<RemovePokerRoundCommand>
+public sealed class RemovePokerRoundCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionNotifier notifier, ILogger<RemovePokerRoundCommandHandler> logger) : ICommandHandler<RemovePokerRoundCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IPokerSessionNotifier _notifier = notifier;

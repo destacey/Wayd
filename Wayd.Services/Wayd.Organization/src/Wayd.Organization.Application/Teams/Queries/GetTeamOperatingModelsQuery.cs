@@ -7,7 +7,7 @@ namespace Wayd.Organization.Application.Teams.Queries;
 /// </summary>
 public sealed record GetTeamOperatingModelsQuery(Guid TeamId) : IQuery<IReadOnlyList<TeamOperatingModelDetailsDto>>;
 
-internal sealed class GetTeamOperatingModelsQueryHandler(IOrganizationDbContext organizationDbContext)
+public sealed class GetTeamOperatingModelsQueryHandler(IOrganizationDbContext organizationDbContext)
     : IQueryHandler<GetTeamOperatingModelsQuery, IReadOnlyList<TeamOperatingModelDetailsDto>>
 {
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;

@@ -19,7 +19,7 @@ public sealed class ReorderScoringScalesCommandValidator : AbstractValidator<Reo
     }
 }
 
-internal sealed class ReorderScoringScalesCommandHandler(
+public sealed class ReorderScoringScalesCommandHandler(
     IWaydDbContext waydDbContext,
     ILogger<ReorderScoringScalesCommandHandler> logger)
     : ICommandHandler<ReorderScoringScalesCommand>

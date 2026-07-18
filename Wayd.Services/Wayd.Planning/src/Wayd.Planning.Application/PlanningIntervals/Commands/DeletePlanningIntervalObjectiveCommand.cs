@@ -5,7 +5,7 @@ namespace Wayd.Planning.Application.PlanningIntervals.Commands;
 
 public sealed record DeletePlanningIntervalObjectiveCommand(Guid PlanningIntervalId, Guid PlanningIntervalObjectiveId) : ICommand;
 
-internal sealed class DeletePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, ILogger<DeletePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<DeletePlanningIntervalObjectiveCommand>
+public sealed class DeletePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, ILogger<DeletePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<DeletePlanningIntervalObjectiveCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;

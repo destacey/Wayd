@@ -17,7 +17,7 @@ public sealed record GetWorkItemDependenciesQuery : IQuery<Result<List<ScopedDep
     public WorkItemKey WorkItemKey { get; }
 }
 
-internal sealed class GetWorkItemDependenciesQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkItemDependenciesQueryHandler> logger) : IQueryHandler<GetWorkItemDependenciesQuery, Result<List<ScopedDependencyDto>?>>
+public sealed class GetWorkItemDependenciesQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkItemDependenciesQueryHandler> logger) : IQueryHandler<GetWorkItemDependenciesQuery, Result<List<ScopedDependencyDto>?>>
 {
     private const string AppRequestName = nameof(GetWorkItemDependenciesQuery);
 

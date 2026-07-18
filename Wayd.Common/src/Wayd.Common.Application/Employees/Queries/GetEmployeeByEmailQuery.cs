@@ -8,7 +8,7 @@ namespace Wayd.Common.Application.Employees.Queries;
 /// </summary>
 public sealed record GetEmployeeByEmailQuery(string Email) : IQuery<Guid?>;
 
-internal sealed class GetEmployeeByEmailQueryHandler : IQueryHandler<GetEmployeeByEmailQuery, Guid?>
+public sealed class GetEmployeeByEmailQueryHandler : IQueryHandler<GetEmployeeByEmailQuery, Guid?>
 {
     private readonly IWaydDbContext _waydDbContext;
 

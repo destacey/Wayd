@@ -38,7 +38,7 @@ public sealed class UpdateProgramCommandValidator : AbstractValidator<UpdateProg
     }
 }
 
-internal sealed class UpdateProgramCommandHandler(
+public sealed class UpdateProgramCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ILogger<UpdateProgramCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)

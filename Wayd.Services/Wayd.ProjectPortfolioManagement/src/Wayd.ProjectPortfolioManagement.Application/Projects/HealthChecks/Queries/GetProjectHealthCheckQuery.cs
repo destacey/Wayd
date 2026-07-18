@@ -5,7 +5,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.HealthChecks.Quer
 public sealed record GetProjectHealthCheckQuery(Guid ProjectId, Guid HealthCheckId)
     : IQuery<ProjectHealthCheckDetailsDto?>;
 
-internal sealed class GetProjectHealthCheckQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
+public sealed class GetProjectHealthCheckQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
     : IQueryHandler<GetProjectHealthCheckQuery, ProjectHealthCheckDetailsDto?>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;

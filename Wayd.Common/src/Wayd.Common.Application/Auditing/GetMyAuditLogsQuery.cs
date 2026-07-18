@@ -1,12 +1,10 @@
-﻿using MediatR;
-
-namespace Wayd.Common.Application.Auditing;
+﻿namespace Wayd.Common.Application.Auditing;
 
 public sealed record GetMyAuditLogsQuery : IQuery<List<AuditDto>>
 {
 }
 
-public sealed class GetMyAuditLogsQueryHandler : IRequestHandler<GetMyAuditLogsQuery, List<AuditDto>>
+public sealed class GetMyAuditLogsQueryHandler : IQueryHandler<GetMyAuditLogsQuery, List<AuditDto>>
 {
     private readonly ICurrentUser _currentUser;
     private readonly IAuditService _auditService;

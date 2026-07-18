@@ -15,7 +15,7 @@ public sealed record GetPokerSessionQuery : IQuery<PokerSessionDetailsDto?>
     public Expression<Func<PokerSession, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetPokerSessionQueryHandler(IPlanningDbContext planningDbContext) : IQueryHandler<GetPokerSessionQuery, PokerSessionDetailsDto?>
+public sealed class GetPokerSessionQueryHandler(IPlanningDbContext planningDbContext) : IQueryHandler<GetPokerSessionQuery, PokerSessionDetailsDto?>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
 

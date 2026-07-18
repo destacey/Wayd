@@ -18,7 +18,7 @@ public sealed class RemoveScoringModelCriterionCommandValidator : AbstractValida
     }
 }
 
-internal sealed class RemoveScoringModelCriterionCommandHandler(
+public sealed class RemoveScoringModelCriterionCommandHandler(
     IWaydDbContext waydDbContext,
     ILogger<RemoveScoringModelCriterionCommandHandler> logger)
     : ICommandHandler<RemoveScoringModelCriterionCommand>

@@ -32,7 +32,7 @@ public sealed class CreateWorkTypeLevelCommandValidator : CustomValidator<Create
     }
 }
 
-internal sealed class CreateWorkTypeLevelCommandHandler : ICommandHandler<CreateWorkTypeLevelCommand, int>
+public sealed class CreateWorkTypeLevelCommandHandler : ICommandHandler<CreateWorkTypeLevelCommand, int>
 {
     private const string AppRequestName = nameof(CreateWorkTypeLevelCommand);
 

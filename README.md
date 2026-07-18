@@ -30,7 +30,7 @@ When delivery spans multiple teams, projects, and systems, visibility breaks dow
 - .NET 10.0 with Clean Architecture
 - ASP.NET Core Web API
 - Entity Framework Core + SQL Server
-- MediatR (CQRS), FluentValidation
+- Wolverine (CQRS), FluentValidation
 - Hangfire (background jobs)
 - OpenTelemetry observability
 
@@ -225,7 +225,7 @@ Wayd follows **Clean Architecture** with **Domain-Driven Design** principles:
 
 **Key Patterns:**
 
-- CQRS with MediatR
+- CQRS with Wolverine
 - Repository-less (direct DbContext usage)
 - Vertical slice architecture per domain
 - Functional error handling with Result pattern

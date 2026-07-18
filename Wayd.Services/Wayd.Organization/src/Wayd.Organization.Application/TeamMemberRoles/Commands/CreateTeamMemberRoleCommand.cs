@@ -30,7 +30,7 @@ public sealed class CreateTeamMemberRoleCommandValidator : CustomValidator<Creat
     }
 }
 
-internal sealed class CreateTeamMemberRoleCommandHandler(
+public sealed class CreateTeamMemberRoleCommandHandler(
     IOrganizationDbContext organizationDbContext,
     ILogger<CreateTeamMemberRoleCommandHandler> logger)
     : ICommandHandler<CreateTeamMemberRoleCommand, Guid>

@@ -9,7 +9,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Queries;
 /// <param name="StatusFilter"></param>
 public sealed record GetProjectPortfolioOptionsQuery() : IQuery<List<ProjectPortfolioOptionDto>>;
 
-internal sealed class GetProjectPortfolioOptionsQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
+public sealed class GetProjectPortfolioOptionsQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
     : IQueryHandler<GetProjectPortfolioOptionsQuery, List<ProjectPortfolioOptionDto>>
 {
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;

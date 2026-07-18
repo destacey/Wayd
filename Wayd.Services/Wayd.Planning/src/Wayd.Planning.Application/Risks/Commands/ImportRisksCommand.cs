@@ -28,7 +28,7 @@ public sealed class ImportRisksCommandValidator : CustomValidator<ImportRisksCom
     }
 }
 
-internal sealed class ImportRisksCommandHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, ILogger<ImportRisksCommandHandler> logger) : ICommandHandler<ImportRisksCommand>
+public sealed class ImportRisksCommandHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, ILogger<ImportRisksCommandHandler> logger) : ICommandHandler<ImportRisksCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;

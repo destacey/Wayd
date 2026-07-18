@@ -11,7 +11,7 @@ public sealed class RemoveTeamMemberCommandValidator : CustomValidator<RemoveTea
     }
 }
 
-internal sealed class RemoveTeamMemberCommandHandler(
+public sealed class RemoveTeamMemberCommandHandler(
     IOrganizationDbContext organizationDbContext,
     ILogger<RemoveTeamMemberCommandHandler> logger)
     : ICommandHandler<RemoveTeamMemberCommand>

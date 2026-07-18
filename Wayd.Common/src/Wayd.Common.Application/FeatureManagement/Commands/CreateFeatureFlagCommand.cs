@@ -21,7 +21,7 @@ public sealed class CreateFeatureFlagCommandValidator : CustomValidator<CreateFe
     }
 }
 
-internal sealed class CreateFeatureFlagCommandHandler(
+public sealed class CreateFeatureFlagCommandHandler(
     IFeatureManagementDbContext dbContext,
     IFeatureFlagCacheInvalidator cacheInvalidator,
     ILogger<CreateFeatureFlagCommandHandler> logger) : ICommandHandler<CreateFeatureFlagCommand, int>

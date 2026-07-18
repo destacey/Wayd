@@ -3,7 +3,7 @@ using Wayd.Goals.Application.Persistence;
 
 namespace Wayd.Goals.Application.Objectives.Commands;
 
-internal sealed class DeleteObjectiveCommandHandler(IGoalsDbContext goalsDbContext, ILogger<DeleteObjectiveCommandHandler> logger) : ICommandHandler<DeleteObjectiveCommand>
+public sealed class DeleteObjectiveCommandHandler(IGoalsDbContext goalsDbContext, ILogger<DeleteObjectiveCommandHandler> logger) : ICommandHandler<DeleteObjectiveCommand>
 {
     private readonly IGoalsDbContext _goalsDbContext = goalsDbContext;
     private readonly ILogger<DeleteObjectiveCommandHandler> _logger = logger;

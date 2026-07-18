@@ -6,7 +6,7 @@ namespace Wayd.Planning.Application.PlanningIntervals.Queries;
 
 public sealed record GetPlanningIntervalIterationCategoriesQuery : IQuery<List<PlanningIntervalIterationCategoryDto>> { }
 
-internal sealed class GetPlanningIntervalIterationCategoriesQueryHandler : IQueryHandler<GetPlanningIntervalIterationCategoriesQuery, List<PlanningIntervalIterationCategoryDto>>
+public sealed class GetPlanningIntervalIterationCategoriesQueryHandler : IQueryHandler<GetPlanningIntervalIterationCategoriesQuery, List<PlanningIntervalIterationCategoryDto>>
 {
     public Task<List<PlanningIntervalIterationCategoryDto>> Handle(GetPlanningIntervalIterationCategoriesQuery request, CancellationToken cancellationToken)
     {

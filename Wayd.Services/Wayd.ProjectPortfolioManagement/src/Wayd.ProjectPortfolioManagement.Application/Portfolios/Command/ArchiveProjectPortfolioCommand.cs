@@ -11,7 +11,7 @@ public sealed class ArchiveProjectPortfolioCommandValidator : AbstractValidator<
     }
 }
 
-internal sealed class ArchiveProjectPortfolioCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<ArchiveProjectPortfolioCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ArchiveProjectPortfolioCommand>
+public sealed class ArchiveProjectPortfolioCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<ArchiveProjectPortfolioCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ArchiveProjectPortfolioCommand>
 {
     private const string AppRequestName = nameof(ArchiveProjectPortfolioCommand);
 

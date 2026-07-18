@@ -91,7 +91,7 @@ public sealed class CreateEmployeeCommandValidator : CustomValidator<CreateEmplo
     }
 }
 
-internal sealed class CreateEmployeeCommandHandler : ICommandHandler<CreateEmployeeCommand, ObjectIdAndKey>
+public sealed class CreateEmployeeCommandHandler : ICommandHandler<CreateEmployeeCommand, ObjectIdAndKey>
 {
     private readonly IWaydDbContext _waydDbContext;
     private readonly IDateTimeProvider _dateTimeProvider;

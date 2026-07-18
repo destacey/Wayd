@@ -19,7 +19,7 @@ public sealed class RemoveScoringModelOutputCommandValidator : AbstractValidator
     }
 }
 
-internal sealed class RemoveScoringModelOutputCommandHandler(
+public sealed class RemoveScoringModelOutputCommandHandler(
     IWaydDbContext waydDbContext,
     ILogger<RemoveScoringModelOutputCommandHandler> logger)
     : ICommandHandler<RemoveScoringModelOutputCommand>

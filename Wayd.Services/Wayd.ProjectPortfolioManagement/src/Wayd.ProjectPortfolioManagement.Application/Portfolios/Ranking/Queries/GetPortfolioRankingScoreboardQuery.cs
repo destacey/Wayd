@@ -13,7 +13,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Queries
 public sealed record GetPortfolioRankingScoreboardQuery(Guid PortfolioId)
     : IQuery<PortfolioRankingScoreboardDto?>;
 
-internal sealed class GetPortfolioRankingScoreboardQueryHandler(
+public sealed class GetPortfolioRankingScoreboardQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext)
     : IQueryHandler<GetPortfolioRankingScoreboardQuery, PortfolioRankingScoreboardDto?>
 {

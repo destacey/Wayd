@@ -33,7 +33,7 @@ public sealed class CreateStrategicInitiativeCommandValidator : AbstractValidato
     }
 }
 
-internal sealed class CreateStrategicInitiativeCommandHandler(
+public sealed class CreateStrategicInitiativeCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<CreateStrategicInitiativeCommandHandler> logger)
     : ICommandHandler<CreateStrategicInitiativeCommand, ObjectIdAndKey>

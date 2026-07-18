@@ -18,7 +18,7 @@ public sealed class ReorderScoringModelCriteriaCommandValidator : AbstractValida
     }
 }
 
-internal sealed class ReorderScoringModelCriteriaCommandHandler(
+public sealed class ReorderScoringModelCriteriaCommandHandler(
     IWaydDbContext waydDbContext,
     ILogger<ReorderScoringModelCriteriaCommandHandler> logger)
     : ICommandHandler<ReorderScoringModelCriteriaCommand>

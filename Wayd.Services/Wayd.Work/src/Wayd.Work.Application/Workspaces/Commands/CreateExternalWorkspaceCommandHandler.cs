@@ -52,7 +52,7 @@ public sealed class CreateExternalWorkspaceCommandHandlerValidator : CustomValid
     }
 }
 
-internal sealed class CreateExternalWorkspaceCommandHandler(IWorkDbContext workDbContext, IDateTimeProvider dateTimeProvider, ILogger<CreateExternalWorkspaceCommandHandler> logger) : ICommandHandler<CreateExternalWorkspaceCommand, IntegrationState<Guid>>
+public sealed class CreateExternalWorkspaceCommandHandler(IWorkDbContext workDbContext, IDateTimeProvider dateTimeProvider, ILogger<CreateExternalWorkspaceCommandHandler> logger) : ICommandHandler<CreateExternalWorkspaceCommand, IntegrationState<Guid>>
 {
     private const string AppRequestName = nameof(CreateExternalWorkProcessCommand);
 

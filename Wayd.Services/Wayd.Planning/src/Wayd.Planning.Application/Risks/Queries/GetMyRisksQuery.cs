@@ -5,7 +5,7 @@ namespace Wayd.Planning.Application.Risks.Queries;
 
 public sealed record GetMyRisksQuery() : IQuery<IReadOnlyList<RiskListDto>>;
 
-internal sealed class GetMyRisksQueryHandler : IQueryHandler<GetMyRisksQuery, IReadOnlyList<RiskListDto>>
+public sealed class GetMyRisksQueryHandler : IQueryHandler<GetMyRisksQuery, IReadOnlyList<RiskListDto>>
 {
     private readonly IPlanningDbContext _planningDbContext;
     private readonly ICurrentUser _currentUser;

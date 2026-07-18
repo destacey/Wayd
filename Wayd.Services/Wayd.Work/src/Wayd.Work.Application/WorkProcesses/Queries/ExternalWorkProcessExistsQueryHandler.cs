@@ -3,7 +3,7 @@ using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkProcesses.Queries;
 
-internal sealed class ExternalWorkProcessExistsQueryHandler(IWorkDbContext workDbContext) : IQueryHandler<ExternalWorkProcessExistsQuery, bool>
+public sealed class ExternalWorkProcessExistsQueryHandler(IWorkDbContext workDbContext) : IQueryHandler<ExternalWorkProcessExistsQuery, bool>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
 

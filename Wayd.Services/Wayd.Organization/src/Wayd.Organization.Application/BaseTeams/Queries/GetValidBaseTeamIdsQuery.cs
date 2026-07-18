@@ -1,7 +1,7 @@
 ﻿namespace Wayd.Organization.Application.BaseTeams.Queries;
 
 public sealed record GetValidBaseTeamIdsQuery() : IQuery<Guid[]>;
-internal sealed class GetValidBaseTeamIdsQueryHandler : IQueryHandler<GetValidBaseTeamIdsQuery, Guid[]>
+public sealed class GetValidBaseTeamIdsQueryHandler : IQueryHandler<GetValidBaseTeamIdsQuery, Guid[]>
 {
     private readonly IOrganizationDbContext _organizationDbContext;
 

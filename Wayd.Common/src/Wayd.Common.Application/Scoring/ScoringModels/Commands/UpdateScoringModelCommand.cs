@@ -24,7 +24,7 @@ public sealed class UpdateScoringModelCommandValidator : AbstractValidator<Updat
     }
 }
 
-internal sealed class UpdateScoringModelCommandHandler(
+public sealed class UpdateScoringModelCommandHandler(
     IWaydDbContext waydDbContext,
     ILogger<UpdateScoringModelCommandHandler> logger)
     : ICommandHandler<UpdateScoringModelCommand>

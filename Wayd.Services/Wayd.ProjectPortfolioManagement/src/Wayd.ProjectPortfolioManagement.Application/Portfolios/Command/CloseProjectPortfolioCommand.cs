@@ -11,7 +11,7 @@ public sealed class CloseProjectPortfolioCommandValidator : AbstractValidator<Cl
     }
 }
 
-internal sealed class CloseProjectPortfolioCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<CloseProjectPortfolioCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<CloseProjectPortfolioCommand>
+public sealed class CloseProjectPortfolioCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<CloseProjectPortfolioCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<CloseProjectPortfolioCommand>
 {
     private const string AppRequestName = nameof(CloseProjectPortfolioCommand);
 

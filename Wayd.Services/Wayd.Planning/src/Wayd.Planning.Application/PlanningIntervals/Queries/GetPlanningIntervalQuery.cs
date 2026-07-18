@@ -14,7 +14,7 @@ public sealed record GetPlanningIntervalQuery : IQuery<PlanningIntervalDetailsDt
     public Expression<Func<PlanningInterval, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetPlanningIntervalQueryHandler : IQueryHandler<GetPlanningIntervalQuery, PlanningIntervalDetailsDto?>
+public sealed class GetPlanningIntervalQueryHandler : IQueryHandler<GetPlanningIntervalQuery, PlanningIntervalDetailsDto?>
 {
     private readonly IPlanningDbContext _planningDbContext;
     private readonly ILogger<GetPlanningIntervalQueryHandler> _logger;

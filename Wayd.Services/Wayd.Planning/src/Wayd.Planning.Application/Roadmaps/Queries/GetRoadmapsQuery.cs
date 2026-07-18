@@ -7,7 +7,7 @@ namespace Wayd.Planning.Application.Roadmaps.Queries;
 
 public sealed record GetRoadmapsQuery(RoadmapState[]? StateFilter = null) : IQuery<List<RoadmapListDto>>;
 
-internal sealed class GetRoadmapsQueryHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser)
+public sealed class GetRoadmapsQueryHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser)
     : IQueryHandler<GetRoadmapsQuery, List<RoadmapListDto>>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;

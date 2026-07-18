@@ -19,7 +19,7 @@ public sealed record GetProjectPlanTreeQuery : IQuery<IReadOnlyList<ProjectPlanN
     public Expression<Func<Project, bool>> ProjectIdOrKeyFilter { get; }
 }
 
-internal sealed class GetProjectPlanTreeQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
+public sealed class GetProjectPlanTreeQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
     : IQueryHandler<GetProjectPlanTreeQuery, IReadOnlyList<ProjectPlanNodeDto>>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;

@@ -39,7 +39,7 @@ public sealed class CopyRoadmapCommandValidator : AbstractValidator<CopyRoadmapC
     }
 }
 
-internal sealed class CopyRoadmapCommandHandler(
+public sealed class CopyRoadmapCommandHandler(
     IPlanningDbContext planningDbContext,
     ICurrentUser currentUser,
     ILogger<CopyRoadmapCommandHandler> logger) : ICommandHandler<CopyRoadmapCommand, ObjectIdAndKey>

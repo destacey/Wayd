@@ -1,41 +1,37 @@
-﻿using Wayd.Common.Application.Events;
-using Wayd.Common.Domain.Enums;
+﻿using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkIterations.EventHandlers;
 
-internal sealed class WorkIterationSyncHandler(IWorkDbContext workDbContext, ILogger<WorkIterationSyncHandler> logger, IDateTimeProvider dateTimeProvider) :
-    IEventNotificationHandler<IterationCreatedEvent>,
-    IEventNotificationHandler<IterationUpdatedEvent>,
-    IEventNotificationHandler<IterationDeletedEvent>
+public sealed class WorkIterationSyncHandler(IWorkDbContext workDbContext, ILogger<WorkIterationSyncHandler> logger, IDateTimeProvider dateTimeProvider)
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly ILogger<WorkIterationSyncHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
-    public async Task Handle(EventNotification<IterationCreatedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(IterationCreatedEvent @event, CancellationToken cancellationToken)
     {
         if (_logger.IsEnabled(LogLevel.Debug))
-            _logger.LogDebug("Handling Work {SystemActionType} for a new Iteration {IterationId}.", SystemActionType.ServiceDataReplication, notification.Event.Id);
+            _logger.LogDebug("Handling Work {SystemActionType} for a new Iteration {IterationId}.", SystemActionType.ServiceDataReplication, @event.Id);
 
-        await CreateIteration(notification.Event, cancellationToken);
+        await CreateIteration(@event, cancellationToken);
     }
 
-    public async Task Handle(EventNotification<IterationUpdatedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(IterationUpdatedEvent @event, CancellationToken cancellationToken)
     {
         if (_logger.IsEnabled(LogLevel.Debug))
-            _logger.LogDebug("Handling Work {SystemActionType} for an updated Iteration {IterationId}.", SystemActionType.ServiceDataReplication, notification.Event.Id);
+            _logger.LogDebug("Handling Work {SystemActionType} for an updated Iteration {IterationId}.", SystemActionType.ServiceDataReplication, @event.Id);
 
-        await UpdateIteration(notification.Event, cancellationToken);
+        await UpdateIteration(@event, cancellationToken);
     }
 
-    public async Task Handle(EventNotification<IterationDeletedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(IterationDeletedEvent @event, CancellationToken cancellationToken)
     {
         if (_logger.IsEnabled(LogLevel.Debug))
-            _logger.LogDebug("Handling Work {SystemActionType} for a deleted Iteration {IterationId}.", SystemActionType.ServiceDataReplication, notification.Event.Id);
+            _logger.LogDebug("Handling Work {SystemActionType} for a deleted Iteration {IterationId}.", SystemActionType.ServiceDataReplication, @event.Id);
 
-        await DeleteIteration(notification.Event, cancellationToken);
+        await DeleteIteration(@event, cancellationToken);
     }
 
     private async Task CreateIteration(IterationCreatedEvent createdEvent, CancellationToken cancellationToken)

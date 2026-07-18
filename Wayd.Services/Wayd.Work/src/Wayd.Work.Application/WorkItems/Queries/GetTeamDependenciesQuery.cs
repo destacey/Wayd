@@ -8,7 +8,7 @@ namespace Wayd.Work.Application.WorkItems.Queries;
 public sealed record GetTeamDependenciesQuery(Guid TeamId, List<DependencyState> DependencyStatuses) : IQuery<List<DependencyDto>?>;
 
 
-internal sealed class GetTeamDependenciesQueryHandler(IWorkDbContext workDbContext, ILogger<GetTeamDependenciesQueryHandler> logger) : IQueryHandler<GetTeamDependenciesQuery, List<DependencyDto>?>
+public sealed class GetTeamDependenciesQueryHandler(IWorkDbContext workDbContext, ILogger<GetTeamDependenciesQueryHandler> logger) : IQueryHandler<GetTeamDependenciesQuery, List<DependencyDto>?>
 {
     private const string AppRequestName = nameof(GetTeamDependenciesQuery);
 

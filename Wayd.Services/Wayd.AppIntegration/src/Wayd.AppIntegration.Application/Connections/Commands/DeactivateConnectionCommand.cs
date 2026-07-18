@@ -8,7 +8,7 @@
 /// </summary>
 public sealed record DeactivateConnectionCommand(Guid Id) : ICommand;
 
-internal sealed class DeactivateConnectionCommandHandler(
+public sealed class DeactivateConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
     IDateTimeProvider dateTimeProvider,
     ILogger<DeactivateConnectionCommandHandler> logger) : ICommandHandler<DeactivateConnectionCommand>

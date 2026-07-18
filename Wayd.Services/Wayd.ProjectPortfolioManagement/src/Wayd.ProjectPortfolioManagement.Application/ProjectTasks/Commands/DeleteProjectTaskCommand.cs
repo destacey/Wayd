@@ -11,7 +11,7 @@ public sealed class DeleteProjectTaskCommandValidator : AbstractValidator<Delete
     }
 }
 
-internal sealed class DeleteProjectTaskCommandHandler(
+public sealed class DeleteProjectTaskCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ILogger<DeleteProjectTaskCommandHandler> logger)
     : ICommandHandler<DeleteProjectTaskCommand>

@@ -6,7 +6,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 
 public sealed record GetMyProjectsSummaryQuery(ProjectStatus[]? StatusFilter = null) : IQuery<MyProjectsSummaryDto?>;
 
-internal sealed class GetMyProjectsSummaryQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext, ICurrentUser currentUser)
+public sealed class GetMyProjectsSummaryQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext, ICurrentUser currentUser)
     : IQueryHandler<GetMyProjectsSummaryQuery, MyProjectsSummaryDto?>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;

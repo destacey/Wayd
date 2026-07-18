@@ -4,7 +4,7 @@ namespace Wayd.Planning.Application.PlanningTeams.Commands;
 
 public sealed record SyncPlanningTeamsCommand(IEnumerable<ISimpleTeam> Teams) : ICommand, ILongRunningRequest;
 
-internal sealed class SyncPlanningTeamsCommandHandler(
+public sealed class SyncPlanningTeamsCommandHandler(
     IPlanningDbContext planningDbContext,
     ILogger<SyncPlanningTeamsCommandHandler> logger)
     : ICommandHandler<SyncPlanningTeamsCommand>

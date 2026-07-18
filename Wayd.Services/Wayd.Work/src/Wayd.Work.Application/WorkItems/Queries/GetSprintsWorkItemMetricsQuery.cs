@@ -9,7 +9,7 @@ namespace Wayd.Work.Application.WorkItems.Queries;
 /// </summary>
 public sealed record GetSprintsWorkItemMetricsQuery(IEnumerable<Guid> SprintIds) : IQuery<List<SprintWorkItemMetricsDto>>;
 
-internal sealed class GetSprintsWorkItemMetricsQueryHandler(
+public sealed class GetSprintsWorkItemMetricsQueryHandler(
     IWorkDbContext workDbContext,
     ILogger<GetSprintsWorkItemMetricsQueryHandler> logger)
     : IQueryHandler<GetSprintsWorkItemMetricsQuery, List<SprintWorkItemMetricsDto>>

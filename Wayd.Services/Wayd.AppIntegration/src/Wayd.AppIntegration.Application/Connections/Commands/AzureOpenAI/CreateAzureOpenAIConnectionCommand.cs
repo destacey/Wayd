@@ -52,7 +52,7 @@ public sealed class CreateAzureOpenAIConnectionCommandValidator : CustomValidato
     }
 }
 
-internal sealed class CreateAzureOpenAIConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, IDateTimeProvider dateTimeProvider, ILogger<CreateAzureOpenAIConnectionCommandHandler> logger) : ICommandHandler<CreateAzureOpenAIConnectionCommand, Guid>
+public sealed class CreateAzureOpenAIConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, IDateTimeProvider dateTimeProvider, ILogger<CreateAzureOpenAIConnectionCommandHandler> logger) : ICommandHandler<CreateAzureOpenAIConnectionCommand, Guid>
 {
     private const string AppRequestName = nameof(CreateAzureOpenAIConnectionCommandHandler);
 

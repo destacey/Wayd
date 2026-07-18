@@ -13,7 +13,7 @@ public sealed class ActivateVisionCommandValidator : AbstractValidator<ActivateV
     }
 }
 
-internal sealed class ActivateVisionCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<ActivateVisionCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ActivateVisionCommand>
+public sealed class ActivateVisionCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<ActivateVisionCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ActivateVisionCommand>
 {
     private const string AppRequestName = nameof(ActivateVisionCommand);
 

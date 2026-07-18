@@ -19,7 +19,7 @@ public sealed class ReorderScoringModelOutputsCommandValidator : AbstractValidat
     }
 }
 
-internal sealed class ReorderScoringModelOutputsCommandHandler(
+public sealed class ReorderScoringModelOutputsCommandHandler(
     IWaydDbContext waydDbContext,
     ILogger<ReorderScoringModelOutputsCommandHandler> logger)
     : ICommandHandler<ReorderScoringModelOutputsCommand>

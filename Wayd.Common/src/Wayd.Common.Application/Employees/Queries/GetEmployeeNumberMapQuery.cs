@@ -14,7 +14,7 @@ public sealed record GetEmployeeNumberMapQuery : IQuery<IReadOnlyList<EmployeeNu
     public bool IncludeInactive { get; }
 }
 
-internal sealed class GetEmployeeNumberMapQueryHandler : IQueryHandler<GetEmployeeNumberMapQuery, IReadOnlyList<EmployeeNumberMapDto>>
+public sealed class GetEmployeeNumberMapQueryHandler : IQueryHandler<GetEmployeeNumberMapQuery, IReadOnlyList<EmployeeNumberMapDto>>
 {
     private readonly IWaydDbContext _waydDbContext;
 

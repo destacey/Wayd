@@ -11,7 +11,7 @@ public sealed class ActivateExpenditureCategoryCommandValidator : AbstractValida
     }
 }
 
-internal sealed class ActivateExpenditureCategoryCommandHandler(
+public sealed class ActivateExpenditureCategoryCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<ActivateExpenditureCategoryCommandHandler> logger)
     : ICommandHandler<ActivateExpenditureCategoryCommand>

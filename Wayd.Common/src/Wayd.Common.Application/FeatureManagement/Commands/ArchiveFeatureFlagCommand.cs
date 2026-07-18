@@ -10,7 +10,7 @@ public sealed class ArchiveFeatureFlagCommandValidator : CustomValidator<Archive
     }
 }
 
-internal sealed class ArchiveFeatureFlagCommandHandler(
+public sealed class ArchiveFeatureFlagCommandHandler(
     IFeatureManagementDbContext dbContext,
     IFeatureFlagCacheInvalidator cacheInvalidator,
     ILogger<ArchiveFeatureFlagCommandHandler> logger) : ICommandHandler<ArchiveFeatureFlagCommand>

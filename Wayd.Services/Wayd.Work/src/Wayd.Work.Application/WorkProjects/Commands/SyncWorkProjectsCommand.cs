@@ -6,7 +6,7 @@ namespace Wayd.Work.Application.WorkProjects.Commands;
 
 public sealed record SyncWorkProjectsCommand(IEnumerable<ISimpleProject> Projects) : ICommand, ILongRunningRequest;
 
-internal sealed class SyncWorkProjectsCommandHandler(
+public sealed class SyncWorkProjectsCommandHandler(
     IWorkDbContext workDbContext,
     ILogger<SyncWorkProjectsCommandHandler> logger)
     : ICommandHandler<SyncWorkProjectsCommand>

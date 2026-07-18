@@ -5,7 +5,7 @@ namespace Wayd.Work.Application.WorkProcesses.Queries;
 
 public sealed record GetWorkProcessesQuery(bool IncludeInactive = false) : IQuery<IReadOnlyList<WorkProcessListDto>>;
 
-internal sealed class GetWorkProcessesQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkProcessesQueryHandler> logger) : IQueryHandler<GetWorkProcessesQuery, IReadOnlyList<WorkProcessListDto>>
+public sealed class GetWorkProcessesQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkProcessesQueryHandler> logger) : IQueryHandler<GetWorkProcessesQuery, IReadOnlyList<WorkProcessListDto>>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly ILogger<GetWorkProcessesQueryHandler> _logger = logger;

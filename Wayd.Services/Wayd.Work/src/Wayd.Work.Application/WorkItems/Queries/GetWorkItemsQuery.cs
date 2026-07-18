@@ -20,7 +20,7 @@ public sealed record GetWorkItemsQuery : IQuery<Result<IReadOnlyCollection<WorkI
     public WorkspaceKey? Key { get; }
 }
 
-internal sealed class GetWorkItemsQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkItemsQueryHandler> logger) : IQueryHandler<GetWorkItemsQuery, Result<IReadOnlyCollection<WorkItemListDto>>>
+public sealed class GetWorkItemsQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkItemsQueryHandler> logger) : IQueryHandler<GetWorkItemsQuery, Result<IReadOnlyCollection<WorkItemListDto>>>
 {
     private const string AppRequestName = nameof(GetWorkItemsQuery);
 

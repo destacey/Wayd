@@ -5,7 +5,7 @@ namespace Wayd.AppIntegration.Application.Connections.Queries;
 
 public sealed record GetSyncRunQuery(Guid SyncRunId) : IQuery<SyncRunDetailsDto?>;
 
-internal sealed class GetSyncRunQueryHandler(IAppIntegrationDbContext db) : IQueryHandler<GetSyncRunQuery, SyncRunDetailsDto?>
+public sealed class GetSyncRunQueryHandler(IAppIntegrationDbContext db) : IQueryHandler<GetSyncRunQuery, SyncRunDetailsDto?>
 {
     private readonly IAppIntegrationDbContext _db = db;
 

@@ -6,7 +6,7 @@ namespace Wayd.AppIntegration.Application.Connections.Queries.AzureDevOps;
 
 public sealed record GetAzureDevOpsConnectionTeamsQuery(Guid ConnectionId, Guid? WorkspaceId = null) : IQuery<List<AzureDevOpsWorkspaceTeamDto>>;
 
-internal sealed class GetAzureDevOpsConnectionTeamsQueryHandler(IAppIntegrationDbContext appIntegrationDbContext) : IQueryHandler<GetAzureDevOpsConnectionTeamsQuery, List<AzureDevOpsWorkspaceTeamDto>>
+public sealed class GetAzureDevOpsConnectionTeamsQueryHandler(IAppIntegrationDbContext appIntegrationDbContext) : IQueryHandler<GetAzureDevOpsConnectionTeamsQuery, List<AzureDevOpsWorkspaceTeamDto>>
 {
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
 

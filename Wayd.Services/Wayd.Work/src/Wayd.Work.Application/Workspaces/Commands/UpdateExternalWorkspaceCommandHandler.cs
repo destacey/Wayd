@@ -14,7 +14,7 @@ public sealed class UpdateExternalWorkspaceCommandHandlerValidator : CustomValid
     }
 }
 
-internal sealed class UpdateExternalWorkspaceCommandHandler(IWorkDbContext workDbContext, IDateTimeProvider dateTimeProvider, ILogger<UpdateExternalWorkspaceCommandHandler> logger) : ICommandHandler<UpdateExternalWorkspaceCommand>
+public sealed class UpdateExternalWorkspaceCommandHandler(IWorkDbContext workDbContext, IDateTimeProvider dateTimeProvider, ILogger<UpdateExternalWorkspaceCommandHandler> logger) : ICommandHandler<UpdateExternalWorkspaceCommand>
 {
     private const string AppRequestName = nameof(UpdateExternalWorkspaceCommand);
 

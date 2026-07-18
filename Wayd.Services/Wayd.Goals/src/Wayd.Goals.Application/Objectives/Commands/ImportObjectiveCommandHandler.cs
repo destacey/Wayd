@@ -4,7 +4,7 @@ using Wayd.Goals.Application.Persistence;
 
 namespace Wayd.Goals.Application.Objectives.Commands;
 
-internal sealed class ImportObjectiveCommandHandler(IGoalsDbContext goalsDbContext, ILogger<ImportObjectiveCommandHandler> logger) : ICommandHandler<ImportObjectiveCommand, Guid>
+public sealed class ImportObjectiveCommandHandler(IGoalsDbContext goalsDbContext, ILogger<ImportObjectiveCommandHandler> logger) : ICommandHandler<ImportObjectiveCommand, Guid>
 {
     private readonly IGoalsDbContext _goalsDbContext = goalsDbContext;
     private readonly ILogger<ImportObjectiveCommandHandler> _logger = logger;

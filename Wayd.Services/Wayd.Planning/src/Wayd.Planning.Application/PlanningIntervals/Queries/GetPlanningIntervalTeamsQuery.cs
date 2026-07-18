@@ -13,7 +13,7 @@ public sealed record GetPlanningIntervalTeamsQuery : IQuery<IReadOnlyList<Guid>>
     public Expression<Func<PlanningInterval, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetPlanningIntervalTeamsQueryHandler(IPlanningDbContext planningDbContext) : IQueryHandler<GetPlanningIntervalTeamsQuery, IReadOnlyList<Guid>>
+public sealed class GetPlanningIntervalTeamsQueryHandler(IPlanningDbContext planningDbContext) : IQueryHandler<GetPlanningIntervalTeamsQuery, IReadOnlyList<Guid>>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
 

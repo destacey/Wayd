@@ -40,7 +40,7 @@ public sealed class CreateTeamCommandValidator : CustomValidator<CreateTeamComma
     }
 }
 
-internal sealed class CreateTeamCommandHandler : ICommandHandler<CreateTeamCommand, ObjectIdAndKey>
+public sealed class CreateTeamCommandHandler : ICommandHandler<CreateTeamCommand, ObjectIdAndKey>
 {
     private const string RequestName = nameof(CreateTeamCommand);
 

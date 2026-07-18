@@ -19,7 +19,7 @@ public sealed record GetSprintWorkItemMetricsQuery : IQuery<SprintWorkItemMetric
     public Expression<Func<WorkIteration, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetSprintWorkItemMetricsQueryHandler(
+public sealed class GetSprintWorkItemMetricsQueryHandler(
     IWorkDbContext workDbContext,
     ILogger<GetSprintWorkItemMetricsQueryHandler> logger)
     : IQueryHandler<GetSprintWorkItemMetricsQuery, SprintWorkItemMetricsDto?>

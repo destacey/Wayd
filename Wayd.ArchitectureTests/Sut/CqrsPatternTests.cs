@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using CSharpFunctionalExtensions;
+using FluentAssertions;
 using Wayd.ArchitectureTests.Helpers;
 using NetArchTest.Rules;
 
@@ -25,18 +26,18 @@ namespace Wayd.ArchitectureTests.Sut;
 /// Command Handlers:
 /// - Must end with "CommandHandler" or "Handler" (for commands)
 /// - Should be in the same folder as their command
-/// - Should implement IRequestHandler interface
-/// - Should be public or internal
+/// - Should implement ICommandHandler interface
+/// - Must be public (Wolverine's generated code cannot invoke internal handlers)
 ///
 /// Query Handlers:
 /// - Must end with "QueryHandler" or "Handler" (for queries)
 /// - Should be in the same folder as their query
-/// - Should implement IRequestHandler interface
-/// - Should be public or internal
+/// - Should implement IQueryHandler interface
+/// - Must be public (Wolverine's generated code cannot invoke internal handlers)
 ///
 /// General Handler Rules:
 /// - Handlers should not reference other handlers directly
-/// - Each command/query should have exactly one corresponding handler
+/// - Each command/query must have exactly one corresponding handler (Wolverine silently combines duplicates)
 /// </summary>
 public class CqrsPatternTests
 {
@@ -291,12 +292,14 @@ public class CqrsPatternTests
     }
 
     [Fact]
-    public void Handlers_ShouldBeInternal()
+    public void Handlers_ShouldBePublic()
     {
         // Arrange
         var applicationAssemblies = AssemblyHelper.GetApplicationAssemblies();
 
-        // Act - Find all command and query handlers that are NOT internal
+        // Act - Find all command and query handlers that are NOT public. Wolverine's code generation
+        // news up handlers from a separate (generated) assembly, so it cannot reference internal types
+        // — every command/query handler must be public.
         var allTypes = Types.InAssemblies(applicationAssemblies)
             .That()
             .AreClasses()
@@ -307,14 +310,48 @@ public class CqrsPatternTests
             .Where(t => IsCommandHandler(t) || IsQueryHandler(t))
             .ToList();
 
-        var nonInternalHandlers = allHandlers
-            .Where(t => t.IsPublic || t.IsNestedPublic || t.IsNestedPrivate || t.IsNestedFamily || t.IsNestedFamORAssem)
+        var nonPublicHandlers = allHandlers
+            .Where(t => !(t.IsPublic || t.IsNestedPublic))
             .ToList();
 
         // Assert
-        nonInternalHandlers.Should().BeEmpty(
-            "All handler classes should be internal (sealed). Handlers should not be public, private, or protected. Violating types: {0}",
-            string.Join(", ", nonInternalHandlers.Select(t => t.FullName)));
+        nonPublicHandlers.Should().BeEmpty(
+            "All command/query handler classes must be public so Wolverine's generated code can invoke them. Violating types: {0}",
+            string.Join(", ", nonPublicHandlers.Select(t => t.FullName)));
+    }
+
+    [Fact]
+    public void EachCommandOrQuery_ShouldHaveExactlyOneHandler()
+    {
+        // Arrange - Wolverine silently COMBINES multiple handlers for the same message (MediatR instead
+        // rejected them at registration). This test restores that safety: exactly one handler per
+        // command/query message type.
+        var applicationAssemblies = AssemblyHelper.GetApplicationAssemblies();
+        var infrastructureAssemblies = AssemblyHelper.GetInfrastructureAssemblies();
+        var assemblies = applicationAssemblies.Concat(infrastructureAssemblies).Distinct().ToArray();
+
+        var allTypes = Types.InAssemblies(assemblies)
+            .That()
+            .AreClasses()
+            .GetTypes()
+            .ToList();
+
+        var handlers = allTypes
+            .Where(t => IsCommandHandler(t) || IsQueryHandler(t))
+            .ToList();
+
+        // Act - Map each handled message type to the handlers that handle it.
+        var handlersByMessage = handlers
+            .SelectMany(h => HandledMessageTypes(h).Select(m => (Message: m, Handler: h)))
+            .GroupBy(x => x.Message)
+            .Where(g => g.Count() > 1)
+            .Select(g => $"{g.Key.FullName} -> [{string.Join(", ", g.Select(x => x.Handler.FullName))}]")
+            .ToList();
+
+        // Assert
+        handlersByMessage.Should().BeEmpty(
+            "Each command/query must have exactly one handler; Wolverine would otherwise silently combine them. Duplicates: {0}",
+            string.Join("; ", handlersByMessage));
     }
 
     #endregion
@@ -365,7 +402,7 @@ public class CqrsPatternTests
 
         // Assert
         violations.Should().BeEmpty(
-            "Handlers should not depend on other handlers directly. Use MediatR to send commands/queries instead. Violations: {0}",
+            "Handlers should not depend on other handlers directly. Dispatch commands/queries through IDispatcher instead. Violations: {0}",
             string.Join("; ", violations));
     }
 
@@ -399,7 +436,106 @@ public class CqrsPatternTests
 
     #endregion
 
+    #region Wolverine Safety Tests
+
+    [Fact]
+    public void CommandHandlerHandleMethods_ShouldReturnResultOrResultOfT()
+    {
+        // Arrange - Under Wolverine, a value returned from a handler that is published (rather than
+        // invoked) becomes a cascaded message. Every command handler must return Task<Result> or
+        // Task<Result<T>> so nothing is ever accidentally re-published as a new message. (Query handlers
+        // legitimately return Task<TResponse> — they are only ever invoked, never published.)
+        var applicationAssemblies = AssemblyHelper.GetApplicationAssemblies();
+        var infrastructureAssemblies = AssemblyHelper.GetInfrastructureAssemblies();
+        var assemblies = applicationAssemblies.Concat(infrastructureAssemblies).Distinct().ToArray();
+
+        var commandHandlers = Types.InAssemblies(assemblies)
+            .That()
+            .AreClasses()
+            .GetTypes()
+            .Where(IsCommandHandler)
+            .ToList();
+
+        // Act
+        var violations = new List<string>();
+        foreach (var handler in commandHandlers)
+        {
+            var handleMethods = handler.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+                .Where(m => m.Name == "Handle");
+
+            foreach (var method in handleMethods)
+            {
+                if (!ReturnsResult(method.ReturnType))
+                {
+                    violations.Add($"{handler.FullName}.Handle -> {method.ReturnType.Name}");
+                }
+            }
+        }
+
+        // Assert
+        violations.Should().BeEmpty(
+            "Command handler Handle methods must return Task<Result> or Task<Result<T>>. Violations: {0}",
+            string.Join("; ", violations));
+    }
+
+    [Fact]
+    public void OnlyTheDispatchSeams_ShouldDependOnIMessageBus()
+    {
+        // Arrange - Call sites dispatch through IDispatcher and publish events through IEventPublisher.
+        // Wolverine's IMessageBus is an implementation detail that must stay confined to the seams that
+        // wrap it, so no handler or controller can accidentally call PublishAsync (which would turn a
+        // command/query into a fire-and-forget message with different failure semantics).
+        var allAssemblies = AssemblyHelper.GetApplicationAssemblies()
+            .Concat(AssemblyHelper.GetInfrastructureAssemblies())
+            .Distinct()
+            .ToArray();
+
+        // The only types allowed to reference IMessageBus directly.
+        var allowed = new[]
+        {
+            "WolverineDispatcher",     // IDispatcher implementation
+            "EventPublisher",          // IEventPublisher implementation
+            "WolverineConfiguration",  // host bootstrap
+        };
+
+        // Act
+        var offenders = Types.InAssemblies(allAssemblies)
+            .That()
+            .AreClasses()
+            .And()
+            .DoNotHaveName(allowed)
+            .Should()
+            .NotHaveDependencyOn("Wolverine.IMessageBus")
+            .GetResult();
+
+        // Assert
+        offenders.IsSuccessful.Should().BeTrue(
+            "Only the dispatch/publish seams may depend on Wolverine's IMessageBus. Violating types: {0}",
+            string.Join(", ", offenders.FailingTypeNames ?? []));
+    }
+
+    #endregion
+
     #region Helper Methods
+
+    /// <summary>
+    /// True when <paramref name="returnType"/> is Task&lt;Result&gt; or Task&lt;Result&lt;T&gt;&gt;.
+    /// </summary>
+    private static bool ReturnsResult(Type returnType)
+    {
+        if (!returnType.IsGenericType || returnType.GetGenericTypeDefinition() != typeof(Task<>))
+        {
+            return false;
+        }
+
+        var inner = returnType.GetGenericArguments()[0];
+        if (inner == typeof(Result))
+        {
+            return true;
+        }
+
+        return inner.IsGenericType && inner.GetGenericTypeDefinition() == typeof(Result<>);
+    }
 
     /// <summary>
     /// Checks if a type implements ICommand&lt;TResponse&gt; interface.
@@ -439,6 +575,22 @@ public class CqrsPatternTests
         return type.GetInterfaces().Any(i =>
             i.IsGenericType &&
             i.GetGenericTypeDefinition().Name == "IQueryHandler`2");
+    }
+
+    /// <summary>
+    /// Returns the command/query message type(s) a handler handles, read from its
+    /// ICommandHandler&lt;&gt;/IQueryHandler&lt;&gt; interface implementations (the message is always the
+    /// first generic argument).
+    /// </summary>
+    private static IEnumerable<Type> HandledMessageTypes(Type handler)
+    {
+        return handler.GetInterfaces()
+            .Where(i => i.IsGenericType &&
+                (i.GetGenericTypeDefinition().Name == "ICommandHandler`1" ||
+                 i.GetGenericTypeDefinition().Name == "ICommandHandler`2" ||
+                 i.GetGenericTypeDefinition().Name == "IQueryHandler`2"))
+            .Select(i => i.GetGenericArguments()[0])
+            .Distinct();
     }
 
     /// <summary>

@@ -10,7 +10,7 @@ public sealed class ClearPortfolioScoringModelCommandValidator : AbstractValidat
     }
 }
 
-internal sealed class ClearPortfolioScoringModelCommandHandler(
+public sealed class ClearPortfolioScoringModelCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ILogger<ClearPortfolioScoringModelCommandHandler> logger)
     : ICommandHandler<ClearPortfolioScoringModelCommand>

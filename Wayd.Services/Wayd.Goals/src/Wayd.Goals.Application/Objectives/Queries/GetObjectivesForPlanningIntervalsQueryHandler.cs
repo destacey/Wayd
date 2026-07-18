@@ -4,7 +4,7 @@ using Wayd.Goals.Application.Persistence;
 
 namespace Wayd.Goals.Application.Objectives.Queries;
 
-internal sealed class GetObjectivesForPlanningIntervalsQueryHandler(IGoalsDbContext goalsDbContext) : IQueryHandler<GetObjectivesForPlanningIntervalsQuery, IReadOnlyList<ObjectiveListDto>>
+public sealed class GetObjectivesForPlanningIntervalsQueryHandler(IGoalsDbContext goalsDbContext) : IQueryHandler<GetObjectivesForPlanningIntervalsQuery, IReadOnlyList<ObjectiveListDto>>
 {
     private readonly IGoalsDbContext _goalsDbContext = goalsDbContext;
 

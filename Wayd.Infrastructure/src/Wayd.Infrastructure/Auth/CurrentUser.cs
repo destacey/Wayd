@@ -4,13 +4,13 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Wayd.Infrastructure.Auth;
 
-public class CurrentUser(IHttpContextAccessor httpContextAccessor, IServiceProvider serviceProvider) : ICurrentUser, ICurrentUserInitializer
+public class CurrentUser(IHttpContextAccessor httpContextAccessor, IServiceProvider serviceProvider, AmbientUserId ambientUserId) : ICurrentUser, ICurrentUserInitializer
 {
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
     private readonly IServiceProvider _serviceProvider = serviceProvider;
+    private readonly AmbientUserId _ambientUserId = ambientUserId;
 
     private ClaimsPrincipal? _user;
-    private string _userId = string.Empty;
 
     private HashSet<string>? _permissionsCache;
 
@@ -22,7 +22,7 @@ public class CurrentUser(IHttpContextAccessor httpContextAccessor, IServiceProvi
     public string GetUserId() =>
         IsAuthenticated()
             ? User?.GetUserId() ?? string.Empty
-            : _userId;
+            : _ambientUserId.Value ?? string.Empty;
 
     public Guid? GetEmployeeId()
     {
@@ -76,16 +76,10 @@ public class CurrentUser(IHttpContextAccessor httpContextAccessor, IServiceProvi
         _user = user;
     }
 
-    public void SetCurrentUserId(string userId)
-    {
-        if (!string.IsNullOrEmpty(_userId))
-        {
-            throw new Exception("Method reserved for in-scope initialization");
-        }
-
-        if (!string.IsNullOrEmpty(userId))
-        {
-            _userId = userId;
-        }
-    }
+    public void SetCurrentUserId(string userId) =>
+        // Stored on the scoped AmbientUserId (shared with the handler's DbContext in the same scope)
+        // rather than a private field, so Wolverine's identity middleware and the handler that runs in
+        // the same message scope both see it. Idempotent for the same id; throws only on a conflicting
+        // change (preserving the old "reserved for in-scope initialization" invariant).
+        _ambientUserId.Set(userId);
 }

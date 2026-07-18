@@ -10,7 +10,7 @@ public sealed class DeletePokerSessionCommandValidator : CustomValidator<DeleteP
     }
 }
 
-internal sealed class DeletePokerSessionCommandHandler(IPlanningDbContext planningDbContext, ILogger<DeletePokerSessionCommandHandler> logger) : ICommandHandler<DeletePokerSessionCommand>
+public sealed class DeletePokerSessionCommandHandler(IPlanningDbContext planningDbContext, ILogger<DeletePokerSessionCommandHandler> logger) : ICommandHandler<DeletePokerSessionCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ILogger<DeletePokerSessionCommandHandler> _logger = logger;

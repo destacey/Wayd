@@ -20,7 +20,7 @@ public sealed class ChangeProjectLifecycleCommandValidator : CustomValidator<Cha
     }
 }
 
-internal sealed class ChangeProjectLifecycleCommandHandler(
+public sealed class ChangeProjectLifecycleCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ILogger<ChangeProjectLifecycleCommandHandler> logger)
     : ICommandHandler<ChangeProjectLifecycleCommand>

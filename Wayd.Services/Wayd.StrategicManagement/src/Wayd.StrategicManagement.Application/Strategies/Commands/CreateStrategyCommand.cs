@@ -22,7 +22,7 @@ public sealed class CreateStrategyCommandValidator : AbstractValidator<CreateStr
     }
 }
 
-internal sealed class CreateStrategyCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<CreateStrategyCommandHandler> logger) : ICommandHandler<CreateStrategyCommand, ObjectIdAndKey>
+public sealed class CreateStrategyCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<CreateStrategyCommandHandler> logger) : ICommandHandler<CreateStrategyCommand, ObjectIdAndKey>
 {
     private const string AppRequestName = nameof(CreateStrategyCommand);
 

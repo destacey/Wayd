@@ -6,7 +6,7 @@ using Wayd.Work.Domain.Interfaces;
 
 namespace Wayd.Work.Application.Workflows.Commands;
 
-internal sealed class CreateExternalWorkflowCommandHandler(IWorkDbContext workDbContext, ILogger<CreateExternalWorkProcessCommandHandler> logger) : ICommandHandler<CreateExternalWorkflowCommand, Guid>
+public sealed class CreateExternalWorkflowCommandHandler(IWorkDbContext workDbContext, ILogger<CreateExternalWorkProcessCommandHandler> logger) : ICommandHandler<CreateExternalWorkflowCommand, Guid>
 {
     private const string AppRequestName = nameof(CreateExternalWorkflowCommand);
 

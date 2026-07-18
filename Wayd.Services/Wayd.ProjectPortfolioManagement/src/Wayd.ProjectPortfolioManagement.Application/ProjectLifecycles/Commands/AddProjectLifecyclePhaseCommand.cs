@@ -23,7 +23,7 @@ public sealed class AddProjectLifecyclePhaseCommandValidator : AbstractValidator
     }
 }
 
-internal sealed class AddProjectLifecyclePhaseCommandHandler(
+public sealed class AddProjectLifecyclePhaseCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<AddProjectLifecyclePhaseCommandHandler> logger)
     : ICommandHandler<AddProjectLifecyclePhaseCommand, Guid>

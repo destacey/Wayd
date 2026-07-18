@@ -7,7 +7,11 @@ namespace Wayd.Infrastructure.Identity;
 /// write paths in <see cref="UserService"/> and <see cref="Auth.Local.TokenService"/>
 /// can be unit-tested without spinning up a full <c>WaydDbContext</c>.
 /// </summary>
-internal interface IUserIdentityStore : IScopedService
+// Public (not internal) because Wolverine's generated handler code news up the public
+// DeleteOidcProviderCommandHandler, whose constructor takes this type — a public constructor cannot
+// expose a less-accessible parameter type. This is the accepted encapsulation trade-off of the
+// Wolverine migration (handlers must be public).
+public interface IUserIdentityStore : IScopedService
 {
     Task<UserIdentity?> FindActive(string provider, string? tenantId, string subject, CancellationToken cancellationToken = default);
 

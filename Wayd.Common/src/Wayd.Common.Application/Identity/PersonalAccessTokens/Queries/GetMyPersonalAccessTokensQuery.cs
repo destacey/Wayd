@@ -8,7 +8,7 @@ namespace Wayd.Common.Application.Identity.PersonalAccessTokens.Queries;
 /// </summary>
 public sealed record GetMyPersonalAccessTokensQuery : IQuery<Result<List<PersonalAccessTokenDto>>>;
 
-internal sealed class GetMyPersonalAccessTokensQueryHandler(IWaydDbContext dbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetMyPersonalAccessTokensQuery, Result<List<PersonalAccessTokenDto>>>
+public sealed class GetMyPersonalAccessTokensQueryHandler(IWaydDbContext dbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetMyPersonalAccessTokensQuery, Result<List<PersonalAccessTokenDto>>>
 {
     private readonly IWaydDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;

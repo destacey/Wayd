@@ -78,7 +78,7 @@ public sealed class CreateScoringModelCommandValidator : AbstractValidator<Creat
     }
 }
 
-internal sealed class CreateScoringModelCommandHandler(
+public sealed class CreateScoringModelCommandHandler(
     IWaydDbContext waydDbContext,
     ILogger<CreateScoringModelCommandHandler> logger)
     : ICommandHandler<CreateScoringModelCommand, Guid>

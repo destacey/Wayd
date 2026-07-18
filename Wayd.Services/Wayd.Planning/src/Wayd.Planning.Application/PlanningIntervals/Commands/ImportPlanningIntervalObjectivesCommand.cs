@@ -31,7 +31,7 @@ public sealed class ImportPlanningIntervalObjectivesCommandValidator : CustomVal
     }
 }
 
-internal sealed class ImportPlanningIntervalObjectivesCommandHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, ILogger<ImportPlanningIntervalObjectivesCommandHandler> logger) : ICommandHandler<ImportPlanningIntervalObjectivesCommand>
+public sealed class ImportPlanningIntervalObjectivesCommandHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, ILogger<ImportPlanningIntervalObjectivesCommandHandler> logger) : ICommandHandler<ImportPlanningIntervalObjectivesCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;

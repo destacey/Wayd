@@ -14,7 +14,7 @@ public sealed record GetProjectsPlanSummariesQuery(
     Guid[] ProjectIds,
     ProjectMemberRole[]? RoleFilter = null) : IQuery<Dictionary<Guid, ProjectPlanSummaryDto>>;
 
-internal sealed class GetProjectsPlanSummariesQueryHandler(
+public sealed class GetProjectsPlanSummariesQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider)

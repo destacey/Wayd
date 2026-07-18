@@ -4,7 +4,7 @@ namespace Wayd.Work.Application.WorkProcesses.Commands;
 
 public sealed record ActivateWorkProcessCommand(Guid Id) : ICommand;
 
-internal sealed class ActivateWorkProcessCommandHandler(IWorkDbContext workDbContext, ILogger<ActivateWorkProcessCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ActivateWorkProcessCommand>
+public sealed class ActivateWorkProcessCommandHandler(IWorkDbContext workDbContext, ILogger<ActivateWorkProcessCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ActivateWorkProcessCommand>
 {
     private const string AppRequestName = nameof(ActivateWorkProcessCommand);
 

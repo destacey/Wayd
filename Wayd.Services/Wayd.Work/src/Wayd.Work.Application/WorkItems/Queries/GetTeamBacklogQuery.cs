@@ -17,7 +17,7 @@ public sealed record GetTeamBacklogQuery : IQuery<Result<List<WorkItemBacklogIte
     public Expression<Func<WorkItem, bool>> TeamFilter { get; }
 }
 
-internal sealed class GetTeamBacklogQueryHandler(IWorkDbContext workDbContext) : IQueryHandler<GetTeamBacklogQuery, Result<List<WorkItemBacklogItemDto>>>
+public sealed class GetTeamBacklogQueryHandler(IWorkDbContext workDbContext) : IQueryHandler<GetTeamBacklogQuery, Result<List<WorkItemBacklogItemDto>>>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
 

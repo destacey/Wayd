@@ -5,7 +5,7 @@ namespace Wayd.Common.Application.HealthChecks.Queries;
 
 public sealed record GetHealthStatusesQuery : IQuery<IReadOnlyList<HealthStatusDto>>;
 
-internal sealed class GetHealthStatusesQueryHandler : IQueryHandler<GetHealthStatusesQuery, IReadOnlyList<HealthStatusDto>>
+public sealed class GetHealthStatusesQueryHandler : IQueryHandler<GetHealthStatusesQuery, IReadOnlyList<HealthStatusDto>>
 {
     public Task<IReadOnlyList<HealthStatusDto>> Handle(GetHealthStatusesQuery request, CancellationToken cancellationToken)
     {

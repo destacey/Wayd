@@ -6,7 +6,7 @@ namespace Wayd.Organization.Application.Teams.Queries;
 
 public sealed record GetFunctionalOrganizationChartQuery(LocalDate? AsOfDate = null) : IQuery<FunctionalOrganizationChartDto>;
 
-internal sealed class GetFunctionalOrganizationChartQueryHandler(IOrganizationDbContext organizationDbContext, ILogger<GetFunctionalOrganizationChartQueryHandler> logger, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetFunctionalOrganizationChartQuery, FunctionalOrganizationChartDto>
+public sealed class GetFunctionalOrganizationChartQueryHandler(IOrganizationDbContext organizationDbContext, ILogger<GetFunctionalOrganizationChartQueryHandler> logger, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetFunctionalOrganizationChartQuery, FunctionalOrganizationChartDto>
 {
     private const string RequestName = nameof(GetFunctionalOrganizationChartQuery);
 

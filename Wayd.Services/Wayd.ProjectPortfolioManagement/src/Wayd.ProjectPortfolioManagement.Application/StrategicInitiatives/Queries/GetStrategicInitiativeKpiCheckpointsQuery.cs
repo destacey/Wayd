@@ -18,7 +18,7 @@ public sealed record GetStrategicInitiativeKpiCheckpointsQuery : IQuery<List<Str
     public IdOrKey KpiIdOrKey { get; }
 }
 
-internal sealed class GetStrategicInitiativeKpiCheckpointsQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
+public sealed class GetStrategicInitiativeKpiCheckpointsQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
     : IQueryHandler<GetStrategicInitiativeKpiCheckpointsQuery, List<StrategicInitiativeKpiCheckpointDto>?>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = projectPortfolioManagementDbContext;

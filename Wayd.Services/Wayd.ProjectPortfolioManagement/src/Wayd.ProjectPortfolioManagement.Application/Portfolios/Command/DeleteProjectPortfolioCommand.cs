@@ -11,7 +11,7 @@ public sealed class DeleteProjectPortfolioCommandValidator : AbstractValidator<D
     }
 }
 
-internal sealed class DeleteProjectPortfolioCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<DeleteProjectPortfolioCommandHandler> logger) : ICommandHandler<DeleteProjectPortfolioCommand>
+public sealed class DeleteProjectPortfolioCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<DeleteProjectPortfolioCommandHandler> logger) : ICommandHandler<DeleteProjectPortfolioCommand>
 {
     private const string AppRequestName = nameof(DeleteProjectPortfolioCommand);
 

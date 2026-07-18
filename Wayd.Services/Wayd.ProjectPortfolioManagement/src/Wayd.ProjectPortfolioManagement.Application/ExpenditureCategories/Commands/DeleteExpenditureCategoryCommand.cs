@@ -13,7 +13,7 @@ public sealed class DeleteExpenditureCategoryCommandValidator : AbstractValidato
     }
 }
 
-internal sealed class DeleteExpenditureCategoryCommandHandler(
+public sealed class DeleteExpenditureCategoryCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<DeleteExpenditureCategoryCommandHandler> logger)
     : ICommandHandler<DeleteExpenditureCategoryCommand>

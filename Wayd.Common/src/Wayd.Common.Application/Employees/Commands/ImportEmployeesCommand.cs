@@ -42,7 +42,7 @@ public sealed class ImportEmployeesCommandValidator : CustomValidator<ImportEmpl
     }
 }
 
-internal sealed class ImportEmployeesCommandHandler(
+public sealed class ImportEmployeesCommandHandler(
     IWaydDbContext waydDbContext,
     IDateTimeProvider dateTimeProvider,
     ILogger<ImportEmployeesCommandHandler> logger) : ICommandHandler<ImportEmployeesCommand>

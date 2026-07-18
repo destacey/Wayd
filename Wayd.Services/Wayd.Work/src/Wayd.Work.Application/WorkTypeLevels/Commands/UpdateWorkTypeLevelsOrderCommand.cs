@@ -4,7 +4,7 @@ namespace Wayd.Work.Application.WorkTypeLevels.Commands;
 
 public sealed record UpdateWorkTypeLevelsOrderCommand(Dictionary<int, int> Levels) : ICommand;
 
-internal sealed class UpdateWorkTypeLevelsOrderCommandHandler : ICommandHandler<UpdateWorkTypeLevelsOrderCommand>
+public sealed class UpdateWorkTypeLevelsOrderCommandHandler : ICommandHandler<UpdateWorkTypeLevelsOrderCommand>
 {
     private const string AppRequestName = nameof(UpdateWorkTypeLevelsOrderCommand);
 

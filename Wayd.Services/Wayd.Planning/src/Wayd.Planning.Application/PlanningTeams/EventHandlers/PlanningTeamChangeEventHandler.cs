@@ -1,15 +1,9 @@
-﻿using Wayd.Common.Application.Events;
-using Wayd.Common.Domain.Enums;
+﻿using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events.Organization;
 
 namespace Wayd.Planning.Application.PlanningTeams.EventHandlers;
 
-internal sealed class PlanningTeamChangeEventHandler :
-    IEventNotificationHandler<TeamCreatedEvent>,
-    IEventNotificationHandler<TeamUpdatedEvent>,
-    IEventNotificationHandler<TeamActivatedEvent>,
-    IEventNotificationHandler<TeamDeactivatedEvent>,
-    IEventNotificationHandler<TeamDeletedEvent>
+public sealed class PlanningTeamChangeEventHandler
 {
     private readonly IPlanningDbContext _planningDbContext;
     private readonly ILogger<PlanningTeamChangeEventHandler> _logger;
@@ -20,29 +14,29 @@ internal sealed class PlanningTeamChangeEventHandler :
         _logger = logger;
     }
 
-    public async Task Handle(EventNotification<TeamCreatedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(TeamCreatedEvent @event, CancellationToken cancellationToken)
     {
-        await CreatePlanningTeam(notification.Event, cancellationToken);
+        await CreatePlanningTeam(@event, cancellationToken);
     }
 
-    public async Task Handle(EventNotification<TeamUpdatedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(TeamUpdatedEvent @event, CancellationToken cancellationToken)
     {
-        await UpdatePlanningTeam(notification.Event, cancellationToken);
+        await UpdatePlanningTeam(@event, cancellationToken);
     }
 
-    public async Task Handle(EventNotification<TeamActivatedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(TeamActivatedEvent @event, CancellationToken cancellationToken)
     {
-        await ActivatePlanningTeam(notification.Event, cancellationToken);
+        await ActivatePlanningTeam(@event, cancellationToken);
     }
 
-    public async Task Handle(EventNotification<TeamDeactivatedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(TeamDeactivatedEvent @event, CancellationToken cancellationToken)
     {
-        await DeactivatePlanningTeam(notification.Event, cancellationToken);
+        await DeactivatePlanningTeam(@event, cancellationToken);
     }
 
-    public async Task Handle(EventNotification<TeamDeletedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(TeamDeletedEvent @event, CancellationToken cancellationToken)
     {
-        await DeletePlanningTeam(notification.Event, cancellationToken);
+        await DeletePlanningTeam(@event, cancellationToken);
     }
 
     private async Task CreatePlanningTeam(TeamCreatedEvent team, CancellationToken cancellationToken)

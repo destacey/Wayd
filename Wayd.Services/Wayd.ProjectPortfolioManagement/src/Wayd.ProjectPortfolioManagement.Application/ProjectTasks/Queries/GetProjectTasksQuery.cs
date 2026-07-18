@@ -23,7 +23,7 @@ public sealed record GetProjectTasksQuery : IQuery<IReadOnlyList<ProjectTaskList
     public Guid? ParentId { get; }
 }
 
-internal sealed class GetProjectTasksQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
+public sealed class GetProjectTasksQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
     : IQueryHandler<GetProjectTasksQuery, IReadOnlyList<ProjectTaskListDto>>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;

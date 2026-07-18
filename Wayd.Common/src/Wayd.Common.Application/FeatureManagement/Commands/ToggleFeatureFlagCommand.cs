@@ -13,7 +13,7 @@ public sealed class ToggleFeatureFlagCommandValidator : CustomValidator<ToggleFe
     }
 }
 
-internal sealed class ToggleFeatureFlagCommandHandler(
+public sealed class ToggleFeatureFlagCommandHandler(
     IFeatureManagementDbContext dbContext,
     IFeatureFlagCacheInvalidator cacheInvalidator,
     ILogger<ToggleFeatureFlagCommandHandler> logger) : ICommandHandler<ToggleFeatureFlagCommand>

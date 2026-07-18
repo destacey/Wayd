@@ -51,7 +51,7 @@ public sealed class UpdateProjectTaskCommandValidator : AbstractValidator<Update
     }
 }
 
-internal sealed class UpdateProjectTaskCommandHandler(
+public sealed class UpdateProjectTaskCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ILogger<UpdateProjectTaskCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)

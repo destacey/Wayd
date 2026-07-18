@@ -7,25 +7,25 @@ audience: [developer, agent]
 
 # API Development
 
-The Wayd API is an ASP.NET Core Web API using thin controllers that delegate to MediatR handlers.
+The Wayd API is an ASP.NET Core Web API using thin controllers that delegate to handlers via `IDispatcher` (backed by Wolverine).
 
 ## Controller Pattern
 
-Controllers should be thin and contain no business logic:
+Controllers should be thin and contain no business logic. Inject `IDispatcher` and call `Send`:
 
 ```csharp
 [ApiController]
 [Route("api/work-management/work-items")]
 public class WorkItemsController : ControllerBase
 {
-    private readonly ISender _sender;
+    private readonly IDispatcher _dispatcher;
 
-    public WorkItemsController(ISender sender) => _sender = sender;
+    public WorkItemsController(IDispatcher dispatcher) => _dispatcher = dispatcher;
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<WorkItemDto>> GetById(Guid id, CancellationToken ct)
     {
-        var result = await _sender.Send(new GetWorkItemQuery(id), ct);
+        var result = await _dispatcher.Send(new GetWorkItemQuery(id), ct);
         return result.IsSuccess
             ? Ok(result.Value)
             : NotFound(result.Error);
@@ -34,7 +34,7 @@ public class WorkItemsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Guid>> Create(CreateWorkItemRequest request, CancellationToken ct)
     {
-        var result = await _sender.Send(request.ToCommand(), ct);
+        var result = await _dispatcher.Send(request.ToCommand(), ct);
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
             : BadRequest(result.Error);
@@ -59,4 +59,4 @@ Access Swagger UI at `/swagger` when the API is running.
 - Use RESTful route patterns
 - Return appropriate HTTP status codes
 - Use `CancellationToken` in all async endpoints
-- Validate input through FluentValidation (automatically via MediatR pipeline)
+- Validate input through FluentValidation (run automatically by the Wolverine handler pipeline)

@@ -1,37 +1,33 @@
-﻿using Wayd.Common.Application.Events;
-using Wayd.Common.Domain.Enums;
+﻿using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkProjects.EventHandlers;
 
-internal sealed class ProjectSyncHandler(IWorkDbContext workDbContext, ILogger<ProjectSyncHandler> logger) :
-    IEventNotificationHandler<ProjectCreatedEvent>,
-    IEventNotificationHandler<ProjectDetailsUpdatedEvent>,
-    IEventNotificationHandler<ProjectDeletedEvent>
+public sealed class ProjectSyncHandler(IWorkDbContext workDbContext, ILogger<ProjectSyncHandler> logger)
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly ILogger<ProjectSyncHandler> _logger = logger;
 
-    public async Task Handle(EventNotification<ProjectCreatedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(ProjectCreatedEvent @event, CancellationToken cancellationToken)
     {
         if (_logger.IsEnabled(LogLevel.Debug))
-            _logger.LogDebug("Handling Work {SystemActionType} for a new Project {ProjectId}.", SystemActionType.ServiceDataReplication, notification.Event.Id);
-        await CreateProject(notification.Event, cancellationToken);
+            _logger.LogDebug("Handling Work {SystemActionType} for a new Project {ProjectId}.", SystemActionType.ServiceDataReplication, @event.Id);
+        await CreateProject(@event, cancellationToken);
     }
 
-    public async Task Handle(EventNotification<ProjectDetailsUpdatedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(ProjectDetailsUpdatedEvent @event, CancellationToken cancellationToken)
     {
         if (_logger.IsEnabled(LogLevel.Debug))
-            _logger.LogDebug("Handling Work {SystemActionType} for an updated Project {ProjectId}.", SystemActionType.ServiceDataReplication, notification.Event.Id);
-        await UpdateProject(notification.Event, cancellationToken);
+            _logger.LogDebug("Handling Work {SystemActionType} for an updated Project {ProjectId}.", SystemActionType.ServiceDataReplication, @event.Id);
+        await UpdateProject(@event, cancellationToken);
     }
 
-    public async Task Handle(EventNotification<ProjectDeletedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(ProjectDeletedEvent @event, CancellationToken cancellationToken)
     {
         if (_logger.IsEnabled(LogLevel.Debug))
-            _logger.LogDebug("Handling Work {SystemActionType} for a deleted Project {ProjectId}.", SystemActionType.ServiceDataReplication, notification.Event.Id);
-        await DeleteProject(notification.Event, cancellationToken);
+            _logger.LogDebug("Handling Work {SystemActionType} for a deleted Project {ProjectId}.", SystemActionType.ServiceDataReplication, @event.Id);
+        await DeleteProject(@event, cancellationToken);
     }
 
     private async Task CreateProject(ProjectCreatedEvent createdEvent, CancellationToken cancellationToken)

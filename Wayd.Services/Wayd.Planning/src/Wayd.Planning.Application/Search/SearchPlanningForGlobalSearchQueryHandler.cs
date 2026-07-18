@@ -9,7 +9,7 @@ using Wayd.Planning.Domain.Models.Roadmaps;
 
 namespace Wayd.Planning.Application.Search;
 
-internal sealed class SearchPlanningForGlobalSearchQueryHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser)
+public sealed class SearchPlanningForGlobalSearchQueryHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser)
     : IQueryHandler<SearchPlanningForGlobalSearchQuery, ServiceSearchResponse>
 {
     public async Task<ServiceSearchResponse> Handle(SearchPlanningForGlobalSearchQuery request, CancellationToken cancellationToken)

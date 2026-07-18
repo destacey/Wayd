@@ -5,7 +5,7 @@ using Wayd.Common.Domain.Enums.Organization;
 
 namespace Wayd.Organization.Application.Search;
 
-internal sealed class SearchOrganizationForGlobalSearchQueryHandler(IOrganizationDbContext organizationDbContext)
+public sealed class SearchOrganizationForGlobalSearchQueryHandler(IOrganizationDbContext organizationDbContext)
     : IQueryHandler<SearchOrganizationForGlobalSearchQuery, ServiceSearchResponse>
 {
     public async Task<ServiceSearchResponse> Handle(SearchOrganizationForGlobalSearchQuery request, CancellationToken cancellationToken)

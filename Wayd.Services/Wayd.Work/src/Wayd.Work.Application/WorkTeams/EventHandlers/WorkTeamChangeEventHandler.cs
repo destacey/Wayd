@@ -1,16 +1,10 @@
-﻿using Wayd.Common.Application.Events;
-using Wayd.Common.Domain.Enums;
+﻿using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkTeams.EventHandlers;
 
-internal sealed class WorkTeamChangeEventHandler :
-    IEventNotificationHandler<TeamCreatedEvent>,
-    IEventNotificationHandler<TeamUpdatedEvent>,
-    IEventNotificationHandler<TeamActivatedEvent>,
-    IEventNotificationHandler<TeamDeactivatedEvent>,
-    IEventNotificationHandler<TeamDeletedEvent>
+public sealed class WorkTeamChangeEventHandler
 {
     private readonly IWorkDbContext _workDbContext;
     private readonly ILogger<WorkTeamChangeEventHandler> _logger;
@@ -21,29 +15,29 @@ internal sealed class WorkTeamChangeEventHandler :
         _logger = logger;
     }
 
-    public async Task Handle(EventNotification<TeamCreatedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(TeamCreatedEvent @event, CancellationToken cancellationToken)
     {
-        await CreateWorkTeam(notification.Event, cancellationToken);
+        await CreateWorkTeam(@event, cancellationToken);
     }
 
-    public async Task Handle(EventNotification<TeamUpdatedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(TeamUpdatedEvent @event, CancellationToken cancellationToken)
     {
-        await UpdateWorkTeam(notification.Event, cancellationToken);
+        await UpdateWorkTeam(@event, cancellationToken);
     }
 
-    public async Task Handle(EventNotification<TeamActivatedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(TeamActivatedEvent @event, CancellationToken cancellationToken)
     {
-        await ActivateWorkTeam(notification.Event, cancellationToken);
+        await ActivateWorkTeam(@event, cancellationToken);
     }
 
-    public async Task Handle(EventNotification<TeamDeactivatedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(TeamDeactivatedEvent @event, CancellationToken cancellationToken)
     {
-        await DeactivateWorkTeam(notification.Event, cancellationToken);
+        await DeactivateWorkTeam(@event, cancellationToken);
     }
 
-    public async Task Handle(EventNotification<TeamDeletedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(TeamDeletedEvent @event, CancellationToken cancellationToken)
     {
-        await DeleteWorkTeam(notification.Event, cancellationToken);
+        await DeleteWorkTeam(@event, cancellationToken);
     }
 
     private async Task CreateWorkTeam(TeamCreatedEvent team, CancellationToken cancellationToken)

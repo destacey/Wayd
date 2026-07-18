@@ -18,7 +18,7 @@ public sealed class UpdateFeatureFlagCommandValidator : CustomValidator<UpdateFe
     }
 }
 
-internal sealed class UpdateFeatureFlagCommandHandler(
+public sealed class UpdateFeatureFlagCommandHandler(
     IFeatureManagementDbContext dbContext,
     ILogger<UpdateFeatureFlagCommandHandler> logger) : ICommandHandler<UpdateFeatureFlagCommand>
 {

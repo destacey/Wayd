@@ -14,7 +14,7 @@ public sealed class GetTeamActiveSprintQueryValidator : CustomValidator<GetTeamA
     }
 }
 
-internal sealed class GetTeamActiveSprintQueryHandler(IPlanningDbContext planningDbContext)
+public sealed class GetTeamActiveSprintQueryHandler(IPlanningDbContext planningDbContext)
     : IQueryHandler<GetTeamActiveSprintQuery, SprintDetailsDto?>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;

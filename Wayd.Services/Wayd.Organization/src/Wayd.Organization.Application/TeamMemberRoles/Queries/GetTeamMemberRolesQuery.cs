@@ -4,7 +4,7 @@ namespace Wayd.Organization.Application.TeamMemberRoles.Queries;
 
 public sealed record GetTeamMemberRolesQuery(bool IncludeInactive = false) : IQuery<IReadOnlyList<TeamMemberRoleDto>>;
 
-internal sealed class GetTeamMemberRolesQueryHandler(IOrganizationDbContext organizationDbContext) : IQueryHandler<GetTeamMemberRolesQuery, IReadOnlyList<TeamMemberRoleDto>>
+public sealed class GetTeamMemberRolesQueryHandler(IOrganizationDbContext organizationDbContext) : IQueryHandler<GetTeamMemberRolesQuery, IReadOnlyList<TeamMemberRoleDto>>
 {
     public async Task<IReadOnlyList<TeamMemberRoleDto>> Handle(GetTeamMemberRolesQuery request, CancellationToken cancellationToken)
     {

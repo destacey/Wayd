@@ -29,7 +29,7 @@ public sealed class UpdateLinkCommandValidator : CustomValidator<UpdateLinkComma
     }
 }
 
-internal sealed class UpdateLinkCommandHandler : ICommandHandler<UpdateLinkCommand, LinkDto>
+public sealed class UpdateLinkCommandHandler : ICommandHandler<UpdateLinkCommand, LinkDto>
 {
     private readonly ILinksDbContext _linksDbContext;
     private readonly ILogger<UpdateLinkCommandHandler> _logger;

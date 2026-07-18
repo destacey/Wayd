@@ -1,4 +1,3 @@
-﻿using MediatR;
 using Wayd.Common.Application.Identity.OidcProviders.Dtos;
 using Wayd.Common.Application.Persistence;
 
@@ -10,8 +9,8 @@ namespace Wayd.Common.Application.Identity.OidcProviders.Queries;
 /// </summary>
 public sealed record GetOidcProviderQuery(Guid Id) : IQuery<OidcProviderDto?>;
 
-internal sealed class GetOidcProviderQueryHandler(IWaydDbContext dbContext)
-    : IRequestHandler<GetOidcProviderQuery, OidcProviderDto?>
+public sealed class GetOidcProviderQueryHandler(IWaydDbContext dbContext)
+    : IQueryHandler<GetOidcProviderQuery, OidcProviderDto?>
 {
     private readonly IWaydDbContext _dbContext = dbContext;
 

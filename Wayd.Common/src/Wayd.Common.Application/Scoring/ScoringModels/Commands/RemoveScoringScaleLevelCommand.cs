@@ -23,7 +23,7 @@ public sealed class RemoveScoringScaleLevelCommandValidator : AbstractValidator<
     }
 }
 
-internal sealed class RemoveScoringScaleLevelCommandHandler(
+public sealed class RemoveScoringScaleLevelCommandHandler(
     IWaydDbContext waydDbContext,
     ILogger<RemoveScoringScaleLevelCommandHandler> logger)
     : ICommandHandler<RemoveScoringScaleLevelCommand>

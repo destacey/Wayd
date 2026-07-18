@@ -17,7 +17,7 @@ public sealed record GetProjectQuery : IQuery<ProjectDetailsDto?>
     public Expression<Func<Project, bool>> IdOrKeyFilter { get; }
 }
 
-internal sealed class GetProjectQueryHandler(
+public sealed class GetProjectQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser)

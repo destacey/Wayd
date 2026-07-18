@@ -97,7 +97,7 @@ public sealed class StrategicInitiativeKpiCheckpointPlanItemValidator : Abstract
     }
 }
 
-internal sealed class ManageStrategicInitiativeKpiCheckpointPlanCommandHandler(
+public sealed class ManageStrategicInitiativeKpiCheckpointPlanCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<ManageStrategicInitiativeKpiCheckpointPlanCommandHandler> logger)
     : ICommandHandler<ManageStrategicInitiativeKpiCheckpointPlanCommand>

@@ -16,7 +16,7 @@ public sealed class SetConsensusCommandValidator : CustomValidator<SetConsensusC
     }
 }
 
-internal sealed class SetConsensusCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionNotifier notifier, ILogger<SetConsensusCommandHandler> logger) : ICommandHandler<SetConsensusCommand>
+public sealed class SetConsensusCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionNotifier notifier, ILogger<SetConsensusCommandHandler> logger) : ICommandHandler<SetConsensusCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IPokerSessionNotifier _notifier = notifier;

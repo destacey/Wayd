@@ -544,7 +544,7 @@ public class WorkProjectConfig : IEntityTypeConfiguration<WorkProject>
             .HasColumnType("varchar")
             .HasMaxLength(20);
         builder.Property(w => w.Name).IsRequired().HasMaxLength(128);
-        builder.Property(p => p.Description).HasMaxLength(2048).IsRequired();
+        builder.Property(p => p.Description).HasMaxLength(4096).IsRequired();
     }
 }
 

@@ -2,15 +2,15 @@
 
 /// <summary>
 /// Dispatches commands and queries to their handlers. This is the single seam through which the
-/// application talks to the underlying mediator, so the dispatcher implementation (MediatR today)
+/// application talks to the underlying mediator, so the dispatcher implementation (Wolverine today)
 /// can be swapped without touching call sites.
 /// </summary>
 /// <remarks>
 /// The response type is inferred from the <see cref="ICommand"/>/<see cref="ICommand{TResponse}"/>/
-/// <see cref="IQuery{TResponse}"/> markers, so call sites read identically to the previous
-/// <c>ISender.Send</c> usage. No underlying mediator types (e.g. MediatR's <c>IRequest</c>) appear
-/// in this contract, keeping it implementable over any dispatcher — including Wolverine's
-/// <c>IMessageBus.InvokeAsync&lt;T&gt;(object message)</c>.
+/// <see cref="IQuery{TResponse}"/> markers, so every call site reads as a simple
+/// <c>_dispatcher.Send(message, ct)</c>. No underlying mediator types appear in this contract, keeping
+/// it implementable over any dispatcher; the current implementation (<c>WolverineDispatcher</c>) is a
+/// thin pass-through to Wolverine's <c>IMessageBus.InvokeAsync&lt;T&gt;(object message)</c>.
 /// </remarks>
 public interface IDispatcher
 {

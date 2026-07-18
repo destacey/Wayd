@@ -1,11 +1,17 @@
 using JasperFx.CodeGeneration;
 using JasperFx.CodeGeneration.Model;
+using JasperFx.Resources;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using NodaTime;
+using NodaTime.Serialization.SystemTextJson;
 using Wayd.Common.Application.Behaviors;
 using Wayd.Common.Application.Validation;
 using Wolverine;
+using Wolverine.EntityFrameworkCore;
 using Wolverine.FluentValidation;
+using Wolverine.SqlServer;
 
 namespace Wayd.Infrastructure.Messaging;
 
@@ -46,11 +52,23 @@ public static class WolverineConfiguration
     /// </summary>
     public static TBuilder AddWaydWolverine<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
-        builder.UseWolverine(opts => opts.ConfigureWayd(builder.Environment));
+        // The durable outbox stores its envelopes in the same database as the application, read from the
+        // same config key AddPersistence uses (DatabaseSettings:ConnectionString). This read is EAGER —
+        // Wolverine's PersistMessagesWithSqlServer (below) needs the connection string synchronously here,
+        // before the host is built. In a normal host that is fine: AddConfigurations() has already loaded
+        // database.json (and env vars) into builder.Configuration. Integration-test hosts therefore inject
+        // their container connection string via an environment variable rather than a deferred
+        // ConfigureAppConfiguration override, which would not be visible yet at this point — see
+        // WaydSqlServerApiFactory.
+        var connectionString = builder.Configuration["DatabaseSettings:ConnectionString"]
+            ?? throw new InvalidOperationException(
+                "DatabaseSettings:ConnectionString is required to configure the Wolverine durable outbox.");
+
+        builder.UseWolverine(opts => opts.ConfigureWayd(builder.Environment, connectionString));
         return builder;
     }
 
-    private static WolverineOptions ConfigureWayd(this WolverineOptions opts, IHostEnvironment environment)
+    private static WolverineOptions ConfigureWayd(this WolverineOptions opts, IHostEnvironment environment, string connectionString)
     {
         // Discovery: only the assemblies we own that actually contain handlers. Wolverine already scans
         // the entry assembly (Wayd.Web.Api); include the rest explicitly.
@@ -58,6 +76,48 @@ public static class WolverineConfiguration
         {
             opts.Discovery.IncludeAssembly(marker.Assembly);
         }
+
+        // DURABLE TRANSACTIONAL OUTBOX (plumbing only — no event is routed durably yet).
+        //
+        // PersistMessagesWithSqlServer stores message envelopes in a dedicated "wolverine" schema (never
+        // dbo), provisioned by Weasel at startup parallel to our EF migrations. UseEntityFrameworkCoreTransactions
+        // lets a handler's outgoing messages enlist in the WaydDbContext SaveChanges transaction so they
+        // would commit atomically with the entity changes and deliver post-commit via the durability
+        // agent. The DbContext half — AddDbContextWithWolverineIntegration<WaydDbContext> — is wired in
+        // AddPersistence (it is an IServiceCollection call; these are WolverineOptions calls).
+        //
+        // Why this changes NO behaviour today: Wolverine's outbox is post-commit and asynchronous by
+        // design — outbox messages are never delivered inline before the calling method returns (a
+        // deliberate guard against a downstream handler running before the DB change is visible), and
+        // there is no "durable + inline" mode. But every domain event we raise today is an inline
+        // cross-domain replication projection (same-Id copies that in-request reads and follow-up commands
+        // depend on), so they MUST stay inline via EventPublisher's InvokeAsync to preserve read-your-writes.
+        // With no genuinely fire-and-forget event yet, nothing is routed through this outbox. It exists so
+        // the first such event (Stage C) can opt in with a one-line PublishAsync + failure policy, against
+        // already-proven infrastructure, without touching the replication path. The guardrail that this
+        // stayed true is CrossDomainReplicationTests.
+        opts.PersistMessagesWithSqlServer(connectionString, Persistence.ConfigureServices.WolverineSchemaName);
+        opts.UseEntityFrameworkCoreTransactions();
+
+        // Provision the envelope tables on startup. Two settings are needed, and this was the subtle part:
+        //   - AutoBuildMessageStorageOnStartup: Wolverine's own default is CreateOrUpdate, but JasperFx
+        //     overrides it from the active runtime profile — whose Development default is AutoCreate.None —
+        //     so it must be set explicitly or the runtime's migrate path is a no-op in dev/tests.
+        //   - AddResourceSetupOnStartup: registers the hosted service that actually RUNS resource setup at
+        //     boot. Without it the tables are silently NOT created even with AutoBuild on — verified against
+        //     a real SQL Server container (RebuildAsync succeeded yet produced zero tables until this was
+        //     added). This mirrors Wolverine's own end-to-end EF Core persistence fixture.
+        // SetupOnly creates missing resources without wiping existing data (never ResetState — that clears
+        // the store on every boot). This keeps a plain `dotnet run` / Testcontainers boot self-sufficient;
+        // when JasperFx.Aspire lands as a follow-up, its `resources setup` startup gate is the equivalent
+        // provisioning path for orchestrated environments.
+        opts.AutoBuildMessageStorageOnStartup = JasperFx.AutoCreate.CreateOrUpdate;
+        opts.Services.AddResourceSetupOnStartup();
+
+        // Durable envelopes are serialized with System.Text.Json; our domain events carry NodaTime types
+        // (Instant, LocalDate, LocalDateRange) and value objects, so register the same NodaTime converters
+        // the API's controllers use (Program.cs) so payloads round-trip cleanly through the outbox store.
+        opts.UseSystemTextJsonForSerialization(json => json.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb));
 
         // Validation parity with the old MediatR ValidationBehavior. ExplicitRegistration means
         // Wolverine does NOT scan for validators — we keep our own AddValidatorsFromAssembly

@@ -37,6 +37,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# .NET SDK generated files (Windows-style paths emitted by .esproj tooling)
+obj\Debug/
+
 # PWA - generated service worker
 /public/sw.js
 /public/sw.js.map

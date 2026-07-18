@@ -16,6 +16,7 @@
     <PackageVersion Include="FluentValidation.AspNetCore" Version="11.3.1" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageVersion Include="Hangfire" Version="1.8.23" />
+    <PackageVersion Include="JasperFx.Aspire" Version="2.29.1" />
     <PackageVersion Include="Hangfire.Console.Extensions" Version="2.1.2" />
     <PackageVersion Include="Hangfire.Console.Extensions.Serilog" Version="2.1.2" />
     <PackageVersion Include="Hangfire.Dashboard.BasicAuthorization" Version="1.0.2" />

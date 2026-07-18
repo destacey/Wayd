@@ -1,4 +1,5 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using JasperFx.Aspire;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -28,7 +29,43 @@ var waydDb = builder.AddConnectionString("WaydDb");
 var waydApi = builder.AddProject<Projects.Wayd_Web_Api>("wayd-api")
     .WithReference(waydDb)
     .WaitFor(waydDb)
-    .WithHttpHealthCheck(global::Wayd.Infrastructure.ServiceEndpoints.HealthEndpointPath);
+    .WithHttpHealthCheck(global::Wayd.Infrastructure.ServiceEndpoints.HealthEndpointPath)
+    // Surface the JasperFx/Wolverine CLI verbs as one-click buttons on the wayd-api dashboard tile.
+    // Default (no options) adds only the READ-ONLY verbs — `check-env`, `describe`, `codegen` (preview) —
+    // so an operator can run an environment check or inspect the generated handler code / Wolverine config
+    // against the running service without a terminal, and with no confirmation prompts. The mutating verbs
+    // (`resources`, `codegen write`, `projections`) are intentionally NOT added: `resources setup` already
+    // runs as the startup gate below, and mutating buttons would need IncludeMutatingCommands = true.
+    .WithJasperFxCommands()
+    // JasperFx startup gate: run `resources setup` as a separate, short-lived invocation of the API
+    // (via RunJasperFxCommands in Program.cs) BEFORE the long-running API boots. It provisions the
+    // Wolverine durable-outbox tables in the dedicated `wolverine` schema — the orchestrated-environment
+    // equivalent of the AddResourceSetupOnStartup() call that keeps a plain `dotnet run`/Testcontainers
+    // boot self-sufficient. Placed after WithReference/WaitFor so the gate inherits them (it must reach
+    // the same database). The gate reads its connection string exactly as the API does — from
+    // database.json's DatabaseSettings:ConnectionString, the same value mirrored into ConnectionStrings:WaydDb
+    // above — so it provisions into the API's real database. `codegen write` is intentionally NOT run here:
+    // we remain on runtime codegen (Dynamic/Auto + WolverineFx.RuntimeCompilation), so pre-generating into
+    // an uncommitted tree each boot would only add startup cost without being the compiled source of truth.
+    // Flipping to TypeLoadMode.Static (with committed generated code) and adding the codegen gate is a
+    // deferred follow-up.
+    //
+    // ConfigureGate strips the gate's HTTP/HTTPS endpoints. JasperFx.Aspire builds the gate as a second
+    // AddProject on the SAME csproj, so it inherits the API's launch-profile endpoints — but it is a
+    // run-to-completion process that never listens, so Aspire logs "service '/wayd-api-resources-setup-https'
+    // ... is not produced by this Executable" / "service-producer annotation is invalid" and the phantom
+    // service tangles the API's own endpoint allocation (leaving wayd-api stuck Running-Unhealthy). Removing
+    // the gate's EndpointAnnotations makes it a pure provisioning executable with no service to expose.
+    .WithJasperFxStartup(c => c.Run("resources", "setup", gate =>
+        gate.ConfigureGate = g =>
+        {
+            foreach (var endpoint in g.Resource.Annotations
+                         .OfType<Aspire.Hosting.ApplicationModel.EndpointAnnotation>()
+                         .ToArray())
+            {
+                g.Resource.Annotations.Remove(endpoint);
+            }
+        }));
 
 // "Reset Database" command in the Aspire dashboard. Destruction lives here — in the orchestrator, out
 // of band from the running app — so it is never reachable via an HTTP request and simply does not exist

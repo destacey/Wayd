@@ -44,6 +44,9 @@ internal static class ConfigureServices
     private static IServiceCollection AddCurrentUser(this IServiceCollection services) =>
         services
             .AddHttpContextAccessor()
+            // Scoped: shared by CurrentUser and the handler's DbContext within one message/request scope.
+            // The message header carries the id across the send→handle scope boundary (see AmbientUserId).
+            .AddScoped<AmbientUserId>()
             .AddScoped<ICurrentUser, CurrentUser>()
             .AddScoped(sp => (ICurrentUserInitializer)sp.GetRequiredService<ICurrentUser>());
 

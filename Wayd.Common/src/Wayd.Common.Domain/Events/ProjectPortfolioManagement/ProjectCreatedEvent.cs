@@ -9,13 +9,15 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 public sealed record ProjectCreatedEvent : DomainEvent, ISimpleProject
 {
     public ProjectCreatedEvent(ISimpleProject project, int expenditureCategoryId, int statusId, LocalDateRange? dateRange, Guid portfolioId, Guid? programId, Dictionary<int, Guid[]> roles, Guid[] strategicThemes, Instant timestamp)
-        : this(project.Id, project.Key, project.Name, project.Description, expenditureCategoryId, statusId, dateRange, portfolioId, programId, roles.ToDictionary(x => x.Key, x => x.Value.ToArray()), [.. strategicThemes], timestamp)
+        : this(project.Id, project.Key, project.Name, project.Description, expenditureCategoryId, statusId, dateRange, portfolioId, programId, roles, strategicThemes, timestamp)
     {
     }
 
     // Deserialization constructor for the Wolverine durable outbox. System.Text.Json binds every
     // parameter to a property by name, so this event can round-trip through the envelope store; the
     // primary constructor above destructures an ISimpleProject, whose `project` parameter STJ cannot bind.
+    // Both constructors funnel through here, so the defensive copy of the mutable collections lives here
+    // and applies regardless of which constructor a caller uses.
     [JsonConstructor]
     public ProjectCreatedEvent(Guid id, ProjectKey key, string name, string description, int expenditureCategoryId, int statusId, LocalDateRange? dateRange, Guid portfolioId, Guid? programId, Dictionary<int, Guid[]>? roles, Guid[] strategicThemes, Instant timestamp)
     {
@@ -28,8 +30,8 @@ public sealed record ProjectCreatedEvent : DomainEvent, ISimpleProject
         DateRange = dateRange;
         PortfolioId = portfolioId;
         ProgramId = programId;
-        Roles = roles;
-        StrategicThemes = strategicThemes;
+        Roles = roles?.ToDictionary(x => x.Key, x => x.Value.ToArray());
+        StrategicThemes = [.. strategicThemes];
 
         Timestamp = timestamp;
     }

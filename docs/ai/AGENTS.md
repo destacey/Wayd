@@ -58,8 +58,9 @@ public sealed class CreateThingCommandValidator : AbstractValidator<CreateThingC
     }
 }
 
-// 3. Handler (returns Result<T>, uses DbContext directly)
-internal sealed class CreateThingHandler : ICommandHandler<CreateThingCommand, Guid>
+// 3. Handler (returns Result<T>, uses DbContext directly). Handlers must be public —
+//    Wolverine generates code that calls them and cannot invoke internal types.
+public sealed class CreateThingHandler : ICommandHandler<CreateThingCommand, Guid>
 {
     private readonly WaydDbContext _context;
     private readonly IDateTimeProvider _dateTimeProvider;
@@ -80,7 +81,7 @@ internal sealed class CreateThingHandler : ICommandHandler<CreateThingCommand, G
 ```csharp
 public sealed record GetThingQuery(Guid Id) : IQuery<ThingDto>;
 
-internal sealed class GetThingHandler : IQueryHandler<GetThingQuery, ThingDto>
+public sealed class GetThingHandler : IQueryHandler<GetThingQuery, ThingDto>
 {
     private readonly WaydDbContext _context;
 
@@ -104,7 +105,7 @@ internal sealed class GetThingHandler : IQueryHandler<GetThingQuery, ThingDto>
 [HttpPost]
 public async Task<ActionResult<Guid>> Create(CreateThingRequest request, CancellationToken ct)
 {
-    var result = await _sender.Send(request.ToCommand(), ct);
+    var result = await _dispatcher.Send(request.ToCommand(), ct);
     return result.IsSuccess
         ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
         : BadRequest(result.Error);

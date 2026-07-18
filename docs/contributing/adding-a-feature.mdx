@@ -23,7 +23,7 @@ Start with the domain model:
 Add commands, queries, and handlers:
 
 1. Create the **command/query** record in `\{Feature\}/Commands/` or `\{Feature\}/Queries/`
-2. Create the **handler** implementing `ICommandHandler&lt;T&gt;` or `IQueryHandler&lt;T&gt;`
+2. Create the **handler** (a `public sealed class` — Wolverine's generated code cannot invoke internal handlers) implementing `ICommandHandler&lt;T&gt;` or `IQueryHandler&lt;T&gt;`
 3. Create the **validator** using FluentValidation
 4. Create **DTOs** for data transfer
 5. Add Mapster mapping configuration if needed
@@ -42,7 +42,7 @@ If the feature requires database changes:
 Expose the feature through the API:
 
 1. Add controller actions in `Wayd.Web.Api/Controllers/`
-2. Controllers should be thin - delegate to MediatR
+2. Controllers should be thin - delegate to handlers via `IDispatcher` (Wolverine)
 3. Return appropriate HTTP status codes
 
 ## 5. Frontend

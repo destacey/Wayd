@@ -45,17 +45,17 @@ Wayd/
 - **Domain** has zero external dependencies — only entities, value objects, domain events
 - **Application** depends only on Domain — commands, queries, handlers, DTOs, validators
 - **Infrastructure** depends on Application and Domain — EF Core, auth, background jobs
-- **Web API** depends on all layers — thin controllers delegating to MediatR
+- **Web API** depends on all layers — thin controllers delegating to `IDispatcher` (Wolverine)
 - Architecture tests in `Wayd.ArchitectureTests` enforce these rules
 
 ## Key Patterns
 
 | Pattern | Implementation |
 |---------|---------------|
-| CQRS | MediatR commands and queries |
+| CQRS | Wolverine commands and queries, dispatched through `IDispatcher` |
 | Error handling | `Result<T>` from CSharpFunctionalExtensions (no exceptions for business logic) |
 | Data access | EF Core DbContext directly (no repository pattern) |
-| Validation | FluentValidation (auto-registered with MediatR pipeline) |
+| Validation | FluentValidation (run by the Wolverine handler pipeline) |
 | Mapping | Mapster (DTOs) |
 | Time | NodaTime (`Instant`, `LocalDate`). Always inject `IDateTimeProvider`. |
 | Frontend API calls | NSwag-generated typed client. Never use `authenticatedFetch()` directly. |

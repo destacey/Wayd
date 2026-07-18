@@ -42,7 +42,7 @@ graph TB
 - **Domain** (innermost) - Zero external dependencies. Contains entities, value objects, domain events, and interfaces.
 - **Application** - Depends on Domain only. Contains commands, queries, handlers, DTOs, and validators.
 - **Infrastructure** - Depends on Application and Domain. Contains EF Core, authentication, background jobs, and external integrations.
-- **Web API** - Depends on all layers. Thin controllers that delegate to MediatR handlers.
+- **Web API** - Depends on all layers. Thin controllers that delegate to handlers via `IDispatcher` (Wolverine).
 
 These rules are enforced by automated architecture tests in `Wayd.ArchitectureTests`.
 
@@ -73,9 +73,9 @@ Wayd/
 
 ## Key Patterns
 
-### CQRS with MediatR
+### CQRS with Wolverine
 
-All business operations are modeled as commands (writes) or queries (reads), dispatched through MediatR. Controllers are thin and contain no business logic.
+All business operations are modeled as commands (writes) or queries (reads), dispatched through `IDispatcher` (backed by Wolverine). Controllers are thin and contain no business logic. Handlers must be `public` — Wolverine generates the code that invokes them and cannot call internal types.
 
 ```csharp
 // Command
@@ -141,7 +141,7 @@ Domains do **not** share entity rows. Each domain keeps its own local projection
 another domain, kept aligned two ways:
 
 1. **Event replication (copy).** The owning domain raises a domain event; consuming domains have
-   `IEventNotificationHandler<TEvent>` handlers that create a local projection carrying the **same Id**.
+   public handlers with a `Handle(TEvent, CancellationToken)` method that create a local projection carrying the **same Id**.
    For example, `Organization.Team` is the source of truth; `PpmTeam`, `PlanningTeam`, and `WorkTeam` are
    read-model copies written by handlers for `TeamCreated`/`Updated`/`Activated`/`Deactivated`/`Deleted`.
    Every handler is idempotent (`if (await ctx.X.AnyAsync(x => x.Id == evt.Id)) return`).
@@ -185,7 +185,7 @@ Every connector declares its `ConnectorCapability` values (`WorkItems`, `People`
 | Aggregate | `Wayd.AppIntegration.Domain/Models/` | `Connection<TConfiguration>` base; subclass per connector. Any connector that participates in a sync runner (work-sync or people-sync) implements `ISyncableConnection` to expose `SystemId` (nullable — return `null` if not applicable) and `CanSync` (`IsActive && IsValidConfiguration && HasActiveIntegrationObjects`). Both runners filter on `CanSync`. AI-provider connectors don't implement the interface — they aren't sync-runner-driven. |
 | Configuration | `Wayd.AppIntegration.Domain/Models/.../*ConnectionConfiguration.cs` | Plain POCO stored as JSON. Mark credential fields with `[Encrypted]` (from `Wayd.Common.Domain.DataProtection`) so they're encrypted at rest by `EncryptingJsonValueConverter`. |
 | Capability declaration | `Wayd.Common.Domain.Enums.AppIntegrations/ConnectorExtensions.cs` | Add an arm to `Connector.GetCapabilities()` declaring the capabilities the connector supports (a multi-surface connector declares several). The runners and detail-page actions dispatch by capability; each `ConnectorCapability` member's `Display(GroupName)` is the display category that groups the picker UI. |
-| Commands / Queries | `Wayd.AppIntegration.Application/Connections/Commands/\{Connector\}/`, `.../Queries/` | One folder per connector. CQRS via MediatR, validators via FluentValidation. Activate / Deactivate are connector-agnostic (`ActivateConnectionCommand` / `DeactivateConnectionCommand`) — don't re-implement them per connector. |
+| Commands / Queries | `Wayd.AppIntegration.Application/Connections/Commands/\{Connector\}/`, `.../Queries/` | One folder per connector. CQRS via Wolverine, validators via FluentValidation. Activate / Deactivate are connector-agnostic (`ActivateConnectionCommand` / `DeactivateConnectionCommand`) — don't re-implement them per connector. |
 | Polymorphic DTO | `Wayd.AppIntegration.Application/Connections/Dtos/ConnectionDetailsDto.cs` | Add a `[JsonDerivedType]` entry; controllers switch on the request/DTO type to dispatch to the right handler. |
 | Secret masking | `Wayd.AppIntegration.Application/Connections/Dtos/.../*ConfigurationDto.cs` | Implement a `Mask*` method that preserves the first 4 characters and the original length (matching `MaskPersonalAccessToken` / `MaskClientSecret` / `MaskApiKey`). The shared update-command pattern compares first-4-chars + length to detect "user posted back the masked value unchanged" and preserve the stored secret. |
 | External client | `Wayd.Integrations.\{SystemName\}/` | Only if the connector actually talks to a remote API. Pure AI providers can wrap an existing SDK directly inside the application layer. |

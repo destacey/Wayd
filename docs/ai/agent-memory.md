@@ -21,7 +21,7 @@ This file captures compact repo-specific lessons that future coding agents shoul
 - Application handlers use EF Core DbContext directly, not repositories.
 - New async methods should not use an `Async` suffix.
 - Use NodaTime (`Instant`, `LocalDate`) in application/domain code. Convert API `DateTime` inputs at the controller boundary.
-- Controllers should stay thin and delegate to MediatR commands/queries.
+- Controllers should stay thin and delegate to commands/queries via `IDispatcher` (Wolverine). Handlers must be `public`.
 - Business validation should use `Result<T>` and FluentValidation where appropriate, not business exceptions.
 
 ## Frontend Patterns

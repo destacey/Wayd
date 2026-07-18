@@ -10,6 +10,21 @@
     "version": "v1"
   },
   "paths": {
+    "/startup": {
+      "get": {
+        "operationId": "GetStartup",
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/feature-flags": {
       "get": {
         "tags": [

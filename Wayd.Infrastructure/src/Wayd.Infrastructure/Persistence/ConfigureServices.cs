@@ -8,6 +8,7 @@ using Wayd.Planning.Application.Persistence;
 using Wayd.ProjectPortfolioManagement.Application;
 using Wayd.StrategicManagement.Application;
 using Wayd.Work.Application.Persistence;
+using Wolverine.EntityFrameworkCore;
 using Serilog;
 
 namespace Wayd.Infrastructure.Persistence;
@@ -15,6 +16,15 @@ namespace Wayd.Infrastructure.Persistence;
 internal static class ConfigureServices
 {
     private static readonly ILogger _logger = Log.ForContext(typeof(ConfigureServices));
+
+    /// <summary>
+    /// Dedicated schema for Wolverine's durable inbox/outbox envelope tables. Deliberately NOT
+    /// <c>dbo</c>: these tables are provisioned by Weasel at startup (parallel to our EF migrations),
+    /// so isolating them keeps them out of the application schema and out of our migration history.
+    /// Shared with <see cref="Messaging.WolverineConfiguration"/>, which points
+    /// <c>PersistMessagesWithSqlServer</c> at the same schema.
+    /// </summary>
+    internal const string WolverineSchemaName = "wolverine";
 
     internal static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration config)
     {
@@ -33,10 +43,26 @@ internal static class ConfigureServices
 
         _logger.Information($"Current DB Provider : {dbProvider}");
 
-        return services
-            .Configure<DatabaseSettings>(config.GetSection(nameof(DatabaseSettings)))
+        services.Configure<DatabaseSettings>(config.GetSection(nameof(DatabaseSettings)));
 
-            .AddDbContext<WaydDbContext>(m => m.UseDatabase(dbProvider, rootConnectionString))
+        // Register WaydDbContext WITH Wolverine's EF Core integration instead of a plain AddDbContext.
+        // This is the persistence half of the durable transactional outbox (the messaging half —
+        // PersistMessagesWithSqlServer + UseEntityFrameworkCoreTransactions — is wired in
+        // WolverineConfiguration). It swaps in Wolverine's IModelCustomizer so the outbox/inbox envelope
+        // tables are known to the EF model, and registers IDbContextOutbox so a future async event can
+        // enlist in the SaveChanges transaction and commit atomically with its entity changes.
+        //
+        // Behaviour today is unchanged: no domain event is routed durably yet — every event is an inline
+        // cross-domain replication projection that must preserve read-your-writes — so EventPublisher
+        // still dispatches inline via InvokeAsync. The envelope tables live in a dedicated "wolverine"
+        // schema (never dbo) and are provisioned by Weasel at startup, parallel to our EF migrations, not
+        // inside them. The DbContext stays Scoped exactly as before; only DbContextOptions becomes
+        // Singleton (a Wolverine optimisation) — safe because UseDatabase closes over config strings only.
+        services.AddDbContextWithWolverineIntegration<WaydDbContext>(
+            m => m.UseDatabase(dbProvider, rootConnectionString),
+            wolverineDatabaseSchema: WolverineSchemaName);
+
+        return services
             .AddDomainDbContexts()
 
             .AddTransient<IDatabaseInitializer, DatabaseInitializer>()

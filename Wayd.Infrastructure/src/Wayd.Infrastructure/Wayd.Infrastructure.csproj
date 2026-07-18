@@ -75,6 +75,15 @@
         <PackageReference Include="SimplerSoftware.EntityFrameworkCore.SqlServer.NodaTime" />
         <PackageReference Include="System.Security.Cryptography.Xml" />
         <PackageReference Include="WolverineFx" />
+        <!-- Durable transactional outbox: WolverineFx.SqlServer stores message envelopes in a
+             dedicated schema (PersistMessagesWithSqlServer); WolverineFx.EntityFrameworkCore lets
+             the outbox enlist in the WaydDbContext transaction (AddDbContextWithWolverineIntegration)
+             so a future async event commits atomically with its entity changes. No event is routed
+             durably yet — every domain event today is an inline cross-domain replication projection
+             that must preserve read-your-writes — so this is plumbing only; the first durable event
+             arrives with a genuinely fire-and-forget feature. -->
+        <PackageReference Include="WolverineFx.EntityFrameworkCore" />
+        <PackageReference Include="WolverineFx.SqlServer" />
         <!-- Provides the Roslyn IAssemblyGenerator for Wolverine's runtime (dynamic/auto) code
              generation. WolverineFx core no longer ships the compiler, so without this the host
              fails to start under TypeLoadMode.Dynamic/Auto (GH-2876). Pre-generating types for

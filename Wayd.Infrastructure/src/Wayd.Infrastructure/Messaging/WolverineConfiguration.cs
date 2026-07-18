@@ -75,23 +75,14 @@ public static class WolverineConfiguration
         // Long-running-request performance warning, ported from the MediatR PerformanceBehavior.
         opts.Policies.AddMiddleware(typeof(PerformanceBehavior));
 
-        // Wolverine 6 codegen constructor-injects handler dependencies, but two of ours have DI
-        // registrations it cannot "see through" and must resolve from the scope (service location):
-        //   • WaydDbContext — registered via AddDbContext's opaque scoped lambda factory (DbContextOptions).
-        //   • CurrentUser (ICurrentUser/ICurrentUserInitializer) — takes a raw IServiceProvider to lazily
-        //     resolve IUserService in HasPermission, breaking the genuine CurrentUser↔UserService DI cycle.
-        // Rather than blanket-allow service location (AllowedButWarn, which spams a warning for every
-        // DbContext-touching handler and would break under the 6.0 NotAllowed default), keep the strict
-        // NotAllowed policy and allow-list exactly these two types. Everything else stays constructor-inlined
-        // and enforced.
-        // AlwaysAllowed: resolve handler dependencies from the scope via service location — exactly how
-        // MediatR resolved everything, so this is behaviour parity. Nearly every handler depends
-        // (transitively) on an "opaque" scoped lambda factory Wolverine's codegen can't inline — EF's
-        // DbContextOptions, the ten IXxxDbContext → WaydDbContext interface factories, and CurrentUser's
-        // lazy IServiceProvider (for the CurrentUser↔UserService cycle). NotAllowed + a per-type
-        // AllowList is impractical here (the transitive opaque graph is large and grows with each new
-        // DbContext facade); AllowedButWarn works but logs a warning for every DbContext-touching
-        // handler. AlwaysAllowed is AllowedButWarn without the noise.
+        // Wolverine 6 codegen constructor-injects handler dependencies and, at the NotAllowed default,
+        // throws when a dependency has a DI registration it cannot "see through". Nearly every handler
+        // transitively hits one: EF's DbContextOptions lambda factory, the ten IXxxDbContext →
+        // WaydDbContext interface factories, and CurrentUser's raw IServiceProvider (lazy IUserService,
+        // breaking the genuine CurrentUser↔UserService cycle). AlwaysAllowed resolves those from the scope
+        // exactly as MediatR did (behaviour parity), without the per-handler warning AllowedButWarn emits.
+        // A per-type NotAllowed + AlwaysUseServiceLocationFor<T>() allow-list is impractical — the
+        // transitive opaque graph is large and grows with each new DbContext facade.
         opts.ServiceLocationPolicy = ServiceLocationPolicy.AlwaysAllowed;
 
         // Cold-start codegen. WolverineFx core no longer ships the Roslyn compiler, so dynamic/auto

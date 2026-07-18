@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
+﻿using System.Text.Json.Serialization;
+using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Models;
 using NodaTime;
@@ -8,18 +9,27 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 public sealed record ProjectCreatedEvent : DomainEvent, ISimpleProject
 {
     public ProjectCreatedEvent(ISimpleProject project, int expenditureCategoryId, int statusId, LocalDateRange? dateRange, Guid portfolioId, Guid? programId, Dictionary<int, Guid[]> roles, Guid[] strategicThemes, Instant timestamp)
+        : this(project.Id, project.Key, project.Name, project.Description, expenditureCategoryId, statusId, dateRange, portfolioId, programId, roles.ToDictionary(x => x.Key, x => x.Value.ToArray()), [.. strategicThemes], timestamp)
     {
-        Id = project.Id;
-        Key = project.Key;
-        Name = project.Name;
-        Description = project.Description;
+    }
+
+    // Deserialization constructor for the Wolverine durable outbox. System.Text.Json binds every
+    // parameter to a property by name, so this event can round-trip through the envelope store; the
+    // primary constructor above destructures an ISimpleProject, whose `project` parameter STJ cannot bind.
+    [JsonConstructor]
+    public ProjectCreatedEvent(Guid id, ProjectKey key, string name, string description, int expenditureCategoryId, int statusId, LocalDateRange? dateRange, Guid portfolioId, Guid? programId, Dictionary<int, Guid[]>? roles, Guid[] strategicThemes, Instant timestamp)
+    {
+        Id = id;
+        Key = key;
+        Name = name;
+        Description = description;
         ExpenditureCategoryId = expenditureCategoryId;
         StatusId = statusId;
         DateRange = dateRange;
         PortfolioId = portfolioId;
         ProgramId = programId;
-        Roles = roles.ToDictionary(x => x.Key, x => x.Value.ToArray());
-        StrategicThemes = [.. strategicThemes];
+        Roles = roles;
+        StrategicThemes = strategicThemes;
 
         Timestamp = timestamp;
     }

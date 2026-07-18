@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using System.Text.Json.Serialization;
 using FluentValidation.AspNetCore;
+using JasperFx;
 using Wayd.AppIntegration.Application;
 using Wayd.Common.Application;
 using Wayd.Common.Application.Interfaces;
@@ -113,7 +114,29 @@ try
 
     app.UseInfrastructure(builder.Configuration);
     app.MapDefaultEndpoints();
-    app.Run();
+
+    // Expose the JasperFx/Wolverine CLI verbs (`resources setup`, `codegen write`, `check-env`, …) when
+    // the process is launched WITH a verb in args — this is what the Aspire AppHost's .WithJasperFxStartup
+    // gate invokes (`wayd-api resources setup`) to provision the durable-outbox tables before the API
+    // takes its first message. RunJasperFxCommands runs that verb and exits with its status code; propagate
+    // it so a failed provisioning gate fails fast (non-zero) rather than being swallowed.
+    //
+    // With NO verb (a normal boot), fall through to the plain app.Run() path exactly as before. This split
+    // is deliberate: routing a verbless boot through RunJasperFxCommands breaks WebApplicationFactory when
+    // more than one factory boots the host in a single test process (the second host reports "entry point
+    // exited without ever building an IHost"), and a verbless boot has no reason to enter the CLI machinery.
+    // A leading '-' is never a verb — it is a host flag (Kestrel's --urls, the ASP.NET Core switches, etc.),
+    // which JasperFx itself would just pass through to "run the host"; treat only a non-flag first arg as a verb.
+    var hasJasperFxVerb = args.Length > 0 && !args[0].StartsWith('-');
+
+    if (hasJasperFxVerb)
+    {
+        Environment.ExitCode = await app.RunJasperFxCommands(args);
+    }
+    else
+    {
+        app.Run();
+    }
 }
 catch (Exception ex) when (!ex.GetType().Name.Equals("HostAbortedException", StringComparison.Ordinal))
 {

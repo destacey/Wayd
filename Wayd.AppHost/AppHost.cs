@@ -42,7 +42,23 @@ var waydApi = builder.AddProject<Projects.Wayd_Web_Api>("wayd-api")
     // an uncommitted tree each boot would only add startup cost without being the compiled source of truth.
     // Flipping to TypeLoadMode.Static (with committed generated code) and adding the codegen gate is a
     // deferred follow-up.
-    .WithJasperFxStartup(c => c.Run("resources", "setup"));
+    //
+    // ConfigureGate strips the gate's HTTP/HTTPS endpoints. JasperFx.Aspire builds the gate as a second
+    // AddProject on the SAME csproj, so it inherits the API's launch-profile endpoints — but it is a
+    // run-to-completion process that never listens, so Aspire logs "service '/wayd-api-resources-setup-https'
+    // ... is not produced by this Executable" / "service-producer annotation is invalid" and the phantom
+    // service tangles the API's own endpoint allocation (leaving wayd-api stuck Running-Unhealthy). Removing
+    // the gate's EndpointAnnotations makes it a pure provisioning executable with no service to expose.
+    .WithJasperFxStartup(c => c.Run("resources", "setup", gate =>
+        gate.ConfigureGate = g =>
+        {
+            foreach (var endpoint in g.Resource.Annotations
+                         .OfType<Aspire.Hosting.ApplicationModel.EndpointAnnotation>()
+                         .ToArray())
+            {
+                g.Resource.Annotations.Remove(endpoint);
+            }
+        }));
 
 // "Reset Database" command in the Aspire dashboard. Destruction lives here — in the orchestrator, out
 // of band from the running app — so it is never reachable via an HTTP request and simply does not exist

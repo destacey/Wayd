@@ -19,6 +19,7 @@ using Wayd.Web.Api.Services;
 using Wayd.Work.Application;
 using NodaTime.Serialization.SystemTextJson;
 using Serilog;
+using Wayd.Infrastructure.Messaging;
 
 StaticLogger.EnsureInitialized();
 Log.Information("Server Booting Up...");
@@ -83,6 +84,10 @@ try
     builder.Services.AddScoped<ICsvService, CsvService>();
     builder.Services.AddScoped<IJobManager, JobManager>();
 
+    // Wolverine is the command/query/event mediator (replacing MediatR), configured in Infrastructure
+    // alongside the other host plumbing. IDispatcher — the only dispatch seam call sites use — is
+    // registered by AddCommonApplication.
+    builder.AddWaydWolverine();
 
     var app = builder.Build();
 
@@ -92,10 +97,13 @@ try
     //     re-apply pending migrations on boot, fighting the very command being run.
     //   - WAYD_SKIP_DB_INIT: NSwag boots the real app to read the OpenAPI document on every Debug
     //     build. EF.IsDesignTime is false there, so without this flag a build would silently apply
-    //     pending migrations and seed the database. The NSwag MSBuild target sets this var.
+    //     pending migrations and seed the database. The NSwag MSBuild target sets this env var; it is
+    //     also honoured as a host setting so integration tests can opt out per-host (via UseSetting)
+    //     without mutating a process-wide env var that would leak into sibling test hosts.
     var skipDbInit =
         Microsoft.EntityFrameworkCore.EF.IsDesignTime ||
-        string.Equals(Environment.GetEnvironmentVariable("WAYD_SKIP_DB_INIT"), "true", StringComparison.OrdinalIgnoreCase);
+        string.Equals(Environment.GetEnvironmentVariable("WAYD_SKIP_DB_INIT"), "true", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(builder.Configuration["WAYD_SKIP_DB_INIT"], "true", StringComparison.OrdinalIgnoreCase);
 
     if (!skipDbInit)
     {
@@ -118,3 +126,9 @@ finally
     Log.Information("Server Shutting down...");
     Log.CloseAndFlush();
 }
+
+/// <summary>
+/// Exposes the top-level-statement entry point so <c>WebApplicationFactory&lt;Program&gt;</c> can boot the
+/// real host in integration tests (e.g. the Wolverine configuration-validity check). No behavioural role.
+/// </summary>
+public partial class Program;

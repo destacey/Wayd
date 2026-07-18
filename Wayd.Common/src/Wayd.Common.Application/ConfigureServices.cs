@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Mapster;
 using Mapster.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,16 +13,10 @@ public static class ConfigureServices
         var assembly = Assembly.GetExecutingAssembly();
 
         services.AddValidatorsFromAssembly(assembly);
-        services.AddMediatR(config =>
-        {
-            config.RegisterServicesFromAssembly(assembly);
 
-            //config.AddOpenBehavior(typeof(UnhandledExceptionBehavior<,>));  // TODO: currently relying on ExceptionMiddleware, do we need more granular control?
-            config.AddOpenBehavior(typeof(ValidationBehavior<,>));
-            config.AddOpenBehavior(typeof(PerformanceBehavior<,>));
-        });
-
-        services.AddScoped<IDispatcher, MediatRDispatcher>();
+        // Dispatch goes through IDispatcher; the Wolverine message bus itself is registered by
+        // UseWolverine on the host builder (see Program.cs / AddWaydWolverine).
+        services.AddScoped<IDispatcher, WolverineDispatcher>();
 
         TypeAdapterConfig.GlobalSettings.Scan(assembly);
         TypeAdapterConfig.GlobalSettings.ScanInheritedTypes(assembly);

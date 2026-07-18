@@ -1,16 +1,10 @@
-﻿using Wayd.Common.Application.Events;
-using Wayd.Common.Domain.Enums;
+﻿using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
 namespace Wayd.ProjectPortfolioManagement.Application.PpmTeams.EventHandlers;
 
-internal sealed class PpmTeamChangeEventHandler :
-    IEventNotificationHandler<TeamCreatedEvent>,
-    IEventNotificationHandler<TeamUpdatedEvent>,
-    IEventNotificationHandler<TeamActivatedEvent>,
-    IEventNotificationHandler<TeamDeactivatedEvent>,
-    IEventNotificationHandler<TeamDeletedEvent>
+public sealed class PpmTeamChangeEventHandler
 {
     private readonly IProjectPortfolioManagementDbContext _dbContext;
     private readonly ILogger<PpmTeamChangeEventHandler> _logger;
@@ -21,29 +15,29 @@ internal sealed class PpmTeamChangeEventHandler :
         _logger = logger;
     }
 
-    public async Task Handle(EventNotification<TeamCreatedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(TeamCreatedEvent @event, CancellationToken cancellationToken)
     {
-        await CreatePpmTeam(notification.Event, cancellationToken);
+        await CreatePpmTeam(@event, cancellationToken);
     }
 
-    public async Task Handle(EventNotification<TeamUpdatedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(TeamUpdatedEvent @event, CancellationToken cancellationToken)
     {
-        await UpdatePpmTeam(notification.Event, cancellationToken);
+        await UpdatePpmTeam(@event, cancellationToken);
     }
 
-    public async Task Handle(EventNotification<TeamActivatedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(TeamActivatedEvent @event, CancellationToken cancellationToken)
     {
-        await ActivatePpmTeam(notification.Event, cancellationToken);
+        await ActivatePpmTeam(@event, cancellationToken);
     }
 
-    public async Task Handle(EventNotification<TeamDeactivatedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(TeamDeactivatedEvent @event, CancellationToken cancellationToken)
     {
-        await DeactivatePpmTeam(notification.Event, cancellationToken);
+        await DeactivatePpmTeam(@event, cancellationToken);
     }
 
-    public async Task Handle(EventNotification<TeamDeletedEvent> notification, CancellationToken cancellationToken)
+    public async Task Handle(TeamDeletedEvent @event, CancellationToken cancellationToken)
     {
-        await DeletePpmTeam(notification.Event, cancellationToken);
+        await DeletePpmTeam(@event, cancellationToken);
     }
 
     private async Task CreatePpmTeam(TeamCreatedEvent team, CancellationToken cancellationToken)

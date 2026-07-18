@@ -1,32 +1,51 @@
-﻿using System.Diagnostics;
-using MediatR;
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Serilog.Context;
+using Wolverine;
 
 namespace Wayd.Common.Application.Behaviors;
 
-public class PerformanceBehavior<TRequest, TResponse>(ILogger<PerformanceBehavior<TRequest, TResponse>> logger, ISerializerService jsonSerializer) : IPipelineBehavior<TRequest, TResponse> where TRequest : class, IRequest<TResponse>
+/// <summary>
+/// Wolverine middleware that warns when a message takes longer than the threshold to handle, unless
+/// the message opts out via <see cref="ILongRunningRequest"/>. Ported from the MediatR
+/// <c>PerformanceBehavior</c> pipeline behavior with identical thresholds and logging.
+/// </summary>
+public static class PerformanceBehavior
 {
-    private readonly ILogger<PerformanceBehavior<TRequest, TResponse>> _logger = logger;
-    private readonly ISerializerService _jsonSerializer = jsonSerializer;
+    private const long ThresholdMilliseconds = 700;
 
-    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public static long Before() => Stopwatch.GetTimestamp();
+
+    public static void Finally(
+        long startTimestamp,
+        ILogger<PerformanceBehaviorLog> logger,
+        ISerializerService jsonSerializer,
+        Envelope envelope)
     {
-        var startTime = Stopwatch.GetTimestamp();
+        var elapsedMilliseconds = Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
 
-        var response = await next(cancellationToken);
+        // Read the message off the envelope rather than taking an `object message` middleware parameter:
+        // Wolverine cannot bind a raw `object` parameter to the message and would try to service-locate
+        // System.Object instead, which fails at dispatch.
+        var message = envelope.Message;
 
-        var elapsedMilliseconds = Stopwatch.GetElapsedTime(startTime).TotalMilliseconds;
-
-        if (elapsedMilliseconds > 700 && request is not ILongRunningRequest)
+        if (elapsedMilliseconds > ThresholdMilliseconds && message is not null && message is not ILongRunningRequest)
         {
-            var requestName = typeof(TRequest).Name;
+            var requestName = message.GetType().Name;
 
-            using (LogContext.PushProperty("ApplicationRequestModel", _jsonSerializer.Serialize(request)))
+            using (LogContext.PushProperty("ApplicationRequestModel", jsonSerializer.Serialize(message)))
             {
-                _logger.LogWarning("Long running request: {AppRequestName} completed in {ApplicationElapsed} ms", requestName, elapsedMilliseconds);
+                logger.LogWarning("Long running request: {AppRequestName} completed in {ApplicationElapsed} ms", requestName, elapsedMilliseconds);
             }
         }
-
-        return response;
     }
+}
+
+/// <summary>
+/// Log category marker for <see cref="PerformanceBehavior"/> so the emitted warnings keep a stable,
+/// recognisable source context (Wolverine injects <c>ILogger&lt;T&gt;</c> typed to the message, so we
+/// use this instead to preserve the previous category name).
+/// </summary>
+public sealed class PerformanceBehaviorLog
+{
 }

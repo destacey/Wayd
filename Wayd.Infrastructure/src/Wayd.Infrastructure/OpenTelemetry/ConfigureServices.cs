@@ -30,6 +30,8 @@ internal static class ConfigureServices
             {
                 tracing.AddSource(builder.Environment.ApplicationName)
                     .AddSource("Microsoft.FeatureManagement")
+                    // Wolverine emits its own OTel activities for message send/handle under this source.
+                    .AddSource("Wolverine")
                     .AddAspNetCoreInstrumentation(options =>
                     {
                         // Exclude health check requests from tracing

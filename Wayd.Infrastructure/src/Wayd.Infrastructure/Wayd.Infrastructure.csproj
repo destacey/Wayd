@@ -74,6 +74,12 @@
         <PackageReference Include="Serilog.Sinks.Seq" />
         <PackageReference Include="SimplerSoftware.EntityFrameworkCore.SqlServer.NodaTime" />
         <PackageReference Include="System.Security.Cryptography.Xml" />
+        <PackageReference Include="WolverineFx" />
+        <!-- Provides the Roslyn IAssemblyGenerator for Wolverine's runtime (dynamic/auto) code
+             generation. WolverineFx core no longer ships the compiler, so without this the host
+             fails to start under TypeLoadMode.Dynamic/Auto (GH-2876). Pre-generating types for
+             CI/prod (TypeLoadMode.Static) is a follow-up that can drop this reference. -->
+        <PackageReference Include="WolverineFx.RuntimeCompilation" />
         <PackageReference Include="ZymLabs.NSwag.FluentValidation.AspNetCore" />
     </ItemGroup>
 

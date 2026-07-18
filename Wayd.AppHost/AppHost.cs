@@ -30,6 +30,13 @@ var waydApi = builder.AddProject<Projects.Wayd_Web_Api>("wayd-api")
     .WithReference(waydDb)
     .WaitFor(waydDb)
     .WithHttpHealthCheck(global::Wayd.Infrastructure.ServiceEndpoints.HealthEndpointPath)
+    // Surface the JasperFx/Wolverine CLI verbs as one-click buttons on the wayd-api dashboard tile.
+    // Default (no options) adds only the READ-ONLY verbs — `check-env`, `describe`, `codegen` (preview) —
+    // so an operator can run an environment check or inspect the generated handler code / Wolverine config
+    // against the running service without a terminal, and with no confirmation prompts. The mutating verbs
+    // (`resources`, `codegen write`, `projections`) are intentionally NOT added: `resources setup` already
+    // runs as the startup gate below, and mutating buttons would need IncludeMutatingCommands = true.
+    .WithJasperFxCommands()
     // JasperFx startup gate: run `resources setup` as a separate, short-lived invocation of the API
     // (via RunJasperFxCommands in Program.cs) BEFORE the long-running API boots. It provisions the
     // Wolverine durable-outbox tables in the dedicated `wolverine` schema — the orchestrated-environment

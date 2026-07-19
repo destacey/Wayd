@@ -406,7 +406,10 @@ Syncs employees/users from Azure AD into Organization domain.
 ## Architecture Patterns
 
 ### CQRS with Wolverine
-All operations are commands (writes) or queries (reads) dispatched through `IDispatcher` (backed by Wolverine). Controllers are thin. Handlers must be public.
+All operations are commands (writes) or queries (reads) dispatched through `IDispatcher` (backed by Wolverine). Controllers are thin. Handlers must be public. Handler dependencies are constructor-inlined by codegen (service location is NotAllowed); a dependency with an internal implementation class needs an AlwaysUseServiceLocationFor<T>() allow-list entry in WolverineConfiguration — codegen write fails naming the type otherwise.
+
+### Identity vs Principal
+`ICurrentUser` is pure identity (who is the caller: id, name, email, employee link). Authorization questions go through `ICurrentPrincipal` (HasPermission/HasAnyPermission), which derives the caller's permission set from `ICurrentUser` + `IUserService` and caches it per scope. Don't add permission or claim APIs to `ICurrentUser`. `ICurrentUser.Kind` classifies the caller: User (authenticated or impersonating background scope), Anonymous (unauthenticated HTTP — denied all permissions), or System (no HTTP request, no acting user: jobs, durable messages, startup — granted all permissions, audited as the well-known SystemIdentity.UserId). Only real user ids are propagated across job/message boundaries; absence resolves to System (the rule lives in CurrentUser.Kind only). Assumption: background work never originates from anonymous callers — anonymous-enqueued work would run as System, so propagate an explicit anonymous marker if that is ever needed.
 
 ### Result Pattern
 Handlers return Result<T> from CSharpFunctionalExtensions. No exceptions for business logic.

@@ -23,7 +23,7 @@ Start with the domain model:
 Add commands, queries, and handlers:
 
 1. Create the **command/query** record in `\{Feature\}/Commands/` or `\{Feature\}/Queries/`
-2. Create the **handler** (a `public sealed class` — Wolverine's generated code cannot invoke internal handlers) implementing `ICommandHandler&lt;T&gt;` or `IQueryHandler&lt;T&gt;`
+2. Create the **handler** (a `public sealed class` — Wolverine's generated code cannot invoke internal handlers) implementing `ICommandHandler&lt;T&gt;` or `IQueryHandler&lt;T&gt;`. Handler dependencies are constructor-inlined by codegen; if you inject a service whose implementation class is `internal`, add it to the `AlwaysUseServiceLocationFor&lt;T&gt;()` allow-list in `WolverineConfiguration` (the build's `codegen write` step fails with an `InvalidServiceLocationException` naming the type if you forget)
 3. Create the **validator** using FluentValidation
 4. Create **DTOs** for data transfer
 5. Add Mapster mapping configuration if needed

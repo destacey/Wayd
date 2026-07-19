@@ -1,7 +1,6 @@
 ﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Wayd.Common.Application.Identity;
 using Wayd.Common.Application.Interfaces;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
@@ -98,10 +97,10 @@ public class RebalancePortfolioRanksCommandHandlerTests : IDisposable
     [Fact]
     public async Task Handle_WhenSystemContext_BypassesAuthorizationAndSaves()
     {
-        // Arrange — the scheduled job runs as the system identity: no employee id, system user id,
+        // Arrange — the scheduled job runs as the system actor: no employee id, ActorKind.System,
         // and not a portfolio owner. The rebalance should still proceed.
         _mockCurrentUser.Setup(u => u.GetEmployeeId()).Returns((Guid?)null);
-        _mockCurrentUser.Setup(u => u.GetUserId()).Returns(SystemIdentity.UserId);
+        _mockCurrentUser.Setup(u => u.Kind).Returns(ActorKind.System);
 
         var project = Project("A", 1234.5d);
         var portfolio = Portfolio(authorized: false, project);

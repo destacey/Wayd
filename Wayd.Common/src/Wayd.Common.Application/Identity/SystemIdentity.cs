@@ -8,8 +8,15 @@
 /// </summary>
 public static class SystemIdentity
 {
-    /// <summary>The well-known system user id stamped onto background jobs.</summary>
+    /// <summary>
+    /// The well-known system user id stamped onto background jobs, audit columns, and message
+    /// envelopes. <c>CurrentUser</c> reports it for every <c>ActorKind.System</c> scope (no HTTP
+    /// request, no acting user), and <c>HangfireService.EnqueueSystem</c> stamps it explicitly.
+    /// </summary>
     public const string UserId = "11111111-1111-1111-1111-111111111111";
+
+    /// <summary>Display name for the system actor.</summary>
+    public const string Name = "System";
 
     /// <summary>Whether the supplied user id is the system identity.</summary>
     public static bool IsSystem(string? userId) =>

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Application.Employees.Commands;
+using Wayd.Common.Application.Identity;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Persistence;
 using Wayd.Common.Models;
@@ -57,5 +58,40 @@ public sealed class HangfireIdentityPropagationTests(WaydSqlServerApiFactory fac
             .SingleAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(jobUserId, systemCreatedBy);
+    }
+
+    [Fact]
+    public async Task Dispatch_FromScopeWithoutUser_StampsSystemActorOnAuditColumns()
+    {
+        // Arrange - a background scope with NO acting user (scheduled job, startup work): the platform
+        // itself is acting, and the audit columns must say so explicitly rather than stay empty.
+        _ = _factory.CreateClient();
+
+        using var scope = _factory.Services.CreateScope();
+        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
+        var employeeNumber = $"SYS-{Guid.NewGuid():N}"[..12];
+        var command = new CreateEmployeeCommand(
+            name: new PersonName("Sam", null, "Okafor"),
+            employeeNumber: employeeNumber,
+            hireDate: null,
+            email: new EmailAddress($"{employeeNumber}@acme.example"),
+            jobTitle: null,
+            department: null,
+            officeLocation: null,
+            managerId: null);
+
+        // Act
+        var result = await dispatcher.Send(command, TestContext.Current.CancellationToken);
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+
+        // Assert
+        using var readScope = _factory.Services.CreateScope();
+        var dbContext = readScope.ServiceProvider.GetRequiredService<IWaydDbContext>();
+        var systemCreatedBy = await dbContext.Employees
+            .Where(e => e.Id == result.Value.Id)
+            .Select(e => EF.Property<string?>(e, "SystemCreatedBy"))
+            .SingleAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(SystemIdentity.UserId, systemCreatedBy);
     }
 }

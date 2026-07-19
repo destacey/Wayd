@@ -1,9 +1,14 @@
-﻿using System.Security.Claims;
+﻿namespace Wayd.Common.Application.Interfaces;
 
-namespace Wayd.Common.Application.Interfaces;
-
+/// <summary>
+/// Pure identity: who is the caller (id, name, email, employee link) — nothing about what they may
+/// do. Authorization questions belong to <see cref="ICurrentPrincipal"/>; raw claims stay behind
+/// the auth infrastructure and are deliberately not exposed here.
+/// </summary>
 public interface ICurrentUser
 {
+    ActorKind Kind { get; }
+
     string? Name { get; }
 
     string GetUserId();
@@ -13,12 +18,4 @@ public interface ICurrentUser
     string? GetUserEmail();
 
     bool IsAuthenticated();
-
-    bool IsInRole(string role);
-
-    bool HasClaim(string type, string value);
-
-    IEnumerable<Claim>? GetUserClaims();
-
-    Task<bool> HasPermission(string permission, CancellationToken cancellationToken = default);
 }

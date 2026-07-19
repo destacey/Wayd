@@ -1,16 +1,14 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Hangfire.Client;
 using Hangfire.Logging;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Wayd.Common.Application.Identity;
 
 namespace Wayd.Infrastructure.BackgroundJobs;
 
 public class WaydJobFilter : IClientFilter
 {
     private static readonly ILog _logger = LogProvider.GetCurrentClassLogger();
-    private const string JobAdminUserId = SystemIdentity.UserId;
 
     private readonly IServiceProvider _services;
 
@@ -24,11 +22,16 @@ public class WaydJobFilter : IClientFilter
 
         using var scope = _services.CreateScope();
 
+        // Stamp only a REAL acting user. A job created with no authenticated HTTP user carries no
+        // UserId parameter, and its execution scope (no HttpContext, no seeded user) resolves to
+        // ActorKind.System — the "nobody = system" rule lives in CurrentUser.Kind, not here.
+        // HangfireService.EnqueueSystem still overrides the parameter afterwards for jobs that must
+        // run as the system even when a signed-in admin triggered them.
         var httpContext = scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>()?.HttpContext;
-        //_ = httpContext ?? throw new InvalidOperationException("Can't create a Job without HttpContext.");
-
-        string? userId = httpContext?.User.GetUserId() ?? JobAdminUserId;
-        context.SetJobParameter(QueryStringKeys.UserId, userId);
+        if (httpContext?.User.GetUserId() is { Length: > 0 } userId)
+        {
+            context.SetJobParameter(QueryStringKeys.UserId, userId);
+        }
     }
 
     public void OnCreated(CreatedContext context) =>

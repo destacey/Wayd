@@ -1,6 +1,4 @@
-﻿using Wayd.Common.Application.Identity;
-
-namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
+﻿namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
 
 public sealed record RebalancePortfolioRanksCommand(Guid PortfolioId) : ICommand;
 
@@ -26,9 +24,9 @@ public sealed class RebalancePortfolioRanksCommandHandler(
     {
         // A rebalance is either a deliberate human maintenance action (authorized as a portfolio
         // Owner/Manager) or system-initiated housekeeping with no human actor (a scheduled job, which
-        // runs as the well-known system identity and carries no employee claim). For the system path
-        // we bypass the per-actor check; a normal user still needs an employee id + Owner/Manager.
-        var isSystem = SystemIdentity.IsSystem(_currentUser.GetUserId());
+        // runs as ActorKind.System and carries no employee claim). For the system path we bypass the
+        // per-actor check; a normal user still needs an employee id + Owner/Manager.
+        var isSystem = _currentUser.Kind == ActorKind.System;
         var employeeId = _currentUser.GetEmployeeId();
         if (!isSystem && employeeId is null)
             return Result.Failure("Unable to determine the current user's employee Id.");

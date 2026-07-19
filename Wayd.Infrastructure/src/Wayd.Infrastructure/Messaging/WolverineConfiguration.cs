@@ -148,13 +148,35 @@ public static class WolverineConfiguration
         opts.Policies.Add<DurableEventFailurePolicy>();
 
         // Wolverine 6 codegen constructor-injects handler dependencies and, at the NotAllowed default, throws
-        // when a dependency has a DI registration it cannot "see through". Nearly every handler transitively
-        // hits one: EF's DbContextOptions lambda factory, the ten IXxxDbContext → WaydDbContext interface
-        // factories, and CurrentUser's raw IServiceProvider (lazy IUserService, which breaks the genuine
-        // CurrentUser↔UserService cycle). AlwaysAllowed resolves those from the scope without the per-handler
-        // warning AllowedButWarn emits. A per-type NotAllowed + AlwaysUseServiceLocationFor<T>() allow-list is
-        // impractical — the transitive opaque graph is large and grows with each new DbContext facade.
-        opts.ServiceLocationPolicy = ServiceLocationPolicy.AlwaysAllowed;
+        // when a dependency has a DI registration it cannot "see through". This used to be impossible here:
+        // CurrentUser injected raw IServiceProvider (its old lazy-IUserService cycle-breaker), and that single
+        // registration poisoned every handler's transitive graph, forcing AlwaysAllowed. With the cycle now
+        // broken properly (ICurrentPrincipal), codegen inline-constructs the full EF graph — DbContextOptions,
+        // WaydDbContext, and the IXxxDbContext → WaydDbContext facades are all plain type-mapped registrations
+        // it sees through; none of them needs service location. What remains genuinely opaque are the internal
+        // implementation types below (public interface, impl not visible to the generated assembly), which the
+        // allow-list opts in to scoped service location. A NEW internal-impl handler dependency will fail
+        // `codegen write` (and therefore the local Debug build's regen target + CI staleness check) with an
+        // InvalidServiceLocationException naming the type — add it here, or make the implementation public.
+        opts.ServiceLocationPolicy = ServiceLocationPolicy.NotAllowed;
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Interfaces.IDispatcher>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Interfaces.ICurrentPrincipal>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Interfaces.IAzureDevOpsService>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Interfaces.ExternalPeople.IWorkdayConnectionInitializer>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Planning.Application.PokerSessions.Interfaces.IPokerSessionNotifier>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Identity.IUserIdentityStore>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Identity.Users.IUserService>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Identity.Roles.IRoleService>();
+
+        // AmbientUserId is allow-listed for CORRECTNESS, not opaqueness (it's a plain public scoped class):
+        // UserIdentityMiddleware.Before writes the acting user id to it, and every consumer in the same message
+        // scope must read that same instance — the inline-constructed CurrentUser/WaydDbContext AND any
+        // scope-resolved service above (WolverineDispatcher stamps outgoing envelopes from ICurrentUser;
+        // UserService audits through it). Without this, codegen `new`s a private AmbientUserId for the inline
+        // graph while scope-resolved services get the scope's untouched instance, silently dropping audit
+        // attribution on non-HTTP (Hangfire-originated) dispatch. Resolving it from the scope makes the
+        // middleware's write visible to both graphs.
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Auth.AmbientUserId>();
 
         // Codegen is STATIC in every environment: Wolverine loads compiled handler types via the
         // HandlerRegistry pre-generated under Wayd.Web.Api/Internal/Generated/WolverineHandlers (produced by

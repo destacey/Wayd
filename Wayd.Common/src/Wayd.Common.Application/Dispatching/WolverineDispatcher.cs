@@ -51,6 +51,14 @@ internal sealed class WolverineDispatcher(IMessageBus bus, ICurrentUser currentU
     /// </summary>
     private DeliveryOptions? UserDeliveryOptions()
     {
+        // System scopes are self-identifying — a handler scope with no HTTP context and no user header
+        // already resolves to ActorKind.System — so propagating the system id would be redundant. The
+        // header exists solely to carry a real acting user across the scope boundary.
+        if (_currentUser.Kind == ActorKind.System)
+        {
+            return null;
+        }
+
         var userId = _currentUser.GetUserId();
         if (string.IsNullOrEmpty(userId))
         {

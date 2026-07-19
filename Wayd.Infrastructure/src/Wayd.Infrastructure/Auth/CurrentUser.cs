@@ -1,28 +1,52 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
+using Wayd.Common.Application.Identity;
 
 namespace Wayd.Infrastructure.Auth;
 
-public class CurrentUser(IHttpContextAccessor httpContextAccessor, IServiceProvider serviceProvider, AmbientUserId ambientUserId) : ICurrentUser, ICurrentUserInitializer
+/// <summary>
+/// Pure identity: "who is the caller?" (claims, ids, roles). Permission checks live on
+/// <see cref="CurrentPrincipal"/> — they need <see cref="IUserService"/>, which depends on this
+/// class, so hosting them here would recreate the CurrentUser ↔ UserService cycle.
+/// </summary>
+public class CurrentUser(IHttpContextAccessor httpContextAccessor, AmbientUserId ambientUserId) : ICurrentUser, ICurrentUserInitializer
 {
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
-    private readonly IServiceProvider _serviceProvider = serviceProvider;
     private readonly AmbientUserId _ambientUserId = ambientUserId;
 
-    private ClaimsPrincipal? _user;
+    private ClaimsPrincipal? User => _httpContextAccessor.HttpContext?.User;
 
-    private HashSet<string>? _permissionsCache;
+    /// <summary>
+    /// Who is acting: an authenticated HTTP user or a background scope seeded with a user id is a
+    /// <see cref="ActorKind.User"/>; a live HTTP request with no authenticated user is a genuine
+    /// <see cref="ActorKind.Anonymous"/> caller; and no HTTP request with no seeded user means the
+    /// platform itself is acting (<see cref="ActorKind.System"/> — scheduled jobs, durable message
+    /// delivery, startup work).
+    /// </summary>
+    public ActorKind Kind
+    {
+        get
+        {
+            if (IsAuthenticated())
+                return ActorKind.User;
 
-    // Lazily access user from HttpContext when available, otherwise use _user set via SetCurrentUser
-    private ClaimsPrincipal? User => _user ?? _httpContextAccessor.HttpContext?.User;
+            var ambientId = _ambientUserId.Value;
+            if (!string.IsNullOrEmpty(ambientId))
+                return SystemIdentity.IsSystem(ambientId) ? ActorKind.System : ActorKind.User;
 
-    public string? Name => User?.Identity?.Name;
+            return _httpContextAccessor.HttpContext is null ? ActorKind.System : ActorKind.Anonymous;
+        }
+    }
+
+    public string? Name =>
+        Kind == ActorKind.System ? SystemIdentity.Name : User?.Identity?.Name;
 
     public string GetUserId() =>
         IsAuthenticated()
             ? User?.GetUserId() ?? string.Empty
-            : _ambientUserId.Value ?? string.Empty;
+            : Kind == ActorKind.System
+                ? SystemIdentity.UserId
+                : _ambientUserId.Value ?? string.Empty;
 
     public Guid? GetEmployeeId()
     {
@@ -43,38 +67,6 @@ public class CurrentUser(IHttpContextAccessor httpContextAccessor, IServiceProvi
 
     public bool IsAuthenticated() =>
         User?.Identity?.IsAuthenticated is true;
-
-    public bool IsInRole(string role) =>
-        User?.IsInRole(role) is true;
-
-    public bool HasClaim(string type, string value) =>
-        User?.HasClaim(type, value) is true;
-
-    public IEnumerable<Claim>? GetUserClaims() =>
-        User?.Claims;
-
-
-    public async Task<bool> HasPermission(string permission, CancellationToken cancellationToken = default)
-    {
-        if (_permissionsCache is null)
-        {
-            var userService = _serviceProvider.GetRequiredService<IUserService>();
-            var permissions = await userService.GetPermissionsAsync(GetUserId(), cancellationToken);
-            _permissionsCache = [.. permissions];
-        }
-
-        return _permissionsCache.Contains(permission);
-    }
-
-    public void SetCurrentUser(ClaimsPrincipal user)
-    {
-        if (_user != null)
-        {
-            throw new Exception("Method reserved for in-scope initialization");
-        }
-
-        _user = user;
-    }
 
     public void SetCurrentUserId(string userId) =>
         // Stored on the scoped AmbientUserId (shared with the handler's DbContext in the same scope)

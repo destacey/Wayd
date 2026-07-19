@@ -27,6 +27,7 @@ using Wayd.StrategicManagement.Application;
 using Wayd.StrategicManagement.Domain.Models;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Domain.Models;
+using Wolverine.EntityFrameworkCore;
 using PpmStrategicTheme = Wayd.ProjectPortfolioManagement.Domain.Models.StrategicTheme;
 using StrategicTheme = Wayd.StrategicManagement.Domain.Models.StrategicTheme;
 
@@ -36,8 +37,8 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
 {
     private static readonly ConcurrentDictionary<string, bool> _ftsAvailabilityCache = new();
 
-    public WaydDbContext(DbContextOptions options, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, IOptions<DatabaseSettings> dbSettings, IEventPublisher events, IRequestCorrelationIdProvider requestCorrelationIdProvider)
-        : base(options, currentUser, dateTimeProvider, dbSettings, events, requestCorrelationIdProvider)
+    public WaydDbContext(DbContextOptions options, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, IOptions<DatabaseSettings> dbSettings, IEventPublisher events, IDbContextOutbox outbox, IRequestCorrelationIdProvider requestCorrelationIdProvider)
+        : base(options, currentUser, dateTimeProvider, dbSettings, events, outbox, requestCorrelationIdProvider)
     {
     }
 

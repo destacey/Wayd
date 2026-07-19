@@ -8,6 +8,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Infrastructure.Common.Services;
 using Wayd.Infrastructure.Persistence;
 using Wayd.Infrastructure.Persistence.Context;
+using Wolverine.EntityFrameworkCore;
 
 namespace Wayd.Organization.IntegrationTests.Infrastructure;
 
@@ -83,6 +84,10 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
         var events = new Mock<IEventPublisher>();
         events.Setup(e => e.PublishAsync(It.IsAny<IEvent>())).Returns(Task.CompletedTask);
 
+        // Organization (Team*) events are all inline, so the durable outbox is never enrolled in these
+        // tests — a no-op mock satisfies the ctor without exercising Wolverine's message persistence.
+        var outbox = new Mock<IDbContextOutbox>();
+
         var correlationId = new Mock<IRequestCorrelationIdProvider>();
         correlationId.SetupGet(c => c.CorrelationId).Returns("integration-test-correlation");
 
@@ -92,6 +97,7 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
             dateTimeProvider.Object,
             _databaseSettings,
             events.Object,
+            outbox.Object,
             correlationId.Object);
     }
 

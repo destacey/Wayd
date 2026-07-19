@@ -12,8 +12,8 @@ namespace Wayd.Infrastructure.Messaging;
 /// handler resolves is a different instance from the one on the sending scope. For HTTP-originated
 /// sends this is invisible — <c>CurrentUser</c> lazily reads <c>IHttpContextAccessor</c>, which flows
 /// with the async call chain regardless of scope. But for sends with no ambient <c>HttpContext</c>
-/// (Hangfire jobs, and later durable handlers) the fresh <c>CurrentUser</c> would resolve a blank user
-/// and silently drop audit attribution. The dispatcher stamps <see cref="UserIdentityHeaders.UserId"/>
+/// (Hangfire jobs and durable event handlers) the fresh <c>CurrentUser</c> would resolve a blank user and
+/// silently drop audit attribution. The dispatcher stamps <see cref="UserIdentityHeaders.UserId"/>
 /// onto the envelope on send; this middleware reads it back and seeds the fresh scope's
 /// <see cref="ICurrentUserInitializer"/>, mirroring what <c>WaydJobActivator</c> does for Hangfire.
 /// </remarks>

@@ -4,9 +4,12 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.Options;
+using Wayd.Common.Domain.Events;
 using Wayd.Infrastructure.Common.Services;
+using Wayd.Infrastructure.Messaging;
 using Wayd.Infrastructure.Persistence.Extensions;
 using NodaTime;
+using Wolverine.EntityFrameworkCore;
 
 namespace Wayd.Infrastructure.Persistence.Context;
 
@@ -16,15 +19,17 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
     protected readonly IDateTimeProvider _dateTimeProvider;
     private readonly DatabaseSettings _dbSettings;
     private readonly IEventPublisher _events;
+    private readonly IDbContextOutbox _outbox;
     private readonly IRequestCorrelationIdProvider _requestCorrelationIdProvider;
 
-    protected BaseDbContext(DbContextOptions options, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, IOptions<DatabaseSettings> dbSettings, IEventPublisher events, IRequestCorrelationIdProvider requestCorrelationIdProvider)
+    protected BaseDbContext(DbContextOptions options, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, IOptions<DatabaseSettings> dbSettings, IEventPublisher events, IDbContextOutbox outbox, IRequestCorrelationIdProvider requestCorrelationIdProvider)
         : base(options)
     {
         _currentUser = currentUser;
         _dateTimeProvider = dateTimeProvider;
         _dbSettings = dbSettings.Value;
         _events = events;
+        _outbox = outbox;
         _requestCorrelationIdProvider = requestCorrelationIdProvider;
 
         // this is need so that the owned entities are soft deleted correctly
@@ -92,13 +97,41 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
     {
         var auditEntries = HandleAuditingBeforeSaveChanges(_currentUser.GetUserId(), _requestCorrelationIdProvider.CorrelationId);
 
+        // Raise the deferred post-persistence domain events BEFORE the save. Every post-persistence action
+        // only builds a domain event, and aggregate Ids are client-generated (Guid v7 at construction), so
+        // nothing here depends on the row already being persisted. Raising them first is what lets a durable
+        // event's outbox envelope be staged into this same SaveChanges transaction (below) and commit
+        // ATOMICALLY with the entity change — the crash-safety guarantee the outbox provides.
+        ExecutePostPersistenceActions();
+
+        // Route the raised events (see DurableEventRoutes): durable events are enlisted in the Wolverine EF
+        // Core outbox, which adds their OutgoingMessage envelope rows to THIS change tracker so the single
+        // base.SaveChangesAsync below commits them together with the entity change; inline events are returned
+        // to be dispatched synchronously AFTER the commit, preserving read-your-writes for the cross-domain
+        // replication projections. Events are drained from the aggregates here (ClearDomainEvents), so the
+        // re-entrant audit save below does not re-raise them.
+        var (inlineEvents, enrolledDurableEvents) = await EnlistDomainEvents();
+
         int result = await base.SaveChangesAsync(cancellationToken);
 
         await HandleAuditingAfterSaveChangesAsync(auditEntries, cancellationToken);
 
-        ExecutePostPersistenceActions();
+        // Post-commit: hand the (now committed) durable envelopes to the sending agents for background
+        // delivery, then dispatch the inline events. Flush before the inline dispatch so a durable event is
+        // on its way even if an inline handler throws; the durable path has its own retry/dead-letter policy.
+        // Flush only when durable events were enrolled this pass: the outbox is scoped and shared across every
+        // SaveChanges call on this context, and FlushOutgoingMessagesAsync latches after its first flush
+        // (MultiFlushMode.OnlyOnce). Committed envelopes are durable regardless, so the recovery agent still
+        // delivers any that a latched no-op skips.
+        if (enrolledDurableEvents)
+        {
+            await _outbox.FlushOutgoingMessagesAsync();
+        }
 
-        await SendDomainEvents();
+        foreach (var inlineEvent in inlineEvents)
+        {
+            await _events.PublishAsync(inlineEvent);
+        }
 
         return result;
     }
@@ -375,12 +408,38 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
         }
     }
 
-    private async Task SendDomainEvents()
+    /// <summary>
+    /// Drains the domain events raised on tracked aggregates and routes each by its classification
+    /// (see <see cref="DurableEventRoutes"/>):
+    /// <list type="bullet">
+    /// <item>
+    /// <b>Durable</b> events are published through the enrolled Wolverine EF Core outbox, which stages
+    /// their envelope rows into <em>this</em> change tracker. They are therefore committed atomically by
+    /// the caller's single <c>base.SaveChangesAsync</c> and delivered post-commit on a background thread
+    /// (the caller flushes the outbox after the commit).
+    /// </item>
+    /// <item>
+    /// <b>Inline</b> events are returned to the caller to be dispatched synchronously AFTER the commit via
+    /// <see cref="IEventPublisher.PublishAsync"/>, preserving the read-your-writes contract the
+    /// cross-domain replication projections rely on.
+    /// </item>
+    /// </list>
+    /// Events are cleared from the aggregates as they are drained, so a re-entrant save (e.g. the audit
+    /// temp-property pass) does not re-raise them.
+    /// </summary>
+    /// <returns>
+    /// The inline events (in raise order) for the caller to dispatch after the commit, and whether any
+    /// durable event was enrolled in the outbox this pass (so the caller knows whether to flush).
+    /// </returns>
+    private async Task<(List<IEvent> InlineEvents, bool EnrolledDurableEvents)> EnlistDomainEvents()
     {
         var entitiesWithEvents = ChangeTracker.Entries<IEntity>()
             .Select(e => e.Entity)
             .Where(e => e.DomainEvents.Count > 0)
             .ToArray();
+
+        var inlineEvents = new List<IEvent>();
+        var enrolled = false;
 
         foreach (var entity in entitiesWithEvents)
         {
@@ -388,8 +447,29 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
             entity.ClearDomainEvents();
             foreach (var domainEvent in domainEvents)
             {
-                await _events.PublishAsync(domainEvent);
+                if (DurableEventRoutes.IsDurable(domainEvent))
+                {
+                    // Enroll THIS DbContext instance (not the outbox's own scoped context) exactly once, so
+                    // the envelope rows land in the same change tracker and transaction as the entity change.
+                    if (!enrolled)
+                    {
+                        _outbox.Enroll(this);
+                        enrolled = true;
+                    }
+
+                    // PublishAsync on an enrolled outbox routes the message and persists its OutgoingMessage
+                    // envelope into the change tracker (it does NOT save); base.SaveChangesAsync commits it.
+                    // IMessageBus.PublishAsync takes DeliveryOptions, not a token — the envelope insert is
+                    // part of the caller's SaveChangesAsync(cancellationToken) transaction.
+                    await _outbox.PublishAsync(domainEvent);
+                }
+                else
+                {
+                    inlineEvents.Add(domainEvent);
+                }
             }
         }
+
+        return (inlineEvents, enrolled);
     }
 }

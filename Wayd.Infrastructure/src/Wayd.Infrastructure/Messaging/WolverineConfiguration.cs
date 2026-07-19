@@ -94,10 +94,12 @@ public static class WolverineConfiguration
 
         // DURABLE TRANSACTIONAL OUTBOX. PersistMessagesWithSqlServer stores message envelopes in a dedicated
         // "wolverine" schema (never dbo), provisioned by Weasel at startup parallel to our EF migrations.
-        // UseEntityFrameworkCoreTransactions lets outgoing messages enlist in the WaydDbContext SaveChanges
-        // transaction, so an envelope commits atomically with the entity change and is delivered post-commit
-        // by the durability agent. The DbContext half — AddDbContextWithWolverineIntegration<WaydDbContext> —
-        // is wired in AddPersistence (an IServiceCollection call; these are WolverineOptions calls).
+        // UseEntityFrameworkCoreTransactions lets outgoing messages enlist in a WaydDbContext SaveChanges
+        // transaction so the envelope is durably persisted and delivered post-commit by the durability agent.
+        // (BaseDbContext stages durable events into the change tracker after the entity save — because the
+        // post-persistence events capture DB-generated Keys — and commits them with a second save; see there
+        // for the ordering.) The DbContext half — AddDbContextWithWolverineIntegration<WaydDbContext> — is
+        // wired in AddPersistence (an IServiceCollection call; these are WolverineOptions calls).
         //
         // Which events use it is decided by DurableEventRoutes, consumed in BaseDbContext: durable events
         // enlist here; everything else dispatches inline via EventPublisher.InvokeAsync (the outbox is

@@ -84,9 +84,11 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
         var events = new Mock<IEventPublisher>();
         events.Setup(e => e.PublishAsync(It.IsAny<IEvent>())).Returns(Task.CompletedTask);
 
-        // Organization (Team*) events are all inline, so the durable outbox is never enrolled in these
-        // tests — a no-op mock satisfies the ctor without exercising Wolverine's message persistence.
+        // Team* events are durable, so BaseDbContext enrolls this outbox and publishes/flushes through it when
+        // a team is saved. These tests don't exercise real message persistence; Moq returns completed tasks for
+        // the async members by default, and FlushOutgoingMessagesAsync is stubbed explicitly to be safe.
         var outbox = new Mock<IDbContextOutbox>();
+        outbox.Setup(o => o.FlushOutgoingMessagesAsync()).Returns(Task.CompletedTask);
 
         var correlationId = new Mock<IRequestCorrelationIdProvider>();
         correlationId.SetupGet(c => c.CorrelationId).Returns("integration-test-correlation");

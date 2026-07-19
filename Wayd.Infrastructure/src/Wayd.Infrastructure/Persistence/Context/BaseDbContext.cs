@@ -97,34 +97,37 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
     {
         var auditEntries = HandleAuditingBeforeSaveChanges(_currentUser.GetUserId(), _requestCorrelationIdProvider.CorrelationId);
 
-        // Raise the deferred post-persistence domain events BEFORE the save. Every post-persistence action
-        // only builds a domain event, and aggregate Ids are client-generated (Guid v7 at construction), so
-        // nothing here depends on the row already being persisted. Raising them first is what lets a durable
-        // event's outbox envelope be staged into this same SaveChanges transaction (below) and commit
-        // ATOMICALLY with the entity change — the crash-safety guarantee the outbox provides.
-        ExecutePostPersistenceActions();
-
-        // Route the raised events (see DurableEventRoutes): durable events are enlisted in the Wolverine EF
-        // Core outbox, which adds their OutgoingMessage envelope rows to THIS change tracker so the single
-        // base.SaveChangesAsync below commits them together with the entity change; inline events are returned
-        // to be dispatched synchronously AFTER the commit, preserving read-your-writes for the cross-domain
-        // replication projections. Events are drained from the aggregates here (ClearDomainEvents), so the
-        // re-entrant audit save below does not re-raise them.
-        var (inlineEvents, enrolledDurableEvents) = await EnlistDomainEvents();
-
         int result = await base.SaveChangesAsync(cancellationToken);
 
         await HandleAuditingAfterSaveChangesAsync(auditEntries, cancellationToken);
 
-        // Post-commit: hand the (now committed) durable envelopes to the sending agents for background
-        // delivery, then dispatch the inline events. Flush before the inline dispatch so a durable event is
-        // on its way even if an inline handler throws; the durable path has its own retry/dead-letter policy.
-        // Flush only when durable events were enrolled this pass: the outbox is scoped and shared across every
-        // SaveChanges call on this context, and FlushOutgoingMessagesAsync latches after its first flush
-        // (MultiFlushMode.OnlyOnce). Committed envelopes are durable regardless, so the recovery agent still
-        // delivers any that a latched no-op skips.
+        // Raise the deferred post-persistence domain events AFTER the entity has been saved. Several aggregates
+        // carry a database-generated sequential Key (ValueGeneratedOnAdd) that the events capture (e.g.
+        // TeamCreatedEvent), so the events must be built once EF has assigned it — running them before the save
+        // would capture a default (0) Key. Actions and events are cleared as they are drained, so if
+        // HandleAuditingAfterSaveChangesAsync above re-entered SaveChanges (temp-property audit trails), the
+        // events are raised there and this outer pass is a no-op — each is raised exactly once, post-save.
+        ExecutePostPersistenceActions();
+
+        // Route the raised events (see DurableEventRoutes): durable events are enlisted in the Wolverine EF
+        // Core outbox (their OutgoingMessage envelope rows are staged into this change tracker, then committed
+        // by the second save below); inline events are dispatched synchronously after the commit, preserving
+        // read-your-writes for the cross-domain replication projections. Events are drained from the aggregates
+        // as they are routed.
+        var (inlineEvents, enrolledDurableEvents) = await EnlistDomainEvents();
+
+        // Commit the staged durable envelopes. This is a second, small transaction — the outbox envelope is
+        // therefore not committed atomically with the entity change, but it IS durably persisted before it is
+        // flushed to the sending agents, so a crash after this point still delivers via the recovery agent.
+        // (Post-persistence events capture a DB-generated Key, so they cannot be enlisted before the entity
+        // save; that rules out a single atomic write here.)
         if (enrolledDurableEvents)
         {
+            await base.SaveChangesAsync(cancellationToken);
+
+            // Hand the committed envelopes to the sending agents for background delivery. Flush before the
+            // inline dispatch so a durable event is on its way even if an inline handler throws; the durable
+            // path has its own retry/dead-letter policy.
             await _outbox.FlushOutgoingMessagesAsync();
         }
 
@@ -414,9 +417,8 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
     /// <list type="bullet">
     /// <item>
     /// <b>Durable</b> events are published through the enrolled Wolverine EF Core outbox, which stages
-    /// their envelope rows into <em>this</em> change tracker. They are therefore committed atomically by
-    /// the caller's single <c>base.SaveChangesAsync</c> and delivered post-commit on a background thread
-    /// (the caller flushes the outbox after the commit).
+    /// their envelope rows into <em>this</em> change tracker. The caller commits them with a second
+    /// <c>base.SaveChangesAsync</c> and then flushes the outbox for post-commit background delivery.
     /// </item>
     /// <item>
     /// <b>Inline</b> events are returned to the caller to be dispatched synchronously AFTER the commit via
@@ -449,8 +451,8 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
             {
                 if (DurableEventRoutes.IsDurable(domainEvent))
                 {
-                    // Enroll THIS DbContext instance (not the outbox's own scoped context) exactly once, so
-                    // the envelope rows land in the same change tracker and transaction as the entity change.
+                    // Enroll THIS DbContext instance (not the outbox's own scoped context) exactly once, so the
+                    // envelope rows land in this change tracker and are committed by the caller's second save.
                     if (!enrolled)
                     {
                         _outbox.Enroll(this);

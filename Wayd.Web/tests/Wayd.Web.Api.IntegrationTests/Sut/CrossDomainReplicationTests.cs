@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Models.Organizations;
+using Wayd.Organization.Application.Persistence;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Planning.Application.Persistence;
 using Wayd.ProjectPortfolioManagement.Application;
@@ -37,6 +38,7 @@ public sealed class CrossDomainReplicationTests(WaydSqlServerApiFactory factory)
         var code = $"T{Guid.NewGuid():N}"[..8].ToUpperInvariant();
 
         Guid teamId;
+        int sourceKey;
         using (var dispatchScope = _factory.Services.CreateScope())
         {
             var dispatcher = dispatchScope.ServiceProvider.GetRequiredService<IDispatcher>();
@@ -50,39 +52,52 @@ public sealed class CrossDomainReplicationTests(WaydSqlServerApiFactory factory)
 
             Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
             teamId = result.Value.Id;
+
+            // The source team's Key is database-generated (ValueGeneratedOnAdd). The event is raised in a
+            // post-persistence action so it captures the assigned Key; capture it here to assert the
+            // projections replicate the real value, not a default 0.
+            sourceKey = await dispatchScope.ServiceProvider.GetRequiredService<IOrganizationDbContext>().Teams
+                .AsNoTracking().Where(t => t.Id == teamId).Select(t => t.Key).SingleAsync(ct);
+            Assert.NotEqual(0, sourceKey);
         }
 
         // Assert — the projections arrive eventually (background delivery). We assert arrival, not absence:
-        // checking absence right after the command returns would be an inherent race with a quick agent.
-        var workTeamExists = await WaitFor(
-            sp => sp.GetRequiredService<IWorkDbContext>().WorkTeams.AsNoTracking().AnyAsync(t => t.Id == teamId, ct),
+        // checking absence right after the command returns would be an inherent race with a quick agent. Each
+        // projection must carry the real database-generated Key (regression guard: raising the post-persistence
+        // event before the entity save would replicate Key = 0).
+        var workTeamKey = await WaitForValue(
+            sp => sp.GetRequiredService<IWorkDbContext>().WorkTeams.AsNoTracking().Where(t => t.Id == teamId).Select(t => (int?)t.Key).SingleOrDefaultAsync(ct),
             ct);
-        var planningTeamExists = await WaitFor(
-            sp => sp.GetRequiredService<IPlanningDbContext>().PlanningTeams.AsNoTracking().AnyAsync(t => t.Id == teamId, ct),
+        var planningTeamKey = await WaitForValue(
+            sp => sp.GetRequiredService<IPlanningDbContext>().PlanningTeams.AsNoTracking().Where(t => t.Id == teamId).Select(t => (int?)t.Key).SingleOrDefaultAsync(ct),
             ct);
-        var ppmTeamExists = await WaitFor(
-            sp => sp.GetRequiredService<IProjectPortfolioManagementDbContext>().PpmTeams.AsNoTracking().AnyAsync(t => t.Id == teamId, ct),
+        var ppmTeamKey = await WaitForValue(
+            sp => sp.GetRequiredService<IProjectPortfolioManagementDbContext>().PpmTeams.AsNoTracking().Where(t => t.Id == teamId).Select(t => (int?)t.Key).SingleOrDefaultAsync(ct),
             ct);
 
-        Assert.True(workTeamExists, "WorkTeam projection should be delivered asynchronously after CreateTeam returns");
-        Assert.True(planningTeamExists, "PlanningTeam projection should be delivered asynchronously after CreateTeam returns");
-        Assert.True(ppmTeamExists, "PpmTeam projection should be delivered asynchronously after CreateTeam returns");
+        Assert.True(workTeamKey.HasValue, "WorkTeam projection should be delivered asynchronously after CreateTeam returns");
+        Assert.True(planningTeamKey.HasValue, "PlanningTeam projection should be delivered asynchronously after CreateTeam returns");
+        Assert.True(ppmTeamKey.HasValue, "PpmTeam projection should be delivered asynchronously after CreateTeam returns");
+        Assert.Equal(sourceKey, workTeamKey!.Value);
+        Assert.Equal(sourceKey, planningTeamKey!.Value);
+        Assert.Equal(sourceKey, ppmTeamKey!.Value);
     }
 
-    private async Task<bool> WaitFor(Func<IServiceProvider, Task<bool>> predicate, CancellationToken ct)
+    private async Task<T?> WaitForValue<T>(Func<IServiceProvider, Task<T?>> read, CancellationToken ct) where T : struct
     {
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
         while (DateTime.UtcNow < deadline)
         {
             using var scope = _factory.Services.CreateScope();
-            if (await predicate(scope.ServiceProvider))
+            var value = await read(scope.ServiceProvider);
+            if (value.HasValue)
             {
-                return true;
+                return value;
             }
 
             await Task.Delay(250, ct);
         }
 
-        return false;
+        return null;
     }
 }

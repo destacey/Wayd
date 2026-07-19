@@ -80,10 +80,12 @@ public sealed class WorkIterationSyncHandler(IWorkDbContext workDbContext, ILogg
         var result = iteration.Update(updatedEvent, updatedEvent.Timestamp);
         if (result.IsFailure)
         {
-            // A domain-rule rejection is not transient — retrying will not help, so log and stop rather than
-            // throw the message into the retry/dead-letter loop.
-            _logger.LogError("Work {SystemActionType} for an updated Iteration {IterationId} rejected by the domain: {Error}.", SystemActionType.ServiceDataReplication, updatedEvent.Id, result.Error);
-            return;
+            // We loaded the iteration by this exact Id, so Update cannot legitimately reject it — a failure
+            // here means a real invariant break, not a transient fault. Throw so the durable failure policy
+            // retries and then dead-letters it for inspection, rather than silently ACKing and leaving the
+            // Work projection stale.
+            throw new InvalidOperationException(
+                $"WorkIteration {updatedEvent.Id} rejected a replication update: {result.Error}");
         }
 
         await _workDbContext.SaveChangesAsync(cancellationToken);

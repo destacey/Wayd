@@ -1,13 +1,27 @@
-﻿using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkIterations.EventHandlers;
 
+/// <summary>
+/// Replicates Planning <c>Iteration</c> changes into the Work domain's <c>WorkIteration</c> projection
+/// (same Id).
+/// </summary>
+/// <remarks>
+/// The <c>Iteration*</c> events are delivered durably (see <c>DurableEventRoutes</c>): enlisted in the
+/// Wolverine outbox, delivered on a background thread, and governed by a retry-with-cooldown → dead-letter
+/// failure policy. So this handler lets exceptions propagate — a transient DB failure is retried by Wolverine
+/// and a poison message dead-letters. The per-message idempotency guards (create no-ops if the row already
+/// exists; update/delete no-op if it does not) make redelivery safe.
+/// </remarks>
 public sealed class WorkIterationSyncHandler(IWorkDbContext workDbContext, ILogger<WorkIterationSyncHandler> logger, IDateTimeProvider dateTimeProvider)
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly ILogger<WorkIterationSyncHandler> _logger = logger;
+
+    // Retained as a constructor dependency to keep the handler's generated dispatch code (and thus the
+    // committed Wolverine handler tree) stable; the update path takes its timestamp from the event.
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task Handle(IterationCreatedEvent @event, CancellationToken cancellationToken)
@@ -36,76 +50,61 @@ public sealed class WorkIterationSyncHandler(IWorkDbContext workDbContext, ILogg
 
     private async Task CreateIteration(IterationCreatedEvent createdEvent, CancellationToken cancellationToken)
     {
-        try
+        // Idempotency guard, not error handling: a redelivery or a race with the Hangfire SyncWorkIterations
+        // bulk path may find the projection already present — that is a success, not a fault.
+        if (await _workDbContext.WorkIterations.AnyAsync(x => x.Id == createdEvent.Id, cancellationToken))
         {
-            if (await _workDbContext.WorkIterations.AnyAsync(x => x.Id == createdEvent.Id, cancellationToken))
-            {
-                _logger.LogCritical("Error processing Work {SystemActionType} for a new Iteration. Iteration {IterationId} already exists in the Work system.", SystemActionType.ServiceDataReplication, createdEvent.Id);
-                return;
-            }
-
-            var iteration = new WorkIteration(createdEvent);
-
-            await _workDbContext.WorkIterations.AddAsync(iteration, cancellationToken);
-            await _workDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Successful Work {SystemActionType} for the Iteration {IterationId} created action.", SystemActionType.ServiceDataReplication, createdEvent.Id);
+            _logger.LogInformation("Work {SystemActionType} for a new Iteration skipped: Iteration {IterationId} already exists in the Work system.", SystemActionType.ServiceDataReplication, createdEvent.Id);
+            return;
         }
-        catch (Exception ex)
-        {
-            _logger.LogCritical(ex, "Exception handling Work {SystemActionType} for the Iteration {IterationId} created action.", SystemActionType.ServiceDataReplication, createdEvent.Id);
-        }
+
+        var iteration = new WorkIteration(createdEvent);
+
+        await _workDbContext.WorkIterations.AddAsync(iteration, cancellationToken);
+        await _workDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Successful Work {SystemActionType} for the Iteration {IterationId} created action.", SystemActionType.ServiceDataReplication, createdEvent.Id);
     }
 
     private async Task UpdateIteration(IterationUpdatedEvent updatedEvent, CancellationToken cancellationToken)
     {
-        try
+        var iteration = await _workDbContext.WorkIterations.FirstOrDefaultAsync(x => x.Id == updatedEvent.Id, cancellationToken);
+        if (iteration == null)
         {
-            var iteration = await _workDbContext.WorkIterations.FirstOrDefaultAsync(x => x.Id == updatedEvent.Id, cancellationToken);
-            if (iteration == null)
-            {
-                _logger.LogCritical("Error processing Work {SystemActionType} for an updated Iteration. Iteration {IterationId} does not exist in the Work system.", SystemActionType.ServiceDataReplication, updatedEvent.Id);
-                return;
-            }
-
-            var result = iteration.Update(updatedEvent, updatedEvent.Timestamp);
-            if (result.IsFailure)
-            {
-                _logger.LogCritical("Error processing Work {SystemActionType} for an updated Iteration. Iteration {IterationId} update failed with error: {Error}.", SystemActionType.ServiceDataReplication, updatedEvent.Id, result.Error);
-                return;
-            }
-
-            await _workDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Successful Work {SystemActionType} for the Iteration {IterationId} updated action.", SystemActionType.ServiceDataReplication, updatedEvent.Id);
+            // The create event has not been applied yet (out-of-order delivery) or the iteration was deleted.
+            // No-op rather than throw: a create redelivery or the Hangfire bulk sync will converge the state.
+            _logger.LogWarning("Work {SystemActionType} for an updated Iteration skipped: Iteration {IterationId} does not exist in the Work system.", SystemActionType.ServiceDataReplication, updatedEvent.Id);
+            return;
         }
-        catch (Exception ex)
+
+        var result = iteration.Update(updatedEvent, updatedEvent.Timestamp);
+        if (result.IsFailure)
         {
-            _logger.LogCritical(ex, "Exception handling Work {SystemActionType} for the Iteration {IterationId} updated action.", SystemActionType.ServiceDataReplication, updatedEvent.Id);
+            // A domain-rule rejection is not transient — retrying will not help, so log and stop rather than
+            // throw the message into the retry/dead-letter loop.
+            _logger.LogError("Work {SystemActionType} for an updated Iteration {IterationId} rejected by the domain: {Error}.", SystemActionType.ServiceDataReplication, updatedEvent.Id, result.Error);
+            return;
         }
+
+        await _workDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Successful Work {SystemActionType} for the Iteration {IterationId} updated action.", SystemActionType.ServiceDataReplication, updatedEvent.Id);
     }
 
     private async Task DeleteIteration(IterationDeletedEvent deletedEvent, CancellationToken cancellationToken)
     {
         // TODO: work items are being updated via cascade delete, which may be undesirable. Consider changing this behavior. And then send events from those work items to update their dependencies.
-        try
+        var iteration = await _workDbContext.WorkIterations.FirstOrDefaultAsync(x => x.Id == deletedEvent.Id, cancellationToken);
+        if (iteration == null)
         {
-            var iteration = await _workDbContext.WorkIterations.FirstOrDefaultAsync(x => x.Id == deletedEvent.Id, cancellationToken);
-            if (iteration == null)
-            {
-                _logger.LogCritical("Error processing Work {SystemActionType} for a deleted Iteration. Iteration {IterationId} does not exist in the Work system.", SystemActionType.ServiceDataReplication, deletedEvent.Id);
-                return;
-            }
-
-            _workDbContext.WorkIterations.Remove(iteration);
-
-            await _workDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Successful Work {SystemActionType} for the Iteration {IterationId} deleted action.", SystemActionType.ServiceDataReplication, deletedEvent.Id);
+            // Already gone (redelivery, or the iteration never replicated) — deleting nothing is the goal state.
+            _logger.LogInformation("Work {SystemActionType} for a deleted Iteration skipped: Iteration {IterationId} does not exist in the Work system.", SystemActionType.ServiceDataReplication, deletedEvent.Id);
+            return;
         }
-        catch (Exception ex)
-        {
-            _logger.LogCritical(ex, "Exception handling Work {SystemActionType} for the Iteration {IterationId} deleted action.", SystemActionType.ServiceDataReplication, deletedEvent.Id);
-        }
+
+        _workDbContext.WorkIterations.Remove(iteration);
+        await _workDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Successful Work {SystemActionType} for the Iteration {IterationId} deleted action.", SystemActionType.ServiceDataReplication, deletedEvent.Id);
     }
 }

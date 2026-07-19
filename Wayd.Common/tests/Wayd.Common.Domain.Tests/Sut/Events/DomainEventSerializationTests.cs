@@ -3,12 +3,15 @@ using NodaTime.Serialization.SystemTextJson;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
+using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Events.StrategicManagement;
 using Wayd.Common.Domain.Interfaces.Planning.Iterations;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Interfaces.StrategicManagement;
 using Wayd.Common.Domain.Models;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Models.Planning.Iterations;
@@ -19,17 +22,16 @@ namespace Wayd.Common.Domain.Tests.Sut.Events;
 
 /// <summary>
 /// Domain events must survive a System.Text.Json round-trip for Wolverine's durable outbox: an event only
-/// becomes durable once it can be written to and read back from the envelope store. Phase 0 already removed
-/// the un-serializable generic entity events (they wrapped live EF entities); these tests guard the
-/// concrete events that remain, whose members are the ones most likely to break serialization — NodaTime
-/// types (<see cref="Instant"/>, <see cref="LocalDate"/>), value objects with parameterized constructors
+/// becomes durable once it can be written to and read back from the envelope store. These tests guard the
+/// concrete events whose members are the ones most likely to break serialization — NodaTime types
+/// (<see cref="Instant"/>, <see cref="LocalDate"/>), value objects with parameterized constructors
 /// (<see cref="TeamCode"/>, <see cref="LocalDateRange"/>), a value type with a private constructor and
 /// init-only properties (<see cref="IntegrationState{TId}"/>), and collection members.
 ///
 /// The serializer configuration here mirrors what the Wolverine host registers
 /// (<c>UseSystemTextJsonForSerialization(json =&gt; json.ConfigureForNodaTime(...))</c>) so a member that
 /// would silently fail to round-trip through the outbox fails here first, in a fast unit test, rather than
-/// only when the first event is routed durably in Stage C.
+/// only when an event is routed durably.
 /// </summary>
 public sealed class DomainEventSerializationTests
 {
@@ -192,6 +194,27 @@ public sealed class DomainEventSerializationTests
         roundTripped.Timestamp.Should().Be(original.Timestamp);
     }
 
+    [Fact]
+    public void StrategicThemeCreatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — an IStrategicThemeData aggregate-constructor event (fixed with a [JsonConstructor]);
+        // primitives plus an enum State.
+        var original = new StrategicThemeCreatedEvent(
+            strategicTheme: new StrategicThemeDataStub(Guid.NewGuid(), 12, "Cloud Migration", "desc", StrategicThemeState.Active),
+            timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Id.Should().Be(original.Id);
+        roundTripped.Key.Should().Be(original.Key);
+        roundTripped.Name.Should().Be(original.Name);
+        roundTripped.Description.Should().Be(original.Description);
+        roundTripped.State.Should().Be(original.State);
+        roundTripped.Timestamp.Should().Be(original.Timestamp);
+    }
+
     private static T RoundTrip<T>(T value)
     {
         var json = JsonSerializer.Serialize(value, Options);
@@ -209,4 +232,8 @@ public sealed class DomainEventSerializationTests
     private sealed record SimpleIterationStub(
         Guid Id, int Key, string Name, IterationType Type, IterationState State, IterationDateRange DateRange, Guid? TeamId)
         : ISimpleIteration;
+
+    /// <summary>Minimal <see cref="IStrategicThemeData"/> so the event can be constructed without the full aggregate.</summary>
+    private sealed record StrategicThemeDataStub(Guid Id, int Key, string Name, string Description, StrategicThemeState State)
+        : IStrategicThemeData;
 }

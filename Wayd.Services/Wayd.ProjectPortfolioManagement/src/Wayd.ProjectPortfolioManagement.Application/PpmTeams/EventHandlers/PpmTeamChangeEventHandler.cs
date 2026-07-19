@@ -1,9 +1,19 @@
-﻿using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
 namespace Wayd.ProjectPortfolioManagement.Application.PpmTeams.EventHandlers;
 
+/// <summary>
+/// Replicates Organization <c>Team</c> changes into the PPM <c>PpmTeam</c> projection (same Id).
+/// </summary>
+/// <remarks>
+/// The <c>Team*</c> events are delivered durably (see <c>DurableEventRoutes</c>): enlisted in the Wolverine
+/// outbox, delivered on a background thread, and governed by a retry-with-cooldown → dead-letter failure
+/// policy. So this handler lets exceptions propagate — a transient DB failure is retried by Wolverine and a
+/// poison message dead-letters. The per-message idempotency guards (create no-ops if the row already exists;
+/// update/activate/deactivate/delete no-op if it does not) make redelivery safe.
+/// </remarks>
 public sealed class PpmTeamChangeEventHandler
 {
     private readonly IProjectPortfolioManagementDbContext _dbContext;
@@ -49,16 +59,10 @@ public sealed class PpmTeamChangeEventHandler
         }
 
         var ppmTeam = new PpmTeam(team);
-        try
-        {
-            await _dbContext.PpmTeams.AddAsync(ppmTeam, cancellationToken);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("[{SystemActionType}] Ppm Team created. {PpmTeamId} - {PpmTeamName}", SystemActionType.ServiceDataReplication, team.Id, team.Name);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogCritical(ex, "[{SystemActionType}] Ppm Team create action failed to save. {PpmTeamId} - {PpmTeamName}", SystemActionType.ServiceDataReplication, team.Id, team.Name);
-        }
+        await _dbContext.PpmTeams.AddAsync(ppmTeam, cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("[{SystemActionType}] Ppm Team created. {PpmTeamId} - {PpmTeamName}", SystemActionType.ServiceDataReplication, team.Id, team.Name);
     }
 
     private async Task UpdatePpmTeam(TeamUpdatedEvent team, CancellationToken cancellationToken)
@@ -69,17 +73,11 @@ public sealed class PpmTeamChangeEventHandler
             _logger.LogInformation("[{SystemActionType}] Ppm Team update action skipped. Unable to find ppm team {PpmTeamId} to update.", SystemActionType.ServiceDataReplication, team.Id);
             return;
         }
-        try
-        {
-            existingTeam.Update(team);
-            await _dbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("[{SystemActionType}] Ppm Team updated. {PpmTeamId} - {PpmTeamName}", SystemActionType.ServiceDataReplication, team.Id, team.Name);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogCritical(ex, "[{SystemActionType}] Ppm Team update action failed to save. {PpmTeamId} - {PpmTeamName}", SystemActionType.ServiceDataReplication, team.Id, team.Name);
-        }
+        existingTeam.Update(team);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("[{SystemActionType}] Ppm Team updated. {PpmTeamId} - {PpmTeamName}", SystemActionType.ServiceDataReplication, team.Id, team.Name);
     }
 
     private async Task ActivatePpmTeam(TeamActivatedEvent team, CancellationToken cancellationToken)
@@ -90,17 +88,11 @@ public sealed class PpmTeamChangeEventHandler
             _logger.LogInformation("[{SystemActionType}] Ppm Team activate action skipped. Unable to find ppm team {PpmTeamId} to activate.", SystemActionType.ServiceDataReplication, team.Id);
             return;
         }
-        try
-        {
-            existingTeam.UpdateIsActive(true);
-            await _dbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("[{SystemActionType}] Ppm Team activated. {PpmTeamId} - {PpmTeamName}", SystemActionType.ServiceDataReplication, team.Id, existingTeam.Name);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogCritical(ex, "[{SystemActionType}] Ppm Team activate action failed to save. {PpmTeamId} - {PpmTeamName}", SystemActionType.ServiceDataReplication, team.Id, existingTeam.Name);
-        }
+        existingTeam.UpdateIsActive(true);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("[{SystemActionType}] Ppm Team activated. {PpmTeamId} - {PpmTeamName}", SystemActionType.ServiceDataReplication, team.Id, existingTeam.Name);
     }
 
     private async Task DeactivatePpmTeam(TeamDeactivatedEvent team, CancellationToken cancellationToken)
@@ -111,40 +103,25 @@ public sealed class PpmTeamChangeEventHandler
             _logger.LogInformation("[{SystemActionType}] Ppm Team deactivate action skipped. Unable to find ppm team {PpmTeamId} to deactivate.", SystemActionType.ServiceDataReplication, team.Id);
             return;
         }
-        try
-        {
-            existingTeam.UpdateIsActive(false);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("[{SystemActionType}] Ppm Team deactivated. {PpmTeamId} - {PpmTeamName}", SystemActionType.ServiceDataReplication, team.Id, existingTeam.Name);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogCritical(ex, "[{SystemActionType}] Ppm Team deactivate action failed to save. {PpmTeamId} - {PpmTeamName}", SystemActionType.ServiceDataReplication, team.Id, existingTeam.Name);
-        }
+
+        existingTeam.UpdateIsActive(false);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("[{SystemActionType}] Ppm Team deactivated. {PpmTeamId} - {PpmTeamName}", SystemActionType.ServiceDataReplication, team.Id, existingTeam.Name);
     }
 
     private async Task DeletePpmTeam(TeamDeletedEvent team, CancellationToken cancellationToken)
     {
         var existingTeam = await _dbContext.PpmTeams.FirstOrDefaultAsync(t => t.Id == team.Id, cancellationToken);
-
-        try
+        if (existingTeam is null)
         {
-            if (existingTeam is null)
-            {
-                _logger.LogInformation("[{SystemActionType}] Ppm Team deleted. Unable to find ppm team {PpmTeamId} to delete.", SystemActionType.ServiceDataReplication, team.Id);
-            }
-            else
-            {
-                _dbContext.PpmTeams.Remove(existingTeam);
-                await _dbContext.SaveChangesAsync(cancellationToken);
-
-                _logger.LogInformation("[{SystemActionType}] Ppm Team deleted. {PpmTeamId} - {PpmTeamName}", SystemActionType.ServiceDataReplication, existingTeam.Id, existingTeam.Name);
-            }
-
+            _logger.LogInformation("[{SystemActionType}] Ppm Team delete action skipped. Unable to find ppm team {PpmTeamId} to delete.", SystemActionType.ServiceDataReplication, team.Id);
+            return;
         }
-        catch (Exception ex)
-        {
-            _logger.LogCritical(ex, "[{SystemActionType}] Ppm Team delete action failed to save. {PpmTeamId} - {PpmTeamName}", SystemActionType.ServiceDataReplication, team.Id, existingTeam?.Name ?? "Unknown Team");
-        }
+
+        _dbContext.PpmTeams.Remove(existingTeam);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("[{SystemActionType}] Ppm Team deleted. {PpmTeamId} - {PpmTeamName}", SystemActionType.ServiceDataReplication, existingTeam.Id, existingTeam.Name);
     }
 }

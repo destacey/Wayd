@@ -8,6 +8,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Infrastructure.Common.Services;
 using Wayd.Infrastructure.Persistence;
 using Wayd.Infrastructure.Persistence.Context;
+using Wolverine.EntityFrameworkCore;
 
 namespace Wayd.Organization.IntegrationTests.Infrastructure;
 
@@ -83,6 +84,12 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
         var events = new Mock<IEventPublisher>();
         events.Setup(e => e.PublishAsync(It.IsAny<IEvent>())).Returns(Task.CompletedTask);
 
+        // Team* events are durable, so BaseDbContext enrolls this outbox and publishes/flushes through it when
+        // a team is saved. These tests don't exercise real message persistence; Moq returns completed tasks for
+        // the async members by default, and FlushOutgoingMessagesAsync is stubbed explicitly to be safe.
+        var outbox = new Mock<IDbContextOutbox>();
+        outbox.Setup(o => o.FlushOutgoingMessagesAsync()).Returns(Task.CompletedTask);
+
         var correlationId = new Mock<IRequestCorrelationIdProvider>();
         correlationId.SetupGet(c => c.CorrelationId).Returns("integration-test-correlation");
 
@@ -92,6 +99,7 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
             dateTimeProvider.Object,
             _databaseSettings,
             events.Object,
+            outbox.Object,
             correlationId.Object);
     }
 

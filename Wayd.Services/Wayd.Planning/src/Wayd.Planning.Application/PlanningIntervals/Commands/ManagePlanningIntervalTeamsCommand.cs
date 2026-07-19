@@ -31,9 +31,28 @@ public sealed class ManagePlanningIntervalTeamsCommandHandler : ICommandHandler<
                 return Result.Failure<int>($"Planning Interval {request.Id} not found.");
             }
 
-            // TODO validate teams exist, currently they are in a different bounded context
+            var requestedTeamIds = request.TeamIds?.Distinct().ToList() ?? [];
 
-            var result = planningInterval.ManageTeams(request.TeamIds);
+            // Validate every requested team has a replicated PlanningTeam projection. PlanningIntervalTeam.TeamId
+            // is a required cascade FK to PlanningTeam, and Team replication is delivered asynchronously, so a
+            // team just created in Organization may not have landed here yet. Guard with a clean failure rather
+            // than letting the SaveChanges below FK-fault.
+            if (requestedTeamIds.Count != 0)
+            {
+                var existingTeamIds = await _planningDbContext.PlanningTeams
+                    .Where(t => requestedTeamIds.Contains(t.Id))
+                    .Select(t => t.Id)
+                    .ToListAsync(cancellationToken);
+
+                var missingTeamIds = requestedTeamIds.Except(existingTeamIds).ToList();
+                if (missingTeamIds.Count != 0)
+                {
+                    _logger.LogWarning("Planning Interval {PlanningIntervalId} team assignment rejected: {MissingCount} team(s) not found in Planning: {MissingTeamIds}.", request.Id, missingTeamIds.Count, string.Join(", ", missingTeamIds));
+                    return Result.Failure($"One or more teams could not be found. They may still be syncing — please try again in a moment.");
+                }
+            }
+
+            var result = planningInterval.ManageTeams(requestedTeamIds);
             if (result.IsFailure)
                 return Result.Failure(result.Error);
 

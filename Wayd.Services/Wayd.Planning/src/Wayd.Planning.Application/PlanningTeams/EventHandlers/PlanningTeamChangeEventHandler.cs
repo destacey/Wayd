@@ -1,8 +1,24 @@
-﻿using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events.Organization;
 
 namespace Wayd.Planning.Application.PlanningTeams.EventHandlers;
 
+/// <summary>
+/// Replicates Organization <c>Team</c> changes into the Planning domain's <c>PlanningTeam</c> projection
+/// (same Id).
+/// </summary>
+/// <remarks>
+/// The <c>Team*</c> events are delivered durably (see <c>DurableEventRoutes</c>): enlisted in the Wolverine
+/// outbox, delivered on a background thread, and governed by a retry-with-cooldown → dead-letter failure
+/// policy. So this handler lets exceptions propagate — a transient DB failure is retried by Wolverine and a
+/// poison message dead-letters. The per-message idempotency guards (create no-ops if the row already exists;
+/// update/activate/deactivate/delete no-op if it does not) make redelivery safe.
+/// <para>
+/// Because delivery is asynchronous, a <c>PlanningTeam</c> may not exist at the instant a follow-up command
+/// references it. <c>ManagePlanningIntervalTeamsCommand</c> validates team existence and fails cleanly rather
+/// than FK-faulting, which is what makes async replication safe for this projection.
+/// </para>
+/// </remarks>
 public sealed class PlanningTeamChangeEventHandler
 {
     private readonly IPlanningDbContext _planningDbContext;
@@ -48,16 +64,10 @@ public sealed class PlanningTeamChangeEventHandler
         }
 
         var planningTeam = new PlanningTeam(team);
-        try
-        {
-            await _planningDbContext.PlanningTeams.AddAsync(planningTeam, cancellationToken);
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("[{SystemActionType}] Planning Team created. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, team.Id, team.Name);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogCritical(ex, "[{SystemActionType}] Planning Team create action failed to save. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, team.Id, team.Name);
-        }
+        await _planningDbContext.PlanningTeams.AddAsync(planningTeam, cancellationToken);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("[{SystemActionType}] Planning Team created. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, team.Id, team.Name);
     }
 
     private async Task UpdatePlanningTeam(TeamUpdatedEvent team, CancellationToken cancellationToken)
@@ -65,20 +75,14 @@ public sealed class PlanningTeamChangeEventHandler
         var existingTeam = await _planningDbContext.PlanningTeams.FirstOrDefaultAsync(t => t.Id == team.Id, cancellationToken);
         if (existingTeam is null)
         {
-            _logger.LogInformation("[{SystemActionType}] Planning Team update action skipped. Unable to find work team {PlanningTeamId} to update.", SystemActionType.ServiceDataReplication, team.Id);
+            _logger.LogInformation("[{SystemActionType}] Planning Team update action skipped. Unable to find team {PlanningTeamId} to update.", SystemActionType.ServiceDataReplication, team.Id);
             return;
         }
-        try
-        {
-            existingTeam.Update(team);
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("[{SystemActionType}] Planning Team updated. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, team.Id, team.Name);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogCritical(ex, "[{SystemActionType}] Planning Team update action failed to save. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, team.Id, team.Name);
-        }
+        existingTeam.Update(team);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("[{SystemActionType}] Planning Team updated. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, team.Id, team.Name);
     }
 
     private async Task ActivatePlanningTeam(TeamActivatedEvent team, CancellationToken cancellationToken)
@@ -86,20 +90,14 @@ public sealed class PlanningTeamChangeEventHandler
         var existingTeam = await _planningDbContext.PlanningTeams.FirstOrDefaultAsync(t => t.Id == team.Id, cancellationToken);
         if (existingTeam is null)
         {
-            _logger.LogInformation("[{SystemActionType}] Planning Team activate action skipped. Unable to find work team {PlanningTeamId} to activate.", SystemActionType.ServiceDataReplication, team.Id);
+            _logger.LogInformation("[{SystemActionType}] Planning Team activate action skipped. Unable to find team {PlanningTeamId} to activate.", SystemActionType.ServiceDataReplication, team.Id);
             return;
         }
-        try
-        {
-            existingTeam.UpdateIsActive(true);
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("[{SystemActionType}] Planning Team activated. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, team.Id, existingTeam.Name);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogCritical(ex, "[{SystemActionType}] Planning Team activate action failed to save. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, team.Id, existingTeam.Name);
-        }
+        existingTeam.UpdateIsActive(true);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("[{SystemActionType}] Planning Team activated. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, team.Id, existingTeam.Name);
     }
 
     private async Task DeactivatePlanningTeam(TeamDeactivatedEvent team, CancellationToken cancellationToken)
@@ -107,45 +105,29 @@ public sealed class PlanningTeamChangeEventHandler
         var existingTeam = await _planningDbContext.PlanningTeams.FirstOrDefaultAsync(t => t.Id == team.Id, cancellationToken);
         if (existingTeam is null)
         {
-            _logger.LogInformation("[{SystemActionType}] Planning Team deactivate action skipped. Unable to find work team {PlanningTeamId} to deactivate.", SystemActionType.ServiceDataReplication, team.Id);
+            _logger.LogInformation("[{SystemActionType}] Planning Team deactivate action skipped. Unable to find team {PlanningTeamId} to deactivate.", SystemActionType.ServiceDataReplication, team.Id);
             return;
         }
-        try
-        {
-            existingTeam.UpdateIsActive(false);
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("[{SystemActionType}] Planning Team deactivated. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, team.Id, existingTeam.Name);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogCritical(ex, "[{SystemActionType}] Planning Team deactivate action failed to save. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, team.Id, existingTeam.Name);
-        }
+
+        existingTeam.UpdateIsActive(false);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("[{SystemActionType}] Planning Team deactivated. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, team.Id, existingTeam.Name);
     }
 
     private async Task DeletePlanningTeam(TeamDeletedEvent team, CancellationToken cancellationToken)
     {
         var existingTeam = await _planningDbContext.PlanningTeams.FirstOrDefaultAsync(t => t.Id == team.Id, cancellationToken);
-
-        try
+        if (existingTeam is null)
         {
-            if (existingTeam is null)
-            {
-                _logger.LogInformation("[{SystemActionType}] Planning Team deleted. Unable to find work team {PlanningTeamId} to delete.", SystemActionType.ServiceDataReplication, team.Id);
-            }
-            else
-            {
-                // TODO: consider making the team inactive or archiving it instead of deleting it.  Maybe we only delete if the planning team has never been used?
-
-                _planningDbContext.PlanningTeams.Remove(existingTeam);
-                await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-                _logger.LogInformation("[{SystemActionType}] Planning Team deleted. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, existingTeam.Id, existingTeam.Name);
-            }
-
+            _logger.LogInformation("[{SystemActionType}] Planning Team delete action skipped. Unable to find team {PlanningTeamId} to delete.", SystemActionType.ServiceDataReplication, team.Id);
+            return;
         }
-        catch (Exception ex)
-        {
-            _logger.LogCritical(ex, "[{SystemActionType}] Planning Team delete action failed to save. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, team.Id, existingTeam?.Name ?? "Unknown Team");
-        }
+
+        // TODO: consider making the team inactive or archiving it instead of deleting it.  Maybe we only delete if the planning team has never been used?
+        _planningDbContext.PlanningTeams.Remove(existingTeam);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("[{SystemActionType}] Planning Team deleted. {PlanningTeamId} - {PlanningTeamName}", SystemActionType.ServiceDataReplication, existingTeam.Id, existingTeam.Name);
     }
 }

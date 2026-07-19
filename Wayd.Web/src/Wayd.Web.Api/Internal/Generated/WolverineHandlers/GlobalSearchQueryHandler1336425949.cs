@@ -27,21 +27,15 @@ namespace Internal.Generated.WolverineHandlers
 
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
+            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
-            var validatorOfGlobalSearchQuery = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<FluentValidation.IValidator<Wayd.Common.Application.Search.GlobalSearchQuery>>(serviceScope.ServiceProvider);
-            var serializerService = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Common.Application.Interfaces.ISerializerService>(serviceScope.ServiceProvider);
-            var ambientUserId = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Infrastructure.Auth.AmbientUserId>(serviceScope.ServiceProvider);
-            
-            /*
-            * Dependency: Descriptor: ServiceType: System.IServiceProvider Lifetime: Scoped ImplementationType: Microsoft.Extensions.DependencyInjection.ServiceDescriptor
-            * Your code is directly using IServiceProvider
-            */
-            var currentUser = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Common.Application.Interfaces.ICurrentUser>(serviceScope.ServiceProvider);
-            
-            /*
-            * Concrete type Wayd.Common.Application.Dispatching.WolverineDispatcher is not public, so requires service location
-            */
+            // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
+            var currentPrincipal = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Common.Application.Interfaces.ICurrentPrincipal>(serviceScope.ServiceProvider);
+            // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var dispatcher = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Common.Application.Interfaces.IDispatcher>(serviceScope.ServiceProvider);
+            // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
+            var ambientUserId = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Infrastructure.Auth.AmbientUserId>(serviceScope.ServiceProvider);
+            var globalSearchQueryValidator = new Wayd.Common.Application.Search.GlobalSearchQueryValidator();
             // The actual message body
             var globalSearchQuery = (Wayd.Common.Application.Search.GlobalSearchQuery)context.Envelope.Message;
 
@@ -51,8 +45,8 @@ namespace Internal.Generated.WolverineHandlers
             {
                 System.Diagnostics.Activity.Current?.SetTag("message.handler", "Wayd.Common.Application.Search.GlobalSearchQueryHandler");
                 System.Diagnostics.Activity.Current?.SetTag("handler.type", "Wayd.Common.Application.Search.GlobalSearchQueryHandler");
-                await Wolverine.FluentValidation.Internals.FluentValidationExecutor.ExecuteOne<Wayd.Common.Application.Search.GlobalSearchQuery>(validatorOfGlobalSearchQuery, _failureActionOfGlobalSearchQuery, globalSearchQuery).ConfigureAwait(false);
-                var globalSearchQueryHandler = new Wayd.Common.Application.Search.GlobalSearchQueryHandler(dispatcher, currentUser, _loggerOfGlobalSearchQueryHandler);
+                await Wolverine.FluentValidation.Internals.FluentValidationExecutor.ExecuteOne<Wayd.Common.Application.Search.GlobalSearchQuery>(globalSearchQueryValidator, _failureActionOfGlobalSearchQuery, globalSearchQuery).ConfigureAwait(false);
+                var globalSearchQueryHandler = new Wayd.Common.Application.Search.GlobalSearchQueryHandler(dispatcher, currentPrincipal, _loggerOfGlobalSearchQueryHandler);
                 
                 // The actual message execution
                 var outgoing1 = await globalSearchQueryHandler.Handle(globalSearchQuery, cancellation).ConfigureAwait(false);
@@ -65,7 +59,7 @@ namespace Internal.Generated.WolverineHandlers
 
             finally
             {
-                Wayd.Common.Application.Behaviors.PerformanceBehavior.Finally(result_of_Before, _loggerOfPerformanceBehaviorLog, serializerService, context.Envelope);
+                Wayd.Common.Application.Behaviors.PerformanceBehavior.Finally(result_of_Before, _loggerOfPerformanceBehaviorLog, systemTextJsonService, context.Envelope);
             }
 
         }

@@ -41,6 +41,7 @@ enum SettingsTab {
 
   // other
   BackgroundJobs = 'background-jobs',
+  Messaging = 'messaging',
 }
 
 type RestrictedMenuItem = SubMenuType & {
@@ -232,6 +233,12 @@ const buildSettingsMenuItems = (featureFlags: {
       'Background Jobs',
       SettingsTab.BackgroundJobs,
       '/settings/background-jobs',
+    ),
+    getRestrictedMenuItem(
+      'Permissions.Messaging.View',
+      'Messaging',
+      SettingsTab.Messaging,
+      '/settings/messaging',
     ),
   ]),
 ]

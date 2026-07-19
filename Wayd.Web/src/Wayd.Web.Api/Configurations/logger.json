@@ -28,6 +28,7 @@
             "Default": "Information",
             "Override": {
                 "Hangfire": "Warning",
+                "JasperFx": "Information",
                 "Microsoft": "Error",
                 "Microsoft.Hosting.Lifetime": "Information",
                 "Microsoft.IdentityModel": "Fatal",

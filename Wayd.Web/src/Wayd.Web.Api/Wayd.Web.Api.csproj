@@ -101,10 +101,17 @@
          Debug-only and ContinueOnError so a transient boot hiccup never blocks the build. CI enforces the
          tree is actually committed-fresh (a `codegen write` then a git-diff exit-code check); this target
          is the local convenience half of that guarantee. WAYD_SKIP_DB_INIT stops the boot from migrating
-         or seeding, exactly as the NSwag boot does. -->
+         or seeding, exactly as the NSwag boot does.
+
+         OTEL_EXPORTER_OTLP_ENDPOINT is cleared (empty) so codegen runs WITHOUT the OTLP exporter services.
+         Their presence flips the DI-container service-registration order, which reorders the emitted
+         service-locator locals (behaviourally identical, textually different) and would produce a tree that
+         diverges from the canonical no-OTLP form — dirtying hundreds of files and false-failing the CI
+         freshness check. The canonical committed tree is always the no-OTLP output; pin that here and in CI.
+         Empty is treated as "no OTLP" by ConfigureOpenTelemetry (IsNullOrWhiteSpace check). -->
     <Target Name="RegenerateWolverineHandlers" AfterTargets="PostBuildEvent" Condition=" '$(Configuration)' == 'Debug' ">
         <Exec ConsoleToMSBuild="true" ContinueOnError="true" WorkingDirectory="$(ProjectDir)"
-            EnvironmentVariables="ASPNETCORE_ENVIRONMENT=Development;WAYD_SKIP_DB_INIT=true"
+            EnvironmentVariables="ASPNETCORE_ENVIRONMENT=Development;WAYD_SKIP_DB_INIT=true;OTEL_EXPORTER_OTLP_ENDPOINT="
             Command="dotnet run --no-build --no-launch-profile -c $(Configuration) -- codegen write">
             <Output TaskParameter="ExitCode" PropertyName="WolverineCodegenExitCode" />
             <Output TaskParameter="ConsoleOutput" PropertyName="WolverineCodegenOutput" />

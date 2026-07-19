@@ -161,7 +161,7 @@ Wolverine runs `TypeLoadMode.Static` in all environments, loading pre-generated 
 
 - A Debug post-build target (`RegenerateWolverineHandlers`) reruns `dotnet run -- codegen write` after each build, so a local edit self-heals on the next build/run.
 - CI fails if the committed tree is stale (a `codegen write` + `git diff` check). If you change a handler or its dependencies, commit the regenerated tree.
-- To regenerate manually: from `Wayd.Web/src/Wayd.Web.Api`, `dotnet run --no-launch-profile -c Debug -- codegen write` (output is idempotent).
+- To regenerate manually: from `Wayd.Web/src/Wayd.Web.Api`, `OTEL_EXPORTER_OTLP_ENDPOINT= dotnet run --no-launch-profile -c Debug -- codegen write`. **The empty `OTEL_EXPORTER_OTLP_ENDPOINT` matters**: when an OTLP endpoint is configured (e.g. running under the Aspire AppHost), the OTLP exporter services shift the DI-container registration order, which reorders the emitted service-locator locals — behaviourally identical but a large spurious diff. The committed tree's canonical form is the no-OTLP output; the pre-build target and CI pin it that way. (Consequently there is no `codegen write` AppHost startup gate — it would run under OTLP and churn the tree.)
 - A broken codegen config is invisible to `dotnet build` and unit tests — only a real host boot and the `Wayd.Web.Api.IntegrationTests` dispatch suite catch it.
 
 ### Database

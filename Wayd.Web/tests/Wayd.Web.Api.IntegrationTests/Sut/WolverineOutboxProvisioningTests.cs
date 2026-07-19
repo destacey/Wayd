@@ -4,16 +4,13 @@ using Wayd.Web.Api.IntegrationTests.Infrastructure;
 namespace Wayd.Web.Api.IntegrationTests.Sut;
 
 /// <summary>
-/// Stage B durability plumbing: Wolverine's durable inbox/outbox envelope tables are provisioned by
-/// Weasel at host startup, in a dedicated <c>wolverine</c> schema, PARALLEL to (not inside) our EF
-/// migrations. This proves the two provisioning paths coexist against the real SQL Server schema — the
-/// real host boots, <c>InitializeDatabases()</c> applies the <c>Wayd.Infrastructure.Migrators.MSSQL</c>
-/// migrations to the application schema, AND Wolverine's tables land in the <c>wolverine</c> schema, on
-/// the same database, without either clobbering the other.
-///
-/// No domain event is routed durably yet (every event is an inline cross-domain replication projection),
-/// so this asserts the infrastructure exists — not delivery. The delivery guarantee (rollback ⇒ not
-/// delivered, commit ⇒ delivered) is proven with the first genuinely fire-and-forget event in Stage C.
+/// Wolverine's durable inbox/outbox envelope tables are provisioned by Weasel at host startup, in a
+/// dedicated <c>wolverine</c> schema, PARALLEL to (not inside) our EF migrations. This proves the two
+/// provisioning paths coexist against the real SQL Server schema — the real host boots,
+/// <c>InitializeDatabases()</c> applies the <c>Wayd.Infrastructure.Migrators.MSSQL</c> migrations to the
+/// application schema, AND Wolverine's tables land in the <c>wolverine</c> schema, on the same database,
+/// without either clobbering the other. This asserts the provisioning; durable delivery itself is covered by
+/// <c>DurableEventRoutingTests</c>.
 /// </summary>
 [Trait("Category", "Docker")]
 public sealed class WolverineOutboxProvisioningTests(WaydSqlServerApiFactory factory)

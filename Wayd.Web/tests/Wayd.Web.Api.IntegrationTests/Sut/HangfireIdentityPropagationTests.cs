@@ -14,7 +14,7 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// has seeded a user id (as <c>WaydJobActivator</c> does from the job's UserId parameter), then dispatches
 /// a command through <see cref="IDispatcher"/>. The audited entity written by the handler must carry that
 /// user id in its <c>SystemCreatedBy</c> column — otherwise Wolverine's fresh-per-message scope has dropped
-/// the identity (the exact silent regression the Phase 2 identity middleware exists to prevent).
+/// the identity (the exact silent regression <c>UserIdentityMiddleware</c> exists to prevent).
 /// </summary>
 [Trait("Category", "Docker")]
 public sealed class HangfireIdentityPropagationTests(WaydSqlServerApiFactory factory)

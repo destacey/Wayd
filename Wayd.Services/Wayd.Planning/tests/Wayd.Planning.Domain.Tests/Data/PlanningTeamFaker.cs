@@ -18,3 +18,12 @@ public class PlanningTeamFaker : PrivateConstructorFaker<PlanningTeam>
         RuleFor(x => x.IsActive, true);
     }
 }
+
+public static class PlanningTeamFakerExtensions
+{
+    public static PlanningTeamFaker WithId(this PlanningTeamFaker faker, Guid id)
+    {
+        faker.RuleFor(x => x.Id, id);
+        return faker;
+    }
+}

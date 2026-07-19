@@ -16,6 +16,20 @@ internal class CurrentPrincipal(ICurrentUser currentUser, IUserService userServi
 
     public async Task<bool> HasPermission(string permission, CancellationToken cancellationToken = default)
     {
+        switch (_currentUser.Kind)
+        {
+            // The platform acting on its own behalf (jobs, durable messages, startup) is not
+            // permission-gated — the blog-model SystemPrincipal. Lets background flows pass through
+            // permission-checked code paths without impersonating a user.
+            case ActorKind.System:
+                return true;
+
+            // Deny-all for anonymous HTTP callers; also guards the store lookup below, which throws
+            // NotFound for an empty user id.
+            case ActorKind.Anonymous:
+                return false;
+        }
+
         _permissionsCache ??= [.. await _userService.GetPermissionsAsync(_currentUser.GetUserId(), cancellationToken)];
 
         return _permissionsCache.Contains(permission);

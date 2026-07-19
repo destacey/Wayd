@@ -7,6 +7,8 @@
 /// </summary>
 public interface ICurrentUser
 {
+    ActorKind Kind { get; }
+
     string? Name { get; }
 
     string GetUserId();

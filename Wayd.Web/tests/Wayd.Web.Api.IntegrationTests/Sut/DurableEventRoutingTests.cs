@@ -81,6 +81,12 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
         // (the background agent can be quick), so the meaningful, non-flaky guarantee is that it does land.
         var replicated = await WaitForWorkProject(projectId, TimeSpan.FromSeconds(30), ct);
         Assert.True(replicated, "WorkProject projection should be delivered asynchronously after CreateProject returns");
+
+        // No audit-attribution assertion here on purpose: replication projections (WorkProject et al.)
+        // deliberately do not implement ISystemAuditable, so a durable delivery writes no audit columns.
+        // System-actor attribution for auditable writes from an HTTP-less scope is pinned by
+        // HangfireIdentityPropagationTests.Dispatch_FromScopeWithoutUser_StampsSystemActorOnAuditColumns,
+        // which exercises the same CurrentUser/BaseDbContext path a durable handler scope uses.
     }
 
     [Fact]

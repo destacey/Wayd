@@ -107,6 +107,10 @@ public async Task<Result<Guid>> Handle(CreateWorkItemCommand request, Cancellati
 
 The current caller is split into two abstractions: `ICurrentUser` is pure identity — *who* is calling (user id, name, email, employee link, authenticated) — and `ICurrentPrincipal` answers *what the caller may do* (`HasPermission` / `HasAnyPermission`), deriving the permission set from the identity plus the permission store and caching it per request/message scope. Inject the one that matches the question being asked; don't add permission or claim APIs to `ICurrentUser`.
 
+`ICurrentUser.Kind` classifies the caller as one of three `ActorKind`s: **User** (an authenticated request, or a background scope acting on a specific user's behalf), **Anonymous** (a live HTTP request with no authenticated user — denied all permissions), or **System** (no HTTP request and no acting user: scheduled jobs, durable message delivery, startup work — granted all permissions). System scopes are audited with the well-known `SystemIdentity.UserId` instead of an empty value, so platform-initiated writes are always attributable.
+
+Only real user ids are propagated across execution boundaries (job parameters, message envelope headers); a scope with neither an HTTP context nor a propagated user id resolves to System by definition — the "nobody = system" rule lives in `CurrentUser.Kind` and nowhere else. This rests on one assumption worth knowing: **background work never originates from anonymous callers.** Anonymity doesn't survive a detach — once execution leaves the HTTP context with no user id, an anonymous origin is indistinguishable from a platform origin, so work enqueued by an anonymous endpoint would run as System (grant-all). Today no anonymous endpoint enqueues work; if one ever must, propagate an explicit anonymous marker so `Kind` can resolve it correctly across the boundary.
+
 ### No Repository Pattern
 
 Application handlers use EF Core `DbContext` directly for data access. There is no repository abstraction layer.

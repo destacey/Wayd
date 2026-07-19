@@ -1,5 +1,6 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
+using Wayd.Common.Application.Identity;
 
 namespace Wayd.Infrastructure.Auth;
 
@@ -13,17 +14,39 @@ public class CurrentUser(IHttpContextAccessor httpContextAccessor, AmbientUserId
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
     private readonly AmbientUserId _ambientUserId = ambientUserId;
 
-    private ClaimsPrincipal? _user;
+    private ClaimsPrincipal? User => _httpContextAccessor.HttpContext?.User;
 
-    // Lazily access user from HttpContext when available, otherwise use _user set via SetCurrentUser
-    private ClaimsPrincipal? User => _user ?? _httpContextAccessor.HttpContext?.User;
+    /// <summary>
+    /// Who is acting: an authenticated HTTP user or a background scope seeded with a user id is a
+    /// <see cref="ActorKind.User"/>; a live HTTP request with no authenticated user is a genuine
+    /// <see cref="ActorKind.Anonymous"/> caller; and no HTTP request with no seeded user means the
+    /// platform itself is acting (<see cref="ActorKind.System"/> — scheduled jobs, durable message
+    /// delivery, startup work).
+    /// </summary>
+    public ActorKind Kind
+    {
+        get
+        {
+            if (IsAuthenticated())
+                return ActorKind.User;
 
-    public string? Name => User?.Identity?.Name;
+            var ambientId = _ambientUserId.Value;
+            if (!string.IsNullOrEmpty(ambientId))
+                return SystemIdentity.IsSystem(ambientId) ? ActorKind.System : ActorKind.User;
+
+            return _httpContextAccessor.HttpContext is null ? ActorKind.System : ActorKind.Anonymous;
+        }
+    }
+
+    public string? Name =>
+        Kind == ActorKind.System ? SystemIdentity.Name : User?.Identity?.Name;
 
     public string GetUserId() =>
         IsAuthenticated()
             ? User?.GetUserId() ?? string.Empty
-            : _ambientUserId.Value ?? string.Empty;
+            : Kind == ActorKind.System
+                ? SystemIdentity.UserId
+                : _ambientUserId.Value ?? string.Empty;
 
     public Guid? GetEmployeeId()
     {
@@ -44,16 +67,6 @@ public class CurrentUser(IHttpContextAccessor httpContextAccessor, AmbientUserId
 
     public bool IsAuthenticated() =>
         User?.Identity?.IsAuthenticated is true;
-
-    public void SetCurrentUser(ClaimsPrincipal user)
-    {
-        if (_user != null)
-        {
-            throw new Exception("Method reserved for in-scope initialization");
-        }
-
-        _user = user;
-    }
 
     public void SetCurrentUserId(string userId) =>
         // Stored on the scoped AmbientUserId (shared with the handler's DbContext in the same scope)

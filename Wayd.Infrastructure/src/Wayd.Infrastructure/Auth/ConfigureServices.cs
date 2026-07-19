@@ -52,6 +52,8 @@ internal static class ConfigureServices
 
     private static IServiceCollection AddPermissions(this IServiceCollection services) =>
         services
+            // Scoped so the per-scope permission cache matches the lifetime of CurrentUser/DbContext.
+            .AddScoped<ICurrentPrincipal, CurrentPrincipal>()
             .AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>()
             .AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>()
             .AddScoped<IAuthorizationHandler, AnyPermissionAuthorizationHandler>();

@@ -77,6 +77,8 @@ Wayd/
 
 All business operations are modeled as commands (writes) or queries (reads), dispatched through `IDispatcher` (backed by Wolverine). Controllers are thin and contain no business logic. Handlers must be `public` — Wolverine generates the code that invokes them and cannot call internal types.
 
+Handler **dependencies** are constructor-inlined by Wolverine's codegen, and service location is disabled (`ServiceLocationPolicy.NotAllowed`). A dependency whose registered implementation is `internal` (public interface, internal class) cannot be inlined; it must be added to the `AlwaysUseServiceLocationFor<T>()` allow-list in `WolverineConfiguration` — or the implementation made public. Getting this wrong is caught early: `codegen write` (run by the Debug post-build target and the CI staleness check) fails with an `InvalidServiceLocationException` naming the offending type.
+
 ```csharp
 // Command
 public sealed record CreateWorkItemCommand(string Title, Guid WorkspaceId) : ICommand<Guid>;
@@ -100,6 +102,10 @@ public async Task<Result<Guid>> Handle(CreateWorkItemCommand request, Cancellati
     return Result.Success(workItem.Id);
 }
 ```
+
+### Identity vs Principal
+
+The current caller is split into two abstractions: `ICurrentUser` is pure identity — *who* is calling (user id, name, email, employee link, authenticated) — and `ICurrentPrincipal` answers *what the caller may do* (`HasPermission` / `HasAnyPermission`), deriving the permission set from the identity plus the permission store and caching it per request/message scope. Inject the one that matches the question being asked; don't add permission or claim APIs to `ICurrentUser`.
 
 ### No Repository Pattern
 

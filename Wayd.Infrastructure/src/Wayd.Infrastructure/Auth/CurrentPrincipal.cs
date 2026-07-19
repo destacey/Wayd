@@ -19,8 +19,8 @@ internal class CurrentPrincipal(ICurrentUser currentUser, IUserService userServi
         switch (_currentUser.Kind)
         {
             // The platform acting on its own behalf (jobs, durable messages, startup) is not
-            // permission-gated — the blog-model SystemPrincipal. Lets background flows pass through
-            // permission-checked code paths without impersonating a user.
+            // permission-gated: system scopes hold every permission, so background flows can pass
+            // through permission-checked code paths without impersonating a user.
             case ActorKind.System:
                 return true;
 

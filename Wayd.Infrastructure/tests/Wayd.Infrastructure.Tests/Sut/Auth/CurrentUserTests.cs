@@ -65,7 +65,8 @@ public sealed class CurrentUserTests
     [Fact]
     public void Kind_WithSystemSentinelSeeded_IsSystem()
     {
-        // Arrange - a nested dispatch propagates the system id via the envelope header.
+        // Arrange - a run-as-system job (HangfireService.EnqueueSystem) seeds the well-known system id
+        // via its UserId job parameter; the scope must resolve to System, not User.
         _ambientUserId.Set(SystemIdentity.UserId);
         var sut = CreateSut();
 

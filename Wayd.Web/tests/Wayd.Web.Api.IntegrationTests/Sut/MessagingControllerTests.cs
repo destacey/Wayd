@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Wayd.Web.Api.Controllers.Admin;
@@ -122,6 +123,28 @@ public sealed class MessagingControllerTests(WaydSqlServerApiFactory factory)
         Assert.IsType<NotFoundResult>(detailResponse.Result);
     }
 
+    [Fact]
+    public async Task ReplayAndDiscard_WithNullOrEmptyIds_ReturnBadRequest()
+    {
+        // Arrange — the Ids property initializer does not survive an explicit {"ids": null} payload,
+        // so both action guards must handle null as well as empty.
+        _ = _factory.CreateClient();
+        var ct = TestContext.Current.CancellationToken;
+        var controller = CreateController();
+
+        // Act
+        var replayNull = await controller.ReplayDeadLetters(new DeadLetterMessagesRequest { Ids = null! }, ct);
+        var replayEmpty = await controller.ReplayDeadLetters(new DeadLetterMessagesRequest(), ct);
+        var discardNull = await controller.DiscardDeadLetters(new DeadLetterMessagesRequest { Ids = null! }, ct);
+        var discardEmpty = await controller.DiscardDeadLetters(new DeadLetterMessagesRequest(), ct);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(replayNull);
+        Assert.IsType<BadRequestObjectResult>(replayEmpty);
+        Assert.IsType<BadRequestObjectResult>(discardNull);
+        Assert.IsType<BadRequestObjectResult>(discardEmpty);
+    }
+
     /// <summary>
     /// A fictional, handler-less message type. Wolverine stores the dead letter regardless of whether
     /// the type resolves, and a replay of it can never dispatch into real application code.
@@ -131,7 +154,11 @@ public sealed class MessagingControllerTests(WaydSqlServerApiFactory factory)
     private MessagingController CreateController()
     {
         var store = _factory.Services.GetRequiredService<IMessageStore>();
-        return new MessagingController(store);
+        return new MessagingController(store)
+        {
+            // ProblemDetailsExtensions.ForBadRequest reads the request/trace info off HttpContext.
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
     }
 
     private async Task<Guid> SeedDeadLetter(CancellationToken ct)

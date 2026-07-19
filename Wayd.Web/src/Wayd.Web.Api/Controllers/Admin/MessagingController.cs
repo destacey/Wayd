@@ -92,7 +92,8 @@ public class MessagingController(IMessageStore messageStore) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ReplayDeadLetters([FromBody] DeadLetterMessagesRequest request, CancellationToken cancellationToken)
     {
-        if (request.Ids.Count == 0)
+        // is null: the property initializer doesn't survive an explicit {"ids": null} payload.
+        if (request.Ids is null || request.Ids.Count == 0)
         {
             return BadRequest(ProblemDetailsExtensions.ForBadRequest("At least one dead letter message id is required.", HttpContext));
         }
@@ -108,7 +109,8 @@ public class MessagingController(IMessageStore messageStore) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> DiscardDeadLetters([FromBody] DeadLetterMessagesRequest request, CancellationToken cancellationToken)
     {
-        if (request.Ids.Count == 0)
+        // is null: the property initializer doesn't survive an explicit {"ids": null} payload.
+        if (request.Ids is null || request.Ids.Count == 0)
         {
             return BadRequest(ProblemDetailsExtensions.ForBadRequest("At least one dead letter message id is required.", HttpContext));
         }

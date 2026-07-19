@@ -96,7 +96,6 @@
     <PackageVersion Include="WolverineFx" Version="6.19.0" />
     <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="6.19.0" />
     <PackageVersion Include="WolverineFx.FluentValidation" Version="6.19.0" />
-    <PackageVersion Include="WolverineFx.RuntimeCompilation" Version="6.19.0" />
     <PackageVersion Include="WolverineFx.SqlServer" Version="6.19.0" />
     <PackageVersion Include="ZymLabs.NSwag.FluentValidation.AspNetCore" Version="0.7.1" />
     <!-- Test packages -->

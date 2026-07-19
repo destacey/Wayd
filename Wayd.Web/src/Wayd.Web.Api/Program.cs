@@ -87,8 +87,11 @@ try
 
     // Wolverine is the command/query/event mediator (replacing MediatR), configured in Infrastructure
     // alongside the other host plumbing. IDispatcher — the only dispatch seam call sites use — is
-    // registered by AddCommonApplication.
-    builder.AddWaydWolverine();
+    // registered by AddCommonApplication. typeof(Program).Assembly is Wayd.Web.Api — the assembly that
+    // owns the committed, pre-generated Wolverine handler tree that TypeLoadMode.Static loads; it must be
+    // passed explicitly because Wolverine cannot infer it correctly under an integration-test host (see
+    // AddWaydWolverine).
+    builder.AddWaydWolverine(typeof(Program).Assembly);
 
     var app = builder.Build();
 

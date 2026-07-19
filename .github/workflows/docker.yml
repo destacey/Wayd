@@ -33,6 +33,22 @@ jobs:
             - name: Build
               run: dotnet build --no-restore
 
+            # The Debug build's RegenerateWolverineHandlers post-build target rewrites the committed
+            # handler tree (Internal/Generated/WolverineHandlers) from the freshly built app. If the tree
+            # committed to the repo was stale, the rewrite changes files and this diff fails the build.
+            # The host runs TypeLoadMode.Static from that tree with no runtime Roslyn compiler, so a stale
+            # tree would silently dispatch wrong/missing handlers — this check is what keeps it honest.
+            # The target pins OTEL_EXPORTER_OTLP_ENDPOINT empty during codegen so the output is the canonical
+            # no-OTLP form (the OTLP exporter services otherwise reorder the emitted service-locator locals);
+            # regenerate the same way when fixing a stale tree, or the diff will be spurious reordering.
+            - name: Verify committed Wolverine handler tree is fresh
+              run: |
+                  if ! git diff --quiet -- Internal/Generated/WolverineHandlers; then
+                      echo "::error::The committed Wolverine handler tree is stale. Regenerate with: (cd Wayd.Web/src/Wayd.Web.Api && OTEL_EXPORTER_OTLP_ENDPOINT= dotnet run --no-launch-profile -c Debug -- codegen write) and commit the result."
+                      git --no-pager diff --stat -- Internal/Generated/WolverineHandlers
+                      exit 1
+                  fi
+
             - name: Test
               run: dotnet test --no-build --verbosity normal
 

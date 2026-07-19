@@ -23333,6 +23333,250 @@
         ]
       }
     },
+    "/api/admin/messaging/counts": {
+      "get": {
+        "tags": [
+          "Messaging"
+        ],
+        "summary": "Get counts of persisted message envelopes by lifecycle state.",
+        "operationId": "Messaging_GetCounts",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagingCountsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/admin/messaging/dead-letters": {
+      "get": {
+        "tags": [
+          "Messaging"
+        ],
+        "summary": "Get a page of dead-lettered messages, optionally filtered by message type, exception type, and time range.",
+        "operationId": "Messaging_GetDeadLetters",
+        "parameters": [
+          {
+            "name": "messageType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "exceptionType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "nullable": true
+            },
+            "x-position": 4
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            },
+            "x-position": 5
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            },
+            "x-position": 6
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeadLetterMessagesResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/admin/messaging/dead-letters/{id}": {
+      "get": {
+        "tags": [
+          "Messaging"
+        ],
+        "summary": "Get the full detail of a dead-lettered message, including its serialized body.",
+        "operationId": "Messaging_GetDeadLetterById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeadLetterMessageDetailsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/admin/messaging/dead-letters/replay": {
+      "post": {
+        "tags": [
+          "Messaging"
+        ],
+        "summary": "Mark dead-lettered messages as replayable. The durability agent moves them back to the incoming queue on its next pass, so replay is asynchronous.",
+        "operationId": "Messaging_ReplayDeadLetters",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeadLetterMessagesRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "202": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/admin/messaging/dead-letters/discard": {
+      "post": {
+        "tags": [
+          "Messaging"
+        ],
+        "summary": "Permanently delete dead-lettered messages.",
+        "operationId": "Messaging_DiscardDeadLetters",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeadLetterMessagesRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/scoring-models": {
       "get": {
         "tags": [
@@ -39876,6 +40120,178 @@
           },
           "isEnabled": {
             "type": "boolean"
+          }
+        }
+      },
+      "MessagingCountsResponse": {
+        "type": "object",
+        "description": "Snapshot of the Wolverine durable message store: how many envelopes are currently persisted in\neach lifecycle bucket. In a healthy system incoming/outgoing hover near zero — envelopes only\nlinger during backlog, scheduled delivery, or after an unclean shutdown.",
+        "additionalProperties": false,
+        "required": [
+          "incoming",
+          "scheduled",
+          "outgoing",
+          "handled",
+          "deadLetter"
+        ],
+        "properties": {
+          "incoming": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scheduled": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "outgoing": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "handled": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deadLetter": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "DeadLetterMessagesResponse": {
+        "type": "object",
+        "description": "A page of dead-lettered messages. PageNumber is 0-based, mirroring Wolverine's\nDeadLetterEnvelopeQuery paging.",
+        "additionalProperties": false,
+        "required": [
+          "totalCount",
+          "pageNumber",
+          "pageSize",
+          "items"
+        ],
+        "properties": {
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeadLetterMessageResponse"
+            }
+          }
+        }
+      },
+      "DeadLetterMessageResponse": {
+        "type": "object",
+        "description": "A single dead-lettered message envelope: what failed, where, and why.",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "messageType",
+          "sentAt",
+          "replayable",
+          "attempts"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "messageType": {
+            "type": "string"
+          },
+          "receivedAt": {
+            "type": "string",
+            "description": "The listener/queue URI the message was received at (e.g. local://durable/).",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "description": "The service that originally sent the message.",
+            "nullable": true
+          },
+          "exceptionType": {
+            "type": "string",
+            "nullable": true
+          },
+          "exceptionMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "replayable": {
+            "type": "boolean",
+            "description": "Whether the durability agent is set to move this envelope back to incoming for another attempt."
+          },
+          "attempts": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "DeadLetterMessageDetailsResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DeadLetterMessageResponse"
+          },
+          {
+            "type": "object",
+            "description": "Full detail for a single dead-lettered message, including the serialized message body\n(System.Text.Json per the Wolverine host configuration, so it renders as JSON).",
+            "additionalProperties": false,
+            "properties": {
+              "body": {
+                "type": "string",
+                "nullable": true
+              },
+              "contentType": {
+                "type": "string",
+                "nullable": true
+              },
+              "correlationId": {
+                "type": "string",
+                "nullable": true
+              },
+              "destination": {
+                "type": "string",
+                "nullable": true
+              },
+              "executionTime": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              }
+            }
+          }
+        ]
+      },
+      "DeadLetterMessagesRequest": {
+        "type": "object",
+        "description": "Identifies the dead-lettered messages a replay or discard operation targets.",
+        "additionalProperties": false,
+        "required": [
+          "ids"
+        ],
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            }
           }
         }
       },

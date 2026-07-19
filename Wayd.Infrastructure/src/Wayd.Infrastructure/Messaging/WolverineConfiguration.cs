@@ -50,7 +50,17 @@ public static class WolverineConfiguration
     /// code generation are host-level concerns; <c>AddInfrastructure</c> cannot own it. <c>IDispatcher</c>
     /// (the only dispatch seam call sites use) is registered separately in <c>AddCommonApplication</c>.
     /// </summary>
-    public static TBuilder AddWaydWolverine<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
+    /// <param name="builder">The host application builder.</param>
+    /// <param name="applicationAssembly">
+    /// The assembly that owns the pre-generated Wolverine handler tree (the API entry assembly,
+    /// <c>Wayd.Web.Api</c>). Passed explicitly rather than inferred because <see cref="TypeLoadMode.Static"/>
+    /// loads the generated <c>HandlerRegistry</c> from this exact assembly, and neither of Wolverine's
+    /// inference strategies yields it: the caller of <c>UseWolverine</c> is <c>Wayd.Infrastructure</c> (this
+    /// assembly), and <c>Assembly.GetEntryAssembly()</c> is the TEST RUNNER assembly under an integration-test
+    /// host — both wrong, and both fail Static type loading. Callers pass <c>typeof(Program).Assembly</c>.
+    /// </param>
+    public static TBuilder AddWaydWolverine<TBuilder>(this TBuilder builder, System.Reflection.Assembly applicationAssembly)
+        where TBuilder : IHostApplicationBuilder
     {
         // The durable outbox stores its envelopes in the same database as the application, read from the
         // same config key AddPersistence uses (DatabaseSettings:ConnectionString). This read is EAGER —
@@ -64,12 +74,24 @@ public static class WolverineConfiguration
             ?? throw new InvalidOperationException(
                 "DatabaseSettings:ConnectionString is required to configure the Wolverine durable outbox.");
 
-        builder.UseWolverine(opts => opts.ConfigureWayd(builder.Environment, connectionString));
+        builder.UseWolverine(opts => opts.ConfigureWayd(applicationAssembly, connectionString));
         return builder;
     }
 
-    private static WolverineOptions ConfigureWayd(this WolverineOptions opts, IHostEnvironment environment, string connectionString)
+    private static WolverineOptions ConfigureWayd(this WolverineOptions opts, System.Reflection.Assembly applicationAssembly, string connectionString)
     {
+        // Pin the application assembly to Wayd.Web.Api (passed in from Program.cs as typeof(Program).Assembly).
+        // This is the assembly the pre-generated handler tree (Internal/Generated/WolverineHandlers) is emitted
+        // into and compiled as part of, so it is where TypeLoadMode.Static must look for the generated
+        // HandlerRegistry and per-handler types. Neither of Wolverine's inference strategies yields it:
+        //   - the caller of UseWolverine is THIS assembly (Wayd.Infrastructure), since AddWaydWolverine lives
+        //     here — Static would then not find the registry and silently fall back to a runtime scan;
+        //   - Assembly.GetEntryAssembly() is the TEST RUNNER assembly under an integration-test host
+        //     (Wayd.Web.Api.IntegrationTests), which fails Static loading with ExpectedTypeMissingException at
+        //     first dispatch (invisible to build + host-boot; only the dispatch tests catch it).
+        // Passing it explicitly is exactly what Wolverine's docs prescribe for test-harness scenarios.
+        opts.ApplicationAssembly = applicationAssembly;
+
         // Discovery: only the assemblies we own that actually contain handlers. Wolverine already scans
         // the entry assembly (Wayd.Web.Api); include the rest explicitly.
         foreach (var marker in HandlerAssemblyMarkers)
@@ -145,17 +167,24 @@ public static class WolverineConfiguration
         // transitive opaque graph is large and grows with each new DbContext facade.
         opts.ServiceLocationPolicy = ServiceLocationPolicy.AlwaysAllowed;
 
-        // Cold-start codegen. WolverineFx core no longer ships the Roslyn compiler, so dynamic/auto
-        // modes need WolverineFx.RuntimeCompilation registered (referenced by this project) via
-        // UseRuntimeCompilation(); without it the host refuses to start (GH-2876). Auto tries any
-        // pre-generated types first and falls back to runtime compilation, so it is safe everywhere.
-        // Pre-generating types for CI/prod (TypeLoadMode.Static + `dotnet run -- codegen write`, which
-        // then lets this compiler reference drop) is a follow-up build-pipeline task, not a parity
-        // requirement for this phase.
-        opts.UseRuntimeCompilation();
-        opts.CodeGeneration.TypeLoadMode = environment.IsDevelopment()
-            ? TypeLoadMode.Dynamic
-            : TypeLoadMode.Auto;
+        // Codegen: STATIC everywhere, from the pre-generated handler tree committed under
+        // Wayd.Web.Api/Internal/Generated/WolverineHandlers (produced by `dotnet run -- codegen write`).
+        // Static means Wolverine loads those compiled types via the generated HandlerRegistry and NEVER
+        // invokes Roslyn — which is why WolverineFx.RuntimeCompilation is no longer referenced at all.
+        // WolverineFx core dropped the Roslyn runtime compiler (GH-2876), so under Dynamic/Auto a host
+        // with no IAssemblyGenerator refuses to start; Static sidesteps that requirement entirely.
+        //
+        // The trade-off Static imposes: the committed tree is the source of truth, so it must be
+        // regenerated whenever a handler (or a handler dependency's shape) changes, or the host will
+        // dispatch stale/missing handler code. Two things keep it honest:
+        //   - the RegenerateWolverineHandlers pre-build target in Wayd.Web.Api.csproj regenerates the
+        //     tree locally on build (Debug), so a developer's inner loop stays current automatically;
+        //   - CI runs `codegen write` and fails on any `git diff`, catching a tree that was committed
+        //     stale (see WolverineCodegenFreshnessTests / the CI step).
+        // This is invisible to `dotnet build` and unit tests (neither boots the host), so the
+        // WolverineConfigurationValidityTests host-boot check is the regression guard that Static is
+        // wired correctly.
+        opts.CodeGeneration.TypeLoadMode = TypeLoadMode.Static;
 
         return opts;
     }

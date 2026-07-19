@@ -155,6 +155,15 @@ Microsoft.FeatureManagement — defined in code, stored in database, managed via
 
 NSwag generates TypeScript client from API's OpenAPI spec on Debug build. Config in `nswag.json`. Generated client in `wayd.web.reactclient/src/services/wayd-api.ts`.
 
+### Wolverine Handler Codegen (committed)
+
+Wolverine runs `TypeLoadMode.Static` in all environments, loading pre-generated handler code from the **committed** tree at `Wayd.Web.Api/Internal/Generated/WolverineHandlers/` (no runtime Roslyn — `WolverineFx.RuntimeCompilation` is deliberately not referenced). The tree must stay in sync with the handlers:
+
+- A Debug post-build target (`RegenerateWolverineHandlers`) reruns `dotnet run -- codegen write` after each build, so a local edit self-heals on the next build/run.
+- CI fails if the committed tree is stale (a `codegen write` + `git diff` check). If you change a handler or its dependencies, commit the regenerated tree.
+- To regenerate manually: from `Wayd.Web/src/Wayd.Web.Api`, `dotnet run --no-launch-profile -c Debug -- codegen write` (output is idempotent).
+- A broken codegen config is invisible to `dotnet build` and unit tests — only a real host boot and the `Wayd.Web.Api.IntegrationTests` dispatch suite catch it.
+
 ### Database
 
 Single shared `WaydDbContext`. Entity configs in `Wayd.Infrastructure/Persistence/Configuration/`. Migrations in `Wayd.Infrastructure.Migrators.MSSQL`. Auto-applied on startup via `app.Services.InitializeDatabases()`.

@@ -52,7 +52,6 @@ namespace Internal.Generated.WolverineHandlers
 
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
-            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var roleService = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Common.Application.Identity.Roles.IRoleService>(serviceScope.ServiceProvider);
@@ -65,6 +64,7 @@ namespace Internal.Generated.WolverineHandlers
             var requestCorrelationIdProvider = new Wayd.Infrastructure.Common.Services.RequestCorrelationIdProvider(_httpContextAccessor2);
             await using var waydDbContext = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions, currentUser, dateTimeProvider, _optionsOfDatabaseSettings, eventPublisher, dbContextOutbox, requestCorrelationIdProvider);
             var createOidcProviderCommandValidator = new Wayd.Common.Application.Identity.OidcProviders.Commands.CreateOidcProviderCommandValidator(waydDbContext, roleService);
+            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             // The actual message body
             var createOidcProviderCommand = (Wayd.Common.Application.Identity.OidcProviders.Commands.CreateOidcProviderCommand)context.Envelope.Message;
 

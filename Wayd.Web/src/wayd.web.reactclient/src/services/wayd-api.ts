@@ -27680,6 +27680,321 @@ export class BackgroundJobsClient {
     }
 }
 
+export class MessagingClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get counts of persisted message envelopes by lifecycle state.
+     */
+    getCounts( cancelToken?: CancelToken): Promise<MessagingCountsResponse> {
+        let url_ = this.baseUrl + "/api/admin/messaging/counts";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCounts(_response);
+        });
+    }
+
+    protected processGetCounts(response: AxiosResponse): Promise<MessagingCountsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<MessagingCountsResponse>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MessagingCountsResponse>(null as any);
+    }
+
+    /**
+     * Get a page of dead-lettered messages, optionally filtered by message type, exception type, and time range.
+     * @param messageType (optional) 
+     * @param exceptionType (optional) 
+     * @param from (optional) 
+     * @param to (optional) 
+     * @param pageNumber (optional) 
+     * @param pageSize (optional) 
+     */
+    getDeadLetters(messageType?: string | null | undefined, exceptionType?: string | null | undefined, from?: Date | null | undefined, to?: Date | null | undefined, pageNumber?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<DeadLetterMessagesResponse> {
+        let url_ = this.baseUrl + "/api/admin/messaging/dead-letters?";
+        if (messageType !== undefined && messageType !== null)
+            url_ += "messageType=" + encodeURIComponent("" + messageType) + "&";
+        if (exceptionType !== undefined && exceptionType !== null)
+            url_ += "exceptionType=" + encodeURIComponent("" + exceptionType) + "&";
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent(from ? "" + from.toISOString() : "") + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent(to ? "" + to.toISOString() : "") + "&";
+        if (pageNumber === null)
+            throw new globalThis.Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetDeadLetters(_response);
+        });
+    }
+
+    protected processGetDeadLetters(response: AxiosResponse): Promise<DeadLetterMessagesResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DeadLetterMessagesResponse>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DeadLetterMessagesResponse>(null as any);
+    }
+
+    /**
+     * Get the full detail of a dead-lettered message, including its serialized body.
+     */
+    getDeadLetterById(id: string, cancelToken?: CancelToken): Promise<DeadLetterMessageDetailsResponse> {
+        let url_ = this.baseUrl + "/api/admin/messaging/dead-letters/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetDeadLetterById(_response);
+        });
+    }
+
+    protected processGetDeadLetterById(response: AxiosResponse): Promise<DeadLetterMessageDetailsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DeadLetterMessageDetailsResponse>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DeadLetterMessageDetailsResponse>(null as any);
+    }
+
+    /**
+     * Mark dead-lettered messages as replayable. The durability agent moves them back to the incoming queue on its next pass, so replay is asynchronous.
+     */
+    replayDeadLetters(request: DeadLetterMessagesRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/admin/messaging/dead-letters/replay";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processReplayDeadLetters(_response);
+        });
+    }
+
+    protected processReplayDeadLetters(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 202) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Permanently delete dead-lettered messages.
+     */
+    discardDeadLetters(request: DeadLetterMessagesRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/admin/messaging/dead-letters/discard";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDiscardDeadLetters(_response);
+        });
+    }
+
+    protected processDiscardDeadLetters(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
 export class ScoringModelsClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -32991,6 +33306,53 @@ export interface UpdateFeatureFlagRequest {
 export interface ToggleFeatureFlagRequest {
     id: number;
     isEnabled: boolean;
+}
+
+/** Snapshot of the Wolverine durable message store: how many envelopes are currently persisted in each lifecycle bucket. In a healthy system incoming/outgoing hover near zero — envelopes only linger during backlog, scheduled delivery, or after an unclean shutdown. */
+export interface MessagingCountsResponse {
+    incoming: number;
+    scheduled: number;
+    outgoing: number;
+    handled: number;
+    deadLetter: number;
+}
+
+/** A page of dead-lettered messages. PageNumber is 0-based, mirroring Wolverine's DeadLetterEnvelopeQuery paging. */
+export interface DeadLetterMessagesResponse {
+    totalCount: number;
+    pageNumber: number;
+    pageSize: number;
+    items: DeadLetterMessageResponse[];
+}
+
+/** A single dead-lettered message envelope: what failed, where, and why. */
+export interface DeadLetterMessageResponse {
+    id: string;
+    messageType: string;
+    /** The listener/queue URI the message was received at (e.g. local://durable/). */
+    receivedAt?: string | undefined;
+    /** The service that originally sent the message. */
+    source?: string | undefined;
+    exceptionType?: string | undefined;
+    exceptionMessage?: string | undefined;
+    sentAt: Date;
+    /** Whether the durability agent is set to move this envelope back to incoming for another attempt. */
+    replayable: boolean;
+    attempts: number;
+}
+
+/** Full detail for a single dead-lettered message, including the serialized message body (System.Text.Json per the Wolverine host configuration, so it renders as JSON). */
+export interface DeadLetterMessageDetailsResponse extends DeadLetterMessageResponse {
+    body?: string | undefined;
+    contentType?: string | undefined;
+    correlationId?: string | undefined;
+    destination?: string | undefined;
+    executionTime?: Date | undefined;
+}
+
+/** Identifies the dead-lettered messages a replay or discard operation targets. */
+export interface DeadLetterMessagesRequest {
+    ids: string[];
 }
 
 export interface ScoringModelListDto {

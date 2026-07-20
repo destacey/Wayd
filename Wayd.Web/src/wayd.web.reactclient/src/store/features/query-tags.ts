@@ -3,6 +3,8 @@ export enum QueryTags {
   BackgroundJob = 'Admin.BackgroundJob',
   BackgroundJobType = 'Admin.BackgroundJobType',
   FeatureFlag = 'Admin.FeatureFlag',
+  MessagingCounts = 'Admin.MessagingCounts',
+  DeadLetterMessage = 'Admin.DeadLetterMessage',
 
   // CLIENT FEATURE FLAGS
   ClientFeatureFlag = 'Client.FeatureFlag',

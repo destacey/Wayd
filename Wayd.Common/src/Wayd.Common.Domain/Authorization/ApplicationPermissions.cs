@@ -27,6 +27,8 @@ public static class ApplicationResource
     public const string Hangfire = nameof(Hangfire);
     public const string BackgroundJobs = nameof(BackgroundJobs);
 
+    public const string Messaging = nameof(Messaging);
+
     public const string Users = nameof(Users);
     public const string UserRoles = nameof(UserRoles);
     public const string Roles = nameof(Roles);
@@ -104,6 +106,14 @@ public static class ApplicationPermissions
         new("View Background Jobs", ApplicationAction.View, ApplicationResource.BackgroundJobs, BackgroundJobsCategory),
         new("Create Background Jobs", ApplicationAction.Create, ApplicationResource.BackgroundJobs, BackgroundJobsCategory),
         new("Run Background Jobs", ApplicationAction.Run, ApplicationResource.BackgroundJobs, BackgroundJobsCategory)
+    ];
+
+    private const string MessagingCategory = "Messaging";
+    private static readonly ApplicationPermission[] _messaging =
+    [
+        new("View Messaging. This includes the outbox, incoming envelopes, and dead letter queue.", ApplicationAction.View, ApplicationResource.Messaging, MessagingCategory),
+        new("Replay Dead Letter Messages", ApplicationAction.Run, ApplicationResource.Messaging, MessagingCategory),
+        new("Discard Dead Letter Messages", ApplicationAction.Delete, ApplicationResource.Messaging, MessagingCategory),
     ];
 
     private const string IdentityCategory = "Identity";
@@ -318,6 +328,7 @@ public static class ApplicationPermissions
     private static readonly ApplicationPermission[] _all = [.. _common
         .Union(_application)
         .Union(_backgroundJobs)
+        .Union(_messaging)
         .Union(_identity)
         .Union(_appIntegration)
         .Union(_healthChecks)

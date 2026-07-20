@@ -62,8 +62,7 @@ namespace Internal.Generated.WolverineHandlers
 
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
-            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
-            var eventPublisher3 = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher3, context);
+            var eventPublisher1 = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher1, context);
             await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var ambientUserId = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Infrastructure.Auth.AmbientUserId>(serviceScope.ServiceProvider);
@@ -71,11 +70,12 @@ namespace Internal.Generated.WolverineHandlers
             var dateTimeProvider = new Wayd.Infrastructure.Common.Services.DateTimeProvider(_timeProvider);
             var dbContextOutbox = new Wolverine.EntityFrameworkCore.DbContextOutbox(_wolverineRuntime, _domainEventScraperIEnumerable);
             var requestCorrelationIdProvider = new Wayd.Infrastructure.Common.Services.RequestCorrelationIdProvider(_httpContextAccessor2);
-            await using var waydDbContext3 = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions3, currentUser, dateTimeProvider, _optionsOfDatabaseSettings3, eventPublisher3, dbContextOutbox, requestCorrelationIdProvider);
-            var eventPublisher1 = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher1, context);
             await using var waydDbContext1 = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions1, currentUser, dateTimeProvider, _optionsOfDatabaseSettings1, eventPublisher1, dbContextOutbox, requestCorrelationIdProvider);
+            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             var eventPublisher2 = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher2, context);
             await using var waydDbContext2 = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions2, currentUser, dateTimeProvider, _optionsOfDatabaseSettings2, eventPublisher2, dbContextOutbox, requestCorrelationIdProvider);
+            var eventPublisher3 = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher3, context);
+            await using var waydDbContext3 = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions3, currentUser, dateTimeProvider, _optionsOfDatabaseSettings3, eventPublisher3, dbContextOutbox, requestCorrelationIdProvider);
             // The actual message body
             var teamDeactivatedEvent = (Wayd.Common.Domain.Events.Organization.TeamDeactivatedEvent)context.Envelope.Message;
 

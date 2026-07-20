@@ -13,9 +13,14 @@ using Wayd.Organization.Application.Teams.Commands;
 using Wayd.ProjectPortfolioManagement.Application;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Web.Api.IntegrationTests.Infrastructure;
 using Wayd.Work.Application.Persistence;
+using Wolverine;
+using Wolverine.Persistence.Durability;
+using Wolverine.Persistence.Durability.DeadLetterManagement;
 using Wolverine.Runtime;
+using Wolverine.Runtime.Routing;
 
 namespace Wayd.Web.Api.IntegrationTests.Sut;
 
@@ -124,6 +129,107 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
         var controlChain = runtime.Handlers.ChainFor(typeof(CreateTeamCommand));
         Assert.NotNull(controlChain);
         Assert.Empty(controlChain!.Failures);
+    }
+
+    [Fact]
+    public void DurableEventChains_RouteToDurableLocalQueues()
+    {
+        // Arrange — the outbox only persists envelopes destined for DURABLE endpoints. Without
+        // UseDurableLocalQueues (WolverineConfiguration) the per-message-type local queues default to
+        // BufferedInMemory and the "durable" events are never written to the envelope store at all — a
+        // crash between commit and dispatch silently loses the event. This pins the queue mode so that
+        // regression can't return silently (it is invisible to delivery-based tests: in-memory delivery
+        // also "arrives eventually").
+        _ = _factory.CreateClient();
+        var runtime = (WolverineRuntime)_factory.Services.GetRequiredService<IWolverineRuntime>();
+
+        Type[] durableEventTypes =
+        [
+            typeof(ProjectCreatedEvent),
+            typeof(IterationCreatedEvent),
+            typeof(StrategicThemeCreatedEvent),
+            typeof(IntegrationStateChangedEvent<Guid>),
+            typeof(TeamCreatedEvent),
+        ];
+
+        foreach (var durableEventType in durableEventTypes)
+        {
+            // Act — resolve the routes exactly the way a publish does.
+            var routes = runtime.RoutingFor(durableEventType).Routes;
+
+            // Assert
+            Assert.NotEmpty(routes);
+            foreach (var route in routes)
+            {
+                var messageRoute = Assert.IsType<MessageRoute>(route, exactMatch: false);
+                Assert.True(
+                    messageRoute.Sender.IsDurable,
+                    $"{durableEventType.Name} routes to non-durable endpoint {messageRoute.Sender.Destination} — its envelopes would never be persisted");
+            }
+        }
+    }
+
+    [Fact]
+    public async Task DurableEvent_WhoseHandlerFailsPersistently_LandsInDeadLetterStore()
+    {
+        // Arrange — a TeamCreatedEvent whose Name exceeds the PlanningTeam projection's 128-char column,
+        // so the replication handler's SaveChanges fails deterministically on every attempt (a
+        // non-transient failure). Per DurableEventFailurePolicy the chain retries with cooldowns
+        // (1s/5s/15s) and then dead-letters — this proves a real handler failure ends up in the durable
+        // dead letter store, where the messaging dashboard (and replay) can see it.
+        _ = _factory.CreateClient();
+        var ct = TestContext.Current.CancellationToken;
+
+        var poisonedId = Guid.NewGuid();
+        var poisonedEvent = new TeamCreatedEvent(
+            id: poisonedId,
+            key: 999999,
+            code: new TeamCode("DLQTEST"),
+            name: new string('x', 200),
+            description: "Poisoned event for the failure-to-dead-letter pipeline test.",
+            type: TeamType.Team,
+            activeDate: new LocalDate(2026, 1, 1),
+            inactiveDate: null,
+            isActive: true,
+            timestamp: Now);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
+
+            // Act — publish through Wolverine so the envelope takes the real durable local queue path.
+            await bus.PublishAsync(poisonedEvent);
+        }
+
+        // Assert — the envelope lands in the dead letter store after the retry schedule (~21s of
+        // cooldowns), so poll generously. Query by the poisoned envelope's message type and match on Id.
+        var store = _factory.Services.GetRequiredService<IMessageStore>();
+        DeadLetterEnvelope? deadLetter = null;
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(90);
+        while (DateTime.UtcNow < deadline)
+        {
+            var results = await store.DeadLetters.QueryAsync(
+                new DeadLetterEnvelopeQuery { MessageType = typeof(TeamCreatedEvent).FullName },
+                ct);
+            // This test class owns its SQL container, so any TeamCreatedEvent dead letter is ours; the
+            // serialized body containing the poisoned id double-checks that when the body is available.
+            deadLetter = results.Envelopes.FirstOrDefault(e =>
+                e.Envelope.Data is null
+                || System.Text.Encoding.UTF8.GetString(e.Envelope.Data).Contains(poisonedId.ToString(), StringComparison.OrdinalIgnoreCase));
+            if (deadLetter is not null)
+            {
+                break;
+            }
+
+            await Task.Delay(1000, ct);
+        }
+
+        Assert.True(deadLetter is not null, "Poisoned TeamCreatedEvent should have been moved to the durable dead letter store after exhausting retries");
+        Assert.False(deadLetter!.Replayable);
+        Assert.NotNull(deadLetter.ExceptionType);
+
+        // Cleanup — discard so the poisoned envelope can't bleed into other assertions on this store.
+        await store.DeadLetters.DiscardAsync(new DeadLetterEnvelopeQuery([deadLetter.Id]), ct);
     }
 
     private async Task<(int ExpenditureCategoryId, Guid PortfolioId)> SeedProjectPrerequisites(CancellationToken ct)

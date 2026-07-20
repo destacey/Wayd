@@ -51,14 +51,14 @@ namespace Internal.Generated.WolverineHandlers
 
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
-            var syncAzureDevOpsIterationsCommandValidator = new Wayd.Common.Application.Requests.Planning.Iterations.SyncAzureDevOpsIterationsCommandValidator();
             var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
-            var requestCorrelationIdProvider = new Wayd.Infrastructure.Common.Services.RequestCorrelationIdProvider(_httpContextAccessor2);
-            var dbContextOutbox = new Wolverine.EntityFrameworkCore.DbContextOutbox(_wolverineRuntime, _domainEventScraperIEnumerable);
-            var eventPublisher1 = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher1, context);
+            var syncAzureDevOpsIterationsCommandValidator = new Wayd.Common.Application.Requests.Planning.Iterations.SyncAzureDevOpsIterationsCommandValidator();
             await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var ambientUserId = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Infrastructure.Auth.AmbientUserId>(serviceScope.ServiceProvider);
+            var requestCorrelationIdProvider = new Wayd.Infrastructure.Common.Services.RequestCorrelationIdProvider(_httpContextAccessor2);
+            var dbContextOutbox = new Wolverine.EntityFrameworkCore.DbContextOutbox(_wolverineRuntime, _domainEventScraperIEnumerable);
+            var eventPublisher1 = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher1, context);
             var currentUser = new Wayd.Infrastructure.Auth.CurrentUser(_httpContextAccessor1, ambientUserId);
             var eventPublisher2 = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher2, context);
             var dateTimeProvider = new Wayd.Infrastructure.Common.Services.DateTimeProvider(_timeProvider);

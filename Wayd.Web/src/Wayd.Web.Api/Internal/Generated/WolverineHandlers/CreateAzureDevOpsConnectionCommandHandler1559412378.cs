@@ -59,9 +59,9 @@ namespace Internal.Generated.WolverineHandlers
             var requestCorrelationIdProvider = new Wayd.Infrastructure.Common.Services.RequestCorrelationIdProvider(_httpContextAccessor2);
             await using var waydDbContext = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions, currentUser, dateTimeProvider, _optionsOfDatabaseSettings, eventPublisher, dbContextOutbox, requestCorrelationIdProvider);
             var createAzureDevOpsConnectionCommandValidator = new Wayd.AppIntegration.Application.Connections.Commands.CreateAzureDevOpsConnectionCommandValidator(waydDbContext);
-            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var azureDevOpsService = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Common.Application.Interfaces.IAzureDevOpsService>(serviceScope.ServiceProvider);
+            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             // The actual message body
             var createAzureDevOpsConnectionCommand = (Wayd.AppIntegration.Application.Connections.Commands.CreateAzureDevOpsConnectionCommand)context.Envelope.Message;
 

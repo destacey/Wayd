@@ -1,6 +1,8 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Wayd.Integrations.AzureDevOps.Models.Projects;
 using Wayd.Integrations.AzureDevOps.Models.WorkItems;
+using Wayd.Integrations.AzureDevOps.Tests.Support;
 
 namespace Wayd.Integrations.AzureDevOps.Tests.Sut.Models.WorkItems;
 
@@ -42,6 +44,38 @@ public class WorkItemResponseTests
         mapped.IterationId.Should().BeNull();
         mapped.TeamId.Should().BeNull();
         mapped.ExternalTeamIdentifier.Should().BeNull();
+    }
+
+    [Fact]
+    public void ToIExternalWorkItems_WithNoIterationAssigned_DoesNotLogWarning()
+    {
+        // Arrange - IterationId == 0 is the routine "no iteration assigned" case (common for
+        // backlog items) and would flood the logs at Warning level on a large sync if it logged
+        // per occurrence; it must stay silent.
+        var workItem = MakeWorkItem(id: 103, iterationId: 0);
+        var logger = new FakeLogger();
+
+        // Act
+        new List<WorkItemResponse> { workItem }.ToIExternalWorkItems([], logger);
+
+        // Assert
+        logger.Entries.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ToIExternalWorkItems_WithNonZeroIterationIdMissingFromSyncedSet_LogsWarning()
+    {
+        // Arrange - a non-zero iteration id genuinely referenced by the work item but absent from
+        // the synced set (e.g. added after the iteration cache snapshot) is a real gap worth a
+        // warning, unlike the routine "no iteration assigned" (IterationId == 0) case.
+        var workItem = MakeWorkItem(id: 104, iterationId: 999);
+        var logger = new FakeLogger();
+
+        // Act
+        new List<WorkItemResponse> { workItem }.ToIExternalWorkItems([], logger);
+
+        // Assert
+        logger.Entries.Should().ContainSingle(e => e.Level == LogLevel.Warning && e.Message.Contains("104") && e.Message.Contains("999"));
     }
 
     [Fact]

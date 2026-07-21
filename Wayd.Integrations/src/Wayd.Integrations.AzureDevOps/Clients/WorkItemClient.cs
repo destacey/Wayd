@@ -1,5 +1,6 @@
 ﻿using Ardalis.GuardClauses;
 using Wayd.Common.Extensions;
+using Wayd.Integrations.AzureDevOps.Extensions;
 using Wayd.Integrations.AzureDevOps.Models;
 using Wayd.Integrations.AzureDevOps.Models.WorkItems;
 using RestSharp;
@@ -8,11 +9,11 @@ namespace Wayd.Integrations.AzureDevOps.Clients;
 
 internal sealed class WorkItemClient : BaseClient
 {
-    internal WorkItemClient(string organizationUrl, string token, string apiVersion)
-        : base(organizationUrl, token, apiVersion)
+    internal WorkItemClient(HttpClient httpClient, string organizationUrl, string token, string apiVersion)
+        : base(httpClient, organizationUrl, token, apiVersion)
     { }
 
-    internal async Task<int[]> GetWorkItemIds(string projectName, DateTime lastChangedDate, string[] workItemTypes, CancellationToken cancellationToken)
+    internal async Task<int[]> GetWorkItemIds(string projectName, DateTime lastChangedDate, string[] workItemTypes, bool excludeWorkItemTypes, CancellationToken cancellationToken)
     {
         Guard.Against.NullOrWhiteSpace(projectName, nameof(projectName));
 
@@ -27,14 +28,14 @@ internal sealed class WorkItemClient : BaseClient
         List<int> workItemIds = [];
         while (true)
         {
-            var wiql = CreateWiqlQueryForSync(projectName, lastChangedDate, workItemTypes, startingId);
+            var wiql = CreateWiqlQueryForSync(projectName, lastChangedDate, workItemTypes, startingId, excludeWorkItemTypes);
 
             request.AddJsonBody(wiql);
 
-            var response = await _client.ExecuteAsync<WiqlResponse>(request, cancellationToken).ConfigureAwait(false);
+            var response = await ExecuteAsync<WiqlResponse>(request, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessful)
             {
-                throw new Exception($"Error getting work item ids for project {projectName} from Azure DevOps: {response.ErrorMessage}");
+                throw new Exception($"Error getting work item ids for project {projectName} from Azure DevOps: {response.GetErrorText()}");
             }
             else if (response.Data?.WorkItems is null || response.Data.WorkItems.Count == 0)
             {
@@ -74,16 +75,18 @@ internal sealed class WorkItemClient : BaseClient
         foreach (var batch in batches)
         {
             request.AddJsonBody(WorkItemsBatchRequest.Create(batch, fields));
-            var response = await _client.ExecuteAsync<ListResponse<WorkItemResponse>>(request, cancellationToken).ConfigureAwait(false);
+            var response = await ExecuteAsync<ListResponse<WorkItemResponse>>(request, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessful)
             {
-                throw new Exception($"Error getting work items for project {projectName} from Azure DevOps: {response.ErrorMessage}");
+                throw new Exception($"Error getting work items for project {projectName} from Azure DevOps: {response.GetErrorText()}");
             }
-            else if (response.Data is null || response.Data.Count == 0)
+            else if (response.Data is null)
             {
-                throw new Exception($"Successful response, but no work items returned for project {projectName} from Azure DevOps");
+                throw new Exception($"Successful response, but no work item data returned for project {projectName} from Azure DevOps");
             }
 
+            // An empty batch is legitimate under errorPolicy=omit: every id in it was deleted
+            // between the WIQL query and this fetch.
             workItems.AddRange(response.Data.Value);
 
             var bodyParameter = request.Parameters.OfType<BodyParameter>().Single();
@@ -128,11 +131,11 @@ internal sealed class WorkItemClient : BaseClient
                 request.AddQueryParameter("continuationToken", continuationToken);
             }
 
-            var response = await _client.ExecuteAsync<BatchResponse<ReportingWorkItemLinkResponse>>(request, cancellationToken).ConfigureAwait(false);
+            var response = await ExecuteAsync<BatchResponse<ReportingWorkItemLinkResponse>>(request, cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessful)
             {
-                throw new Exception($"Error getting work item link changes for project {projectName} from Azure DevOps: {response.ErrorMessage}");
+                throw new Exception($"Error getting work item link changes for project {projectName} from Azure DevOps: {response.GetErrorText()}");
             }
             else if (response.Data?.Values is null)
             {
@@ -146,8 +149,15 @@ internal sealed class WorkItemClient : BaseClient
                 break;
             }
 
-            // TODO: does this value change after each continuation?
-            continuationToken = response.Data?.ContinuationToken;
+            // A non-final batch must advance the watermark token; re-issuing the same request
+            // would loop forever on the same page, so treat a stalled token as a protocol error.
+            var nextContinuationToken = response.Data.ContinuationToken;
+            if (string.IsNullOrEmpty(nextContinuationToken) || nextContinuationToken == continuationToken)
+            {
+                throw new Exception($"Error getting work item link changes for project {projectName} from Azure DevOps: continuation token did not advance (token: '{nextContinuationToken}').");
+            }
+
+            continuationToken = nextContinuationToken;
         }
 
         return workItemLinks;
@@ -160,23 +170,27 @@ internal sealed class WorkItemClient : BaseClient
         var request = new RestRequest($"/{projectName}/_apis/wit/recyclebin", Method.Get);
         SetupRequest(request);
 
-        var response = await _client.ExecuteAsync<ListResponse<WiqlWorkItemResponse>>(request, cancellationToken).ConfigureAwait(false);
+        var response = await ExecuteAsync<ListResponse<WiqlWorkItemResponse>>(request, cancellationToken).ConfigureAwait(false);
 
         return response.IsSuccessful
             ? response.Data?.Value.Select(w => w.Id).ToArray() ?? []
-            : throw new Exception($"Error getting deleted work item ids for project {projectName} from Azure DevOps: {response.ErrorMessage}");
+            : throw new Exception($"Error getting deleted work item ids for project {projectName} from Azure DevOps: {response.GetErrorText()}");
     }
 
-    private static WiqlRequest CreateWiqlQueryForSync(string project, DateTime dateTime, string[] workItemTypes, int startingId)
+    private static WiqlRequest CreateWiqlQueryForSync(string project, DateTime dateTime, string[] workItemTypes, int startingId, bool excludeWorkItemTypes)
     {
         var workItemTypesFilter = "";
         if (workItemTypes.Length > 0)
         {
-            workItemTypesFilter = $"AND [System.WorkItemType] IN ({string.Join(",", workItemTypes.Select(t => $"\'{t}\'"))})";
+            var typeOperator = excludeWorkItemTypes ? "NOT IN" : "IN";
+            workItemTypesFilter = $"AND [System.WorkItemType] {typeOperator} ({string.Join(",", workItemTypes.Select(t => $"'{EscapeWiqlLiteral(t)}'"))})";
         }
         return new()
         {
-            Query = $"SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '{project}' AND [System.Id] > {startingId} AND [System.ChangedDate] > '{dateTime:yyyy-MM-ddTHH:mm:ssZ}' {workItemTypesFilter} ORDER BY [System.Id] Asc"
+            Query = $"SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '{EscapeWiqlLiteral(project)}' AND [System.Id] > {startingId} AND [System.ChangedDate] > '{dateTime:yyyy-MM-ddTHH:mm:ssZ}' {workItemTypesFilter} ORDER BY [System.Id] Asc"
         };
     }
+
+    // WIQL string literals escape embedded single quotes by doubling them.
+    private static string EscapeWiqlLiteral(string value) => value.Replace("'", "''");
 }

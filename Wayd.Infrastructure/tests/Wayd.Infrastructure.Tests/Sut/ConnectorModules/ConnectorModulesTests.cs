@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Infrastructure.ConnectorModules;
 using Wayd.Integrations.Abstractions;
+using Wayd.Integrations.AzureDevOps;
 
 namespace Wayd.Infrastructure.Tests.Sut.ConnectorModules;
 
@@ -83,5 +84,26 @@ public sealed class ConnectorModulesTests
         services.Count(d => d.ServiceType == typeof(ISyncableConnectionDescriptorBuilder))
             .Should().Be(syncCapableCount,
                 "every sync-capable connector registers exactly one descriptor builder");
+    }
+
+    [Fact]
+    public void AddConnectorModules_RegistersTheNamedAzureDevOpsHttpClient()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddConnectorModules();
+
+        // Assert - AzureDevOpsService resolves this client by name via IHttpClientFactory; if the
+        // registration is ever renamed or dropped, every AzDO sync fails at runtime with no signal
+        // until then. IHttpClientFactory registers named options, not a directly-queryable service
+        // entry, so build the provider and confirm the factory actually produces a client for the name.
+        using var provider = services.BuildServiceProvider();
+        var factory = provider.GetRequiredService<IHttpClientFactory>();
+
+        var act = () => factory.CreateClient(AzureDevOpsHttpClient.Name);
+
+        act.Should().NotThrow();
     }
 }

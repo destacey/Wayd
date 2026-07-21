@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Integrations.AzureDevOps.Models.Contracts;
 using Wayd.Integrations.AzureDevOps.Models.Projects;
@@ -22,7 +23,7 @@ internal static class WorkItemResponseExtensions
 {
     private static readonly double _defaultStackRank = 999_999_999_999D;
 
-    public static AzdoWorkItem ToAzdoWorkItem(this WorkItemResponse workItem, IterationDto iteration)
+    public static AzdoWorkItem ToAzdoWorkItem(this WorkItemResponse workItem, IterationDto? iteration)
     {
         var created = Instant.FromDateTimeOffset(workItem.Fields.CreatedDate);
         Instant? activated = workItem.Fields.ActivatedDate.HasValue ? Instant.FromDateTimeUtc(workItem.Fields.ActivatedDate.Value) : null;
@@ -52,9 +53,9 @@ internal static class WorkItemResponseExtensions
             DoneTimestamp = closed.HasValue
                 ? closed < created ? created : closed
                 : null,
-            TeamId = iteration.TeamId,
-            ExternalTeamIdentifier = iteration.Identifier.ToString(),
-            IterationId = workItem.Fields.IterationId,
+            TeamId = iteration?.TeamId,
+            ExternalTeamIdentifier = iteration?.Identifier.ToString(),
+            IterationId = iteration is not null ? workItem.Fields.IterationId : null,
             StoryPoints = storyPoints,
             Tags = string.IsNullOrWhiteSpace(workItem.Fields.Tags)
                 ? []
@@ -62,13 +63,21 @@ internal static class WorkItemResponseExtensions
         };
     }
 
-    public static List<IExternalWorkItem> ToIExternalWorkItems(this List<WorkItemResponse> workItems, List<IterationDto> iterations)
+    public static List<IExternalWorkItem> ToIExternalWorkItems(this List<WorkItemResponse> workItems, List<IterationDto> iterations, ILogger logger)
     {
         var iterationsDictionary = iterations.ToDictionary(x => x.Id, x => x);
         var result = new List<IExternalWorkItem>(workItems.Count);
         foreach (var workItem in workItems)
         {
-            var iteration = iterationsDictionary[workItem.Fields.IterationId];
+            // System.IterationId is 0 (its default) when Azure DevOps has no iteration assigned to
+            // the work item, and any id can fall outside the iteration tree if it's added after the
+            // iteration cache snapshot within the same sync. Either way, sync the item with a null
+            // iteration/team rather than aborting the whole workspace sync over one work item.
+            if (!iterationsDictionary.TryGetValue(workItem.Fields.IterationId, out var iteration))
+            {
+                logger.LogWarning("Work item {WorkItemId} references iteration {IterationId}, which was not found in the synced iteration set. Syncing without an iteration/team assignment.", workItem.Id, workItem.Fields.IterationId);
+            }
+
             result.Add(workItem.ToAzdoWorkItem(iteration));
         }
         return result;

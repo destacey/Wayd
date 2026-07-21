@@ -1,4 +1,4 @@
-﻿using CSharpFunctionalExtensions;
+using CSharpFunctionalExtensions;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -14,6 +14,7 @@ using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Interfaces.ExternalWork;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Requests.Planning.Iterations;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Interfaces;
@@ -113,7 +114,7 @@ public class AzureDevOpsWorkItemSourceTests
         workProcessConfig.Setup(p => p.WorkStatuses).Returns(new List<IExternalWorkStatus>());
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkProcess(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkProcess(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(workProcessConfig.Object));
 
         _mocker.GetMock<IDispatcher>()
@@ -126,7 +127,7 @@ public class AzureDevOpsWorkItemSourceTests
 
         // SyncWorkspace
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkspace(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkspace(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new Mock<IExternalWorkspaceConfiguration>().Object));
 
         _mocker.GetMock<IDispatcher>()
@@ -145,19 +146,19 @@ public class AzureDevOpsWorkItemSourceTests
             .ReturnsAsync(Result.Success<Instant?>(null));
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkItems(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<Dictionary<Guid, Guid?>>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkItems(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<Dictionary<Guid, Guid?>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new List<IExternalWorkItem>()));
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetParentLinkChanges(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetParentLinkChanges(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new List<IExternalWorkItemLink>()));
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetDependencyLinkChanges(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetDependencyLinkChanges(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new List<IExternalWorkItemLink>()));
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetDeletedWorkItemIds(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetDeletedWorkItemIds(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(Array.Empty<int>()));
     }
 
@@ -372,10 +373,10 @@ public class AzureDevOpsWorkItemSourceTests
 
         // Same process across both workspaces: GetWorkProcess should only fire once.
         _mocker.GetMock<IAzureDevOpsService>()
-            .Verify(s => s.GetWorkProcess(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Once);
+            .Verify(s => s.GetWorkProcess(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Once);
         // GetWorkspace is per-workspace.
         _mocker.GetMock<IAzureDevOpsService>()
-            .Verify(s => s.GetWorkspace(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            .Verify(s => s.GetWorkspace(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Fact]
@@ -406,7 +407,7 @@ public class AzureDevOpsWorkItemSourceTests
 
         // Each Bind cycle should re-sync the work process once.
         _mocker.GetMock<IAzureDevOpsService>()
-            .Verify(s => s.GetWorkProcess(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            .Verify(s => s.GetWorkProcess(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     // -------- SyncWorkItems: SyncType branching --------
@@ -425,7 +426,7 @@ public class AzureDevOpsWorkItemSourceTests
 
         result.IsSuccess.Should().BeTrue();
         _mocker.GetMock<IAzureDevOpsService>()
-            .Verify(s => s.GetParentLinkChanges(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()), Times.Once);
+            .Verify(s => s.GetParentLinkChanges(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -442,7 +443,7 @@ public class AzureDevOpsWorkItemSourceTests
 
         result.IsSuccess.Should().BeTrue();
         _mocker.GetMock<IAzureDevOpsService>()
-            .Verify(s => s.GetParentLinkChanges(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()), Times.Never);
+            .Verify(s => s.GetParentLinkChanges(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // -------- SyncWorkItems: partial-failure semantics --------
@@ -456,7 +457,7 @@ public class AzureDevOpsWorkItemSourceTests
 
         // Override only the deletes call to fail.
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetDeletedWorkItemIds(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetDeletedWorkItemIds(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Failure<int[]>("AzDO returned 500"));
 
         var target = new WorkspaceSyncTarget(
@@ -493,16 +494,16 @@ public class AzureDevOpsWorkItemSourceTests
         var oneDepChange = new List<IExternalWorkItemLink> { Mock.Of<IExternalWorkItemLink>() };
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkItems(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<Dictionary<Guid, Guid?>>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkItems(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<Dictionary<Guid, Guid?>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(threeItems));
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetParentLinkChanges(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetParentLinkChanges(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(twoParentChanges));
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetDependencyLinkChanges(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetDependencyLinkChanges(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(oneDepChange));
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetDeletedWorkItemIds(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetDeletedWorkItemIds(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new[] { 1, 2, 3, 4 }));
 
         _mocker.GetMock<IDispatcher>()

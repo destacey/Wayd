@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 
 namespace Wayd.AppIntegration.Application.Connections.Commands.AzureDevOps;
@@ -71,7 +72,7 @@ public sealed class UpdateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbC
 
             var config = new AzureDevOpsBoardsConnectionConfiguration(request.Organization, pat);
 
-            var systemIdAndTestResult = await _azureDevOpsService.GetSystemId(config.OrganizationUrl, config.PersonalAccessToken, cancellationToken);
+            var systemIdAndTestResult = await _azureDevOpsService.GetSystemId(new AzureDevOpsConnectionContext(config.OrganizationUrl, config.PersonalAccessToken), cancellationToken);
             if (systemIdAndTestResult.IsFailure)
             {
                 _logger.LogWarning("Unable to get system id for Azure DevOps connection for organization {Organization}. {Error}", request.Organization, systemIdAndTestResult.Error);

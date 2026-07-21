@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Wayd.Integrations.AzureDevOps.IntegrationTests.Models;
 using Wayd.Integrations.AzureDevOps.Services;
 using Moq;
@@ -29,6 +29,7 @@ public class ProcessServiceTests
         var expectedLogMessage = $"{expectedCount} processes found.";
 
         var service = new ProcessService(
+            new HttpClient(),
             _azdoOrganizationOptions.OrganizationUrl,
             _azdoOrganizationOptions.PersonalAccessToken,
             _azdoOrganizationOptions.ApiVersion,
@@ -54,6 +55,7 @@ public class ProcessServiceTests
         var expectedBacklogLevelsCount = _processServiceData.GetProcessBacklogLevelsCount;
 
         var service = new ProcessService(
+            new HttpClient(),
             _azdoOrganizationOptions.OrganizationUrl,
             _azdoOrganizationOptions.PersonalAccessToken,
             _azdoOrganizationOptions.ApiVersion,
@@ -80,6 +82,7 @@ public class ProcessServiceTests
         var expectedLogMessage = $"Error getting process {processId} from Azure DevOps: Not Found.";
 
         var service = new ProcessService(
+            new HttpClient(),
             _azdoOrganizationOptions.OrganizationUrl,
             _azdoOrganizationOptions.PersonalAccessToken,
             _azdoOrganizationOptions.ApiVersion,
@@ -116,6 +119,7 @@ public class ProcessServiceTests
         var expectedErrorMessage4 = "Connection Error - The remote certificate is invalid according to the validation procedure: RemoteCertificateNameMismatch";
 
         var service = new ProcessService(
+            new HttpClient(),
             organizationUrl,
             _azdoOrganizationOptions.PersonalAccessToken,
             _azdoOrganizationOptions.ApiVersion,
@@ -150,6 +154,7 @@ public class ProcessServiceTests
         var expectedLogMessage = $"Error getting process {processId} from Azure DevOps: Unauthorized.";
 
         var service = new ProcessService(
+            new HttpClient(),
             _azdoOrganizationOptions.OrganizationUrl,
             personalAccessToken,
             _azdoOrganizationOptions.ApiVersion,

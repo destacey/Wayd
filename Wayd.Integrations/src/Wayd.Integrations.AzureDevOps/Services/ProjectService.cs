@@ -5,16 +5,21 @@ using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Logging;
 using Wayd.Common.Extensions;
 using Wayd.Integrations.AzureDevOps.Clients;
+using Wayd.Integrations.AzureDevOps.Extensions;
 using Wayd.Integrations.AzureDevOps.Models;
 using Wayd.Integrations.AzureDevOps.Models.Projects;
 
 namespace Wayd.Integrations.AzureDevOps.Services;
 
-internal sealed class ProjectService(string organizationUrl, string token, string apiVersion, ILogger<ProjectService> logger)
+internal sealed class ProjectService(HttpClient httpClient, string organizationUrl, string token, string apiVersion, ILogger<ProjectService> logger)
 {
-    private readonly ProjectClient _projectClient = new(organizationUrl, token, apiVersion);
+    private readonly ProjectClient _projectClient = new(httpClient, organizationUrl, token, apiVersion);
     private readonly ILogger<ProjectService> _logger = logger;
     private readonly int _maxBatchSize = 100;
+
+    // Deliberately small: enough to collapse the per-team settings N+1 without bursting against
+    // Azure DevOps throttling or competing with interactive traffic on the API host.
+    private readonly int _teamSettingsMaxConcurrency = 4;
 
     /// <summary>
     /// Retrieves a list of projects from Azure DevOps in batches.
@@ -36,8 +41,8 @@ internal sealed class ProjectService(string organizationUrl, string token, strin
                 var batch = await _projectClient.GetProjects(top: _maxBatchSize, skip: projects.Count, cancellationToken).ConfigureAwait(false);
                 if (!batch.IsSuccessful)
                 {
-                    _logger.LogError("Error getting projects from Azure DevOps: {ErrorMessage}.", batch.ErrorMessage);
-                    return Result.Failure<List<ProjectDto>>(batch.ErrorMessage);
+                    _logger.LogError("Error getting projects from Azure DevOps: {ErrorMessage}.", batch.GetErrorText());
+                    return Result.Failure<List<ProjectDto>>(batch.GetErrorText());
                 }
 
                 if (batch.Data is null)
@@ -54,10 +59,17 @@ internal sealed class ProjectService(string organizationUrl, string token, strin
 
             return projects;
         }
+        catch (OperationCanceledException)
+        {
+            // A genuine cancellation (caller's token fired) is not a sync failure — let it
+            // propagate so the caller's cancellation handling (e.g. marking a sync run
+            // cancelled rather than partially failed) actually runs.
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception thrown getting projects from Azure DevOps");
-            return Result.Failure<List<ProjectDto>>(ex.ToString());
+            return Result.Failure<List<ProjectDto>>(ex.Message);
         }
     }
 
@@ -107,10 +119,14 @@ internal sealed class ProjectService(string organizationUrl, string token, strin
 
             return ProjectDetailsDto.Create(projectResponse.Data, [.. propertiesResponse.Data.Value]);
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception thrown getting project {ProjectId} from Azure DevOps", projectIdOrName);
-            return Result.Failure<ProjectDetailsDto>(ex.ToString());
+            return Result.Failure<ProjectDetailsDto>(ex.Message);
         }
     }
 
@@ -138,47 +154,85 @@ internal sealed class ProjectService(string organizationUrl, string token, strin
             foreach (var id in projectIds)
             {
                 currentProjectId = id;
-                var response = await _projectClient.GetProjectTeams(id, cancellationToken).ConfigureAwait(false);
-                if (!response.IsSuccessful)
+
+                // The teams endpoint caps results (default 100), so page like GetProjects does.
+                List<TeamDto> projectTeams = [];
+                while (true)
                 {
-                    _logger.LogError("Error getting teams for project {ProjectId} from Azure DevOps: {ErrorMessage}.", id, response.ErrorMessage);
-                    return Result.Failure<List<IExternalTeam>>($"Error getting teams for project {id} from Azure DevOps"); // each project should have at least one team
+                    var response = await _projectClient.GetProjectTeams(id, top: _maxBatchSize, skip: projectTeams.Count, cancellationToken).ConfigureAwait(false);
+                    if (!response.IsSuccessful)
+                    {
+                        _logger.LogError("Error getting teams for project {ProjectId} from Azure DevOps: {ErrorMessage}.", id, response.GetErrorText());
+                        return Result.Failure<List<IExternalTeam>>($"Error getting teams for project {id} from Azure DevOps"); // each project should have at least one team
+                    }
+
+                    if (response.Data is null)
+                        break;
+
+                    projectTeams.AddRange(response.Data.Value);
+
+                    if (response.Data.Value.Count < _maxBatchSize)
+                        break;
                 }
-                if (response.Data is null)
+
+                if (projectTeams.Count == 0)
                 {
                     if (_logger.IsEnabled(LogLevel.Debug))
                         _logger.LogDebug("No teams found for project {ProjectId}.", id);
                     return Result.Failure<List<IExternalTeam>>($"Error getting teams for project {id} from Azure DevOps"); // each project should have at least one team
                 }
 
-                // set team settings: boardId
-                foreach (var team in response.Data.Value)
+                // Fetch team settings (backlog iteration → boardId) with bounded concurrency. The calls
+                // are independent I/O-bound lookups, so the parallelism costs no thread-pool capacity
+                // while awaiting; the small degree keeps the burst polite to both Azure DevOps
+                // throttling and the API host serving interactive traffic. Results land in a slot per
+                // team to keep the output order deterministic; a failed settings lookup skips just
+                // that team, matching the previous sequential behavior.
+                var teamSlots = new IExternalTeam?[projectTeams.Count];
+                var parallelOptions = new ParallelOptions
                 {
-                    var teamSettingsResponse = await _projectClient.GetProjectTeamsSettings(id, team.Id, cancellationToken).ConfigureAwait(false);
+                    MaxDegreeOfParallelism = _teamSettingsMaxConcurrency,
+                    CancellationToken = cancellationToken
+                };
+
+                await Parallel.ForEachAsync(Enumerable.Range(0, projectTeams.Count), parallelOptions, async (index, ct) =>
+                {
+                    var team = projectTeams[index];
+                    var teamSettingsResponse = await _projectClient.GetProjectTeamsSettings(id, team.Id, ct).ConfigureAwait(false);
                     if (!teamSettingsResponse.IsSuccessful)
                     {
-                        _logger.LogError("Error getting team settings for team {TeamId} in project {ProjectId} from Azure DevOps: {ErrorMessage}.", team.Id, id, teamSettingsResponse.ErrorMessage);
-                        continue;
+                        _logger.LogError("Error getting team settings for team {TeamId} in project {ProjectId} from Azure DevOps: {ErrorMessage}.", team.Id, id, teamSettingsResponse.GetErrorText());
+                        return;
                     }
                     if (teamSettingsResponse.Data is null)
                     {
                         _logger.LogWarning("No team settings found for team {TeamId} in project {ProjectId}.", team.Id, id);
-                        continue;
+                        return;
                     }
 
-                    teams.Add(team.ToAzdoTeam(id, teamSettingsResponse.Data.BacklogIteration?.Id));
+                    teamSlots[index] = team.ToAzdoTeam(id, teamSettingsResponse.Data.BacklogIteration?.Id);
+                }).ConfigureAwait(false);
+
+                foreach (var team in teamSlots)
+                {
+                    if (team is not null)
+                        teams.Add(team);
                 }
 
                 if (_logger.IsEnabled(LogLevel.Debug))
-                    _logger.LogDebug("{TeamCount} teams found for project {ProjectId}.", response.Data.Value.Count, id);
+                    _logger.LogDebug("{TeamCount} teams found for project {ProjectId}.", projectTeams.Count, id);
             }
 
             return teams;
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception thrown getting teams for project {ProjectId} from Azure DevOps", currentProjectId);
-            return Result.Failure<List<IExternalTeam>>(ex.ToString());
+            return Result.Failure<List<IExternalTeam>>(ex.Message);
         }
     }
 
@@ -200,8 +254,8 @@ internal sealed class ProjectService(string organizationUrl, string token, strin
             var response = await _projectClient.GetAreaPaths(projectName, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessful)
             {
-                _logger.LogError("Error getting areas for project {ProjectId} from Azure DevOps: {ErrorMessage}.", projectName, response.ErrorMessage);
-                return Result.Failure<List<ClassificationNodeResponse>>(response.ErrorMessage);
+                _logger.LogError("Error getting areas for project {ProjectId} from Azure DevOps: {ErrorMessage}.", projectName, response.GetErrorText());
+                return Result.Failure<List<ClassificationNodeResponse>>(response.GetErrorText());
             }
             if (response.Data is null)
             {
@@ -216,10 +270,14 @@ internal sealed class ProjectService(string organizationUrl, string token, strin
 
             return areaPaths;
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception thrown getting areas for project {ProjectId} from Azure DevOps", projectName);
-            return Result.Failure<List<ClassificationNodeResponse>>(ex.ToString());
+            return Result.Failure<List<ClassificationNodeResponse>>(ex.Message);
         }
     }
 
@@ -243,8 +301,8 @@ internal sealed class ProjectService(string organizationUrl, string token, strin
             var response = await _projectClient.GetIterationPaths(projectName, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessful)
             {
-                _logger.LogError("Error getting iterations for project {ProjectId} from Azure DevOps: {ErrorMessage}.", projectName, response.ErrorMessage);
-                return Result.Failure<List<IterationDto>>(response.ErrorMessage);
+                _logger.LogError("Error getting iterations for project {ProjectId} from Azure DevOps: {ErrorMessage}.", projectName, response.GetErrorText());
+                return Result.Failure<List<IterationDto>>(response.GetErrorText());
             }
             if (response.Data is null)
             {
@@ -261,10 +319,14 @@ internal sealed class ProjectService(string organizationUrl, string token, strin
 
             return iterations;
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception thrown getting iterations for project {ProjectId} from Azure DevOps", projectName);
-            return Result.Failure<List<IterationDto>>(ex.ToString());
+            return Result.Failure<List<IterationDto>>(ex.Message);
         }
     }
 

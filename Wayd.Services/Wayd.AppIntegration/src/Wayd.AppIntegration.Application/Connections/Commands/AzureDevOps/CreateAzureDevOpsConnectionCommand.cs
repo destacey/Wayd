@@ -1,5 +1,7 @@
 ﻿using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Wayd.AppIntegration.Application.Logging;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using NodaTime;
 
@@ -61,7 +63,7 @@ public sealed class CreateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbC
             Instant timestamp = _dateTimeProvider.Now;
             var config = new AzureDevOpsBoardsConnectionConfiguration(request.Organization, request.PersonalAccessToken);
 
-            var systemIdResult = await _azureDevOpsService.GetSystemId(config.OrganizationUrl, config.PersonalAccessToken, cancellationToken);
+            var systemIdResult = await _azureDevOpsService.GetSystemId(new AzureDevOpsConnectionContext(config.OrganizationUrl, config.PersonalAccessToken), cancellationToken);
             if (systemIdResult.IsFailure)
             {
                 _logger.LogWarning("Unable to get system id for Azure DevOps connection for organization {Organization}. {Error}", request.Organization, systemIdResult.Error);
@@ -78,9 +80,10 @@ public sealed class CreateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbC
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", AppRequestName, request);
+            var redactedRequest = request.Redact();
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", AppRequestName, redactedRequest);
 
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName} {request}");
+            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName} {redactedRequest}");
         }
     }
 }

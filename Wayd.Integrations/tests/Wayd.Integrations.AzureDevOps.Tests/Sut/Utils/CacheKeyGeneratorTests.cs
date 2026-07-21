@@ -130,6 +130,44 @@ public class CacheKeyGeneratorTests
     }
 
     [Fact]
+    public void GetCacheKey_WithDifferentOrganizationsOnSameHost_ReturnsDifferentKeys()
+    {
+        // Arrange - dev.azure.com puts the organization in the URL path, not the host
+        var resourceType = "azdo-iterations";
+        var projectName = "MyProject";
+        var teamSettings = new Dictionary<Guid, Guid?>
+        {
+            { Guid.Parse("11111111-1111-1111-1111-111111111111"), Guid.Parse("22222222-2222-2222-2222-222222222222") }
+        };
+
+        // Act
+        var key1 = InvokeGetCacheKey(resourceType, "https://dev.azure.com/org-one", projectName, teamSettings);
+        var key2 = InvokeGetCacheKey(resourceType, "https://dev.azure.com/org-two", projectName, teamSettings);
+
+        // Assert
+        key1.Should().NotBe(key2);
+    }
+
+    [Fact]
+    public void GetCacheKey_WithTrailingSlashVariant_ReturnsSameKey()
+    {
+        // Arrange
+        var resourceType = "azdo-iterations";
+        var projectName = "MyProject";
+        var teamSettings = new Dictionary<Guid, Guid?>
+        {
+            { Guid.Parse("11111111-1111-1111-1111-111111111111"), Guid.Parse("22222222-2222-2222-2222-222222222222") }
+        };
+
+        // Act
+        var key1 = InvokeGetCacheKey(resourceType, "https://dev.azure.com/org-one", projectName, teamSettings);
+        var key2 = InvokeGetCacheKey(resourceType, "https://dev.azure.com/org-one/", projectName, teamSettings);
+
+        // Assert - URL variants of the same organization should share a key
+        key1.Should().Be(key2);
+    }
+
+    [Fact]
     public void GetCacheKey_WithTeamSettingOrderChanged_ReturnsSameKey()
     {
         // Arrange - Team settings should be order-independent due to OrderBy in implementation

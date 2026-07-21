@@ -1,18 +1,13 @@
-﻿using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace Wayd.Integrations.AzureDevOps.Utils;
 
 /// <summary>
-/// Generates cache keys for Azure DevOps resources with optimized performance.
-/// Uses an internal cache to avoid repeated SHA256 computations for the same inputs.
+/// Generates deterministic cache keys for Azure DevOps resources.
 /// </summary>
 internal static class CacheKeyGenerator
 {
-    // Cache for the computed cache keys to avoid repeated SHA256 computations
-    private static readonly ConcurrentDictionary<string, string> _cacheKeyCache = new();
-
     /// <summary>
     /// Generates a cache key for Azure DevOps resources.
     /// </summary>
@@ -29,10 +24,12 @@ internal static class CacheKeyGenerator
         Dictionary<Guid, Guid?>? teamSettings,
         string? extra = null)
     {
-        // Normalize organization host (avoid duplicate keys for URL variants)
-        var orgHost = Uri.TryCreate(organizationUrl, UriKind.Absolute, out var uri)
-            ? uri.Host.ToLowerInvariant()
-            : organizationUrl.ToLowerInvariant();
+        // Normalize the organization URL to authority + path (avoid duplicate keys for URL variants).
+        // The path segment MUST be included: on dev.azure.com the organization lives in the path
+        // (https://dev.azure.com/{org}), so a host-only key would collide across organizations.
+        var orgKey = Uri.TryCreate(organizationUrl, UriKind.Absolute, out var uri)
+            ? $"{uri.Authority}{uri.AbsolutePath.TrimEnd('/')}".ToLowerInvariant()
+            : organizationUrl.Trim().TrimEnd('/').ToLowerInvariant();
 
         // Deterministic teamSettings representation
         var teamPart = teamSettings is null || teamSettings.Count == 0
@@ -40,18 +37,11 @@ internal static class CacheKeyGenerator
             : string.Join("|", teamSettings.OrderBy(kvp => kvp.Key)
                                           .Select(kvp => $"{kvp.Key}:{(kvp.Value.HasValue ? kvp.Value.Value.ToString("D") : "null")}"));
 
-        // Build a simple key for the cache key lookup to avoid recomputing the same hash
-        var lookupKey = $"{resourceType}::{orgHost}::{projectIdOrName}::{teamPart}{(extra is null ? string.Empty : "::" + extra)}";
+        // Compact fingerprint for teamSettings + extra params
+        var fingerprintSource = teamPart + (extra is null ? string.Empty : "|" + extra);
+        var fingerprint = ComputeSha256Hex(fingerprintSource);
 
-        // Use GetOrAdd to avoid repeated SHA256 computations for the same inputs
-        return _cacheKeyCache.GetOrAdd(lookupKey, key =>
-        {
-            // Build a compact fingerprint for teamSettings + extra params
-            var fingerprintSource = teamPart + (extra is null ? string.Empty : "|" + extra);
-            var fingerprint = ComputeSha256Hex(fingerprintSource);
-
-            return $"{resourceType}::{orgHost}::{projectIdOrName}::{fingerprint}";
-        });
+        return $"{resourceType}::{orgKey}::{projectIdOrName}::{fingerprint}";
     }
 
     /// <summary>
@@ -59,18 +49,9 @@ internal static class CacheKeyGenerator
     /// </summary>
     private static string ComputeSha256Hex(string input)
     {
-        // Encode once, compute hash via the static API
         var bytes = Encoding.UTF8.GetBytes(input);
         var hash = SHA256.HashData(bytes);
 
         return Convert.ToHexString(hash).ToLowerInvariant();
-    }
-
-    /// <summary>
-    /// Clears the internal cache. Useful for testing or to free memory.
-    /// </summary>
-    internal static void ClearCache()
-    {
-        _cacheKeyCache.Clear();
     }
 }

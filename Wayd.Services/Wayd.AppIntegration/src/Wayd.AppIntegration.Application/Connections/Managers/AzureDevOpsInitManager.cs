@@ -5,6 +5,7 @@ using Wayd.AppIntegration.Application.Connections.Queries.AzureDevOps;
 using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.AppIntegration.Application.Logging;
 using Wayd.Common.Application.Interfaces.ExternalWork;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Dtos;
 using Wayd.Common.Application.Requests.WorkManagement.Queries;
@@ -40,10 +41,9 @@ public sealed class AzureDevOpsInitManager(ILogger<AzureDevOpsInitManager> logge
                     return Result.Failure($"The configuration for connection {connectionId} is not valid.");
                 }
 
-                var organizationUrl = connection.Configuration.OrganizationUrl;
-                var personalAccessToken = connection.Configuration.PersonalAccessToken;
+                var azdoConnection = new AzureDevOpsConnectionContext(connection.Configuration.OrganizationUrl, connection.Configuration.PersonalAccessToken);
 
-                var testConnectionResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_SyncOrganizationConfiguration_TestConnection", () => _azureDevOpsService.TestConnection(organizationUrl, personalAccessToken), syncId);
+                var testConnectionResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_SyncOrganizationConfiguration_TestConnection", () => _azureDevOpsService.TestConnection(azdoConnection), syncId);
                 if (testConnectionResult.IsFailure)
                 {
                     _logger.LogError("Unable to connect to Azure DevOps for connection {ConnectionId}. {Error}", connectionId, testConnectionResult.Error);
@@ -51,7 +51,7 @@ public sealed class AzureDevOpsInitManager(ILogger<AzureDevOpsInitManager> logge
                 }
 
                 // Load Processes
-                var workProcessesResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_SyncOrganizationConfiguration_GetWorkProcesses", () => _azureDevOpsService.GetWorkProcesses(organizationUrl, personalAccessToken, cancellationToken), syncId);
+                var workProcessesResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_SyncOrganizationConfiguration_GetWorkProcesses", () => _azureDevOpsService.GetWorkProcesses(azdoConnection, cancellationToken), syncId);
                 if (workProcessesResult.IsFailure)
                     return workProcessesResult;
 
@@ -63,7 +63,7 @@ public sealed class AzureDevOpsInitManager(ILogger<AzureDevOpsInitManager> logge
                 }
 
                 // Load Workspaces
-                var workspacesResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_SyncOrganizationConfiguration_GetWorkspaces", () => _azureDevOpsService.GetWorkspaces(organizationUrl, personalAccessToken, cancellationToken), syncId);
+                var workspacesResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_SyncOrganizationConfiguration_GetWorkspaces", () => _azureDevOpsService.GetWorkspaces(azdoConnection, cancellationToken), syncId);
                 if (workspacesResult.IsFailure)
                     return workspacesResult;
 
@@ -92,7 +92,7 @@ public sealed class AzureDevOpsInitManager(ILogger<AzureDevOpsInitManager> logge
                 if (workspaces.Count != 0)
                 {
                     var projectIds = workspaces.Select(w => w.ExternalId).ToArray();
-                    var teamsResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_SyncOrganizationConfiguration_GetTeams", () => _azureDevOpsService.GetTeams(organizationUrl, personalAccessToken, projectIds, cancellationToken), syncId);
+                    var teamsResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_SyncOrganizationConfiguration_GetTeams", () => _azureDevOpsService.GetTeams(azdoConnection, projectIds, cancellationToken), syncId);
                     if (teamsResult.IsFailure)
                         return teamsResult;
 
@@ -161,10 +161,9 @@ public sealed class AzureDevOpsInitManager(ILogger<AzureDevOpsInitManager> logge
                 if (connectionResult.IsFailure)
                     return connectionResult.ConvertFailure<Guid>();
 
-                var organizationUrl = connectionResult.Value.Configuration.OrganizationUrl;
-                var personalAccessToken = connectionResult.Value.Configuration.PersonalAccessToken;
+                var azdoConnection = new AzureDevOpsConnectionContext(connectionResult.Value.Configuration.OrganizationUrl, connectionResult.Value.Configuration.PersonalAccessToken);
 
-                var processResult = await ExternalCallMeasure.MeasureAsync(_logger, "InitWorkProcessIntegration_GetWorkProcess", () => _azureDevOpsService.GetWorkProcess(organizationUrl, personalAccessToken, workProcessExternalId, cancellationToken));
+                var processResult = await ExternalCallMeasure.MeasureAsync(_logger, "InitWorkProcessIntegration_GetWorkProcess", () => _azureDevOpsService.GetWorkProcess(azdoConnection, workProcessExternalId, cancellationToken));
                 if (processResult.IsFailure)
                     return processResult.ConvertFailure<Guid>();
 
@@ -259,10 +258,9 @@ public sealed class AzureDevOpsInitManager(ILogger<AzureDevOpsInitManager> logge
                     return Result.Failure<Guid>("The connection is missing systemId. Please re-sync your connection and try again.");
                 }
 
-                var organizationUrl = connectionResult.Value.Configuration.OrganizationUrl;
-                var personalAccessToken = connectionResult.Value.Configuration.PersonalAccessToken;
+                var azdoConnection = new AzureDevOpsConnectionContext(connectionResult.Value.Configuration.OrganizationUrl, connectionResult.Value.Configuration.PersonalAccessToken);
 
-                var workspaceResult = await ExternalCallMeasure.MeasureAsync(_logger, "InitWorkspaceIntegration_GetWorkspace", () => _azureDevOpsService.GetWorkspace(organizationUrl, personalAccessToken, workspaceExternalId, cancellationToken));
+                var workspaceResult = await ExternalCallMeasure.MeasureAsync(_logger, "InitWorkspaceIntegration_GetWorkspace", () => _azureDevOpsService.GetWorkspace(azdoConnection, workspaceExternalId, cancellationToken));
                 if (workspaceResult.IsFailure)
                     return workspaceResult.ConvertFailure<Guid>();
 

@@ -1,4 +1,4 @@
-﻿using CSharpFunctionalExtensions;
+using CSharpFunctionalExtensions;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Wayd.AppIntegration.Application.Connections.Commands;
@@ -9,6 +9,7 @@ using Wayd.AppIntegration.Application.Connections.Queries.AzureDevOps;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Interfaces.ExternalWork;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Queries;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -115,7 +116,7 @@ public class AzureDevOpsInitManagerTests
         SetupConnectionQuery(connectionId, details);
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.TestConnection(It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(s => s.TestConnection(It.IsAny<AzureDevOpsConnectionContext>()))
             .ReturnsAsync(Result.Failure("Connection refused"));
 
         // Act
@@ -135,11 +136,11 @@ public class AzureDevOpsInitManagerTests
         SetupConnectionQuery(connectionId, details);
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.TestConnection(It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(s => s.TestConnection(It.IsAny<AzureDevOpsConnectionContext>()))
             .ReturnsAsync(Result.Success());
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkProcesses(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkProcesses(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Failure<List<IExternalWorkProcess>>("Failed to get processes"));
 
         // Act
@@ -158,15 +159,15 @@ public class AzureDevOpsInitManagerTests
         SetupConnectionQuery(connectionId, details);
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.TestConnection(It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(s => s.TestConnection(It.IsAny<AzureDevOpsConnectionContext>()))
             .ReturnsAsync(Result.Success());
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkProcesses(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkProcesses(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new List<IExternalWorkProcess>()));
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkspaces(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkspaces(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Failure<List<IExternalWorkspace>>("Failed to get workspaces"));
 
         // Act
@@ -185,7 +186,7 @@ public class AzureDevOpsInitManagerTests
         SetupConnectionQuery(connectionId, details);
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.TestConnection(It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(s => s.TestConnection(It.IsAny<AzureDevOpsConnectionContext>()))
             .ReturnsAsync(Result.Success());
 
         var mockProcess = new Mock<IExternalWorkProcess>();
@@ -194,7 +195,7 @@ public class AzureDevOpsInitManagerTests
         mockProcess.Setup(p => p.WorkspaceIds).Returns([Guid.CreateVersion7()]);
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkProcesses(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkProcesses(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new List<IExternalWorkProcess> { mockProcess.Object }));
 
         var wsId = mockProcess.Object.WorkspaceIds.First();
@@ -203,7 +204,7 @@ public class AzureDevOpsInitManagerTests
         mockWorkspace.Setup(w => w.Name).Returns("TestProject");
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkspaces(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkspaces(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new List<IExternalWorkspace> { mockWorkspace.Object }));
 
         _mocker.GetMock<IDispatcher>()
@@ -211,7 +212,7 @@ public class AzureDevOpsInitManagerTests
             .ReturnsAsync(new List<IntegrationRegistration<Guid, Guid>>());
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetTeams(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid[]>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetTeams(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<Guid[]>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Failure<List<IExternalTeam>>("Failed to get teams"));
 
         // Act
@@ -230,15 +231,15 @@ public class AzureDevOpsInitManagerTests
         SetupConnectionQuery(connectionId, details);
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.TestConnection(It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(s => s.TestConnection(It.IsAny<AzureDevOpsConnectionContext>()))
             .ReturnsAsync(Result.Success());
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkProcesses(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkProcesses(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new List<IExternalWorkProcess>()));
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkspaces(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkspaces(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new List<IExternalWorkspace>()));
 
         _mocker.GetMock<IDispatcher>()
@@ -267,15 +268,15 @@ public class AzureDevOpsInitManagerTests
         SetupConnectionQuery(connectionId, details);
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.TestConnection(It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(s => s.TestConnection(It.IsAny<AzureDevOpsConnectionContext>()))
             .ReturnsAsync(Result.Success());
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkProcesses(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkProcesses(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new List<IExternalWorkProcess>()));
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkspaces(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkspaces(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new List<IExternalWorkspace>()));
 
         _mocker.GetMock<IDispatcher>()
@@ -292,7 +293,7 @@ public class AzureDevOpsInitManagerTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         _mocker.GetMock<IAzureDevOpsService>()
-            .Verify(s => s.GetTeams(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid[]>(), It.IsAny<CancellationToken>()), Times.Never);
+            .Verify(s => s.GetTeams(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<Guid[]>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -304,7 +305,7 @@ public class AzureDevOpsInitManagerTests
         SetupConnectionQuery(connectionId, details);
 
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.TestConnection(It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(s => s.TestConnection(It.IsAny<AzureDevOpsConnectionContext>()))
             .ThrowsAsync(new InvalidOperationException("Unexpected error"));
 
         // Act
@@ -438,7 +439,7 @@ public class AzureDevOpsInitManagerTests
 
         // Should NOT call Azure DevOps to get the process details (no need to sync types/statuses/workflows)
         _mocker.GetMock<IAzureDevOpsService>()
-            .Verify(s => s.GetWorkProcess(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+            .Verify(s => s.GetWorkProcess(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
 
         // Should link this connection to the existing work process
         _mocker.GetMock<IDispatcher>()
@@ -465,13 +466,13 @@ public class AzureDevOpsInitManagerTests
 
         // SyncOrganizationConfiguration dependencies (called internally)
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.TestConnection(It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(s => s.TestConnection(It.IsAny<AzureDevOpsConnectionContext>()))
             .ReturnsAsync(Result.Success());
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkProcesses(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkProcesses(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new List<IExternalWorkProcess>()));
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkspaces(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkspaces(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new List<IExternalWorkspace>()));
         _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<GetIntegrationRegistrationsForWorkProcessesQuery>(), It.IsAny<CancellationToken>()))
@@ -486,7 +487,7 @@ public class AzureDevOpsInitManagerTests
         mockWpConfig.Setup(p => p.WorkTypes).Returns(new List<IExternalWorkTypeWorkflow>());
         mockWpConfig.Setup(p => p.WorkStatuses).Returns(new List<IExternalWorkStatus>());
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkProcess(It.IsAny<string>(), It.IsAny<string>(), wpExternalId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkProcess(It.IsAny<AzureDevOpsConnectionContext>(), wpExternalId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(mockWpConfig.Object));
 
         // CreateExternalWorkProcessCommand
@@ -617,13 +618,13 @@ public class AzureDevOpsInitManagerTests
 
         // SyncOrganizationConfiguration dependencies
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.TestConnection(It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(s => s.TestConnection(It.IsAny<AzureDevOpsConnectionContext>()))
             .ReturnsAsync(Result.Success());
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkProcesses(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkProcesses(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new List<IExternalWorkProcess>()));
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkspaces(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkspaces(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new List<IExternalWorkspace>()));
         _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<GetIntegrationRegistrationsForWorkProcessesQuery>(), It.IsAny<CancellationToken>()))
@@ -660,13 +661,13 @@ public class AzureDevOpsInitManagerTests
 
         // SyncOrganizationConfiguration dependencies
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.TestConnection(It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(s => s.TestConnection(It.IsAny<AzureDevOpsConnectionContext>()))
             .ReturnsAsync(Result.Success());
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkProcesses(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkProcesses(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new List<IExternalWorkProcess>()));
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkspaces(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkspaces(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new List<IExternalWorkspace>()));
         _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<GetIntegrationRegistrationsForWorkProcessesQuery>(), It.IsAny<CancellationToken>()))
@@ -678,7 +679,7 @@ public class AzureDevOpsInitManagerTests
         // GetWorkspace (external)
         var mockWsConfig = new Mock<IExternalWorkspaceConfiguration>();
         _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkspace(It.IsAny<string>(), It.IsAny<string>(), wsExternalId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWorkspace(It.IsAny<AzureDevOpsConnectionContext>(), wsExternalId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(mockWsConfig.Object));
 
         // CreateExternalWorkspaceCommand

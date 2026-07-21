@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Wayd.AppIntegration.Application.Logging;
 using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 
@@ -99,7 +100,7 @@ public sealed class UpdateEntraConnectionCommandHandler(
             {
                 await _appIntegrationDbContext.Entry(connection).ReloadAsync(cancellationToken);
                 connection.ClearDomainEvents();
-                _logger.LogError("Wayd Request: Failure for Request {Name} {@Request}.  Error message: {Error}", AppRequestName, request, updateResult.Error);
+                _logger.LogError("Wayd Request: Failure for Request {Name} {@Request}.  Error message: {Error}", AppRequestName, request.Redact(), updateResult.Error);
                 return Result.Failure<Guid>(updateResult.Error);
             }
 
@@ -109,8 +110,9 @@ public sealed class UpdateEntraConnectionCommandHandler(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", AppRequestName, request);
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName} {request}");
+            var redactedRequest = request.Redact();
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", AppRequestName, redactedRequest);
+            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName} {redactedRequest}");
         }
     }
 }

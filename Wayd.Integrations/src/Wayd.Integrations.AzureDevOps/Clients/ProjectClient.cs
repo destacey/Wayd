@@ -1,4 +1,4 @@
-﻿using Wayd.Integrations.AzureDevOps.Models;
+using Wayd.Integrations.AzureDevOps.Models;
 using Wayd.Integrations.AzureDevOps.Models.Contracts;
 using Wayd.Integrations.AzureDevOps.Models.Projects;
 using RestSharp;
@@ -7,8 +7,8 @@ namespace Wayd.Integrations.AzureDevOps.Clients;
 
 internal sealed class ProjectClient : BaseClient
 {
-    internal ProjectClient(string organizationUrl, string token, string apiVersion)
-        : base(organizationUrl, token, apiVersion)
+    internal ProjectClient(HttpClient httpClient, string organizationUrl, string token, string apiVersion)
+        : base(httpClient, organizationUrl, token, apiVersion)
     { }
 
     internal async Task<RestResponse<AzdoListResponse<ProjectDto>>> GetProjects(int top, int skip, CancellationToken cancellationToken)
@@ -18,7 +18,7 @@ internal sealed class ProjectClient : BaseClient
         request.AddParameter("$top", top);
         request.AddParameter("$skip", skip);
 
-        return await _client.ExecuteAsync<AzdoListResponse<ProjectDto>>(request, cancellationToken).ConfigureAwait(false);
+        return await ExecuteAsync<AzdoListResponse<ProjectDto>>(request, cancellationToken).ConfigureAwait(false);
     }
 
     internal async Task<RestResponse<ProjectDto>> GetProject(string projectIdOrName, CancellationToken cancellationToken)
@@ -26,7 +26,7 @@ internal sealed class ProjectClient : BaseClient
         var request = new RestRequest($"/_apis/projects/{projectIdOrName}", Method.Get);
         SetupRequest(request);
 
-        return await _client.ExecuteAsync<ProjectDto>(request, cancellationToken);
+        return await ExecuteAsync<ProjectDto>(request, cancellationToken).ConfigureAwait(false);
     }
 
     internal async Task<RestResponse<ListResponse<PropertyDto>>> GetProjectProperties(Guid projectId, CancellationToken cancellationToken)
@@ -35,15 +35,17 @@ internal sealed class ProjectClient : BaseClient
         SetupRequest(request, true);
         request.AddParameter("keys", "System.ProcessTemplateType");
 
-        return await _client.ExecuteAsync<ListResponse<PropertyDto>>(request, cancellationToken).ConfigureAwait(false);
+        return await ExecuteAsync<ListResponse<PropertyDto>>(request, cancellationToken).ConfigureAwait(false);
     }
 
-    internal async Task<RestResponse<ListResponse<TeamDto>>> GetProjectTeams(Guid projectId, CancellationToken cancellationToken)
+    internal async Task<RestResponse<ListResponse<TeamDto>>> GetProjectTeams(Guid projectId, int top, int skip, CancellationToken cancellationToken)
     {
         var request = new RestRequest($"/_apis/projects/{projectId}/teams", Method.Get);
         SetupRequest(request);
+        request.AddParameter("$top", top);
+        request.AddParameter("$skip", skip);
 
-        return await _client.ExecuteAsync<ListResponse<TeamDto>>(request, cancellationToken).ConfigureAwait(false);
+        return await ExecuteAsync<ListResponse<TeamDto>>(request, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -58,7 +60,7 @@ internal sealed class ProjectClient : BaseClient
         var request = new RestRequest($"/{projectId}/{teamId}/_apis/work/teamsettings", Method.Get);
         SetupRequest(request);
 
-        return await _client.ExecuteAsync<TeamSettingsResponse>(request, cancellationToken).ConfigureAwait(false);
+        return await ExecuteAsync<TeamSettingsResponse>(request, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -73,7 +75,7 @@ internal sealed class ProjectClient : BaseClient
         SetupRequest(request);
         request.AddParameter("$depth", 100); // TODO: make this configurable
 
-        return await _client.ExecuteAsync<ClassificationNodeResponse>(request, cancellationToken).ConfigureAwait(false);
+        return await ExecuteAsync<ClassificationNodeResponse>(request, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -88,6 +90,6 @@ internal sealed class ProjectClient : BaseClient
         SetupRequest(request);
         request.AddParameter("$depth", 100); // TODO: make this configurable
 
-        return await _client.ExecuteAsync<IterationNodeResponse>(request, cancellationToken).ConfigureAwait(false);
+        return await ExecuteAsync<IterationNodeResponse>(request, cancellationToken).ConfigureAwait(false);
     }
 }

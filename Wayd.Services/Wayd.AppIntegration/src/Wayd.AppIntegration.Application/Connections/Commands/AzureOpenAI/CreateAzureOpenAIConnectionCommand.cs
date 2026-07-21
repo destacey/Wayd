@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Wayd.AppIntegration.Application.Logging;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using NodaTime;
 
@@ -80,9 +81,10 @@ public sealed class CreateAzureOpenAIConnectionCommandHandler(IAppIntegrationDbC
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", AppRequestName, request);
+            var redactedRequest = request.Redact();
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", AppRequestName, redactedRequest);
 
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName} {request}");
+            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName} {redactedRequest}");
         }
     }
 }

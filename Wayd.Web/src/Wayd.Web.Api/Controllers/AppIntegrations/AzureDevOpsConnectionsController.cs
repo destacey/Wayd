@@ -4,6 +4,7 @@ using Wayd.AppIntegration.Application.Connections.Queries.AzureDevOps;
 using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.Organization.Application.BaseTeams.Queries;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.AppIntegrations.Connections;
@@ -114,7 +115,7 @@ public class AzureDevOpsConnectionsController(IDispatcher dispatcher) : Controll
             return BadRequest(ProblemDetailsExtensions.ForBadRequest("Organization and PAT required.", HttpContext));
 
         var config = new AzureDevOpsBoardsConnectionConfiguration(request.Organization, request.PersonalAccessToken);
-        var result = await azureDevOpsService.TestConnection(config.OrganizationUrl, config.PersonalAccessToken);
+        var result = await azureDevOpsService.TestConnection(new AzureDevOpsConnectionContext(config.OrganizationUrl, config.PersonalAccessToken));
 
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }

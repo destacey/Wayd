@@ -1,12 +1,171 @@
-﻿using System.Text.Json;
+﻿using System.Net;
+using System.Text.Json;
+using Microsoft.Extensions.Logging.Abstractions;
 using Wayd.Integrations.AzureDevOps.Models.Projects;
+using Wayd.Integrations.AzureDevOps.Services;
 using Wayd.Integrations.AzureDevOps.Tests.Models;
+using Wayd.Integrations.AzureDevOps.Tests.Support;
 using Wayd.Integrations.AzureDevOps.Utils;
 
 namespace Wayd.Integrations.AzureDevOps.Tests.Sut.Services;
 
 public class ProjectServiceTests : CommonResponseOptions
 {
+    private const string OrganizationUrl = "https://dev.azure.com/acme";
+    private const string Token = "test-pat-token";
+    private const string ApiVersion = "7.0";
+
+    [Fact]
+    public async Task GetTeams_PagesThroughAllTeamsAndFetchesSettingsForEach()
+    {
+        // Arrange - 105 teams: a full page of 100 forces a second page request
+        var handler = new StubHttpMessageHandler();
+        var service = new ProjectService(new HttpClient(handler), OrganizationUrl, Token, ApiVersion, NullLogger<ProjectService>.Instance);
+        var projectId = Guid.NewGuid();
+
+        handler.EnqueueResponse(HttpStatusCode.OK, TeamsPageJson(teamCount: 100));
+        handler.EnqueueResponse(HttpStatusCode.OK, TeamsPageJson(teamCount: 5));
+        for (var i = 0; i < 105; i++)
+        {
+            handler.EnqueueResponse(HttpStatusCode.OK, TeamSettingsJson());
+        }
+
+        // Act
+        var result = await service.GetTeams([projectId], TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().HaveCount(105);
+        handler.Requests.Should().HaveCount(107); // 2 team pages + 105 settings lookups
+        handler.Requests[1].Uri!.Query.Should().Contain("skip=100");
+    }
+
+    [Fact]
+    public async Task GetTeams_WhenTeamsPageRequestIsCancelled_PropagatesCancellationInsteadOfReturningFailure()
+    {
+        // Arrange - a genuine cancellation must not be laundered into an ordinary Result.Failure
+        var handler = new StubHttpMessageHandler { ThrowOperationCanceledOnNextSend = true };
+        var service = new ProjectService(new HttpClient(handler), OrganizationUrl, Token, ApiVersion, NullLogger<ProjectService>.Instance);
+        var projectId = Guid.NewGuid();
+
+        // Act
+        var act = () => service.GetTeams([projectId], TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task GetTeams_WhenTeamSettingsLookupIsCancelled_PropagatesCancellationInsteadOfReturningFailure()
+    {
+        // Arrange - the settings lookups run inside Parallel.ForEachAsync; a cancellation there
+        // must still propagate out of GetTeams rather than being folded into a per-team skip.
+        var handler = new StubHttpMessageHandler();
+        var service = new ProjectService(new HttpClient(handler), OrganizationUrl, Token, ApiVersion, NullLogger<ProjectService>.Instance);
+        var projectId = Guid.NewGuid();
+
+        handler.EnqueueResponse(HttpStatusCode.OK, TeamsPageJson(teamCount: 1));
+        handler.ThrowOperationCanceledOnNextSend = true;
+
+        // Act
+        var act = () => service.GetTeams([projectId], TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task GetTeams_WhenTeamSettingsLookupFails_SkipsThatTeamAndContinues()
+    {
+        // Arrange - one of the two settings lookups fails; only that team is dropped
+        var handler = new StubHttpMessageHandler();
+        var service = new ProjectService(new HttpClient(handler), OrganizationUrl, Token, ApiVersion, NullLogger<ProjectService>.Instance);
+        var projectId = Guid.NewGuid();
+
+        handler.EnqueueResponse(HttpStatusCode.OK, TeamsPageJson(teamCount: 2));
+        handler.EnqueueResponse(HttpStatusCode.InternalServerError, """{"message":"server error"}""");
+        handler.EnqueueResponse(HttpStatusCode.OK, TeamSettingsJson());
+
+        // Act
+        var result = await service.GetTeams([projectId], TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task GetAreaPaths_WhenRequestFailsWithLongErrorBody_ReturnsTruncatedErrorText()
+    {
+        // Arrange - GetErrorText caps the response body at 500 chars so a large error page (e.g. an
+        // HTML error document from a misconfigured proxy) doesn't blow up log lines or Result errors.
+        // GetAreaPaths surfaces GetErrorText() directly in its Result, unlike GetTeams's fixed message,
+        // making it the clearest place to pin the formatting contract end-to-end.
+        var handler = new StubHttpMessageHandler();
+        var service = new ProjectService(new HttpClient(handler), OrganizationUrl, Token, ApiVersion, NullLogger<ProjectService>.Instance);
+        var longBody = new string('x', 1000);
+
+        handler.EnqueueResponse(HttpStatusCode.InternalServerError, longBody);
+
+        // Act
+        var result = await service.GetAreaPaths("Atlas", TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().StartWith("500");
+        result.Error.Length.Should().BeLessThan(longBody.Length);
+        result.Error.Should().EndWith("…");
+    }
+
+    [Fact]
+    public async Task GetAreaPaths_WhenRequestFailsWithShortErrorBody_IncludesFullBodyUntruncated()
+    {
+        // Arrange
+        var handler = new StubHttpMessageHandler();
+        var service = new ProjectService(new HttpClient(handler), OrganizationUrl, Token, ApiVersion, NullLogger<ProjectService>.Instance);
+
+        handler.EnqueueResponse(HttpStatusCode.Unauthorized, """{"message":"TF400813: resource not authorized"}""");
+
+        // Act
+        var result = await service.GetAreaPaths("Atlas", TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("401");
+        result.Error.Should().Contain("TF400813: resource not authorized");
+        result.Error.Should().NotContain("…");
+    }
+
+    [Fact]
+    public async Task GetTeams_WhenTeamsRequestFails_ReturnsFailure()
+    {
+        // Arrange
+        var handler = new StubHttpMessageHandler();
+        var service = new ProjectService(new HttpClient(handler), OrganizationUrl, Token, ApiVersion, NullLogger<ProjectService>.Instance);
+        var projectId = Guid.NewGuid();
+
+        handler.EnqueueResponse(HttpStatusCode.Unauthorized, """{"message":"access denied"}""");
+
+        // Act
+        var result = await service.GetTeams([projectId], TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain(projectId.ToString());
+    }
+
+    private static string TeamsPageJson(int teamCount)
+    {
+        var teams = string.Join(",", Enumerable.Range(1, teamCount)
+            .Select(i => $$"""{"id":"{{Guid.NewGuid()}}","name":"Team {{i}}"}"""));
+        return $$"""{"count":{{teamCount}},"value":[{{teams}}]}""";
+    }
+
+    private static string TeamSettingsJson()
+    {
+        return "{\"backlogIteration\":{\"id\":\"" + Guid.NewGuid() + "\"}}";
+    }
+
     [Fact]
     public void FlattenIterationNode_WithSimpleStructure_ReturnsAllNodes()
     {

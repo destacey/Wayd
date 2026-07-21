@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Ardalis.GuardClauses;
 using NodaTime;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
@@ -6,6 +6,7 @@ using Wayd.AppIntegration.Application.Connections.Queries.AzureDevOps;
 using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.AppIntegration.Application.Logging;
 using Wayd.Common.Application.Enums;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Requests.Planning.Iterations;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Dtos;
@@ -65,13 +66,13 @@ public sealed class AzureDevOpsWorkItemSource(
     public Task<Result> TestConnection(CancellationToken cancellationToken)
     {
         var ctx = RequireBound();
-        return _azureDevOpsService.TestConnection(ctx.OrganizationUrl, ctx.PersonalAccessToken);
+        return _azureDevOpsService.TestConnection(ctx.Connection);
     }
 
     public Task<Result<string>> GetSystemId(CancellationToken cancellationToken)
     {
         var ctx = RequireBound();
-        return _azureDevOpsService.GetSystemId(ctx.OrganizationUrl, ctx.PersonalAccessToken, cancellationToken);
+        return _azureDevOpsService.GetSystemId(ctx.Connection, cancellationToken);
     }
 
     public Task<Result> RefreshOrganizationConfiguration(Guid syncId, CancellationToken cancellationToken)
@@ -153,7 +154,7 @@ public sealed class AzureDevOpsWorkItemSource(
 
         // Workspace metadata refresh.
         var workspaceResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetWorkspace",
-            () => _azureDevOpsService.GetWorkspace(ctx.OrganizationUrl, ctx.PersonalAccessToken, target.ExternalWorkspaceId, cancellationToken), syncId);
+            () => _azureDevOpsService.GetWorkspace(ctx.Connection, target.ExternalWorkspaceId, cancellationToken), syncId);
         if (workspaceResult.IsFailure)
             return workspaceResult.ConvertFailure();
 
@@ -167,7 +168,7 @@ public sealed class AzureDevOpsWorkItemSource(
         var (teamSettings, teamMappings) = DeserializeTeamMaps(target);
 
         var iterationsResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetIterations",
-            () => _azureDevOpsService.GetIterations(ctx.OrganizationUrl, ctx.PersonalAccessToken, target.WorkspaceName, teamSettings, cancellationToken), syncId);
+            () => _azureDevOpsService.GetIterations(ctx.Connection, target.WorkspaceName, teamSettings, cancellationToken), syncId);
         if (iterationsResult.IsFailure)
             return iterationsResult.ConvertFailure();
 
@@ -198,7 +199,7 @@ public sealed class AzureDevOpsWorkItemSource(
 
         // Work items
         var workItemsResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetWorkItems",
-            () => _azureDevOpsService.GetWorkItems(ctx.OrganizationUrl, ctx.PersonalAccessToken, target.WorkspaceName, lastChangedDate, workTypeNames, teamSettings, cancellationToken), syncId);
+            () => _azureDevOpsService.GetWorkItems(ctx.Connection, target.WorkspaceName, lastChangedDate, workTypeNames, teamSettings, cancellationToken), syncId);
         if (workItemsResult.IsFailure)
         {
             _logger.LogError("Failed to retrieve work items for workspace {WorkspaceId}. Error: {Error}", target.InternalWorkspaceId, workItemsResult.Error);
@@ -224,7 +225,7 @@ public sealed class AzureDevOpsWorkItemSource(
         if (syncType == SyncType.Differential)
         {
             var parentsResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetParentLinkChanges",
-                () => _azureDevOpsService.GetParentLinkChanges(ctx.OrganizationUrl, ctx.PersonalAccessToken, target.WorkspaceName, lastChangedDate, workTypeNames, cancellationToken), syncId);
+                () => _azureDevOpsService.GetParentLinkChanges(ctx.Connection, target.WorkspaceName, lastChangedDate, workTypeNames, cancellationToken), syncId);
             if (parentsResult.IsFailure)
             {
                 _logger.LogError("Failed to retrieve parent link changes for workspace {WorkspaceId}. Error: {Error}", target.InternalWorkspaceId, parentsResult.Error);
@@ -248,7 +249,7 @@ public sealed class AzureDevOpsWorkItemSource(
 
         // Dependency link changes
         var depsResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetDependencyLinkChanges",
-            () => _azureDevOpsService.GetDependencyLinkChanges(ctx.OrganizationUrl, ctx.PersonalAccessToken, target.WorkspaceName, lastChangedDate, workTypeNames, cancellationToken), syncId);
+            () => _azureDevOpsService.GetDependencyLinkChanges(ctx.Connection, target.WorkspaceName, lastChangedDate, workTypeNames, cancellationToken), syncId);
         if (depsResult.IsFailure)
         {
             _logger.LogError("Failed to retrieve dependency link changes for workspace {WorkspaceId}. Error: {Error}", target.InternalWorkspaceId, depsResult.Error);
@@ -271,7 +272,7 @@ public sealed class AzureDevOpsWorkItemSource(
 
         // Deleted work items
         var deletedResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetDeletedWorkItemIds",
-            () => _azureDevOpsService.GetDeletedWorkItemIds(ctx.OrganizationUrl, ctx.PersonalAccessToken, target.WorkspaceName, lastChangedDate, cancellationToken), syncId);
+            () => _azureDevOpsService.GetDeletedWorkItemIds(ctx.Connection, target.WorkspaceName, lastChangedDate, workTypeNames, cancellationToken), syncId);
         if (deletedResult.IsFailure)
         {
             _logger.LogError("Failed to retrieve deleted work item ids for workspace {WorkspaceId}. Error: {Error}", target.InternalWorkspaceId, deletedResult.Error);
@@ -310,7 +311,7 @@ public sealed class AzureDevOpsWorkItemSource(
     {
         if (_descriptor is null || _cfg is null)
             throw new InvalidOperationException("AzureDevOpsWorkItemSource has not been bound. Call Bind(descriptor) before invoking sync methods.");
-        return new SyncContext(_cfg.OrganizationUrl, _cfg.PersonalAccessToken, _descriptor.SystemId ?? string.Empty);
+        return new SyncContext(new AzureDevOpsConnectionContext(_cfg.OrganizationUrl, _cfg.PersonalAccessToken), _descriptor.SystemId ?? string.Empty);
     }
 
     private SyncableConnectionDescriptor RequireDescriptor()
@@ -326,7 +327,7 @@ public sealed class AzureDevOpsWorkItemSource(
         Guard.Against.Default(workProcessInternalId, nameof(workProcessInternalId));
 
         var processResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetWorkProcess",
-            () => _azureDevOpsService.GetWorkProcess(ctx.OrganizationUrl, ctx.PersonalAccessToken, workProcessExternalId, cancellationToken), syncId);
+            () => _azureDevOpsService.GetWorkProcess(ctx.Connection, workProcessExternalId, cancellationToken), syncId);
         if (processResult.IsFailure)
             return processResult.ConvertFailure();
 
@@ -486,5 +487,5 @@ public sealed class AzureDevOpsWorkItemSource(
         }
     }
 
-    private sealed record SyncContext(string OrganizationUrl, string PersonalAccessToken, string SystemId);
+    private sealed record SyncContext(AzureDevOpsConnectionContext Connection, string SystemId);
 }

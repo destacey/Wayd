@@ -2,14 +2,15 @@
 using CSharpFunctionalExtensions;
 using Microsoft.Extensions.Logging;
 using Wayd.Integrations.AzureDevOps.Clients;
+using Wayd.Integrations.AzureDevOps.Extensions;
 using Wayd.Integrations.AzureDevOps.Models.Contracts;
 using Wayd.Integrations.AzureDevOps.Models.Processes;
 
 namespace Wayd.Integrations.AzureDevOps.Services;
 
-internal sealed class ProcessService(string organizationUrl, string token, string apiVersion, ILogger<ProcessService> logger)
+internal sealed class ProcessService(HttpClient httpClient, string organizationUrl, string token, string apiVersion, ILogger<ProcessService> logger)
 {
-    private readonly ProcessClient _processClient = new(organizationUrl, token, apiVersion);
+    private readonly ProcessClient _processClient = new(httpClient, organizationUrl, token, apiVersion);
     private readonly ILogger<ProcessService> _logger = logger;
 
     public async Task<Result<List<AzdoWorkProcess>>> GetProcesses(CancellationToken cancellationToken)
@@ -19,8 +20,8 @@ internal sealed class ProcessService(string organizationUrl, string token, strin
             var response = await _processClient.GetProcesses(cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessful)
             {
-                _logger.LogError("Error getting processes from Azure DevOps: {ErrorMessage}.", response.ErrorMessage);
-                return Result.Failure<List<AzdoWorkProcess>>(response.ErrorMessage);
+                _logger.LogError("Error getting processes from Azure DevOps: {ErrorMessage}.", response.GetErrorText());
+                return Result.Failure<List<AzdoWorkProcess>>(response.GetErrorText());
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.NonAuthoritativeInformation)
             {
@@ -35,10 +36,17 @@ internal sealed class ProcessService(string organizationUrl, string token, strin
 
             return Result.Success(processes);
         }
+        catch (OperationCanceledException)
+        {
+            // A genuine cancellation (caller's token fired) is not a sync failure — let it
+            // propagate so the caller's cancellation handling (e.g. marking a sync run
+            // cancelled rather than partially failed) actually runs.
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception thrown getting processes from Azure DevOps.");
-            return Result.Failure<List<AzdoWorkProcess>>(ex.ToString());
+            return Result.Failure<List<AzdoWorkProcess>>(ex.Message);
         }
     }
 
@@ -60,10 +68,14 @@ internal sealed class ProcessService(string organizationUrl, string token, strin
 
             return Result.Success(processResult.Value.ToAzdoWorkProcessDetails(behaviorsResult.Value, workTypesResult.Value));
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception thrown getting process {ProcessId} from Azure DevOps.", processId);
-            return Result.Failure<AzdoWorkProcessConfiguration>(ex.ToString());
+            return Result.Failure<AzdoWorkProcessConfiguration>(ex.Message);
         }
     }
 
@@ -95,8 +107,8 @@ internal sealed class ProcessService(string organizationUrl, string token, strin
         var response = await _processClient.GetBehaviors(processId, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessful)
         {
-            _logger.LogError("Error getting behaviors for process {ProcessId} from Azure DevOps: {ErrorMessage}.", processId, response.ErrorMessage);
-            return Result.Failure<List<BehaviorDto>>(response.ErrorMessage);
+            _logger.LogError("Error getting behaviors for process {ProcessId} from Azure DevOps: {ErrorMessage}.", processId, response.GetErrorText());
+            return Result.Failure<List<BehaviorDto>>(response.GetErrorText());
         }
 
         if (_logger.IsEnabled(LogLevel.Debug))
@@ -110,8 +122,8 @@ internal sealed class ProcessService(string organizationUrl, string token, strin
         var response = await _processClient.GetWorkItemTypes(processId, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessful)
         {
-            _logger.LogError("Error getting work item types for process {ProcessId} from Azure DevOps: {ErrorMessage}.", processId, response.ErrorMessage);
-            return Result.Failure<List<ProcessWorkItemTypeDto>>(response.ErrorMessage);
+            _logger.LogError("Error getting work item types for process {ProcessId} from Azure DevOps: {ErrorMessage}.", processId, response.GetErrorText());
+            return Result.Failure<List<ProcessWorkItemTypeDto>>(response.GetErrorText());
         }
 
         if (_logger.IsEnabled(LogLevel.Debug))

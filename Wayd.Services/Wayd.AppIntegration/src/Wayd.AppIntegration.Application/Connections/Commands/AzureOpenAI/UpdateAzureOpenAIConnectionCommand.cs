@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Wayd.AppIntegration.Application.Logging;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 
 namespace Wayd.AppIntegration.Application.Connections.Commands.AzureOpenAI;
@@ -82,7 +83,7 @@ public sealed class UpdateAzureOpenAIConnectionCommandHandler(IAppIntegrationDbC
                 await _appIntegrationDbContext.Entry(connection).ReloadAsync(cancellationToken);
                 connection.ClearDomainEvents();
 
-                _logger.LogError("Wayd Request: Failure for Request {Name} {@Request}.  Error message: {Error}", AppRequestName, request, updateResult.Error);
+                _logger.LogError("Wayd Request: Failure for Request {Name} {@Request}.  Error message: {Error}", AppRequestName, request.Redact(), updateResult.Error);
                 return Result.Failure<Guid>(updateResult.Error);
             }
 
@@ -92,9 +93,10 @@ public sealed class UpdateAzureOpenAIConnectionCommandHandler(IAppIntegrationDbC
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", AppRequestName, request);
+            var redactedRequest = request.Redact();
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", AppRequestName, redactedRequest);
 
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName} {request}");
+            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName} {redactedRequest}");
         }
     }
 }

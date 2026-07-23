@@ -103,6 +103,10 @@ public sealed class WaydSeedClient : IDisposable
         var existing = await _projectLifecyclesClient.GetProjectLifecyclesAsync(null, cancellationToken);
         var match = existing.FirstOrDefault(l => string.Equals(l.Name, lifecycle.Name, StringComparison.OrdinalIgnoreCase));
 
+        // If it already exists and is active, there is nothing to do — projects can use it as-is.
+        if (match is not null && string.Equals(match.State?.Name, "Active", StringComparison.OrdinalIgnoreCase))
+            return;
+
         Guid lifecycleId;
         if (match is not null)
         {
@@ -118,16 +122,10 @@ public sealed class WaydSeedClient : IDisposable
             }, cancellationToken);
         }
 
-        // A newly created lifecycle is a draft; activate it so projects can use it. Activation is idempotent
-        // enough for seeding — an already-active lifecycle simply returns an error we can ignore.
-        try
-        {
-            await _projectLifecyclesClient.ActivateAsync(lifecycleId, cancellationToken);
-        }
-        catch (WaydApiException)
-        {
-            // Already active (or not activatable) — fine for seeding.
-        }
+        // Activate the draft so projects can be assigned it. Any failure here is surfaced rather than
+        // swallowed — a lifecycle that cannot be activated (a real error, an archived one, an auth problem)
+        // would otherwise let the whole seed proceed and fail confusingly at project import.
+        await _projectLifecyclesClient.ActivateAsync(lifecycleId, cancellationToken);
     }
 
     /// <summary>

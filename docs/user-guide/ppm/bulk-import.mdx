@@ -1,0 +1,280 @@
+---
+title: Bulk Import
+description: Loading portfolios, programs, projects, tasks, phases, strategic themes, and initiatives into Wayd from CSV via the import API.
+sidebar_position: 5
+audience: [user, agent]
+---
+
+# Bulk Import
+
+Wayd can load PPM data in bulk from CSV files through a set of **import endpoints**. These are useful for
+standing up an environment, migrating from another tool, or seeding realistic data. Each import is a single
+`POST` of one CSV file (`multipart/form-data`, field name `file`), and each is gated by a permission.
+
+:::info API only
+Bulk import is an **API feature** — there is no import screen in the app. Calls are made directly to the
+endpoints below (for example with `curl`, a script, or the [`wayd-data` data-generation tool](../../contributing/tools/data-generation.mdx),
+which generates these exact CSVs and posts them for you). Exact request/response shapes are also in the
+OpenAPI/Swagger spec served by the API.
+:::
+
+## How imports work
+
+A few rules apply to every import:
+
+- **References are by natural key, not ID.** A CSV cannot carry Wayd's generated IDs, so rows reference each
+  other by human-readable keys — a project by its **Key**, everything else (portfolios, programs, themes,
+  categories, lifecycles) by **Name**, and people by **employee number**. This means a file can be authored
+  by hand without knowing any IDs.
+- **All-or-nothing.** If any reference cannot be resolved — a name that does not exist, a name that is
+  ambiguous (matches more than one), or a duplicate within the file — the **entire import fails** with a
+  message listing the offending values, and nothing is saved. This keeps a run safe to fix and re-try
+  against a fresh environment.
+- **Multi-value columns are semicolon-separated.** Columns that hold a list (role assignments, strategic
+  themes, project keys) separate their values with semicolons — for example `E-1001;E-1002`. A comma would
+  collide with the CSV field delimiter.
+- **Dates are ISO `yyyy-MM-dd`.** Only the date component is used.
+- **Status columns are case-insensitive** and use the same status names shown in the app (for example
+  `Active`, `Completed`).
+
+Imports create records **through the normal domain rules**, exactly as if you had used the app — so the same
+constraints apply (a program can only be created inside an active portfolio, a project needs a lifecycle
+before approval, and so on).
+
+## Import order
+
+Because records reference each other, and because the domain enforces an order (see
+[PPM Lifecycle Rules](./index.mdx#business-rules-summary)), imports must be run in dependency order:
+
+```
+Reference data (expenditure categories, project lifecycles — created in Settings)
+  → Strategic themes
+  → Portfolios
+  → Programs
+  → Projects
+  → Project tasks
+  → Project phase statuses
+  → Strategic initiatives (with KPIs)
+  → Finalize (close historical programs and portfolios)
+```
+
+Two ordering points are worth calling out:
+
+- **Reference data comes first.** [Expenditure categories](../settings/index.mdx#expenditure-categories) and
+  [project lifecycles](../settings/index.mdx#project-lifecycles) are managed in **Settings** and are *not* imported
+  — create them there first, because projects reference them by name. A lifecycle must be **active** before a
+  project can be assigned it.
+- **Historical work is finished last.** The domain only lets you *add* work to an active program or
+  portfolio, but only lets you *close* one when everything inside it is already closed. So programs and
+  portfolios that should end up Completed/Closed/Archived are imported **active**, their contents are loaded,
+  and then the [finalize import](#finalize-import) closes them.
+
+## Permissions
+
+Each import requires the **Import** permission for the relevant resource:
+
+| Import | Permission |
+|---|---|
+| Strategic themes | Import Strategic Themes |
+| Portfolios · Finalize | Import Portfolios |
+| Programs | Import Programs |
+| Projects · Tasks · Phases | Import Projects |
+| Strategic initiatives (+ KPIs) | Import Strategic Initiatives |
+
+---
+
+## Strategic themes import
+
+`POST /api/strategic-management/strategic-themes/import`
+
+Loads [strategic themes](../strategic-management/index.mdx), which programs and projects reference by name.
+Only **active** themes can be attached to programs and projects.
+
+| Column | Required | Notes |
+|---|---|---|
+| `Name` | Yes | Unique within the file and against existing themes. Max 64 chars. |
+| `Description` | Yes | Max 1024 chars. |
+| `State` | No | `Proposed`, `Active`, or `Archived`. Defaults to `Active`. |
+
+## Portfolios import
+
+`POST /api/ppm/portfolios/import`
+
+Loads [portfolios](./portfolios-programs.mdx#portfolios). A portfolio only gets its date range from its
+lifecycle transitions, so the **Start**/**End** dates are carried on the row and applied as the portfolio is
+walked to its status.
+
+| Column | Required | Notes |
+|---|---|---|
+| `Name` | Yes | Unique within the file and against existing portfolios. Max 128 chars. |
+| `Description` | Yes | Max 1024 chars. |
+| `Status` | No | `Proposed`, `Active`, `OnHold`, `Closed`, or `Archived`. Defaults to `Active`. |
+| `Start` | Conditional | Required unless `Proposed`. The date the portfolio was activated. |
+| `End` | Conditional | Required when `Closed` or `Archived`. Must be on or after `Start`. |
+| `Sponsors` | No | Semicolon-separated employee numbers. |
+| `Owners` | No | Semicolon-separated employee numbers. |
+| `Managers` | No | Semicolon-separated employee numbers. |
+
+:::note Closed and archived portfolios
+A portfolio destined to be `Closed` or `Archived` is imported **active** here (with its start date) and
+closed by the [finalize import](#finalize-import) after its programs and projects have been loaded — because
+a portfolio cannot close until its contents are closed.
+:::
+
+## Programs import
+
+`POST /api/ppm/programs/import`
+
+Loads [programs](./portfolios-programs.mdx#programs) into their portfolio. A program is created inside its
+portfolio, so the portfolio must exist (and be active) first.
+
+| Column | Required | Notes |
+|---|---|---|
+| `Name` | Yes | Unique within the file and against existing programs. Max 128 chars. |
+| `Description` | Yes | Max 2048 chars. |
+| `PortfolioName` | Yes | The owning portfolio, by name. |
+| `Status` | No | `Proposed`, `Active`, `Completed`, or `Cancelled`. Defaults to `Active`. |
+| `Start` | Conditional | Start and End must both be empty or both set. Required for active/completed programs. |
+| `End` | Conditional | Must be on or after `Start`. |
+| `StrategicThemes` | No | Semicolon-separated theme **names** (must be active). |
+| `Sponsors` | No | Semicolon-separated employee numbers. |
+| `Owners` | No | Semicolon-separated employee numbers. |
+| `Managers` | No | Semicolon-separated employee numbers. |
+
+:::note Completed and cancelled programs
+Like portfolios, a program that should end up `Completed` or `Cancelled` is imported **active** and closed by
+the [finalize import](#finalize-import), since a program can only be closed once all its projects are closed.
+:::
+
+## Projects import
+
+`POST /api/ppm/projects/import`
+
+Loads [projects](./projects.mdx). `Key` is the project's own natural key (which tasks and initiatives
+reference), so it must be unique. The portfolio, program, expenditure category, lifecycle, and themes are all
+referenced by name.
+
+| Column | Required | Notes |
+|---|---|---|
+| `Name` | Yes | Max 128 chars. |
+| `Description` | Yes | Max 4096 chars. |
+| `Key` | Yes | 2–20 uppercase letters/numbers. Unique across all projects. |
+| `PortfolioName` | Yes | The owning portfolio, by name. |
+| `ExpenditureCategoryName` | Yes | An [expenditure category](../settings/index.mdx#expenditure-categories), by name. Create in Settings first. |
+| `Status` | No | `Proposed`, `Approved`, `Active`, `Completed`, or `Cancelled`. Defaults to `Active`. |
+| `ProgramName` | No | A program **in the same portfolio**, by name. Empty means portfolio-direct. |
+| `ProjectLifecycleName` | Conditional | A [lifecycle](./projects.mdx#project-lifecycles), by name. Required for `Approved` projects and for any project that will have tasks. |
+| `BusinessCase` | No | Max 4096 chars. |
+| `ExpectedBenefits` | No | Max 4096 chars. |
+| `Start` | Conditional | Start and End must both be empty or both set. Required for active/completed projects. |
+| `End` | Conditional | Must be on or after `Start`. |
+| `StrategicThemes` | No | Semicolon-separated theme **names** (must be active). |
+| `Sponsors` · `Owners` · `Managers` · `Members` | No | Semicolon-separated employee numbers. |
+
+## Project tasks import
+
+`POST /api/ppm/projects/tasks/import`
+
+Loads the [work breakdown](./projects.mdx#project-tasks) for projects. One file can cover many projects — each row
+names its project by key. Tasks are named within their project, so a child task references its parent by
+name. **Rows may be listed in any order**; parents are always created before their children, and a parent
+cycle is rejected.
+
+| Column | Required | Notes |
+|---|---|---|
+| `ProjectKey` | Yes | The project this task belongs to, by key. |
+| `Name` | Yes | Unique within the project (child tasks reference parents by name). Max 128 chars. |
+| `Description` | No | Max 2048 chars. |
+| `PhaseName` | Yes | A phase of the project's assigned lifecycle, by name. |
+| `ParentTaskName` | No | The parent task, by name. Empty makes this a root task of its phase. |
+| `Type` | No | `Task` or `Milestone`. Defaults to `Task`. |
+| `Status` | No | `NotStarted`, `InProgress`, `Completed`, or `Cancelled`. Defaults to `NotStarted`. |
+| `Priority` | No | `Low`, `Medium`, `High`, or `Critical`. Defaults to `Medium`. |
+| `Progress` | Conditional | Percent complete (0–100). Required for **tasks**; not allowed for **milestones**. |
+| `PlannedStart` · `PlannedEnd` | Conditional | For **tasks**: both empty or both set; `PlannedEnd` on or after `PlannedStart`. Not used for milestones. |
+| `PlannedDate` | Conditional | For **milestones** only: the milestone's date. |
+| `EstimatedEffortHours` | No | Greater than 0 when present. |
+| `Assignees` | No | Semicolon-separated employee numbers. |
+
+## Project phase statuses import
+
+`POST /api/ppm/projects/phases/import`
+
+Sets the [status of project phases](./projects.mdx#project-phases). Phases come from the project's assigned lifecycle
+and start as *Not Started*; this import sets each one's status.
+
+| Column | Required | Notes |
+|---|---|---|
+| `ProjectKey` | Yes | The project, by key. |
+| `PhaseName` | Yes | A phase of the project's lifecycle, by name. |
+| `Status` | Yes | `NotStarted`, `InProgress`, `Completed`, or `Cancelled`. |
+
+:::note Applied exactly as given
+This import sets phase status to **exactly** the value supplied — it does **not** derive a phase's status
+from its tasks. Whatever produces the file decides what each phase's status should be, so you keep full
+control. (The [data-generation tool](../../contributing/tools/data-generation.mdx) rolls each phase's status
+up from its tasks and emits these rows for seeding.)
+:::
+
+## Strategic initiatives import
+
+`POST /api/ppm/strategic-initiatives/import`
+
+Loads [strategic initiatives](./strategic-initiatives.mdx), optionally with their **KPIs** in the same call.
+The initiatives CSV is the `file` field; the KPIs CSV, if provided, is a second `kpiFile` field — sent
+together so the KPIs are attached before each initiative is driven to its final status (a closed initiative
+accepts neither new projects nor new KPIs).
+
+**Initiatives** (`file`):
+
+| Column | Required | Notes |
+|---|---|---|
+| `Name` | Yes | Unique within the file and against existing initiatives. Max 128 chars. |
+| `Description` | Yes | Max 2048 chars. |
+| `PortfolioName` | Yes | The owning portfolio, by name. |
+| `Status` | No | `Proposed`, `Approved`, `Active`, `Completed`, or `Cancelled`. Defaults to `Active`. (`OnHold` is not supported by import.) |
+| `Start` | Yes | Initiative start date. |
+| `End` | Yes | On or after `Start`. |
+| `ProjectKeys` | No | Semicolon-separated project **keys** the initiative delivers through. |
+| `Sponsors` · `Owners` | No | Semicolon-separated employee numbers. |
+
+**KPIs** (`kpiFile`):
+
+| Column | Required | Notes |
+|---|---|---|
+| `StrategicInitiativeName` | Yes | The initiative this KPI belongs to (must be in the same import). |
+| `Name` | Yes | Max 64 chars. |
+| `Description` | No | Max 512 chars. |
+| `TargetValue` | Yes | The target value that defines success. |
+| `StartingValue` | No | The baseline value. |
+| `Prefix` | No | Symbol shown before the value (e.g. `$`). Max 8 chars. |
+| `Suffix` | No | Symbol shown after the value (e.g. `%`). Max 8 chars. |
+| `TargetDirection` | No | `Increase` or `Decrease`. Defaults to `Increase`. |
+
+## Finalize import
+
+`POST /api/ppm/portfolios/finalize/import`
+
+Closes out programs and portfolios **after their contents have been imported** — the last step of a PPM
+import. This exists because the domain only lets you close a program once all its projects are closed, and a
+portfolio once all its programs and projects are. So historical work is imported active, and this file closes
+it. Program rows are applied before portfolio rows regardless of order, since a portfolio cannot close while
+one of its programs is still open.
+
+| Column | Required | Notes |
+|---|---|---|
+| `Type` | Yes | `Program` or `Portfolio`. |
+| `Name` | Yes | The program or portfolio, by name. |
+| `PortfolioName` | Conditional | Required for **program** rows (a program's name is only unique within its portfolio); ignored for portfolio rows. |
+| `Status` | Yes | Programs: `Completed` or `Cancelled`. Portfolios: `Closed` or `Archived`. |
+| `EndDate` | Conditional | Required for **portfolio** rows (becomes the portfolio's end date); ignored for program rows. |
+
+## Related
+
+- **[Data generation tool](../../contributing/tools/data-generation.mdx)** — generates all of these CSVs and
+  seeds them for you, in the correct order.
+- **[Organization Bulk Import](../organizations/bulk-import.mdx)** — the equivalent imports for employees,
+  teams, and staffing (run before PPM, since PPM references people and teams).
+- **[PPM Lifecycle Rules](./index.mdx#business-rules-summary)** — the status constraints the imports respect.
+- **[Portfolios & Programs](./portfolios-programs.mdx)**, **[Projects](./projects.mdx)**,
+  **[Strategic Initiatives](./strategic-initiatives.mdx)** — the features these imports populate.

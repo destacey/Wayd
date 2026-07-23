@@ -7,17 +7,19 @@ audience: [developer, agent]
 
 # Data Generation (`wayd-data`)
 
-`wayd-data` is a developer tool that **generates a realistic organization** — people, a management tree,
-and a cross-functional delivery hierarchy — and **seeds it into a Wayd environment through the public HTTP
-API**. Use it to stand up a believable environment for exploring features or demoing, without hand-crafting
-data. Every seed run also exercises the real API end to end, so it doubles as an integration smoke test.
+`wayd-data` is a developer tool that **generates a realistic company** — people and a management tree, a
+cross-functional delivery hierarchy, and a full project-portfolio dataset on top of it — and **seeds it into
+a Wayd environment through the public HTTP API**. Use it to stand up a believable environment for exploring
+features or demoing, without hand-crafting data. Every seed run also exercises the real API end to end, so
+it doubles as an integration smoke test.
 
 **Project:** `Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli` (the executable is `wayd-data`).
 
 :::info Scope
-Organization only — people and the team hierarchy. Projects, portfolios, planning, and work items are not
-generated. Database **reset** is a separate, out-of-band operation (an Aspire dashboard command), not part
-of this tool.
+Generates the organization (people + team hierarchy) and the PPM dataset (portfolios, programs, projects,
+tasks, strategic themes, and strategic initiatives with KPIs). Pass `--skip-ppm` for organization only.
+Planning and work items are not generated. Database **reset** is a separate, out-of-band operation (an
+Aspire dashboard command), not part of this tool.
 :::
 
 ## Quick start
@@ -68,7 +70,11 @@ you will need a fresh Personal Access Token afterward.
 | `--value-streams`, `-v` | `3` | Number of value streams (product lines); larger ones become three-tier |
 | `--teams`, `-t` | `18` | Number of leaf delivery teams (overall headcount derives from this) |
 | `--former-employees` | `0.08` | Fraction of non-delivery ICs marked former (inactive) |
-| `--random-seed`, `-r` | random | Fixed RNG seed for reproducible output |
+| `--skip-ppm` | off | Generate only the organization; skip the PPM dataset |
+| `--function-portfolios` | `2` | Cross-cutting business-function portfolios, on top of one per value stream |
+| `--concurrent-projects-per-art` | `10` | Projects an ART has *in flight at once*; the total generated is derived from this across the window |
+| `--concurrent-programs-per-portfolio` | `5` | Thematic programs a portfolio runs at once; the total generated is derived from this across the window |
+| `--random-seed`, `-r` | random | Fixed RNG seed for reproducible output (org **and** PPM) |
 | `--out`, `-o` | `./seed` | (`generate` only) output directory |
 | `--api`, `-a` | — | (`seed` only, required) API base URL |
 | `--api-key` | `WAYD_API_KEY` | (`seed` only) Personal Access Token |
@@ -120,6 +126,61 @@ Operations) has its own management chains and **no team memberships**.
 - **Former employees** — some non-delivery ICs are inactive (`--former-employees`). Inactive people are
   never on a team.
 
+### The PPM dataset (portfolios → programs → projects → tasks)
+
+Unless `--skip-ppm` is passed, the generator layers a full **project-portfolio-management** dataset on top
+of the org. The two structures are kept **independent** — the *delivery* hierarchy (value stream → ART →
+team) decides who builds the work, while the *investment* hierarchy (portfolio → program → project) decides
+how it's funded and grouped — and they meet only at the **project**, where funded work is staffed from
+delivery teams:
+
+- **Portfolios** — one per **value stream** (named after its domain, e.g. "Payments Portfolio"), plus a
+  couple of cross-cutting **business-function** portfolios (`--function-portfolios`) that pull projects from
+  teams across value streams. Function portfolios draw from a single naming style per company (business
+  function, business unit, strategic, technology, investment-based, or product-based) so they read
+  coherently.
+- **Programs** — a portfolio's **thematic groupings of projects** (Modernization, Integrations,
+  Client-Driven, Growth & Scale, Automation & AI, Platform & Reliability). A program is an *investment*
+  structure, **independent of the delivery hierarchy** — it has nothing to do with ARTs. Each portfolio runs
+  several concurrently (`--concurrent-programs-per-portfolio`), each 1–3 years long, spread across the window
+  so some have finished, some are active, and some lie ahead. A project is sorted into a program by the kind
+  of work it is (its leading verb — "Migrate" → Modernization, "Integrate" → Integrations, …), and only into
+  a program whose window covers the project's; a minority of projects stay portfolio-direct (standalone).
+- **Projects** — **ART-scoped and multi-team**, matching how delivery actually works: a project is a subset
+  of an ART's teams collaborating, each owning their own features. Most projects span **two to five teams**;
+  a single-team project is the minority, and about **one in ten reaches across ARTs** within the value
+  stream. One participating team is the **owning team** — it provides the Engineering Manager (owner/manager)
+  and Product Owner (sponsor) and decides the program placement — and the project's members are the **union**
+  of everyone across the participating teams. Each project gets the shared **Standard Delivery** lifecycle
+  and an expenditure category. Volume is set by `--concurrent-projects-per-art` (how many an ART runs at
+  once); the total is derived from the four-year window and typical 2–9-month durations, so an ART
+  accumulates a deep history and a full runway rather than a handful of projects.
+- **Project tasks** — a dense work breakdown (phases → root tasks → child tasks, plus a milestone per
+  phase) for every project that has started; proposed and future projects have none yet. Each **phase's
+  status** is rolled up from its tasks (all done → Completed, some in flight → In Progress, none started →
+  Not Started) and imported as data — the phase-status import applies exactly what the generator computes and
+  never derives it server-side, so a real client keeps full control of phase status.
+- **Strategic themes** — a handful of active themes, tagged onto programs and projects.
+- **Strategic initiatives + KPIs** — one per portfolio, linking a few of its projects, each with a couple
+  of KPIs.
+
+**The four-year timeline.** Work spans two years of history and a two-year runway from today, and each
+item's status follows its position on that window: finished in the past (**Completed**, a few
+**Cancelled**), in flight around today (**Active**), and not-yet-started in the future (**Proposed** /
+**Approved**). Task progress and status track the same timeline.
+
+**Settings prerequisites.** Expenditure categories and the project lifecycle are **settings**, not imports.
+The `seed` verb bootstraps them through the normal settings API (create-or-get by name, and it activates the
+lifecycle) before importing projects, which reference them by name. They are not written as CSV by
+`generate`.
+
+:::note Why some historical work is "finalized" separately
+The domain only lets work be **added** to an active program or portfolio, but only lets one be **closed**
+once everything inside it is closed. So historically-complete programs and portfolios are imported active
+and then closed by a final `finalize` pass, after their contents exist. The generator emits the finalize
+rows automatically; you'll see a "Finalizing …" line at the end of a seed run when any apply.
+:::
+
 ## Reproducibility
 
 Every run resolves a concrete seed (random when `--random-seed` is omitted) and prints it:
@@ -141,21 +202,27 @@ the database IDs.
 
 ## How it works (and why)
 
-The tool **never touches the database directly** — it POSTs CSV to the API's import endpoints, and each
-import handler creates rows **through the owning domain's commands**. This is deliberate: Wayd domains keep
+The tool **never touches the database directly** — it POSTs CSV to the API's import endpoints (the same
+endpoints documented in the [Organization](../../user-guide/organizations/bulk-import.mdx) and
+[PPM](../../user-guide/ppm/bulk-import.mdx) Bulk Import guides), and each import handler creates rows
+**through the owning domain's commands**. This is deliberate: Wayd domains keep
 aligned local copies of shared concepts (creating an `Organization.Team` replicates it into the PPM,
 Planning, and Work read models via domain events). Going through the domain path means one `SaveChanges`
 fires those events, so the copies stay consistent — a direct insert would leave them empty. A useful side
 effect: seeding proves the real API and cross-domain wiring work.
 
-The `seed` verb imports in the order that replication requires:
+The `seed` verb imports in the order that replication and the domain's own rules require:
 
 ```
 employees → teams → team hierarchy → roles (created as needed) → team staffing
+  → expenditure categories + lifecycle (settings bootstrap)
+  → strategic themes → portfolios → programs → projects → project tasks → project phase statuses
+  → strategic initiatives (+ KPIs) → finalize (close historical programs/portfolios)
 ```
 
-Each import is all-or-nothing: an unresolved reference fails the whole batch with a clear message, so the
-run stays re-runnable against a fresh database.
+Each import is all-or-nothing: an unresolved or ambiguous reference fails the whole batch with a clear
+message (references are resolved by natural key — employee number, team code, project key, or name), so the
+run stays re-runnable against a fresh database. Pass `--skip-ppm` to stop after the organization.
 
 ## Data conventions
 

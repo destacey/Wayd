@@ -49,6 +49,7 @@ namespace Internal.Generated.WolverineHandlers
 
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
+            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             var updateStrategicThemeCommandValidator = new Wayd.StrategicManagement.Application.StrategicThemes.Commands.UpdateStrategicThemeCommandValidator();
             var requestCorrelationIdProvider = new Wayd.Infrastructure.Common.Services.RequestCorrelationIdProvider(_httpContextAccessor2);
             var dbContextOutbox = new Wolverine.EntityFrameworkCore.DbContextOutbox(_wolverineRuntime, _domainEventScraperIEnumerable);
@@ -59,7 +60,6 @@ namespace Internal.Generated.WolverineHandlers
             var currentUser = new Wayd.Infrastructure.Auth.CurrentUser(_httpContextAccessor1, ambientUserId);
             var dateTimeProvider = new Wayd.Infrastructure.Common.Services.DateTimeProvider(_timeProvider);
             await using var waydDbContext = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions, currentUser, dateTimeProvider, _optionsOfDatabaseSettings, eventPublisher, dbContextOutbox, requestCorrelationIdProvider);
-            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             // The actual message body
             var updateStrategicThemeCommand = (Wayd.StrategicManagement.Application.StrategicThemes.Commands.UpdateStrategicThemeCommand)context.Envelope.Message;
 

@@ -50,6 +50,7 @@ namespace Internal.Generated.WolverineHandlers
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
             var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
+            var importProjectsCommandValidator = new Wayd.ProjectPortfolioManagement.Application.Projects.Commands.ImportProjectsCommandValidator();
             var requestCorrelationIdProvider = new Wayd.Infrastructure.Common.Services.RequestCorrelationIdProvider(_httpContextAccessor2);
             var dbContextOutbox = new Wolverine.EntityFrameworkCore.DbContextOutbox(_wolverineRuntime, _domainEventScraperIEnumerable);
             var eventPublisher = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher, context);
@@ -59,7 +60,6 @@ namespace Internal.Generated.WolverineHandlers
             var currentUser = new Wayd.Infrastructure.Auth.CurrentUser(_httpContextAccessor1, ambientUserId);
             var dateTimeProvider = new Wayd.Infrastructure.Common.Services.DateTimeProvider(_timeProvider);
             await using var waydDbContext = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions, currentUser, dateTimeProvider, _optionsOfDatabaseSettings, eventPublisher, dbContextOutbox, requestCorrelationIdProvider);
-            var importProjectsCommandValidator = new Wayd.ProjectPortfolioManagement.Application.Projects.Commands.ImportProjectsCommandValidator();
             // The actual message body
             var importProjectsCommand = (Wayd.ProjectPortfolioManagement.Application.Projects.Commands.ImportProjectsCommand)context.Envelope.Message;
 

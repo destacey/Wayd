@@ -55,6 +55,7 @@ namespace Internal.Generated.WolverineHandlers
 
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
+            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             var updateTeamMemberCommandValidator = new Wayd.Organization.Application.Teams.Commands.UpdateTeamMemberCommandValidator();
             await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
@@ -67,7 +68,6 @@ namespace Internal.Generated.WolverineHandlers
             var currentUser = new Wayd.Infrastructure.Auth.CurrentUser(_httpContextAccessor1, ambientUserId);
             await using var waydDbContext2 = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions2, currentUser, dateTimeProvider, _optionsOfDatabaseSettings2, eventPublisher2, dbContextOutbox, requestCorrelationIdProvider);
             await using var waydDbContext1 = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions1, currentUser, dateTimeProvider, _optionsOfDatabaseSettings1, eventPublisher1, dbContextOutbox, requestCorrelationIdProvider);
-            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             // The actual message body
             var updateTeamMemberCommand = (Wayd.Organization.Application.Teams.Commands.UpdateTeamMemberCommand)context.Envelope.Message;
 

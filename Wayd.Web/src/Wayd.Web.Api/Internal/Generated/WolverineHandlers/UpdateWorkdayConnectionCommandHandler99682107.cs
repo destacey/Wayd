@@ -49,6 +49,8 @@ namespace Internal.Generated.WolverineHandlers
 
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
+            var updateWorkdayConnectionCommandValidator = new Wayd.AppIntegration.Application.Connections.Commands.Workday.UpdateWorkdayConnectionCommandValidator();
+            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             var requestCorrelationIdProvider = new Wayd.Infrastructure.Common.Services.RequestCorrelationIdProvider(_httpContextAccessor2);
             var dbContextOutbox = new Wolverine.EntityFrameworkCore.DbContextOutbox(_wolverineRuntime, _domainEventScraperIEnumerable);
             var eventPublisher = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher, context);
@@ -60,8 +62,6 @@ namespace Internal.Generated.WolverineHandlers
             await using var waydDbContext = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions, currentUser, dateTimeProvider, _optionsOfDatabaseSettings, eventPublisher, dbContextOutbox, requestCorrelationIdProvider);
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var workdayConnectionInitializer = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Common.Application.Interfaces.ExternalPeople.IWorkdayConnectionInitializer>(serviceScope.ServiceProvider);
-            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
-            var updateWorkdayConnectionCommandValidator = new Wayd.AppIntegration.Application.Connections.Commands.Workday.UpdateWorkdayConnectionCommandValidator();
             // The actual message body
             var updateWorkdayConnectionCommand = (Wayd.AppIntegration.Application.Connections.Commands.Workday.UpdateWorkdayConnectionCommand)context.Envelope.Message;
 

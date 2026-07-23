@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Application.Models;
+﻿using CsvHelper;
+using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.StrategicManagement.Application.StrategicThemes.Commands;
 using Wayd.StrategicManagement.Application.StrategicThemes.Dtos;
@@ -11,10 +13,11 @@ namespace Wayd.Web.Api.Controllers.StrategicManagement;
 [Route("api/strategic-management/strategic-themes")]
 [ApiVersionNeutral]
 [ApiController]
-public class StrategicThemesController(ILogger<StrategicThemesController> logger, IDispatcher dispatcher) : ControllerBase
+public class StrategicThemesController(ILogger<StrategicThemesController> logger, IDispatcher dispatcher, ICsvService csvService) : ControllerBase
 {
     private readonly ILogger<StrategicThemesController> _logger = logger;
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly ICsvService _csvService = csvService;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicThemes)]
@@ -57,6 +60,51 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetStrategicTheme), new { idOrKey = result.Value.Id.ToString() }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("import")]
+    [MustHavePermission(ApplicationAction.Import, ApplicationResource.StrategicThemes)]
+    [OpenApiOperation("Import strategic themes from a csv file.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var importedThemes = _csvService.ReadCsv<ImportStrategicThemeRequest>(file.OpenReadStream());
+
+            List<ImportStrategicThemeDto> themes = [];
+            var validator = new ImportStrategicThemeRequestValidator();
+            foreach (var theme in importedThemes)
+            {
+                var validationResults = await validator.ValidateAsync(theme, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        error.ErrorMessage = $"{error.ErrorMessage} (Name: {theme.Name})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(validationResults);
+                }
+
+                themes.Add(theme.ToImportStrategicThemeDto());
+            }
+
+            if (themes.Count == 0)
+                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No strategic themes imported.", HttpContext));
+
+            var result = await _dispatcher.Send(new ImportStrategicThemesCommand(themes), cancellationToken);
+
+            return result.IsSuccess
+                ? NoContent()
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
+        }
     }
 
     [HttpPut("{id}")]

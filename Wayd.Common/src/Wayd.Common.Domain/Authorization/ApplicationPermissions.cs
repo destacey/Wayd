@@ -245,22 +245,26 @@ public static class ApplicationPermissions
         new ("Create Portfolios", ApplicationAction.Create, ApplicationResource.ProjectPortfolios, PpmCategory),
         new ("Update Portfolios", ApplicationAction.Update, ApplicationResource.ProjectPortfolios, PpmCategory),
         new ("Delete Portfolios", ApplicationAction.Delete, ApplicationResource.ProjectPortfolios, PpmCategory),
+        new ("Import Portfolios", ApplicationAction.Import, ApplicationResource.ProjectPortfolios, PpmCategory),
 
         new ("View Programs", ApplicationAction.View, ApplicationResource.Programs, PpmCategory),
         new ("Create Programs", ApplicationAction.Create, ApplicationResource.Programs, PpmCategory),
         new ("Update Programs", ApplicationAction.Update, ApplicationResource.Programs, PpmCategory),
         new ("Delete Programs", ApplicationAction.Delete, ApplicationResource.Programs, PpmCategory),
+        new ("Import Programs", ApplicationAction.Import, ApplicationResource.Programs, PpmCategory),
 
         new ("View Projects", ApplicationAction.View, ApplicationResource.Projects, PpmCategory),
         new ("Create Projects", ApplicationAction.Create, ApplicationResource.Projects, PpmCategory),
         new ("Update Projects", ApplicationAction.Update, ApplicationResource.Projects, PpmCategory),
         new ("Delete Projects", ApplicationAction.Delete, ApplicationResource.Projects, PpmCategory),
+        new ("Import Projects", ApplicationAction.Import, ApplicationResource.Projects, PpmCategory),
         new ("Manage Project Work Items", ApplicationAction.ManageProjectWorkItems, ApplicationResource.Projects, PpmCategory),
 
         new ("View Strategic Initiatives", ApplicationAction.View, ApplicationResource.StrategicInitiatives, PpmCategory),
         new ("Create Strategic Initiatives", ApplicationAction.Create, ApplicationResource.StrategicInitiatives, PpmCategory),
         new ("Update Strategic Initiatives", ApplicationAction.Update, ApplicationResource.StrategicInitiatives, PpmCategory),
         new ("Delete Strategic Initiatives", ApplicationAction.Delete, ApplicationResource.StrategicInitiatives, PpmCategory),
+        new ("Import Strategic Initiatives", ApplicationAction.Import, ApplicationResource.StrategicInitiatives, PpmCategory),
 
         new ("View Project Lifecycles", ApplicationAction.View, ApplicationResource.ProjectLifecycles, PpmCategory),
         new ("Create Project Lifecycles", ApplicationAction.Create, ApplicationResource.ProjectLifecycles, PpmCategory),
@@ -275,6 +279,7 @@ public static class ApplicationPermissions
         new ("Create Strategic Themes", ApplicationAction.Create, ApplicationResource.StrategicThemes, StrategicManagementCategory),
         new ("Update Strategic Themes", ApplicationAction.Update, ApplicationResource.StrategicThemes, StrategicManagementCategory),
         new ("Delete Strategic Themes", ApplicationAction.Delete, ApplicationResource.StrategicThemes, StrategicManagementCategory),
+        new ("Import Strategic Themes", ApplicationAction.Import, ApplicationResource.StrategicThemes, StrategicManagementCategory),
 
         new ("View Strategies", ApplicationAction.View, ApplicationResource.Strategies, StrategicManagementCategory),
         new ("Create Strategies", ApplicationAction.Create, ApplicationResource.Strategies, StrategicManagementCategory),

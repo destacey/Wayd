@@ -51,12 +51,12 @@ namespace Internal.Generated.WolverineHandlers
         {
             var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             var updateExternalWorkProcessCommandValidator = new Wayd.Common.Application.Requests.WorkManagement.Commands.UpdateExternalWorkProcessCommandValidator();
-            await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
-            // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
-            var ambientUserId = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Infrastructure.Auth.AmbientUserId>(serviceScope.ServiceProvider);
             var requestCorrelationIdProvider = new Wayd.Infrastructure.Common.Services.RequestCorrelationIdProvider(_httpContextAccessor2);
             var dbContextOutbox = new Wolverine.EntityFrameworkCore.DbContextOutbox(_wolverineRuntime, _domainEventScraperIEnumerable);
             var eventPublisher = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher, context);
+            await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
+            // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
+            var ambientUserId = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Infrastructure.Auth.AmbientUserId>(serviceScope.ServiceProvider);
             var currentUser = new Wayd.Infrastructure.Auth.CurrentUser(_httpContextAccessor1, ambientUserId);
             var dateTimeProvider = new Wayd.Infrastructure.Common.Services.DateTimeProvider(_timeProvider);
             await using var waydDbContext = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions, currentUser, dateTimeProvider, _optionsOfDatabaseSettings, eventPublisher, dbContextOutbox, requestCorrelationIdProvider);

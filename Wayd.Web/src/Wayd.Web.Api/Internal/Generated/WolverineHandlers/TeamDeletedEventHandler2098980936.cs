@@ -72,10 +72,10 @@ namespace Internal.Generated.WolverineHandlers
             var requestCorrelationIdProvider = new Wayd.Infrastructure.Common.Services.RequestCorrelationIdProvider(_httpContextAccessor2);
             await using var waydDbContext3 = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions3, currentUser, dateTimeProvider, _optionsOfDatabaseSettings3, eventPublisher3, dbContextOutbox, requestCorrelationIdProvider);
             var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
-            var eventPublisher1 = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher1, context);
-            await using var waydDbContext1 = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions1, currentUser, dateTimeProvider, _optionsOfDatabaseSettings1, eventPublisher1, dbContextOutbox, requestCorrelationIdProvider);
             var eventPublisher2 = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher2, context);
             await using var waydDbContext2 = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions2, currentUser, dateTimeProvider, _optionsOfDatabaseSettings2, eventPublisher2, dbContextOutbox, requestCorrelationIdProvider);
+            var eventPublisher1 = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher1, context);
+            await using var waydDbContext1 = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions1, currentUser, dateTimeProvider, _optionsOfDatabaseSettings1, eventPublisher1, dbContextOutbox, requestCorrelationIdProvider);
             // The actual message body
             var teamDeletedEvent = (Wayd.Common.Domain.Events.Organization.TeamDeletedEvent)context.Envelope.Message;
 

@@ -39,6 +39,9 @@ public sealed class OrgGenerator
     private Person _cto = null!;
     private Person _cpo = null!;
 
+    // The delivery hierarchy, captured as it is built so it can be surfaced as an OrgStructure for the PPM generator.
+    private readonly List<ValueStreamNode> _valueStreamNodes = [];
+
     public GeneratedOrg Generate()
     {
         BuildExecutiveLayer();
@@ -52,7 +55,8 @@ public sealed class OrgGenerator
             _teams,
             _teamMemberships,
             _members,
-            _roleNames.ToList());
+            _roleNames.ToList(),
+            new OrgStructure(_valueStreamNodes));
     }
 
     // ---- Executive layer ----------------------------------------------------------------------
@@ -100,6 +104,7 @@ public sealed class OrgGenerator
             StaffValueStream(valueStream);
         }
 
+        var artNodes = new List<ArtNode>();
         var teamsPerArt = DistributeEvenly(teamCount, artCount);
         for (var i = 0; i < artCount; i++)
         {
@@ -114,14 +119,36 @@ public sealed class OrgGenerator
 
             StaffArt(art);
 
+            var teamNodes = new List<TeamNode>();
             foreach (var _ in Enumerable.Range(0, teamsPerArt[i]))
             {
                 var team = AddTeam($"{domain} {PickDistinctDomainWord()} {Pick(OrgVocabulary.Functions)}", activeDate);
                 LinkMembership(team, art, activeDate);
                 StaffTeam(team, art);
+                teamNodes.Add(ToTeamNode(team));
             }
+
+            artNodes.Add(new ArtNode(
+                art.Code,
+                art.EngineeringLead?.EmployeeNumber,
+                art.ProductLead?.EmployeeNumber,
+                teamNodes));
         }
+
+        _valueStreamNodes.Add(new ValueStreamNode(
+            domain,
+            valueStream?.Code,
+            valueStream?.EngineeringLead?.EmployeeNumber,
+            valueStream?.ProductLead?.EmployeeNumber,
+            artNodes));
     }
+
+    private static TeamNode ToTeamNode(TeamNodeRef team) => new(
+        team.Code,
+        team.Name,
+        team.EngineeringManager?.EmployeeNumber,
+        team.ProductOwner?.EmployeeNumber,
+        team.Members.Select(m => m.EmployeeNumber).Distinct(StringComparer.OrdinalIgnoreCase).ToList());
 
     // ---- Non-delivery organization ------------------------------------------------------------
 
@@ -189,10 +216,14 @@ public sealed class OrgGenerator
         var em = AddPerson(jobTitle: "Engineering Manager", department: "Engineering", manager: art.EngineeringLead);
         AddMembership(team, em, OrgVocabulary.EngineeringManagerRole);
         AddMembership(team, em, Pick(OrgVocabulary.Roles)); // also contributes as an IC
+        team.EngineeringManager = em;
+        team.Members.Add(em);
 
         // A product manager acting as product owner on the team.
         var po = AddPerson(jobTitle: "Product Manager", department: "Product", manager: art.ProductLead);
         AddMembership(team, po, OrgVocabulary.ProductOwnerRole);
+        team.ProductOwner = po;
+        team.Members.Add(po);
 
         // A handful of individual contributors reporting to the team's EM.
         var icCount = _faker.Random.Int(3, 6);
@@ -201,6 +232,7 @@ public sealed class OrgGenerator
             var discipline = Pick(OrgVocabulary.Roles);
             var ic = AddPerson(jobTitle: _faker.PickRandom(OrgVocabulary.IndividualTitles), department: "Engineering", manager: em);
             AddMembership(team, ic, discipline);
+            team.Members.Add(ic);
         }
     }
 
@@ -354,10 +386,16 @@ public sealed class OrgGenerator
     private sealed class TeamNodeRef
     {
         public required string Code { get; init; }
+        public required string Name { get; init; }
         public required DateTime ActiveDate { get; init; }
         public TeamNodeRef? Parent { get; set; }
         public Person? EngineeringLead { get; set; }
         public Person? ProductLead { get; set; }
+
+        // Populated for leaf teams only, so the PPM generator can staff projects from a team's own people.
+        public Person? EngineeringManager { get; set; }
+        public Person? ProductOwner { get; set; }
+        public List<Person> Members { get; } = [];
     }
 
     private TeamNodeRef AddTeam(string name, DateTime activeDate)
@@ -374,7 +412,7 @@ public sealed class OrgGenerator
             IsActive = true,
             InactiveDate = null,
         });
-        return new TeamNodeRef { Code = code, ActiveDate = activeDate };
+        return new TeamNodeRef { Code = code, Name = name, ActiveDate = activeDate };
     }
 
     private TeamNodeRef AddTeamOfTeams(string name, DateTime activeDate)
@@ -391,7 +429,7 @@ public sealed class OrgGenerator
             IsActive = true,
             InactiveDate = null,
         });
-        return new TeamNodeRef { Code = code, ActiveDate = activeDate };
+        return new TeamNodeRef { Code = code, Name = name, ActiveDate = activeDate };
     }
 
     private void LinkMembership(TeamNodeRef child, TeamNodeRef parent, DateTime activeDate)

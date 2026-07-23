@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Application.Models;
+﻿using CsvHelper;
+using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands.Kpis;
@@ -13,10 +15,11 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 [Route("api/ppm/strategic-initiatives")]
 [ApiVersionNeutral]
 [ApiController]
-public class StrategicInitiativesController(ILogger<StrategicInitiativesController> logger, IDispatcher dispatcher) : ControllerBase
+public class StrategicInitiativesController(ILogger<StrategicInitiativesController> logger, IDispatcher dispatcher, ICsvService csvService) : ControllerBase
 {
     private readonly ILogger<StrategicInitiativesController> _logger = logger;
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly ICsvService _csvService = csvService;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StrategicInitiatives)]
@@ -63,6 +66,79 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetStrategicInitiative), new { idOrKey = result.Value.Id.ToString() }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    /// <summary>
+    /// Imports strategic initiatives and, optionally, their KPIs. Both files are taken in one call because
+    /// KPIs cannot be added to an initiative once it is closed, so they have to land before each
+    /// initiative is driven to its final status.
+    /// </summary>
+    [HttpPost("import")]
+    [MustHavePermission(ApplicationAction.Import, ApplicationResource.StrategicInitiatives)]
+    [OpenApiOperation("Import strategic initiatives from a csv file.", "Optionally accepts a second csv of KPIs, whose rows name the initiative they belong to.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> Import([FromForm] IFormFile file, [FromForm] IFormFile? kpiFile, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var importedInitiatives = _csvService.ReadCsv<ImportStrategicInitiativeRequest>(file.OpenReadStream());
+
+            List<ImportStrategicInitiativeDto> initiatives = [];
+            var validator = new ImportStrategicInitiativeRequestValidator();
+            foreach (var initiative in importedInitiatives)
+            {
+                var validationResults = await validator.ValidateAsync(initiative, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        error.ErrorMessage = $"{error.ErrorMessage} (Name: {initiative.Name})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(validationResults);
+                }
+
+                initiatives.Add(initiative.ToImportStrategicInitiativeDto());
+            }
+
+            if (initiatives.Count == 0)
+                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No strategic initiatives imported.", HttpContext));
+
+            List<ImportStrategicInitiativeKpiDto> kpis = [];
+            if (kpiFile is not null)
+            {
+                var importedKpis = _csvService.ReadCsv<ImportStrategicInitiativeKpiRequest>(kpiFile.OpenReadStream());
+
+                var kpiValidator = new ImportStrategicInitiativeKpiRequestValidator();
+                foreach (var kpi in importedKpis)
+                {
+                    var validationResults = await kpiValidator.ValidateAsync(kpi, cancellationToken);
+                    if (!validationResults.IsValid)
+                    {
+                        foreach (var error in validationResults.Errors)
+                        {
+                            error.ErrorMessage = $"{error.ErrorMessage} (Strategic Initiative: {kpi.StrategicInitiativeName}, KPI: {kpi.Name})";
+                            ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                        }
+                        return UnprocessableEntity(validationResults);
+                    }
+
+                    kpis.Add(kpi.ToImportStrategicInitiativeKpiDto());
+                }
+            }
+
+            var result = await _dispatcher.Send(new ImportStrategicInitiativesCommand(initiatives, kpis), cancellationToken);
+
+            return result.IsSuccess
+                ? NoContent()
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
+        }
     }
 
     [HttpPut("{id}")]

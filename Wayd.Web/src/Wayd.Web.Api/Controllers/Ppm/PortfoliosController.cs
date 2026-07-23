@@ -1,4 +1,8 @@
-﻿using Wayd.Common.Application.Models;
+﻿using CsvHelper;
+using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
+using Wayd.ProjectPortfolioManagement.Application.Finalization.Commands;
+using Wayd.ProjectPortfolioManagement.Application.Finalization.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Queries;
@@ -14,6 +18,7 @@ using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Queries;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.Web.Api.Extensions;
+using Wayd.Web.Api.Models.Ppm.Finalization;
 using Wayd.Web.Api.Models.Ppm.Portfolios;
 
 namespace Wayd.Web.Api.Controllers.Ppm;
@@ -21,11 +26,12 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 [Route("api/ppm/[controller]")]
 [ApiVersionNeutral]
 [ApiController]
-public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatcher dispatcher)
+public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatcher dispatcher, ICsvService csvService)
     : ControllerBase
 {
     private readonly ILogger<PortfoliosController> _logger = logger;
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly ICsvService _csvService = csvService;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ProjectPortfolios)]
@@ -68,6 +74,101 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetPortfolio), new { idOrKey = result.Value.Id.ToString() }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("import")]
+    [MustHavePermission(ApplicationAction.Import, ApplicationResource.ProjectPortfolios)]
+    [OpenApiOperation("Import portfolios from a csv file.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var importedPortfolios = _csvService.ReadCsv<ImportPortfolioRequest>(file.OpenReadStream());
+
+            List<ImportProjectPortfolioDto> portfolios = [];
+            var validator = new ImportPortfolioRequestValidator();
+            foreach (var portfolio in importedPortfolios)
+            {
+                var validationResults = await validator.ValidateAsync(portfolio, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        error.ErrorMessage = $"{error.ErrorMessage} (Name: {portfolio.Name})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(validationResults);
+                }
+
+                portfolios.Add(portfolio.ToImportProjectPortfolioDto());
+            }
+
+            if (portfolios.Count == 0)
+                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No portfolios imported.", HttpContext));
+
+            var result = await _dispatcher.Send(new ImportProjectPortfoliosCommand(portfolios), cancellationToken);
+
+            return result.IsSuccess
+                ? NoContent()
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
+        }
+    }
+
+    /// <summary>
+    /// Closes out imported programs and portfolios — the last step of a PPM import. The domain only lets
+    /// work be added to an active program or portfolio, but only lets one be closed once everything inside
+    /// it is already closed, so historical items are imported active and finished here.
+    /// </summary>
+    [HttpPost("finalize/import")]
+    [MustHavePermission(ApplicationAction.Import, ApplicationResource.ProjectPortfolios)]
+    [OpenApiOperation("Finalize imported programs and portfolios from a csv file.", "Completes or cancels programs and closes or archives portfolios, after their contents have been imported.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> FinalizeImport([FromForm] IFormFile file, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var importedItems = _csvService.ReadCsv<ImportPpmFinalizationRequest>(file.OpenReadStream());
+
+            List<FinalizePpmItemDto> items = [];
+            var validator = new ImportPpmFinalizationRequestValidator();
+            foreach (var item in importedItems)
+            {
+                var validationResults = await validator.ValidateAsync(item, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        error.ErrorMessage = $"{error.ErrorMessage} (Name: {item.Name})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(validationResults);
+                }
+
+                items.Add(item.ToFinalizePpmItemDto());
+            }
+
+            if (items.Count == 0)
+                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No items to finalize.", HttpContext));
+
+            var result = await _dispatcher.Send(new ImportPpmFinalizationsCommand(items), cancellationToken);
+
+            return result.IsSuccess
+                ? NoContent()
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
+        }
     }
 
     [HttpPut("{id}")]

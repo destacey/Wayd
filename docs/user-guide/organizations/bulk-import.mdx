@@ -1,0 +1,165 @@
+---
+title: Bulk Import
+description: Loading employees, teams, the team hierarchy, and team staffing into Wayd from CSV via the import API.
+sidebar_position: 2
+audience: [user, agent]
+---
+
+# Bulk Import
+
+Wayd can load organization data in bulk from CSV files through a set of **import endpoints**. These are
+useful for standing up an environment, onboarding a company's people and teams, or migrating from an HRIS or
+another tool. Each import is a single `POST` of one CSV file (`multipart/form-data`, field name `file`), and
+each is gated by a permission.
+
+:::info API only
+Bulk import is an **API feature** — there is no import screen in the app. Calls are made directly to the
+endpoints below (for example with `curl`, a script, or the [`wayd-data` data-generation tool](../../contributing/tools/data-generation.mdx),
+which generates these exact CSVs and posts them for you). Exact request/response shapes are also in the
+OpenAPI/Swagger spec served by the API.
+:::
+
+## How imports work
+
+A few rules apply to every import:
+
+- **References are by natural key, not ID.** A CSV cannot carry Wayd's generated IDs, so rows reference each
+  other by human-readable keys — an employee by their **employee number**, a team by its **code**, and a role
+  by its **name**. A manager, a team parent, or a staffing assignment is expressed with those keys.
+- **All-or-nothing.** If any reference cannot be resolved — an unknown employee number, team code, or role
+  name, or an ambiguous/duplicate value — the **entire import fails** with a message listing the offending
+  values, and nothing is saved. This keeps a run safe to fix and re-try.
+- **Dates are ISO `yyyy-MM-dd`.** Only the date component is used.
+- **Boolean and status columns are case-insensitive** and, where a column is optional, have a sensible
+  default (noted per column below).
+
+Imports create records **through the normal domain rules**, exactly as if you had used the app. A useful side
+effect: creating an organization record also replicates it into the PPM, Planning, and Work areas (for
+example, creating a team makes it available to those areas), because the import goes through the same domain
+path the app uses.
+
+## Import order
+
+Because records reference each other, imports must be run in dependency order:
+
+```
+Employees
+  → Teams (and Teams of Teams)
+  → Team hierarchy (team memberships)
+  → Team staffing (team members)
+```
+
+- **Employees first** — teams are staffed with them, and employees reference their manager by employee
+  number (a manager may appear anywhere in the same file or already exist).
+- **Teams before hierarchy and staffing** — the [team hierarchy](#team-hierarchy-import) places teams under
+  one another, and [staffing](#team-staffing-import) puts employees on teams, so both need the teams to exist.
+- **Roles must already exist** — the staffing import resolves each row's role **by name** and fails if it
+  does not exist. Create the [team member roles](./index.mdx#team-members) you intend to use before importing
+  staffing. (The [data-generation tool](../../contributing/tools/data-generation.mdx) creates any missing
+  roles for you as a separate step before staffing.)
+
+## Permissions
+
+| Import | Permission |
+|---|---|
+| Employees | Import Employees |
+| Teams | Import Teams and Teams of Teams |
+| Team staffing · Team hierarchy | Manage Team Memberships |
+
+---
+
+## Employees import
+
+`POST /api/organization/employees/import`
+
+Loads [employees](./index.mdx#team-members) and their management chain. A manager is referenced by employee
+number and may appear **anywhere in the same file** or already exist — the import resolves managers after
+creating everyone, so order within the file does not matter. An employee whose manager cannot be resolved is
+still created (without a manager) rather than failing the batch.
+
+| Column | Required | Notes |
+|---|---|---|
+| `EmployeeNumber` | Yes | The employee's natural key, unique across the company. |
+| `FirstName` | Yes | Max 100 chars. |
+| `MiddleName` | No | |
+| `LastName` | Yes | Max 100 chars. |
+| `Email` | Yes | A valid email address. Max 256 chars. |
+| `HireDate` | No | The date the employee was hired. |
+| `JobTitle` | No | Max 256 chars. |
+| `Department` | No | Max 256 chars. |
+| `OfficeLocation` | No | Max 256 chars. |
+| `ManagerNumber` | No | The manager's **employee number**. May reference someone elsewhere in the file. |
+| `IsActive` | No | Whether the employee is current. Defaults to `true`. |
+| `EmployeeType` | No | Free-form worker type (e.g. `Employee`, `Contractor`, `Intern`), mirroring an HRIS descriptor. Max 256 chars. |
+
+:::note Former employees
+Set `IsActive` to `false` to record someone who has left. Inactive employees are created active and then
+deactivated through the domain, so the record is consistent — but note that an inactive employee **cannot
+hold a current team membership**, so leave them out of the [staffing import](#team-staffing-import).
+:::
+
+## Teams import
+
+`POST /api/organization/teams/import`
+
+Loads [teams and teams of teams](./index.mdx#teams) in one file. The `Type` column discriminates between the
+two; both share the same shape. Teams are flat here — the parent/child structure is set separately by the
+[team hierarchy import](#team-hierarchy-import).
+
+| Column | Required | Notes |
+|---|---|---|
+| `Type` | Yes | `Team` or `TeamOfTeams` (case-insensitive). |
+| `Name` | Yes | Max 128 chars. |
+| `Code` | Yes | The team's natural key: 2–10 uppercase letters/numbers. Unique across teams. |
+| `Description` | No | Max 1024 chars. |
+| `ActiveDate` | Yes | The date the team became active. |
+| `IsActive` | No | Whether the team is current. Defaults to `true`. |
+| `InactiveDate` | Conditional | Required when `IsActive` is `false`; must be **after** `ActiveDate`. Must be empty when active. |
+
+## Team hierarchy import
+
+`POST /api/organization/teams/team-memberships/import`
+
+Places teams under one another to build the org hierarchy — a value-stream / ART / team shape, for example.
+Each row puts a **child** (a team or a team of teams) under a **parent** (which must be a team of teams) for a
+date range.
+
+| Column | Required | Notes |
+|---|---|---|
+| `ChildCode` | Yes | The child team's code. May be a Team or a Team of Teams. |
+| `ParentCode` | Yes | The parent's code. **Must be a Team of Teams.** Cannot equal `ChildCode`. |
+| `Start` | Yes | When the membership begins. Must be on or after both teams' active dates. |
+| `End` | No | When it ends. Must be on or after `Start`. |
+
+:::note Multi-tier hierarchies
+Because a child may itself be a team of teams, chaining rows builds multiple tiers (for example a team under
+an ART, and that ART under a value stream). The batch is all-or-nothing and rejects a parent that is not a
+team of teams, or a membership that would start before either team was active.
+:::
+
+## Team staffing import
+
+`POST /api/organization/teams/members/import`
+
+Staffs teams — places employees on teams in named roles. Each row is one employee on one team in one role;
+to give someone **multiple roles** on the same team, add multiple rows.
+
+| Column | Required | Notes |
+|---|---|---|
+| `TeamCode` | Yes | The team, by code. |
+| `EmployeeNumber` | Yes | The employee, by number. Must be an **active** employee. |
+| `RoleName` | Yes | A [team member role](./index.mdx#team-members), **by name**. The role must already exist. |
+
+:::warning Roles and active employees
+Two things fail the whole batch if not satisfied: the **role must already exist** (staffing does not create
+roles — resolve them by name), and the **employee and team must both be active** (the domain does not allow
+staffing an inactive person or team). Create any needed roles first, and omit former employees.
+:::
+
+## Related
+
+- **[Data generation tool](../../contributing/tools/data-generation.mdx)** — generates all of these CSVs and
+  seeds them for you, in the correct order (and creates any missing roles).
+- **[PPM Bulk Import](../ppm/bulk-import.mdx)** — the equivalent imports for portfolios, programs, projects,
+  and more.
+- **[Organizations](./index.mdx)** — the teams, memberships, and staffing these imports populate.

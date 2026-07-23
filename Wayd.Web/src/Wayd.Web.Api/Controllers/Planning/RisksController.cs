@@ -138,7 +138,7 @@ public class RisksController : ControllerBase
         catch (CsvHelperException ex)
         {
             // TODO: Convert this to a validation problem details
-            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.ToString(), HttpContext));
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }
     }
 

@@ -8,4 +8,5 @@ public sealed record GeneratedOrg(
     IReadOnlyList<TeamCsvRow> Teams,
     IReadOnlyList<TeamMembershipCsvRow> TeamMemberships,
     IReadOnlyList<TeamMemberCsvRow> Members,
-    IReadOnlyList<string> RoleNames);
+    IReadOnlyList<string> RoleNames,
+    OrgStructure Structure);

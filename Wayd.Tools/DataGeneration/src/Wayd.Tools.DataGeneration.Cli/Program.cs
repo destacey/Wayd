@@ -12,16 +12,33 @@ var valueStreamsOption = new Option<int>("--value-streams", "-v") { Description 
 var teamsOption = new Option<int>("--teams", "-t") { Description = "Number of leaf delivery teams to generate.", DefaultValueFactory = _ => 18 };
 var seedOption = new Option<int?>("--random-seed", "-r") { Description = "Fixed random seed for reproducible output." };
 var formerEmployeesOption = new Option<double>("--former-employees") { Description = "Fraction (0..1) of non-delivery individual contributors generated as former (inactive) employees.", DefaultValueFactory = _ => 0.08 };
+var skipPpmOption = new Option<bool>("--skip-ppm") { Description = "Generate only the organization; skip the PPM dataset (portfolios, programs, projects, tasks, initiatives)." };
+var functionPortfoliosOption = new Option<int>("--function-portfolios") { Description = "Number of cross-cutting business-function portfolios, in addition to one portfolio per value stream.", DefaultValueFactory = _ => 2 };
+var concurrentProjectsPerArtOption = new Option<int>("--concurrent-projects-per-art") { Description = "Average number of projects an ART has in flight at once. Projects are ART-scoped (a subset of the ART's teams each); the total generated is derived from this across the four-year window.", DefaultValueFactory = _ => 10 };
+var concurrentProgramsPerPortfolioOption = new Option<int>("--concurrent-programs-per-portfolio") { Description = "Average number of thematic programs a portfolio runs at once (Modernization, Integrations, …). Programs group projects by theme, independent of the delivery hierarchy; the total is derived across the window.", DefaultValueFactory = _ => 5 };
 
-OrgOptions ReadOrgOptions(ParseResult parse) => new()
+// The seed resolved once and shared by both the org and PPM generators, so a single --random-seed
+// reproduces the whole dataset.
+int ResolveSeed(ParseResult parse) => parse.GetValue(seedOption) ?? Random.Shared.Next();
+
+OrgOptions ReadOrgOptions(ParseResult parse, int seed) => new()
 {
     CompanyType = parse.GetValue(companyTypeOption),
     DeliveryRatio = parse.GetValue(deliveryRatioOption),
     ValueStreams = parse.GetValue(valueStreamsOption),
     Teams = parse.GetValue(teamsOption),
-    // Resolve a concrete seed now (random when none was supplied) so it can be logged and replayed later.
-    Seed = parse.GetValue(seedOption) ?? Random.Shared.Next(),
+    Seed = seed,
     FormerEmployeeFraction = parse.GetValue(formerEmployeesOption),
+};
+
+PpmOptions ReadPpmOptions(ParseResult parse, int seed) => new()
+{
+    FunctionPortfolios = parse.GetValue(functionPortfoliosOption),
+    ConcurrentProjectsPerArt = parse.GetValue(concurrentProjectsPerArtOption),
+    ConcurrentProgramsPerPortfolio = parse.GetValue(concurrentProgramsPerPortfolioOption),
+    // Offset the PPM seed from the org seed so the two generators do not draw an identical value stream, yet
+    // stay deterministic under one --random-seed.
+    Seed = unchecked(seed + 1),
 };
 
 void AddGenerationOptions(Command command)
@@ -32,6 +49,10 @@ void AddGenerationOptions(Command command)
     command.Add(teamsOption);
     command.Add(seedOption);
     command.Add(formerEmployeesOption);
+    command.Add(skipPpmOption);
+    command.Add(functionPortfoliosOption);
+    command.Add(concurrentProjectsPerArtOption);
+    command.Add(concurrentProgramsPerPortfolioOption);
 }
 
 // ---- generate: write the three CSVs to a directory --------------------------------------------
@@ -43,10 +64,10 @@ AddGenerationOptions(generateCommand);
 generateCommand.Add(outOption);
 generateCommand.SetAction((parse, _) =>
 {
-    var options = ReadOrgOptions(parse);
-    Console.WriteLine($"Using seed {options.Seed} (pass --random-seed {options.Seed} to reproduce this data).");
+    var seed = ResolveSeed(parse);
+    Console.WriteLine($"Using seed {seed} (pass --random-seed {seed} to reproduce this data).");
 
-    var org = new OrgGenerator(options).Generate();
+    var org = new OrgGenerator(ReadOrgOptions(parse, seed)).Generate();
     var outDir = parse.GetValue(outOption)!;
     outDir.Create();
 
@@ -56,6 +77,25 @@ generateCommand.SetAction((parse, _) =>
     CsvFile.Write(Path.Combine(outDir.FullName, "members.csv"), org.Members);
 
     Console.WriteLine($"Generated {org.Employees.Count} employees, {org.Teams.Count} teams, {org.TeamMemberships.Count} hierarchy links, {org.Members.Count} staffing rows.");
+
+    if (!parse.GetValue(skipPpmOption))
+    {
+        var ppm = new PpmGenerator(org.Structure, ReadPpmOptions(parse, seed)).Generate();
+
+        CsvFile.Write(Path.Combine(outDir.FullName, "strategic-themes.csv"), ppm.StrategicThemes);
+        CsvFile.Write(Path.Combine(outDir.FullName, "portfolios.csv"), ppm.Portfolios);
+        CsvFile.Write(Path.Combine(outDir.FullName, "programs.csv"), ppm.Programs);
+        CsvFile.Write(Path.Combine(outDir.FullName, "projects.csv"), ppm.Projects);
+        CsvFile.Write(Path.Combine(outDir.FullName, "project-tasks.csv"), ppm.ProjectTasks);
+        CsvFile.Write(Path.Combine(outDir.FullName, "project-phases.csv"), ppm.ProjectPhases);
+        CsvFile.Write(Path.Combine(outDir.FullName, "strategic-initiatives.csv"), ppm.StrategicInitiatives);
+        CsvFile.Write(Path.Combine(outDir.FullName, "strategic-initiative-kpis.csv"), ppm.StrategicInitiativeKpis);
+        CsvFile.Write(Path.Combine(outDir.FullName, "ppm-finalizations.csv"), ppm.Finalizations);
+
+        Console.WriteLine($"Generated {ppm.Portfolios.Count} portfolios, {ppm.Programs.Count} programs, {ppm.Projects.Count} projects, {ppm.ProjectTasks.Count} tasks, {ppm.StrategicInitiatives.Count} initiatives.");
+        Console.WriteLine("Expenditure categories and the project lifecycle are bootstrapped via the API at seed time (not written as CSV).");
+    }
+
     Console.WriteLine($"Wrote CSVs to {outDir.FullName}");
     return Task.FromResult(0);
 });
@@ -78,11 +118,18 @@ seedCommand.SetAction(async (parse, cancellationToken) =>
         return 1;
     }
 
-    var options = ReadOrgOptions(parse);
-    Console.WriteLine($"Using seed {options.Seed} (pass --random-seed {options.Seed} to reproduce this data).");
+    var seed = ResolveSeed(parse);
+    Console.WriteLine($"Using seed {seed} (pass --random-seed {seed} to reproduce this data).");
 
-    var org = new OrgGenerator(options).Generate();
+    var org = new OrgGenerator(ReadOrgOptions(parse, seed)).Generate();
     Console.WriteLine($"Generated {org.Employees.Count} employees, {org.Teams.Count} teams, {org.TeamMemberships.Count} hierarchy links, {org.Members.Count} staffing rows.");
+
+    GeneratedPpm? ppm = null;
+    if (!parse.GetValue(skipPpmOption))
+    {
+        ppm = new PpmGenerator(org.Structure, ReadPpmOptions(parse, seed)).Generate();
+        Console.WriteLine($"Generated {ppm.Portfolios.Count} portfolios, {ppm.Programs.Count} programs, {ppm.Projects.Count} projects, {ppm.ProjectTasks.Count} tasks, {ppm.StrategicInitiatives.Count} initiatives.");
+    }
 
     var apiUrl = parse.GetValue(apiOption)!;
     using var client = new WaydSeedClient(apiUrl, apiKey);
@@ -90,7 +137,7 @@ seedCommand.SetAction(async (parse, cancellationToken) =>
 
     try
     {
-        await runner.Run(org, cancellationToken);
+        await runner.Run(org, ppm, cancellationToken);
         return 0;
     }
     catch (SeedException ex)

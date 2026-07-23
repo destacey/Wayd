@@ -49,6 +49,7 @@ namespace Internal.Generated.WolverineHandlers
 
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
+            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var ambientUserId = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Infrastructure.Auth.AmbientUserId>(serviceScope.ServiceProvider);
@@ -61,7 +62,6 @@ namespace Internal.Generated.WolverineHandlers
             var createAzureDevOpsConnectionCommandValidator = new Wayd.AppIntegration.Application.Connections.Commands.CreateAzureDevOpsConnectionCommandValidator(waydDbContext);
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var azureDevOpsService = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Common.Application.Interfaces.IAzureDevOpsService>(serviceScope.ServiceProvider);
-            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             // The actual message body
             var createAzureDevOpsConnectionCommand = (Wayd.AppIntegration.Application.Connections.Commands.CreateAzureDevOpsConnectionCommand)context.Envelope.Message;
 

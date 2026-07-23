@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Application.Models;
+﻿using CsvHelper;
+using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Queries;
@@ -13,10 +15,11 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 [Route("api/ppm/[controller]")]
 [ApiVersionNeutral]
 [ApiController]
-public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher dispatcher) : ControllerBase
+public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher dispatcher, ICsvService csvService) : ControllerBase
 {
     private readonly ILogger<ProgramsController> _logger = logger;
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly ICsvService _csvService = csvService;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Programs)]
@@ -67,6 +70,51 @@ public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetProgram), new { idOrKey = result.Value.Id.ToString() }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("import")]
+    [MustHavePermission(ApplicationAction.Import, ApplicationResource.Programs)]
+    [OpenApiOperation("Import programs from a csv file.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> Import([FromForm] IFormFile file, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var importedPrograms = _csvService.ReadCsv<ImportProgramRequest>(file.OpenReadStream());
+
+            List<ImportProgramDto> programs = [];
+            var validator = new ImportProgramRequestValidator();
+            foreach (var program in importedPrograms)
+            {
+                var validationResults = await validator.ValidateAsync(program, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        error.ErrorMessage = $"{error.ErrorMessage} (Name: {program.Name})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(validationResults);
+                }
+
+                programs.Add(program.ToImportProgramDto());
+            }
+
+            if (programs.Count == 0)
+                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No programs imported.", HttpContext));
+
+            var result = await _dispatcher.Send(new ImportProgramsCommand(programs), cancellationToken);
+
+            return result.IsSuccess
+                ? NoContent()
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.ToString(), HttpContext));
+        }
     }
 
     [HttpPut("{id}")]

@@ -66,9 +66,10 @@ var waydApi = builder.AddProject<Projects.Wayd_Web_Api>("wayd-api")
 // "Reset Database" command in the Aspire dashboard. Destruction lives here — in the orchestrator, out
 // of band from the running app — so it is never reachable via an HTTP request and simply does not exist
 // in any environment that isn't launched from this AppHost (i.e. production). That AppHost-only nature
-// is the gate; no additional env flag is needed. It drops and recreates the target database, then
-// restarts the API, which re-applies migrations and reference seeding on boot (the verified startup
-// path) and drops the operator into first-run setup.
+// is the gate; no additional env flag is needed. It stops the API, drops and recreates the target
+// database, then starts the API again, which re-applies migrations and reference seeding on boot (the
+// verified startup path) and drops the operator into first-run setup. Stopping first (rather than dropping
+// while it runs, then restarting) keeps the recreate from racing the API's reconnect.
 waydApi.WithCommand(
     name: "reset-database",
     displayName: "Reset Database",
@@ -76,14 +77,33 @@ waydApi.WithCommand(
     {
         try
         {
+            var commandService = context.ServiceProvider
+                .GetRequiredService<Aspire.Hosting.ApplicationModel.ResourceCommandService>();
+            var notifications = context.ServiceProvider
+                .GetRequiredService<Aspire.Hosting.ApplicationModel.ResourceNotificationService>();
+
+            // Stop the API BEFORE touching the database, and wait until it has actually exited, so no app
+            // connection is open when we drop it. Dropping while the API is still running forces the DB into
+            // SINGLE_USER to evict that connection, and the API's restart (its `resources setup` gate) can
+            // then race the recreate and hit "Connection Timeout ... during the post-login phase" — or leave
+            // the DB stuck in SINGLE_USER. Stopping first removes the race entirely.
+            await commandService.ExecuteCommandAsync(
+                waydApi.Resource,
+                Aspire.Hosting.ApplicationModel.KnownResourceCommands.StopCommand,
+                context.CancellationToken);
+            await notifications.WaitForResourceAsync(
+                waydApi.Resource.Name,
+                Aspire.Hosting.ApplicationModel.KnownResourceStates.TerminalStates,
+                context.CancellationToken);
+
             await DropAndRecreateDatabase(connectionString);
 
-            // Bounce the API so InitializeDatabases() re-migrates + reference-seeds against the fresh DB.
-            var orchestrator = context.ServiceProvider
-                .GetRequiredService<Aspire.Hosting.ApplicationModel.ResourceCommandService>();
-            await orchestrator.ExecuteCommandAsync(
+            // Start the API against the fresh DB. On boot InitializeDatabases() re-migrates + reference-seeds,
+            // and the `resources setup` gate provisions the Wolverine tables — now with the DB idle and no
+            // competing connection.
+            await commandService.ExecuteCommandAsync(
                 waydApi.Resource,
-                Aspire.Hosting.ApplicationModel.KnownResourceCommands.RestartCommand,
+                Aspire.Hosting.ApplicationModel.KnownResourceCommands.StartCommand,
                 context.CancellationToken);
 
             return CommandResults.Success();
@@ -95,8 +115,8 @@ waydApi.WithCommand(
     },
     commandOptions: new CommandOptions
     {
-        Description = "Drops and recreates the database, then restarts the API so it re-migrates and "
-            + "re-seeds reference data. All application data is destroyed.",
+        Description = "Stops the API, drops and recreates the database, then starts the API so it "
+            + "re-migrates and re-seeds reference data. All application data is destroyed.",
         IconName = "DatabaseWarning",
         ConfirmationMessage = "This permanently deletes ALL data in the database and restarts the API. Continue?",
     });
@@ -128,9 +148,10 @@ static void StripGateEndpoints(JasperFx.Aspire.JasperFxStartupGate gate) =>
         }
     };
 
-// Drops and recreates the target database by connecting to `master`. Forcing SINGLE_USER first rolls
-// back and disconnects any open sessions (e.g. the running API) so the DROP can proceed. Recreated
-// empty; the API's startup path re-applies migrations and reference seeding on its next boot.
+// Drops and recreates the target database by connecting to `master`. The reset command stops the API
+// first, so no app connection should be open here — but SINGLE_USER WITH ROLLBACK IMMEDIATE is kept as a
+// safety net to evict any stray session (a leftover connection, a health probe) so the DROP cannot hang.
+// Recreated empty; the API's startup path re-applies migrations and reference seeding on its next boot.
 static async Task DropAndRecreateDatabase(string appConnectionString)
 {
     var appBuilder = new SqlConnectionStringBuilder(appConnectionString);

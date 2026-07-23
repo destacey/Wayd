@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "node scripts/build-search-index.mjs",
+    "predev": "node -e \"require('fs').rmSync('.next', { recursive: true, force: true })\" && node scripts/build-search-index.mjs",
     "dev": "next dev --turbopack",
     "prebuild": "node scripts/build-search-index.mjs",
     "build": "next build",

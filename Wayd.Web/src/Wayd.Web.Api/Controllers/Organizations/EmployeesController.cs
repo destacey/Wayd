@@ -103,7 +103,7 @@ public class EmployeesController(ILogger<EmployeesController> logger, IDispatche
         }
         catch (CsvHelperException ex)
         {
-            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.ToString(), HttpContext));
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }
     }
 

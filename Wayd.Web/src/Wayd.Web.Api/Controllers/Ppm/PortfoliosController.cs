@@ -117,7 +117,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
         }
         catch (CsvHelperException ex)
         {
-            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.ToString(), HttpContext));
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }
     }
 
@@ -167,7 +167,7 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
         }
         catch (CsvHelperException ex)
         {
-            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.ToString(), HttpContext));
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }
     }
 

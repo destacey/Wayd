@@ -143,7 +143,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
         }
         catch (CsvHelperException ex)
         {
-            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.ToString(), HttpContext));
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }
     }
 
@@ -192,7 +192,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
         }
         catch (CsvHelperException ex)
         {
-            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.ToString(), HttpContext));
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }
     }
 
@@ -242,7 +242,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
         }
         catch (CsvHelperException ex)
         {
-            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.ToString(), HttpContext));
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }
     }
 

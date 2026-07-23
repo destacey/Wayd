@@ -113,7 +113,7 @@ public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher 
         }
         catch (CsvHelperException ex)
         {
-            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.ToString(), HttpContext));
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }
     }
 

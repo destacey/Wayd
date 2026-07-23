@@ -108,7 +108,7 @@ public class TeamsController(ILogger<TeamsController> logger, IDispatcher dispat
         }
         catch (CsvHelperException ex)
         {
-            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.ToString(), HttpContext));
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }
     }
 
@@ -153,7 +153,7 @@ public class TeamsController(ILogger<TeamsController> logger, IDispatcher dispat
         }
         catch (CsvHelperException ex)
         {
-            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.ToString(), HttpContext));
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }
     }
 
@@ -198,7 +198,7 @@ public class TeamsController(ILogger<TeamsController> logger, IDispatcher dispat
         }
         catch (CsvHelperException ex)
         {
-            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.ToString(), HttpContext));
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }
     }
 

@@ -1,0 +1,6 @@
+# Wolverine static handler codegen — committed for TypeLoadMode.Static, but not human-reviewed.
+# The tree must stay in the repo (the host loads it with no runtime Roslyn compiler, and CI fails
+# on a stale tree), but a single handler change regenerates 400+ files, which swamps PR review.
+# linguist-generated=true collapses these in GitHub PR diffs by default and drops them from
+# Copilot code review's per-PR file budget.
+Wayd.Web/src/Wayd.Web.Api/Internal/Generated/WolverineHandlers/** linguist-generated=true

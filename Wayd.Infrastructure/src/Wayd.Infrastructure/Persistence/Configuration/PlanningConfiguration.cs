@@ -12,6 +12,8 @@ using Wayd.Planning.Domain.Models;
 using Wayd.Planning.Domain.Models.Iterations;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Planning.Domain.Models.Roadmaps;
+using Wayd.Planning.Domain.Models.StoryMaps;
+using Wayd.Common.Domain.Enums.Work;
 
 namespace Wayd.Infrastructure.Persistence.Configuration;
 
@@ -762,3 +764,213 @@ public class PokerVoteConfig : IEntityTypeConfiguration<PokerVote>
 }
 
 #endregion Planning Poker
+
+#region Story Maps
+
+public class StoryMapConfig : IEntityTypeConfiguration<StoryMap>
+{
+    public void Configure(EntityTypeBuilder<StoryMap> builder)
+    {
+        builder.ToTable("StoryMaps", SchemaNames.Planning);
+
+        builder.HasKey(m => m.Id);
+        builder.HasAlternateKey(m => m.Key);
+
+        builder.HasIndex(m => new { m.Id, m.IsDeleted })
+            .HasFilter("[IsDeleted] = 0");
+        builder.HasIndex(m => new { m.Key, m.IsDeleted })
+            .HasFilter("[IsDeleted] = 0");
+        builder.HasIndex(m => new { m.OwnerId, m.IsDeleted })
+            .HasFilter("[IsDeleted] = 0");
+
+        builder.Property(m => m.Id).ValueGeneratedNever();
+        builder.Property(m => m.Key).ValueGeneratedOnAdd();
+
+        builder.Property(m => m.Name).IsRequired().HasMaxLength(128);
+        builder.Property(m => m.Description).HasMaxLength(2048);
+
+        builder.Property(m => m.OwnerId)
+            .IsRequired()
+            .HasMaxLength(450);
+
+        builder.Property(m => m.Status).IsRequired()
+            .HasConversion<EnumConverter<WorkStatusCategory>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+
+        builder.Property(m => m.IsDeleted);
+
+        // Relationships
+        builder.HasOne(m => m.Owner)
+            .WithMany()
+            .HasForeignKey(m => m.OwnerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(m => m.Goals)
+            .WithOne()
+            .HasForeignKey(g => g.StoryMapId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(m => m.Goals)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(m => m.Lanes)
+            .WithOne()
+            .HasForeignKey(l => l.StoryMapId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(m => m.Lanes)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(m => m.Personas)
+            .WithOne()
+            .HasForeignKey(p => p.StoryMapId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(m => m.Personas)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class StoryMapGoalConfig : IEntityTypeConfiguration<Goal>
+{
+    public void Configure(EntityTypeBuilder<Goal> builder)
+    {
+        builder.ToTable("StoryMapGoals", SchemaNames.Planning);
+
+        builder.HasKey(g => g.Id);
+
+        builder.HasIndex(g => g.StoryMapId);
+
+        builder.Property(g => g.Id).ValueGeneratedNever();
+        builder.Property(g => g.StoryMapId).IsRequired();
+        builder.Property(g => g.Name).IsRequired().HasMaxLength(128);
+        builder.Property(g => g.SortOrder).IsRequired();
+
+        // Persona tags are a small, per-map set only ever loaded with the node, so they are stored
+        // as a JSON array of ids rather than a join table.
+        builder.PrimitiveCollection(g => g.PersonaIds)
+            .HasColumnName("PersonaIds")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(g => g.Steps)
+            .WithOne()
+            .HasForeignKey(s => s.GoalId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(g => g.Steps)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class StoryMapStepConfig : IEntityTypeConfiguration<Step>
+{
+    public void Configure(EntityTypeBuilder<Step> builder)
+    {
+        builder.ToTable("StoryMapSteps", SchemaNames.Planning);
+
+        builder.HasKey(s => s.Id);
+
+        builder.HasIndex(s => s.GoalId);
+
+        builder.Property(s => s.Id).ValueGeneratedNever();
+        builder.Property(s => s.GoalId).IsRequired();
+        builder.Property(s => s.Name).IsRequired().HasMaxLength(128);
+        builder.Property(s => s.SortOrder).IsRequired();
+
+        builder.PrimitiveCollection(s => s.PersonaIds)
+            .HasColumnName("PersonaIds")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(s => s.Tasks)
+            .WithOne()
+            .HasForeignKey(t => t.StepId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(s => s.Tasks)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class StoryMapTaskConfig : IEntityTypeConfiguration<StoryTask>
+{
+    public void Configure(EntityTypeBuilder<StoryTask> builder)
+    {
+        builder.ToTable("StoryMapTasks", SchemaNames.Planning);
+
+        builder.HasKey(t => t.Id);
+
+        builder.HasIndex(t => t.StepId);
+        builder.HasIndex(t => t.LaneId);
+
+        builder.Property(t => t.Id).ValueGeneratedNever();
+        builder.Property(t => t.StepId).IsRequired();
+        builder.Property(t => t.LaneId).IsRequired();
+        builder.Property(t => t.Title).IsRequired().HasMaxLength(256);
+        builder.Property(t => t.Notes).HasMaxLength(4096);
+        builder.Property(t => t.SortOrder).IsRequired();
+
+        // A cross-service reference to a work item elsewhere in Wayd — a plain id, not a foreign
+        // key. The map never modifies what it links to.
+        builder.Property(t => t.LinkedWorkItemId);
+
+        builder.PrimitiveCollection(t => t.PersonaIds)
+            .HasColumnName("PersonaIds")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        // The checklist is only ever read alongside its task and never queried independently, so it
+        // is stored as a JSON column rather than a separate table.
+        builder.OwnsMany(t => t.Checklist, c =>
+        {
+            c.ToJson();
+            c.UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+        builder.Navigation(t => t.Checklist)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        // Tasks reference their lane, but removing a lane must not delete its tasks — the domain
+        // reassigns them to the default lane first, so this relationship does not cascade.
+        builder.HasOne<SwimLane>()
+            .WithMany()
+            .HasForeignKey(t => t.LaneId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class StoryMapLaneConfig : IEntityTypeConfiguration<SwimLane>
+{
+    public void Configure(EntityTypeBuilder<SwimLane> builder)
+    {
+        builder.ToTable("StoryMapLanes", SchemaNames.Planning);
+
+        builder.HasKey(l => l.Id);
+
+        builder.HasIndex(l => l.StoryMapId);
+
+        builder.Property(l => l.Id).ValueGeneratedNever();
+        builder.Property(l => l.StoryMapId).IsRequired();
+        builder.Property(l => l.Name).IsRequired().HasMaxLength(128);
+        builder.Property(l => l.SortOrder).IsRequired();
+        builder.Property(l => l.IsDefault).IsRequired();
+        builder.Property(l => l.StartDate);
+        builder.Property(l => l.EndDate);
+    }
+}
+
+public class StoryMapPersonaConfig : IEntityTypeConfiguration<Persona>
+{
+    public void Configure(EntityTypeBuilder<Persona> builder)
+    {
+        builder.ToTable("StoryMapPersonas", SchemaNames.Planning);
+
+        builder.HasKey(p => p.Id);
+
+        builder.HasIndex(p => p.StoryMapId);
+
+        builder.Property(p => p.Id).ValueGeneratedNever();
+        builder.Property(p => p.StoryMapId).IsRequired();
+        builder.Property(p => p.Name).IsRequired().HasMaxLength(128);
+        builder.Property(p => p.Description).HasMaxLength(256);
+        builder.Property(p => p.Color)
+            .IsRequired()
+            .HasMaxLength(7)
+            .HasColumnType("varchar");
+    }
+}
+
+#endregion Story Maps

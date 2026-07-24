@@ -18,6 +18,7 @@ using Wayd.Planning.Domain.Models;
 using Wayd.Planning.Domain.Models.Iterations;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Planning.Domain.Models.Roadmaps;
+using Wayd.Planning.Domain.Models.StoryMaps;
 using Wayd.ProjectPortfolioManagement.Application;
 using Wayd.Common.Domain.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
@@ -104,6 +105,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<Roadmap> Roadmaps => Set<Roadmap>();
     public DbSet<EstimationScale> EstimationScales => Set<EstimationScale>();
     public DbSet<PokerSession> PokerSessions => Set<PokerSession>();
+    public DbSet<StoryMap> StoryMaps => Set<StoryMap>();
 
     #endregion IPlanning
 

@@ -52,6 +52,7 @@ public static class ApplicationResource
     public const string Iterations = nameof(Iterations);
     public const string PokerSessions = nameof(PokerSessions);
     public const string EstimationScales = nameof(EstimationScales);
+    public const string StoryMaps = nameof(StoryMaps);
 
     public const string ExpenditureCategories = nameof(ExpenditureCategories);
     public const string ProjectPortfolios = nameof(ProjectPortfolios);
@@ -224,6 +225,11 @@ public static class ApplicationPermissions
         new("Create Poker Sessions", ApplicationAction.Create, ApplicationResource.PokerSessions, PlanningCategory),
         new("Update Poker Sessions", ApplicationAction.Update, ApplicationResource.PokerSessions, PlanningCategory),
         new("Delete Poker Sessions", ApplicationAction.Delete, ApplicationResource.PokerSessions, PlanningCategory),
+
+        new("View Story Maps", ApplicationAction.View, ApplicationResource.StoryMaps, PlanningCategory),
+        new("Create Story Maps", ApplicationAction.Create, ApplicationResource.StoryMaps, PlanningCategory),
+        new("Update Story Maps", ApplicationAction.Update, ApplicationResource.StoryMaps, PlanningCategory),
+        new("Delete Story Maps", ApplicationAction.Delete, ApplicationResource.StoryMaps, PlanningCategory),
 
         new("View Estimation Scales", ApplicationAction.View, ApplicationResource.EstimationScales, PlanningCategory),
         new("Create Estimation Scales", ApplicationAction.Create, ApplicationResource.EstimationScales, PlanningCategory),

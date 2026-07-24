@@ -8,6 +8,7 @@
 public static class FeatureFlags
 {
     public static readonly FeatureFlagDefinition PlanningPoker = new(Names.PlanningPoker, "Planning Poker", "Controls visibility of the Planning Poker feature.");
+    public static readonly FeatureFlagDefinition StoryMaps = new(Names.StoryMaps, "Story Maps", "Controls visibility of the Story Maps feature.");
 
     /// <summary>
     /// Compile-time constant names for use in attributes (e.g., [FeatureGate]).
@@ -15,6 +16,7 @@ public static class FeatureFlags
     public static class Names
     {
         public const string PlanningPoker = "planning-poker";
+        public const string StoryMaps = "story-maps";
     }
 }
 

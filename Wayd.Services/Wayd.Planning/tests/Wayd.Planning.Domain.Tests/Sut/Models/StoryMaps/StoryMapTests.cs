@@ -157,34 +157,6 @@ public class StoryMapTests
         result.IsFailure.Should().BeTrue();
     }
 
-    [Fact]
-    public void Activate_ArchivedMap_ShouldSetStatusToActive()
-    {
-        // Arrange
-        var map = CreateMap();
-        map.Archive();
-
-        // Act
-        var result = map.Activate();
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        map.Status.Should().Be(WorkStatusCategory.Active);
-    }
-
-    [Fact]
-    public void Activate_ActiveMap_ShouldReturnFailure()
-    {
-        // Arrange
-        var map = CreateMap();
-
-        // Act
-        var result = map.Activate();
-
-        // Assert
-        result.IsFailure.Should().BeTrue();
-    }
-
     #endregion
 
     #region Goals

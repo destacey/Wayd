@@ -132,18 +132,6 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         return Result.Success();
     }
 
-    /// <summary>
-    /// Activates an archived map.
-    /// </summary>
-    public Result Activate()
-    {
-        if (Status != WorkStatusCategory.Removed)
-            return Result.Failure("Only archived story maps can be activated.");
-
-        Status = WorkStatusCategory.Active;
-        return Result.Success();
-    }
-
     #endregion Map lifecycle
 
     #region Goals

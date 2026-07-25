@@ -1,0 +1,382 @@
+/* ─── Story map detail board ──────────────────────────────────────────────── */
+
+.pageContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.boardScroll {
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.goalRow {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  min-width: min-content;
+}
+
+.goalColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 0 0 auto;
+  padding: 12px;
+  border: 1px solid var(--sm-border);
+  border-radius: var(--sm-radius-lg);
+  background-color: var(--sm-bg);
+}
+
+/* A goal's steps read left-to-right; each step stacks its tasks top-to-bottom. */
+.stepRow {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.goalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.goalName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--sm-text);
+}
+
+.stepColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 240px;
+  flex: 0 0 auto;
+  padding: 8px;
+  border: 1px solid var(--sm-border);
+  border-radius: var(--sm-radius);
+  background-color: var(--sm-bg-elevated);
+}
+
+.stepHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.stepName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sm-text);
+}
+
+.swimLaneSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.taskCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--sm-border);
+  border-radius: var(--sm-radius);
+  background-color: var(--sm-bg);
+}
+
+.taskTitle {
+  font-size: 13px;
+  color: var(--sm-text);
+  word-break: break-word;
+}
+
+.taskMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.personaDots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.personaDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.checklistCount {
+  font-size: 12px;
+  color: var(--sm-text-secondary);
+}
+
+/* ─── Inline click-to-edit (goal / step / task names) ─────────────────────── */
+
+.inlineEditText {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 2px 6px;
+  margin: -2px -6px;
+  background: transparent;
+  border: none;
+  border-radius: var(--sm-radius);
+  cursor: text;
+  /* Reset only the <button>'s own font-family default; leave font-size/weight/color unset so the
+     name class (goalName/stepName/taskTitle) applied alongside — same specificity, earlier in the
+     cascade — determines them. `font: inherit` (or `color: inherit`) here would be a shorthand/
+     longhand that resets those too and (same specificity, later in source) would win regardless of
+     the name class. */
+  font-family: inherit;
+  /* Wrap long names to match the auto-sizing editor's line breaks. */
+  overflow-wrap: anywhere;
+}
+
+/* The editor sits exactly where the text was: same font/color/padding/box, no chrome, and it grows
+   with its content (autoSize) so the caret lands where the user clicked. Font comes from whatever
+   name class (goalName/stepName/taskTitle) the caller passes alongside. */
+.inlineEditInput.inlineEditInput {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 2px 6px;
+  margin: -2px 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--sm-radius);
+  box-shadow: none;
+  resize: none;
+  font-family: inherit;
+  line-height: 1.4;
+  /* Break long unbroken words so wrapping matches autoSize's height measurement (and the display
+     text), keeping the editor from overflowing before it grows. */
+  word-break: break-word;
+}
+
+.inlineEditInput.inlineEditInput:focus,
+.inlineEditInput.inlineEditInput:hover {
+  background-color: var(--sm-bg-elevated);
+  box-shadow: none;
+}
+
+.inlineEditText:hover:not(:disabled) {
+  background-color: var(--sm-bg-elevated);
+}
+
+.inlineEditText:disabled {
+  cursor: default;
+}
+
+/* Row-level header actions (add / delete) — revealed on hover of the card header. */
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.goalHeader:hover .headerActions,
+.stepHeader:hover .headerActions,
+.headerActions:focus-within {
+  opacity: 1;
+}
+
+.taskCardHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.cardDeleteButton {
+  flex: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.taskCard:hover .cardDeleteButton,
+.cardDeleteButton:focus {
+  opacity: 1;
+}
+
+/* Empty board: the "start with a goal" prompt shown when a map has no goals yet. */
+.emptyBoard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 64px 24px;
+  border: 1px dashed var(--ant-color-border);
+  border-radius: var(--sm-radius-lg);
+  text-align: center;
+}
+
+.emptyBoardTile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 4px;
+  font-size: 15px;
+  color: var(--ant-color-text-tertiary);
+  background-color: var(--ant-color-fill-tertiary);
+  border-radius: var(--sm-radius);
+}
+
+.emptyBoardTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ant-color-text);
+}
+
+.emptyBoardText {
+  max-width: 380px;
+  font-size: 13px;
+  color: var(--ant-color-text-secondary);
+}
+
+.headerDivider {
+  margin: 0;
+}
+
+/* ─── Persona filter bar ──────────────────────────────────────────────────── */
+
+.personaBarIcon {
+  color: var(--ant-color-text-tertiary);
+  font-size: 14px;
+  margin-right: 2px;
+}
+
+.personaQuickAddInput {
+  width: 160px;
+}
+
+/* Muted board nodes when a persona filter is active and the node is not tagged. */
+.muted {
+  opacity: 0.35;
+  transition: opacity 0.15s;
+}
+
+/* ─── Manage personas modal ───────────────────────────────────────────────── */
+
+.personaModalSubtitle {
+  display: block;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.personaList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.personaCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-lg);
+  background-color: var(--ant-color-bg-container);
+}
+
+.personaDragHandle {
+  cursor: grab;
+  color: var(--ant-color-text-tertiary);
+  touch-action: none;
+}
+
+.personaDragHandle:active {
+  cursor: grabbing;
+}
+
+.personaCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Click-to-edit text field: reads as plain text, hints it is editable on hover. */
+.personaField {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 2px 6px;
+  margin-left: -6px;
+  background: transparent;
+  border: none;
+  border-radius: var(--ant-border-radius);
+  cursor: text;
+  font: inherit;
+  color: inherit;
+}
+
+.personaField:hover {
+  background-color: var(--ant-color-fill-tertiary);
+}
+
+.personaCardDesc {
+  font-size: 13px;
+}
+
+.personaCardCounts {
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.personaEditor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Row holding the color swatch + name; the name grows to fill. */
+.personaEditorRow {
+  width: 100%;
+}
+
+/* Tighten Ant's default Form.Item bottom margin so the editor rows sit evenly. */
+.personaEditorField {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.personaAddButton {
+  margin-top: 12px;
+}
+
+/* Render the color-picker trigger as a circle instead of the default square swatch. Rounding the
+   trigger and clipping with overflow:hidden turns any square inner fill into a circle regardless of
+   the inner element's own radius; the block rules round the swatch itself as well. The doubled
+   class + !important raise specificity above Ant's own token-driven border-radius. */
+.personaColorPicker.personaColorPicker {
+  border-radius: 50% !important;
+  overflow: hidden;
+}
+
+.personaColorPicker :global(.ant-color-picker-color-block),
+.personaColorPicker :global(.ant-color-picker-color-block-inner) {
+  border-radius: 50% !important;
+}

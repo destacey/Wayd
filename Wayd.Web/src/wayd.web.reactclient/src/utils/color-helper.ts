@@ -1,4 +1,15 @@
 import { GlobalToken } from 'antd'
+import {
+  blue,
+  cyan,
+  gold,
+  green,
+  magenta,
+  orange,
+  purple,
+  red,
+  volcano,
+} from '@ant-design/colors'
 import { LifecyclePhase } from '../components/types'
 import { LifecycleNavigationDto } from '../services/wayd-api'
 
@@ -118,6 +129,39 @@ export const getAvatarColor = (value: string): string => {
     hash = (hash * 31 + value.charCodeAt(i)) | 0
   }
   return avatarColors[Math.abs(hash) % avatarColors.length]
+}
+
+/**
+ * The palette used to distinguish personas on a Story Map. Drawn from the same Ant Design preset
+ * hues as the roadmap color picker — one representative (primary, index 5) shade per hue — ordered
+ * for visual distinctness so quick-add can assign the next color not already taken.
+ */
+export const personaColorPalette = [
+  purple[5],
+  green[5],
+  orange[5],
+  blue[5],
+  magenta[5],
+  cyan[5],
+  gold[5],
+  red[5],
+  volcano[5],
+]
+
+/**
+ * Picks the first palette color not already in use. Comparison is case-insensitive. When every
+ * palette color is taken, falls back to cycling the palette by the number of colors used, so a
+ * repeat is at least the most-distant reuse rather than always the first color.
+ *
+ * @param usedColors - The colors already assigned (e.g. existing personas' colors).
+ * @returns A hex color from {@link personaColorPalette}.
+ */
+export const nextUnusedPersonaColor = (usedColors: Iterable<string>): string => {
+  const taken = new Set(
+    Array.from(usedColors, (c) => c.trim().toLowerCase()),
+  )
+  const free = personaColorPalette.find((c) => !taken.has(c.toLowerCase()))
+  return free ?? personaColorPalette[taken.size % personaColorPalette.length]
 }
 
 export const getLifecyclePhaseTagColor = (

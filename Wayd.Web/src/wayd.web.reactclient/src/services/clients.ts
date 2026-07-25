@@ -36,6 +36,7 @@ import {
   SprintsClient,
   EstimationScalesClient,
   PokerSessionsClient,
+  StoryMapsClient,
   ConnectionsClient,
   AzureDevOpsConnectionsClient,
   FeatureFlagsClient,
@@ -389,6 +390,7 @@ export const getEstimationScalesClient = () =>
   new EstimationScalesClient('', axiosClient)
 export const getPokerSessionsClient = () =>
   new PokerSessionsClient('', axiosClient)
+export const getStoryMapsClient = () => new StoryMapsClient('', axiosClient)
 
 // PPM
 export const getExpenditureCategoriesClient = () =>

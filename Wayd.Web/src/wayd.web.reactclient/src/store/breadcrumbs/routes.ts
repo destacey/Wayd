@@ -40,6 +40,10 @@ const routes = {
   sprints: {
     title: 'Sprints',
   },
+  'story-maps': {
+    title: 'Story Maps',
+    href: '/planning/story-maps',
+  },
 
   ppm: {
     title: 'PPM',
@@ -118,7 +122,7 @@ export const generateRoute = (
       title: item,
       path: item,
       href: '/' + pathSegments.slice(0, index + 1).join('/'),
-      ...(routes as Record<string, unknown>)[item] as object,
+      ...((routes as Record<string, unknown>)[item] as object),
       ...titleOverride,
     }
   })

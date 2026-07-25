@@ -10,6 +10,8 @@ export {
   getAvatarColor,
   getSemanticChartColor,
   softenChartColor,
+  personaColorPalette,
+  nextUnusedPersonaColor,
 } from './color-helper'
 export {
   calculateIterationHealth,

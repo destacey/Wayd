@@ -15,7 +15,10 @@ import { Button } from 'antd'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { ControlItemSwitch } from '@/src/components/common/control-items-menu'
 import { ItemType } from 'antd/es/menu/interface'
-import { PokerSessionListDto, PokerSessionStatus } from '@/src/services/wayd-api'
+import {
+  PokerSessionListDto,
+  PokerSessionStatus,
+} from '@/src/services/wayd-api'
 import {
   useGetPokerSessionsQuery,
   useCompletePokerSessionMutation,
@@ -107,16 +110,13 @@ const PokerSessionsPage = () => {
   const actions = () => (
     <>
       {canCreate && (
-        <Button onClick={() => setOpenCreateForm(true)}>
-          Create Session
-        </Button>
+        <Button onClick={() => setOpenCreateForm(true)}>Create Session</Button>
       )}
     </>
   )
 
   return (
     <>
-      <br />
       <PageTitle title="Planning Poker" actions={canCreate && actions()} />
       <PokerSessionsGrid
         sessions={sessionsData ?? []}
@@ -154,7 +154,11 @@ const PokerSessionsPage = () => {
 }
 
 const PokerSessionsPageWithAuthorization = requireFeatureFlag(
-  authorizePage(PokerSessionsPage, 'Permission', 'Permissions.PokerSessions.View'),
+  authorizePage(
+    PokerSessionsPage,
+    'Permission',
+    'Permissions.PokerSessions.View',
+  ),
   'planning-poker',
 )
 

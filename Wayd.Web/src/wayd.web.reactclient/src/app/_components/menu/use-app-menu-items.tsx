@@ -34,6 +34,7 @@ const menuIcons = {
 
 const buildMenuItems = (featureFlags: {
   planningPoker: boolean
+  storyMaps: boolean
 }): (Item | MenuItem)[] => [
   menuItem('Home', 'home', '/', menuIcons.home),
   menuItem('Organizations', 'org', undefined, menuIcons.org, [
@@ -65,14 +66,26 @@ const buildMenuItems = (featureFlags: {
       'plan.roadmaps',
       '/planning/roadmaps',
     ),
+    ...(featureFlags.planningPoker || featureFlags.storyMaps
+      ? [{ key: 'settings-planning-divider', type: 'divider' as const }]
+      : []),
     ...(featureFlags.planningPoker
       ? [
-          { key: 'settings-planning-divider', type: 'divider' as const },
           restrictedPermissionMenuItem(
             'Permissions.PokerSessions.View',
             'Planning Poker',
             'plan.poker-sessions',
             '/planning/poker-sessions',
+          ),
+        ]
+      : []),
+    ...(featureFlags.storyMaps
+      ? [
+          restrictedPermissionMenuItem(
+            'Permissions.StoryMaps.View',
+            'Story Maps',
+            'plan.story-maps',
+            '/planning/story-maps',
           ),
         ]
       : []),
@@ -156,8 +169,9 @@ const buildMenuItems = (featureFlags: {
 const useAppMenuItems = () => {
   const { hasClaim } = useAuth()
   const { isEnabled: planningPoker } = useFeatureFlag('planning-poker')
+  const { isEnabled: storyMaps } = useFeatureFlag('story-maps')
 
-  const items = buildMenuItems({ planningPoker })
+  const items = buildMenuItems({ planningPoker, storyMaps })
 
   const filteredMenuItems = items.reduce(
     (acc, item) =>

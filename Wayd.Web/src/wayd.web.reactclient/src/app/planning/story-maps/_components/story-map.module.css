@@ -9,39 +9,84 @@
 .boardScroll {
   overflow-x: auto;
   padding-bottom: 8px;
+  /* Establishes the scroll container the sticky label column pins against. */
+  position: relative;
 }
 
-.goalRow {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  min-width: min-content;
-}
-
-.goalColumn {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex: 0 0 auto;
-  padding: 12px;
+/* The whole board is one grid: `[label] [step] [step] …` columns by `[goals] [steps] [lane] …` rows,
+   so every cell aligns across goals instead of nesting inside them. Cells place themselves via
+   inline gridRow/gridColumn from the layout model; only the track template lives here. */
+.boardGrid {
+  /* Minimum width of a step column track. Tracks share any leftover space equally (1fr) and the
+     board scrolls once the sum of the minimums exceeds the viewport. */
+  --sm-col-min: 150px;
+  /* Fixed rather than max-content so the scroll floor below can account for it, and so the sticky
+     label column does not resize as swim-lane names change. */
+  --sm-label-width: 96px;
+  display: grid;
+  grid-template-columns: var(--sm-label-width) var(--sm-step-columns);
+  align-items: stretch;
+  /* The grid must NOT be intrinsically sized: under `width`/`min-width: max-content` each
+     `minmax(150px, 1fr)` track resolves to its own content's max-content width (the longest
+     unwrapped task title), so columns balloon, ignore the viewport, and the 1fr never binds.
+     Sizing against the container instead lets 1fr do its job — equal tracks that stretch to fill.
+     `min-width` then floors the board at the label column plus every step track at its minimum, so
+     it overflows (and .boardScroll scrolls) rather than crushing tracks below --sm-col-min. */
+  width: 100%;
+  min-width: calc(
+    var(--sm-label-width) + (var(--sm-step-count) * var(--sm-col-min))
+  );
   border: 1px solid var(--sm-border);
   border-radius: var(--sm-radius-lg);
   background-color: var(--sm-bg);
 }
 
-/* A goal's steps read left-to-right; each step stacks its tasks top-to-bottom. */
-.stepRow {
+/* ─── Row label column (sticky) ───────────────────────────────────────────── */
+
+.labelCell {
   display: flex;
-  flex-direction: row;
   align-items: flex-start;
-  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sm-text-secondary);
+  border-right: 1px solid var(--sm-border);
+  border-bottom: 1px solid var(--sm-border);
+  /* Pin the labels while the board scrolls horizontally. The background MUST be fully opaque —
+     --sm-bg-elevated is Ant's colorFillQuaternary (~2% black), which let the scrolled-under cells
+     bleed through and read as ghosted text. Layering the elevated fill over the opaque container
+     colour keeps the intended tint while still hiding what scrolls beneath. */
+  background-color: var(--sm-bg);
+  background-image: linear-gradient(
+    var(--sm-bg-elevated),
+    var(--sm-bg-elevated)
+  );
+  position: sticky;
+  left: 0;
+  z-index: 2;
 }
 
-.goalHeader {
+.labelCellGoals,
+.labelCellSteps {
+  align-items: center;
+}
+
+.labelCellLane {
+  align-items: flex-start;
+  word-break: break-word;
+}
+
+/* ─── Goal / step header cells ────────────────────────────────────────────── */
+
+.goalCell {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  padding: 8px 12px;
+  border-right: 1px solid var(--sm-border);
+  border-bottom: 1px solid var(--sm-border);
+  background-color: var(--sm-bg);
 }
 
 .goalName {
@@ -50,23 +95,16 @@
   color: var(--sm-text);
 }
 
-.stepColumn {
+/* A column layout so the footer's `margin-top: auto` pins it to the bottom, keeping footers aligned
+   across the row regardless of how far each step name wraps. */
+.stepCell {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  width: 240px;
-  flex: 0 0 auto;
-  padding: 8px;
-  border: 1px solid var(--sm-border);
-  border-radius: var(--sm-radius);
+  gap: 4px;
+  padding: 8px 12px;
+  border-right: 1px solid var(--sm-border);
+  border-bottom: 1px solid var(--sm-border);
   background-color: var(--sm-bg-elevated);
-}
-
-.stepHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
 }
 
 .stepName {
@@ -75,17 +113,58 @@
   color: var(--sm-text);
 }
 
-.swimLaneSection {
+/* ─── Task cells (step column × swim-lane row) ────────────────────────────── */
+
+.taskCell {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  padding: 10px;
+  border-right: 1px solid var(--sm-border);
+  border-bottom: 1px solid var(--sm-border);
+  /* Keep an empty cell tall enough to read as a cell (and to hit as a drop target). */
+  min-height: 56px;
+}
+
+/* Spans the full width as the grid's bottom edge, so it needs the same opaque treatment as the
+   label column — see .labelCell for why the fill is layered rather than set directly. */
+.addSwimLaneCell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 6px 12px;
+  background-color: var(--sm-bg);
+  background-image: linear-gradient(
+    var(--sm-bg-elevated),
+    var(--sm-bg-elevated)
+  );
+}
+
+/* Read-only viewers get no action, so the footer collapses rather than leaving dead space — it
+   still closes the grid's bottom edge. */
+.addSwimLaneCell:empty {
+  padding: 0;
+}
+
+/* The grid's own rounded border is not clipped (no overflow:hidden — that would make the grid a
+   scroll container and stop the label column sticking), so right-most cells drop the border that
+   would otherwise double up against it. The bottom edge is closed by the swim-lane footer row. */
+.lastColumn {
+  border-right: none;
+}
+
+/* The action row spans the full width and is the last thing in the grid; keep its button reachable
+   at the left edge while the board scrolls. */
+.addSwimLaneCell > :global(.ant-btn) {
+  position: sticky;
+  left: 12px;
 }
 
 .taskCard {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 10px;
+  gap: 4px;
+  padding: 6px 10px;
   border: 1px solid var(--sm-border);
   border-radius: var(--sm-radius);
   background-color: var(--sm-bg);
@@ -108,6 +187,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-wrap: wrap;
 }
 
 .personaDot {
@@ -115,6 +195,73 @@
   height: 10px;
   border-radius: 50%;
   display: inline-block;
+}
+
+/* ─── Step / task footer ──────────────────────────────────────────────────── */
+
+/* Persona toggles on the left, actions (and the task's checklist count) on the right. `margin-top:
+   auto` pushes the footer to the bottom of a step cell, so footers line up across a row whatever
+   the name lengths. */
+.cellFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  /* Reserve the (compact) action row's height so a cell does not resize when hover actions appear. */
+  min-height: 18px;
+}
+
+/* Ant's small buttons are 24px tall with their own padding, which made the footer bulky. Shrink them
+   to sit tight against the dot row without changing the icon's hit area much. */
+.footerActions :global(.ant-btn) {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  padding: 0;
+  font-size: 11px;
+}
+
+.footerTrailing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+/* Revealed on hover of the owning cell (see the :hover rules below), matching the previous
+   header-actions behaviour. */
+.footerActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+/* A persona dot in a footer is a button: filled in the persona's colour when linked, a hollow ring
+   when not, so an untagged persona is still visible and clickable. */
+.personaDotToggle {
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  flex: none;
+  /* Enlarge the pointer target beyond the 10px dot without affecting layout. */
+  outline-offset: 2px;
+}
+
+.personaDotUnlinked {
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--sm-muted);
+}
+
+.personaDotToggle:hover:not(:disabled) {
+  transform: scale(1.25);
+}
+
+.personaDotToggle:disabled {
+  cursor: default;
 }
 
 .checklistCount {
@@ -182,7 +329,7 @@
   cursor: default;
 }
 
-/* Row-level header actions (add / delete) — revealed on hover of the card header. */
+/* Goal-level header actions (add / delete) — revealed on hover of the goal cell. */
 .headerActions {
   display: flex;
   align-items: center;
@@ -192,26 +339,25 @@
   transition: opacity 0.15s;
 }
 
-.goalHeader:hover .headerActions,
-.stepHeader:hover .headerActions,
+/* Match the compact footer buttons so the goal row does not sit taller than it needs to. */
+.headerActions :global(.ant-btn) {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  padding: 0;
+  font-size: 12px;
+}
+
+.goalCell:hover .headerActions,
 .headerActions:focus-within {
   opacity: 1;
 }
 
-.taskCardHeader {
-  display: flex;
-  align-items: flex-start;
-  gap: 4px;
-}
-
-.cardDeleteButton {
-  flex: none;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.taskCard:hover .cardDeleteButton,
-.cardDeleteButton:focus {
+/* Footer actions reveal on hover of the owning step cell or task card. Keyboard users get them via
+   :focus-within, so they are reachable without a pointer. */
+.stepCell:hover .footerActions,
+.taskCard:hover .footerActions,
+.footerActions:focus-within {
   opacity: 1;
 }
 

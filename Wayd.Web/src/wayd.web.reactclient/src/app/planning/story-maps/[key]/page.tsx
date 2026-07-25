@@ -21,6 +21,9 @@ import {
   useAddTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
+  useAddSwimLaneMutation,
+  useSetStepPersonasMutation,
+  useSetTaskPersonasMutation,
 } from '@/src/store/features/planning/story-maps-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { Avatar, Button, Divider, Dropdown, Flex, Tag } from 'antd'
@@ -38,16 +41,13 @@ import { notFound, useParams, usePathname, useRouter } from 'next/navigation'
 import { CSSProperties, FC, useEffect, useMemo, useState } from 'react'
 import PageTitle from '@/src/components/common/page-title'
 import { setBreadcrumbTitle } from '@/src/store/breadcrumbs'
-import {
-  StoryMapPersonaDto,
-  StoryMapTaskDto,
-} from '@/src/services/wayd-api'
+import { StoryMapTaskDto } from '@/src/services/wayd-api'
 import {
   BoardActions,
   EditStoryMapForm,
-  GoalColumn,
   ManagePersonasForm,
   PersonaFilterBar,
+  StoryMapBoard,
 } from './_components'
 import { DeleteStoryMapForm } from '../_components'
 import StoryMapDetailsLoading from './loading'
@@ -98,6 +98,9 @@ const StoryMapDetailPage: FC = () => {
   const [addTask] = useAddTaskMutation()
   const [updateTask] = useUpdateTaskMutation()
   const [deleteTask] = useDeleteTaskMutation()
+  const [addSwimLane] = useAddSwimLaneMutation()
+  const [setStepPersonas] = useSetStepPersonasMutation()
+  const [setTaskPersonas] = useSetTaskPersonasMutation()
 
   const [openEditForm, setOpenEditForm] = useState(false)
   const [openDeleteMap, setOpenDeleteMap] = useState(false)
@@ -115,13 +118,11 @@ const StoryMapDetailPage: FC = () => {
     dispatch(setBreadcrumbTitle({ title: map.name, pathname }))
   }, [dispatch, pathname, map])
 
-  const personaColors = useMemo(() => {
-    const colors = new Map<string, string>()
-    map?.personas.forEach((persona: StoryMapPersonaDto) => {
-      colors.set(persona.id, persona.color)
-    })
-    return colors
-  }, [map])
+  // Step and task footers show one toggle dot per persona, in the same order as the filter bar.
+  const orderedPersonas = useMemo(
+    () => [...(map?.personas ?? [])].sort((a, b) => a.order - b.order),
+    [map],
+  )
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href)
@@ -179,6 +180,18 @@ const StoryMapDetailPage: FC = () => {
       setAutoEditId(task.id)
     } catch {
       messageApi.error('Failed to add task.')
+    }
+  }
+
+  const handleAddSwimLane = async () => {
+    if (!map) return
+    try {
+      await addSwimLane({
+        storyMapId: map.id,
+        request: { name: `Swim lane ${map.swimLanes.length + 1}` },
+      }).unwrap()
+    } catch {
+      messageApi.error('Failed to add swim lane.')
     }
   }
 
@@ -248,6 +261,52 @@ const StoryMapDetailPage: FC = () => {
       await deleteTask({ storyMapId: map.id, storyMapKey: key, taskId }).unwrap()
     } catch {
       messageApi.error('Failed to delete task.')
+    }
+  }
+
+  // The API sets the whole persona list, so a toggle is a local add/remove of one id followed by
+  // sending the resulting list.
+  const togglePersonaId = (personaIds: string[], personaId: string) =>
+    personaIds.includes(personaId)
+      ? personaIds.filter((id) => id !== personaId)
+      : [...personaIds, personaId]
+
+  const handleToggleStepPersona = async (stepId: string, personaId: string) => {
+    if (!map) return
+    const step = map.goals
+      .flatMap((goal) => goal.steps)
+      .find((s) => s.id === stepId)
+    if (!step) return
+
+    try {
+      await setStepPersonas({
+        storyMapId: map.id,
+        storyMapKey: key,
+        stepId,
+        request: { personaIds: togglePersonaId(step.personaIds, personaId) },
+      }).unwrap()
+    } catch {
+      messageApi.error('Failed to update step personas.')
+    }
+  }
+
+  const handleToggleTaskPersona = async (taskId: string, personaId: string) => {
+    if (!map) return
+    const task = map.goals
+      .flatMap((goal) => goal.steps)
+      .flatMap((step) => step.tasks)
+      .find((t) => t.id === taskId)
+    if (!task) return
+
+    try {
+      await setTaskPersonas({
+        storyMapId: map.id,
+        storyMapKey: key,
+        taskId,
+        request: { personaIds: togglePersonaId(task.personaIds, personaId) },
+      }).unwrap()
+    } catch {
+      messageApi.error('Failed to update task personas.')
     }
   }
 
@@ -356,11 +415,10 @@ const StoryMapDetailPage: FC = () => {
     </Flex>
   )
 
-  const orderedGoals = [...map.goals].sort((a, b) => a.order - b.order)
-
   const actions: BoardActions = {
     canUpdate: canEdit,
     autoEditId,
+    personas: orderedPersonas,
     onRenameGoal: handleRenameGoal,
     onDeleteGoal: handleDeleteGoal,
     onRenameStep: handleRenameStep,
@@ -368,6 +426,8 @@ const StoryMapDetailPage: FC = () => {
     onAddTask: handleAddTask,
     onRenameTask: handleRenameTask,
     onDeleteTask: handleDeleteTask,
+    onToggleStepPersona: handleToggleStepPersona,
+    onToggleTaskPersona: handleToggleTaskPersona,
   }
 
   return (
@@ -391,7 +451,7 @@ const StoryMapDetailPage: FC = () => {
         onManage={() => setOpenManagePersonas(true)}
       />
 
-      {orderedGoals.length === 0 ? (
+      {map.goals.length === 0 ? (
         <div className={styles.emptyBoard}>
           <div className={styles.emptyBoardTile} aria-hidden>
             <PlusOutlined />
@@ -412,21 +472,13 @@ const StoryMapDetailPage: FC = () => {
           )}
         </div>
       ) : (
-        <div className={styles.boardScroll}>
-          <div className={styles.goalRow}>
-            {orderedGoals.map((goal) => (
-              <GoalColumn
-                key={goal.id}
-                goal={goal}
-                swimLanes={map.swimLanes}
-                personaColors={personaColors}
-                selectedPersonaId={selectedPersonaId}
-                actions={actions}
-                onAddStep={handleAddStep}
-              />
-            ))}
-          </div>
-        </div>
+        <StoryMapBoard
+          map={map}
+          selectedPersonaId={selectedPersonaId}
+          actions={actions}
+          onAddStep={handleAddStep}
+          onAddSwimLane={handleAddSwimLane}
+        />
       )}
 
       {openEditForm && (

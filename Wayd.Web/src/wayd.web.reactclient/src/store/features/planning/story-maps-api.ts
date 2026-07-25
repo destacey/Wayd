@@ -11,6 +11,8 @@ import {
   ObjectIdAndKey,
   RenameGoalRequest,
   RenameStepRequest,
+  SetStepPersonasRequest,
+  SetTaskPersonasRequest,
   StoryMapDetailsDto,
   StoryMapGoalDto,
   StoryMapSwimLaneDto,
@@ -424,6 +426,104 @@ export const storyMapsApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    setStepPersonas: builder.mutation<
+      null,
+      {
+        storyMapId: string
+        storyMapKey: string
+        stepId: string
+        request: SetStepPersonasRequest
+      }
+    >({
+      queryFn: async ({ storyMapId, stepId, request }) => {
+        try {
+          await getStoryMapsClient().setStepPersonas(storyMapId, stepId, request)
+          return { data: null }
+        } catch (error) {
+          return { error }
+        }
+      },
+      // Retag the step in the cache up front so the dot fills/empties on click without waiting for
+      // the round trip. Roll back on failure.
+      onQueryStarted: async (
+        { storyMapKey, stepId, request },
+        { dispatch, queryFulfilled },
+      ) => {
+        const patchResult = dispatch(
+          storyMapsApi.util.updateQueryData(
+            'getStoryMap',
+            storyMapKey,
+            (draft) => {
+              for (const goal of draft.goals) {
+                const step = goal.steps.find((s) => s.id === stepId)
+                if (step) {
+                  step.personaIds = [...request.personaIds]
+                  return
+                }
+              }
+            },
+          ),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patchResult.undo()
+        }
+      },
+      invalidatesTags: (_r, _e, { storyMapId }) => [
+        { type: QueryTags.StoryMap, id: storyMapId },
+      ],
+    }),
+
+    setTaskPersonas: builder.mutation<
+      null,
+      {
+        storyMapId: string
+        storyMapKey: string
+        taskId: string
+        request: SetTaskPersonasRequest
+      }
+    >({
+      queryFn: async ({ storyMapId, taskId, request }) => {
+        try {
+          await getStoryMapsClient().setTaskPersonas(storyMapId, taskId, request)
+          return { data: null }
+        } catch (error) {
+          return { error }
+        }
+      },
+      onQueryStarted: async (
+        { storyMapKey, taskId, request },
+        { dispatch, queryFulfilled },
+      ) => {
+        const patchResult = dispatch(
+          storyMapsApi.util.updateQueryData(
+            'getStoryMap',
+            storyMapKey,
+            (draft) => {
+              for (const goal of draft.goals) {
+                for (const step of goal.steps) {
+                  const task = step.tasks.find((t) => t.id === taskId)
+                  if (task) {
+                    task.personaIds = [...request.personaIds]
+                    return
+                  }
+                }
+              }
+            },
+          ),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patchResult.undo()
+        }
+      },
+      invalidatesTags: (_r, _e, { storyMapId }) => [
+        { type: QueryTags.StoryMap, id: storyMapId },
+      ],
+    }),
+
     addSwimLane: builder.mutation<
       StoryMapSwimLaneDto,
       { storyMapId: string; request: AddSwimLaneRequest }
@@ -686,6 +786,8 @@ export const {
   useAddTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
+  useSetStepPersonasMutation,
+  useSetTaskPersonasMutation,
   useAddSwimLaneMutation,
   useAddPersonaMutation,
   useUpdatePersonaMutation,

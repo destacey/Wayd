@@ -11,12 +11,13 @@ public sealed class Persona : BaseAuditableEntity
 {
     private Persona() { }
 
-    internal Persona(Guid storyMapId, string name, string? description, string color)
+    internal Persona(Guid storyMapId, string name, string? description, string color, int order)
     {
         StoryMapId = storyMapId;
         Name = name;
         Description = description;
         Color = color;
+        Order = order;
     }
 
     /// <summary>
@@ -52,10 +53,17 @@ public sealed class Persona : BaseAuditableEntity
         private set => field = Guard.Against.NullOrWhiteSpace(value, nameof(Color)).Trim();
     } = default!;
 
+    /// <summary>
+    /// The order of the persona within the map's persona list, controlling the filter-bar sequence.
+    /// </summary>
+    public int Order { get; private set; }
+
     internal void Update(string name, string? description, string color)
     {
         Name = name;
         Description = description;
         Color = color;
     }
+
+    internal void SetOrder(int order) => Order = order;
 }

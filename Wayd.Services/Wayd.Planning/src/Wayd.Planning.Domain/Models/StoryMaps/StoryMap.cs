@@ -10,13 +10,13 @@ namespace Wayd.Planning.Domain.Models.StoryMaps;
 /// <summary>
 /// A Story Map — a persistent surface for describing what a product should do, organized the way
 /// story mapping is practiced: a horizontal narrative of goals sliced vertically into what gets
-/// built when. This is the aggregate root; goals, steps, tasks, lanes, and personas are all owned
+/// built when. This is the aggregate root; goals, steps, tasks, swim lanes, and personas are all owned
 /// by it and mutated only through it.
 /// </summary>
 public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 {
     private readonly List<Goal> _goals = [];
-    private readonly List<SwimLane> _lanes = [];
+    private readonly List<SwimLane> _swimLanes = [];
     private readonly List<Persona> _personas = [];
 
     private StoryMap() { }
@@ -71,19 +71,19 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// <summary>
     /// The goals on the map, in order (the top-row narrative).
     /// </summary>
-    public IReadOnlyList<Goal> Goals => [.. _goals.OrderBy(x => x.SortOrder)];
+    public IReadOnlyList<Goal> Goals => [.. _goals.OrderBy(x => x.Order)];
 
     /// <summary>
-    /// The swim lanes on the map, in order. The default lane is always first.
+    /// The swim lanes on the map, in order. The default swim lane is always first.
     /// </summary>
-    public IReadOnlyList<SwimLane> Lanes => [.. _lanes.OrderBy(x => x.SortOrder)];
+    public IReadOnlyList<SwimLane> SwimLanes => [.. _swimLanes.OrderBy(x => x.Order)];
 
     /// <summary>
     /// The personas defined on the map.
     /// </summary>
-    public IReadOnlyList<Persona> Personas => _personas.AsReadOnly();
+    public IReadOnlyList<Persona> Personas => [.. _personas.OrderBy(x => x.Order)];
 
-    private SwimLane DefaultLane => _lanes.Single(x => x.IsDefault);
+    private SwimLane DefaultSwimLane => _swimLanes.Single(x => x.IsDefault);
 
     #region Map lifecycle
 
@@ -137,16 +137,14 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     #region Goals
 
     /// <summary>
-    /// Adds a goal to the map. The goal comes with one step already created, since an empty goal
-    /// gives people nothing to react to.
+    /// Adds a goal to the map. The goal starts empty; steps are added to it separately.
     /// </summary>
-    public Result<Goal> AddGoal(string name, string firstStepName)
+    public Result<Goal> AddGoal(string name)
     {
         try
         {
-            int nextOrder = _goals.Count > 0 ? _goals.Max(x => x.SortOrder) + 1 : 0;
+            int nextOrder = _goals.Count > 0 ? _goals.Max(x => x.Order) + 1 : 0;
             var goal = new Goal(Id, name, nextOrder);
-            goal.AddStep(firstStepName);
             _goals.Add(goal);
             return goal;
         }
@@ -182,21 +180,19 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         if (goalResult.IsFailure)
             return Result.Failure(goalResult.Error);
 
-        Reorder(_goals, goalResult.Value, newOrder, x => x.SortOrder, (x, o) => x.SetSortOrder(o));
+        Reorder(_goals, goalResult.Value, newOrder, x => x.Order, (x, o) => x.SetOrder(o));
         return Result.Success();
     }
 
     /// <summary>
-    /// Deletes a goal, along with its steps and their tasks. A map must keep at least one goal.
+    /// Deletes a goal, along with its steps and their tasks. Deleting the last goal returns the map
+    /// to its empty state, where the user is prompted to add a new goal.
     /// </summary>
     public Result DeleteGoal(Guid goalId)
     {
         var goalResult = GetGoal(goalId);
         if (goalResult.IsFailure)
             return Result.Failure(goalResult.Error);
-
-        if (_goals.Count == 1)
-            return Result.Failure("A story map must have at least one goal.");
 
         _goals.Remove(goalResult.Value);
         ResetGoalOrder();
@@ -211,7 +207,7 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
             : Result.Failure<Goal>("Goal does not exist on this story map.");
     }
 
-    private void ResetGoalOrder() => Renumber(_goals, x => x.SortOrder, (x, o) => x.SetSortOrder(o));
+    private void ResetGoalOrder() => Renumber(_goals, x => x.Order, (x, o) => x.SetOrder(o));
 
     #endregion Goals
 
@@ -264,13 +260,12 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
         var (goal, step) = located.Value;
         var stepsField = MutableSteps(goal);
-        Reorder(stepsField, step, newOrder, x => x.SortOrder, (x, o) => x.SetSortOrder(o));
+        Reorder(stepsField, step, newOrder, x => x.Order, (x, o) => x.SetOrder(o));
         return Result.Success();
     }
 
     /// <summary>
-    /// Moves a step into a different goal at the given order. A step cannot leave a goal that would
-    /// then have no steps.
+    /// Moves a step into a different goal at the given order. The source goal may be left empty.
     /// </summary>
     public Result MoveStep(Guid stepId, Guid targetGoalId, int newOrder)
     {
@@ -286,9 +281,6 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         if (targetGoalResult.IsFailure)
             return Result.Failure(targetGoalResult.Error);
 
-        if (sourceGoal.StepCount == 1)
-            return Result.Failure("A goal must have at least one step.");
-
         var targetGoal = targetGoalResult.Value;
 
         var detachResult = sourceGoal.DetachStep(step);
@@ -300,12 +292,12 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         targetGoal.ResetStepOrder();
 
         // Place the step at the requested order within the target goal.
-        Reorder(MutableSteps(targetGoal), step, newOrder, x => x.SortOrder, (x, o) => x.SetSortOrder(o));
+        Reorder(MutableSteps(targetGoal), step, newOrder, x => x.Order, (x, o) => x.SetOrder(o));
         return Result.Success();
     }
 
     /// <summary>
-    /// Deletes a step and its tasks. A goal must keep at least one step.
+    /// Deletes a step and its tasks. A goal may be left with no steps.
     /// </summary>
     public Result DeleteStep(Guid stepId)
     {
@@ -334,17 +326,17 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     #region Tasks
 
     /// <summary>
-    /// Adds a task to a step. Without a lane, the task lands in the default lane.
+    /// Adds a task to a step. Without a swim lane, the task lands in the default swim lane.
     /// </summary>
-    public Result<StoryTask> AddTask(Guid stepId, string title, Guid? laneId = null)
+    public Result<StoryMapTask> AddTask(Guid stepId, string title, Guid? laneId = null)
     {
         var located = LocateStep(stepId);
         if (located.IsFailure)
-            return Result.Failure<StoryTask>(located.Error);
+            return Result.Failure<StoryMapTask>(located.Error);
 
-        var lane = laneId is null ? DefaultLane : _lanes.FirstOrDefault(x => x.Id == laneId.Value);
+        var lane = laneId is null ? DefaultSwimLane : _swimLanes.FirstOrDefault(x => x.Id == laneId.Value);
         if (lane is null)
-            return Result.Failure<StoryTask>("Lane does not exist on this story map.");
+            return Result.Failure<StoryMapTask>("Swim lane does not exist on this story map.");
 
         try
         {
@@ -352,11 +344,11 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         }
         catch (Exception ex)
         {
-            return Result.Failure<StoryTask>(ex.Message);
+            return Result.Failure<StoryMapTask>(ex.Message);
         }
     }
 
-    public Result UpdateTask(Guid taskId, string title, string? notes)
+    public Result UpdateTask(Guid taskId, string title, string? description)
     {
         var located = LocateTask(taskId);
         if (located.IsFailure)
@@ -364,7 +356,7 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
         try
         {
-            located.Value.Task.UpdateDetails(title, notes);
+            located.Value.Task.UpdateDetails(title, description);
             return Result.Success();
         }
         catch (Exception ex)
@@ -374,9 +366,9 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Moves a task to a target step and lane at the given order.
+    /// Moves a task to a target step and swim lane at the given order.
     /// </summary>
-    public Result MoveTask(Guid taskId, Guid targetStepId, Guid targetLaneId, int newOrder)
+    public Result MoveTask(Guid taskId, Guid targetStepId, Guid targetSwimLaneId, int newOrder)
     {
         var located = LocateTask(taskId);
         if (located.IsFailure)
@@ -386,8 +378,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         if (targetStepResult.IsFailure)
             return Result.Failure(targetStepResult.Error);
 
-        if (_lanes.All(x => x.Id != targetLaneId))
-            return Result.Failure("Lane does not exist on this story map.");
+        if (_swimLanes.All(x => x.Id != targetSwimLaneId))
+            return Result.Failure("Swim lane does not exist on this story map.");
 
         var (sourceStep, task) = located.Value;
         var targetStep = targetStepResult.Value.Step;
@@ -396,12 +388,12 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         if (removeResult.IsFailure)
             return Result.Failure(removeResult.Error);
 
-        task.MoveTo(targetStep.Id, targetLaneId, targetStep.NextTaskOrder(targetLaneId));
+        task.MoveTo(targetStep.Id, targetSwimLaneId, targetStep.NextTaskOrder(targetSwimLaneId));
         targetStep.AttachTask(task);
 
-        // Place the task at the requested order within its (step, lane) cell.
-        var cell = targetStep.Tasks.Where(x => x.LaneId == targetLaneId).ToList();
-        Reorder(cell, task, newOrder, x => x.SortOrder, (x, o) => x.SetSortOrder(o));
+        // Place the task at the requested order within its (step, swim lane) cell.
+        var cell = targetStep.Tasks.Where(x => x.SwimLaneId == targetSwimLaneId).ToList();
+        Reorder(cell, task, newOrder, x => x.Order, (x, o) => x.SetOrder(o));
         return Result.Success();
     }
 
@@ -429,7 +421,7 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         return Result.Success();
     }
 
-    private Result<(Step Step, StoryTask Task)> LocateTask(Guid taskId)
+    private Result<(Step Step, StoryMapTask Task)> LocateTask(Guid taskId)
     {
         foreach (var goal in _goals)
         {
@@ -440,7 +432,7 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
                     return (step, taskResult.Value);
             }
         }
-        return Result.Failure<(Step, StoryTask)>("Task does not exist on this story map.");
+        return Result.Failure<(Step, StoryMapTask)>("Task does not exist on this story map.");
     }
 
     #endregion Tasks
@@ -484,26 +476,26 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Promotes a checklist item into a task in the same step, landing in the default lane.
+    /// Promotes a checklist item into a task in the same step, landing in the default swim lane.
     /// </summary>
-    public Result<StoryTask> PromoteChecklistItem(Guid taskId, Guid itemId)
+    public Result<StoryMapTask> PromoteChecklistItem(Guid taskId, Guid itemId)
     {
         var located = LocateTask(taskId);
         if (located.IsFailure)
-            return Result.Failure<StoryTask>(located.Error);
+            return Result.Failure<StoryMapTask>(located.Error);
 
         var (step, task) = located.Value;
         var promoteResult = task.PromoteChecklistItem(itemId);
         if (promoteResult.IsFailure)
-            return Result.Failure<StoryTask>(promoteResult.Error);
+            return Result.Failure<StoryMapTask>(promoteResult.Error);
 
         try
         {
-            return step.AddTask(DefaultLane.Id, promoteResult.Value);
+            return step.AddTask(DefaultSwimLane.Id, promoteResult.Value);
         }
         catch (Exception ex)
         {
-            return Result.Failure<StoryTask>(ex.Message);
+            return Result.Failure<StoryMapTask>(ex.Message);
         }
     }
 
@@ -544,18 +536,18 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
     #endregion Work item link
 
-    #region Lanes
+    #region Swim lanes
 
     /// <summary>
-    /// Adds a lane, appended below the existing ones.
+    /// Adds a swim lane, appended below the existing ones.
     /// </summary>
-    public Result<SwimLane> AddLane(string name)
+    public Result<SwimLane> AddSwimLane(string name)
     {
         try
         {
-            int nextOrder = _lanes.Count > 0 ? _lanes.Max(x => x.SortOrder) + 1 : 0;
+            int nextOrder = _swimLanes.Count > 0 ? _swimLanes.Max(x => x.Order) + 1 : 0;
             var lane = new SwimLane(Id, name, nextOrder, isDefault: false);
-            _lanes.Add(lane);
+            _swimLanes.Add(lane);
             return lane;
         }
         catch (Exception ex)
@@ -564,18 +556,18 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         }
     }
 
-    public Result RenameLane(Guid laneId, string name)
+    public Result RenameSwimLane(Guid laneId, string name)
     {
-        var laneResult = GetLane(laneId);
+        var laneResult = GetSwimLane(laneId);
         if (laneResult.IsFailure)
             return Result.Failure(laneResult.Error);
 
         return laneResult.Value.Rename(name);
     }
 
-    public Result SetLaneDates(Guid laneId, LocalDate? startDate, LocalDate? endDate)
+    public Result SetSwimLaneDates(Guid laneId, LocalDate? startDate, LocalDate? endDate)
     {
-        var laneResult = GetLane(laneId);
+        var laneResult = GetSwimLane(laneId);
         if (laneResult.IsFailure)
             return Result.Failure(laneResult.Error);
 
@@ -584,11 +576,11 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Reorders a lane. The default lane cannot be moved, and no lane can be moved above it.
+    /// Reorders a swim lane. The default swim lane cannot be moved, and no swim lane can be moved above it.
     /// </summary>
-    public Result ReorderLane(Guid laneId, int newOrder)
+    public Result ReorderSwimLane(Guid laneId, int newOrder)
     {
-        var laneResult = GetLane(laneId);
+        var laneResult = GetSwimLane(laneId);
         if (laneResult.IsFailure)
             return Result.Failure(laneResult.Error);
 
@@ -596,20 +588,20 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         if (lane.IsDefault)
             return Result.Failure("The default lane cannot be reordered.");
 
-        // The default lane always holds order 0, so non-default lanes occupy positions 1..n.
+        // The default swim lane always holds order 0, so non-default swim lanes occupy positions 1..n.
         var clampedOrder = Math.Max(1, newOrder);
-        Reorder(_lanes, lane, clampedOrder, x => x.SortOrder, (x, o) => x.SetSortOrder(o));
-        NormalizeLaneOrder();
+        Reorder(_swimLanes, lane, clampedOrder, x => x.Order, (x, o) => x.SetOrder(o));
+        NormalizeSwimLaneOrder();
         return Result.Success();
     }
 
     /// <summary>
-    /// Removes a lane. Its tasks are not deleted — they return to the default lane. Returns the
+    /// Removes a swim lane. Its tasks are not deleted — they return to the default swim lane. Returns the
     /// number of tasks that were moved.
     /// </summary>
-    public Result<int> RemoveLane(Guid laneId)
+    public Result<int> RemoveSwimLane(Guid laneId)
     {
-        var laneResult = GetLane(laneId);
+        var laneResult = GetSwimLane(laneId);
         if (laneResult.IsFailure)
             return Result.Failure<int>(laneResult.Error);
 
@@ -617,42 +609,42 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         if (lane.IsDefault)
             return Result.Failure<int>("The default lane cannot be removed.");
 
-        var defaultLaneId = DefaultLane.Id;
+        var defaultSwimLaneId = DefaultSwimLane.Id;
         int movedCount = 0;
         foreach (var step in _goals.SelectMany(g => g.Steps))
         {
-            movedCount += step.ReassignTasksToLane(lane.Id, defaultLaneId);
+            movedCount += step.ReassignTasksToSwimLane(lane.Id, defaultSwimLaneId);
         }
 
-        _lanes.Remove(lane);
-        NormalizeLaneOrder();
+        _swimLanes.Remove(lane);
+        NormalizeSwimLaneOrder();
         return movedCount;
     }
 
-    private Result<SwimLane> GetLane(Guid laneId)
+    private Result<SwimLane> GetSwimLane(Guid laneId)
     {
-        var lane = _lanes.FirstOrDefault(x => x.Id == laneId);
+        var lane = _swimLanes.FirstOrDefault(x => x.Id == laneId);
         return lane is not null
             ? lane
-            : Result.Failure<SwimLane>("Lane does not exist on this story map.");
+            : Result.Failure<SwimLane>("Swim lane does not exist on this story map.");
     }
 
     /// <summary>
-    /// Keeps the default lane at order 0 and renumbers the remaining lanes 1..n in their current
+    /// Keeps the default swim lane at order 0 and renumbers the remaining swim lanes 1..n in their current
     /// relative order.
     /// </summary>
-    private void NormalizeLaneOrder()
+    private void NormalizeSwimLaneOrder()
     {
-        DefaultLane.SetSortOrder(0);
+        DefaultSwimLane.SetOrder(0);
         int i = 1;
-        foreach (var lane in _lanes.Where(x => !x.IsDefault).OrderBy(x => x.SortOrder).ToList())
+        foreach (var lane in _swimLanes.Where(x => !x.IsDefault).OrderBy(x => x.Order).ToList())
         {
-            lane.SetSortOrder(i);
+            lane.SetOrder(i);
             i++;
         }
     }
 
-    #endregion Lanes
+    #endregion Swim lanes
 
     #region Personas
 
@@ -663,7 +655,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     {
         try
         {
-            var persona = new Persona(Id, name, description, color);
+            int nextOrder = _personas.Count > 0 ? _personas.Max(x => x.Order) + 1 : 0;
+            var persona = new Persona(Id, name, description, color, nextOrder);
             _personas.Add(persona);
             return persona;
         }
@@ -688,6 +681,19 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         {
             return Result.Failure(ex.Message);
         }
+    }
+
+    /// <summary>
+    /// Reorders a persona to a new position within the map's persona list.
+    /// </summary>
+    public Result ReorderPersona(Guid personaId, int newOrder)
+    {
+        var persona = _personas.FirstOrDefault(x => x.Id == personaId);
+        if (persona is null)
+            return Result.Failure("Persona does not exist on this story map.");
+
+        Reorder(_personas, persona, newOrder, x => x.Order, (x, o) => x.SetOrder(o));
+        return Result.Success();
     }
 
     /// <summary>
@@ -729,6 +735,7 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         }
 
         _personas.Remove(persona);
+        Renumber(_personas, x => x.Order, (x, o) => x.SetOrder(o));
         return taggedNodes;
     }
 
@@ -816,19 +823,15 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     #endregion Ordering helpers
 
     /// <summary>
-    /// Creates a new Story Map. The map lands with one placeholder goal (with one step) and the
-    /// single default lane already in place — an empty grid gives people nothing to react to.
+    /// Creates a new Story Map. The map lands empty (no goals) with only the single default swim
+    /// lane in place — the user adds their first goal from the board's empty state.
     /// </summary>
-    public static Result<StoryMap> Create(string name, string? description, string ownerId, string firstGoalName, string firstStepName)
+    public static Result<StoryMap> Create(string name, string? description, string ownerId)
     {
         try
         {
             var map = new StoryMap(name, description, ownerId);
-            map._lanes.Add(SwimLane.CreateDefault(map.Id));
-            var goalResult = map.AddGoal(firstGoalName, firstStepName);
-            if (goalResult.IsFailure)
-                return Result.Failure<StoryMap>(goalResult.Error);
-
+            map._swimLanes.Add(SwimLane.CreateDefault(map.Id));
             return map;
         }
         catch (Exception ex)

@@ -3,21 +3,21 @@ using Ardalis.GuardClauses;
 namespace Wayd.Planning.Domain.Models.StoryMaps;
 
 /// <summary>
-/// A single checklist item within a <see cref="StoryTask"/>. Checklist items are the "and don't
+/// A single checklist item within a <see cref="StoryMapTask"/>. Checklist items are the "and don't
 /// forget…" notes that come up while scoping a task. They live inside the task, never appear on the
 /// grid as their own cards, and are deliberately limited — they cannot be tagged with personas,
-/// assigned to a lane, or nested. If an item needs any of those things, it should be promoted to a
+/// assigned to a swim lane, or nested. If an item needs any of those things, it should be promoted to a
 /// task instead.
 /// </summary>
 public sealed class ChecklistItem
 {
     private ChecklistItem() { }
 
-    internal ChecklistItem(string name, int sortOrder)
+    internal ChecklistItem(string name, int order)
     {
         Id = Guid.CreateVersion7();
         Name = name;
-        SortOrder = sortOrder;
+        Order = order;
         IsChecked = false;
     }
 
@@ -44,11 +44,11 @@ public sealed class ChecklistItem
     /// <summary>
     /// The order of the item within the task's checklist.
     /// </summary>
-    public int SortOrder { get; private set; }
+    public int Order { get; private set; }
 
     internal void Rename(string name) => Name = name;
 
     internal void SetChecked(bool isChecked) => IsChecked = isChecked;
 
-    internal void SetSortOrder(int sortOrder) => SortOrder = sortOrder;
+    internal void SetOrder(int order) => Order = order;
 }

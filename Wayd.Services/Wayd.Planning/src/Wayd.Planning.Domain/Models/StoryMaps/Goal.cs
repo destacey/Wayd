@@ -6,7 +6,7 @@ namespace Wayd.Planning.Domain.Models.StoryMaps;
 /// <summary>
 /// A goal on a Story Map — what the user is trying to accomplish. Goals form the top row, read left
 /// to right as a narrative, and each holds the steps that describe how the goal is accomplished.
-/// A goal must always keep at least one step.
+/// A goal may have any number of steps, including none.
 /// </summary>
 public sealed class Goal : BaseAuditableEntity
 {
@@ -15,11 +15,11 @@ public sealed class Goal : BaseAuditableEntity
 
     private Goal() { }
 
-    internal Goal(Guid storyMapId, string name, int sortOrder)
+    internal Goal(Guid storyMapId, string name, int order)
     {
         StoryMapId = storyMapId;
         Name = name;
-        SortOrder = sortOrder;
+        Order = order;
     }
 
     /// <summary>
@@ -39,7 +39,7 @@ public sealed class Goal : BaseAuditableEntity
     /// <summary>
     /// The order of the goal within the map.
     /// </summary>
-    public int SortOrder { get; private set; }
+    public int Order { get; private set; }
 
     /// <summary>
     /// The personas tagged on this goal.
@@ -49,11 +49,11 @@ public sealed class Goal : BaseAuditableEntity
     /// <summary>
     /// The steps beneath this goal, in order.
     /// </summary>
-    public IReadOnlyList<Step> Steps => [.. _steps.OrderBy(x => x.SortOrder)];
+    public IReadOnlyList<Step> Steps => [.. _steps.OrderBy(x => x.Order)];
 
     internal void Rename(string name) => Name = name;
 
-    internal void SetSortOrder(int sortOrder) => SortOrder = sortOrder;
+    internal void SetOrder(int order) => Order = order;
 
     #region Personas
 
@@ -71,7 +71,7 @@ public sealed class Goal : BaseAuditableEntity
 
     internal Step AddStep(string name)
     {
-        int nextOrder = _steps.Count > 0 ? _steps.Max(x => x.SortOrder) + 1 : 0;
+        int nextOrder = _steps.Count > 0 ? _steps.Max(x => x.Order) + 1 : 0;
         var step = new Step(Id, name, nextOrder);
         _steps.Add(step);
         return step;
@@ -88,17 +88,14 @@ public sealed class Goal : BaseAuditableEntity
     }
 
     /// <summary>
-    /// Removes a step from the goal. A goal must keep at least one step, so removing the last one
-    /// fails. Returns the removed step so the aggregate can clean up its tasks.
+    /// Removes a step from the goal. A goal may be left with no steps. Returns the removed step so
+    /// the aggregate can clean up its tasks.
     /// </summary>
     internal Result<Step> RemoveStep(Guid stepId)
     {
         var step = _steps.FirstOrDefault(x => x.Id == stepId);
         if (step is null)
             return Result.Failure<Step>("Step does not exist on this goal.");
-
-        if (_steps.Count == 1)
-            return Result.Failure<Step>("A goal must have at least one step.");
 
         _steps.Remove(step);
         ResetStepOrder();
@@ -118,21 +115,19 @@ public sealed class Goal : BaseAuditableEntity
         return Result.Success();
     }
 
-    internal int NextStepOrder() => _steps.Count > 0 ? _steps.Max(x => x.SortOrder) + 1 : 0;
+    internal int NextStepOrder() => _steps.Count > 0 ? _steps.Max(x => x.Order) + 1 : 0;
 
     internal void ResetStepOrder()
     {
         int i = 0;
-        foreach (var step in _steps.OrderBy(x => x.SortOrder).ToList())
+        foreach (var step in _steps.OrderBy(x => x.Order).ToList())
         {
-            step.SetSortOrder(i);
+            step.SetOrder(i);
             i++;
         }
     }
 
     internal bool HasStep(Guid stepId) => _steps.Any(x => x.Id == stepId);
-
-    internal int StepCount => _steps.Count;
 
     #endregion Steps
 }

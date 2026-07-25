@@ -13,7 +13,7 @@ using Wayd.Infrastructure.Persistence.Context;
 namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 {
     [DbContext(typeof(WaydDbContext))]
-    [Migration("20260724020830_Add-StoryMaps")]
+    [Migration("20260725163707_Add-StoryMaps")]
     partial class AddStoryMaps
     {
         /// <inheritdoc />
@@ -2685,13 +2685,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
                     b.PrimitiveCollection<string>("PersonaIds")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("PersonaIds");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
 
                     b.Property<Guid>("StoryMapId")
                         .HasColumnType("uniqueidentifier");
@@ -2736,6 +2736,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("StoryMapId")
                         .HasColumnType("uniqueidentifier");
 
@@ -2773,13 +2776,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
                     b.PrimitiveCollection<string>("PersonaIds")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("PersonaIds");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
 
                     b.Property<DateTime>("SystemCreated")
                         .HasColumnType("datetime2");
@@ -2872,30 +2875,30 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("StoryMaps", "Planning");
                 });
 
-            modelBuilder.Entity("Wayd.Planning.Domain.Models.StoryMaps.StoryTask", b =>
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.StoryMaps.StoryMapTask", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("LaneId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("Description")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
 
                     b.Property<int?>("LinkedWorkItemId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Notes")
-                        .HasMaxLength(4096)
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
 
                     b.PrimitiveCollection<string>("PersonaIds")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("PersonaIds");
 
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
                     b.Property<Guid>("StepId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SwimLaneId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("SystemCreated")
@@ -2914,14 +2917,14 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("LaneId");
-
                     b.HasIndex("StepId");
+
+                    b.HasIndex("SwimLaneId");
 
                     b.ToTable("StoryMapTasks", "Planning");
                 });
@@ -2942,7 +2945,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
-                    b.Property<int>("SortOrder")
+                    b.Property<int>("Order")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("StartDate")
@@ -2969,7 +2972,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasIndex("StoryMapId");
 
-                    b.ToTable("StoryMapLanes", "Planning");
+                    b.ToTable("StoryMapSwimLanes", "Planning");
                 });
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ExpenditureCategory", b =>
@@ -6263,23 +6266,23 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Owner");
                 });
 
-            modelBuilder.Entity("Wayd.Planning.Domain.Models.StoryMaps.StoryTask", b =>
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.StoryMaps.StoryMapTask", b =>
                 {
-                    b.HasOne("Wayd.Planning.Domain.Models.StoryMaps.SwimLane", null)
-                        .WithMany()
-                        .HasForeignKey("LaneId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("Wayd.Planning.Domain.Models.StoryMaps.Step", null)
                         .WithMany("Tasks")
                         .HasForeignKey("StepId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Wayd.Planning.Domain.Models.StoryMaps.SwimLane", null)
+                        .WithMany()
+                        .HasForeignKey("SwimLaneId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.OwnsMany("Wayd.Planning.Domain.Models.StoryMaps.ChecklistItem", "Checklist", b1 =>
                         {
-                            b1.Property<Guid>("StoryTaskId");
+                            b1.Property<Guid>("StoryMapTaskId");
 
                             b1.Property<int>("__synthesizedOrdinal")
                                 .ValueGeneratedOnAddOrUpdate();
@@ -6291,9 +6294,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                             b1.Property<string>("Name")
                                 .IsRequired();
 
-                            b1.Property<int>("SortOrder");
+                            b1.Property<int>("Order");
 
-                            b1.HasKey("StoryTaskId", "__synthesizedOrdinal");
+                            b1.HasKey("StoryMapTaskId", "__synthesizedOrdinal");
 
                             b1.ToTable("StoryMapTasks", "Planning");
 
@@ -6302,7 +6305,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                                 .HasColumnType("nvarchar(max)");
 
                             b1.WithOwner()
-                                .HasForeignKey("StoryTaskId");
+                                .HasForeignKey("StoryMapTaskId");
                         });
 
                     b.Navigation("Checklist");
@@ -6311,7 +6314,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             modelBuilder.Entity("Wayd.Planning.Domain.Models.StoryMaps.SwimLane", b =>
                 {
                     b.HasOne("Wayd.Planning.Domain.Models.StoryMaps.StoryMap", null)
-                        .WithMany("Lanes")
+                        .WithMany("SwimLanes")
                         .HasForeignKey("StoryMapId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -7351,9 +7354,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 {
                     b.Navigation("Goals");
 
-                    b.Navigation("Lanes");
-
                     b.Navigation("Personas");
+
+                    b.Navigation("SwimLanes");
                 });
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.Program", b =>

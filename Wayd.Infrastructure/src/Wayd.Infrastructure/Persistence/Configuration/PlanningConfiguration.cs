@@ -813,11 +813,11 @@ public class StoryMapConfig : IEntityTypeConfiguration<StoryMap>
         builder.Navigation(m => m.Goals)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        builder.HasMany(m => m.Lanes)
+        builder.HasMany(m => m.SwimLanes)
             .WithOne()
             .HasForeignKey(l => l.StoryMapId)
             .OnDelete(DeleteBehavior.Cascade);
-        builder.Navigation(m => m.Lanes)
+        builder.Navigation(m => m.SwimLanes)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasMany(m => m.Personas)
@@ -842,7 +842,7 @@ public class StoryMapGoalConfig : IEntityTypeConfiguration<Goal>
         builder.Property(g => g.Id).ValueGeneratedNever();
         builder.Property(g => g.StoryMapId).IsRequired();
         builder.Property(g => g.Name).IsRequired().HasMaxLength(128);
-        builder.Property(g => g.SortOrder).IsRequired();
+        builder.Property(g => g.Order).IsRequired();
 
         // Persona tags are a small, per-map set only ever loaded with the node, so they are stored
         // as a JSON array of ids rather than a join table.
@@ -872,7 +872,7 @@ public class StoryMapStepConfig : IEntityTypeConfiguration<Step>
         builder.Property(s => s.Id).ValueGeneratedNever();
         builder.Property(s => s.GoalId).IsRequired();
         builder.Property(s => s.Name).IsRequired().HasMaxLength(128);
-        builder.Property(s => s.SortOrder).IsRequired();
+        builder.Property(s => s.Order).IsRequired();
 
         builder.PrimitiveCollection(s => s.PersonaIds)
             .HasColumnName("PersonaIds")
@@ -887,23 +887,23 @@ public class StoryMapStepConfig : IEntityTypeConfiguration<Step>
     }
 }
 
-public class StoryMapTaskConfig : IEntityTypeConfiguration<StoryTask>
+public class StoryMapTaskConfig : IEntityTypeConfiguration<StoryMapTask>
 {
-    public void Configure(EntityTypeBuilder<StoryTask> builder)
+    public void Configure(EntityTypeBuilder<StoryMapTask> builder)
     {
         builder.ToTable("StoryMapTasks", SchemaNames.Planning);
 
         builder.HasKey(t => t.Id);
 
         builder.HasIndex(t => t.StepId);
-        builder.HasIndex(t => t.LaneId);
+        builder.HasIndex(t => t.SwimLaneId);
 
         builder.Property(t => t.Id).ValueGeneratedNever();
         builder.Property(t => t.StepId).IsRequired();
-        builder.Property(t => t.LaneId).IsRequired();
-        builder.Property(t => t.Title).IsRequired().HasMaxLength(256);
-        builder.Property(t => t.Notes).HasMaxLength(4096);
-        builder.Property(t => t.SortOrder).IsRequired();
+        builder.Property(t => t.SwimLaneId).IsRequired();
+        builder.Property(t => t.Title).IsRequired().HasMaxLength(128);
+        builder.Property(t => t.Description).HasMaxLength(2048);
+        builder.Property(t => t.Order).IsRequired();
 
         // A cross-service reference to a work item elsewhere in Wayd — a plain id, not a foreign
         // key. The map never modifies what it links to.
@@ -923,20 +923,20 @@ public class StoryMapTaskConfig : IEntityTypeConfiguration<StoryTask>
         builder.Navigation(t => t.Checklist)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        // Tasks reference their lane, but removing a lane must not delete its tasks — the domain
-        // reassigns them to the default lane first, so this relationship does not cascade.
+        // Tasks reference their swim lane, but removing a swim lane must not delete its tasks — the
+        // domain reassigns them to the default swim lane first, so this relationship does not cascade.
         builder.HasOne<SwimLane>()
             .WithMany()
-            .HasForeignKey(t => t.LaneId)
+            .HasForeignKey(t => t.SwimLaneId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
 
-public class StoryMapLaneConfig : IEntityTypeConfiguration<SwimLane>
+public class StoryMapSwimLaneConfig : IEntityTypeConfiguration<SwimLane>
 {
     public void Configure(EntityTypeBuilder<SwimLane> builder)
     {
-        builder.ToTable("StoryMapLanes", SchemaNames.Planning);
+        builder.ToTable("StoryMapSwimLanes", SchemaNames.Planning);
 
         builder.HasKey(l => l.Id);
 
@@ -945,7 +945,7 @@ public class StoryMapLaneConfig : IEntityTypeConfiguration<SwimLane>
         builder.Property(l => l.Id).ValueGeneratedNever();
         builder.Property(l => l.StoryMapId).IsRequired();
         builder.Property(l => l.Name).IsRequired().HasMaxLength(128);
-        builder.Property(l => l.SortOrder).IsRequired();
+        builder.Property(l => l.Order).IsRequired();
         builder.Property(l => l.IsDefault).IsRequired();
         builder.Property(l => l.StartDate);
         builder.Property(l => l.EndDate);
@@ -970,6 +970,7 @@ public class StoryMapPersonaConfig : IEntityTypeConfiguration<Persona>
             .IsRequired()
             .HasMaxLength(7)
             .HasColumnType("varchar");
+        builder.Property(p => p.Order).IsRequired();
     }
 }
 

@@ -5,35 +5,35 @@ using NodaTime;
 namespace Wayd.Planning.Domain.Models.StoryMaps;
 
 /// <summary>
-/// A swim lane slices a Story Map horizontally. Each lane holds tasks that belong together in
-/// time — a milestone, a release, a "must have / nice to have" tier. Teams decide what a lane
-/// means. Every map starts with a single default lane called "Tasks" that always stays at the top
+/// A swim lane slices a Story Map horizontally. Each swim lane holds tasks that belong together in
+/// time — a milestone, a release, a "must have / nice to have" tier. Teams decide what a swim lane
+/// means. Every map starts with a single default swim lane called "Tasks" that always stays at the top
 /// and cannot be renamed, reordered, or removed.
 /// </summary>
 public sealed class SwimLane : BaseAuditableEntity
 {
     /// <summary>
-    /// The name of the default lane every map starts with.
+    /// The name of the default swim lane every map starts with.
     /// </summary>
-    public const string DefaultLaneName = "Tasks";
+    public const string DefaultSwimLaneName = "Tasks";
 
     private SwimLane() { }
 
-    internal SwimLane(Guid storyMapId, string name, int sortOrder, bool isDefault)
+    internal SwimLane(Guid storyMapId, string name, int order, bool isDefault)
     {
         StoryMapId = storyMapId;
         Name = name;
-        SortOrder = sortOrder;
+        Order = order;
         IsDefault = isDefault;
     }
 
     /// <summary>
-    /// The Story Map this lane belongs to.
+    /// The Story Map this swim lane belongs to.
     /// </summary>
     public Guid StoryMapId { get; private init; }
 
     /// <summary>
-    /// The name of the lane, editable in place (except the default lane).
+    /// The name of the swim lane, editable in place (except the default swim lane).
     /// </summary>
     public string Name
     {
@@ -42,12 +42,12 @@ public sealed class SwimLane : BaseAuditableEntity
     } = default!;
 
     /// <summary>
-    /// The order of the lane on the map. The default lane is always at the top (order 0).
+    /// The order of the swim lane on the map. The default swim lane is always at the top (order 0).
     /// </summary>
-    public int SortOrder { get; private set; }
+    public int Order { get; private set; }
 
     /// <summary>
-    /// Whether this is the default lane. New tasks land here, and it cannot be renamed, reordered,
+    /// Whether this is the default swim lane. New tasks land here, and it cannot be renamed, reordered,
     /// or removed.
     /// </summary>
     public bool IsDefault { get; private init; }
@@ -78,10 +78,10 @@ public sealed class SwimLane : BaseAuditableEntity
         }
     }
 
-    internal void SetSortOrder(int sortOrder) => SortOrder = sortOrder;
+    internal void SetOrder(int order) => Order = order;
 
     /// <summary>
-    /// Sets the lane's descriptive dates. Both are optional; either or both may be cleared. The
+    /// Sets the swim lane's descriptive dates. Both are optional; either or both may be cleared. The
     /// dates are descriptive only — no validation or ordering is enforced between them.
     /// </summary>
     internal void SetDates(LocalDate? startDate, LocalDate? endDate)
@@ -91,7 +91,7 @@ public sealed class SwimLane : BaseAuditableEntity
     }
 
     /// <summary>
-    /// Creates the default lane for a new map.
+    /// Creates the default swim lane for a new map.
     /// </summary>
-    internal static SwimLane CreateDefault(Guid storyMapId) => new(storyMapId, DefaultLaneName, 0, isDefault: true);
+    internal static SwimLane CreateDefault(Guid storyMapId) => new(storyMapId, DefaultSwimLaneName, 0, isDefault: true);
 }

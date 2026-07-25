@@ -9,19 +9,19 @@ namespace Wayd.Planning.Domain.Models.StoryMaps;
 /// with personas, can hold a short checklist, and can optionally reference a work item that already
 /// exists elsewhere in Wayd.
 /// </summary>
-public sealed class StoryTask : BaseAuditableEntity
+public sealed class StoryMapTask : BaseAuditableEntity
 {
     private readonly List<Guid> _personaIds = [];
     private readonly List<ChecklistItem> _checklist = [];
 
-    private StoryTask() { }
+    private StoryMapTask() { }
 
-    internal StoryTask(Guid stepId, Guid laneId, string title, int sortOrder)
+    internal StoryMapTask(Guid stepId, Guid swimLaneId, string title, int order)
     {
         StepId = stepId;
-        LaneId = laneId;
+        SwimLaneId = swimLaneId;
         Title = title;
-        SortOrder = sortOrder;
+        Order = order;
     }
 
     /// <summary>
@@ -32,7 +32,7 @@ public sealed class StoryTask : BaseAuditableEntity
     /// <summary>
     /// The swim lane this task belongs to.
     /// </summary>
-    public Guid LaneId { get; private set; }
+    public Guid SwimLaneId { get; private set; }
 
     /// <summary>
     /// The title of the task.
@@ -44,18 +44,18 @@ public sealed class StoryTask : BaseAuditableEntity
     } = default!;
 
     /// <summary>
-    /// Free-form notes on the task.
+    /// Free-form description of the task.
     /// </summary>
-    public string? Notes
+    public string? Description
     {
         get;
         private set => field = value.NullIfWhiteSpacePlusTrim();
     }
 
     /// <summary>
-    /// The order of the task within its (step, lane) cell.
+    /// The order of the task within its (step, swim lane) cell.
     /// </summary>
-    public int SortOrder { get; private set; }
+    public int Order { get; private set; }
 
     /// <summary>
     /// The id of a work item elsewhere in Wayd that this task references. The map never modifies
@@ -72,27 +72,27 @@ public sealed class StoryTask : BaseAuditableEntity
     /// <summary>
     /// The task's checklist items.
     /// </summary>
-    public IReadOnlyList<ChecklistItem> Checklist => [.. _checklist.OrderBy(x => x.SortOrder)];
+    public IReadOnlyList<ChecklistItem> Checklist => [.. _checklist.OrderBy(x => x.Order)];
 
-    internal void UpdateDetails(string title, string? notes)
+    internal void UpdateDetails(string title, string? description)
     {
         Title = title;
-        Notes = notes;
+        Description = description;
     }
 
-    internal void SetSortOrder(int sortOrder) => SortOrder = sortOrder;
+    internal void SetOrder(int order) => Order = order;
 
-    internal void MoveTo(Guid stepId, Guid laneId, int sortOrder)
+    internal void MoveTo(Guid stepId, Guid swimLaneId, int order)
     {
         StepId = stepId;
-        LaneId = laneId;
-        SortOrder = sortOrder;
+        SwimLaneId = swimLaneId;
+        Order = order;
     }
 
-    internal void ReassignLane(Guid laneId, int sortOrder)
+    internal void ReassignSwimLane(Guid swimLaneId, int order)
     {
-        LaneId = laneId;
-        SortOrder = sortOrder;
+        SwimLaneId = swimLaneId;
+        Order = order;
     }
 
     #region Personas
@@ -118,7 +118,7 @@ public sealed class StoryTask : BaseAuditableEntity
     {
         try
         {
-            int nextOrder = _checklist.Count > 0 ? _checklist.Max(x => x.SortOrder) + 1 : 0;
+            int nextOrder = _checklist.Count > 0 ? _checklist.Max(x => x.Order) + 1 : 0;
             var item = new ChecklistItem(name, nextOrder);
             _checklist.Add(item);
             return item;
@@ -186,9 +186,9 @@ public sealed class StoryTask : BaseAuditableEntity
     private void ResetChecklistOrder()
     {
         int i = 0;
-        foreach (var item in _checklist.OrderBy(x => x.SortOrder).ToList())
+        foreach (var item in _checklist.OrderBy(x => x.Order).ToList())
         {
-            item.SetSortOrder(i);
+            item.SetOrder(i);
             i++;
         }
     }

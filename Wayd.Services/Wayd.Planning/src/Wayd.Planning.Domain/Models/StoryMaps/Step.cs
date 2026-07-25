@@ -10,15 +10,15 @@ namespace Wayd.Planning.Domain.Models.StoryMaps;
 public sealed class Step : BaseAuditableEntity
 {
     private readonly List<Guid> _personaIds = [];
-    private readonly List<StoryTask> _tasks = [];
+    private readonly List<StoryMapTask> _tasks = [];
 
     private Step() { }
 
-    internal Step(Guid goalId, string name, int sortOrder)
+    internal Step(Guid goalId, string name, int order)
     {
         GoalId = goalId;
         Name = name;
-        SortOrder = sortOrder;
+        Order = order;
     }
 
     /// <summary>
@@ -38,7 +38,7 @@ public sealed class Step : BaseAuditableEntity
     /// <summary>
     /// The order of the step within its goal.
     /// </summary>
-    public int SortOrder { get; private set; }
+    public int Order { get; private set; }
 
     /// <summary>
     /// The personas tagged on this step.
@@ -46,18 +46,18 @@ public sealed class Step : BaseAuditableEntity
     public IReadOnlyList<Guid> PersonaIds => _personaIds.AsReadOnly();
 
     /// <summary>
-    /// The tasks beneath this step, across all lanes.
+    /// The tasks beneath this step, across all swim lanes.
     /// </summary>
-    public IReadOnlyList<StoryTask> Tasks => _tasks.AsReadOnly();
+    public IReadOnlyList<StoryMapTask> Tasks => _tasks.AsReadOnly();
 
     internal void Rename(string name) => Name = name;
 
-    internal void SetSortOrder(int sortOrder) => SortOrder = sortOrder;
+    internal void SetOrder(int order) => Order = order;
 
-    internal void ChangeGoal(Guid goalId, int sortOrder)
+    internal void ChangeGoal(Guid goalId, int order)
     {
         GoalId = goalId;
-        SortOrder = sortOrder;
+        Order = order;
     }
 
     #region Personas
@@ -74,53 +74,53 @@ public sealed class Step : BaseAuditableEntity
 
     #region Tasks
 
-    internal StoryTask AddTask(Guid laneId, string title)
+    internal StoryMapTask AddTask(Guid swimLaneId, string title)
     {
-        int nextOrder = NextTaskOrder(laneId);
-        var task = new StoryTask(Id, laneId, title, nextOrder);
+        int nextOrder = NextTaskOrder(swimLaneId);
+        var task = new StoryMapTask(Id, swimLaneId, title, nextOrder);
         _tasks.Add(task);
         return task;
     }
 
-    internal void AttachTask(StoryTask task) => _tasks.Add(task);
+    internal void AttachTask(StoryMapTask task) => _tasks.Add(task);
 
-    internal Result<StoryTask> RemoveTask(Guid taskId)
+    internal Result<StoryMapTask> RemoveTask(Guid taskId)
     {
         var task = _tasks.FirstOrDefault(x => x.Id == taskId);
         if (task is null)
-            return Result.Failure<StoryTask>("Task does not exist on this step.");
+            return Result.Failure<StoryMapTask>("Task does not exist on this step.");
 
         _tasks.Remove(task);
         return task;
     }
 
-    internal Result<StoryTask> GetTask(Guid taskId)
+    internal Result<StoryMapTask> GetTask(Guid taskId)
     {
         var task = _tasks.FirstOrDefault(x => x.Id == taskId);
         return task is not null
             ? task
-            : Result.Failure<StoryTask>("Task does not exist on this step.");
+            : Result.Failure<StoryMapTask>("Task does not exist on this step.");
     }
 
     /// <summary>
-    /// The next sort order for a task landing in the given lane within this step.
+    /// The next sort order for a task landing in the given swim lane within this step.
     /// </summary>
-    internal int NextTaskOrder(Guid laneId)
+    internal int NextTaskOrder(Guid swimLaneId)
     {
-        var laneTasks = _tasks.Where(x => x.LaneId == laneId).ToList();
-        return laneTasks.Count > 0 ? laneTasks.Max(x => x.SortOrder) + 1 : 0;
+        var laneTasks = _tasks.Where(x => x.SwimLaneId == swimLaneId).ToList();
+        return laneTasks.Count > 0 ? laneTasks.Max(x => x.Order) + 1 : 0;
     }
 
     /// <summary>
-    /// Reassigns every task in the given lane to the target lane, appending them after any existing
-    /// tasks there. Used when a lane is removed and its tasks return to the default lane.
+    /// Reassigns every task in the given swim lane to the target swim lane, appending them after any existing
+    /// tasks there. Used when a swim lane is removed and its tasks return to the default swim lane.
     /// </summary>
-    internal int ReassignTasksToLane(Guid fromLaneId, Guid toLaneId)
+    internal int ReassignTasksToSwimLane(Guid fromSwimLaneId, Guid toSwimLaneId)
     {
-        var tasksToMove = _tasks.Where(x => x.LaneId == fromLaneId).OrderBy(x => x.SortOrder).ToList();
+        var tasksToMove = _tasks.Where(x => x.SwimLaneId == fromSwimLaneId).OrderBy(x => x.Order).ToList();
         foreach (var task in tasksToMove)
         {
-            task.ReassignLane(toLaneId, NextTaskOrder(toLaneId));
+            task.ReassignSwimLane(toSwimLaneId, NextTaskOrder(toSwimLaneId));
         }
         return tasksToMove.Count;
     }

@@ -45,7 +45,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     StoryMapId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
-                    SortOrder = table.Column<int>(type: "int", nullable: false),
+                    Order = table.Column<int>(type: "int", nullable: false),
                     PersonaIds = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SystemCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
                     SystemCreatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
@@ -65,35 +65,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "StoryMapLanes",
-                schema: "Planning",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    StoryMapId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
-                    SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsDefault = table.Column<bool>(type: "bit", nullable: false),
-                    StartDate = table.Column<DateTime>(type: "date", nullable: true),
-                    EndDate = table.Column<DateTime>(type: "date", nullable: true),
-                    SystemCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    SystemCreatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
-                    SystemLastModified = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    SystemLastModifiedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_StoryMapLanes", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_StoryMapLanes_StoryMaps_StoryMapId",
-                        column: x => x.StoryMapId,
-                        principalSchema: "Planning",
-                        principalTable: "StoryMaps",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "StoryMapPersonas",
                 schema: "Planning",
                 columns: table => new
@@ -103,6 +74,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     Name = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     Color = table.Column<string>(type: "varchar(7)", maxLength: 7, nullable: false),
+                    Order = table.Column<int>(type: "int", nullable: false),
                     SystemCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
                     SystemCreatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
                     SystemLastModified = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -121,6 +93,35 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "StoryMapSwimLanes",
+                schema: "Planning",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    StoryMapId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    Order = table.Column<int>(type: "int", nullable: false),
+                    IsDefault = table.Column<bool>(type: "bit", nullable: false),
+                    StartDate = table.Column<DateTime>(type: "date", nullable: true),
+                    EndDate = table.Column<DateTime>(type: "date", nullable: true),
+                    SystemCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    SystemCreatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
+                    SystemLastModified = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    SystemLastModifiedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StoryMapSwimLanes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_StoryMapSwimLanes_StoryMaps_StoryMapId",
+                        column: x => x.StoryMapId,
+                        principalSchema: "Planning",
+                        principalTable: "StoryMaps",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "StoryMapSteps",
                 schema: "Planning",
                 columns: table => new
@@ -128,7 +129,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     GoalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
-                    SortOrder = table.Column<int>(type: "int", nullable: false),
+                    Order = table.Column<int>(type: "int", nullable: false),
                     PersonaIds = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SystemCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
                     SystemCreatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
@@ -154,10 +155,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     StepId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LaneId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
-                    Notes = table.Column<string>(type: "nvarchar(max)", maxLength: 4096, nullable: true),
-                    SortOrder = table.Column<int>(type: "int", nullable: false),
+                    SwimLaneId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(2048)", maxLength: 2048, nullable: true),
+                    Order = table.Column<int>(type: "int", nullable: false),
                     LinkedWorkItemId = table.Column<int>(type: "int", nullable: true),
                     PersonaIds = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SystemCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -170,31 +171,25 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 {
                     table.PrimaryKey("PK_StoryMapTasks", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_StoryMapTasks_StoryMapLanes_LaneId",
-                        column: x => x.LaneId,
-                        principalSchema: "Planning",
-                        principalTable: "StoryMapLanes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
                         name: "FK_StoryMapTasks_StoryMapSteps_StepId",
                         column: x => x.StepId,
                         principalSchema: "Planning",
                         principalTable: "StoryMapSteps",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_StoryMapTasks_StoryMapSwimLanes_SwimLaneId",
+                        column: x => x.SwimLaneId,
+                        principalSchema: "Planning",
+                        principalTable: "StoryMapSwimLanes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(
                 name: "IX_StoryMapGoals_StoryMapId",
                 schema: "Planning",
                 table: "StoryMapGoals",
-                column: "StoryMapId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_StoryMapLanes_StoryMapId",
-                schema: "Planning",
-                table: "StoryMapLanes",
                 column: "StoryMapId");
 
             migrationBuilder.CreateIndex(
@@ -231,16 +226,22 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 column: "GoalId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_StoryMapTasks_LaneId",
+                name: "IX_StoryMapSwimLanes_StoryMapId",
                 schema: "Planning",
-                table: "StoryMapTasks",
-                column: "LaneId");
+                table: "StoryMapSwimLanes",
+                column: "StoryMapId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_StoryMapTasks_StepId",
                 schema: "Planning",
                 table: "StoryMapTasks",
                 column: "StepId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StoryMapTasks_SwimLaneId",
+                schema: "Planning",
+                table: "StoryMapTasks",
+                column: "SwimLaneId");
         }
 
         /// <inheritdoc />
@@ -255,11 +256,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 schema: "Planning");
 
             migrationBuilder.DropTable(
-                name: "StoryMapLanes",
+                name: "StoryMapSteps",
                 schema: "Planning");
 
             migrationBuilder.DropTable(
-                name: "StoryMapSteps",
+                name: "StoryMapSwimLanes",
                 schema: "Planning");
 
             migrationBuilder.DropTable(

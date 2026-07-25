@@ -5,19 +5,26 @@ namespace Wayd.Planning.Domain.Tests.Sut.Models.StoryMaps;
 
 public class StoryMapTests
 {
-    private static StoryMap CreateMap() =>
-        StoryMap.Create("My Map", "A description", Guid.NewGuid().ToString(), "First Goal", "First Step").Value;
+    // A map created the real way starts empty; seed a first goal with a step for the many tests that
+    // need a graph to operate on.
+    private static StoryMap CreateMap()
+    {
+        var map = StoryMap.Create("My Map", "A description", Guid.NewGuid().ToString()).Value;
+        var goal = map.AddGoal("First Goal").Value;
+        map.AddStep(goal.Id, "First Step");
+        return map;
+    }
 
     #region Create
 
     [Fact]
-    public void Create_ValidParameters_ShouldReturnActiveMapWithSeededGraph()
+    public void Create_ValidParameters_ShouldReturnActiveMap()
     {
         // Arrange
         var ownerId = Guid.NewGuid().ToString();
 
         // Act
-        var result = StoryMap.Create("My Map", "A description", ownerId, "First Goal", "First Step");
+        var result = StoryMap.Create("My Map", "A description", ownerId);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -29,41 +36,34 @@ public class StoryMapTests
     }
 
     [Fact]
-    public void Create_ValidParameters_ShouldSeedExactlyOneGoalWithOneStep()
+    public void Create_ValidParameters_ShouldStartWithNoGoals()
     {
         // Act
-        var map = CreateMap();
+        var map = StoryMap.Create("My Map", "A description", Guid.NewGuid().ToString()).Value;
 
-        // Assert
-        map.Goals.Should().ContainSingle();
-        var goal = map.Goals.Single();
-        goal.Name.Should().Be("First Goal");
-        goal.SortOrder.Should().Be(0);
-        goal.Steps.Should().ContainSingle();
-        var step = goal.Steps.Single();
-        step.Name.Should().Be("First Step");
-        step.SortOrder.Should().Be(0);
+        // Assert — a new map is empty; the user adds the first goal from the board's empty state.
+        map.Goals.Should().BeEmpty();
     }
 
     [Fact]
-    public void Create_ValidParameters_ShouldSeedSingleDefaultLaneNamedTasks()
+    public void Create_ValidParameters_ShouldSeedSingleDefaultSwimLaneNamedTasks()
     {
         // Act
-        var map = CreateMap();
+        var map = StoryMap.Create("My Map", "A description", Guid.NewGuid().ToString()).Value;
 
         // Assert
-        map.Lanes.Should().ContainSingle();
-        var lane = map.Lanes.Single();
+        map.SwimLanes.Should().ContainSingle();
+        var lane = map.SwimLanes.Single();
         lane.IsDefault.Should().BeTrue();
         lane.Name.Should().Be("Tasks");
-        lane.SortOrder.Should().Be(0);
+        lane.Order.Should().Be(0);
     }
 
     [Fact]
     public void Create_WhitespaceName_ShouldReturnFailure()
     {
         // Act
-        var result = StoryMap.Create("   ", null, Guid.NewGuid().ToString(), "Goal", "Step");
+        var result = StoryMap.Create("   ", null, Guid.NewGuid().ToString());
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -162,20 +162,19 @@ public class StoryMapTests
     #region Goals
 
     [Fact]
-    public void AddGoal_ValidName_ShouldAppendGoalWithSeededStep()
+    public void AddGoal_ValidName_ShouldAppendEmptyGoal()
     {
         // Arrange
         var map = CreateMap();
 
         // Act
-        var result = map.AddGoal("Second Goal", "Its Step");
+        var result = map.AddGoal("Second Goal");
 
-        // Assert
+        // Assert — a new goal starts empty; steps are added to it separately.
         result.IsSuccess.Should().BeTrue();
         result.Value.Name.Should().Be("Second Goal");
-        result.Value.SortOrder.Should().Be(1);
-        result.Value.Steps.Should().ContainSingle();
-        result.Value.Steps.Single().Name.Should().Be("Its Step");
+        result.Value.Order.Should().Be(1);
+        result.Value.Steps.Should().BeEmpty();
         map.Goals.Should().HaveCount(2);
     }
 
@@ -186,7 +185,7 @@ public class StoryMapTests
         var map = CreateMap();
 
         // Act
-        var result = map.AddGoal("   ", "Step");
+        var result = map.AddGoal("   ");
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -226,8 +225,8 @@ public class StoryMapTests
         // Arrange
         var map = CreateMap();
         var g1 = map.Goals.Single();
-        var g2 = map.AddGoal("Goal 2", "Step").Value;
-        var g3 = map.AddGoal("Goal 3", "Step").Value;
+        var g2 = map.AddGoal("Goal 2").Value;
+        var g3 = map.AddGoal("Goal 3").Value;
 
         // Act
         var result = map.ReorderGoal(g3.Id, 0);
@@ -235,7 +234,7 @@ public class StoryMapTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         map.Goals.Select(x => x.Id).Should().ContainInOrder(g3.Id, g1.Id, g2.Id);
-        map.Goals.Select(x => x.SortOrder).Should().ContainInOrder(0, 1, 2);
+        map.Goals.Select(x => x.Order).Should().ContainInOrder(0, 1, 2);
     }
 
     [Fact]
@@ -244,7 +243,7 @@ public class StoryMapTests
         // Arrange
         var map = CreateMap();
         var g1 = map.Goals.Single();
-        var g2 = map.AddGoal("Goal 2", "Step").Value;
+        var g2 = map.AddGoal("Goal 2").Value;
 
         // Act
         var result = map.DeleteGoal(g1.Id);
@@ -253,22 +252,22 @@ public class StoryMapTests
         result.IsSuccess.Should().BeTrue();
         map.Goals.Should().ContainSingle();
         map.Goals.Single().Id.Should().Be(g2.Id);
-        map.Goals.Single().SortOrder.Should().Be(0);
+        map.Goals.Single().Order.Should().Be(0);
     }
 
     [Fact]
-    public void DeleteGoal_LastRemainingGoal_ShouldReturnFailure()
+    public void DeleteGoal_LastRemainingGoal_ShouldSucceedAndLeaveMapEmpty()
     {
         // Arrange
         var map = CreateMap();
         var goalId = map.Goals.Single().Id;
 
-        // Act
+        // Act — deleting the last goal returns the map to its empty state.
         var result = map.DeleteGoal(goalId);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        map.Goals.Should().ContainSingle();
+        result.IsSuccess.Should().BeTrue();
+        map.Goals.Should().BeEmpty();
     }
 
     [Fact]
@@ -301,7 +300,7 @@ public class StoryMapTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Name.Should().Be("Second Step");
-        result.Value.SortOrder.Should().Be(1);
+        result.Value.Order.Should().Be(1);
         map.Goals.Single().Steps.Should().HaveCount(2);
     }
 
@@ -362,7 +361,7 @@ public class StoryMapTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         map.Goals.Single().Steps.Select(x => x.Id).Should().ContainInOrder(s3.Id, s1.Id, s2.Id);
-        map.Goals.Single().Steps.Select(x => x.SortOrder).Should().ContainInOrder(0, 1, 2);
+        map.Goals.Single().Steps.Select(x => x.Order).Should().ContainInOrder(0, 1, 2);
     }
 
     [Fact]
@@ -372,35 +371,35 @@ public class StoryMapTests
         var map = CreateMap();
         var sourceGoal = map.Goals.Single();
         var extraStep = map.AddStep(sourceGoal.Id, "Extra Step").Value;
-        var targetGoal = map.AddGoal("Target Goal", "Target Step").Value;
+        var targetGoal = map.AddGoal("Target Goal").Value;
 
-        // Act
+        // Act — target goal starts empty, so it holds just the moved step afterwards.
         var result = map.MoveStep(extraStep.Id, targetGoal.Id, 0);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         map.Goals.First(g => g.Id == sourceGoal.Id).Steps.Should().ContainSingle();
         var movedTarget = map.Goals.First(g => g.Id == targetGoal.Id);
-        movedTarget.Steps.Should().HaveCount(2);
-        movedTarget.Steps.Should().Contain(s => s.Id == extraStep.Id);
-        movedTarget.Steps.First().Id.Should().Be(extraStep.Id);
+        movedTarget.Steps.Should().ContainSingle();
+        movedTarget.Steps.Single().Id.Should().Be(extraStep.Id);
     }
 
     [Fact]
-    public void MoveStep_LastStepOutOfGoal_ShouldReturnFailure()
+    public void MoveStep_LastStepOutOfGoal_ShouldSucceedAndLeaveSourceEmpty()
     {
         // Arrange
         var map = CreateMap();
         var sourceGoal = map.Goals.Single();
         var onlyStepId = sourceGoal.Steps.Single().Id;
-        var targetGoal = map.AddGoal("Target Goal", "Target Step").Value;
+        var targetGoal = map.AddGoal("Target Goal").Value;
 
-        // Act
+        // Act — a goal may be left with no steps.
         var result = map.MoveStep(onlyStepId, targetGoal.Id, 0);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        map.Goals.First(g => g.Id == sourceGoal.Id).Steps.Should().ContainSingle();
+        result.IsSuccess.Should().BeTrue();
+        map.Goals.First(g => g.Id == sourceGoal.Id).Steps.Should().BeEmpty();
+        map.Goals.First(g => g.Id == targetGoal.Id).Steps.Should().ContainSingle();
     }
 
     [Fact]
@@ -437,18 +436,18 @@ public class StoryMapTests
     }
 
     [Fact]
-    public void DeleteStep_LastStepInGoal_ShouldReturnFailure()
+    public void DeleteStep_LastStepInGoal_ShouldSucceedAndLeaveGoalEmpty()
     {
         // Arrange
         var map = CreateMap();
         var onlyStepId = map.Goals.Single().Steps.Single().Id;
 
-        // Act
+        // Act — a goal may be left with no steps.
         var result = map.DeleteStep(onlyStepId);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        map.Goals.Single().Steps.Should().ContainSingle();
+        result.IsSuccess.Should().BeTrue();
+        map.Goals.Single().Steps.Should().BeEmpty();
     }
 
     [Fact]
@@ -492,7 +491,7 @@ public class StoryMapTests
         // Arrange
         var map = CreateMap();
         var stepId = map.Goals.Single().Steps.Single().Id;
-        var defaultLaneId = map.Lanes.Single(l => l.IsDefault).Id;
+        var defaultLaneId = map.SwimLanes.Single(l => l.IsDefault).Id;
 
         // Act
         var result = map.AddTask(stepId, "My Task");
@@ -500,7 +499,7 @@ public class StoryMapTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Title.Should().Be("My Task");
-        result.Value.LaneId.Should().Be(defaultLaneId);
+        result.Value.SwimLaneId.Should().Be(defaultLaneId);
     }
 
     [Fact]
@@ -509,14 +508,14 @@ public class StoryMapTests
         // Arrange
         var map = CreateMap();
         var stepId = map.Goals.Single().Steps.Single().Id;
-        var lane = map.AddLane("Release 1").Value;
+        var lane = map.AddSwimLane("Release 1").Value;
 
         // Act
         var result = map.AddTask(stepId, "My Task", lane.Id);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.LaneId.Should().Be(lane.Id);
+        result.Value.SwimLaneId.Should().Be(lane.Id);
     }
 
     [Fact]
@@ -525,15 +524,15 @@ public class StoryMapTests
         // Arrange
         var map = CreateMap();
         var stepId = map.Goals.Single().Steps.Single().Id;
-        var defaultLaneId = map.Lanes.Single(l => l.IsDefault).Id;
-        map.AddLane("Release 1");
+        var defaultLaneId = map.SwimLanes.Single(l => l.IsDefault).Id;
+        map.AddSwimLane("Release 1");
 
         // Act
         var result = map.AddTask(stepId, "My Task");
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.LaneId.Should().Be(defaultLaneId);
+        result.Value.SwimLaneId.Should().Be(defaultLaneId);
     }
 
     [Fact]
@@ -564,7 +563,7 @@ public class StoryMapTests
     }
 
     [Fact]
-    public void UpdateTask_ExistingTask_ShouldUpdateTitleAndNotes()
+    public void UpdateTask_ExistingTask_ShouldUpdateTitleAndDescription()
     {
         // Arrange
         var map = CreateMap();
@@ -572,12 +571,12 @@ public class StoryMapTests
         var task = map.AddTask(stepId, "Original").Value;
 
         // Act
-        var result = map.UpdateTask(task.Id, "Updated", "Some notes");
+        var result = map.UpdateTask(task.Id, "Updated", "Some description");
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         task.Title.Should().Be("Updated");
-        task.Notes.Should().Be("Some notes");
+        task.Description.Should().Be("Some description");
     }
 
     [Fact]
@@ -601,7 +600,7 @@ public class StoryMapTests
         var goal = map.Goals.Single();
         var sourceStep = goal.Steps.Single();
         var targetStep = map.AddStep(goal.Id, "Target Step").Value;
-        var targetLane = map.AddLane("Lane 2").Value;
+        var targetLane = map.AddSwimLane("Lane 2").Value;
         var task = map.AddTask(sourceStep.Id, "Movable").Value;
 
         // Act
@@ -613,7 +612,7 @@ public class StoryMapTests
         var relocatedStep = map.Goals.Single().Steps.First(s => s.Id == targetStep.Id);
         relocatedStep.Tasks.Should().ContainSingle();
         relocatedStep.Tasks.Single().Id.Should().Be(task.Id);
-        relocatedStep.Tasks.Single().LaneId.Should().Be(targetLane.Id);
+        relocatedStep.Tasks.Single().SwimLaneId.Should().Be(targetLane.Id);
         relocatedStep.Tasks.Single().StepId.Should().Be(targetStep.Id);
     }
 
@@ -623,10 +622,10 @@ public class StoryMapTests
         // Arrange
         var map = CreateMap();
         var stepId = map.Goals.Single().Steps.Single().Id;
-        var laneId = map.Lanes.Single().Id;
+        var swimLaneId = map.SwimLanes.Single().Id;
 
         // Act
-        var result = map.MoveTask(Guid.NewGuid(), stepId, laneId, 0);
+        var result = map.MoveTask(Guid.NewGuid(), stepId, swimLaneId, 0);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -723,7 +722,7 @@ public class StoryMapTests
 
     #endregion
 
-    #region Lanes
+    #region SwimLanes
 
     [Fact]
     public void AddLane_ShouldAppendBelowExistingLanes()
@@ -732,15 +731,15 @@ public class StoryMapTests
         var map = CreateMap();
 
         // Act
-        var result = map.AddLane("Release 1");
+        var result = map.AddSwimLane("Release 1");
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Name.Should().Be("Release 1");
         result.Value.IsDefault.Should().BeFalse();
-        result.Value.SortOrder.Should().Be(1);
-        map.Lanes.Should().HaveCount(2);
-        map.Lanes.Last().Id.Should().Be(result.Value.Id);
+        result.Value.Order.Should().Be(1);
+        map.SwimLanes.Should().HaveCount(2);
+        map.SwimLanes.Last().Id.Should().Be(result.Value.Id);
     }
 
     [Fact]
@@ -748,14 +747,14 @@ public class StoryMapTests
     {
         // Arrange
         var map = CreateMap();
-        var lane = map.AddLane("Release 1").Value;
+        var lane = map.AddSwimLane("Release 1").Value;
 
         // Act
-        var result = map.RenameLane(lane.Id, "Release 2");
+        var result = map.RenameSwimLane(lane.Id, "Release 2");
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        map.Lanes.First(l => l.Id == lane.Id).Name.Should().Be("Release 2");
+        map.SwimLanes.First(l => l.Id == lane.Id).Name.Should().Be("Release 2");
     }
 
     [Fact]
@@ -763,14 +762,14 @@ public class StoryMapTests
     {
         // Arrange
         var map = CreateMap();
-        var defaultLaneId = map.Lanes.Single(l => l.IsDefault).Id;
+        var defaultLaneId = map.SwimLanes.Single(l => l.IsDefault).Id;
 
         // Act
-        var result = map.RenameLane(defaultLaneId, "New Name");
+        var result = map.RenameSwimLane(defaultLaneId, "New Name");
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        map.Lanes.Single(l => l.IsDefault).Name.Should().Be("Tasks");
+        map.SwimLanes.Single(l => l.IsDefault).Name.Should().Be("Tasks");
     }
 
     [Fact]
@@ -780,7 +779,7 @@ public class StoryMapTests
         var map = CreateMap();
 
         // Act
-        var result = map.RenameLane(Guid.NewGuid(), "Name");
+        var result = map.RenameSwimLane(Guid.NewGuid(), "Name");
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -791,10 +790,10 @@ public class StoryMapTests
     {
         // Arrange
         var map = CreateMap();
-        var defaultLaneId = map.Lanes.Single(l => l.IsDefault).Id;
+        var defaultLaneId = map.SwimLanes.Single(l => l.IsDefault).Id;
 
         // Act
-        var result = map.ReorderLane(defaultLaneId, 1);
+        var result = map.ReorderSwimLane(defaultLaneId, 1);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -805,19 +804,19 @@ public class StoryMapTests
     {
         // Arrange
         var map = CreateMap();
-        var lane1 = map.AddLane("Lane 1").Value;
-        var lane2 = map.AddLane("Lane 2").Value;
+        var lane1 = map.AddSwimLane("Lane 1").Value;
+        var lane2 = map.AddSwimLane("Lane 2").Value;
 
         // Act
-        var result = map.ReorderLane(lane2.Id, 0);
+        var result = map.ReorderSwimLane(lane2.Id, 0);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        map.Lanes.First().IsDefault.Should().BeTrue();
-        map.Lanes.First().SortOrder.Should().Be(0);
+        map.SwimLanes.First().IsDefault.Should().BeTrue();
+        map.SwimLanes.First().Order.Should().Be(0);
         // lane2 clamps to order 1 (just below default), lane1 follows.
-        map.Lanes.Select(l => l.Id).Should().ContainInOrder(
-            map.Lanes.Single(l => l.IsDefault).Id, lane2.Id, lane1.Id);
+        map.SwimLanes.Select(l => l.Id).Should().ContainInOrder(
+            map.SwimLanes.Single(l => l.IsDefault).Id, lane2.Id, lane1.Id);
     }
 
     [Fact]
@@ -825,14 +824,14 @@ public class StoryMapTests
     {
         // Arrange
         var map = CreateMap();
-        var defaultLaneId = map.Lanes.Single(l => l.IsDefault).Id;
+        var defaultLaneId = map.SwimLanes.Single(l => l.IsDefault).Id;
 
         // Act
-        var result = map.RemoveLane(defaultLaneId);
+        var result = map.RemoveSwimLane(defaultLaneId);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        map.Lanes.Should().ContainSingle();
+        map.SwimLanes.Should().ContainSingle();
     }
 
     [Fact]
@@ -842,7 +841,7 @@ public class StoryMapTests
         var map = CreateMap();
 
         // Act
-        var result = map.RemoveLane(Guid.NewGuid());
+        var result = map.RemoveSwimLane(Guid.NewGuid());
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -854,21 +853,21 @@ public class StoryMapTests
         // Arrange
         var map = CreateMap();
         var stepId = map.Goals.Single().Steps.Single().Id;
-        var lane = map.AddLane("Release 1").Value;
-        var defaultLaneId = map.Lanes.Single(l => l.IsDefault).Id;
+        var lane = map.AddSwimLane("Release 1").Value;
+        var defaultLaneId = map.SwimLanes.Single(l => l.IsDefault).Id;
         var task1 = map.AddTask(stepId, "Task 1", lane.Id).Value;
         var task2 = map.AddTask(stepId, "Task 2", lane.Id).Value;
 
         // Act
-        var result = map.RemoveLane(lane.Id);
+        var result = map.RemoveSwimLane(lane.Id);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().Be(2);
-        map.Lanes.Should().ContainSingle();
+        map.SwimLanes.Should().ContainSingle();
         var tasks = map.Goals.Single().Steps.Single().Tasks;
         tasks.Should().HaveCount(2);
-        tasks.Should().OnlyContain(t => t.LaneId == defaultLaneId);
+        tasks.Should().OnlyContain(t => t.SwimLaneId == defaultLaneId);
         tasks.Select(t => t.Id).Should().Contain([task1.Id, task2.Id]);
     }
 
@@ -877,16 +876,16 @@ public class StoryMapTests
     {
         // Arrange
         var map = CreateMap();
-        var lane = map.AddLane("Release 1").Value;
+        var lane = map.AddSwimLane("Release 1").Value;
         var start = new LocalDate(2026, 1, 1);
         var end = new LocalDate(2026, 3, 1);
 
         // Act
-        var result = map.SetLaneDates(lane.Id, start, end);
+        var result = map.SetSwimLaneDates(lane.Id, start, end);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        var updated = map.Lanes.First(l => l.Id == lane.Id);
+        var updated = map.SwimLanes.First(l => l.Id == lane.Id);
         updated.StartDate.Should().Be(start);
         updated.EndDate.Should().Be(end);
     }
@@ -896,16 +895,16 @@ public class StoryMapTests
     {
         // Arrange
         var map = CreateMap();
-        var lane = map.AddLane("Release 1").Value;
+        var lane = map.AddSwimLane("Release 1").Value;
         var start = new LocalDate(2026, 3, 1);
         var end = new LocalDate(2026, 1, 1);
 
         // Act
-        var result = map.SetLaneDates(lane.Id, start, end);
+        var result = map.SetSwimLaneDates(lane.Id, start, end);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        var updated = map.Lanes.First(l => l.Id == lane.Id);
+        var updated = map.SwimLanes.First(l => l.Id == lane.Id);
         updated.StartDate.Should().Be(start);
         updated.EndDate.Should().Be(end);
     }
@@ -917,7 +916,7 @@ public class StoryMapTests
         var map = CreateMap();
 
         // Act
-        var result = map.SetLaneDates(Guid.NewGuid(), null, null);
+        var result = map.SetSwimLaneDates(Guid.NewGuid(), null, null);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1235,7 +1234,7 @@ public class StoryMapTests
         var map = CreateMap();
         var step = map.Goals.Single().Steps.Single();
         var task = map.AddTask(step.Id, "Task").Value;
-        var defaultLaneId = map.Lanes.Single(l => l.IsDefault).Id;
+        var defaultLaneId = map.SwimLanes.Single(l => l.IsDefault).Id;
         var item = map.AddChecklistItem(task.Id, "Promote Me").Value;
 
         // Act
@@ -1245,7 +1244,7 @@ public class StoryMapTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Title.Should().Be("Promote Me");
         result.Value.StepId.Should().Be(step.Id);
-        result.Value.LaneId.Should().Be(defaultLaneId);
+        result.Value.SwimLaneId.Should().Be(defaultLaneId);
         task.Checklist.Should().BeEmpty();
         map.Goals.Single().Steps.Single().Tasks.Should().Contain(t => t.Id == result.Value.Id);
     }

@@ -22,21 +22,9 @@ public sealed class GetStoryMapsQueryHandler(IPlanningDbContext planningDbContex
 
         query = query.OrderByDescending(m => m.Key);
 
-        // The list rows are built with Mapster (Status/Owner/TaskCount via the DTO's ConfigureMapping).
-        var rows = await query
+        // The list rows are built with Mapster (Status/Owner via the DTO's ConfigureMapping).
+        return await query
             .ProjectToType<StoryMapListDto>()
             .ToListAsync(cancellationToken);
-
-        // LastModified comes from the SystemLastModified shadow property, which Mapster's projection
-        // can't reach, so it is read separately and stitched in by id.
-        var lastModifiedById = await query
-            .Select(m => new { m.Id, LastModified = EF.Property<Instant>(m, "SystemLastModified") })
-            .ToDictionaryAsync(x => x.Id, x => x.LastModified, cancellationToken);
-
-        return rows
-            .Select(r => lastModifiedById.TryGetValue(r.Id, out var lastModified)
-                ? r with { LastModified = lastModified }
-                : r)
-            .ToList();
     }
 }

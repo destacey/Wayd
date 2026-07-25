@@ -1,3 +1,4 @@
+using Wayd.Planning.Domain.Tests.Data;
 using Microsoft.Extensions.Logging;
 using Wayd.Planning.Application.StoryMaps.Commands;
 using Wayd.Planning.Application.StoryMaps.Interfaces;
@@ -27,7 +28,7 @@ public class UpdateStoryMapCommandHandlerTests : IDisposable
     public async Task Handle_ShouldUpdateNameAndDescription_WhenMapExists()
     {
         // Arrange
-        var map = StoryMap.Create("Original", "Original description", Guid.NewGuid().ToString(), "Goal", "Step").Value;
+        var map = StoryMapFakerExtensions.CreateSeeded("Original", "Original description", Guid.NewGuid().ToString(), "Goal", "Step");
         _dbContext.AddStoryMap(map);
 
         var command = new UpdateStoryMapCommand(map.Id, "Updated name", "Updated description");

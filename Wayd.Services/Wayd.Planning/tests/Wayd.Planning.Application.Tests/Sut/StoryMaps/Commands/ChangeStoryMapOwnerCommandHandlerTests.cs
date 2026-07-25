@@ -1,3 +1,4 @@
+using Wayd.Planning.Domain.Tests.Data;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Domain.Identity;
 using Wayd.Planning.Application.StoryMaps.Commands;
@@ -35,7 +36,7 @@ public class ChangeStoryMapOwnerCommandHandlerTests : IDisposable
         var newOwnerId = Guid.NewGuid().ToString();
         _dbContext.AddUser(CreateUser(newOwnerId));
 
-        var map = StoryMap.Create("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step").Value;
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
         _dbContext.AddStoryMap(map);
 
         var command = new ChangeStoryMapOwnerCommand(map.Id, newOwnerId);
@@ -54,7 +55,7 @@ public class ChangeStoryMapOwnerCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenOwnerDoesNotExist()
     {
         // Arrange
-        var map = StoryMap.Create("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step").Value;
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
         _dbContext.AddStoryMap(map);
 
         var command = new ChangeStoryMapOwnerCommand(map.Id, Guid.NewGuid().ToString());

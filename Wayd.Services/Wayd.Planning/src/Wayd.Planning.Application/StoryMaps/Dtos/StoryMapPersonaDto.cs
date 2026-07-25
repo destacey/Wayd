@@ -8,4 +8,5 @@ public sealed record StoryMapPersonaDto : IMapFrom<Persona>
     public required string Name { get; set; }
     public string? Description { get; set; }
     public required string Color { get; set; }
+    public int Order { get; set; }
 }

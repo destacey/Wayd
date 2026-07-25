@@ -22,11 +22,6 @@ public sealed class CreateStoryMapCommandValidator : CustomValidator<CreateStory
 
 public sealed class CreateStoryMapCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<CreateStoryMapCommandHandler> logger) : ICommandHandler<CreateStoryMapCommand, ObjectIdAndKey>
 {
-    // A new map lands with one placeholder goal and step already in place — an empty grid gives
-    // people nothing to react to. These open for immediate renaming on the client.
-    private const string PlaceholderGoalName = "New goal";
-    private const string PlaceholderStepName = "New step";
-
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ILogger<CreateStoryMapCommandHandler> _logger = logger;
     private readonly string _currentUserId = currentUser.GetUserId();
@@ -38,9 +33,7 @@ public sealed class CreateStoryMapCommandHandler(IPlanningDbContext planningDbCo
             var mapResult = StoryMap.Create(
                 request.Name,
                 request.Description,
-                _currentUserId,
-                PlaceholderGoalName,
-                PlaceholderStepName);
+                _currentUserId);
 
             if (mapResult.IsFailure)
                 return Result.Failure<ObjectIdAndKey>(mapResult.Error);

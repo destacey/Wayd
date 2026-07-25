@@ -17,7 +17,7 @@ public sealed record StoryMapDetailsDto : IMapFrom<StoryMap>
     public required string Status { get; set; }
     public UserNavigationDto? Owner { get; set; }
     public required IReadOnlyList<StoryMapGoalDto> Goals { get; set; }
-    public required IReadOnlyList<StoryMapLaneDto> Lanes { get; set; }
+    public required IReadOnlyList<StoryMapSwimLaneDto> SwimLanes { get; set; }
     public required IReadOnlyList<StoryMapPersonaDto> Personas { get; set; }
 
     public void ConfigureMapping(TypeAdapterConfig config)

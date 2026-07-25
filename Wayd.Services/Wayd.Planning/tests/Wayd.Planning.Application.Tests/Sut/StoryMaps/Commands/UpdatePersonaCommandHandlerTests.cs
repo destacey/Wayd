@@ -1,7 +1,7 @@
 using Wayd.Planning.Domain.Tests.Data;
 using Microsoft.Extensions.Logging;
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.Planning.Application.StoryMaps.Commands;
+using Wayd.Planning.Application.StoryMaps.Dtos;
 using Wayd.Planning.Application.StoryMaps.Interfaces;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Models.StoryMaps;
@@ -9,53 +9,53 @@ using Moq;
 
 namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
-public class ArchiveStoryMapCommandHandlerTests : IDisposable
+public class UpdatePersonaCommandHandlerTests : IDisposable
 {
     private readonly FakePlanningDbContext _dbContext;
-    private readonly ArchiveStoryMapCommandHandler _handler;
-    private readonly Mock<ILogger<ArchiveStoryMapCommandHandler>> _mockLogger;
+    private readonly UpdatePersonaCommandHandler _handler;
+    private readonly Mock<ILogger<UpdatePersonaCommandHandler>> _mockLogger;
     private readonly Mock<IStoryMapNotifier> _mockNotifier;
 
-    public ArchiveStoryMapCommandHandlerTests()
+    public UpdatePersonaCommandHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _mockLogger = new Mock<ILogger<ArchiveStoryMapCommandHandler>>();
+        _mockLogger = new Mock<ILogger<UpdatePersonaCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new ArchiveStoryMapCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new UpdatePersonaCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static StoryMap CreateMap() =>
         StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
 
     [Fact]
-    public async Task Handle_ShouldArchive_WhenMapIsActive()
+    public async Task Handle_ShouldUpdatePersona_WhenMapAndPersonaExist()
     {
         // Arrange
         var map = CreateMap();
+        var p = map.AddPersona("Field tech", null, "#4096FF").Value;
         _dbContext.AddStoryMap(map);
 
-        var command = new ArchiveStoryMapCommand(map.Id);
+        var command = new UpdatePersonaCommand(map.Id, p.Id, "Support agent", "Desk-based", "#FF4D4F");
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        map.Status.Should().Be(WorkStatusCategory.Removed);
+        map.Personas.First(x => x.Id == p.Id).Name.Should().Be("Support agent");
         _dbContext.SaveChangesCallCount.Should().Be(1);
-        _mockNotifier.Verify(n => n.NotifyMapArchived(It.IsAny<Guid>()), Times.Once);
+        _mockNotifier.Verify(n => n.NotifyPersonaUpdated(map.Id, It.IsAny<StoryMapPersonaDto>()), Times.Once);
     }
 
     [Fact]
-    public async Task Handle_ShouldFail_WhenMapAlreadyArchived()
+    public async Task Handle_ShouldFail_WhenPersonaNotFound()
     {
         // Arrange
         var map = CreateMap();
-        map.Archive();
         _dbContext.AddStoryMap(map);
 
-        var command = new ArchiveStoryMapCommand(map.Id);
+        var command = new UpdatePersonaCommand(map.Id, Guid.NewGuid(), "Support agent", null, "#FF4D4F");
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -63,14 +63,14 @@ public class ArchiveStoryMapCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(0);
-        _mockNotifier.Verify(n => n.NotifyMapArchived(It.IsAny<Guid>()), Times.Never);
+        _mockNotifier.Verify(n => n.NotifyPersonaUpdated(It.IsAny<Guid>(), It.IsAny<StoryMapPersonaDto>()), Times.Never);
     }
 
     [Fact]
     public async Task Handle_ShouldFail_WhenMapNotFound()
     {
         // Arrange
-        var command = new ArchiveStoryMapCommand(Guid.NewGuid());
+        var command = new UpdatePersonaCommand(Guid.NewGuid(), Guid.NewGuid(), "Support agent", null, "#FF4D4F");
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -79,7 +79,7 @@ public class ArchiveStoryMapCommandHandlerTests : IDisposable
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not found");
         _dbContext.SaveChangesCallCount.Should().Be(0);
-        _mockNotifier.Verify(n => n.NotifyMapArchived(It.IsAny<Guid>()), Times.Never);
+        _mockNotifier.Verify(n => n.NotifyPersonaUpdated(It.IsAny<Guid>(), It.IsAny<StoryMapPersonaDto>()), Times.Never);
     }
 
     public void Dispose()

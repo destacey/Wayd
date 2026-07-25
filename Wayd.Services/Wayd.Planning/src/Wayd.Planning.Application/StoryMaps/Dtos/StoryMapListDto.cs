@@ -5,7 +5,7 @@ using Wayd.Planning.Domain.Models.StoryMaps;
 namespace Wayd.Planning.Application.StoryMaps.Dtos;
 
 /// <summary>
-/// A row on the Story Maps list page: name, owner, task count, status, and last-modified.
+/// A row on the Story Maps list page: name, owner, and status.
 /// </summary>
 public sealed record StoryMapListDto : IMapFrom<StoryMap>
 {
@@ -15,16 +15,10 @@ public sealed record StoryMapListDto : IMapFrom<StoryMap>
     public string? Description { get; set; }
     public required string Status { get; set; }
     public UserNavigationDto? Owner { get; set; }
-    public int TaskCount { get; set; }
-    public Instant LastModified { get; set; }
 
     public void ConfigureMapping(TypeAdapterConfig config)
     {
         config.NewConfig<StoryMap, StoryMapListDto>()
-            .Map(dest => dest.Status, src => src.Status.GetDisplayName())
-            .Map(dest => dest.TaskCount, src => src.Goals
-                .SelectMany(g => g.Steps)
-                .SelectMany(s => s.Tasks)
-                .Count());
+            .Map(dest => dest.Status, src => src.Status.GetDisplayName());
     }
 }

@@ -28,11 +28,12 @@ public class StoryMapHub : Hub
         await Groups.AddToGroupAsync(connectionId, mapKey);
 
         var userId = Context.User?.GetUserId();
-        // Display name: prefer the OIDC standard "name" claim, fall back to ClaimTypes.Name, then
-        // email — matching the Planning Poker hub's whitespace-aware resolution.
+        // Display name: compose the name from the first-name (ClaimTypes.Name) and surname
+        // (ClaimTypes.Surname) claims — both are emitted by Entra and the Wayd JWT. FullName already
+        // returns the first name alone when the surname is blank; fall back to email if neither is
+        // present.
         var name = FirstNonBlank(
-            Context.User?.FindFirst("name")?.Value,
-            Context.User?.FindFirst(ClaimTypes.Name)?.Value,
+            FullName(Context.User),
             Context.User?.GetEmail());
 
         if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(name))
@@ -142,6 +143,21 @@ public class StoryMapHub : Hub
             if (!string.IsNullOrWhiteSpace(v)) return v;
         }
         return null;
+    }
+
+    // Composes "First Last" from the first-name and surname claims. Returns null if the first name
+    // is missing (the caller then falls back to first name alone or email); a lone surname is
+    // ignored so we never render a name that looks like it is missing its start.
+    private static string? FullName(ClaimsPrincipal? user)
+    {
+        var firstName = user?.FindFirst(ClaimTypes.Name)?.Value;
+        if (string.IsNullOrWhiteSpace(firstName))
+            return null;
+
+        var surname = user?.FindFirst(ClaimTypes.Surname)?.Value;
+        return string.IsNullOrWhiteSpace(surname)
+            ? firstName.Trim()
+            : $"{firstName.Trim()} {surname.Trim()}";
     }
 
     private record PresenceEntry(string UserId, string Name)

@@ -22,6 +22,9 @@ import {
   useUpdateTaskMutation,
   useDeleteTaskMutation,
   useAddSwimLaneMutation,
+  useRenameSwimLaneMutation,
+  useRemoveSwimLaneMutation,
+  useSetSwimLaneDatesMutation,
   useSetStepPersonasMutation,
   useSetTaskPersonasMutation,
 } from '@/src/store/features/planning/story-maps-api'
@@ -99,6 +102,9 @@ const StoryMapDetailPage: FC = () => {
   const [updateTask] = useUpdateTaskMutation()
   const [deleteTask] = useDeleteTaskMutation()
   const [addSwimLane] = useAddSwimLaneMutation()
+  const [renameSwimLane] = useRenameSwimLaneMutation()
+  const [removeSwimLane] = useRemoveSwimLaneMutation()
+  const [setSwimLaneDates] = useSetSwimLaneDatesMutation()
   const [setStepPersonas] = useSetStepPersonasMutation()
   const [setTaskPersonas] = useSetTaskPersonasMutation()
 
@@ -186,12 +192,66 @@ const StoryMapDetailPage: FC = () => {
   const handleAddSwimLane = async () => {
     if (!map) return
     try {
-      await addSwimLane({
+      const lane = await addSwimLane({
         storyMapId: map.id,
         request: { name: `Swim lane ${map.swimLanes.length + 1}` },
       }).unwrap()
+      setAutoEditId(lane.id)
     } catch {
       messageApi.error('Failed to add swim lane.')
+    }
+  }
+
+  const handleRenameSwimLane = async (swimLaneId: string, name: string) => {
+    if (!map) return
+    try {
+      await renameSwimLane({
+        storyMapId: map.id,
+        storyMapKey: key,
+        swimLaneId,
+        request: { name },
+      }).unwrap()
+    } catch {
+      messageApi.error('Failed to rename swim lane.')
+    }
+  }
+
+  const handleSetSwimLaneDates = async (
+    swimLaneId: string,
+    startDate: Date | undefined,
+    endDate: Date | undefined,
+  ) => {
+    if (!map) return
+    try {
+      await setSwimLaneDates({
+        storyMapId: map.id,
+        storyMapKey: key,
+        swimLaneId,
+        request: { startDate, endDate },
+      }).unwrap()
+    } catch {
+      messageApi.error('Failed to update swim lane dates.')
+    }
+  }
+
+  const handleDeleteSwimLane = async (swimLaneId: string) => {
+    if (!map) return
+    try {
+      const movedCount = await removeSwimLane({
+        storyMapId: map.id,
+        storyMapKey: key,
+        swimLaneId,
+      }).unwrap()
+      // The lane's tasks are not deleted — say where they went.
+      if (movedCount > 0) {
+        messageApi.success(
+          `Swim lane deleted. ${movedCount} ${
+            movedCount === 1 ? 'task' : 'tasks'
+          } moved to the default lane.`,
+        )
+      }
+    } catch {
+      messageApi.error('Failed to delete swim lane.')
     }
   }
 
@@ -428,6 +488,9 @@ const StoryMapDetailPage: FC = () => {
     onDeleteTask: handleDeleteTask,
     onToggleStepPersona: handleToggleStepPersona,
     onToggleTaskPersona: handleToggleTaskPersona,
+    onRenameSwimLane: handleRenameSwimLane,
+    onDeleteSwimLane: handleDeleteSwimLane,
+    onSetSwimLaneDates: handleSetSwimLaneDates,
   }
 
   return (

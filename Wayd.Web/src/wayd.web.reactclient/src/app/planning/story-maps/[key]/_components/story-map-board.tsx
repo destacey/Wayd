@@ -14,6 +14,7 @@ import {
 } from './board-layout'
 import GoalHeaderCell from './goal-header-cell'
 import StepHeaderCell from './step-header-cell'
+import SwimLaneHeader from './swim-lane-header'
 import TaskCell from './task-cell'
 import styles from '../../_components/story-map.module.css'
 
@@ -58,6 +59,20 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
     '--sm-step-count': stepColumnCount,
   }
 
+  // Deleting a lane moves its tasks to the default lane rather than deleting them, so the
+  // confirmation says how many will move.
+  const taskCountsByLane = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const goal of map.goals) {
+      for (const step of goal.steps) {
+        for (const task of step.tasks) {
+          counts.set(task.swimLaneId, (counts.get(task.swimLaneId) ?? 0) + 1)
+        }
+      }
+    }
+    return counts
+  }, [map])
+
   return (
     <div className={styles.boardScroll}>
       <div className={styles.boardGrid} style={gridStyle}>
@@ -100,16 +115,26 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
           />
         ))}
 
-        {/* ── Task band: one row per swim lane, one cell per step column ── */}
+        {/* ── Task band: per swim lane, a full-width header banner then a row of task cells ── */}
+        {swimLanes.map(({ swimLane, headerRow }) => (
+          <SwimLaneHeader
+            key={`lane-header-${swimLane.id}`}
+            swimLane={swimLane}
+            row={headerRow}
+            taskCount={taskCountsByLane.get(swimLane.id) ?? 0}
+            actions={actions}
+          />
+        ))}
+
+        {/* An empty label-column cell beside each lane's task row. The lane name lives in the
+            full-width banner above, but without a cell here the label column's right border — the
+            line separating it from the first task column — would stop at the Steps row. */}
         {swimLanes.map(({ swimLane, row }) => (
           <div
-            key={`lane-label-${swimLane.id}`}
-            className={`${styles.labelCell} ${styles.labelCellLane}`}
+            key={`lane-spacer-${swimLane.id}`}
+            className={`${styles.labelCell} ${styles.labelCellSpacer}`}
             style={{ gridRow: row, gridColumn: LABEL_COLUMN }}
-          >
-            {/* The default lane is the implicit "Tasks" band rather than a named lane. */}
-            {swimLane.isDefault ? 'Tasks' : swimLane.name}
-          </div>
+          />
         ))}
 
         {swimLanes.map(({ swimLane, row }) =>
@@ -119,7 +144,7 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
               tasks={tasksByCell.get(cellKey(step.id, swimLane.id)) ?? []}
               column={column}
               row={row}
-                selectedPersonaId={selectedPersonaId}
+              selectedPersonaId={selectedPersonaId}
               actions={actions}
               isLastColumn={column === lastColumn}
             />

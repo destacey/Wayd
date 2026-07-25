@@ -19,10 +19,10 @@
 .boardGrid {
   /* Minimum width of a step column track. Tracks share any leftover space equally (1fr) and the
      board scrolls once the sum of the minimums exceeds the viewport. */
-  --sm-col-min: 150px;
+  --sm-col-min: 160px;
   /* Fixed rather than max-content so the scroll floor below can account for it, and so the sticky
      label column does not resize as swim-lane names change. */
-  --sm-label-width: 96px;
+  --sm-label-width: 80px;
   display: grid;
   grid-template-columns: var(--sm-label-width) var(--sm-step-columns);
   align-items: stretch;
@@ -71,9 +71,101 @@
   align-items: center;
 }
 
-.labelCellLane {
-  align-items: flex-start;
-  word-break: break-word;
+/* Empty filler beside a lane's task row — it exists only to continue the label column's right
+   border down past the Steps row, so it carries no padding of its own. */
+.labelCellSpacer {
+  padding: 0;
+}
+
+/* ─── Swim lane banner ────────────────────────────────────────────────────── */
+
+/* Spans every column above its row of task cells. Sticky-left so the name and its delete action
+   stay reachable while the board scrolls horizontally — the inner content is what sticks, since a
+   full-width grid item cannot itself stick. */
+.swimLaneHeader {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--sm-border);
+  background-color: var(--sm-bg);
+  background-image: linear-gradient(
+    var(--sm-bg-elevated),
+    var(--sm-bg-elevated)
+  );
+  /* The banner crosses the label column, whose cells are sticky at z-index 2. Match that so the
+     banner is not punched through by the sticky column as the board scrolls under it. */
+  position: relative;
+  z-index: 2;
+}
+
+/* The name and its delete action must stick as a single unit — sticking each independently leaves
+   the name's own box stretched (flex: 1, inherited from .inlineEditText) across the entire grid
+   width, which defeats its sticky offset (nothing to stick within), and leaves the delete button
+   sticking only once scrolled nearly the full row width. Wrapping both in one shrink-to-fit sticky
+   container fixes both. */
+.swimLaneHeaderSticky {
+  position: sticky;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  min-width: 0;
+}
+
+.swimLaneHeaderSticky .swimLaneName {
+  flex: none;
+}
+
+/* The lane name edits as a single-line input, which has no content-driven width of its own — give
+   it a usable one rather than letting the shrink-to-fit sticky wrapper collapse it. */
+.swimLaneHeaderSticky input.inlineEditInput {
+  width: 220px;
+}
+
+/* The dates trigger: just a calendar icon on an undated lane, icon plus the range as text once set.
+   The picker itself lives in a popover, so the banner carries no permanent date inputs. */
+.swimLaneDatesButton {
+  flex: none;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--sm-text-secondary);
+}
+
+/* An undated lane shows only the calendar icon, revealed on row hover exactly like the delete
+   action (see .footerActions). A lane that already has dates keeps them visible at all times, since
+   they are content rather than an affordance. */
+.swimLaneDatesEmpty {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.swimLaneHeader:hover .swimLaneDatesEmpty,
+.swimLaneDatesEmpty:focus-visible,
+.swimLaneDatesEmpty:focus-within {
+  opacity: 1;
+}
+
+/* Read-only viewers get the range as plain text, with no trigger. */
+.swimLaneDatesText {
+  flex: none;
+  font-size: 12px;
+  color: var(--sm-text-secondary);
+}
+
+.swimLaneName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sm-text-secondary);
+}
+
+.swimLaneHeader:hover .footerActions,
+.swimLaneHeader .footerActions:focus-within {
+  opacity: 1;
 }
 
 /* ─── Goal / step header cells ────────────────────────────────────────────── */

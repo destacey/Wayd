@@ -11,6 +11,8 @@ import {
   ObjectIdAndKey,
   RenameGoalRequest,
   RenameStepRequest,
+  RenameSwimLaneRequest,
+  SetSwimLaneDatesRequest,
   SetStepPersonasRequest,
   SetTaskPersonasRequest,
   StoryMapDetailsDto,
@@ -541,6 +543,163 @@ export const storyMapsApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    renameSwimLane: builder.mutation<
+      null,
+      {
+        storyMapId: string
+        storyMapKey: string
+        swimLaneId: string
+        request: RenameSwimLaneRequest
+      }
+    >({
+      queryFn: async ({ storyMapId, swimLaneId, request }) => {
+        try {
+          await getStoryMapsClient().renameSwimLane(
+            storyMapId,
+            swimLaneId,
+            request,
+          )
+          return { data: null }
+        } catch (error) {
+          return { error }
+        }
+      },
+      onQueryStarted: async (
+        { storyMapKey, swimLaneId, request },
+        { dispatch, queryFulfilled },
+      ) => {
+        const patchResult = dispatch(
+          storyMapsApi.util.updateQueryData(
+            'getStoryMap',
+            storyMapKey,
+            (draft) => {
+              const lane = draft.swimLanes.find((l) => l.id === swimLaneId)
+              if (lane) lane.name = request.name
+            },
+          ),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patchResult.undo()
+        }
+      },
+      invalidatesTags: (_r, _e, { storyMapId }) => [
+        { type: QueryTags.StoryMap, id: storyMapId },
+      ],
+    }),
+
+    setSwimLaneDates: builder.mutation<
+      null,
+      {
+        storyMapId: string
+        storyMapKey: string
+        swimLaneId: string
+        request: SetSwimLaneDatesRequest
+      }
+    >({
+      queryFn: async ({ storyMapId, swimLaneId, request }) => {
+        try {
+          await getStoryMapsClient().setSwimLaneDates(
+            storyMapId,
+            swimLaneId,
+            request,
+          )
+          return { data: null }
+        } catch (error) {
+          return { error }
+        }
+      },
+      // Both dates are independently optional — clearing one sends undefined for it.
+      onQueryStarted: async (
+        { storyMapKey, swimLaneId, request },
+        { dispatch, queryFulfilled },
+      ) => {
+        const patchResult = dispatch(
+          storyMapsApi.util.updateQueryData(
+            'getStoryMap',
+            storyMapKey,
+            (draft) => {
+              const lane = draft.swimLanes.find((l) => l.id === swimLaneId)
+              if (lane) {
+                lane.startDate = request.startDate
+                lane.endDate = request.endDate
+              }
+            },
+          ),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patchResult.undo()
+        }
+      },
+      invalidatesTags: (_r, _e, { storyMapId }) => [
+        { type: QueryTags.StoryMap, id: storyMapId },
+      ],
+    }),
+
+    removeSwimLane: builder.mutation<
+      number,
+      { storyMapId: string; storyMapKey: string; swimLaneId: string }
+    >({
+      queryFn: async ({ storyMapId, swimLaneId }) => {
+        try {
+          // Returns the number of tasks reassigned to the default lane.
+          const data = await getStoryMapsClient().removeSwimLane(
+            storyMapId,
+            swimLaneId,
+          )
+          return { data }
+        } catch (error) {
+          return { error }
+        }
+      },
+      // Drop the lane and move its tasks to the default lane in the cache up front, mirroring what
+      // the domain does server-side, so the row disappears without the tasks flickering away with
+      // it. Roll back on failure.
+      onQueryStarted: async (
+        { storyMapKey, swimLaneId },
+        { dispatch, queryFulfilled },
+      ) => {
+        const patchResult = dispatch(
+          storyMapsApi.util.updateQueryData(
+            'getStoryMap',
+            storyMapKey,
+            (draft) => {
+              const defaultLane = draft.swimLanes.find((l) => l.isDefault)
+              // The domain forbids removing the default lane; without one there is nowhere to
+              // reassign, so leave the cache untouched and let the request report the error.
+              if (!defaultLane || defaultLane.id === swimLaneId) return
+
+              for (const goal of draft.goals) {
+                for (const step of goal.steps) {
+                  for (const task of step.tasks) {
+                    if (task.swimLaneId === swimLaneId) {
+                      task.swimLaneId = defaultLane.id
+                    }
+                  }
+                }
+              }
+
+              draft.swimLanes = draft.swimLanes
+                .filter((l) => l.id !== swimLaneId)
+                .sort((a, b) => a.order - b.order)
+                .map((lane, index) => ({ ...lane, order: index }))
+            },
+          ),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patchResult.undo()
+        }
+      },
+      invalidatesTags: (_r, _e, { storyMapId }) => [
+        { type: QueryTags.StoryMap, id: storyMapId },
+      ],
+    }),
+
     addPersona: builder.mutation<
       StoryMapPersonaDto,
       { storyMapId: string; storyMapKey: string; request: AddPersonaRequest }
@@ -789,6 +948,9 @@ export const {
   useSetStepPersonasMutation,
   useSetTaskPersonasMutation,
   useAddSwimLaneMutation,
+  useRenameSwimLaneMutation,
+  useSetSwimLaneDatesMutation,
+  useRemoveSwimLaneMutation,
   useAddPersonaMutation,
   useUpdatePersonaMutation,
   useDeletePersonaMutation,

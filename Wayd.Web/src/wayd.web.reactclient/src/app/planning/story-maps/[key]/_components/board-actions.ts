@@ -20,4 +20,13 @@ export interface BoardActions {
   /** Link or unlink a single persona; the handler sends the resulting full list to the API. */
   onToggleStepPersona: (stepId: string, personaId: string) => void
   onToggleTaskPersona: (taskId: string, personaId: string) => void
+  /** The default lane cannot be renamed, dated, or removed, so these are never called for it. */
+  onRenameSwimLane: (swimLaneId: string, name: string) => void
+  onDeleteSwimLane: (swimLaneId: string) => void
+  /** Either date may be undefined — a lane can carry only a start, only an end, or neither. */
+  onSetSwimLaneDates: (
+    swimLaneId: string,
+    startDate: Date | undefined,
+    endDate: Date | undefined,
+  ) => void
 }

@@ -20,10 +20,11 @@ import {
 export const LABEL_COLUMN = 1
 const FIRST_STEP_COLUMN = 2
 
-/** Grid row lines: goals, then steps, then one row per swim lane. */
+/** Grid row lines: goals, then steps, then two rows per swim lane (its header, then its tasks). */
 export const GOAL_ROW = 1
 export const STEP_ROW = 2
 const FIRST_SWIM_LANE_ROW = 3
+const ROWS_PER_SWIM_LANE = 2
 
 export interface StepPlacement {
   step: StoryMapStepDto
@@ -52,7 +53,9 @@ export interface GoalPlacement {
 
 export interface SwimLanePlacement {
   swimLane: StoryMapSwimLaneDto
-  /** 1-based grid row line this lane's task cells occupy. */
+  /** 1-based grid row line of the lane's full-width header banner. */
+  headerRow: number
+  /** 1-based grid row line this lane's task cells occupy, directly under the header. */
   row: number
   index: number
 }
@@ -110,9 +113,11 @@ export const buildBoardLayout = (map: StoryMapDetailsDto): BoardLayout => {
     goals.push({ goal, columnStart, columnSpan, index, isPlaceholderColumn })
   })
 
+  // Each lane occupies two rows: a full-width header banner, then the row of task cells under it.
   const swimLanes = byOrder(map.swimLanes).map((swimLane, index) => ({
     swimLane,
-    row: FIRST_SWIM_LANE_ROW + index,
+    headerRow: FIRST_SWIM_LANE_ROW + index * ROWS_PER_SWIM_LANE,
+    row: FIRST_SWIM_LANE_ROW + index * ROWS_PER_SWIM_LANE + 1,
     index,
   }))
 

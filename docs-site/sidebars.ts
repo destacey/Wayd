@@ -38,6 +38,7 @@ const sidebars: SidebarsConfig = {
             'user-guide/planning/risks',
             'user-guide/planning/roadmaps',
             'user-guide/planning/planning-poker',
+            'user-guide/planning/story-maps',
           ],
         },
         {

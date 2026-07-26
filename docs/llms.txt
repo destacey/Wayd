@@ -24,6 +24,7 @@ Wayd supports:
 - [Risks](docs/user-guide/planning/risks.mdx): ROAM model, exposure matrix, risk management
 - [Roadmaps](docs/user-guide/planning/roadmaps.mdx): Activities, milestones, timeboxes, timeline views
 - [Planning Poker](docs/user-guide/planning/planning-poker.mdx): Collaborative estimation with real-time voting
+- [Story Maps](docs/user-guide/planning/story-maps.mdx): User story mapping with goals, steps, tasks, swim lanes, and personas
 - [Work Management Overview](docs/user-guide/work-management/index.mdx): How work items connect to teams, sprints, and projects
 - [Work Items & Workspaces](docs/user-guide/work-management/work-items.mdx): Work items, workspaces, dependencies, revisions, hierarchy
 - [Work Configuration](docs/user-guide/work-management/work-configuration.mdx): Work processes, types, tiers, levels, workflows, statuses

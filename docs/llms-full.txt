@@ -157,6 +157,24 @@ Poker Sessions: Facilitator-managed, uses one scale (locked after rounds begin),
 
 Rounds: Voting → Revealed → Accepted. Can Reset (back to Voting). Votes only during Voting status.
 
+### Story Maps
+
+Behind `story-maps` feature flag. Real-time collaboration via SignalR. A user journey laid out as a grid, sliced into releases.
+
+Structure: StoryMap (aggregate root) → Goals → Steps → Tasks. Swim Lanes and Personas are map-scoped and cut across that tree.
+- Goal: the "backbone" — what the user is accomplishing. Ordered within the map. May have zero steps.
+- Step: a stage within a goal, one board column each. Ordered within its goal. May have zero tasks. Movable between goals.
+- Task: work under a step, positioned where its step column meets a swim lane row. `Order` is scoped per (step × swim lane) cell. Optional link to one work item (at most one task per work item per map; not an FK, not validated against the Work service).
+- Swim Lane: horizontal slice (release/phase). Exactly one default lane per map, named "Tasks" at Order 0 — cannot be renamed, reordered, or removed, and always sorts first. Removing a lane reassigns its tasks to the default lane rather than deleting them, returning the moved count. Optional Start/End dates are descriptive only — unvalidated and unordered.
+- Persona: audience tag (Name, optional Description, Color) scoped to one map. Set on goals, steps, and tasks by replacing the whole id list. Deleting a persona untags it everywhere, returning the untagged count. The board UI tags steps and tasks only; goals derive their filter state from descendants.
+- Checklist Item: sub-item of a task (Name, IsChecked), persisted as JSON. Promoting one creates a task in the same step, always in the default swim lane. API-exposed; no board UI as of this writing.
+
+Status: Active on creation; Archive is Active → Removed and one-way (no un-archive exists). Archived maps are read-only in the UI, but the backend does not block writes by status. Delete is a separate soft delete and does not require archiving first.
+
+Ordering: zero-based throughout. Adds append at max(Order)+1; reorders renumber the collection contiguously. Task deletion does not renumber, so a cell's task order can go non-contiguous. Swim lane reorder pins the default lane at 0 and renumbers the rest from 1. `Step.Tasks` is returned unsorted — clients must sort by Order.
+
+Permissions: all child mutations (goals, steps, tasks, lanes, personas, checklist, work-item links) require `Permissions.StoryMaps.Update` on the map. There are no per-entity permissions.
+
 ---
 
 ## Work Management Domain

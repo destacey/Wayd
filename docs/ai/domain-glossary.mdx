@@ -47,6 +47,13 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Estimation Scale** | A named set of values for estimation (e.g., Fibonacci: 1, 2, 3, 5, 8, 13). Minimum 2 values. |
 | **Poker Session** | A real-time estimation event with a facilitator, estimation scale, and rounds. Immediately Active on creation. |
 | **Poker Round** | One estimation within a session. Workflow: Voting → Revealed → Accepted. Can be Reset to re-vote. |
+| **Story Map** | A user journey laid out as a grid of Goals × Swim Lanes, sliced into releases. Aggregate root containing Goals, Swim Lanes, and Personas. Status: Active → Removed (archive is one-way; there is no un-archive). Behind `story-maps` feature flag. |
+| **Goal** | The top level of a story map — what the user is trying to accomplish (the "backbone"). Ordered within the map. May have zero steps. Deleting a goal cascades to its steps and their tasks. |
+| **Step** | A stage within a goal, occupying one column of the board. Ordered within its goal. May have zero tasks. Can be moved between goals. |
+| **Story Map Task** | A unit of work under a step, positioned at the intersection of its step and a swim lane. `Order` is scoped per (step × swim lane) cell, not per step. Optionally links to one work item. |
+| **Swim Lane** | A horizontal band slicing a story map into releases or phases. Every map has exactly one default lane (named "Tasks", Order 0) that cannot be renamed, reordered, or removed. Removing a lane reassigns its tasks to the default lane rather than deleting them. |
+| **Persona** | An audience tag scoped to a single story map. Has Name, optional Description, and Color. Tagged on steps and tasks (goals are tagged only by inheritance in the UI). Deleting a persona untags it everywhere without deleting the tagged work. |
+| **Checklist Item** | A sub-item of a story map task, with Name and IsChecked. Can be **promoted** into a full task in the same step, always landing in the default swim lane. Exposed via API; no board UI as of this writing. |
 
 ## Planning Metrics
 

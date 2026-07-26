@@ -150,6 +150,18 @@
   color: var(--sm-text-secondary);
 }
 
+/* Sits at the banner's far end, but sticks to the right of the viewport so it stays on screen while
+   the board scrolls — the same trick the name uses on the left. */
+.swimLaneCount {
+  position: sticky;
+  right: 12px;
+  margin-left: auto;
+  flex: none;
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary);
+  white-space: nowrap;
+}
+
 .swimLaneHeader:hover .footerActions,
 .swimLaneHeader .footerActions:focus-within {
   opacity: 1;
@@ -675,6 +687,23 @@
 
 .personaQuickAddInput {
   width: 160px;
+}
+
+/* Totals sit at the far end of the bar, wrapping to their own line only once the chips fill it. */
+.personaBarSummary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--ant-color-text-tertiary);
+  white-space: nowrap;
+}
+
+/* The number in a "3 goals" style count, wherever one appears. */
+.countValue {
+  color: var(--ant-color-text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Muted board nodes when a persona filter is active and the node is not tagged. */

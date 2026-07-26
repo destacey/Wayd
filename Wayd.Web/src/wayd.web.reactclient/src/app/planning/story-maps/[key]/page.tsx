@@ -568,6 +568,7 @@ const StoryMapDetailPage: FC = () => {
       <PersonaFilterBar
         storyMapId={map.id}
         storyMapKey={key}
+        map={map}
         personas={map.personas}
         selectedPersonaId={selectedPersonaId}
         onSelectPersona={setSelectedPersonaId}

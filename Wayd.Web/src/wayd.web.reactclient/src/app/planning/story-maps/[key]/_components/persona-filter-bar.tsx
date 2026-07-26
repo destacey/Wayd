@@ -1,12 +1,13 @@
 'use client'
 
-import { StoryMapPersonaDto } from '@/src/services/wayd-api'
+import { StoryMapDetailsDto, StoryMapPersonaDto } from '@/src/services/wayd-api'
 import { useAddPersonaMutation } from '@/src/store/features/planning/story-maps-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { nextUnusedPersonaColor } from '@/src/utils'
 import { PlusOutlined, SettingOutlined, TeamOutlined } from '@ant-design/icons'
 import { Button, Flex, Input, InputRef } from 'antd'
-import { FC, KeyboardEvent, useRef, useState } from 'react'
+import { FC, KeyboardEvent, useMemo, useRef, useState } from 'react'
+import { countBoard } from './board-counts'
 import styles from '../../_components/story-map.module.css'
 import { WaydTooltip } from '@/src/components/common'
 
@@ -14,6 +15,8 @@ export interface PersonaFilterBarProps {
   storyMapId: string
   /** The route key used as the getStoryMap cache key (for optimistic updates). */
   storyMapKey: string
+  /** Source of the goal/step/task totals shown on the right. */
+  map: StoryMapDetailsDto
   personas: StoryMapPersonaDto[]
   /** The currently selected persona id, or null for "All". */
   selectedPersonaId: string | null
@@ -26,9 +29,20 @@ const ColorDot: FC<{ color: string }> = ({ color }) => (
   <span className={styles.personaDot} style={{ backgroundColor: color }} />
 )
 
+const CountItem: FC<{ value: number; singular: string }> = ({
+  value,
+  singular,
+}) => (
+  <span>
+    <span className={styles.countValue}>{value}</span>{' '}
+    {value === 1 ? singular : `${singular}s`}
+  </span>
+)
+
 const PersonaFilterBar: FC<PersonaFilterBarProps> = ({
   storyMapId,
   storyMapKey,
+  map,
   personas,
   selectedPersonaId,
   onSelectPersona,
@@ -37,6 +51,11 @@ const PersonaFilterBar: FC<PersonaFilterBarProps> = ({
 }) => {
   const messageApi = useMessage()
   const [addPersona] = useAddPersonaMutation()
+
+  const counts = useMemo(
+    () => countBoard(map, selectedPersonaId),
+    [map, selectedPersonaId],
+  )
 
   const [isQuickAdding, setIsQuickAdding] = useState(false)
   const [quickAddName, setQuickAddName] = useState('')
@@ -153,6 +172,12 @@ const PersonaFilterBar: FC<PersonaFilterBarProps> = ({
           Manage
         </Button>
       )}
+
+      <div className={styles.personaBarSummary}>
+        <CountItem value={counts.goals} singular="goal" />
+        <CountItem value={counts.steps} singular="step" />
+        <CountItem value={counts.tasks} singular="task" />
+      </div>
     </Flex>
   )
 }

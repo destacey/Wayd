@@ -18,6 +18,7 @@ import {
 import { SortableContext } from '@dnd-kit/sortable'
 import { CSSProperties, FC, Fragment, useMemo, useRef, useState } from 'react'
 import { BoardActions } from './board-actions'
+import { countTasksByLane } from './board-counts'
 import {
   buildDragIndex,
   isValidDropTarget,
@@ -79,18 +80,15 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
     '--sm-step-count': stepColumnCount,
   }
 
-  // Deleting a lane moves its tasks to the default lane, so the confirmation says how many.
-  const taskCountsByLane = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const goal of map.goals) {
-      for (const step of goal.steps) {
-        for (const task of step.tasks) {
-          counts.set(task.swimLaneId, (counts.get(task.swimLaneId) ?? 0) + 1)
-        }
-      }
-    }
-    return counts
-  }, [map])
+  // Deleting a lane moves its tasks to the default lane, so the confirmation says how many — every
+  // task moves, not just the ones the filter leaves visible.
+  const taskCountsByLane = useMemo(() => countTasksByLane(map, null), [map])
+
+  // The banner count follows the filter instead, so it matches the cards on show in the lane's row.
+  const visibleCountsByLane = useMemo(
+    () => countTasksByLane(map, selectedPersonaId),
+    [map, selectedPersonaId],
+  )
 
   // A small activation distance so a click still reaches the cell's own controls.
   const sensors = useSensors(
@@ -272,6 +270,7 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
             swimLane={swimLane}
             row={headerRow}
             taskCount={taskCountsByLane.get(swimLane.id) ?? 0}
+            visibleTaskCount={visibleCountsByLane.get(swimLane.id) ?? 0}
             actions={actions}
           />
         ))}

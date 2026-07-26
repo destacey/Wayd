@@ -39,8 +39,10 @@ export interface SwimLaneHeaderProps {
   swimLane: StoryMapSwimLaneDto
   /** 1-based grid row of this lane's full-width header banner. */
   row: number
-  /** Number of tasks in the lane, so the delete confirmation can say what will move. */
+  /** Every task in the lane, so the delete confirmation can say what will move. */
   taskCount: number
+  /** Tasks left after the persona filter — what the banner reports. */
+  visibleTaskCount: number
   actions: BoardActions
 }
 
@@ -52,6 +54,7 @@ const SwimLaneHeader: FC<SwimLaneHeaderProps> = ({
   swimLane,
   row,
   taskCount,
+  visibleTaskCount,
   actions,
 }) => {
   const isFixed = swimLane.isDefault
@@ -182,6 +185,13 @@ const SwimLaneHeader: FC<SwimLaneHeaderProps> = ({
           </div>
         )}
       </div>
+
+      {/* Pinned to the right of the viewport, mirroring the sticky content on the left — on a
+          scrolled board the banner's far end is well past the edge of the screen. */}
+      <span className={styles.swimLaneCount}>
+        <span className={styles.countValue}>{visibleTaskCount}</span>{' '}
+        {visibleTaskCount === 1 ? 'task' : 'tasks'}
+      </span>
     </div>
   )
 }

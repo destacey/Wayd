@@ -49,7 +49,6 @@ namespace Internal.Generated.WolverineHandlers
 
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
-            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var ambientUserId = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Infrastructure.Auth.AmbientUserId>(serviceScope.ServiceProvider);
@@ -60,6 +59,7 @@ namespace Internal.Generated.WolverineHandlers
             var requestCorrelationIdProvider = new Wayd.Infrastructure.Common.Services.RequestCorrelationIdProvider(_httpContextAccessor2);
             await using var waydDbContext = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions, currentUser, dateTimeProvider, _optionsOfDatabaseSettings, eventPublisher, dbContextOutbox, requestCorrelationIdProvider);
             var updateAzureOpenAIConnectionCommandValidator = new Wayd.AppIntegration.Application.Connections.Commands.AzureOpenAI.UpdateAzureOpenAIConnectionCommandValidator(waydDbContext);
+            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             // The actual message body
             var updateAzureOpenAIConnectionCommand = (Wayd.AppIntegration.Application.Connections.Commands.AzureOpenAI.UpdateAzureOpenAIConnectionCommand)context.Envelope.Message;
 

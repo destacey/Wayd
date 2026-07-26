@@ -58,8 +58,8 @@ namespace Internal.Generated.WolverineHandlers
             var dateTimeProvider = new Wayd.Infrastructure.Common.Services.DateTimeProvider(_timeProvider);
             var currentUser = new Wayd.Infrastructure.Auth.CurrentUser(_httpContextAccessor1, ambientUserId);
             await using var waydDbContext = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions, currentUser, dateTimeProvider, _optionsOfDatabaseSettings, eventPublisher, dbContextOutbox, requestCorrelationIdProvider);
-            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             var createExpenditureCategoryCommandValidator = new Wayd.ProjectPortfolioManagement.Application.ExpenditureCategories.Commands.CreateExpenditureCategoryCommandValidator();
+            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             // The actual message body
             var createExpenditureCategoryCommand = (Wayd.ProjectPortfolioManagement.Application.ExpenditureCategories.Commands.CreateExpenditureCategoryCommand)context.Envelope.Message;
 

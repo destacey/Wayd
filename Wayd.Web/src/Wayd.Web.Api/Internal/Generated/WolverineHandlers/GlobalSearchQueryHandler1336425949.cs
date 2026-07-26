@@ -30,12 +30,12 @@ namespace Internal.Generated.WolverineHandlers
             await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var ambientUserId = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Infrastructure.Auth.AmbientUserId>(serviceScope.ServiceProvider);
-            var globalSearchQueryValidator = new Wayd.Common.Application.Search.GlobalSearchQueryValidator();
+            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var currentPrincipal = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Common.Application.Interfaces.ICurrentPrincipal>(serviceScope.ServiceProvider);
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var dispatcher = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Common.Application.Interfaces.IDispatcher>(serviceScope.ServiceProvider);
-            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
+            var globalSearchQueryValidator = new Wayd.Common.Application.Search.GlobalSearchQueryValidator();
             // The actual message body
             var globalSearchQuery = (Wayd.Common.Application.Search.GlobalSearchQuery)context.Envelope.Message;
 

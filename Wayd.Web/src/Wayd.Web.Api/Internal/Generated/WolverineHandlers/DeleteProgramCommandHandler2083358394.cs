@@ -58,8 +58,8 @@ namespace Internal.Generated.WolverineHandlers
             var currentUser = new Wayd.Infrastructure.Auth.CurrentUser(_httpContextAccessor1, ambientUserId);
             var dateTimeProvider = new Wayd.Infrastructure.Common.Services.DateTimeProvider(_timeProvider);
             await using var waydDbContext = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions, currentUser, dateTimeProvider, _optionsOfDatabaseSettings, eventPublisher, dbContextOutbox, requestCorrelationIdProvider);
-            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             var deleteProgramCommandValidator = new Wayd.ProjectPortfolioManagement.Application.Programs.Commands.DeleteProgramCommandValidator();
+            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             // The actual message body
             var deleteProgramCommand = (Wayd.ProjectPortfolioManagement.Application.Programs.Commands.DeleteProgramCommand)context.Envelope.Message;
 

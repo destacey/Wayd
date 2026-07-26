@@ -8,6 +8,8 @@ import {
   AddStepRequest,
   AddTaskRequest,
   CreateStoryMapRequest,
+  MoveStepRequest,
+  MoveTaskRequest,
   ObjectIdAndKey,
   RenameGoalRequest,
   RenameStepRequest,
@@ -26,6 +28,28 @@ import {
   UpdateStoryMapRequest,
   UpdateTaskRequest,
 } from '@/src/services/wayd-api'
+
+/**
+ * Move an ordered sibling to a new position and renumber the list contiguously, mutating in place so
+ * it can be applied directly to an RTK Query draft. Used by the optimistic reorder patches.
+ */
+const reorderInPlace = <T extends { id: string; order: number }>(
+  items: T[],
+  id: string,
+  newOrder: number,
+) => {
+  const ordered = [...items].sort((a, b) => a.order - b.order)
+  const from = ordered.findIndex((x) => x.id === id)
+  if (from === -1) return
+
+  const [moved] = ordered.splice(from, 1)
+  const to = Math.max(0, Math.min(newOrder, ordered.length))
+  ordered.splice(to, 0, moved)
+  ordered.forEach((item, index) => {
+    const target = items.find((x) => x.id === item.id)
+    if (target) target.order = index
+  })
+}
 
 export const storyMapsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -239,6 +263,300 @@ export const storyMapsApi = apiSlice.injectEndpoints({
             storyMapKey,
             (draft) => {
               draft.goals = draft.goals.filter((g) => g.id !== goalId)
+            },
+          ),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patchResult.undo()
+        }
+      },
+      invalidatesTags: (_r, _e, { storyMapId }) => [
+        { type: QueryTags.StoryMap, id: storyMapId },
+      ],
+    }),
+
+    reorderGoal: builder.mutation<
+      null,
+      {
+        storyMapId: string
+        storyMapKey: string
+        goalId: string
+        newOrder: number
+      }
+    >({
+      queryFn: async ({ storyMapId, goalId, newOrder }) => {
+        try {
+          await getStoryMapsClient().reorderGoal(storyMapId, goalId, {
+            newOrder,
+          })
+          return { data: null }
+        } catch (error) {
+          return { error }
+        }
+      },
+      // Move the goal and renumber contiguously so the board re-lays-out instantly. Roll back on
+      // failure; the invalidatesTags refetch reconciles against concurrent SignalR edits.
+      onQueryStarted: async (
+        { storyMapKey, goalId, newOrder },
+        { dispatch, queryFulfilled },
+      ) => {
+        const patchResult = dispatch(
+          storyMapsApi.util.updateQueryData(
+            'getStoryMap',
+            storyMapKey,
+            (draft) => {
+              reorderInPlace(draft.goals, goalId, newOrder)
+            },
+          ),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patchResult.undo()
+        }
+      },
+      invalidatesTags: (_r, _e, { storyMapId }) => [
+        { type: QueryTags.StoryMap, id: storyMapId },
+      ],
+    }),
+
+    reorderStep: builder.mutation<
+      null,
+      {
+        storyMapId: string
+        storyMapKey: string
+        stepId: string
+        newOrder: number
+      }
+    >({
+      queryFn: async ({ storyMapId, stepId, newOrder }) => {
+        try {
+          await getStoryMapsClient().reorderStep(storyMapId, stepId, {
+            newOrder,
+          })
+          return { data: null }
+        } catch (error) {
+          return { error }
+        }
+      },
+      onQueryStarted: async (
+        { storyMapKey, stepId, newOrder },
+        { dispatch, queryFulfilled },
+      ) => {
+        const patchResult = dispatch(
+          storyMapsApi.util.updateQueryData(
+            'getStoryMap',
+            storyMapKey,
+            (draft) => {
+              const goal = draft.goals.find((g) =>
+                g.steps.some((s) => s.id === stepId),
+              )
+              if (goal) reorderInPlace(goal.steps, stepId, newOrder)
+            },
+          ),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patchResult.undo()
+        }
+      },
+      invalidatesTags: (_r, _e, { storyMapId }) => [
+        { type: QueryTags.StoryMap, id: storyMapId },
+      ],
+    }),
+
+    moveStep: builder.mutation<
+      null,
+      {
+        storyMapId: string
+        storyMapKey: string
+        stepId: string
+        request: MoveStepRequest
+      }
+    >({
+      queryFn: async ({ storyMapId, stepId, request }) => {
+        try {
+          await getStoryMapsClient().moveStep(storyMapId, stepId, request)
+          return { data: null }
+        } catch (error) {
+          return { error }
+        }
+      },
+      // Re-parent the step, then renumber both goals — the one it left and the one it joined.
+      onQueryStarted: async (
+        { storyMapKey, stepId, request },
+        { dispatch, queryFulfilled },
+      ) => {
+        const patchResult = dispatch(
+          storyMapsApi.util.updateQueryData(
+            'getStoryMap',
+            storyMapKey,
+            (draft) => {
+              const fromGoal = draft.goals.find((g) =>
+                g.steps.some((s) => s.id === stepId),
+              )
+              const toGoal = draft.goals.find(
+                (g) => g.id === request.targetGoalId,
+              )
+              if (!fromGoal || !toGoal) return
+
+              const step = fromGoal.steps.find((s) => s.id === stepId)
+              if (!step) return
+
+              fromGoal.steps = fromGoal.steps.filter((s) => s.id !== stepId)
+              fromGoal.steps
+                .sort((a, b) => a.order - b.order)
+                .forEach((s, i) => {
+                  s.order = i
+                })
+
+              step.goalId = toGoal.id
+              const destination = [...toGoal.steps].sort(
+                (a, b) => a.order - b.order,
+              )
+              const at = Math.max(
+                0,
+                Math.min(request.newOrder, destination.length),
+              )
+              destination.splice(at, 0, step)
+              destination.forEach((s, i) => {
+                s.order = i
+              })
+              toGoal.steps = destination
+            },
+          ),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patchResult.undo()
+        }
+      },
+      invalidatesTags: (_r, _e, { storyMapId }) => [
+        { type: QueryTags.StoryMap, id: storyMapId },
+      ],
+    }),
+
+    reorderSwimLane: builder.mutation<
+      null,
+      {
+        storyMapId: string
+        storyMapKey: string
+        swimLaneId: string
+        newOrder: number
+      }
+    >({
+      queryFn: async ({ storyMapId, swimLaneId, newOrder }) => {
+        try {
+          await getStoryMapsClient().reorderSwimLane(storyMapId, swimLaneId, {
+            newOrder,
+          })
+          return { data: null }
+        } catch (error) {
+          return { error }
+        }
+      },
+      onQueryStarted: async (
+        { storyMapKey, swimLaneId, newOrder },
+        { dispatch, queryFulfilled },
+      ) => {
+        const patchResult = dispatch(
+          storyMapsApi.util.updateQueryData(
+            'getStoryMap',
+            storyMapKey,
+            (draft) => {
+              reorderInPlace(draft.swimLanes, swimLaneId, newOrder)
+            },
+          ),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patchResult.undo()
+        }
+      },
+      invalidatesTags: (_r, _e, { storyMapId }) => [
+        { type: QueryTags.StoryMap, id: storyMapId },
+      ],
+    }),
+
+    moveTask: builder.mutation<
+      null,
+      {
+        storyMapId: string
+        storyMapKey: string
+        taskId: string
+        request: MoveTaskRequest
+      }
+    >({
+      queryFn: async ({ storyMapId, taskId, request }) => {
+        try {
+          await getStoryMapsClient().moveTask(storyMapId, taskId, request)
+          return { data: null }
+        } catch (error) {
+          return { error }
+        }
+      },
+      // There is no separate reorder endpoint for tasks — a same-cell reorder is just a move whose
+      // step and lane are unchanged. Re-key the task, then renumber both the cell it left and the
+      // one it landed in, since order is scoped to a (step × lane) cell.
+      onQueryStarted: async (
+        { storyMapKey, taskId, request },
+        { dispatch, queryFulfilled },
+      ) => {
+        const patchResult = dispatch(
+          storyMapsApi.util.updateQueryData(
+            'getStoryMap',
+            storyMapKey,
+            (draft) => {
+              const steps = draft.goals.flatMap((g) => g.steps)
+              const fromStep = steps.find((s) =>
+                s.tasks.some((t) => t.id === taskId),
+              )
+              const toStep = steps.find((s) => s.id === request.targetStepId)
+              if (!fromStep || !toStep) return
+
+              const task = fromStep.tasks.find((t) => t.id === taskId)
+              if (!task) return
+
+              const fromLaneId = task.swimLaneId
+              fromStep.tasks = fromStep.tasks.filter((t) => t.id !== taskId)
+
+              task.stepId = toStep.id
+              task.swimLaneId = request.targetSwimLaneId
+
+              // Insert at the requested position within the destination cell.
+              const destination = toStep.tasks
+                .filter((t) => t.swimLaneId === request.targetSwimLaneId)
+                .sort((a, b) => a.order - b.order)
+              const at = Math.max(
+                0,
+                Math.min(request.newOrder, destination.length),
+              )
+              destination.splice(at, 0, task)
+              destination.forEach((t, i) => {
+                t.order = i
+              })
+
+              toStep.tasks = [
+                ...toStep.tasks.filter(
+                  (t) => t.swimLaneId !== request.targetSwimLaneId,
+                ),
+                ...destination,
+              ]
+
+              // Close the gap left behind when the task changed cell.
+              if (fromStep.id !== toStep.id || fromLaneId !== task.swimLaneId) {
+                fromStep.tasks
+                  .filter((t) => t.swimLaneId === fromLaneId)
+                  .sort((a, b) => a.order - b.order)
+                  .forEach((t, i) => {
+                    t.order = i
+                  })
+              }
             },
           ),
         )
@@ -901,18 +1219,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
             'getStoryMap',
             storyMapKey,
             (draft) => {
-              const ordered = [...draft.personas].sort(
-                (a, b) => a.order - b.order,
-              )
-              const from = ordered.findIndex((p) => p.id === personaId)
-              if (from === -1) return
-              const [moved] = ordered.splice(from, 1)
-              const to = Math.max(0, Math.min(newOrder, ordered.length))
-              ordered.splice(to, 0, moved)
-              ordered.forEach((p, i) => {
-                const persona = draft.personas.find((x) => x.id === p.id)
-                if (persona) persona.order = i
-              })
+              reorderInPlace(draft.personas, personaId, newOrder)
             },
           ),
         )
@@ -937,6 +1244,11 @@ export const {
   useArchiveStoryMapMutation,
   useDeleteStoryMapMutation,
   useAddGoalMutation,
+  useReorderGoalMutation,
+  useReorderStepMutation,
+  useMoveStepMutation,
+  useMoveTaskMutation,
+  useReorderSwimLaneMutation,
   useRenameGoalMutation,
   useDeleteGoalMutation,
   useAddStepMutation,

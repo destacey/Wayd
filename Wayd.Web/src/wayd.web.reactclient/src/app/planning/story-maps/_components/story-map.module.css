@@ -171,6 +171,8 @@
 /* ─── Goal / step header cells ────────────────────────────────────────────── */
 
 .goalCell {
+  /* Positioning context for the overlaid grab handle. */
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -194,6 +196,8 @@
   flex-direction: column;
   gap: 4px;
   padding: 8px 12px;
+  /* Positioning context for the trailing "end of this goal" drop slot. */
+  position: relative;
   border-right: 1px solid var(--sm-border);
   border-bottom: 1px solid var(--sm-border);
   background-color: var(--sm-bg-elevated);
@@ -253,6 +257,8 @@
 }
 
 .taskCard {
+  /* Positioning context for the overlaid grab handle. */
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -287,6 +293,171 @@
   height: 10px;
   border-radius: 50%;
   display: inline-block;
+}
+
+/* ─── Drag and drop ───────────────────────────────────────────────────────── */
+
+/* The whole cell is the drag surface — there is no grab handle, so names stay flush with the cell
+   padding and nothing indents or shifts to make room for one. `touch-action: none` is required by
+   dnd-kit's pointer sensor so a touch drag is not stolen by page scrolling. */
+.goalCell[aria-label],
+.stepCell[aria-label],
+.taskCard[aria-label],
+.swimLaneHeader[aria-label] {
+  cursor: grab;
+  touch-action: none;
+}
+
+/* The controls inside a cell are not drag surfaces — a click on a name, a persona dot, or an action
+   button does its own job. The pointer sensor's 4px activation distance is what separates the two;
+   restoring the normal cursor is what makes that legible. */
+.inlineEditText,
+.inlineEditInput,
+.personaDotToggle,
+.footerActions,
+.headerActions {
+  touch-action: auto;
+}
+
+.inlineEditText:not(:disabled) {
+  cursor: text;
+}
+
+.personaDotToggle:not(:disabled) {
+  cursor: pointer;
+}
+
+/* The floating copy carried by the cursor. Fully opaque — the board must not show through it — and
+   lifted with a shadow so it reads as being held above the grid. */
+.dragOverlayCard {
+  max-width: 260px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--sm-text);
+  background-color: var(--sm-bg);
+  border: 1px solid var(--ant-color-primary);
+  border-radius: var(--sm-radius);
+  box-shadow: 0 6px 16px rgb(0 0 0 / 25%);
+  cursor: grabbing;
+  overflow-wrap: anywhere;
+}
+
+/* A task cell the pointer is currently over during a drag — including an empty one, which is the
+   only way to move a task into a cell that has no cards to drop onto. Only lights up when the drop
+   would append to the end; hovering a specific card lets that card show the insertion point
+   instead, which is the precise signal. */
+.taskCellOver {
+  background-color: var(--ant-color-primary-bg);
+  outline: 1px dashed var(--ant-color-primary);
+  outline-offset: -3px;
+}
+
+/* Insertion line for the horizontal rows (goals and steps): a vertical rule on the leading or
+   trailing edge of the target, marking the seam the dragged node will land on. Nothing slides out of
+   the way during these drags — see use-board-sortable.ts for why. */
+.stepCellDropBefore,
+.stepCellDropAfter {
+  position: relative;
+}
+
+.stepCellDropBefore::before,
+.stepCellDropAfter::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  border-radius: 1px;
+  background-color: var(--ant-color-primary);
+  /* Above the neighbouring cell's border, which would otherwise sit on top of the line. */
+  z-index: 1;
+}
+
+/* The leading dot matches the task indicator, so both axes read as the same marker. */
+.stepCellDropBefore::after,
+.stepCellDropAfter::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--ant-color-primary);
+  z-index: 1;
+}
+
+/* Centred on the 1px border between cells, so the line reads as the seam rather than as an outline
+   of either neighbour. */
+.stepCellDropBefore::before {
+  left: -1px;
+}
+
+.stepCellDropBefore::after {
+  left: -4px;
+}
+
+.stepCellDropAfter::before {
+  right: -1px;
+}
+
+.stepCellDropAfter::after {
+  right: -4px;
+}
+
+/* The empty steps slot under a step-less goal, while a step is held over it. Same treatment as an
+   empty task cell — it is the target for moving a step into that goal. */
+.stepCellOver {
+  background-color: var(--ant-color-primary-bg);
+  outline: 1px dashed var(--ant-color-primary);
+  outline-offset: -3px;
+}
+
+/* The insertion line: the seam the dragged task will land on. Drawn in the gap beside the card
+   rather than on the card itself, which would read as "replace this" instead of "insert here".
+   Which edge it sits on depends on drag direction — see task-card.tsx. */
+.taskCardDropAbove,
+.taskCardDropBelow {
+  position: relative;
+}
+
+.taskCardDropAbove::before,
+.taskCardDropBelow::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 1px;
+  background-color: var(--ant-color-primary);
+}
+
+/* The leading dot makes the thin line read as a deliberate insertion marker. */
+.taskCardDropAbove::after,
+.taskCardDropBelow::after {
+  content: '';
+  position: absolute;
+  left: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--ant-color-primary);
+}
+
+/* Centred in the cell's 8px flex gap above the card. */
+.taskCardDropAbove::before {
+  top: -5px;
+}
+
+.taskCardDropAbove::after {
+  top: -8px;
+}
+
+.taskCardDropBelow::before {
+  bottom: -5px;
+}
+
+.taskCardDropBelow::after {
+  bottom: -8px;
 }
 
 /* ─── Step / task footer ──────────────────────────────────────────────────── */

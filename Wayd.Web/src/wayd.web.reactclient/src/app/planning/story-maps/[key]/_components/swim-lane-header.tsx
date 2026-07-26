@@ -8,6 +8,7 @@ import dayjs, { Dayjs } from 'dayjs'
 import { FC, useState } from 'react'
 import { BoardActions } from './board-actions'
 import InlineEditText from './inline-edit-text'
+import { useBoardSortable } from './use-board-sortable'
 import styles from '../../_components/story-map.module.css'
 
 const { RangePicker } = DatePicker
@@ -56,6 +57,13 @@ const SwimLaneHeader: FC<SwimLaneHeaderProps> = ({
 }) => {
   const isFixed = swimLane.isDefault
   const [isPickingDates, setIsPickingDates] = useState(false)
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    style: sortableStyle,
+  } = useBoardSortable(swimLane.id, !actions.canUpdate || isFixed)
 
   const dateLabel = formatRange(swimLane.startDate, swimLane.endDate)
 
@@ -114,7 +122,17 @@ const SwimLaneHeader: FC<SwimLaneHeaderProps> = ({
   )
 
   return (
-    <div className={styles.swimLaneHeader} style={{ gridRow: row }}>
+    <div
+      ref={setNodeRef}
+      className={styles.swimLaneHeader}
+      style={{ gridRow: row, ...sortableStyle }}
+      {...attributes}
+      {...listeners}
+      // The default lane is pinned first by the domain, so it is never draggable.
+      aria-label={
+        actions.canUpdate && !isFixed ? `Reorder ${swimLane.name}` : undefined
+      }
+    >
       <div className={styles.swimLaneHeaderSticky}>
         {isFixed ? (
           <span className={styles.swimLaneName}>{swimLane.name}</span>

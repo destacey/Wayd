@@ -1,4 +1,5 @@
 import { StoryMapPersonaDto, StoryMapTaskDto } from '@/src/services/wayd-api'
+import { DropResult } from './board-drag'
 
 /**
  * Shared board-editing callbacks, threaded down the goal → step → task tree so each card can
@@ -29,4 +30,6 @@ export interface BoardActions {
     startDate: Date | undefined,
     endDate: Date | undefined,
   ) => void
+  /** A completed drag, already resolved to which node moved and where. */
+  onDrop: (drop: DropResult) => void
 }

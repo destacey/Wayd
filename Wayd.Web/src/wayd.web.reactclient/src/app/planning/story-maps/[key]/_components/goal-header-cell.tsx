@@ -4,8 +4,10 @@ import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { Button, Popconfirm } from 'antd'
 import { CSSProperties, FC } from 'react'
 import { BoardActions } from './board-actions'
+import { DropSide } from './board-drag'
 import { GoalPlacement, GOAL_ROW } from './board-layout'
 import InlineEditText from './inline-edit-text'
+import { useBoardSortable } from './use-board-sortable'
 import styles from '../../_components/story-map.module.css'
 
 export interface GoalHeaderCellProps {
@@ -15,6 +17,8 @@ export interface GoalHeaderCellProps {
   onAddStep: (goalId: string) => void
   /** Cells in the right-most column drop the border that would double against the grid's own. */
   isLastColumn: boolean
+  /** Which edge of the hovered node a drop lands on, from the board's pointer tracking. */
+  dropSide: DropSide
 }
 
 /**
@@ -27,12 +31,23 @@ const GoalHeaderCell: FC<GoalHeaderCellProps> = ({
   actions,
   onAddStep,
   isLastColumn,
+  dropSide,
 }) => {
   const { goal, columnStart, columnSpan } = placement
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    style: sortableStyle,
+    isDropTarget,
+    dropsAfter,
+  } = useBoardSortable(goal.id, !actions.canUpdate, { dropSide })
 
   const style: CSSProperties = {
     gridRow: GOAL_ROW,
     gridColumn: `${columnStart} / span ${columnSpan}`,
+    ...sortableStyle,
   }
 
   const muted =
@@ -40,10 +55,21 @@ const GoalHeaderCell: FC<GoalHeaderCellProps> = ({
 
   return (
     <div
+      ref={setNodeRef}
+      // Goals read left-to-right, so their insertion line is vertical too.
       className={`${styles.goalCell} ${muted ? styles.muted : ''} ${
         isLastColumn ? styles.lastColumn : ''
+      } ${
+        isDropTarget
+          ? dropsAfter
+            ? styles.stepCellDropAfter
+            : styles.stepCellDropBefore
+          : ''
       }`}
       style={style}
+      {...attributes}
+      {...listeners}
+      aria-label={actions.canUpdate ? `Reorder ${goal.name}` : undefined}
     >
       <InlineEditText
         value={goal.name}

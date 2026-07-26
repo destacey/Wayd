@@ -25,6 +25,11 @@ import {
   useRenameSwimLaneMutation,
   useRemoveSwimLaneMutation,
   useSetSwimLaneDatesMutation,
+  useReorderGoalMutation,
+  useReorderStepMutation,
+  useMoveStepMutation,
+  useMoveTaskMutation,
+  useReorderSwimLaneMutation,
   useSetStepPersonasMutation,
   useSetTaskPersonasMutation,
 } from '@/src/store/features/planning/story-maps-api'
@@ -45,6 +50,7 @@ import { CSSProperties, FC, useEffect, useMemo, useState } from 'react'
 import PageTitle from '@/src/components/common/page-title'
 import { setBreadcrumbTitle } from '@/src/store/breadcrumbs'
 import { StoryMapTaskDto } from '@/src/services/wayd-api'
+import type { DropResult } from './_components/board-drag'
 import {
   BoardActions,
   EditStoryMapForm,
@@ -57,6 +63,14 @@ import StoryMapDetailsLoading from './loading'
 import styles from '../_components/story-map.module.css'
 
 const { Group: AvatarGroup } = Avatar
+
+/** Names the moved node in the failure toast. */
+const DROP_LABELS: Record<DropResult['kind'], string> = {
+  goal: 'goal',
+  step: 'step',
+  task: 'task',
+  swimLane: 'swim lane',
+}
 
 const DEFAULT_GOAL_NAME = 'New goal'
 const DEFAULT_STEP_NAME = 'New step'
@@ -105,6 +119,11 @@ const StoryMapDetailPage: FC = () => {
   const [renameSwimLane] = useRenameSwimLaneMutation()
   const [removeSwimLane] = useRemoveSwimLaneMutation()
   const [setSwimLaneDates] = useSetSwimLaneDatesMutation()
+  const [reorderGoal] = useReorderGoalMutation()
+  const [reorderStep] = useReorderStepMutation()
+  const [moveStep] = useMoveStepMutation()
+  const [moveTask] = useMoveTaskMutation()
+  const [reorderSwimLane] = useReorderSwimLaneMutation()
   const [setStepPersonas] = useSetStepPersonasMutation()
   const [setTaskPersonas] = useSetTaskPersonasMutation()
 
@@ -213,6 +232,68 @@ const StoryMapDetailPage: FC = () => {
       }).unwrap()
     } catch {
       messageApi.error('Failed to rename swim lane.')
+    }
+  }
+
+  // A completed drag. board-drag.ts has already worked out which node moved and where; this only
+  // picks the matching mutation. Each one patches the cache optimistically and rolls back on error.
+  const handleDrop = async (drop: DropResult) => {
+    if (!map) return
+    const common = { storyMapId: map.id, storyMapKey: key }
+
+    try {
+      switch (drop.kind) {
+        case 'goal':
+          await reorderGoal({
+            ...common,
+            goalId: drop.goalId,
+            newOrder: drop.newOrder,
+          }).unwrap()
+          break
+
+        case 'step':
+          // Same goal is a reorder; a different goal is a move.
+          if (drop.targetGoalId) {
+            await moveStep({
+              ...common,
+              stepId: drop.stepId,
+              request: {
+                targetGoalId: drop.targetGoalId,
+                newOrder: drop.newOrder,
+              },
+            }).unwrap()
+          } else {
+            await reorderStep({
+              ...common,
+              stepId: drop.stepId,
+              newOrder: drop.newOrder,
+            }).unwrap()
+          }
+          break
+
+        case 'task':
+          // There is no reorder endpoint for tasks — moveTask covers both cases.
+          await moveTask({
+            ...common,
+            taskId: drop.taskId,
+            request: {
+              targetStepId: drop.targetStepId,
+              targetSwimLaneId: drop.targetSwimLaneId,
+              newOrder: drop.newOrder,
+            },
+          }).unwrap()
+          break
+
+        case 'swimLane':
+          await reorderSwimLane({
+            ...common,
+            swimLaneId: drop.swimLaneId,
+            newOrder: drop.newOrder,
+          }).unwrap()
+          break
+      }
+    } catch {
+      messageApi.error(`Failed to move ${DROP_LABELS[drop.kind]}.`)
     }
   }
 
@@ -491,6 +572,7 @@ const StoryMapDetailPage: FC = () => {
     onRenameSwimLane: handleRenameSwimLane,
     onDeleteSwimLane: handleDeleteSwimLane,
     onSetSwimLaneDates: handleSetSwimLaneDates,
+    onDrop: handleDrop,
   }
 
   return (

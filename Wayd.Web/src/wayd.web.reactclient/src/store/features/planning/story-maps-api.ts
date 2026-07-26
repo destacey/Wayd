@@ -28,28 +28,12 @@ import {
   UpdateStoryMapRequest,
   UpdateTaskRequest,
 } from '@/src/services/wayd-api'
-
-/**
- * Move an ordered sibling to a new position and renumber the list contiguously, mutating in place so
- * it can be applied directly to an RTK Query draft. Used by the optimistic reorder patches.
- */
-const reorderInPlace = <T extends { id: string; order: number }>(
-  items: T[],
-  id: string,
-  newOrder: number,
-) => {
-  const ordered = [...items].sort((a, b) => a.order - b.order)
-  const from = ordered.findIndex((x) => x.id === id)
-  if (from === -1) return
-
-  const [moved] = ordered.splice(from, 1)
-  const to = Math.max(0, Math.min(newOrder, ordered.length))
-  ordered.splice(to, 0, moved)
-  ordered.forEach((item, index) => {
-    const target = items.find((x) => x.id === item.id)
-    if (target) target.order = index
-  })
-}
+import {
+  applyMoveStep,
+  applyMoveTask,
+  applyRemoveSwimLane,
+  reorderInPlace,
+} from './story-map-patches'
 
 export const storyMapsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -296,8 +280,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      // Move the goal and renumber contiguously so the board re-lays-out instantly. Roll back on
-      // failure; the invalidatesTags refetch reconciles against concurrent SignalR edits.
+      // Move and renumber contiguously so the board re-lays-out instantly; roll back on failure.
       onQueryStarted: async (
         { storyMapKey, goalId, newOrder },
         { dispatch, queryFulfilled },
@@ -394,39 +377,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
           storyMapsApi.util.updateQueryData(
             'getStoryMap',
             storyMapKey,
-            (draft) => {
-              const fromGoal = draft.goals.find((g) =>
-                g.steps.some((s) => s.id === stepId),
-              )
-              const toGoal = draft.goals.find(
-                (g) => g.id === request.targetGoalId,
-              )
-              if (!fromGoal || !toGoal) return
-
-              const step = fromGoal.steps.find((s) => s.id === stepId)
-              if (!step) return
-
-              fromGoal.steps = fromGoal.steps.filter((s) => s.id !== stepId)
-              fromGoal.steps
-                .sort((a, b) => a.order - b.order)
-                .forEach((s, i) => {
-                  s.order = i
-                })
-
-              step.goalId = toGoal.id
-              const destination = [...toGoal.steps].sort(
-                (a, b) => a.order - b.order,
-              )
-              const at = Math.max(
-                0,
-                Math.min(request.newOrder, destination.length),
-              )
-              destination.splice(at, 0, step)
-              destination.forEach((s, i) => {
-                s.order = i
-              })
-              toGoal.steps = destination
-            },
+            (draft) => applyMoveStep(draft, stepId, request),
           ),
         )
         try {
@@ -500,9 +451,8 @@ export const storyMapsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      // There is no separate reorder endpoint for tasks — a same-cell reorder is just a move whose
-      // step and lane are unchanged. Re-key the task, then renumber both the cell it left and the
-      // one it landed in, since order is scoped to a (step × lane) cell.
+      // There is no reorder endpoint for tasks — a same-cell reorder is a move whose step and lane
+      // are unchanged. Order is scoped to a cell, so both the old and new cells are renumbered.
       onQueryStarted: async (
         { storyMapKey, taskId, request },
         { dispatch, queryFulfilled },
@@ -511,53 +461,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
           storyMapsApi.util.updateQueryData(
             'getStoryMap',
             storyMapKey,
-            (draft) => {
-              const steps = draft.goals.flatMap((g) => g.steps)
-              const fromStep = steps.find((s) =>
-                s.tasks.some((t) => t.id === taskId),
-              )
-              const toStep = steps.find((s) => s.id === request.targetStepId)
-              if (!fromStep || !toStep) return
-
-              const task = fromStep.tasks.find((t) => t.id === taskId)
-              if (!task) return
-
-              const fromLaneId = task.swimLaneId
-              fromStep.tasks = fromStep.tasks.filter((t) => t.id !== taskId)
-
-              task.stepId = toStep.id
-              task.swimLaneId = request.targetSwimLaneId
-
-              // Insert at the requested position within the destination cell.
-              const destination = toStep.tasks
-                .filter((t) => t.swimLaneId === request.targetSwimLaneId)
-                .sort((a, b) => a.order - b.order)
-              const at = Math.max(
-                0,
-                Math.min(request.newOrder, destination.length),
-              )
-              destination.splice(at, 0, task)
-              destination.forEach((t, i) => {
-                t.order = i
-              })
-
-              toStep.tasks = [
-                ...toStep.tasks.filter(
-                  (t) => t.swimLaneId !== request.targetSwimLaneId,
-                ),
-                ...destination,
-              ]
-
-              // Close the gap left behind when the task changed cell.
-              if (fromStep.id !== toStep.id || fromLaneId !== task.swimLaneId) {
-                fromStep.tasks
-                  .filter((t) => t.swimLaneId === fromLaneId)
-                  .sort((a, b) => a.order - b.order)
-                  .forEach((t, i) => {
-                    t.order = i
-                  })
-              }
-            },
+            (draft) => applyMoveTask(draft, taskId, request),
           ),
         )
         try {
@@ -763,8 +667,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      // Retag the step in the cache up front so the dot fills/empties on click without waiting for
-      // the round trip. Roll back on failure.
+      // Retag up front so the dot fills on click without waiting for the round trip.
       onQueryStarted: async (
         { storyMapKey, stepId, request },
         { dispatch, queryFulfilled },
@@ -973,9 +876,8 @@ export const storyMapsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      // Drop the lane and move its tasks to the default lane in the cache up front, mirroring what
-      // the domain does server-side, so the row disappears without the tasks flickering away with
-      // it. Roll back on failure.
+      // Mirror what the domain does server-side — the lane goes, its tasks move to the default lane
+      // — so the row disappears without its tasks flickering away with it.
       onQueryStarted: async (
         { storyMapKey, swimLaneId },
         { dispatch, queryFulfilled },
@@ -984,27 +886,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
           storyMapsApi.util.updateQueryData(
             'getStoryMap',
             storyMapKey,
-            (draft) => {
-              const defaultLane = draft.swimLanes.find((l) => l.isDefault)
-              // The domain forbids removing the default lane; without one there is nowhere to
-              // reassign, so leave the cache untouched and let the request report the error.
-              if (!defaultLane || defaultLane.id === swimLaneId) return
-
-              for (const goal of draft.goals) {
-                for (const step of goal.steps) {
-                  for (const task of step.tasks) {
-                    if (task.swimLaneId === swimLaneId) {
-                      task.swimLaneId = defaultLane.id
-                    }
-                  }
-                }
-              }
-
-              draft.swimLanes = draft.swimLanes
-                .filter((l) => l.id !== swimLaneId)
-                .sort((a, b) => a.order - b.order)
-                .map((lane, index) => ({ ...lane, order: index }))
-            },
+            (draft) => applyRemoveSwimLane(draft, swimLaneId),
           ),
         )
         try {

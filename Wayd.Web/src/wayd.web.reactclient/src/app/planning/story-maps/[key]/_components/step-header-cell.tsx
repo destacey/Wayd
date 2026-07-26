@@ -21,10 +21,7 @@ export interface StepHeaderCellProps {
   dropSide: DropSide
 }
 
-/**
- * A step's header cell on the steps row — one column track wide, sitting under its goal's banner
- * and above its own task cells.
- */
+/** A step's header cell — one column track wide, above its own task cells. */
 const StepHeaderCell: FC<StepHeaderCellProps> = ({
   placement,
   selectedPersonaId,
@@ -55,10 +52,7 @@ const StepHeaderCell: FC<StepHeaderCellProps> = ({
   return (
     <div
       ref={setNodeRef}
-      // Steps read left-to-right, so the insertion line is a vertical rule on the leading or
-      // trailing edge. Nothing slides out of the way during the drag — with one flat step list
-      // spanning every goal, shifting neighbours would pull the next goal's first step under the
-      // previous goal's header and look like an unintended reparent.
+      // Steps read left-to-right, so the insertion line is a vertical rule on one of the side edges.
       className={`${styles.stepCell} ${muted ? styles.muted : ''} ${
         isLastColumn ? styles.lastColumn : ''
       } ${

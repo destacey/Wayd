@@ -72,16 +72,14 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
   const { goals, steps, swimLanes, tasksByCell, lastColumn, stepColumnCount } =
     layout
 
-  // Every step column is the same width: at least --sm-col-min, sharing any leftover space equally
-  // so the board fills the screen when it is narrow and scrolls when it is wide. The count is
-  // published as a variable too, so the CSS can floor the board at the sum of the track minimums.
+  // Equal-width step columns. The count is published too, so the CSS can floor the board's width at
+  // the sum of the track minimums.
   const gridStyle: BoardGridCssVars = {
     '--sm-step-columns': `repeat(${stepColumnCount}, minmax(var(--sm-col-min), 1fr))`,
     '--sm-step-count': stepColumnCount,
   }
 
-  // Deleting a lane moves its tasks to the default lane rather than deleting them, so the
-  // confirmation says how many will move.
+  // Deleting a lane moves its tasks to the default lane, so the confirmation says how many.
   const taskCountsByLane = useMemo(() => {
     const counts = new Map<string, number>()
     for (const goal of map.goals) {
@@ -94,27 +92,21 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
     return counts
   }, [map])
 
-  // A small activation distance so a click still reaches the inline editors, persona dots, and
-  // hover actions rather than being swallowed as a drag — same as the persona reordering modal.
+  // A small activation distance so a click still reaches the cell's own controls.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   )
 
   const dragIndex = useMemo(() => buildDragIndex(layout), [layout])
 
-  // Which half of the hovered node the pointer is in, and hence which side of it a drop lands on.
-  // Keeping the insertion point inside a node's own box (rather than on the border between two) is
-  // what makes the seam between adjacent goals unambiguous.
-  //
-  // Written in the ref during collision detection — the only place with both the pointer position
-  // and the target's measured rect — and mirrored into state from onDragOver. Calling setState from
-  // collision detection instead would update this component while dnd-kit is rendering, which React
-  // rejects ("Cannot update a component while rendering a different component").
+  // Which side of the hovered node a drop lands on. Written to the ref during collision detection —
+  // the only place with both the pointer position and the target's rect — then mirrored into state
+  // from onDragMove. Setting state directly there would update this component while dnd-kit is
+  // rendering, which React rejects.
   const dropSideRef = useRef<DropSide>('before')
   const [dropSide, setDropSide] = useState<DropSide>('before')
 
-  // Restrict hit testing to targets the dragged node may legally land on, so an illegal one never
-  // highlights or opens a gap — a goal dragged over a task simply finds nothing there.
+  // Restrict hit testing to legal targets, so an illegal one never highlights.
   const collisionDetection: CollisionDetection = useMemo(
     () => (args) => {
       const activeId = String(args.active.id)
@@ -122,8 +114,8 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
         isValidDropTarget(dragIndex, activeId, String(container.id)),
       )
 
-      // Pointer-based first, so a large empty task cell is reachable; fall back to rectangle
-      // intersection when the pointer is between targets (dragging past a cell's padding, say).
+      // Pointer-based first so a large empty cell is reachable, falling back to rectangle
+      // intersection when the pointer sits between targets.
       const collisions = pointerWithin({ ...args, droppableContainers })
       const resolved =
         collisions.length > 0
@@ -152,19 +144,16 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
     [dragIndex],
   )
 
-  // Publish the side the insertion line should render on. onDragMove (not onDragOver) because the
-  // side changes as the pointer crosses a target's midpoint, which is not a change of target —
-  // onDragOver would only fire on the way into a different node, leaving the line stuck on one edge.
-  // The setState is a no-op unless the side actually flipped, so this does not re-render per pixel.
+  // onDragMove, not onDragOver: the side flips as the pointer crosses a target's midpoint, which is
+  // not a change of target. The setState is a no-op unless the side actually changed.
   const handleDragMove = () => {
     setDropSide((current) =>
       current === dropSideRef.current ? current : dropSideRef.current,
     )
   }
 
-  // The node currently under the cursor, rendered into the DragOverlay. Without an overlay the
-  // original node is transformed in place, which — because every node here is a grid child — slides
-  // it across its neighbours and reads as broken styling rather than as a card being carried.
+  // The node being dragged, rendered into the DragOverlay. Board nodes are grid children, so
+  // transforming the original in place would slide it across its neighbours instead.
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -215,9 +204,8 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
     }
   }, [activeDragId, dragIndex, goals, steps, swimLanes])
 
-  // Every draggable id in one context. The four kinds never interleave — resolveDrop rejects a drop
-  // whose target is the wrong kind — so a single context keeps cross-parent moves working without
-  // per-container collision juggling.
+  // Every draggable id in one context: resolveDrop rejects mismatched kinds, so a single context
+  // handles cross-parent moves without per-container collision juggling.
   const sortableIds = [
     ...goals.map((g) => g.goal.id),
     ...steps.map((s) => s.step.id),
@@ -288,9 +276,8 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
           />
         ))}
 
-        {/* An empty label-column cell beside each lane's task row. The lane name lives in the
-            full-width banner above, but without a cell here the label column's right border — the
-            line separating it from the first task column — would stop at the Steps row. */}
+        {/* Empty filler beside each lane's task row, so the label column's right border continues
+            past the Steps row. The lane name itself lives in the banner above. */}
         {swimLanes.map(({ swimLane, row }) => (
           <div
             key={`lane-spacer-${swimLane.id}`}
@@ -315,8 +302,7 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
           )),
         )}
 
-        {/* ── Blank cells filling the placeholder track of a step-less goal, so the steps row and
-            task rows have no holes under it. ── */}
+        {/* ── Blank cells filling a step-less goal's placeholder track ── */}
         {goals
           .filter((placement) => placement.isPlaceholderColumn)
           .map((placement) => (

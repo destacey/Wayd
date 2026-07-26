@@ -17,23 +17,33 @@ export interface TaskCardProps {
   actions: BoardActions
   /** Which edge of the hovered node a drop lands on, from the board's pointer tracking. */
   dropSide: DropSide
+  /**
+   * Draw the insertion line below this card even though the pointer is over the cell rather than the
+   * card — set on the last card when the drop would append to the end of the cell.
+   */
+  forceDropAfter?: boolean
 }
 
-const TaskCard: FC<TaskCardProps> = ({ task, muted, actions, dropSide }) => {
+const TaskCard: FC<TaskCardProps> = ({
+  task,
+  muted,
+  actions,
+  dropSide,
+  forceDropAfter = false,
+}) => {
   const { attributes, listeners, setNodeRef, style, isDropTarget, dropsAfter } =
     useBoardSortable(task.id, !actions.canUpdate, { dropSide })
+
+  const showLine = isDropTarget || forceDropAfter
+  const lineBelow = forceDropAfter || dropsAfter
 
   return (
   <div
     ref={setNodeRef}
     style={style}
-    // The insertion line marks the seam the task will land on. Which edge depends on direction: a
-    // downward drag within the cell lands below this card, everything else lands above it. Drawing
-    // it on the wrong edge is the difference between the indicator agreeing with the drop and
-    // silently contradicting it.
     className={`${styles.taskCard} ${muted ? styles.muted : ''} ${
-      isDropTarget
-        ? dropsAfter
+      showLine
+        ? lineBelow
           ? styles.taskCardDropBelow
           : styles.taskCardDropAbove
         : ''

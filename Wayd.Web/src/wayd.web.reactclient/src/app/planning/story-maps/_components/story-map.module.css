@@ -17,21 +17,15 @@
    so every cell aligns across goals instead of nesting inside them. Cells place themselves via
    inline gridRow/gridColumn from the layout model; only the track template lives here. */
 .boardGrid {
-  /* Minimum width of a step column track. Tracks share any leftover space equally (1fr) and the
-     board scrolls once the sum of the minimums exceeds the viewport. */
+  /* Step tracks share leftover space equally, floored at this width. */
   --sm-col-min: 160px;
-  /* Fixed rather than max-content so the scroll floor below can account for it, and so the sticky
-     label column does not resize as swim-lane names change. */
   --sm-label-width: 80px;
   display: grid;
   grid-template-columns: var(--sm-label-width) var(--sm-step-columns);
   align-items: stretch;
-  /* The grid must NOT be intrinsically sized: under `width`/`min-width: max-content` each
-     `minmax(150px, 1fr)` track resolves to its own content's max-content width (the longest
-     unwrapped task title), so columns balloon, ignore the viewport, and the 1fr never binds.
-     Sizing against the container instead lets 1fr do its job — equal tracks that stretch to fill.
-     `min-width` then floors the board at the label column plus every step track at its minimum, so
-     it overflows (and .boardScroll scrolls) rather than crushing tracks below --sm-col-min. */
+  /* Sized against the container, never intrinsically: `max-content` would resolve each track to its
+     longest unwrapped title, so columns would ignore the viewport and 1fr would never bind. The
+     min-width floors the board at every track's minimum so it scrolls rather than crushing them. */
   width: 100%;
   min-width: calc(
     var(--sm-label-width) + (var(--sm-step-count) * var(--sm-col-min))
@@ -52,10 +46,9 @@
   color: var(--sm-text-secondary);
   border-right: 1px solid var(--sm-border);
   border-bottom: 1px solid var(--sm-border);
-  /* Pin the labels while the board scrolls horizontally. The background MUST be fully opaque —
-     --sm-bg-elevated is Ant's colorFillQuaternary (~2% black), which let the scrolled-under cells
-     bleed through and read as ghosted text. Layering the elevated fill over the opaque container
-     colour keeps the intended tint while still hiding what scrolls beneath. */
+  /* Pinned while the board scrolls horizontally, so the fill must be fully opaque. --sm-bg-elevated
+     alone is ~2% black and lets scrolled-under cells ghost through; layering it over the opaque
+     container colour keeps the tint and hides what passes beneath. */
   background-color: var(--sm-bg);
   background-image: linear-gradient(
     var(--sm-bg-elevated),
@@ -100,11 +93,8 @@
   z-index: 2;
 }
 
-/* The name and its delete action must stick as a single unit — sticking each independently leaves
-   the name's own box stretched (flex: 1, inherited from .inlineEditText) across the entire grid
-   width, which defeats its sticky offset (nothing to stick within), and leaves the delete button
-   sticking only once scrolled nearly the full row width. Wrapping both in one shrink-to-fit sticky
-   container fixes both. */
+/* The banner's contents stick as one shrink-to-fit unit. Sticking each child independently fails:
+   the name's own box spans the full grid width, leaving its sticky offset nothing to stick within. */
 .swimLaneHeaderSticky {
   position: sticky;
   left: 12px;
@@ -119,14 +109,12 @@
   flex: none;
 }
 
-/* The lane name edits as a single-line input, which has no content-driven width of its own — give
-   it a usable one rather than letting the shrink-to-fit sticky wrapper collapse it. */
+/* A single-line input has no content-driven width, so the shrink-to-fit wrapper would collapse it. */
 .swimLaneHeaderSticky input.inlineEditInput {
   width: 220px;
 }
 
-/* The dates trigger: just a calendar icon on an undated lane, icon plus the range as text once set.
-   The picker itself lives in a popover, so the banner carries no permanent date inputs. */
+/* Calendar icon alone on an undated lane; icon plus the range as text once set. */
 .swimLaneDatesButton {
   flex: none;
   height: 20px;
@@ -136,9 +124,8 @@
   color: var(--sm-text-secondary);
 }
 
-/* An undated lane shows only the calendar icon, revealed on row hover exactly like the delete
-   action (see .footerActions). A lane that already has dates keeps them visible at all times, since
-   they are content rather than an affordance. */
+/* Revealed on row hover, like the delete action. A dated lane always shows its dates — those are
+   content rather than an affordance. */
 .swimLaneDatesEmpty {
   opacity: 0;
   transition: opacity 0.15s;
@@ -171,8 +158,6 @@
 /* ─── Goal / step header cells ────────────────────────────────────────────── */
 
 .goalCell {
-  /* Positioning context for the overlaid grab handle. */
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -189,15 +174,13 @@
   color: var(--sm-text);
 }
 
-/* A column layout so the footer's `margin-top: auto` pins it to the bottom, keeping footers aligned
-   across the row regardless of how far each step name wraps. */
+/* Column layout so the footer's `margin-top: auto` pins it to the bottom, keeping footers aligned
+   across the row however far each step name wraps. */
 .stepCell {
   display: flex;
   flex-direction: column;
   gap: 4px;
   padding: 8px 12px;
-  /* Positioning context for the trailing "end of this goal" drop slot. */
-  position: relative;
   border-right: 1px solid var(--sm-border);
   border-bottom: 1px solid var(--sm-border);
   background-color: var(--sm-bg-elevated);
@@ -222,8 +205,7 @@
   min-height: 56px;
 }
 
-/* Spans the full width as the grid's bottom edge, so it needs the same opaque treatment as the
-   label column — see .labelCell for why the fill is layered rather than set directly. */
+/* Spans the full width as the grid's bottom edge; opaque for the same reason as .labelCell. */
 .addSwimLaneCell {
   display: flex;
   align-items: center;
@@ -236,29 +218,24 @@
   );
 }
 
-/* Read-only viewers get no action, so the footer collapses rather than leaving dead space — it
-   still closes the grid's bottom edge. */
+/* Collapses for read-only viewers rather than leaving dead space, while still closing the grid. */
 .addSwimLaneCell:empty {
   padding: 0;
 }
 
-/* The grid's own rounded border is not clipped (no overflow:hidden — that would make the grid a
-   scroll container and stop the label column sticking), so right-most cells drop the border that
-   would otherwise double up against it. The bottom edge is closed by the swim-lane footer row. */
+/* The grid cannot use overflow:hidden to clip its rounded border — that would make it a scroll
+   container and stop the label column sticking — so right-most cells drop their own border instead. */
 .lastColumn {
   border-right: none;
 }
 
-/* The action row spans the full width and is the last thing in the grid; keep its button reachable
-   at the left edge while the board scrolls. */
+/* Keep the button reachable at the left edge while the board scrolls. */
 .addSwimLaneCell > :global(.ant-btn) {
   position: sticky;
   left: 12px;
 }
 
 .taskCard {
-  /* Positioning context for the overlaid grab handle. */
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -297,8 +274,7 @@
 
 /* ─── Drag and drop ───────────────────────────────────────────────────────── */
 
-/* The whole cell is the drag surface — there is no grab handle, so names stay flush with the cell
-   padding and nothing indents or shifts to make room for one. `touch-action: none` is required by
+/* The whole cell is the drag surface; there is no grab handle. `touch-action: none` is required by
    dnd-kit's pointer sensor so a touch drag is not stolen by page scrolling. */
 .goalCell[aria-label],
 .stepCell[aria-label],
@@ -308,9 +284,8 @@
   touch-action: none;
 }
 
-/* The controls inside a cell are not drag surfaces — a click on a name, a persona dot, or an action
-   button does its own job. The pointer sensor's 4px activation distance is what separates the two;
-   restoring the normal cursor is what makes that legible. */
+/* Controls inside a cell are not drag surfaces. The sensor's 4px activation distance separates a
+   click from a drag; these cursors make that distinction visible. */
 .inlineEditText,
 .inlineEditInput,
 .personaDotToggle,
@@ -342,19 +317,16 @@
   overflow-wrap: anywhere;
 }
 
-/* A task cell the pointer is currently over during a drag — including an empty one, which is the
-   only way to move a task into a cell that has no cards to drop onto. Only lights up when the drop
-   would append to the end; hovering a specific card lets that card show the insertion point
-   instead, which is the precise signal. */
+/* A task cell under the pointer — including an empty one, the only way to reach a cell with no
+   cards. Lights up only when the drop would append; hovering a card shows an insertion line there. */
 .taskCellOver {
   background-color: var(--ant-color-primary-bg);
   outline: 1px dashed var(--ant-color-primary);
   outline-offset: -3px;
 }
 
-/* Insertion line for the horizontal rows (goals and steps): a vertical rule on the leading or
-   trailing edge of the target, marking the seam the dragged node will land on. Nothing slides out of
-   the way during these drags — see use-board-sortable.ts for why. */
+/* Insertion line for the horizontal rows (goals and steps): a vertical rule on the target's leading
+   or trailing edge, marking the seam the dragged node will land on. */
 .stepCellDropBefore,
 .stepCellDropAfter {
   position: relative;
@@ -534,13 +506,24 @@
 
 /* ─── Inline click-to-edit (goal / step / task names) ─────────────────────── */
 
+/* The label and the editor must produce an identical text box, or a name wraps at a different point
+   the moment you click into it.
+ *
+ * Neither carries horizontal padding or negative margins. They used to: 6px of padding pulled back
+ * by a -6px margin, so the hover highlight extended past the text. That works for the <button>
+ * label but NOT for the <textarea> editor — inside a column-direction flex cell (task cards, step
+ * cells) the width comes from cross-axis stretch, and stretch lets a button bleed into its negative
+ * margins while clamping a textarea to the container's content box. Same CSS, 12px narrower editor,
+ * early wrap. Vertical padding is safe and stays; the highlight simply sits flush horizontally. */
 .inlineEditText {
   display: block;
-  flex: 1;
+  /* See the editor's note: in a column-direction cell `flex: 1` governs height, not width, so both
+     elements opt out of flexing and take their width from cross-axis stretch instead. */
+  flex: none;
   min-width: 0;
   text-align: left;
-  padding: 2px 6px;
-  margin: -2px -6px;
+  padding: 2px 0;
+  margin: -2px 0;
   background: transparent;
   border: none;
   border-radius: var(--sm-radius);
@@ -560,11 +543,19 @@
    name class (goalName/stepName/taskTitle) the caller passes alongside. */
 .inlineEditInput.inlineEditInput {
   display: block;
-  flex: 1;
+  /* Matches .inlineEditText exactly — see the note there. No horizontal padding, no negative
+     margins, and no explicit `width`: a hand-computed calc() resolves against the parent's content
+     box, which is not the box the label ends up occupying, so it can never track both flex
+     directions at once. Letting layout size both elements identically is what keeps them aligned.
+
+     `flex: none` matters. Task cards and step cells are column-direction flex containers, where the
+     main axis is the HEIGHT — so `flex: 1` there stretches the textarea to fill the cell and
+     overrides the height autoSize computes, capping a long name at the container's height and
+     making it scroll instead of grow. The width still comes from cross-axis stretch either way. */
+  flex: none;
   min-width: 0;
-  width: 100%;
   box-sizing: border-box;
-  padding: 2px 6px;
+  padding: 2px 0;
   margin: -2px 0;
   background: transparent;
   border: none;
@@ -576,6 +567,14 @@
   /* Break long unbroken words so wrapping matches autoSize's height measurement (and the display
      text), keeping the editor from overflowing before it grows. */
   word-break: break-word;
+}
+
+/* The goal row is the one row-direction cell, so there the main axis IS the width and the name must
+   flex to fill it — otherwise it shrinks to its text and the click target collapses. Column cells
+   (steps, tasks) deliberately keep `flex: none`; see the notes above. */
+.goalCell > .inlineEditText,
+.goalCell > .inlineEditInput.inlineEditInput {
+  flex: 1;
 }
 
 .inlineEditInput.inlineEditInput:focus,

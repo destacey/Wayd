@@ -29,9 +29,8 @@ export interface TaskCellProps {
 }
 
 /**
- * One cell of the task grid: the intersection of a step column and a swim-lane row. Tasks stack
- * vertically inside it. The cell renders even when empty so the grid keeps its borders and stays a
- * valid drop target once drag-and-drop lands.
+ * One cell of the task grid: a step column crossed with a swim-lane row. Renders even when empty, so
+ * the grid keeps its borders and the cell stays a valid drop target.
  */
 const TaskCell: FC<TaskCellProps> = ({
   tasks,
@@ -43,10 +42,9 @@ const TaskCell: FC<TaskCellProps> = ({
   isLastColumn,
   dropSide,
 }) => {
-  // The cell itself is a drop target, not just its cards: an empty cell has no sortable items, so
-  // without this a task could never be dropped into one. When the pointer is over one of its cards
-  // instead, that card owns the drop and draws its own insertion line — dnd-kit reports isOver on
-  // the innermost target only, so the two never light up at once.
+  // The cell itself is a drop target, not just its cards — an empty cell has no sortable items to
+  // aim at. dnd-kit reports isOver on the innermost target only, so a cell and one of its cards
+  // never highlight at once.
   const { setNodeRef, isOver } = useDroppable({
     id: cellId,
     disabled: !actions.canUpdate,
@@ -54,11 +52,16 @@ const TaskCell: FC<TaskCellProps> = ({
 
   const style: CSSProperties = { gridRow: row, gridColumn: column }
 
+  // Hovering the empty space below the last card targets the cell, which means "append". Show that
+  // as an insertion line under the last card rather than only glowing the cell, so every drop uses
+  // the same signal. An empty cell has no card to draw on, so it keeps the glow.
+  const appendsToEnd = isOver && tasks.length > 0
+
   return (
     <div
       ref={setNodeRef}
       className={`${styles.taskCell} ${isLastColumn ? styles.lastColumn : ''} ${
-        isOver ? styles.taskCellOver : ''
+        isOver && !appendsToEnd ? styles.taskCellOver : ''
       }`}
       style={style}
     >
@@ -66,12 +69,13 @@ const TaskCell: FC<TaskCellProps> = ({
         items={tasks.map((t) => t.id)}
         strategy={verticalListSortingStrategy}
       >
-        {tasks.map((task) => (
+        {tasks.map((task, i) => (
           <TaskCard
             key={task.id}
             task={task}
             actions={actions}
             dropSide={dropSide}
+            forceDropAfter={appendsToEnd && i === tasks.length - 1}
             muted={
               selectedPersonaId !== null &&
               !task.personaIds.includes(selectedPersonaId)

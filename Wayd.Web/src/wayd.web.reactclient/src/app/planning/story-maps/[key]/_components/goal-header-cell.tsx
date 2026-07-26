@@ -21,10 +21,7 @@ export interface GoalHeaderCellProps {
   dropSide: DropSide
 }
 
-/**
- * A goal's header cell on the goals row. It spans the column tracks of all its steps, so the goal
- * reads as a banner sitting directly above the steps it owns.
- */
+/** A goal's header cell, spanning the column tracks of all its steps. */
 const GoalHeaderCell: FC<GoalHeaderCellProps> = ({
   placement,
   selectedPersonaId,
@@ -50,13 +47,21 @@ const GoalHeaderCell: FC<GoalHeaderCellProps> = ({
     ...sortableStyle,
   }
 
+  // A goal is a container, not something a persona is tagged on directly — nothing in the UI sets a
+  // goal's own personaIds. So it stays lit whenever anything beneath it is relevant to the filter;
+  // muting on its own (always empty) tags greyed out every goal on the board.
   const muted =
-    selectedPersonaId !== null && !goal.personaIds.includes(selectedPersonaId)
+    selectedPersonaId !== null &&
+    !goal.personaIds.includes(selectedPersonaId) &&
+    !goal.steps.some(
+      (step) =>
+        step.personaIds.includes(selectedPersonaId) ||
+        step.tasks.some((task) => task.personaIds.includes(selectedPersonaId)),
+    )
 
   return (
     <div
       ref={setNodeRef}
-      // Goals read left-to-right, so their insertion line is vertical too.
       className={`${styles.goalCell} ${muted ? styles.muted : ''} ${
         isLastColumn ? styles.lastColumn : ''
       } ${

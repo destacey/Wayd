@@ -17,13 +17,9 @@ import {
 } from './board-drag'
 
 /**
- * `newOrder` is interpreted with remove-then-insert semantics: the dragged item is pulled out of its
- * list first, then spliced back in at `newOrder`. That makes the drop target's *current* index the
- * correct value in every case, including downward drags — the compensation people reach for is
- * already performed by the removal.
- *
- * Both directions are asserted for every reorderable kind, because getting this wrong is invisible
- * when dragging upward and silently off-by-one when dragging downward.
+ * Both drag directions are asserted for every reorderable kind: the index arithmetic is asymmetric
+ * under remove-then-insert (see `landingIndex`), so an error there is invisible in one direction and
+ * off by one in the other.
  */
 
 const task = (
@@ -439,9 +435,25 @@ describe('resolveDrop', () => {
       })
     })
 
-    it('ignores a task dropped on the cell it already occupies', () => {
-      // Arrange / Act / Assert — a no-op drop must not issue a request.
-      expect(drop(details, 't1', taskCellId('s1', lane))).toBeNull()
+    it('moves a task to the end of its own cell when dropped on the cell', () => {
+      // Arrange / Act — the empty space below the last card means "append", including within the
+      // cell the task already occupies.
+      const result = drop(details, 't1', taskCellId('s1', lane))
+
+      // Assert — removing t1 first leaves two tasks, so the end is index 2.
+      expect(result).toEqual({
+        kind: 'task',
+        taskId: 't1',
+        targetStepId: 's1',
+        targetSwimLaneId: lane,
+        newOrder: 2,
+        changedCell: false,
+      })
+    })
+
+    it('ignores appending a task that already ends its cell', () => {
+      // Arrange / Act / Assert — t3 is already last, so a no-op must not issue a request.
+      expect(drop(details, 't3', taskCellId('s1', lane))).toBeNull()
     })
 
     it('ignores a task dropped on itself', () => {

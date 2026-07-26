@@ -45,9 +45,8 @@ export interface SwimLaneHeaderProps {
 }
 
 /**
- * A swim lane's full-width banner, spanning every column above the lane's task cells. The default
- * lane is fixed — the domain forbids renaming, reordering, or removing it — so it renders as a
- * plain label with no actions.
+ * A swim lane's full-width banner, spanning every column above its task cells. The default lane is
+ * fixed — the domain forbids renaming, reordering, or removing it — so it renders as a plain label.
  */
 const SwimLaneHeader: FC<SwimLaneHeaderProps> = ({
   swimLane,
@@ -78,8 +77,7 @@ const SwimLaneHeader: FC<SwimLaneHeaderProps> = ({
     )
   }
 
-  // The picker lives in a popover so the banner shows only an icon (or the chosen range as text)
-  // rather than a permanently-mounted pair of date inputs in every lane.
+  // The picker lives in a popover, so the banner shows only an icon (or the range as text).
   const datesControl = (
     <Popover
       open={isPickingDates}

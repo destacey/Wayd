@@ -3,13 +3,11 @@ import { BoardLayout } from './board-layout'
 /**
  * Resolving a drop on the board.
  *
- * Four things drag — goals, steps, tasks, and swim lanes — and each is constrained to its own axis,
- * so the first job on every drop is working out which kind moved. Ids alone cannot say (they are all
- * opaque GUIDs), so the layout is indexed once per drag and the active id looked up.
+ * Goals, steps, tasks, and swim lanes each drag along their own axis, so every drop starts by
+ * working out which kind moved — ids are opaque GUIDs, so the layout is indexed once per drag.
  *
- * A drop target is either a sibling (drop onto another node of the same kind) or, for tasks only, an
- * empty cell. Dropping a task on a card means "take that card's place"; dropping it on a cell means
- * "append to that cell". Both resolve to a (step, swim lane, order) triple.
+ * A target is either a sibling of the same kind or, for tasks and step-less goals, an empty slot.
+ * Dropping on a sibling takes its place; dropping on a slot appends to it.
  */
 
 export type DragKind = 'goal' | 'step' | 'task' | 'swimLane'
@@ -27,23 +25,18 @@ const parseTaskCellId = (id: string) => {
 }
 
 /**
- * Which side of the hovered node a drop lands on.
+ * Which side of the hovered node a drop lands on, decided by which half of it the pointer is in.
  *
- * Decided by which half of the target the pointer is in, NOT by comparing list indices. That keeps
- * the insertion point inside a node's own box instead of on the border between two, so the seam
- * between adjacent goals is never ambiguous: the right half of goal 1's last step means "last in
- * goal 1", the left half of goal 2's first step means "first in goal 2", even though the two are the
- * same pixel column.
+ * Using the pointer rather than list indices keeps the insertion point inside a node's own box, so
+ * the seam between adjacent goals stays unambiguous: the right half of goal 1's last step means
+ * "last in goal 1" and the left half of goal 2's first step means "first in goal 2", even though
+ * both are the same pixel column.
  */
 export type DropSide = 'before' | 'after'
 
 /**
- * Prefix marking the steps-row slot of a goal that has no steps.
- *
- * A step-less goal has no step to aim at, so its placeholder column is the target for joining that
- * goal — the goal header above it is never a target, which keeps the goals row inert during a step
- * drag. Populated goals need nothing equivalent: their ends are reachable via the outer half of
- * their first and last steps.
+ * Prefix marking the steps-row slot of a goal that has no steps — the drop target for joining that
+ * goal, since it has no step to aim at. Goal headers are never targets.
  */
 export const EMPTY_STEP_SLOT_PREFIX = 'step-slot:'
 
@@ -121,16 +114,12 @@ export const buildDragIndex = (layout: BoardLayout): BoardDragIndex => {
 /**
  * The index to send as `newOrder` when dropping `activeId` on the given `side` of `overId`.
  *
- * Both the server and the optimistic patches use remove-then-insert: the item is pulled out of the
- * list first, then spliced back in at `newOrder`. So the position is computed against the list *with
- * the dragged item already removed* — which is what makes the arithmetic here asymmetric.
+ * The server and the optimistic patches both remove-then-insert, so this is computed against the
+ * list with the dragged item already taken out: "before" the target is its index, "after" is one
+ * past — then one less again if the item currently sits earlier in the same list, because removing
+ * it pulls the target back a place. An item arriving from another parent shifts nothing.
  *
- * Dropping "before" the target means taking the target's index. Dropping "after" means one past it.
- * Both then shift down by one if the dragged item currently sits earlier in this same list, since
- * removing it pulls the target back a place. An item arriving from a different parent is not in this
- * list at all, so nothing shifts.
- *
- * Returns -1 when the target is not a sibling, and null when the move is a no-op.
+ * Returns -1 when the target is not a sibling, null when the move is a no-op.
  */
 const landingIndex = (
   siblings: string[],
@@ -150,16 +139,11 @@ const landingIndex = (
 }
 
 /**
- * Whether `overId` is somewhere `activeId` may legally land.
+ * Whether `overId` is somewhere `activeId` may legally land. Filters collision detection during the
+ * drag so an illegal target never highlights or draws an insertion line.
  *
- * Used to filter collision detection during the drag, so an illegal target never highlights, never
- * opens a gap, and never draws an insertion line. Without it a goal dragged over a task looks
- * perfectly droppable and then silently does nothing on release, which reads as a broken drag rather
- * than a forbidden one.
- *
- * This is deliberately coarser than `resolveDrop`: it answers "could this ever be a target",
- * ignoring no-ops like dropping onto yourself, so the item under the cursor still responds while a
- * drag hovers its own position.
+ * Deliberately coarser than `resolveDrop`: it answers "could this ever be a target", ignoring
+ * no-ops like dropping onto yourself, so a node stays responsive under its own cursor.
  */
 export const isValidDropTarget = (
   index: BoardDragIndex,
@@ -265,20 +249,29 @@ export const resolveDrop = (
   const from = index.cellByTaskId.get(activeId)
   if (!from) return null
 
-  // Dropped on a cell (including an empty one): append to it.
+  // Dropped on a cell rather than a card — the empty space below the last one, or an empty cell.
+  // Either way the task appends to the end.
   const cell = parseTaskCellId(overId)
   if (cell) {
-    const existing = layout.tasksByCell.get(`${cell.stepId}:${cell.swimLaneId}`)
+    const existing =
+      layout.tasksByCell.get(`${cell.stepId}:${cell.swimLaneId}`) ?? []
     const changedCell =
       cell.stepId !== from.stepId || cell.swimLaneId !== from.swimLaneId
-    if (!changedCell) return null
+
+    // Appending within its own cell means the task is removed first, so the end is one index lower.
+    const newOrder = changedCell ? existing.length : existing.length - 1
+
+    // Already the last task here, so appending changes nothing.
+    if (!changedCell && existing[existing.length - 1]?.id === activeId) {
+      return null
+    }
 
     return {
       kind: 'task',
       taskId: activeId,
       targetStepId: cell.stepId,
       targetSwimLaneId: cell.swimLaneId,
-      newOrder: existing?.length ?? 0,
+      newOrder,
       changedCell,
     }
   }

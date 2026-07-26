@@ -41,7 +41,6 @@ import {
   DeleteOutlined,
   EditOutlined,
   InboxOutlined,
-  LinkOutlined,
   MoreOutlined,
   PlusOutlined,
 } from '@ant-design/icons'
@@ -50,6 +49,7 @@ import { CSSProperties, FC, useEffect, useMemo, useState } from 'react'
 import PageTitle from '@/src/components/common/page-title'
 import { setBreadcrumbTitle } from '@/src/store/breadcrumbs'
 import { StoryMapTaskDto } from '@/src/services/wayd-api'
+import { togglePersonaId } from '@/src/store/features/planning/story-map-patches'
 import type { DropResult } from './_components/board-drag'
 import {
   BoardActions,
@@ -148,11 +148,6 @@ const StoryMapDetailPage: FC = () => {
     () => [...(map?.personas ?? [])].sort((a, b) => a.order - b.order),
     [map],
   )
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href)
-    messageApi.success('Link copied to clipboard.')
-  }
 
   const handleArchive = async () => {
     if (!map) return
@@ -405,13 +400,6 @@ const StoryMapDetailPage: FC = () => {
     }
   }
 
-  // The API sets the whole persona list, so a toggle is a local add/remove of one id followed by
-  // sending the resulting list.
-  const togglePersonaId = (personaIds: string[], personaId: string) =>
-    personaIds.includes(personaId)
-      ? personaIds.filter((id) => id !== personaId)
-      : [...personaIds, personaId]
-
   const handleToggleStepPersona = async (stepId: string, personaId: string) => {
     if (!map) return
     const step = map.goals
@@ -512,15 +500,6 @@ const StoryMapDetailPage: FC = () => {
           },
         ]
       : []),
-    ...(canEdit || canDelete
-      ? [{ key: 'actions-divider', type: 'divider' as const }]
-      : []),
-    {
-      key: 'copy-link',
-      label: 'Copy link',
-      icon: <LinkOutlined />,
-      onClick: handleCopyLink,
-    },
   ]
 
   const pageTitleActions = (

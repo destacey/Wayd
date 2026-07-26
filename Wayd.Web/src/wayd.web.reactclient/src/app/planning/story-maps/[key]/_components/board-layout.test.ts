@@ -8,15 +8,8 @@ import {
 import { buildBoardLayout, cellKey } from './board-layout'
 
 /**
- * The board is one CSS grid, so these placements decide what lines up with what. Two invariants
- * matter most and are asserted throughout:
- *
- *  - a goal header spans exactly the column tracks of its own steps, so goals stay aligned above
- *    the steps they own;
- *  - `stepColumnCount` counts a placeholder track for every step-less goal. Deriving the grid
- *    template from `steps.length` instead lets goal headers collide in too few tracks, and the
- *    browser then sizes the overflow columns by content rather than `1fr`, so goals stop sharing
- *    width equally.
+ * Two invariants are asserted throughout: a goal header spans exactly its own steps' tracks, and
+ * `stepColumnCount` includes a placeholder track for every step-less goal.
  */
 
 const task = (

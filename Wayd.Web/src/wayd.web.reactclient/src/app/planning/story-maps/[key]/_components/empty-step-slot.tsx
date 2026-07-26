@@ -15,11 +15,8 @@ export interface EmptyStepSlotProps {
 }
 
 /**
- * The empty slot in the steps row beneath a goal that has no steps.
- *
- * It fills the placeholder column so the grid has no hole, and doubles as the drop target for moving
- * a step into that goal — the goal header itself is never a target, so the goals row stays inert
- * during a step drag. Mirrors how an empty task cell accepts a task.
+ * The empty slot in the steps row beneath a step-less goal. Fills the placeholder column so the grid
+ * has no hole, and is the drop target for moving a step into that goal.
  */
 const EmptyStepSlot: FC<EmptyStepSlotProps> = ({
   goalId,

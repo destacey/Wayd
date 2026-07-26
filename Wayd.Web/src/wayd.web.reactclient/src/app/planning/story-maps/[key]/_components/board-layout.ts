@@ -43,11 +43,7 @@ export interface GoalPlacement {
   columnSpan: number
   /** Position among goals, used as the reorder target index. */
   index: number
-  /**
-   * A goal with no steps still claims one track so its header keeps its share of the width. There
-   * is no step to fill that track, so the steps row and every task row need a blank cell there or
-   * the grid shows a hole under the goal.
-   */
+  /** A step-less goal still claims one track, which needs blank filler cells in the rows below. */
   isPlaceholderColumn: boolean
 }
 
@@ -67,11 +63,9 @@ export interface BoardLayout {
   /** 1-based line number of the right-most column, used to spot outer-edge cells. */
   lastColumn: number
   /**
-   * Number of step tracks the grid template must declare. This is NOT `steps.length` — an empty
-   * goal still claims a placeholder track, so a board of three step-less goals needs three tracks
-   * even though it has no steps. Driving the template off the step count instead lets the goal
-   * headers collide in too few tracks, and the browser then sizes the implicit overflow columns by
-   * content rather than `1fr`, so the goals stop sharing width equally.
+   * Number of step tracks the grid template must declare. NOT `steps.length` — a step-less goal
+   * still claims a placeholder track, and declaring too few makes the browser size the overflow
+   * columns by content instead of `1fr`, so goals stop sharing width equally.
    */
   stepColumnCount: number
   /** Tasks keyed by `${stepId}:${swimLaneId}`, each list sorted by order. */
@@ -87,8 +81,7 @@ const byOrder = <T extends { order: number }>(items: T[]): T[] =>
 
 /**
  * Walk the map in display order, assigning each step the next column and each goal a header span
- * covering its steps. A goal with no steps still claims one column so its header (and its "add
- * step" action) stays visible and reachable.
+ * covering its steps. A step-less goal still claims one column so its header stays reachable.
  */
 export const buildBoardLayout = (map: StoryMapDetailsDto): BoardLayout => {
   const goals: GoalPlacement[] = []
@@ -141,8 +134,7 @@ export const buildBoardLayout = (map: StoryMapDetailsDto): BoardLayout => {
     steps,
     swimLanes,
     lastColumn,
-    // Total tracks laid down above, minus the label column. Floored at 1 so a map with no goals at
-    // all still has a track for the grid template to declare.
+    // Floored at 1 so a map with no goals still has a track for the grid template to declare.
     stepColumnCount: Math.max(lastColumn - LABEL_COLUMN, 1),
     tasksByCell,
   }

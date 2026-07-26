@@ -15,10 +15,8 @@ export interface PersonaToggleDotsProps {
 }
 
 /**
- * One dot per persona on the map, shown in a step or task footer. A dot is filled with the persona's
- * colour when linked and hollow when not, and clicking it toggles the link. Hovering names the
- * persona, since colour alone does not identify it — filled vs hollow already says which way a
- * click will go, so the tooltip is the name only.
+ * One dot per persona on the map, shown in a step or task footer: filled with the persona's colour
+ * when linked, hollow when not, and clicking toggles the link. Hovering names the persona.
  */
 const PersonaToggleDots: FC<PersonaToggleDotsProps> = ({
   personas,
@@ -29,7 +27,7 @@ const PersonaToggleDots: FC<PersonaToggleDotsProps> = ({
   if (personas.length === 0) return null
 
   const handleClick = (e: MouseEvent, personaId: string) => {
-    // The whole cell is click-to-edit (and will become a drag handle); a dot click is neither.
+    // The whole cell is a drag surface and click-to-edit; a dot click is neither.
     e.stopPropagation()
     onToggle(personaId)
   }

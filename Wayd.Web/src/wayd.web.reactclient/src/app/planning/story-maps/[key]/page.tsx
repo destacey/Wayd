@@ -37,20 +37,16 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { Avatar, Button, Divider, Dropdown, Flex, Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { WaydTooltip } from '@/src/components/common'
-import {
-  DeleteOutlined,
-  EditOutlined,
-  InboxOutlined,
-  MoreOutlined,
-  PlusOutlined,
-} from '@ant-design/icons'
+import { MoreOutlined, PlusOutlined } from '@ant-design/icons'
 import { notFound, useParams, usePathname, useRouter } from 'next/navigation'
 import { CSSProperties, FC, useEffect, useMemo, useState } from 'react'
 import PageTitle from '@/src/components/common/page-title'
 import { setBreadcrumbTitle } from '@/src/store/breadcrumbs'
 import { StoryMapTaskDto } from '@/src/services/wayd-api'
 import { togglePersonaId } from '@/src/store/features/planning/story-map-patches'
+import { generateCsv, downloadCsvWithTimestamp } from '@/src/utils/csv-utils'
 import type { DropResult } from './_components/board-drag'
+import { buildExportRows, EXPORT_HEADERS } from './_components/board-export'
 import {
   BoardActions,
   EditStoryMapForm,
@@ -472,19 +468,22 @@ const StoryMapDetailPage: FC = () => {
     </Flex>
   )
 
+  const handleExportCsv = () => {
+    const csv = generateCsv(EXPORT_HEADERS, buildExportRows(map))
+    downloadCsvWithTimestamp(csv, `story-map-${map.key}`)
+  }
+
   const menuItems: ItemType[] = [
     ...(canEdit
       ? [
           {
             key: 'edit',
             label: 'Edit',
-            icon: <EditOutlined />,
             onClick: () => setOpenEditForm(true),
           },
           {
             key: 'archive',
             label: 'Archive',
-            icon: <InboxOutlined />,
             onClick: handleArchive,
           },
         ]
@@ -494,12 +493,22 @@ const StoryMapDetailPage: FC = () => {
           {
             key: 'delete',
             label: 'Delete',
-            icon: <DeleteOutlined />,
             danger: true,
             onClick: () => setOpenDeleteMap(true),
           },
         ]
       : []),
+    // Only separate the export once something sits above it — a viewer with neither permission sees
+    // export alone, and a leading divider would hang off the top of the menu.
+    ...(canEdit || canDelete
+      ? [{ key: 'export-divider', type: 'divider' as const }]
+      : []),
+    // Viewing is enough to export — it reads nothing the page is not already showing.
+    {
+      key: 'export',
+      label: 'Export CSV',
+      onClick: handleExportCsv,
+    },
   ]
 
   const pageTitleActions = (

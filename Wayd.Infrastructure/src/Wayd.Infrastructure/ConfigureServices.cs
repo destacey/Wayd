@@ -26,6 +26,7 @@ using Wayd.Integrations.MicrosoftGraph;
 using Wayd.Integrations.Workday;
 using Wayd.Integrations.Workday.Soap;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
 using Wayd.Planning.Application.StoryMaps.Interfaces;
 namespace Wayd.Infrastructure;
@@ -96,7 +97,19 @@ public static class ConfigureServices
         var signalRConnectionString = config.GetValue<string>("Azure:SignalR:ConnectionString");
         if (!string.IsNullOrWhiteSpace(signalRConnectionString))
         {
-            signalRBuilder.AddAzureSignalR();
+            signalRBuilder.AddAzureSignalR(options =>
+            {
+                // Azure SignalR Service caps its access token at 4 KB; negotiate fails with
+                // HTTP 413 "AccessToken must not be longer than 4K" beyond that. The SDK
+                // copies every claim from the negotiating user into that token by default,
+                // and the Wayd JWT carries one claim per permission — enough to blow the cap
+                // on a real permission set. Hub authorization resolves permissions from the
+                // database (PermissionAuthorizationHandler → IUserService), not from claims,
+                // so the permission claims can be dropped from the service token. Everything
+                // else (NameIdentifier, name/surname, email, EmployeeId, loginProvider) stays.
+                options.ClaimsProvider = context => context.User.Claims
+                    .Where(c => c.Type != ApplicationClaims.Permission);
+            });
         }
         services.AddScoped<IPokerSessionNotifier, PlanningPokerNotifier>();
         services.AddScoped<IStoryMapNotifier, StoryMapNotifier>();

@@ -71,6 +71,12 @@ export function usePokerSessionConnection(
             // running sessions. getFreshAuthToken shares the single-flight
             // refresh with the axios interceptor — no duplicate refresh calls.
             accessTokenFactory: async () => (await getFreshAuthToken()) ?? '',
+            // In prod the negotiate redirects the browser to Azure SignalR
+            // Service, which does not support credentialed CORS — with the
+            // signalr default (withCredentials: true) its preflight response
+            // has no Access-Control-Allow-Origin and the connect fails. Auth
+            // is Bearer-only (accessTokenFactory above), no cookies needed.
+            withCredentials: false,
           })
           .withAutomaticReconnect()
           .configureLogging(LogLevel.Warning)

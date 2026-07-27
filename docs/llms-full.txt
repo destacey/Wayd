@@ -169,7 +169,11 @@ Structure: StoryMap (aggregate root) → Goals → Steps → Tasks. Swim Lanes a
 - Persona: audience tag (Name, optional Description, Color) scoped to one map. Set on goals, steps, and tasks by replacing the whole id list. Deleting a persona untags it everywhere, returning the untagged count. The board UI tags steps and tasks only; goals derive their filter state from descendants.
 - Checklist Item: sub-item of a task (Name, IsChecked), persisted as JSON. Promoting one creates a task in the same step, always in the default swim lane. API-exposed; no board UI as of this writing.
 
-Status: Active on creation; Archive is Active → Removed and one-way (no un-archive exists). Archived maps are read-only in the UI, but the backend does not block writes by status. Delete is a separate soft delete and does not require archiving first.
+Status: Active on creation; Archive is Active → Removed and one-way (no un-archive exists). Archived maps are read-only — every mutating method on the aggregate rejects with "This story map is archived and cannot be changed.", so the API enforces it rather than relying on the UI hiding the affordances. Delete is a separate soft delete and does not require archiving first.
+
+Concurrency: the root carries a rowversion. The contended commands (goal/step/lane/persona reorders and step/task moves) run through `StoryMapMutation.Apply`, which reloads and re-applies once on `DbUpdateConcurrencyException` — concurrent drags on a shared board are an ordinary race, not an error to surface. The remaining commands are last-write-wins; they target a single field or node, so a race loses one edit rather than corrupting a sequence.
+
+Notifications are best-effort: `StoryMapNotifier` logs and swallows hub failures, because handlers notify after committing and a broadcast error would otherwise make the client retry and duplicate the change. Reorder/move events carry the *applied* order read back from the aggregate, not the requested one, since the domain clamps and renumbers.
 
 Ordering: zero-based throughout. Adds append at max(Order)+1; reorders renumber the collection contiguously. Task deletion does not renumber, so a cell's task order can go non-contiguous. Swim lane reorder pins the default lane at 0 and renumbers the rest from 1. `Step.Tasks` is returned unsorted — clients must sort by Order.
 

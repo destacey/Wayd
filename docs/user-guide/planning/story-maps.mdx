@@ -162,7 +162,9 @@ The file has one row per task, with the goal and step repeated on each row:
 | Personas | Semicolon-separated, e.g. `Engineer; Designer` |
 | Swim Lane | |
 
-Rows come out in board order — goal by goal, step by step, lane by lane — so the file reads the same way the board does. Goals with no steps and steps with no tasks still get a row, with the columns below them blank, so the export records the map's full shape.
+Rows come out in board order — goal by goal, step by step, lane by lane — so the file reads the same way the board does. Goals with no steps and steps with no tasks still get a row, with the columns below them blank, so nothing on the board is missing from the file.
+
+The **Personas** column describes the row's subject: a task's own personas on a task row, and the step's on a row for an empty step. A step's personas are not repeated onto each of its task rows.
 
 The export always covers the **whole map**. An active persona filter changes what you see on the board but not what lands in the file.
 
@@ -170,7 +172,7 @@ The export always covers the **whole map**. An active persona filter changes wha
 
 A story map is **Active** when created. **Actions → Archive** retires it.
 
-Archived maps become read-only — the add, edit, delete, and drag affordances all disappear — and are hidden from the story maps list unless you switch on **Include Archived**. Archiving cannot be undone from the UI.
+Archived maps become read-only — the add, edit, delete, and drag affordances all disappear — and are hidden from the story maps list unless you switch on **Include Archived**. Archiving cannot be undone, so it asks for confirmation first.
 
 **Delete** removes a map entirely and is separate from archiving; a map does not need to be archived first.
 

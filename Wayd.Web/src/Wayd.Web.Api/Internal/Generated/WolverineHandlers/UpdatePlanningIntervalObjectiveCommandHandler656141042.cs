@@ -52,16 +52,16 @@ namespace Internal.Generated.WolverineHandlers
             var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
+            var dispatcher = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Common.Application.Interfaces.IDispatcher>(serviceScope.ServiceProvider);
+            // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var ambientUserId = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Infrastructure.Auth.AmbientUserId>(serviceScope.ServiceProvider);
-            var currentUser = new Wayd.Infrastructure.Auth.CurrentUser(_httpContextAccessor1, ambientUserId);
-            var dateTimeProvider = new Wayd.Infrastructure.Common.Services.DateTimeProvider(_timeProvider);
-            var eventPublisher = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher, context);
-            var dbContextOutbox = new Wolverine.EntityFrameworkCore.DbContextOutbox(_wolverineRuntime, _domainEventScraperIEnumerable);
             var requestCorrelationIdProvider = new Wayd.Infrastructure.Common.Services.RequestCorrelationIdProvider(_httpContextAccessor2);
+            var dbContextOutbox = new Wolverine.EntityFrameworkCore.DbContextOutbox(_wolverineRuntime, _domainEventScraperIEnumerable);
+            var eventPublisher = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher, context);
+            var dateTimeProvider = new Wayd.Infrastructure.Common.Services.DateTimeProvider(_timeProvider);
+            var currentUser = new Wayd.Infrastructure.Auth.CurrentUser(_httpContextAccessor1, ambientUserId);
             await using var waydDbContext = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions, currentUser, dateTimeProvider, _optionsOfDatabaseSettings, eventPublisher, dbContextOutbox, requestCorrelationIdProvider);
             var updatePlanningIntervalObjectiveCommandValidator = new Wayd.Planning.Application.PlanningIntervals.Commands.UpdatePlanningIntervalObjectiveCommandValidator(waydDbContext);
-            // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
-            var dispatcher = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Common.Application.Interfaces.IDispatcher>(serviceScope.ServiceProvider);
             // The actual message body
             var updatePlanningIntervalObjectiveCommand = (Wayd.Planning.Application.PlanningIntervals.Commands.UpdatePlanningIntervalObjectiveCommand)context.Envelope.Message;
 

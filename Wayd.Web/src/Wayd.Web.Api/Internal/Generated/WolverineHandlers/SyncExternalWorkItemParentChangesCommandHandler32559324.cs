@@ -49,7 +49,7 @@ namespace Internal.Generated.WolverineHandlers
 
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
-            var syncExternalWorkItemParentChangesCommandValidator = new Wayd.Common.Application.Requests.WorkManagement.Commands.SyncExternalWorkItemParentChangesCommandValidator();
+            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var ambientUserId = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Infrastructure.Auth.AmbientUserId>(serviceScope.ServiceProvider);
@@ -59,7 +59,7 @@ namespace Internal.Generated.WolverineHandlers
             var dateTimeProvider = new Wayd.Infrastructure.Common.Services.DateTimeProvider(_timeProvider);
             var currentUser = new Wayd.Infrastructure.Auth.CurrentUser(_httpContextAccessor1, ambientUserId);
             await using var waydDbContext = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions, currentUser, dateTimeProvider, _optionsOfDatabaseSettings, eventPublisher, dbContextOutbox, requestCorrelationIdProvider);
-            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
+            var syncExternalWorkItemParentChangesCommandValidator = new Wayd.Common.Application.Requests.WorkManagement.Commands.SyncExternalWorkItemParentChangesCommandValidator();
             // The actual message body
             var syncExternalWorkItemParentChangesCommand = (Wayd.Common.Application.Requests.WorkManagement.Commands.SyncExternalWorkItemParentChangesCommand)context.Envelope.Message;
 

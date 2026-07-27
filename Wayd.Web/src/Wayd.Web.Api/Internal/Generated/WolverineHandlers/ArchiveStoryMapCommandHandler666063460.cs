@@ -49,6 +49,8 @@ namespace Internal.Generated.WolverineHandlers
 
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
+            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
+            var archiveStoryMapCommandValidator = new Wayd.Planning.Application.StoryMaps.Commands.ArchiveStoryMapCommandValidator();
             var requestCorrelationIdProvider = new Wayd.Infrastructure.Common.Services.RequestCorrelationIdProvider(_httpContextAccessor2);
             var dbContextOutbox = new Wolverine.EntityFrameworkCore.DbContextOutbox(_wolverineRuntime, _domainEventScraperIEnumerable);
             var eventPublisher = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher, context);
@@ -60,8 +62,6 @@ namespace Internal.Generated.WolverineHandlers
             await using var waydDbContext = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions, currentUser, dateTimeProvider, _optionsOfDatabaseSettings, eventPublisher, dbContextOutbox, requestCorrelationIdProvider);
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var storyMapNotifier = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Planning.Application.StoryMaps.Interfaces.IStoryMapNotifier>(serviceScope.ServiceProvider);
-            var archiveStoryMapCommandValidator = new Wayd.Planning.Application.StoryMaps.Commands.ArchiveStoryMapCommandValidator();
-            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             // The actual message body
             var archiveStoryMapCommand = (Wayd.Planning.Application.StoryMaps.Commands.ArchiveStoryMapCommand)context.Envelope.Message;
 

@@ -49,6 +49,7 @@ namespace Internal.Generated.WolverineHandlers
 
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
+            var reorderStepCommandValidator = new Wayd.Planning.Application.StoryMaps.Commands.ReorderStepCommandValidator();
             var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
@@ -61,7 +62,6 @@ namespace Internal.Generated.WolverineHandlers
             await using var waydDbContext = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions, currentUser, dateTimeProvider, _optionsOfDatabaseSettings, eventPublisher, dbContextOutbox, requestCorrelationIdProvider);
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var storyMapNotifier = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Planning.Application.StoryMaps.Interfaces.IStoryMapNotifier>(serviceScope.ServiceProvider);
-            var reorderStepCommandValidator = new Wayd.Planning.Application.StoryMaps.Commands.ReorderStepCommandValidator();
             // The actual message body
             var reorderStepCommand = (Wayd.Planning.Application.StoryMaps.Commands.ReorderStepCommand)context.Envelope.Message;
 

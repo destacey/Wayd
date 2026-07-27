@@ -62,7 +62,6 @@ namespace Internal.Generated.WolverineHandlers
 
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
-            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             var eventPublisher1 = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher1, context);
             await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
@@ -76,6 +75,7 @@ namespace Internal.Generated.WolverineHandlers
             await using var waydDbContext2 = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions2, currentUser, dateTimeProvider, _optionsOfDatabaseSettings2, eventPublisher2, dbContextOutbox, requestCorrelationIdProvider);
             var eventPublisher3 = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher3, context);
             await using var waydDbContext3 = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions3, currentUser, dateTimeProvider, _optionsOfDatabaseSettings3, eventPublisher3, dbContextOutbox, requestCorrelationIdProvider);
+            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             // The actual message body
             var teamDeletedEvent = (Wayd.Common.Domain.Events.Organization.TeamDeletedEvent)context.Envelope.Message;
 

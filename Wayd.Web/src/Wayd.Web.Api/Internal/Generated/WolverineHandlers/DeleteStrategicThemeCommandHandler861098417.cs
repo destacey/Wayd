@@ -51,8 +51,8 @@ namespace Internal.Generated.WolverineHandlers
 
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
-            var deleteStrategicThemeCommandValidator = new Wayd.StrategicManagement.Application.StrategicThemes.Commands.DeleteStrategicThemeCommandValidator();
             var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
+            var deleteStrategicThemeCommandValidator = new Wayd.StrategicManagement.Application.StrategicThemes.Commands.DeleteStrategicThemeCommandValidator();
             await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var ambientUserId = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Infrastructure.Auth.AmbientUserId>(serviceScope.ServiceProvider);

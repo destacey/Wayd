@@ -49,8 +49,8 @@ namespace Internal.Generated.WolverineHandlers
 
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
-            var createObjectiveCommandValidator = new Wayd.Common.Application.Requests.Goals.Commands.CreateObjectiveCommandValidator();
             var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
+            var createObjectiveCommandValidator = new Wayd.Common.Application.Requests.Goals.Commands.CreateObjectiveCommandValidator();
             var requestCorrelationIdProvider = new Wayd.Infrastructure.Common.Services.RequestCorrelationIdProvider(_httpContextAccessor2);
             var dbContextOutbox = new Wolverine.EntityFrameworkCore.DbContextOutbox(_wolverineRuntime, _domainEventScraperIEnumerable);
             var eventPublisher = new Wayd.Infrastructure.Common.Services.EventPublisher(_loggerOfEventPublisher, context);

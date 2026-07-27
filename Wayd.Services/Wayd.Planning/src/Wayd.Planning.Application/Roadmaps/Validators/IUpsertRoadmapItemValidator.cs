@@ -1,4 +1,4 @@
-﻿using Wayd.Planning.Domain.Interfaces.Roadmaps;
+using Wayd.Planning.Domain.Interfaces.Roadmaps;
 
 namespace Wayd.Planning.Application.Roadmaps.Validators;
 
@@ -22,7 +22,6 @@ public class IUpsertRoadmapItemValidator : CustomValidator<IUpsertRoadmapItem>
         });
 
         When(x => x.Color != null, () => RuleFor(x => x.Color)
-            .Matches("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")
-            .WithMessage("Color must be a valid hex color code."));
+            .IsHexColor());
     }
 }

@@ -1,4 +1,4 @@
-﻿using Ardalis.GuardClauses;
+using Ardalis.GuardClauses;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums;
 using Wayd.Planning.Domain.Models.Roadmaps;
@@ -35,9 +35,7 @@ public sealed class CreateRoadmapCommandValidator : AbstractValidator<CreateRoad
         RuleFor(x => x.Visibility)
             .IsInEnum();
 
-        //When(x => x.color != null, () => RuleFor(x => x.color)
-        //    .Matches("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")
-        //    .WithMessage("Color must be a valid hex color code."));
+        //When(x => x.color != null, () => RuleFor(x => x.color).IsHexColor());
 
         //When(x => x.ParentId.HasValue, () =>
         //{

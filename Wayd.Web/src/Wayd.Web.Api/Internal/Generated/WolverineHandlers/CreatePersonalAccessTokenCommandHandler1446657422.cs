@@ -59,8 +59,8 @@ namespace Internal.Generated.WolverineHandlers
             var requestCorrelationIdProvider = new Wayd.Infrastructure.Common.Services.RequestCorrelationIdProvider(_httpContextAccessor2);
             await using var waydDbContext = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions, currentUser, dateTimeProvider, _optionsOfDatabaseSettings, eventPublisher, dbContextOutbox, requestCorrelationIdProvider);
             var createPersonalAccessTokenCommandValidator = new Wayd.Common.Application.Identity.PersonalAccessTokens.Commands.CreatePersonalAccessTokenCommandValidator(waydDbContext, currentUser, dateTimeProvider);
-            var tokenHashingService = new Wayd.Infrastructure.Common.Services.TokenHashingService();
             var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
+            var tokenHashingService = new Wayd.Infrastructure.Common.Services.TokenHashingService();
             // The actual message body
             var createPersonalAccessTokenCommand = (Wayd.Common.Application.Identity.PersonalAccessTokens.Commands.CreatePersonalAccessTokenCommand)context.Envelope.Message;
 

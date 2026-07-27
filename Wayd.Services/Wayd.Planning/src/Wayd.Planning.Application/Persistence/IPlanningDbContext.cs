@@ -1,6 +1,7 @@
 ﻿using Wayd.Planning.Domain.Models.Iterations;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Planning.Domain.Models.Roadmaps;
+using Wayd.Planning.Domain.Models.StoryMaps;
 
 namespace Wayd.Planning.Application.Persistence;
 
@@ -16,4 +17,5 @@ public interface IPlanningDbContext : IWaydDbContext
     DbSet<Roadmap> Roadmaps { get; }
     DbSet<EstimationScale> EstimationScales { get; }
     DbSet<PokerSession> PokerSessions { get; }
+    DbSet<StoryMap> StoryMaps { get; }
 }

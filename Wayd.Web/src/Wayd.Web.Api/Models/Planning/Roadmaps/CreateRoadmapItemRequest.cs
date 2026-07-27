@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Wayd.Web.Api.Models.Planning.Roadmaps;
 
@@ -56,7 +56,6 @@ public sealed class CreateRoadmapItemRequestValidator : CustomValidator<CreateRo
         });
 
         When(x => x.Color != null, () => RuleFor(x => x.Color)
-            .Matches("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")
-            .WithMessage("Color must be a valid hex color code."));
+            .IsHexColor());
     }
 }

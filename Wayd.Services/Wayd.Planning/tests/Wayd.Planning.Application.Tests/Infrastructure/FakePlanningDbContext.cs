@@ -9,6 +9,7 @@ using Wayd.Planning.Domain.Models;
 using Wayd.Planning.Domain.Models.Iterations;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Planning.Domain.Models.Roadmaps;
+using Wayd.Planning.Domain.Models.StoryMaps;
 using Wayd.Tests.Shared.Infrastructure;
 
 namespace Wayd.Planning.Application.Tests.Infrastructure;
@@ -30,6 +31,7 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
     private readonly List<Roadmap> _roadmaps = [];
     private readonly List<EstimationScale> _estimationScales = [];
     private readonly List<PokerSession> _pokerSessions = [];
+    private readonly List<StoryMap> _storyMaps = [];
 
     // Common domain entities
     private readonly List<Employee> _employees = [];
@@ -50,6 +52,7 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
     public DbSet<Roadmap> Roadmaps => _roadmaps.AsDbSet();
     public DbSet<EstimationScale> EstimationScales => _estimationScales.AsDbSet();
     public DbSet<PokerSession> PokerSessions => _pokerSessions.AsDbSet();
+    public DbSet<StoryMap> StoryMaps => _storyMaps.AsDbSet();
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();
     public DbSet<OidcProvider> OidcProviders => _oidcProviders.AsDbSet();
@@ -68,9 +71,21 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
     /// </summary>
     public int SaveChangesCallCount { get; private set; }
 
+    /// <summary>
+    /// Number of upcoming SaveChanges calls that should fail with a concurrency conflict, for
+    /// exercising retry-on-conflict paths. Each throw consumes one.
+    /// </summary>
+    public int ConcurrencyConflictsToThrow { get; set; }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         SaveChangesCallCount++;
+
+        if (ConcurrencyConflictsToThrow > 0)
+        {
+            ConcurrencyConflictsToThrow--;
+            throw new DbUpdateConcurrencyException("Simulated concurrency conflict.");
+        }
 
         // Return the total number of entities as a simple success indicator
         var count = _iterations.Count + _planningIntervals.Count + _risks.Count +
@@ -128,9 +143,17 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
     public void AddPokerSession(PokerSession session) => _pokerSessions.Add(session);
     public void AddPokerSessions(IEnumerable<PokerSession> sessions) => _pokerSessions.AddRange(sessions);
 
+    // StoryMap
+    public void AddStoryMap(StoryMap storyMap) => _storyMaps.Add(storyMap);
+    public void AddStoryMaps(IEnumerable<StoryMap> storyMaps) => _storyMaps.AddRange(storyMaps);
+
     // Employee
     public void AddEmployee(Employee employee) => _employees.Add(employee);
     public void AddEmployees(IEnumerable<Employee> employees) => _employees.AddRange(employees);
+
+    // User (WaydUsers)
+    public void AddUser(User user) => _waydUsers.Add(user);
+    public void AddUsers(IEnumerable<User> users) => _waydUsers.AddRange(users);
 
     /// <summary>
     /// Clears all entities from the fake context and resets counters.
@@ -147,7 +170,9 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
         _roadmaps.Clear();
         _estimationScales.Clear();
         _pokerSessions.Clear();
+        _storyMaps.Clear();
         _employees.Clear();
+        _waydUsers.Clear();
         _externalEmployeeBlacklistItems.Clear();
         _personalAccessTokens.Clear();
         SaveChangesCallCount = 0;

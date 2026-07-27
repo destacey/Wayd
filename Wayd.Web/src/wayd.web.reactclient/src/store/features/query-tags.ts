@@ -77,6 +77,8 @@ export enum QueryTags {
   RoadmapState = 'Planning.RoadmapState',
   PokerSession = 'Planning.PokerSession',
   PokerSessionRound = 'Planning.PokerSession.Round',
+  StoryMap = 'Planning.StoryMap',
+  StoryMapList = 'Planning.StoryMap.List',
   EstimationScale = 'Planning.EstimationScale',
   Sprint = 'Planning.Sprint',
   SprintBacklog = 'Planning.Sprint.Backlog',

@@ -27,6 +27,7 @@ using Wayd.Integrations.Workday;
 using Wayd.Integrations.Workday.Soap;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
+using Wayd.Planning.Application.StoryMaps.Interfaces;
 namespace Wayd.Infrastructure;
 
 public static class ConfigureServices
@@ -98,6 +99,7 @@ public static class ConfigureServices
             signalRBuilder.AddAzureSignalR();
         }
         services.AddScoped<IPokerSessionNotifier, PlanningPokerNotifier>();
+        services.AddScoped<IStoryMapNotifier, StoryMapNotifier>();
 
         return services
             .AddApiVersioning()
@@ -184,6 +186,7 @@ public static class ConfigureServices
     {
         app.MapControllers().RequireAuthorization();
         app.MapHub<PlanningPokerHub>("/hubs/planning-poker");
+        app.MapHub<StoryMapHub>("/hubs/story-maps");
 
         if (app.Environment.IsDevelopment())
         {

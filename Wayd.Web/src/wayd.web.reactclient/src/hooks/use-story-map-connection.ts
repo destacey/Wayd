@@ -74,6 +74,12 @@ export function useStoryMapConnection(
             // token expiry; getFreshAuthToken shares the single-flight refresh
             // with the axios interceptor.
             accessTokenFactory: async () => (await getFreshAuthToken()) ?? '',
+            // In prod the negotiate redirects the browser to Azure SignalR
+            // Service, which does not support credentialed CORS — with the
+            // signalr default (withCredentials: true) its preflight response
+            // has no Access-Control-Allow-Origin and the connect fails. Auth
+            // is Bearer-only (accessTokenFactory above), no cookies needed.
+            withCredentials: false,
           })
           .withAutomaticReconnect()
           .configureLogging(LogLevel.Warning)

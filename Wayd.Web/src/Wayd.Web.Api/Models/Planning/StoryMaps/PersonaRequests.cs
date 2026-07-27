@@ -18,7 +18,8 @@ public sealed class AddPersonaRequestValidator : CustomValidator<AddPersonaReque
         RuleLevelCascadeMode = CascadeMode.Stop;
         RuleFor(r => r.Name).NotEmpty().MaximumLength(128);
         RuleFor(r => r.Description).MaximumLength(256);
-        RuleFor(r => r.Color).NotEmpty().MaximumLength(7);
+        RuleFor(r => r.Color).NotEmpty()
+            .IsHexColor();
     }
 }
 
@@ -38,7 +39,8 @@ public sealed class UpdatePersonaRequestValidator : CustomValidator<UpdatePerson
         RuleLevelCascadeMode = CascadeMode.Stop;
         RuleFor(r => r.Name).NotEmpty().MaximumLength(128);
         RuleFor(r => r.Description).MaximumLength(256);
-        RuleFor(r => r.Color).NotEmpty().MaximumLength(7);
+        RuleFor(r => r.Color).NotEmpty()
+            .IsHexColor();
     }
 }
 

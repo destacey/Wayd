@@ -1,15 +1,20 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.FeatureManagement;
+using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Infrastructure.SignalR;
 
 namespace Wayd.Infrastructure.Tests.Sut.SignalR;
 
 /// <summary>
-/// Covers <see cref="StoryMapHub"/> presence: the display-name claim-resolution fallback in
-/// <see cref="StoryMapHub.JoinMap"/> (Entra "name" → composed first-name + surname → Wayd-JWT
-/// ClaimTypes.Name → email, treating a blank name as absent), that anonymous/userless connections
-/// are not registered, and that a single user open on multiple connections is tracked (and
-/// broadcast) as one participant.
+/// Covers <see cref="StoryMapHub"/> presence: the display-name resolution in
+/// <see cref="StoryMapHub.JoinMap"/> (first name + surname composed, first name alone when the
+/// surname is blank, then email — a standalone "name" claim is deliberately not consulted), that
+/// anonymous/userless connections are not registered, and that a single user open on multiple
+/// connections is tracked (and broadcast) as one participant.
+///
+/// Also covers the guards on group membership: broadcasts carry full map content, so a connection
+/// must not join a map's group when the feature is off or the caller's identity cannot be resolved.
 /// </summary>
 public class StoryMapHubTests
 {
@@ -18,9 +23,10 @@ public class StoryMapHubTests
     private const string WaydLastName = "Smith";
     private const string TestEmail = "jane@example.com";
 
-    private static (StoryMapHub Hub, Mock<ISingleClientProxy> CallerProxy, Mock<IClientProxy> OthersProxy) BuildHub(
+    private static (StoryMapHub Hub, Mock<ISingleClientProxy> CallerProxy, Mock<IClientProxy> OthersProxy, Mock<IGroupManager> Groups) BuildHubWithGroups(
         ClaimsPrincipal user,
-        string? connectionId = null)
+        string? connectionId = null,
+        bool featureEnabled = true)
     {
         connectionId ??= Guid.NewGuid().ToString();
 
@@ -31,6 +37,9 @@ public class StoryMapHubTests
         var mockGroups = new Mock<IGroupManager>();
         mockGroups
             .Setup(g => g.AddToGroupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mockGroups
+            .Setup(g => g.RemoveFromGroupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var callerProxy = new Mock<ISingleClientProxy>();
@@ -46,14 +55,28 @@ public class StoryMapHubTests
         var mockClients = new Mock<IHubCallerClients>();
         mockClients.Setup(c => c.Caller).Returns(callerProxy.Object);
         mockClients.Setup(c => c.OthersInGroup(It.IsAny<string>())).Returns(othersProxy.Object);
+        mockClients.Setup(c => c.Group(It.IsAny<string>())).Returns(othersProxy.Object);
 
-        var hub = new StoryMapHub
+        var featureManager = new Mock<IFeatureManager>();
+        featureManager
+            .Setup(f => f.IsEnabledAsync(FeatureFlags.Names.StoryMaps))
+            .ReturnsAsync(featureEnabled);
+
+        var hub = new StoryMapHub(featureManager.Object)
         {
             Context = mockContext.Object,
             Groups = mockGroups.Object,
             Clients = mockClients.Object,
         };
 
+        return (hub, callerProxy, othersProxy, mockGroups);
+    }
+
+    private static (StoryMapHub Hub, Mock<ISingleClientProxy> CallerProxy, Mock<IClientProxy> OthersProxy) BuildHub(
+        ClaimsPrincipal user,
+        string? connectionId = null)
+    {
+        var (hub, callerProxy, othersProxy, _) = BuildHubWithGroups(user, connectionId);
         return (hub, callerProxy, othersProxy);
     }
 
@@ -220,6 +243,97 @@ public class StoryMapHubTests
         callerProxy.Verify(
             p => p.SendCoreAsync("ParticipantList", It.IsAny<object?[]>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task JoinMap_WithFeatureDisabled_DoesNotJoinGroup()
+    {
+        // Arrange — the hub is mapped regardless of the flag, so the flag has to be checked here.
+        // [FeatureGate] is an MVC filter and never runs for a hub method.
+        var user = Principal(
+            (ClaimTypes.NameIdentifier, TestUserId),
+            (ClaimTypes.Name, WaydFirstName),
+            (ClaimTypes.Surname, WaydLastName));
+
+        var (hub, callerProxy, _, groups) = BuildHubWithGroups(user, featureEnabled: false);
+
+        // Act
+        await hub.JoinMap(Guid.NewGuid());
+
+        // Assert — group membership is what delivers map content, so it must not happen at all.
+        groups.Verify(
+            g => g.AddToGroupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        callerProxy.Verify(
+            p => p.SendCoreAsync("ParticipantList", It.IsAny<object?[]>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task JoinMap_WithUnresolvableIdentity_DoesNotJoinGroup()
+    {
+        // Arrange — joining before the identity check would leave a connection receiving every
+        // change broadcast while being invisible to presence.
+        var user = Principal((ClaimTypes.NameIdentifier, TestUserId));
+
+        var (hub, _, _, groups) = BuildHubWithGroups(user);
+
+        // Act
+        await hub.JoinMap(Guid.NewGuid());
+
+        // Assert
+        groups.Verify(
+            g => g.AddToGroupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task JoinMap_WithResolvedIdentity_JoinsGroup()
+    {
+        // Arrange
+        var user = Principal(
+            (ClaimTypes.NameIdentifier, TestUserId),
+            (ClaimTypes.Name, WaydFirstName),
+            (ClaimTypes.Surname, WaydLastName));
+
+        var mapId = Guid.NewGuid();
+        var (hub, _, _, groups) = BuildHubWithGroups(user);
+
+        // Act
+        await hub.JoinMap(mapId);
+
+        // Assert
+        groups.Verify(
+            g => g.AddToGroupAsync(It.IsAny<string>(), mapId.ToString(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task JoinMap_OnASecondMap_LeavesTheFirstGroup()
+    {
+        // Arrange — one connection tracks one map. Without leaving the first, its presence entry is
+        // orphaned and the participant never departs it.
+        var user = Principal(
+            (ClaimTypes.NameIdentifier, TestUserId),
+            (ClaimTypes.Name, WaydFirstName),
+            (ClaimTypes.Surname, WaydLastName));
+
+        var firstMap = Guid.NewGuid();
+        var secondMap = Guid.NewGuid();
+        var connectionId = Guid.NewGuid().ToString();
+        var (hub, _, _, groups) = BuildHubWithGroups(user, connectionId);
+
+        // Act
+        await hub.JoinMap(firstMap);
+        await hub.JoinMap(secondMap);
+
+        // Assert
+        groups.Verify(
+            g => g.RemoveFromGroupAsync(connectionId, firstMap.ToString(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        groups.Verify(
+            g => g.AddToGroupAsync(connectionId, secondMap.ToString(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]

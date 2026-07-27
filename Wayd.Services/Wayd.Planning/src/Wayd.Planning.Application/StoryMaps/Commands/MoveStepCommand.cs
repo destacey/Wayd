@@ -30,21 +30,22 @@ public sealed class MoveStepCommandHandler(IPlanningDbContext planningDbContext,
     {
         try
         {
-            var map = await _planningDbContext.StoryMaps
-                .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
-                .Include(m => m.SwimLanes)
-                .Include(m => m.Personas)
-                .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
+            var result = await StoryMapMutation.Apply(
+                _planningDbContext,
+                ct => _planningDbContext.StoryMaps
+                    .Include(m => m.Goals).ThenInclude(g => g.Steps)
+                    .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, ct),
+                map => map.MoveStep(request.StepId, request.TargetGoalId, request.NewOrder)
+                    .Map(() => map.Goals
+                        .SelectMany(g => g.Steps)
+                        .First(s => s.Id == request.StepId)
+                        .Order),
+                cancellationToken);
 
-            if (map is null)
-                return Result.Failure("Story map not found.");
-
-            var result = map.MoveStep(request.StepId, request.TargetGoalId, request.NewOrder);
             if (result.IsFailure)
-                return result;
+                return Result.Failure(result.Error);
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-            await _notifier.NotifyStepMoved(map.Id, request.StepId, request.TargetGoalId, request.NewOrder);
+            await _notifier.NotifyStepMoved(request.StoryMapId, request.StepId, request.TargetGoalId, result.Value);
 
             return Result.Success();
         }

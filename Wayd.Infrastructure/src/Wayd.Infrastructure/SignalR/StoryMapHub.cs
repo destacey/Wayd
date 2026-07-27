@@ -2,6 +2,10 @@ using System.Collections.Concurrent;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.FeatureManagement;
+using Wayd.Common.Domain.Authorization;
+using Wayd.Common.Domain.FeatureManagement;
+using Wayd.Infrastructure.Auth.Permissions;
 
 namespace Wayd.Infrastructure.SignalR;
 
@@ -20,12 +24,28 @@ public class StoryMapHub : Hub
     // connectionId → MapConnection (for cleanup on disconnect)
     private static readonly ConcurrentDictionary<string, MapConnection> _connections = new();
 
+    private readonly IFeatureManager _featureManager;
+
+    public StoryMapHub(IFeatureManager featureManager) => _featureManager = featureManager;
+
+    /// <summary>
+    /// Joins the caller to a map's broadcast group.
+    /// </summary>
+    /// <remarks>
+    /// Change broadcasts carry full goal, step, and task payloads, so joining a group is equivalent
+    /// to reading the map — it requires the same View permission the REST endpoints demand, applied
+    /// here by the policy on <see cref="MustHavePermissionAttribute"/>. The feature flag is checked
+    /// in code rather than with <c>[FeatureGate]</c>, which is an MVC filter and does not run for
+    /// hub methods.
+    /// </remarks>
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     public async Task JoinMap(Guid storyMapId)
     {
+        if (!await _featureManager.IsEnabledAsync(FeatureFlags.Names.StoryMaps))
+            return;
+
         var mapKey = storyMapId.ToString();
         var connectionId = Context.ConnectionId;
-
-        await Groups.AddToGroupAsync(connectionId, mapKey);
 
         var userId = Context.User?.GetUserId();
         // Display name: compose the name from the first-name (ClaimTypes.Name) and surname
@@ -36,8 +56,20 @@ public class StoryMapHub : Hub
             FullName(Context.User),
             Context.User?.GetEmail());
 
+        // Before joining the group: a connection added and then abandoned here would keep receiving
+        // broadcasts while being invisible to presence.
         if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(name))
             return;
+
+        // One connection tracks one map, so leave the previous one or its presence entry is orphaned.
+        if (_connections.TryGetValue(connectionId, out var existingConnection)
+            && existingConnection.MapId != mapKey)
+        {
+            await Groups.RemoveFromGroupAsync(connectionId, existingConnection.MapId);
+            await RemoveConnection(connectionId, existingConnection.MapId);
+        }
+
+        await Groups.AddToGroupAsync(connectionId, mapKey);
 
         _connections[connectionId] = new MapConnection(mapKey, userId);
 

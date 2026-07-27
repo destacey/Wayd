@@ -67264,7 +67264,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("title")]
         [System.ComponentModel.DataAnnotations.Required]
-        [System.ComponentModel.DataAnnotations.StringLength(256, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
         public string Title { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("swimLaneId")]
@@ -67278,7 +67278,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("title")]
         [System.ComponentModel.DataAnnotations.Required]
-        [System.ComponentModel.DataAnnotations.StringLength(256, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
         public string Title { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("description")]
@@ -67320,7 +67320,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
-        [System.ComponentModel.DataAnnotations.StringLength(256, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
         public string Name { get; set; } = default!;
 
     }
@@ -67331,7 +67331,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
-        [System.ComponentModel.DataAnnotations.StringLength(256, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
         public string Name { get; set; } = default!;
 
     }
@@ -67415,7 +67415,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("color")]
         [System.ComponentModel.DataAnnotations.Required]
-        [System.ComponentModel.DataAnnotations.StringLength(7, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")]
         public string Color { get; set; } = default!;
 
     }
@@ -67435,7 +67435,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("color")]
         [System.ComponentModel.DataAnnotations.Required]
-        [System.ComponentModel.DataAnnotations.StringLength(7, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")]
         public string Color { get; set; } = default!;
 
     }

@@ -17,7 +17,7 @@ public sealed class AddTaskRequestValidator : CustomValidator<AddTaskRequest>
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
         RuleFor(r => r.StepId).NotEmpty();
-        RuleFor(r => r.Title).NotEmpty().MaximumLength(256);
+        RuleFor(r => r.Title).NotEmpty().MaximumLength(128);
     }
 }
 
@@ -34,7 +34,7 @@ public sealed class UpdateTaskRequestValidator : CustomValidator<UpdateTaskReque
     public UpdateTaskRequestValidator()
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
-        RuleFor(r => r.Title).NotEmpty().MaximumLength(256);
+        RuleFor(r => r.Title).NotEmpty().MaximumLength(128);
         RuleFor(r => r.Description).MaximumLength(2048);
     }
 }

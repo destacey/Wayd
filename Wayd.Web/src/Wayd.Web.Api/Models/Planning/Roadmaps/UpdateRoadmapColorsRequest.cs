@@ -66,8 +66,7 @@ public sealed class UpdateRoadmapColorsRequestValidator : CustomValidator<Update
         {
             color.RuleFor(c => c.Color)
                 .NotEmpty()
-                .Matches("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")
-                    .WithMessage("Color must be a valid hex color code.");
+                .IsHexColor();
 
             color.RuleFor(c => c.Name)
                 .NotEmpty()

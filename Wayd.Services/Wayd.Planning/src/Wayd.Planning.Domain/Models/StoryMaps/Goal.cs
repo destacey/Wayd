@@ -103,7 +103,9 @@ public sealed class Goal : BaseAuditableEntity
     }
 
     /// <summary>
-    /// Detaches a step without the last-step guard. Used when a step is moved to another goal.
+    /// Removes a step by reference, for a step moving to another goal. Unlike
+    /// <see cref="RemoveStep"/> the caller already holds the instance, so nothing is returned — the
+    /// step is being re-attached elsewhere rather than discarded with its tasks.
     /// </summary>
     internal Result DetachStep(Step step)
     {

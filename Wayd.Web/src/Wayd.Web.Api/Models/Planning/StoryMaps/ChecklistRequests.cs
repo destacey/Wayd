@@ -13,7 +13,8 @@ public sealed class AddChecklistItemRequestValidator : CustomValidator<AddCheckl
 {
     public AddChecklistItemRequestValidator()
     {
-        RuleFor(r => r.Name).NotEmpty().MaximumLength(256);
+        // Matches the command validator, and the task-title limit a promoted item has to fit.
+        RuleFor(r => r.Name).NotEmpty().MaximumLength(128);
     }
 }
 
@@ -28,7 +29,7 @@ public sealed class RenameChecklistItemRequestValidator : CustomValidator<Rename
 {
     public RenameChecklistItemRequestValidator()
     {
-        RuleFor(r => r.Name).NotEmpty().MaximumLength(256);
+        RuleFor(r => r.Name).NotEmpty().MaximumLength(128);
     }
 }
 

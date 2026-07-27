@@ -28,8 +28,8 @@ public sealed class SetTaskPersonasCommandHandler(IPlanningDbContext planningDbC
         {
             var map = await _planningDbContext.StoryMaps
                 .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
-                .Include(m => m.SwimLanes)
                 .Include(m => m.Personas)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
             if (map is null)
@@ -40,7 +40,12 @@ public sealed class SetTaskPersonasCommandHandler(IPlanningDbContext planningDbC
                 return result;
 
             await _planningDbContext.SaveChangesAsync(cancellationToken);
-            await _notifier.NotifyTaskPersonasChanged(map.Id, request.TaskId, request.PersonaIds);
+            var appliedPersonaIds = map.Goals
+                .SelectMany(g => g.Steps)
+                .SelectMany(s => s.Tasks)
+                .First(t => t.Id == request.TaskId)
+                .PersonaIds;
+            await _notifier.NotifyTaskPersonasChanged(map.Id, request.TaskId, appliedPersonaIds);
 
             return Result.Success();
         }

@@ -798,6 +798,11 @@ public class StoryMapConfig : IEntityTypeConfiguration<StoryMap>
             .HasColumnType("varchar")
             .HasMaxLength(32);
 
+        // Optimistic concurrency for the whole aggregate. Everything the map owns is mutated through
+        // the root, so a rowversion here detects a conflicting change anywhere in the graph.
+        builder.Property(m => m.Version)
+            .IsRowVersion();
+
         builder.Property(m => m.IsDeleted);
 
         // Relationships

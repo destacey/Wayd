@@ -22,7 +22,7 @@ public sealed class AddPersonaCommandValidator : CustomValidator<AddPersonaComma
 
         RuleFor(c => c.Color)
             .NotEmpty()
-            .MaximumLength(7);
+            .IsHexColor();
     }
 }
 
@@ -37,8 +37,6 @@ public sealed class AddPersonaCommandHandler(IPlanningDbContext planningDbContex
         try
         {
             var map = await _planningDbContext.StoryMaps
-                .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
-                .Include(m => m.SwimLanes)
                 .Include(m => m.Personas)
                 .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 

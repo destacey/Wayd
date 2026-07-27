@@ -39308,7 +39308,7 @@
           },
           "title": {
             "type": "string",
-            "maxLength": 256,
+            "maxLength": 128,
             "minLength": 1,
             "nullable": false
           },
@@ -39329,7 +39329,7 @@
         "properties": {
           "title": {
             "type": "string",
-            "maxLength": 256,
+            "maxLength": 128,
             "minLength": 1,
             "nullable": false
           },
@@ -39397,7 +39397,7 @@
         "properties": {
           "name": {
             "type": "string",
-            "maxLength": 256,
+            "maxLength": 128,
             "minLength": 1,
             "nullable": false
           }
@@ -39412,7 +39412,7 @@
         "properties": {
           "name": {
             "type": "string",
-            "maxLength": 256,
+            "maxLength": 128,
             "minLength": 1,
             "nullable": false
           }
@@ -39526,8 +39526,8 @@
           },
           "color": {
             "type": "string",
-            "maxLength": 7,
             "minLength": 1,
+            "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
             "nullable": false
           }
         }
@@ -39554,8 +39554,8 @@
           },
           "color": {
             "type": "string",
-            "maxLength": 7,
             "minLength": 1,
+            "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
             "nullable": false
           }
         }

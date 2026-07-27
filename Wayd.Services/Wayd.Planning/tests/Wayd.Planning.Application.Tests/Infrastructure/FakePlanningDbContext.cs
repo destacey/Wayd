@@ -71,9 +71,21 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
     /// </summary>
     public int SaveChangesCallCount { get; private set; }
 
+    /// <summary>
+    /// Number of upcoming SaveChanges calls that should fail with a concurrency conflict, for
+    /// exercising retry-on-conflict paths. Each throw consumes one.
+    /// </summary>
+    public int ConcurrencyConflictsToThrow { get; set; }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         SaveChangesCallCount++;
+
+        if (ConcurrencyConflictsToThrow > 0)
+        {
+            ConcurrencyConflictsToThrow--;
+            throw new DbUpdateConcurrencyException("Simulated concurrency conflict.");
+        }
 
         // Return the total number of entities as a simple success indicator
         var count = _iterations.Count + _planningIntervals.Count + _risks.Count +

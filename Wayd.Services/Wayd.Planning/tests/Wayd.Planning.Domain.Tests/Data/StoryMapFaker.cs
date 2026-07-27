@@ -5,10 +5,15 @@ using Wayd.TestData.Core;
 namespace Wayd.Planning.Domain.Tests.Data;
 
 /// <summary>
-/// Builds <see cref="StoryMap"/> instances for tests. Uses the real <see cref="StoryMap.Create"/>
-/// factory (so the map always has its seeded goal, step, and default lane) and exposes fluent
-/// helpers to populate the graph and override identity fields.
+/// Builds <see cref="StoryMap"/> instances for tests by populating properties through the private
+/// constructor, with fluent helpers to override identity fields.
 /// </summary>
+/// <remarks>
+/// <c>Generate()</c> bypasses <see cref="StoryMap.Create"/>, so the result has no goals and — more
+/// importantly — <b>no default swim lane</b>, which a real map always has. Use it for mapping and
+/// identity tests; use <see cref="StoryMapFakerExtensions.CreateSeeded"/> whenever a test needs a
+/// graph that behaves like a real map.
+/// </remarks>
 public class StoryMapFaker : PrivateConstructorFaker<StoryMap>
 {
     public StoryMapFaker()

@@ -46,9 +46,15 @@ public sealed class Step : BaseAuditableEntity
     public IReadOnlyList<Guid> PersonaIds => _personaIds.AsReadOnly();
 
     /// <summary>
-    /// The tasks beneath this step, across all swim lanes.
+    /// The tasks beneath this step, across all swim lanes, grouped by lane and ordered within each.
     /// </summary>
-    public IReadOnlyList<StoryMapTask> Tasks => _tasks.AsReadOnly();
+    /// <remarks>
+    /// <see cref="StoryMapTask.Order"/> is scoped to a (step × swim lane) cell, so ordering by
+    /// <c>Order</c> alone would interleave lanes into a sequence matching no cell. Lane order lives
+    /// on the map, so lanes group by id — callers needing board order sort the groups themselves.
+    /// </remarks>
+    public IReadOnlyList<StoryMapTask> Tasks =>
+        [.. _tasks.OrderBy(x => x.SwimLaneId).ThenBy(x => x.Order)];
 
     internal void Rename(string name) => Name = name;
 
@@ -90,8 +96,29 @@ public sealed class Step : BaseAuditableEntity
         if (task is null)
             return Result.Failure<StoryMapTask>("Task does not exist on this step.");
 
+        var vacatedLaneId = task.SwimLaneId;
         _tasks.Remove(task);
+        ResetTaskOrder(vacatedLaneId);
+
         return task;
+    }
+
+    /// <summary>
+    /// Renumbers one lane's tasks contiguously from zero, closing the gap a departing task leaves.
+    /// Every other ordered collection on the map keeps this invariant; tasks are scoped per lane, so
+    /// only the vacated lane needs renumbering.
+    /// </summary>
+    internal void ResetTaskOrder(Guid swimLaneId)
+    {
+        var laneTasks = _tasks
+            .Where(x => x.SwimLaneId == swimLaneId)
+            .OrderBy(x => x.Order)
+            .ToList();
+
+        for (int i = 0; i < laneTasks.Count; i++)
+        {
+            laneTasks[i].SetOrder(i);
+        }
     }
 
     internal Result<StoryMapTask> GetTask(Guid taskId)

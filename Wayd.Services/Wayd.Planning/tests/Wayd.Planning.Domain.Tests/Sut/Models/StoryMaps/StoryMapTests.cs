@@ -1,5 +1,7 @@
+using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Planning.Domain.Models.StoryMaps;
+using Wayd.Planning.Domain.Tests.Data;
 
 namespace Wayd.Planning.Domain.Tests.Sut.Models.StoryMaps;
 
@@ -872,6 +874,47 @@ public class StoryMapTests
     }
 
     [Fact]
+    public void RemoveLane_WithTasksInDefaultLane_ShouldAppendMovedTasksAfterThem()
+    {
+        // Arrange — the default lane already holds a task, so the reassigned ones must queue behind
+        // it rather than colliding on the same order values.
+        var map = CreateMap();
+        var stepId = map.Goals.Single().Steps.Single().Id;
+        var defaultLaneId = map.SwimLanes.Single(l => l.IsDefault).Id;
+        var lane = map.AddSwimLane("Release 1").Value;
+
+        var existing = map.AddTask(stepId, "Already here", defaultLaneId).Value;
+        var moved1 = map.AddTask(stepId, "Moved first", lane.Id).Value;
+        var moved2 = map.AddTask(stepId, "Moved second", lane.Id).Value;
+
+        // Act
+        var result = map.RemoveSwimLane(lane.Id);
+
+        // Assert — contiguous from 0, with the incoming tasks keeping their relative order.
+        result.IsSuccess.Should().BeTrue();
+        var ordered = map.Goals.Single().Steps.Single().Tasks
+            .Where(t => t.SwimLaneId == defaultLaneId)
+            .OrderBy(t => t.Order)
+            .ToList();
+        ordered.Select(t => t.Id).Should().Equal(existing.Id, moved1.Id, moved2.Id);
+        ordered.Select(t => t.Order).Should().Equal(0, 1, 2);
+    }
+
+    [Fact]
+    public void RemoveLane_OnAMapWithNoDefaultLane_ShouldReturnFailure()
+    {
+        // Arrange — Generate() bypasses the Create factory, so there is no default lane to move
+        // tasks to. This must fail rather than throw past the Result boundary.
+        var map = new StoryMapFaker().Generate();
+
+        // Act
+        var result = map.RemoveSwimLane(Guid.NewGuid());
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
     public void SetLaneDates_ShouldSetStartAndEnd()
     {
         // Arrange
@@ -959,6 +1002,293 @@ public class StoryMapTests
         updated.Name.Should().Be("Super Admin");
         updated.Description.Should().Be("desc");
         updated.Color.Should().Be("#FF0000");
+    }
+
+    #region Task ordering
+
+    [Fact]
+    public void DeleteTask_ShouldRenumberTheRestOfTheCell()
+    {
+        // Arrange
+        var map = CreateMap();
+        var stepId = map.Goals.Single().Steps.Single().Id;
+        var first = map.AddTask(stepId, "First").Value;
+        var second = map.AddTask(stepId, "Second").Value;
+        var third = map.AddTask(stepId, "Third").Value;
+
+        // Act
+        map.DeleteTask(second.Id).IsSuccess.Should().BeTrue();
+
+        // Assert — contiguous from zero, like every other ordered collection on the map.
+        var remaining = map.Goals.Single().Steps.Single().Tasks;
+        remaining.Select(t => t.Id).Should().Equal(first.Id, third.Id);
+        remaining.Select(t => t.Order).Should().Equal(0, 1);
+    }
+
+    [Fact]
+    public void DeleteTask_ShouldOnlyRenumberItsOwnCell()
+    {
+        // Arrange — two lanes, so the untouched lane must keep its numbering.
+        var map = CreateMap();
+        var stepId = map.Goals.Single().Steps.Single().Id;
+        var lane = map.AddSwimLane("Release 1").Value;
+        var defaultFirst = map.AddTask(stepId, "Default first").Value;
+        var defaultSecond = map.AddTask(stepId, "Default second").Value;
+        var otherLaneTask = map.AddTask(stepId, "Other lane", lane.Id).Value;
+
+        // Act
+        map.DeleteTask(defaultFirst.Id).IsSuccess.Should().BeTrue();
+
+        // Assert
+        var tasks = map.Goals.Single().Steps.Single().Tasks;
+        tasks.Single(t => t.Id == defaultSecond.Id).Order.Should().Be(0);
+        tasks.Single(t => t.Id == otherLaneTask.Id).Order.Should().Be(0);
+    }
+
+    [Fact]
+    public void MoveTask_ToAnotherCell_ShouldRenumberTheCellItLeft()
+    {
+        // Arrange
+        var map = CreateMap();
+        var stepId = map.Goals.Single().Steps.Single().Id;
+        var lane = map.AddSwimLane("Release 1").Value;
+        var first = map.AddTask(stepId, "First").Value;
+        var second = map.AddTask(stepId, "Second").Value;
+        var third = map.AddTask(stepId, "Third").Value;
+
+        // Act — take the middle task out of the default lane.
+        map.MoveTask(second.Id, stepId, lane.Id, 0).IsSuccess.Should().BeTrue();
+
+        // Assert — the gap it left is closed.
+        var tasks = map.Goals.Single().Steps.Single().Tasks;
+        tasks.Single(t => t.Id == first.Id).Order.Should().Be(0);
+        tasks.Single(t => t.Id == third.Id).Order.Should().Be(1);
+        tasks.Single(t => t.Id == second.Id).Order.Should().Be(0);
+    }
+
+    [Fact]
+    public void MoveTask_IntoTheMiddleOfATargetCell_ShouldInsertAtThatPosition()
+    {
+        // Arrange — every existing move test targets position 0 of an empty cell.
+        var map = CreateMap();
+        var goal = map.Goals.Single();
+        var sourceStep = goal.Steps.Single();
+        var targetStep = map.AddStep(goal.Id, "Target step").Value;
+        var defaultLaneId = map.SwimLanes.Single(l => l.IsDefault).Id;
+
+        var existingFirst = map.AddTask(targetStep.Id, "Existing first").Value;
+        var existingSecond = map.AddTask(targetStep.Id, "Existing second").Value;
+        var existingThird = map.AddTask(targetStep.Id, "Existing third").Value;
+        var moving = map.AddTask(sourceStep.Id, "Moving").Value;
+
+        // Act — land between the first and second existing tasks.
+        var result = map.MoveTask(moving.Id, targetStep.Id, defaultLaneId, 1);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var cell = map.Goals.Single().Steps
+            .Single(s => s.Id == targetStep.Id)
+            .Tasks
+            .Where(t => t.SwimLaneId == defaultLaneId)
+            .OrderBy(t => t.Order)
+            .ToList();
+        cell.Select(t => t.Id).Should().Equal(existingFirst.Id, moving.Id, existingSecond.Id, existingThird.Id);
+        cell.Select(t => t.Order).Should().Equal(0, 1, 2, 3);
+    }
+
+    [Fact]
+    public void MoveTask_WithAnOrderPastTheEnd_ShouldClampToTheEnd()
+    {
+        // Arrange
+        var map = CreateMap();
+        var goal = map.Goals.Single();
+        var sourceStep = goal.Steps.Single();
+        var targetStep = map.AddStep(goal.Id, "Target step").Value;
+        var defaultLaneId = map.SwimLanes.Single(l => l.IsDefault).Id;
+
+        var existing = map.AddTask(targetStep.Id, "Existing").Value;
+        var moving = map.AddTask(sourceStep.Id, "Moving").Value;
+
+        // Act
+        var result = map.MoveTask(moving.Id, targetStep.Id, defaultLaneId, 99);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var cell = map.Goals.Single().Steps
+            .Single(s => s.Id == targetStep.Id)
+            .Tasks
+            .OrderBy(t => t.Order)
+            .ToList();
+        cell.Select(t => t.Id).Should().Equal(existing.Id, moving.Id);
+        cell.Select(t => t.Order).Should().Equal(0, 1);
+    }
+
+    [Fact]
+    public void Tasks_ShouldGroupByLaneAndOrderWithinEach()
+    {
+        // Arrange — Order is scoped per (step × lane) cell, so ordering by Order alone would
+        // interleave the lanes into a sequence matching neither.
+        var map = CreateMap();
+        var stepId = map.Goals.Single().Steps.Single().Id;
+        var lane = map.AddSwimLane("Release 1").Value;
+
+        map.AddTask(stepId, "Default 0");
+        map.AddTask(stepId, "Default 1");
+        map.AddTask(stepId, "Other 0", lane.Id);
+        map.AddTask(stepId, "Other 1", lane.Id);
+
+        // Act
+        var tasks = map.Goals.Single().Steps.Single().Tasks;
+
+        // Assert — each lane's tasks are contiguous and internally ordered.
+        foreach (var group in tasks.GroupBy(t => t.SwimLaneId))
+        {
+            group.Select(t => t.Order).Should().BeInAscendingOrder();
+        }
+
+        tasks.Select(t => t.SwimLaneId).Distinct().Should().HaveCount(2);
+        tasks.Should().HaveCount(4);
+    }
+
+    #endregion Task ordering
+
+    #region Archived maps are read-only
+
+    private static StoryMap CreateArchivedMap()
+    {
+        var map = CreateMap();
+        map.Archive().IsSuccess.Should().BeTrue();
+        return map;
+    }
+
+    public static TheoryData<string, Func<StoryMap, Result>> ArchivedMutations()
+    {
+        // Every public mutation, exercised against an archived map. Ids that do not resolve are
+        // fine — the archived guard runs before any lookup, which is exactly what is being asserted.
+        var missing = Guid.NewGuid();
+        return new TheoryData<string, Func<StoryMap, Result>>
+        {
+            { "Update", m => m.Update("New name", null) },
+            { "ChangeOwner", m => m.ChangeOwner(Guid.NewGuid().ToString()) },
+            { "AddGoal", m => m.AddGoal("Goal") },
+            { "RenameGoal", m => m.RenameGoal(missing, "Goal") },
+            { "ReorderGoal", m => m.ReorderGoal(missing, 0) },
+            { "DeleteGoal", m => m.DeleteGoal(missing) },
+            { "AddStep", m => m.AddStep(missing, "Step") },
+            { "RenameStep", m => m.RenameStep(missing, "Step") },
+            { "ReorderStep", m => m.ReorderStep(missing, 0) },
+            { "MoveStep", m => m.MoveStep(missing, missing, 0) },
+            { "DeleteStep", m => m.DeleteStep(missing) },
+            { "AddTask", m => m.AddTask(missing, "Task") },
+            { "UpdateTask", m => m.UpdateTask(missing, "Task", null) },
+            { "MoveTask", m => m.MoveTask(missing, missing, missing, 0) },
+            { "DeleteTask", m => m.DeleteTask(missing) },
+            { "SetTaskPersonas", m => m.SetTaskPersonas(missing, []) },
+            { "AddChecklistItem", m => m.AddChecklistItem(missing, "Item") },
+            { "RenameChecklistItem", m => m.RenameChecklistItem(missing, missing, "Item") },
+            { "SetChecklistItemChecked", m => m.SetChecklistItemChecked(missing, missing, true) },
+            { "RemoveChecklistItem", m => m.RemoveChecklistItem(missing, missing) },
+            { "PromoteChecklistItem", m => m.PromoteChecklistItem(missing, missing) },
+            { "LinkWorkItem", m => m.LinkWorkItem(missing, 1) },
+            { "UnlinkWorkItem", m => m.UnlinkWorkItem(missing) },
+            { "AddSwimLane", m => m.AddSwimLane("Lane") },
+            { "RenameSwimLane", m => m.RenameSwimLane(missing, "Lane") },
+            { "SetSwimLaneDates", m => m.SetSwimLaneDates(missing, null, null) },
+            { "ReorderSwimLane", m => m.ReorderSwimLane(missing, 1) },
+            { "RemoveSwimLane", m => m.RemoveSwimLane(missing) },
+            { "AddPersona", m => m.AddPersona("Persona", null, "#4096FF") },
+            { "UpdatePersona", m => m.UpdatePersona(missing, "Persona", null, "#4096FF") },
+            { "ReorderPersona", m => m.ReorderPersona(missing, 0) },
+            { "DeletePersona", m => m.DeletePersona(missing) },
+            { "SetGoalPersonas", m => m.SetGoalPersonas(missing, []) },
+            { "SetStepPersonas", m => m.SetStepPersonas(missing, []) },
+        };
+    }
+
+    [Theory]
+    [MemberData(nameof(ArchivedMutations))]
+    public void Mutation_OnAnArchivedMap_ShouldReturnFailure(string name, Func<StoryMap, Result> mutate)
+    {
+        // Arrange — the UI hides these, but the API is reachable directly.
+        var map = CreateArchivedMap();
+
+        // Act
+        var result = mutate(map);
+
+        // Assert
+        result.IsFailure.Should().BeTrue($"{name} must be rejected on an archived map");
+        result.Error.Should().Be("This story map is archived and cannot be changed.");
+    }
+
+    [Fact]
+    public void Mutation_OnAnArchivedMap_ShouldNotChangeAnything()
+    {
+        // Arrange
+        var map = CreateMap();
+        var originalName = map.Name;
+        var goalCount = map.Goals.Count;
+        map.Archive();
+
+        // Act
+        map.Update("Renamed", "New description");
+        map.AddGoal("Should not appear");
+
+        // Assert
+        map.Name.Should().Be(originalName);
+        map.Goals.Should().HaveCount(goalCount);
+    }
+
+    [Fact]
+    public void Archive_OnAnAlreadyArchivedMap_ShouldReturnItsOwnFailure()
+    {
+        // Arrange — archiving is the one lifecycle change with its own status rule, so it keeps its
+        // own message rather than the generic archived one.
+        var map = CreateArchivedMap();
+
+        // Act
+        var result = map.Archive();
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only active story maps can be archived.");
+    }
+
+    #endregion Archived maps are read-only
+
+    [Fact]
+    public void UpdatePersona_BlankColor_ShouldNotApplyTheName()
+    {
+        // Arrange
+        var map = CreateMap();
+        var persona = map.AddPersona("Admin", "An admin user", "#4096FF").Value;
+
+        // Act — the colour is rejected, so the whole update must be rejected.
+        var result = map.UpdatePersona(persona.Id, "Super Admin", "new desc", "  ");
+
+        // Assert — a failed call leaving the persona renamed would be a silent partial write.
+        result.IsFailure.Should().BeTrue();
+        var unchanged = map.Personas.Single();
+        unchanged.Name.Should().Be("Admin");
+        unchanged.Description.Should().Be("An admin user");
+        unchanged.Color.Should().Be("#4096FF");
+    }
+
+    [Fact]
+    public void UpdatePersona_BlankName_ShouldNotApplyAnything()
+    {
+        // Arrange
+        var map = CreateMap();
+        var persona = map.AddPersona("Admin", "An admin user", "#4096FF").Value;
+
+        // Act
+        var result = map.UpdatePersona(persona.Id, "  ", "new desc", "#FF0000");
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        var unchanged = map.Personas.Single();
+        unchanged.Name.Should().Be("Admin");
+        unchanged.Description.Should().Be("An admin user");
+        unchanged.Color.Should().Be("#4096FF");
     }
 
     [Fact]

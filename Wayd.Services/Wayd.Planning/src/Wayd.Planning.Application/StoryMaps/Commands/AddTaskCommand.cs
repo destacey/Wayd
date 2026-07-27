@@ -16,7 +16,7 @@ public sealed class AddTaskCommandValidator : CustomValidator<AddTaskCommand>
 
         RuleFor(c => c.Title)
             .NotEmpty()
-            .MaximumLength(256);
+            .MaximumLength(128);
     }
 }
 
@@ -33,7 +33,7 @@ public sealed class AddTaskCommandHandler(IPlanningDbContext planningDbContext, 
             var map = await _planningDbContext.StoryMaps
                 .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
                 .Include(m => m.SwimLanes)
-                .Include(m => m.Personas)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
             if (map is null)

@@ -25,19 +25,19 @@ public sealed class ReorderSwimLaneCommandHandler(IPlanningDbContext planningDbC
     {
         try
         {
-            var map = await _planningDbContext.StoryMaps
-                .Include(m => m.SwimLanes)
-                .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
+            var result = await StoryMapMutation.Apply(
+                _planningDbContext,
+                ct => _planningDbContext.StoryMaps
+                    .Include(m => m.SwimLanes)
+                    .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, ct),
+                map => map.ReorderSwimLane(request.SwimLaneId, request.NewOrder)
+                    .Map(() => map.SwimLanes.First(l => l.Id == request.SwimLaneId).Order),
+                cancellationToken);
 
-            if (map is null)
-                return Result.Failure("Story map not found.");
-
-            var result = map.ReorderSwimLane(request.SwimLaneId, request.NewOrder);
             if (result.IsFailure)
-                return result;
+                return Result.Failure(result.Error);
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-            await _notifier.NotifySwimLaneReordered(map.Id, request.SwimLaneId, request.NewOrder);
+            await _notifier.NotifySwimLaneReordered(request.StoryMapId, request.SwimLaneId, result.Value);
 
             return Result.Success();
         }

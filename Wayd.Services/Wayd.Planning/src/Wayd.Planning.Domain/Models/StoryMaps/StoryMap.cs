@@ -69,6 +69,12 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     public WorkStatusCategory Status { get; private set; }
 
     /// <summary>
+    /// Optimistic concurrency token for the whole aggregate. Everything the map owns is mutated
+    /// through this root, so guarding the root guards the graph.
+    /// </summary>
+    public byte[]? Version { get; private set; }
+
+    /// <summary>
     /// The goals on the map, in order (the top-row narrative).
     /// </summary>
     public IReadOnlyList<Goal> Goals => [.. _goals.OrderBy(x => x.Order)];
@@ -83,15 +89,39 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public IReadOnlyList<Persona> Personas => [.. _personas.OrderBy(x => x.Order)];
 
+    /// <summary>
+    /// The lane every map is created with. Throws if a map was materialised without one (a hand-built
+    /// fixture, or data predating the invariant); callers on a <see cref="Result"/>-returning path use
+    /// <see cref="TryGetDefaultSwimLane"/> instead.
+    /// </summary>
     private SwimLane DefaultSwimLane => _swimLanes.Single(x => x.IsDefault);
 
+    private Result<SwimLane> TryGetDefaultSwimLane()
+    {
+        var lane = _swimLanes.FirstOrDefault(x => x.IsDefault);
+        return lane is not null
+            ? Result.Success(lane)
+            : Result.Failure<SwimLane>("This story map has no default swim lane.");
+    }
+
     #region Map lifecycle
+
+    /// <summary>
+    /// Archiving is terminal, so an archived map is a historical record: readable and deletable, but
+    /// not editable. Every public method that changes the map or anything it contains guards on this
+    /// first — the UI hides the affordances, but the API is reachable directly.
+    /// </summary>
+    private bool IsArchived => Status == WorkStatusCategory.Removed;
+
+    private const string ArchivedError = "This story map is archived and cannot be changed.";
 
     /// <summary>
     /// Updates the map's name and description.
     /// </summary>
     public Result Update(string name, string? description)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         try
         {
             Name = name;
@@ -109,6 +139,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result ChangeOwner(string ownerId)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         try
         {
             OwnerId = ownerId;
@@ -141,6 +173,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result<Goal> AddGoal(string name)
     {
+        if (IsArchived) return Result.Failure<Goal>(ArchivedError);
+
         try
         {
             int nextOrder = _goals.Count > 0 ? _goals.Max(x => x.Order) + 1 : 0;
@@ -156,6 +190,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
     public Result RenameGoal(Guid goalId, string name)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var goalResult = GetGoal(goalId);
         if (goalResult.IsFailure)
             return Result.Failure(goalResult.Error);
@@ -176,6 +212,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result ReorderGoal(Guid goalId, int newOrder)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var goalResult = GetGoal(goalId);
         if (goalResult.IsFailure)
             return Result.Failure(goalResult.Error);
@@ -190,6 +228,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result DeleteGoal(Guid goalId)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var goalResult = GetGoal(goalId);
         if (goalResult.IsFailure)
             return Result.Failure(goalResult.Error);
@@ -218,6 +258,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result<Step> AddStep(Guid goalId, string name)
     {
+        if (IsArchived) return Result.Failure<Step>(ArchivedError);
+
         var goalResult = GetGoal(goalId);
         if (goalResult.IsFailure)
             return Result.Failure<Step>(goalResult.Error);
@@ -234,6 +276,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
     public Result RenameStep(Guid stepId, string name)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var located = LocateStep(stepId);
         if (located.IsFailure)
             return Result.Failure(located.Error);
@@ -254,6 +298,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result ReorderStep(Guid stepId, int newOrder)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var located = LocateStep(stepId);
         if (located.IsFailure)
             return Result.Failure(located.Error);
@@ -269,6 +315,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result MoveStep(Guid stepId, Guid targetGoalId, int newOrder)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var located = LocateStep(stepId);
         if (located.IsFailure)
             return Result.Failure(located.Error);
@@ -301,6 +349,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result DeleteStep(Guid stepId)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var located = LocateStep(stepId);
         if (located.IsFailure)
             return Result.Failure(located.Error);
@@ -330,11 +380,25 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result<StoryMapTask> AddTask(Guid stepId, string title, Guid? laneId = null)
     {
+        if (IsArchived) return Result.Failure<StoryMapTask>(ArchivedError);
+
         var located = LocateStep(stepId);
         if (located.IsFailure)
             return Result.Failure<StoryMapTask>(located.Error);
 
-        var lane = laneId is null ? DefaultSwimLane : _swimLanes.FirstOrDefault(x => x.Id == laneId.Value);
+        SwimLane? lane;
+        if (laneId is null)
+        {
+            var defaultLane = TryGetDefaultSwimLane();
+            if (defaultLane.IsFailure)
+                return Result.Failure<StoryMapTask>(defaultLane.Error);
+            lane = defaultLane.Value;
+        }
+        else
+        {
+            lane = _swimLanes.FirstOrDefault(x => x.Id == laneId.Value);
+        }
+
         if (lane is null)
             return Result.Failure<StoryMapTask>("Swim lane does not exist on this story map.");
 
@@ -350,6 +414,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
     public Result UpdateTask(Guid taskId, string title, string? description)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var located = LocateTask(taskId);
         if (located.IsFailure)
             return Result.Failure(located.Error);
@@ -370,6 +436,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result MoveTask(Guid taskId, Guid targetStepId, Guid targetSwimLaneId, int newOrder)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var located = LocateTask(taskId);
         if (located.IsFailure)
             return Result.Failure(located.Error);
@@ -399,6 +467,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
     public Result DeleteTask(Guid taskId)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var located = LocateTask(taskId);
         if (located.IsFailure)
             return Result.Failure(located.Error);
@@ -409,6 +479,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
     public Result SetTaskPersonas(Guid taskId, IEnumerable<Guid> personaIds)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var located = LocateTask(taskId);
         if (located.IsFailure)
             return Result.Failure(located.Error);
@@ -441,6 +513,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
     public Result<ChecklistItem> AddChecklistItem(Guid taskId, string name)
     {
+        if (IsArchived) return Result.Failure<ChecklistItem>(ArchivedError);
+
         var located = LocateTask(taskId);
         if (located.IsFailure)
             return Result.Failure<ChecklistItem>(located.Error);
@@ -450,6 +524,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
     public Result RenameChecklistItem(Guid taskId, Guid itemId, string name)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var located = LocateTask(taskId);
         if (located.IsFailure)
             return Result.Failure(located.Error);
@@ -459,6 +535,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
     public Result SetChecklistItemChecked(Guid taskId, Guid itemId, bool isChecked)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var located = LocateTask(taskId);
         if (located.IsFailure)
             return Result.Failure(located.Error);
@@ -468,6 +546,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
     public Result RemoveChecklistItem(Guid taskId, Guid itemId)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var located = LocateTask(taskId);
         if (located.IsFailure)
             return Result.Failure(located.Error);
@@ -480,18 +560,27 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result<StoryMapTask> PromoteChecklistItem(Guid taskId, Guid itemId)
     {
+        if (IsArchived) return Result.Failure<StoryMapTask>(ArchivedError);
+
         var located = LocateTask(taskId);
         if (located.IsFailure)
             return Result.Failure<StoryMapTask>(located.Error);
 
         var (step, task) = located.Value;
+
+        // Resolve the destination before promoting: PromoteChecklistItem removes the item, so
+        // failing after it would lose the item without producing the task it became.
+        var defaultLane = TryGetDefaultSwimLane();
+        if (defaultLane.IsFailure)
+            return Result.Failure<StoryMapTask>(defaultLane.Error);
+
         var promoteResult = task.PromoteChecklistItem(itemId);
         if (promoteResult.IsFailure)
             return Result.Failure<StoryMapTask>(promoteResult.Error);
 
         try
         {
-            return step.AddTask(DefaultSwimLane.Id, promoteResult.Value);
+            return step.AddTask(defaultLane.Value.Id, promoteResult.Value);
         }
         catch (Exception ex)
         {
@@ -508,6 +597,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result LinkWorkItem(Guid taskId, int workItemId)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var located = LocateTask(taskId);
         if (located.IsFailure)
             return Result.Failure(located.Error);
@@ -526,6 +617,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
     public Result UnlinkWorkItem(Guid taskId)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var located = LocateTask(taskId);
         if (located.IsFailure)
             return Result.Failure(located.Error);
@@ -543,6 +636,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result<SwimLane> AddSwimLane(string name)
     {
+        if (IsArchived) return Result.Failure<SwimLane>(ArchivedError);
+
         try
         {
             int nextOrder = _swimLanes.Count > 0 ? _swimLanes.Max(x => x.Order) + 1 : 0;
@@ -558,6 +653,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
     public Result RenameSwimLane(Guid laneId, string name)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var laneResult = GetSwimLane(laneId);
         if (laneResult.IsFailure)
             return Result.Failure(laneResult.Error);
@@ -567,6 +664,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
     public Result SetSwimLaneDates(Guid laneId, LocalDate? startDate, LocalDate? endDate)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var laneResult = GetSwimLane(laneId);
         if (laneResult.IsFailure)
             return Result.Failure(laneResult.Error);
@@ -580,6 +679,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result ReorderSwimLane(Guid laneId, int newOrder)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var laneResult = GetSwimLane(laneId);
         if (laneResult.IsFailure)
             return Result.Failure(laneResult.Error);
@@ -601,6 +702,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result<int> RemoveSwimLane(Guid laneId)
     {
+        if (IsArchived) return Result.Failure<int>(ArchivedError);
+
         var laneResult = GetSwimLane(laneId);
         if (laneResult.IsFailure)
             return Result.Failure<int>(laneResult.Error);
@@ -609,7 +712,11 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         if (lane.IsDefault)
             return Result.Failure<int>("The default lane cannot be removed.");
 
-        var defaultSwimLaneId = DefaultSwimLane.Id;
+        var defaultLane = TryGetDefaultSwimLane();
+        if (defaultLane.IsFailure)
+            return Result.Failure<int>(defaultLane.Error);
+
+        var defaultSwimLaneId = defaultLane.Value.Id;
         int movedCount = 0;
         foreach (var step in _goals.SelectMany(g => g.Steps))
         {
@@ -653,6 +760,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result<Persona> AddPersona(string name, string? description, string color)
     {
+        if (IsArchived) return Result.Failure<Persona>(ArchivedError);
+
         try
         {
             int nextOrder = _personas.Count > 0 ? _personas.Max(x => x.Order) + 1 : 0;
@@ -668,6 +777,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
     public Result UpdatePersona(Guid personaId, string name, string? description, string color)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var persona = _personas.FirstOrDefault(x => x.Id == personaId);
         if (persona is null)
             return Result.Failure("Persona does not exist on this story map.");
@@ -688,6 +799,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result ReorderPersona(Guid personaId, int newOrder)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var persona = _personas.FirstOrDefault(x => x.Id == personaId);
         if (persona is null)
             return Result.Failure("Persona does not exist on this story map.");
@@ -702,6 +815,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result<int> DeletePersona(Guid personaId)
     {
+        if (IsArchived) return Result.Failure<int>(ArchivedError);
+
         var persona = _personas.FirstOrDefault(x => x.Id == personaId);
         if (persona is null)
             return Result.Failure<int>("Persona does not exist on this story map.");
@@ -750,6 +865,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
     public Result SetGoalPersonas(Guid goalId, IEnumerable<Guid> personaIds)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var goalResult = GetGoal(goalId);
         if (goalResult.IsFailure)
             return Result.Failure(goalResult.Error);
@@ -764,6 +881,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
     public Result SetStepPersonas(Guid stepId, IEnumerable<Guid> personaIds)
     {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
         var located = LocateStep(stepId);
         if (located.IsFailure)
             return Result.Failure(located.Error);

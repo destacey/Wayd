@@ -60,6 +60,11 @@ public sealed class Persona : BaseAuditableEntity
 
     internal void Update(string name, string? description, string color)
     {
+        // The property setters guard and throw, so validate everything before assigning anything —
+        // otherwise a bad colour leaves the persona renamed by a call that failed.
+        Guard.Against.NullOrWhiteSpace(name, nameof(name));
+        Guard.Against.NullOrWhiteSpace(color, nameof(color));
+
         Name = name;
         Description = description;
         Color = color;

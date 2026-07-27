@@ -23,7 +23,7 @@ public sealed class UpdatePersonaCommandValidator : CustomValidator<UpdatePerson
 
         RuleFor(c => c.Color)
             .NotEmpty()
-            .MaximumLength(7);
+            .IsHexColor();
     }
 }
 
@@ -38,8 +38,6 @@ public sealed class UpdatePersonaCommandHandler(IPlanningDbContext planningDbCon
         try
         {
             var map = await _planningDbContext.StoryMaps
-                .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
-                .Include(m => m.SwimLanes)
                 .Include(m => m.Personas)
                 .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 

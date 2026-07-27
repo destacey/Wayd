@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using Wayd.Planning.Application.StoryMaps.Dtos;
 using Wayd.Planning.Application.StoryMaps.Interfaces;
 
@@ -8,137 +9,162 @@ namespace Wayd.Infrastructure.SignalR;
 /// Broadcasts story map changes to the map's SignalR group. Each map is its own group, keyed by the
 /// map id, so a broadcast reaches exactly the clients viewing that map.
 /// </summary>
-internal sealed class StoryMapNotifier(IHubContext<StoryMapHub> hubContext) : IStoryMapNotifier
+/// <remarks>
+/// Handlers notify <b>after</b> committing, so a broadcast failure must never fail the command: the
+/// change is already saved, and surfacing an error would have the client retry and duplicate it.
+/// Every method routes through <see cref="Send"/>, which logs and swallows — a missed broadcast
+/// costs a collaborator a refresh, which is strictly better than a phantom failure.
+/// </remarks>
+internal sealed class StoryMapNotifier(
+    IHubContext<StoryMapHub> hubContext,
+    ILogger<StoryMapNotifier> logger) : IStoryMapNotifier
 {
     private readonly IHubContext<StoryMapHub> _hubContext = hubContext;
+    private readonly ILogger<StoryMapNotifier> _logger = logger;
 
-    private IClientProxy Group(Guid storyMapId) => _hubContext.Clients.Group(storyMapId.ToString());
+    /// <summary>Sends to the map's group, with the map id leading the payload as every event expects.</summary>
+    private async Task Send(Guid storyMapId, string method, params object?[] args)
+    {
+        try
+        {
+            object?[] payload = [storyMapId, .. args];
+            await _hubContext.Clients.Group(storyMapId.ToString()).SendCoreAsync(method, payload);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Story map broadcast {Method} failed for map {StoryMapId}; the change is saved and viewers will see it on their next refresh.",
+                method,
+                storyMapId);
+        }
+    }
 
     #region Map
 
     public Task NotifyMapUpdated(Guid storyMapId) =>
-        Group(storyMapId).SendAsync("MapUpdated", storyMapId);
+        Send(storyMapId, "MapUpdated");
 
     public Task NotifyMapArchived(Guid storyMapId) =>
-        Group(storyMapId).SendAsync("MapArchived", storyMapId);
+        Send(storyMapId, "MapArchived");
 
     public Task NotifyMapDeleted(Guid storyMapId) =>
-        Group(storyMapId).SendAsync("MapDeleted", storyMapId);
+        Send(storyMapId, "MapDeleted");
 
     #endregion Map
 
     #region Goals
 
     public Task NotifyGoalAdded(Guid storyMapId, StoryMapGoalDto goal) =>
-        Group(storyMapId).SendAsync("GoalAdded", storyMapId, goal);
+        Send(storyMapId, "GoalAdded", goal);
 
     public Task NotifyGoalRenamed(Guid storyMapId, Guid goalId, string name) =>
-        Group(storyMapId).SendAsync("GoalRenamed", storyMapId, goalId, name);
+        Send(storyMapId, "GoalRenamed", goalId, name);
 
     public Task NotifyGoalReordered(Guid storyMapId, Guid goalId, int sortOrder) =>
-        Group(storyMapId).SendAsync("GoalReordered", storyMapId, goalId, sortOrder);
+        Send(storyMapId, "GoalReordered", goalId, sortOrder);
 
     public Task NotifyGoalDeleted(Guid storyMapId, Guid goalId) =>
-        Group(storyMapId).SendAsync("GoalDeleted", storyMapId, goalId);
+        Send(storyMapId, "GoalDeleted", goalId);
 
     #endregion Goals
 
     #region Steps
 
     public Task NotifyStepAdded(Guid storyMapId, StoryMapStepDto step) =>
-        Group(storyMapId).SendAsync("StepAdded", storyMapId, step);
+        Send(storyMapId, "StepAdded", step);
 
     public Task NotifyStepRenamed(Guid storyMapId, Guid stepId, string name) =>
-        Group(storyMapId).SendAsync("StepRenamed", storyMapId, stepId, name);
+        Send(storyMapId, "StepRenamed", stepId, name);
 
     public Task NotifyStepReordered(Guid storyMapId, Guid stepId, int sortOrder) =>
-        Group(storyMapId).SendAsync("StepReordered", storyMapId, stepId, sortOrder);
+        Send(storyMapId, "StepReordered", stepId, sortOrder);
 
     public Task NotifyStepMoved(Guid storyMapId, Guid stepId, Guid targetGoalId, int sortOrder) =>
-        Group(storyMapId).SendAsync("StepMoved", storyMapId, stepId, targetGoalId, sortOrder);
+        Send(storyMapId, "StepMoved", stepId, targetGoalId, sortOrder);
 
     public Task NotifyStepDeleted(Guid storyMapId, Guid stepId) =>
-        Group(storyMapId).SendAsync("StepDeleted", storyMapId, stepId);
+        Send(storyMapId, "StepDeleted", stepId);
 
     #endregion Steps
 
     #region Tasks
 
     public Task NotifyTaskAdded(Guid storyMapId, StoryMapTaskDto task) =>
-        Group(storyMapId).SendAsync("TaskAdded", storyMapId, task);
+        Send(storyMapId, "TaskAdded", task);
 
     public Task NotifyTaskUpdated(Guid storyMapId, StoryMapTaskDto task) =>
-        Group(storyMapId).SendAsync("TaskUpdated", storyMapId, task);
+        Send(storyMapId, "TaskUpdated", task);
 
     public Task NotifyTaskMoved(Guid storyMapId, Guid taskId, Guid targetStepId, Guid targetSwimLaneId, int sortOrder) =>
-        Group(storyMapId).SendAsync("TaskMoved", storyMapId, taskId, targetStepId, targetSwimLaneId, sortOrder);
+        Send(storyMapId, "TaskMoved", taskId, targetStepId, targetSwimLaneId, sortOrder);
 
     public Task NotifyTaskDeleted(Guid storyMapId, Guid taskId) =>
-        Group(storyMapId).SendAsync("TaskDeleted", storyMapId, taskId);
+        Send(storyMapId, "TaskDeleted", taskId);
 
     public Task NotifyTaskPersonasChanged(Guid storyMapId, Guid taskId, IReadOnlyList<Guid> personaIds) =>
-        Group(storyMapId).SendAsync("TaskPersonasChanged", storyMapId, taskId, personaIds);
+        Send(storyMapId, "TaskPersonasChanged", taskId, personaIds);
 
     #endregion Tasks
 
     #region Checklist
 
     public Task NotifyTaskChecklistChanged(Guid storyMapId, StoryMapTaskDto task) =>
-        Group(storyMapId).SendAsync("TaskChecklistChanged", storyMapId, task);
+        Send(storyMapId, "TaskChecklistChanged", task);
 
     public Task NotifyChecklistItemPromoted(Guid storyMapId, StoryMapTaskDto newTask, StoryMapTaskDto sourceTask) =>
-        Group(storyMapId).SendAsync("ChecklistItemPromoted", storyMapId, newTask, sourceTask);
+        Send(storyMapId, "ChecklistItemPromoted", newTask, sourceTask);
 
     #endregion Checklist
 
     #region Work item links
 
     public Task NotifyTaskWorkItemLinked(Guid storyMapId, Guid taskId, int workItemId) =>
-        Group(storyMapId).SendAsync("TaskWorkItemLinked", storyMapId, taskId, workItemId);
+        Send(storyMapId, "TaskWorkItemLinked", taskId, workItemId);
 
     public Task NotifyTaskWorkItemUnlinked(Guid storyMapId, Guid taskId) =>
-        Group(storyMapId).SendAsync("TaskWorkItemUnlinked", storyMapId, taskId);
+        Send(storyMapId, "TaskWorkItemUnlinked", taskId);
 
     #endregion Work item links
 
     #region SwimLanes
 
     public Task NotifySwimLaneAdded(Guid storyMapId, StoryMapSwimLaneDto lane) =>
-        Group(storyMapId).SendAsync("SwimLaneAdded", storyMapId, lane);
+        Send(storyMapId, "SwimLaneAdded", lane);
 
     public Task NotifySwimLaneRenamed(Guid storyMapId, Guid swimLaneId, string name) =>
-        Group(storyMapId).SendAsync("SwimLaneRenamed", storyMapId, swimLaneId, name);
+        Send(storyMapId, "SwimLaneRenamed", swimLaneId, name);
 
     public Task NotifySwimLaneDatesChanged(Guid storyMapId, StoryMapSwimLaneDto lane) =>
-        Group(storyMapId).SendAsync("SwimLaneDatesChanged", storyMapId, lane);
+        Send(storyMapId, "SwimLaneDatesChanged", lane);
 
     public Task NotifySwimLaneReordered(Guid storyMapId, Guid swimLaneId, int sortOrder) =>
-        Group(storyMapId).SendAsync("SwimLaneReordered", storyMapId, swimLaneId, sortOrder);
+        Send(storyMapId, "SwimLaneReordered", swimLaneId, sortOrder);
 
     public Task NotifySwimLaneRemoved(Guid storyMapId, Guid swimLaneId, Guid defaultSwimLaneId, int movedTaskCount) =>
-        Group(storyMapId).SendAsync("SwimLaneRemoved", storyMapId, swimLaneId, defaultSwimLaneId, movedTaskCount);
+        Send(storyMapId, "SwimLaneRemoved", swimLaneId, defaultSwimLaneId, movedTaskCount);
 
     #endregion SwimLanes
 
     #region Personas
 
     public Task NotifyPersonaAdded(Guid storyMapId, StoryMapPersonaDto persona) =>
-        Group(storyMapId).SendAsync("PersonaAdded", storyMapId, persona);
+        Send(storyMapId, "PersonaAdded", persona);
 
     public Task NotifyPersonaUpdated(Guid storyMapId, StoryMapPersonaDto persona) =>
-        Group(storyMapId).SendAsync("PersonaUpdated", storyMapId, persona);
+        Send(storyMapId, "PersonaUpdated", persona);
 
     public Task NotifyPersonaDeleted(Guid storyMapId, Guid personaId, int untaggedNodeCount) =>
-        Group(storyMapId).SendAsync("PersonaDeleted", storyMapId, personaId, untaggedNodeCount);
+        Send(storyMapId, "PersonaDeleted", personaId, untaggedNodeCount);
 
     public Task NotifyPersonaReordered(Guid storyMapId, Guid personaId, int order) =>
-        Group(storyMapId).SendAsync("PersonaReordered", storyMapId, personaId, order);
+        Send(storyMapId, "PersonaReordered", personaId, order);
 
     public Task NotifyGoalPersonasChanged(Guid storyMapId, Guid goalId, IReadOnlyList<Guid> personaIds) =>
-        Group(storyMapId).SendAsync("GoalPersonasChanged", storyMapId, goalId, personaIds);
+        Send(storyMapId, "GoalPersonasChanged", goalId, personaIds);
 
     public Task NotifyStepPersonasChanged(Guid storyMapId, Guid stepId, IReadOnlyList<Guid> personaIds) =>
-        Group(storyMapId).SendAsync("StepPersonasChanged", storyMapId, stepId, personaIds);
+        Send(storyMapId, "StepPersonasChanged", stepId, personaIds);
 
     #endregion Personas
 }

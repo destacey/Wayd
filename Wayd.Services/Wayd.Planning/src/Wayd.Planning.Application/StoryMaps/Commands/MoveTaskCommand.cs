@@ -28,21 +28,25 @@ public sealed class MoveTaskCommandHandler(IPlanningDbContext planningDbContext,
     {
         try
         {
-            var map = await _planningDbContext.StoryMaps
-                .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
-                .Include(m => m.SwimLanes)
-                .Include(m => m.Personas)
-                .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
+            var result = await StoryMapMutation.Apply(
+                _planningDbContext,
+                ct => _planningDbContext.StoryMaps
+                    .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
+                    .Include(m => m.SwimLanes)
+                    .AsSplitQuery()
+                    .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, ct),
+                map => map.MoveTask(request.TaskId, request.TargetStepId, request.TargetSwimLaneId, request.NewOrder)
+                    .Map(() => map.Goals
+                        .SelectMany(g => g.Steps)
+                        .SelectMany(s => s.Tasks)
+                        .First(t => t.Id == request.TaskId)
+                        .Order),
+                cancellationToken);
 
-            if (map is null)
-                return Result.Failure("Story map not found.");
-
-            var result = map.MoveTask(request.TaskId, request.TargetStepId, request.TargetSwimLaneId, request.NewOrder);
             if (result.IsFailure)
-                return result;
+                return Result.Failure(result.Error);
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-            await _notifier.NotifyTaskMoved(map.Id, request.TaskId, request.TargetStepId, request.TargetSwimLaneId, request.NewOrder);
+            await _notifier.NotifyTaskMoved(request.StoryMapId, request.TaskId, request.TargetStepId, request.TargetSwimLaneId, result.Value);
 
             return Result.Success();
         }

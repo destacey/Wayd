@@ -26,21 +26,19 @@ public sealed class ReorderGoalCommandHandler(IPlanningDbContext planningDbConte
     {
         try
         {
-            var map = await _planningDbContext.StoryMaps
-                .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
-                .Include(m => m.SwimLanes)
-                .Include(m => m.Personas)
-                .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
+            var result = await StoryMapMutation.Apply(
+                _planningDbContext,
+                ct => _planningDbContext.StoryMaps
+                    .Include(m => m.Goals)
+                    .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, ct),
+                map => map.ReorderGoal(request.GoalId, request.NewOrder)
+                    .Map(() => map.Goals.First(g => g.Id == request.GoalId).Order),
+                cancellationToken);
 
-            if (map is null)
-                return Result.Failure("Story map not found.");
-
-            var result = map.ReorderGoal(request.GoalId, request.NewOrder);
             if (result.IsFailure)
-                return result;
+                return Result.Failure(result.Error);
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-            await _notifier.NotifyGoalReordered(map.Id, request.GoalId, request.NewOrder);
+            await _notifier.NotifyGoalReordered(request.StoryMapId, request.GoalId, result.Value);
 
             return Result.Success();
         }

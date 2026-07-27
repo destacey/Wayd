@@ -26,9 +26,9 @@ public sealed class SetStepPersonasCommandHandler(IPlanningDbContext planningDbC
         try
         {
             var map = await _planningDbContext.StoryMaps
-                .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
-                .Include(m => m.SwimLanes)
+                .Include(m => m.Goals).ThenInclude(g => g.Steps)
                 .Include(m => m.Personas)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
             if (map is null)
@@ -39,7 +39,11 @@ public sealed class SetStepPersonasCommandHandler(IPlanningDbContext planningDbC
                 return result;
 
             await _planningDbContext.SaveChangesAsync(cancellationToken);
-            await _notifier.NotifyStepPersonasChanged(map.Id, request.StepId, request.PersonaIds);
+            var appliedPersonaIds = map.Goals
+                .SelectMany(g => g.Steps)
+                .First(s => s.Id == request.StepId)
+                .PersonaIds;
+            await _notifier.NotifyStepPersonasChanged(map.Id, request.StepId, appliedPersonaIds);
 
             return Result.Success();
         }

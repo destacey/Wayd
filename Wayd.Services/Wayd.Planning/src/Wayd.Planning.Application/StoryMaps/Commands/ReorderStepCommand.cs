@@ -28,21 +28,22 @@ public sealed class ReorderStepCommandHandler(IPlanningDbContext planningDbConte
     {
         try
         {
-            var map = await _planningDbContext.StoryMaps
-                .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
-                .Include(m => m.SwimLanes)
-                .Include(m => m.Personas)
-                .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
+            var result = await StoryMapMutation.Apply(
+                _planningDbContext,
+                ct => _planningDbContext.StoryMaps
+                    .Include(m => m.Goals).ThenInclude(g => g.Steps)
+                    .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, ct),
+                map => map.ReorderStep(request.StepId, request.NewOrder)
+                    .Map(() => map.Goals
+                        .SelectMany(g => g.Steps)
+                        .First(s => s.Id == request.StepId)
+                        .Order),
+                cancellationToken);
 
-            if (map is null)
-                return Result.Failure("Story map not found.");
-
-            var result = map.ReorderStep(request.StepId, request.NewOrder);
             if (result.IsFailure)
-                return result;
+                return Result.Failure(result.Error);
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-            await _notifier.NotifyStepReordered(map.Id, request.StepId, request.NewOrder);
+            await _notifier.NotifyStepReordered(request.StoryMapId, request.StepId, result.Value);
 
             return Result.Success();
         }

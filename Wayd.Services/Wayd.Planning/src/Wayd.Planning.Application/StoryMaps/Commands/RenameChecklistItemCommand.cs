@@ -33,8 +33,6 @@ public sealed class RenameChecklistItemCommandHandler(IPlanningDbContext plannin
         {
             var map = await _planningDbContext.StoryMaps
                 .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
-                .Include(m => m.SwimLanes)
-                .Include(m => m.Personas)
                 .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
             if (map is null)

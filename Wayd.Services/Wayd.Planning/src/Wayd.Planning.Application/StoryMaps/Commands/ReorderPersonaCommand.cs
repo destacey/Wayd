@@ -26,21 +26,19 @@ public sealed class ReorderPersonaCommandHandler(IPlanningDbContext planningDbCo
     {
         try
         {
-            var map = await _planningDbContext.StoryMaps
-                .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
-                .Include(m => m.SwimLanes)
-                .Include(m => m.Personas)
-                .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
+            var result = await StoryMapMutation.Apply(
+                _planningDbContext,
+                ct => _planningDbContext.StoryMaps
+                    .Include(m => m.Personas)
+                    .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, ct),
+                map => map.ReorderPersona(request.PersonaId, request.NewOrder)
+                    .Map(() => map.Personas.First(p => p.Id == request.PersonaId).Order),
+                cancellationToken);
 
-            if (map is null)
-                return Result.Failure("Story map not found.");
-
-            var result = map.ReorderPersona(request.PersonaId, request.NewOrder);
             if (result.IsFailure)
-                return result;
+                return Result.Failure(result.Error);
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-            await _notifier.NotifyPersonaReordered(map.Id, request.PersonaId, request.NewOrder);
+            await _notifier.NotifyPersonaReordered(request.StoryMapId, request.PersonaId, result.Value);
 
             return Result.Success();
         }

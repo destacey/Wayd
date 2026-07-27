@@ -287,11 +287,9 @@
 /* ─── Drag and drop ───────────────────────────────────────────────────────── */
 
 /* The whole cell is the drag surface; there is no grab handle. `touch-action: none` is required by
-   dnd-kit's pointer sensor so a touch drag is not stolen by page scrolling. */
-.goalCell[aria-label],
-.stepCell[aria-label],
-.taskCard[aria-label],
-.swimLaneHeader[aria-label] {
+   dnd-kit's pointer sensor so a touch drag is not stolen by page scrolling. Applied by class rather
+   than by an attribute the cell happens to carry, so the cursor cannot silently vanish. */
+.draggable {
   cursor: grab;
   touch-action: none;
 }
@@ -324,7 +322,7 @@
   background-color: var(--sm-bg);
   border: 1px solid var(--ant-color-primary);
   border-radius: var(--sm-radius);
-  box-shadow: 0 6px 16px rgb(0 0 0 / 25%);
+  box-shadow: var(--ant-box-shadow-secondary);
   cursor: grabbing;
   overflow-wrap: anywhere;
 }

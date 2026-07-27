@@ -37,6 +37,7 @@ const GoalHeaderCell: FC<GoalHeaderCellProps> = ({
     listeners,
     setNodeRef,
     style: sortableStyle,
+    dragClassName,
     isDropTarget,
     dropsAfter,
   } = useBoardSortable(goal.id, !actions.canUpdate, { dropSide })
@@ -62,7 +63,7 @@ const GoalHeaderCell: FC<GoalHeaderCellProps> = ({
   return (
     <div
       ref={setNodeRef}
-      className={`${styles.goalCell} ${muted ? styles.muted : ''} ${
+      className={`${styles.goalCell} ${dragClassName} ${muted ? styles.muted : ''} ${
         isLastColumn ? styles.lastColumn : ''
       } ${
         isDropTarget
@@ -74,13 +75,13 @@ const GoalHeaderCell: FC<GoalHeaderCellProps> = ({
       style={style}
       {...attributes}
       {...listeners}
-      aria-label={actions.canUpdate ? `Reorder ${goal.name}` : undefined}
     >
       <InlineEditText
         value={goal.name}
         onSave={(name) => actions.onRenameGoal(goal.id, name)}
         disabled={!actions.canUpdate}
         autoEdit={actions.autoEditId === goal.id}
+        onEditEnd={actions.onAutoEditEnd}
         ariaLabel="Rename goal"
         className={styles.goalName}
         display={(v) => <span className={styles.goalName}>{v}</span>}

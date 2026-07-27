@@ -17,6 +17,11 @@ export interface InlineEditTextProps {
   ariaLabel?: string
   /** Start in edit mode immediately (used right after creating a new item). */
   autoEdit?: boolean
+  /**
+   * Called when editing ends, whether saved or cancelled. Lets the caller drop the `autoEdit` flag,
+   * so remounting the node later — dragging it to another cell, say — does not reopen the editor.
+   */
+  onEditEnd?: () => void
   className?: string
   /**
    * Edit on a single line instead of the auto-sizing textarea. Use where the value sits in a wide
@@ -39,6 +44,7 @@ const InlineEditText: FC<InlineEditTextProps> = ({
   disabled = false,
   ariaLabel,
   autoEdit = false,
+  onEditEnd,
   className,
   singleLine = false,
 }) => {
@@ -66,6 +72,7 @@ const InlineEditText: FC<InlineEditTextProps> = ({
     if (committedRef.current) return
     committedRef.current = true
     setIsEditing(false)
+    onEditEnd?.()
 
     const next = draft.trim()
     if (next && next !== value) onSave(next)
@@ -74,6 +81,7 @@ const InlineEditText: FC<InlineEditTextProps> = ({
   const cancel = () => {
     committedRef.current = true
     setIsEditing(false)
+    onEditEnd?.()
   }
 
   const handleKeyDown = (

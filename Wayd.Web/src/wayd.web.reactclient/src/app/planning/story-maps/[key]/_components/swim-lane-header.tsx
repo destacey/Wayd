@@ -65,6 +65,7 @@ const SwimLaneHeader: FC<SwimLaneHeaderProps> = ({
     listeners,
     setNodeRef,
     style: sortableStyle,
+    dragClassName,
   } = useBoardSortable(swimLane.id, !actions.canUpdate || isFixed)
 
   const dateLabel = formatRange(swimLane.startDate, swimLane.endDate)
@@ -125,14 +126,10 @@ const SwimLaneHeader: FC<SwimLaneHeaderProps> = ({
   return (
     <div
       ref={setNodeRef}
-      className={styles.swimLaneHeader}
+      className={`${styles.swimLaneHeader} ${dragClassName}`}
       style={{ gridRow: row, ...sortableStyle }}
       {...attributes}
       {...listeners}
-      // The default lane is pinned first by the domain, so it is never draggable.
-      aria-label={
-        actions.canUpdate && !isFixed ? `Reorder ${swimLane.name}` : undefined
-      }
     >
       <div className={styles.swimLaneHeaderSticky}>
         {isFixed ? (
@@ -143,6 +140,7 @@ const SwimLaneHeader: FC<SwimLaneHeaderProps> = ({
             onSave={(name) => actions.onRenameSwimLane(swimLane.id, name)}
             disabled={!actions.canUpdate}
             autoEdit={actions.autoEditId === swimLane.id}
+            onEditEnd={actions.onAutoEditEnd}
             ariaLabel="Rename swim lane"
             singleLine
             className={styles.swimLaneName}

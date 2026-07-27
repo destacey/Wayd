@@ -497,6 +497,86 @@ describe('applyRemoveSwimLane', () => {
     expect(tasks.every((t) => t.swimLaneId === lane)).toBe(true)
   })
 
+  it('appends reassigned tasks after the ones already in the default lane', () => {
+    // Arrange — t1 already occupies the default cell at order 0.
+    const draft = details()
+
+    // Act
+    applyRemoveSwimLane(draft, doomed)
+
+    // Assert — matching Step.ReassignTasksToSwimLane. Keeping the moved tasks' old orders would
+    // collide with t1 and interleave the cell, then jump when the refetch lands.
+    expect(taskOrder(draft, 's1', lane)).toEqual(['t1:0', 't2:1', 't3:2'])
+  })
+
+  it('appends per step, so each cell numbers from its own existing tasks', () => {
+    // Arrange — two steps, each holding one default-lane task and one doomed-lane task.
+    const draft = map(
+      [
+        goal('g1', 0, [
+          step('s1', 'g1', 0, [
+            task('t1', 's1', lane, 0),
+            task('t2', 's1', doomed, 0),
+          ]),
+          step('s2', 'g1', 1, [
+            task('t3', 's2', lane, 0),
+            task('t4', 's2', doomed, 0),
+          ]),
+        ]),
+      ],
+      [swimLane(lane, 0, true), swimLane(doomed, 1)],
+    )
+
+    // Act
+    applyRemoveSwimLane(draft, doomed)
+
+    // Assert
+    expect(taskOrder(draft, 's1', lane)).toEqual(['t1:0', 't2:1'])
+    expect(taskOrder(draft, 's2', lane)).toEqual(['t3:0', 't4:1'])
+  })
+
+  it('preserves the relative order of the tasks it moves', () => {
+    // Arrange — the doomed lane's tasks are stored out of order.
+    const draft = map(
+      [
+        goal('g1', 0, [
+          step('s1', 'g1', 0, [
+            task('second', 's1', doomed, 1),
+            task('first', 's1', doomed, 0),
+          ]),
+        ]),
+      ],
+      [swimLane(lane, 0, true), swimLane(doomed, 1)],
+    )
+
+    // Act
+    applyRemoveSwimLane(draft, doomed)
+
+    // Assert
+    expect(taskOrder(draft, 's1', lane)).toEqual(['first:0', 'second:1'])
+  })
+
+  it('leaves a step with nothing in the removed lane untouched', () => {
+    // Arrange
+    const draft = map(
+      [
+        goal('g1', 0, [
+          step('s1', 'g1', 0, [
+            task('t1', 's1', lane, 0),
+            task('t2', 's1', lane, 1),
+          ]),
+        ]),
+      ],
+      [swimLane(lane, 0, true), swimLane(doomed, 1)],
+    )
+
+    // Act
+    applyRemoveSwimLane(draft, doomed)
+
+    // Assert
+    expect(taskOrder(draft, 's1', lane)).toEqual(['t1:0', 't2:1'])
+  })
+
   it('refuses to remove the default lane', () => {
     // Arrange
     const draft = details()

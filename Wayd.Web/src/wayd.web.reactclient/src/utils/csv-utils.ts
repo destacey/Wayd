@@ -1,11 +1,23 @@
 import dayjs from 'dayjs'
 
 /**
+ * Leading characters that make a spreadsheet parse a cell as a formula. `=HYPERLINK("http://evil")`
+ * executes on open, and quoting does not defuse it — the cell has to stop looking like a formula.
+ */
+const FORMULA_TRIGGERS = ['=', '+', '-', '@', '\t', '\r']
+
+/** Strings only: a numeric `-5` is data the spreadsheet should still read as a number. */
+const isFormula = (value: unknown, str: string): boolean =>
+  typeof value === 'string' && FORMULA_TRIGGERS.includes(str[0])
+
+/**
  * Escapes a value for CSV format
  */
 export const escapeCsv = (value: unknown): string => {
   const str = value == null ? '' : String(value)
-  const escaped = str.replace(/\"/g, '""')
+  // A leading apostrophe means "literal text" and is consumed on import.
+  const defused = isFormula(value, str) ? `'${str}` : str
+  const escaped = defused.replace(/\"/g, '""')
   return /[\",\n\r]/.test(escaped) ? `"${escaped}"` : escaped
 }
 

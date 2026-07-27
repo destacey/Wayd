@@ -36,6 +36,7 @@ const StepHeaderCell: FC<StepHeaderCellProps> = ({
     listeners,
     setNodeRef,
     style: sortableStyle,
+    dragClassName,
     isDropTarget,
     dropsAfter,
   } = useBoardSortable(step.id, !actions.canUpdate, { dropSide })
@@ -53,7 +54,7 @@ const StepHeaderCell: FC<StepHeaderCellProps> = ({
     <div
       ref={setNodeRef}
       // Steps read left-to-right, so the insertion line is a vertical rule on one of the side edges.
-      className={`${styles.stepCell} ${muted ? styles.muted : ''} ${
+      className={`${styles.stepCell} ${dragClassName} ${muted ? styles.muted : ''} ${
         isLastColumn ? styles.lastColumn : ''
       } ${
         isDropTarget
@@ -65,13 +66,13 @@ const StepHeaderCell: FC<StepHeaderCellProps> = ({
       style={style}
       {...attributes}
       {...listeners}
-      aria-label={actions.canUpdate ? `Reorder ${step.name}` : undefined}
     >
       <InlineEditText
         value={step.name}
         onSave={(name) => actions.onRenameStep(step.id, name)}
         disabled={!actions.canUpdate}
         autoEdit={actions.autoEditId === step.id}
+        onEditEnd={actions.onAutoEditEnd}
         ariaLabel="Rename step"
         className={styles.stepName}
         display={(v) => <span className={styles.stepName}>{v}</span>}

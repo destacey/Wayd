@@ -31,8 +31,15 @@ const TaskCard: FC<TaskCardProps> = ({
   dropSide,
   forceDropAfter = false,
 }) => {
-  const { attributes, listeners, setNodeRef, style, isDropTarget, dropsAfter } =
-    useBoardSortable(task.id, !actions.canUpdate, { dropSide })
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    style,
+    dragClassName,
+    isDropTarget,
+    dropsAfter,
+  } = useBoardSortable(task.id, !actions.canUpdate, { dropSide })
 
   const showLine = isDropTarget || forceDropAfter
   const lineBelow = forceDropAfter || dropsAfter
@@ -41,7 +48,7 @@ const TaskCard: FC<TaskCardProps> = ({
   <div
     ref={setNodeRef}
     style={style}
-    className={`${styles.taskCard} ${muted ? styles.muted : ''} ${
+    className={`${styles.taskCard} ${dragClassName} ${muted ? styles.muted : ''} ${
       showLine
         ? lineBelow
           ? styles.taskCardDropBelow
@@ -50,15 +57,14 @@ const TaskCard: FC<TaskCardProps> = ({
     }`}
     {...attributes}
     {...listeners}
-    aria-label={actions.canUpdate ? `Reorder ${task.title}` : undefined}
   >
     <InlineEditText
       value={task.title}
       onSave={(title) => actions.onRenameTask(task, title)}
       disabled={!actions.canUpdate}
       autoEdit={actions.autoEditId === task.id}
+      onEditEnd={actions.onAutoEditEnd}
       ariaLabel="Rename task"
-      maxLength={256}
       className={styles.taskTitle}
       display={(v) => <span className={styles.taskTitle}>{v}</span>}
     />

@@ -122,10 +122,9 @@ export const storyMapsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (_r, _e, { id }) => [
-        { type: QueryTags.StoryMap, id },
-        { type: QueryTags.StoryMapList, id: 'LIST' },
-      ],
+      // Only the list. Invalidating the single-map tag would make the detail page — still mounted
+      // and subscribed while it navigates away — refetch the map that was just deleted and 404.
+      invalidatesTags: () => [{ type: QueryTags.StoryMapList, id: 'LIST' }],
     }),
 
     // ---- Structural mutations (invalidate the single map; SignalR keeps other

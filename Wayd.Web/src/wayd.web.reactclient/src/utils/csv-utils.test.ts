@@ -63,6 +63,38 @@ describe('csv-utils', () => {
       expect(escapeCsv(true)).toBe('true')
       expect(escapeCsv(false)).toBe('false')
     })
+
+    describe('formula injection', () => {
+      it('should defuse a leading = so a formula is not executed on open', () => {
+        expect(escapeCsv('=HYPERLINK("http://evil","click")')).toBe(
+          '"\'=HYPERLINK(""http://evil"",""click"")"',
+        )
+      })
+
+      it.each(['=1+1', '+1', '-1+1', '@SUM(A1)', '\tcmd', '\rcmd'])(
+        'should defuse a leading formula trigger in %j',
+        (value) => {
+          expect(escapeCsv(value).replace(/^"/, '')).toMatch(/^'/)
+        },
+      )
+
+      it('should not touch a trigger character that is not leading', () => {
+        expect(escapeCsv('a=b')).toBe('a=b')
+        expect(escapeCsv('total -5')).toBe('total -5')
+      })
+
+      it('should leave negative numbers as numbers', () => {
+        // Only strings carry injected content; quoting a numeric -5 would break every numeric
+        // column in every export that uses this helper.
+        expect(escapeCsv(-5)).toBe('-5')
+        expect(escapeCsv(-45.67)).toBe('-45.67')
+      })
+
+      it('should leave an empty value alone', () => {
+        expect(escapeCsv('')).toBe('')
+        expect(escapeCsv(null)).toBe('')
+      })
+    })
   })
 
   describe('generateCsv', () => {

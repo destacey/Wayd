@@ -129,11 +129,27 @@ export const applyRemoveSwimLane = (
   const defaultLane = draft.swimLanes.find((l) => l.isDefault)
   if (!defaultLane || defaultLane.id === swimLaneId) return
 
+  // Append after whatever the default lane already holds in that step, keeping relative order.
+  // Rewriting the lane id alone leaves two sets sharing one order sequence, so the cell interleaves
+  // and then jumps when the refetch corrects it.
   for (const goal of draft.goals) {
     for (const step of goal.steps) {
-      for (const task of step.tasks) {
-        if (task.swimLaneId === swimLaneId) task.swimLaneId = defaultLane.id
-      }
+      const moving = step.tasks
+        .filter((t) => t.swimLaneId === swimLaneId)
+        .sort((a, b) => a.order - b.order)
+      if (moving.length === 0) continue
+
+      const existing = step.tasks
+        .filter((t) => t.swimLaneId === defaultLane.id)
+        .sort((a, b) => a.order - b.order)
+
+      existing.forEach((task, index) => {
+        task.order = index
+      })
+      moving.forEach((task, index) => {
+        task.swimLaneId = defaultLane.id
+        task.order = existing.length + index
+      })
     }
   }
 

@@ -11,7 +11,6 @@ import useAuth from '@/src/components/contexts/auth'
 import useTheme from '@/src/components/contexts/theme'
 import {
   useGetStoryMapQuery,
-  useArchiveStoryMapMutation,
   useAddGoalMutation,
   useRenameGoalMutation,
   useDeleteGoalMutation,
@@ -39,7 +38,15 @@ import { ItemType } from 'antd/es/menu/interface'
 import { WaydTooltip } from '@/src/components/common'
 import { MoreOutlined, PlusOutlined } from '@ant-design/icons'
 import { notFound, useParams, usePathname, useRouter } from 'next/navigation'
-import { CSSProperties, FC, useEffect, useMemo, useState } from 'react'
+import {
+  CSSProperties,
+  FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import PageTitle from '@/src/components/common/page-title'
 import { setBreadcrumbTitle } from '@/src/store/breadcrumbs'
 import { StoryMapTaskDto } from '@/src/services/wayd-api'
@@ -54,7 +61,7 @@ import {
   PersonaFilterBar,
   StoryMapBoard,
 } from './_components'
-import { DeleteStoryMapForm } from '../_components'
+import { ArchiveStoryMapForm, DeleteStoryMapForm } from '../_components'
 import StoryMapDetailsLoading from './loading'
 import styles from '../_components/story-map.module.css'
 
@@ -98,10 +105,7 @@ const StoryMapDetailPage: FC = () => {
   const { data: map, isLoading } = useGetStoryMapQuery(key)
 
   const [presence, setPresence] = useState<PresenceParticipant[]>([])
-  useStoryMapConnection(map?.id, setPresence)
 
-  const [archiveStoryMap, { isLoading: isArchiving }] =
-    useArchiveStoryMapMutation()
   const [addGoal] = useAddGoalMutation()
   const [renameGoal] = useRenameGoalMutation()
   const [deleteGoal] = useDeleteGoalMutation()
@@ -124,6 +128,7 @@ const StoryMapDetailPage: FC = () => {
   const [setTaskPersonas] = useSetTaskPersonasMutation()
 
   const [openEditForm, setOpenEditForm] = useState(false)
+  const [openArchiveMap, setOpenArchiveMap] = useState(false)
   const [openDeleteMap, setOpenDeleteMap] = useState(false)
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(
     null,
@@ -133,6 +138,20 @@ const StoryMapDetailPage: FC = () => {
   const [autoEditId, setAutoEditId] = useState<string | null>(null)
 
   const messageApi = useMessage()
+
+  // The hub broadcasts MapDeleted to the whole group, including whoever pressed delete. They already
+  // have a success toast and are already navigating, so only tell the others.
+  const deletedHereRef = useRef(false)
+
+  // Someone else deleted the map while we were looking at it. Staying here would leave a board whose
+  // every edit silently fails, so say what happened and return to the list.
+  const handleMapDeleted = useCallback(() => {
+    if (deletedHereRef.current) return
+    messageApi.warning('This story map was deleted.')
+    router.push('/planning/story-maps')
+  }, [messageApi, router])
+
+  useStoryMapConnection(map?.id, setPresence, handleMapDeleted)
 
   useEffect(() => {
     if (!map) return
@@ -145,16 +164,6 @@ const StoryMapDetailPage: FC = () => {
     [map],
   )
 
-  const handleArchive = async () => {
-    if (!map) return
-    try {
-      const response = await archiveStoryMap({ id: map.id })
-      if (response.error) throw response.error
-      messageApi.success('Story map archived.')
-    } catch {
-      messageApi.error('Failed to archive story map.')
-    }
-  }
 
   const handleAddGoal = async () => {
     if (!map) return
@@ -484,7 +493,7 @@ const StoryMapDetailPage: FC = () => {
           {
             key: 'archive',
             label: 'Archive',
-            onClick: handleArchive,
+            onClick: () => setOpenArchiveMap(true),
           },
         ]
       : []),
@@ -547,6 +556,7 @@ const StoryMapDetailPage: FC = () => {
   const actions: BoardActions = {
     canUpdate: canEdit,
     autoEditId,
+    onAutoEditEnd: () => setAutoEditId(null),
     personas: orderedPersonas,
     onRenameGoal: handleRenameGoal,
     onDeleteGoal: handleDeleteGoal,
@@ -629,10 +639,18 @@ const StoryMapDetailPage: FC = () => {
           onClose={() => setOpenManagePersonas(false)}
         />
       )}
+      {openArchiveMap && (
+        <ArchiveStoryMapForm
+          storyMap={{ id: map.id, key: map.key, name: map.name }}
+          onFormComplete={() => setOpenArchiveMap(false)}
+          onFormCancel={() => setOpenArchiveMap(false)}
+        />
+      )}
       {openDeleteMap && (
         <DeleteStoryMapForm
           storyMap={{ id: map.id, key: map.key, name: map.name }}
           onFormComplete={() => {
+            deletedHereRef.current = true
             setOpenDeleteMap(false)
             // The map no longer exists — return to the list.
             router.push('/planning/story-maps')

@@ -9,6 +9,11 @@ export interface BoardActions {
   canUpdate: boolean
   /** The id of an item just created inline, so its name field opens in edit mode. */
   autoEditId: string | null
+  /**
+   * Clears {@link autoEditId} once the editor closes. Without this the flag outlives the edit, and
+   * anything that remounts the node — dragging it to another cell — reopens the editor.
+   */
+  onAutoEditEnd: () => void
   /** Every persona on the map, so step and task footers can offer one toggle dot each. */
   personas: StoryMapPersonaDto[]
   onRenameGoal: (goalId: string, name: string) => void

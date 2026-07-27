@@ -32,14 +32,20 @@ export interface PresenceParticipant {
 export function useStoryMapConnection(
   storyMapId: string | undefined,
   onPresenceChange?: (participants: PresenceParticipant[]) => void,
+  onMapDeleted?: () => void,
 ) {
   const connectionRef = useRef<HubConnection | null>(null)
   const presenceMapRef = useRef(new Map<string, PresenceParticipant>())
   const onPresenceChangeRef = useRef(onPresenceChange)
+  const onMapDeletedRef = useRef(onMapDeleted)
 
   useEffect(() => {
     onPresenceChangeRef.current = onPresenceChange
   }, [onPresenceChange])
+
+  useEffect(() => {
+    onMapDeletedRef.current = onMapDeleted
+  }, [onMapDeleted])
 
   const emitPresence = () => {
     onPresenceChangeRef.current?.(Array.from(presenceMapRef.current.values()))
@@ -77,7 +83,6 @@ export function useStoryMapConnection(
         const changeEvents = [
           'MapUpdated',
           'MapArchived',
-          'MapDeleted',
           'GoalAdded',
           'GoalRenamed',
           'GoalReordered',
@@ -112,6 +117,12 @@ export function useStoryMapConnection(
           connection.on(event, invalidateMap)
         }
 
+        // Deletion is not a change to refetch — the map is gone, and refetching would leave the
+        // viewer on a broken board. The page decides where to send them.
+        connection.on('MapDeleted', () => {
+          onMapDeletedRef.current?.()
+        })
+
         // Presence events
         connection.on(
           'ParticipantList',
@@ -137,6 +148,25 @@ export function useStoryMapConnection(
 
         connection.on('ParticipantLeft', (data: { id: string }) => {
           presenceMapRef.current.delete(data.id)
+          emitPresence()
+        })
+
+        // A reconnect gets a new connection id and the server drops the old one from the group, so
+        // without re-joining the board looks live while receiving nothing. Refetch to catch up.
+        connection.onreconnected(() => {
+          if (cancelled) return
+          connection
+            .invoke('JoinMap', storyMapId)
+            .then(invalidateMap)
+            .catch((error) => {
+              console.warn('Story Map rejoin after reconnect failed:', error)
+            })
+        })
+
+        // Reconnection gives up eventually; drop the avatars rather than leave them frozen.
+        connection.onclose(() => {
+          if (cancelled) return
+          presenceMapRef.current.clear()
           emitPresence()
         })
 

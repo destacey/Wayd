@@ -422,7 +422,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['StoryMaps_AddPersona', {
     name: 'StoryMaps_AddPersona',
     description: `Define a persona on the map.`,
-    inputSchema: {"type":"object","properties":{"storyMapId":{"type":"string","format":"uuid"},"requestBody":{"type":"object","properties":{"name":{"type":"string","maxLength":128},"description":{"type":["string","null"],"maxLength":256},"color":{"type":"string","description":"Hex color, e.g. #1677ff."}},"required":["name","color"]}},"required":["storyMapId","requestBody"]},
+    inputSchema: {"type":"object","properties":{"storyMapId":{"type":"string","format":"uuid"},"requestBody":{"type":"object","properties":{"name":{"type":"string","maxLength":128},"description":{"type":["string","null"],"maxLength":256},"color":{"type":"string","pattern":"^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$","description":"Hex color (#RGB or #RRGGBB), e.g. #1677ff."}},"required":["name","color"]}},"required":["storyMapId","requestBody"]},
     method: 'post',
     pathTemplate: '/api/planning/story-maps/{storyMapId}/personas',
     executionParameters: [{"name":"storyMapId","in":"path"}],
@@ -433,7 +433,7 @@ export const definitions: [string, McpToolDefinition][] = [
   ['StoryMaps_UpdatePersona', {
     name: 'StoryMaps_UpdatePersona',
     description: `Update a persona's name, description, and color.`,
-    inputSchema: {"type":"object","properties":{"storyMapId":{"type":"string","format":"uuid"},"personaId":{"type":"string","format":"uuid"},"requestBody":{"type":"object","properties":{"name":{"type":"string","maxLength":128},"description":{"type":["string","null"],"maxLength":256},"color":{"type":"string","description":"Hex color, e.g. #1677ff."}},"required":["name","color"]}},"required":["storyMapId","personaId","requestBody"]},
+    inputSchema: {"type":"object","properties":{"storyMapId":{"type":"string","format":"uuid"},"personaId":{"type":"string","format":"uuid"},"requestBody":{"type":"object","properties":{"name":{"type":"string","maxLength":128},"description":{"type":["string","null"],"maxLength":256},"color":{"type":"string","pattern":"^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$","description":"Hex color (#RGB or #RRGGBB), e.g. #1677ff."}},"required":["name","color"]}},"required":["storyMapId","personaId","requestBody"]},
     method: 'put',
     pathTemplate: '/api/planning/story-maps/{storyMapId}/personas/{personaId}',
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"personaId","in":"path"}],

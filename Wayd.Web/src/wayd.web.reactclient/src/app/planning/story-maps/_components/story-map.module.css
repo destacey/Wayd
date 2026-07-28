@@ -601,14 +601,12 @@
   cursor: default;
 }
 
-/* Goal-level header actions (add / delete) — revealed on hover of the goal cell. */
+/* Goal-level header actions (add / delete) — always visible so the affordance is discoverable. */
 .headerActions {
   display: flex;
   align-items: center;
   gap: 2px;
   flex: none;
-  opacity: 0;
-  transition: opacity 0.15s;
 }
 
 /* Match the compact footer buttons so the goal row does not sit taller than it needs to. */
@@ -620,14 +618,14 @@
   font-size: 12px;
 }
 
-.goalCell:hover .headerActions,
-.headerActions:focus-within {
+/* Step cells keep their actions always visible, like the goal row — the shared .footerActions
+   class stays hover-revealed for task cards and swim lanes. */
+.stepCell .footerActions {
   opacity: 1;
 }
 
-/* Footer actions reveal on hover of the owning step cell or task card. Keyboard users get them via
+/* Footer actions reveal on hover of the owning task card. Keyboard users get them via
    :focus-within, so they are reachable without a pointer. */
-.stepCell:hover .footerActions,
 .taskCard:hover .footerActions,
 .footerActions:focus-within {
   opacity: 1;

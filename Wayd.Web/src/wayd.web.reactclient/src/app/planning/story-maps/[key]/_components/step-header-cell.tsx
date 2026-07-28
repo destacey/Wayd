@@ -78,7 +78,7 @@ const StepHeaderCell: FC<StepHeaderCellProps> = ({
         display={(v) => <span className={styles.stepName}>{v}</span>}
       />
 
-      {/* Footer: persona toggles on the left, hover-revealed add/delete on the right. */}
+      {/* Footer: persona toggles on the left, add/delete on the right. */}
       <div className={styles.cellFooter}>
         <PersonaToggleDots
           personas={actions.personas}

@@ -1,4 +1,4 @@
-import type { ColumnDef, SortingState } from '@tanstack/react-table'
+import type { ColumnDef, Row, SortingState } from '@tanstack/react-table'
 import type { FormInstance } from 'antd'
 import type { DraftItem } from '../wayd-grid-core/draft-utils'
 import type { MoveValidator } from '../wayd-grid-core/dnd/tree-projection'
@@ -61,6 +61,33 @@ export interface GridInlineEditingConfig<T> {
   ) => Record<string, string>
   cellIdColumnMatchOrder: readonly string[]
   draftPrefix?: string
+}
+
+/**
+ * Attaches a chart pane to the RIGHT of the grid, sharing the grid's row
+ * geometry (one virtualizer, one vertical scroller — so bars can never drift
+ * from their rows). Domain-agnostic: WaydGrid knows nothing about dates. The
+ * consumer supplies the header (e.g. a date axis) and a per-row renderer that
+ * receives each row plus its resolved vertical position, and returns the bar(s)
+ * for that row — enabling a Gantt "chart mode" on any grid (list stays the
+ * spine; the chart is the collapsible companion). Omit for a plain grid.
+ */
+export interface WaydGridRightPane<T> {
+  /** Pane header, aligned to the grid header height (e.g. the date axis). It
+   *  should manage its own horizontal scroll in sync with the body track. */
+  header?: React.ReactNode
+  /** Default pane width, px. Resizable via the divider. */
+  defaultWidth?: number
+  /** Minimum pane width, px. Default 200. */
+  minWidth?: number
+  /** Called (on resize end) with the new pane width, px, for persistence. */
+  onWidthChange?: (width: number) => void
+  /**
+   * Renders the bar(s) for one row. `top`/`height` are the row's resolved
+   * geometry from the SAME virtualizer the grid rows use, so bars stay aligned.
+   * Content is absolutely positioned within the pane's scrolling track.
+   */
+  renderRow: (ctx: { row: Row<T>; top: number; height: number }) => React.ReactNode
 }
 
 /**
@@ -194,6 +221,15 @@ export interface WaydGridProps<T> {
   onDraftCancelled?: (draftId: string) => void
   /** Called when the internal draft list changes. */
   onDraftsChange?: (drafts: DraftItem[]) => void
+
+  // -- Right chart pane (Gantt "chart mode"; enabled when provided) --
+  /**
+   * Attach a bar-chart pane to the right of the grid that shares the grid's row
+   * geometry (see {@link WaydGridRightPane}). Turns the list into a Gantt while
+   * keeping every grid feature. Omit for a plain grid — the body structure is
+   * completely unchanged when this is absent.
+   */
+  rightPane?: WaydGridRightPane<T>
 }
 
 /** Payload for {@link WaydGridProps.onRowReorder}. */

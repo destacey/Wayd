@@ -1,0 +1,108 @@
+/* roadmap-gantt.module.css — bars + axis for the roadmap Gantt chart pane.
+   Theme-token styling only (no hardcoded colors). */
+
+/* ── Date axis (two-tier header) ───────────────────────────────────────── */
+.axis {
+  position: relative;
+  height: 100%;
+}
+
+.axisTier {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+.axisTier:first-child .axisCell {
+  border-bottom: 1px solid var(--ant-color-split);
+  font-weight: var(--ant-font-weight-strong);
+  color: var(--ant-color-text);
+}
+
+.axisCell {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  padding-left: var(--ant-padding-xxs);
+  border-left: 1px solid var(--ant-color-split);
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.axisLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Bars ──────────────────────────────────────────────────────────────── */
+.bar {
+  position: absolute;
+  z-index: 2;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  border-radius: var(--ant-border-radius);
+  padding: 0 var(--ant-padding-xs);
+  overflow: hidden;
+  white-space: nowrap;
+  background-color: var(--ant-color-primary);
+  color: var(--ant-color-white);
+  font-size: var(--ant-font-size-sm);
+}
+
+.barLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Timebox — a lighter background band rather than a solid task bar. */
+.timeboxBar {
+  background-color: var(--ant-color-fill-secondary);
+  border: 1px solid var(--ant-color-border);
+  color: var(--ant-color-text-secondary);
+}
+
+/* Summary (rollup) bar for a parent/phase row — slim, squared, bracketed. */
+.summaryBar {
+  position: absolute;
+  z-index: 2;
+  box-sizing: border-box;
+  border-radius: 2px;
+  background-color: var(--ant-color-fill);
+  border: 1px solid var(--ant-color-text-tertiary);
+}
+
+.summaryBar::before,
+.summaryBar::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+
+.summaryBar::before {
+  left: -1px;
+  border-width: 5px 0 0 5px;
+  border-color: transparent transparent transparent var(--ant-color-text-tertiary);
+}
+
+.summaryBar::after {
+  right: -1px;
+  border-width: 5px 5px 0 0;
+  border-color: var(--ant-color-text-tertiary) transparent transparent transparent;
+}
+
+/* Milestone — a square rotated 45° (diamond) centered on its date. */
+.milestone {
+  position: absolute;
+  z-index: 2;
+  transform: rotate(45deg);
+  background-color: var(--ant-color-primary);
+  border-radius: 2px;
+}

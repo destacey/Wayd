@@ -8,8 +8,8 @@ import {
   RoadmapMilestoneListDto,
   RoadmapTimeboxListDto,
 } from '@/src/services/wayd-api'
-import { PlusOutlined } from '@ant-design/icons'
-import { Button, Form } from 'antd'
+import { PlusOutlined, BarsOutlined } from '@ant-design/icons'
+import { Button, Form, Tooltip } from 'antd'
 import dayjs from 'dayjs'
 import {
   type DraftItem,
@@ -34,6 +34,7 @@ import DeleteRoadmapItemForm from './delete-roadmap-item-form'
 import EditRoadmapTimeboxForm from './edit-roadmap-timebox-form'
 import { getRoadmapItemsGridColumns } from './roadmap-items-grid.columns'
 import { RoadmapItemsHelp } from './roadmap-items-grid.keyboard-shortcuts'
+import { useRoadmapGantt } from './roadmap-gantt'
 
 export interface RoadmapItemTreeNode extends TreeNode {
   id: string
@@ -184,6 +185,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
     useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [showGantt, setShowGantt] = useState(false)
   const draftsRef = useRef<DraftItem[]>([])
 
   const [createRoadmapItem] = useCreateRoadmapItemMutation()
@@ -210,6 +212,14 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
     if (roadmapItemsIsLoading) return []
     return roadmapItemsData.map((item) => mapToTreeNode(item))
   }, [roadmapItemsData, roadmapItemsIsLoading])
+
+  // Gantt chart pane (attached to the grid's right when toggled on). The hook is
+  // called unconditionally (rules of hooks); the pane is only wired when shown.
+  const gantt = useRoadmapGantt(
+    roadmap?.start ?? new Date(),
+    roadmap?.end ?? new Date(),
+    treeData,
+  )
 
   const roadmapActivityMoveValidator: MoveValidator<RoadmapItemTreeNode> =
     useCallback((activeNode, targetParentNode, targetParentId) => {
@@ -697,7 +707,30 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
           getSubRows={(row) => row.children}
           isLoading={roadmapItemsIsLoading}
           columns={columns}
-          rightSlot={viewSelector}
+          rightSlot={
+            <>
+              <Tooltip title={showGantt ? 'Hide Gantt chart' : 'Show Gantt chart'}>
+                <Button
+                  icon={<BarsOutlined />}
+                  type={showGantt ? 'primary' : 'default'}
+                  aria-pressed={showGantt}
+                  onClick={() => setShowGantt((v) => !v)}
+                >
+                  Gantt
+                </Button>
+              </Tooltip>
+              {viewSelector}
+            </>
+          }
+          rightPane={
+            showGantt
+              ? {
+                  header: gantt.header,
+                  defaultWidth: gantt.defaultWidth,
+                  renderRow: gantt.renderRow,
+                }
+              : undefined
+          }
           onRefresh={async () => refreshRoadmapItems()}
           emptyMessage="No Roadmap Items"
           csvFileName="roadmap-items"

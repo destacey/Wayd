@@ -85,6 +85,48 @@
   min-height: 0;
 }
 
+/* ── Right chart pane (Gantt) ──────────────────────────────────────────────
+   When a right pane is present the OUTER scroller owns vertical scroll, so the
+   table wrapper only scrolls horizontally (its columns) and grows to full row
+   height inside the shared scroller. */
+.tableWrapperWithRightPane {
+  overflow-y: visible;
+  height: 100%;
+}
+
+/* The one vertical scroller wrapping the grid table + bar track, so they scroll
+   as one. Horizontal scroll stays inside each pane. */
+.bodyVerticalScroller {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
+}
+
+/* The bar-track pane: its own horizontal scroll (the time axis), full row
+   height inside the shared vertical scroller. */
+.rightPaneTrack {
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 100%;
+  border-left: 1px solid var(--ant-color-border);
+}
+
+/* Positioning context for the absolutely-placed row bars. */
+.rightPaneCanvas {
+  position: relative;
+  min-width: 100%;
+}
+
+/* Header band above the bar track — matches the grid header height/background. */
+.rightPaneHeader {
+  flex: none;
+  overflow: hidden;
+  background: var(--wayd-grid-header-bg);
+  border-bottom: 1px solid var(--ant-color-border);
+  border-left: 1px solid var(--ant-color-border);
+}
+
 .tableElement {
   /* Grouped-header band rows above the leaf header row; set inline by the
    * grid (0 when no column groups). Drives the header row offsets so the

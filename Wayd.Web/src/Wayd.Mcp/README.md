@@ -133,13 +133,14 @@ Then use `wayd-mcp` as the command instead of `npx -y @wayd/mcp` in any of the c
 
 Skills are prompt files that guide Claude on how to efficiently use the Wayd MCP tools — which tools to call in sequence, how to resolve IDs, and what the entity relationships look like. Without them, agents tend to make redundant calls or miss non-obvious patterns (e.g. project lifecycle transitions use separate action endpoints, not a status field).
 
-Five self-contained skills are available:
+Six self-contained skills are available:
 
 | Skill | Trigger |
 | --- | --- |
 | `wayd-ppm` | Portfolios, programs, projects — lookup, create, update, lifecycle |
 | `wayd-pi` | Planning intervals, iterations, objectives, health reports, risks |
 | `wayd-roadmaps` | Roadmap exploration — activities, timeboxes, milestones |
+| `wayd-story-maps` | Story maps — analyze, create, and manage goals, steps, tasks, swim lanes, personas |
 | `wayd-teams` | Team lookup — resolve a team name to an ID |
 | `wayd-users` | User lookup — resolve a user name to a UUID for assignees and project roles |
 
@@ -151,7 +152,7 @@ From your project root:
 npx skills add destacey/Wayd
 ```
 
-Once installed, activate a skill in Claude Code with `/wayd-ppm`, `/wayd-pi`, `/wayd-roadmaps`, `/wayd-teams`, or `/wayd-users`.
+Once installed, activate a skill in Claude Code with `/wayd-ppm`, `/wayd-pi`, `/wayd-roadmaps`, `/wayd-story-maps`, `/wayd-teams`, or `/wayd-users`.
 
 ## Available Tools
 
@@ -171,6 +172,7 @@ Once installed, activate a skill in Claude Code with `/wayd-ppm`, `/wayd-pi`, `/
 | --- | --- |
 | **Planning Intervals** | List, get details, calendar, predictability, teams, iterations, objectives, risks, objective health check history, get/create objective health check |
 | **Roadmaps** | List, get details, get items and activities |
+| **Story Maps** | List, get full map. Create, update, archive, delete maps. Manage goals, steps, tasks, checklists, swim lanes, personas, and work item links |
 
 ### Organization
 

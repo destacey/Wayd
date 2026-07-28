@@ -50,9 +50,18 @@ const StepHeaderCell: FC<StepHeaderCellProps> = ({
   const muted =
     selectedPersonaId !== null && !step.personaIds.includes(selectedPersonaId)
 
+  // Spell out exactly what a delete takes with it; nothing extra to warn about when the step is
+  // empty.
+  const taskCount = step.tasks.length
+  const deleteDescription =
+    taskCount === 0
+      ? undefined
+      : `This will also delete its ${taskCount} ${taskCount === 1 ? 'task' : 'tasks'}.`
+
   return (
     <div
       ref={setNodeRef}
+      data-tour="step-cell"
       // Steps read left-to-right, so the insertion line is a vertical rule on one of the side edges.
       className={`${styles.stepCell} ${dragClassName} ${muted ? styles.muted : ''} ${
         isLastColumn ? styles.lastColumn : ''
@@ -78,7 +87,7 @@ const StepHeaderCell: FC<StepHeaderCellProps> = ({
         display={(v) => <span className={styles.stepName}>{v}</span>}
       />
 
-      {/* Footer: persona toggles on the left, hover-revealed add/delete on the right. */}
+      {/* Footer: persona toggles on the left, add/delete on the right. */}
       <div className={styles.cellFooter}>
         <PersonaToggleDots
           personas={actions.personas}
@@ -95,11 +104,12 @@ const StepHeaderCell: FC<StepHeaderCellProps> = ({
               type="text"
               icon={<PlusOutlined />}
               aria-label="Add task"
+              data-tour="add-task"
               onClick={() => actions.onAddTask(step.id)}
             />
             <Popconfirm
               title="Delete this step?"
-              description="Its tasks will be deleted too."
+              description={deleteDescription}
               okText="Delete"
               okButtonProps={{ danger: true }}
               onConfirm={() => actions.onDeleteStep(step.id)}

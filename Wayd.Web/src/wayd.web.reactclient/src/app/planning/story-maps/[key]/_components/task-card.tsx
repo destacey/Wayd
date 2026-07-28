@@ -48,6 +48,7 @@ const TaskCard: FC<TaskCardProps> = ({
   <div
     ref={setNodeRef}
     style={style}
+    data-tour="task-card"
     className={`${styles.taskCard} ${dragClassName} ${muted ? styles.muted : ''} ${
       showLine
         ? lineBelow

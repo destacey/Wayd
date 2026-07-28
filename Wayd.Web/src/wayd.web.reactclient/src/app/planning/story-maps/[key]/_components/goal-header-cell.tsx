@@ -48,6 +48,19 @@ const GoalHeaderCell: FC<GoalHeaderCellProps> = ({
     ...sortableStyle,
   }
 
+  // Spell out exactly what a delete takes with it. No description at all when the goal is empty —
+  // a childless delete has nothing extra to warn about.
+  const stepCount = goal.steps.length
+  const taskCount = goal.steps.reduce((n, s) => n + s.tasks.length, 0)
+  const deleteDescription =
+    stepCount === 0
+      ? undefined
+      : `This will also delete its ${stepCount} ${stepCount === 1 ? 'step' : 'steps'}${
+          taskCount > 0
+            ? ` and ${taskCount} ${taskCount === 1 ? 'task' : 'tasks'}`
+            : ''
+        }.`
+
   // A goal is a container, not something a persona is tagged on directly — nothing in the UI sets a
   // goal's own personaIds. So it stays lit whenever anything beneath it is relevant to the filter;
   // muting on its own (always empty) tags greyed out every goal on the board.
@@ -63,6 +76,7 @@ const GoalHeaderCell: FC<GoalHeaderCellProps> = ({
   return (
     <div
       ref={setNodeRef}
+      data-tour="goal-cell"
       className={`${styles.goalCell} ${dragClassName} ${muted ? styles.muted : ''} ${
         isLastColumn ? styles.lastColumn : ''
       } ${
@@ -93,11 +107,12 @@ const GoalHeaderCell: FC<GoalHeaderCellProps> = ({
             type="text"
             icon={<PlusOutlined />}
             aria-label="Add step"
+            data-tour="add-step"
             onClick={() => onAddStep(goal.id)}
           />
           <Popconfirm
             title="Delete this goal?"
-            description="Its steps and their tasks will be deleted too."
+            description={deleteDescription}
             okText="Delete"
             okButtonProps={{ danger: true }}
             onConfirm={() => actions.onDeleteGoal(goal.id)}

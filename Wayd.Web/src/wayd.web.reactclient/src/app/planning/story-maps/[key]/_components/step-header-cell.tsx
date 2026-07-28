@@ -53,6 +53,7 @@ const StepHeaderCell: FC<StepHeaderCellProps> = ({
   return (
     <div
       ref={setNodeRef}
+      data-tour="step-cell"
       // Steps read left-to-right, so the insertion line is a vertical rule on one of the side edges.
       className={`${styles.stepCell} ${dragClassName} ${muted ? styles.muted : ''} ${
         isLastColumn ? styles.lastColumn : ''
@@ -95,6 +96,7 @@ const StepHeaderCell: FC<StepHeaderCellProps> = ({
               type="text"
               icon={<PlusOutlined />}
               aria-label="Add task"
+              data-tour="add-task"
               onClick={() => actions.onAddTask(step.id)}
             />
             <Popconfirm

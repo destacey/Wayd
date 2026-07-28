@@ -63,6 +63,7 @@ const GoalHeaderCell: FC<GoalHeaderCellProps> = ({
   return (
     <div
       ref={setNodeRef}
+      data-tour="goal-cell"
       className={`${styles.goalCell} ${dragClassName} ${muted ? styles.muted : ''} ${
         isLastColumn ? styles.lastColumn : ''
       } ${
@@ -93,6 +94,7 @@ const GoalHeaderCell: FC<GoalHeaderCellProps> = ({
             type="text"
             icon={<PlusOutlined />}
             aria-label="Add step"
+            data-tour="add-step"
             onClick={() => onAddStep(goal.id)}
           />
           <Popconfirm

@@ -220,7 +220,7 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
       onDragCancel={() => setActiveDragId(null)}
     >
     <div className={styles.boardScroll}>
-      <div className={styles.boardGrid} style={gridStyle}>
+      <div className={styles.boardGrid} style={gridStyle} data-tour="board">
       <SortableContext items={sortableIds}>
         {/* ── Sticky label column ── */}
         <div
@@ -333,6 +333,7 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
               type="text"
               size="small"
               icon={<PlusOutlined />}
+              data-tour="add-swim-lane"
               onClick={onAddSwimLane}
             >
               Add swim lane

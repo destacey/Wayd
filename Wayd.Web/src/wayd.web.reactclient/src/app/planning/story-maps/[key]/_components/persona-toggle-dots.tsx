@@ -33,7 +33,7 @@ const PersonaToggleDots: FC<PersonaToggleDotsProps> = ({
   }
 
   return (
-    <span className={styles.personaDots}>
+    <span className={styles.personaDots} data-tour="persona-dots">
       {personas.map((persona) => {
         const isLinked = linkedPersonaIds.includes(persona.id)
         return (

@@ -50,6 +50,14 @@ const StepHeaderCell: FC<StepHeaderCellProps> = ({
   const muted =
     selectedPersonaId !== null && !step.personaIds.includes(selectedPersonaId)
 
+  // Spell out exactly what a delete takes with it; nothing extra to warn about when the step is
+  // empty.
+  const taskCount = step.tasks.length
+  const deleteDescription =
+    taskCount === 0
+      ? undefined
+      : `This will also delete its ${taskCount} ${taskCount === 1 ? 'task' : 'tasks'}.`
+
   return (
     <div
       ref={setNodeRef}
@@ -101,7 +109,7 @@ const StepHeaderCell: FC<StepHeaderCellProps> = ({
             />
             <Popconfirm
               title="Delete this step?"
-              description="Its tasks will be deleted too."
+              description={deleteDescription}
               okText="Delete"
               okButtonProps={{ danger: true }}
               onConfirm={() => actions.onDeleteStep(step.id)}

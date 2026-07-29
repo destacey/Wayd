@@ -40,7 +40,7 @@ export const DEFAULT_THEME_SELECTION: ThemeSelection = {
 }
 
 const isThemeId = (value: unknown): value is ThemeId =>
-  typeof value === 'string' && value in THEME_METADATA
+  typeof value === 'string' && Object.hasOwn(THEME_METADATA, value)
 
 const isThemeMode = (value: unknown): value is ThemeMode =>
   value === 'light' || value === 'dark' || value === 'slate'
@@ -59,7 +59,7 @@ export function normalizeThemeSelection(raw: unknown): ThemeSelection {
     return DEFAULT_THEME_SELECTION
   }
 
-  if (raw && typeof raw === 'object' && 'theme' in raw) {
+  if (raw && typeof raw === 'object' && Object.hasOwn(raw, 'theme')) {
     const { theme, mode } = raw as { theme?: unknown; mode?: unknown }
     if (isThemeId(theme)) {
       const metadata = THEME_METADATA[theme]

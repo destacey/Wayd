@@ -1,18 +1,7 @@
 import { useMemo } from 'react'
 import { theme } from 'antd'
 import { createStyles } from 'antd-style'
-import { AppThemeConfig, TimeLineStyles } from './theme-preset'
-
-export const glassTimeLineStyles: TimeLineStyles = {
-  item: {
-    background: '#e8eef5',
-    foreground: '#3b4a5a',
-    font: '#2f3a45',
-  },
-  background: {
-    background: '#d4dde8',
-  },
-}
+import { AppThemeConfig } from './theme-preset'
 
 const cx = (...classes: Array<string | false | null | undefined>) =>
   classes.filter(Boolean).join(' ')
@@ -239,7 +228,6 @@ const useGlassTheme = (): AppThemeConfig => {
       behavior: {
         allowsPrimaryOverride: true,
       },
-      timeline: glassTimeLineStyles,
       appBar: {
         backgroundColor: 'var(--ant-color-primary)',
         color: '#ffffff',

@@ -1,21 +1,11 @@
 import { theme } from 'antd'
 import { useMemo } from 'react'
 import { ThemeConstants } from './theme-constants'
-import { AppThemeConfig, TimeLineStyles } from './theme-preset'
+import { AppThemeConfig } from './theme-preset'
 const { defaultAlgorithm } = theme
 
-export const lightTimeLineColors: TimeLineStyles = {
-  item: {
-    background: '#ecf0f1',
-    foreground: '#c7edff',
-    font: '#4d4d4d',
-  },
-  background: {
-    background: '#d0d3d4',
-  },
-}
-
-export const useLightThemePreset = (): AppThemeConfig =>
+/** Wayd theme — light mode. */
+export const useWaydLightTheme = (): AppThemeConfig =>
   useMemo(
     () => ({
       configProvider: {
@@ -23,6 +13,14 @@ export const useLightThemePreset = (): AppThemeConfig =>
           algorithm: defaultAlgorithm,
           token: {
             colorPrimary: ThemeConstants.COLOR_PRIMARY,
+            // Cool-grey neutrals (~213°, matching dark/slate) instead of the
+            // stock pure-neutral greys. The canvas tint separates white cards
+            // from the page; containers stay pure white on purpose — tinting
+            // white surfaces reads as dirty. Borders are a step stronger than
+            // stock so grid lines and dividers survive projectors.
+            colorBgLayout: '#f2f4f8',
+            colorBorder: '#ccd3db',
+            colorBorderSecondary: '#e2e6eb',
             borderRadius: 4,
             wireframe: false,
           },
@@ -39,7 +37,6 @@ export const useLightThemePreset = (): AppThemeConfig =>
       behavior: {
         allowsPrimaryOverride: true,
       },
-      timeline: lightTimeLineColors,
       appBar: {
         backgroundColor: 'var(--ant-color-primary)',
         color: '#ffffff',
@@ -53,7 +50,5 @@ export const useLightThemePreset = (): AppThemeConfig =>
     [],
   )
 
-const lightTheme = useLightThemePreset
-
-export default lightTheme
+export default useWaydLightTheme
 

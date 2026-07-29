@@ -4,6 +4,7 @@ import { EditOutlined } from '@ant-design/icons'
 import { Button, Card, Space, Tag, Typography } from 'antd'
 import WaydList from '@/src/components/common/wayd-list'
 import Link from 'next/link'
+import EntityLink from '@/src/components/common/entity-link'
 import { useState } from 'react'
 
 const { Item } = WaydList
@@ -25,9 +26,9 @@ const RiskListItem = ({
 
   const title = () => {
     return (
-      <Link href={`/planning/risks/${risk.key}`}>
+      <EntityLink href={`/planning/risks/${risk.key}`}>
         {risk.key} - {risk.summary}
-      </Link>
+      </EntityLink>
     )
   }
   const description = () => {

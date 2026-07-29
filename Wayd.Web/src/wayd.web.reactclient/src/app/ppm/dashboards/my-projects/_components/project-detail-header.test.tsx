@@ -45,10 +45,10 @@ describe('ProjectDetailHeader', () => {
     expect(screen.getByText('Active')).toBeInTheDocument()
   })
 
-  it('renders link to project details page', () => {
+  it('renders the project name as a link to the project details page', () => {
     render(<ProjectDetailHeader project={createProject()} />)
 
-    const link = screen.getByRole('link')
+    const link = screen.getByRole('link', { name: 'Test Project' })
     expect(link).toHaveAttribute('href', '/ppm/projects/PROJ1')
   })
 

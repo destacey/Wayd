@@ -39,7 +39,7 @@ const AppContent = memo(({ children }: PropsWithChildren) => {
   const screens = useBreakpoint()
   const isMobile = !screens.md
   const router = useRouter()
-  const { currentThemeName } = useTheme()
+  const { currentTheme } = useTheme()
 
   // After authentication, redirect to the originally requested URL if one was stored.
   useEffect(() => {
@@ -51,7 +51,7 @@ const AppContent = memo(({ children }: PropsWithChildren) => {
   }, [router])
 
   return (
-    <Layout className={`app-theme-${currentThemeName}`}>
+    <Layout className={`app-theme-${currentTheme}`}>
       <AppHeader />
       <Layout hasSider className="app-main-layout">
         <AppSideNav isMobile={isMobile} />

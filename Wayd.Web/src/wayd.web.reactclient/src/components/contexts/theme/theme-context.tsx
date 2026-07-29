@@ -10,16 +10,19 @@ import {
 } from 'react'
 import { useLocalStorageState } from '@/src/hooks'
 import { ConfigProvider, theme, ThemeConfig } from 'antd'
-import { useLightThemePreset } from '@/src/config/theme/light-theme'
-import { useDarkThemePreset } from '@/src/config/theme/dark-theme'
-import { useSlateThemePreset } from '@/src/config/theme/slate-theme'
-import useCartoonTheme from '@/src/config/theme/cartoon-theme'
-import useShadcnTheme from '@/src/config/theme/shadcn-theme'
-import useGlassTheme from '@/src/config/theme/glass-theme'
-import useGeekTheme from '@/src/config/theme/geek-theme'
-import useIllustrationTheme from '@/src/config/theme/illustration-theme'
-import { AppThemeConfig } from '@/src/config/theme/theme-preset'
-import { ThemeContextType, ThemeName, UserThemeConfigDto } from './types'
+import {
+  DEFAULT_THEME_SELECTION,
+  normalizeThemeSelection,
+  THEME_METADATA,
+  useThemeRegistry,
+} from '@/src/config/theme/theme-registry'
+import {
+  ThemeContextType,
+  ThemeId,
+  ThemeMode,
+  ThemeSelection,
+  UserThemeConfigDto,
+} from './types'
 import { getProfileClient } from '@/src/services/clients'
 
 export const ThemeContext = createContext<ThemeContextType | null>(null)
@@ -69,8 +72,45 @@ function useDebouncedCallback<T extends unknown[]>(
 }
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [currentThemeName, setCurrentThemeName] =
-    useLocalStorageState<ThemeName>('appTheme', 'light')
+  // Same `appTheme` key as the legacy flat format; stored values may still be
+  // a bare name string, so every read goes through normalizeThemeSelection.
+  const [storedSelection, setStoredSelection] = useLocalStorageState<
+    ThemeSelection | string
+  >('appTheme', DEFAULT_THEME_SELECTION)
+  const selection = useMemo(
+    () => normalizeThemeSelection(storedSelection),
+    [storedSelection],
+  )
+  const { theme: currentTheme, mode: currentMode } = selection
+  const availableModes = THEME_METADATA[currentTheme].modes
+
+  const setCurrentTheme = useCallback(
+    (themeId: ThemeId) => {
+      setStoredSelection((prev) => {
+        const current = normalizeThemeSelection(prev)
+        const metadata = THEME_METADATA[themeId]
+        return {
+          theme: themeId,
+          mode: metadata.modes.includes(current.mode)
+            ? current.mode
+            : metadata.defaultMode,
+        }
+      })
+    },
+    [setStoredSelection],
+  )
+
+  const setCurrentMode = useCallback(
+    (mode: ThemeMode) => {
+      setStoredSelection((prev) => {
+        const current = normalizeThemeSelection(prev)
+        if (!THEME_METADATA[current.theme].modes.includes(mode)) return current
+        return { theme: current.theme, mode }
+      })
+    },
+    [setStoredSelection],
+  )
+
   const [userThemeConfig, setUserThemeConfigState] = useState<UserThemeConfigDto | null>(null)
   const hasMountedRef = useRef(false)
   const transitionTimeoutRef = useRef<number | null>(null)
@@ -106,26 +146,11 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     [saveThemeConfig],
   )
 
-  const lightPreset = useLightThemePreset()
-  const darkPreset = useDarkThemePreset()
-  const slatePreset = useSlateThemePreset()
-  const cartoonThemeConfig = useCartoonTheme()
-  const shadcnThemeConfig = useShadcnTheme()
-  const glassThemeConfig = useGlassTheme()
-  const geekThemeConfig = useGeekTheme()
-  const illustrationThemeConfig = useIllustrationTheme()
-  const themesByName: Record<ThemeName, AppThemeConfig> = {
-    light: lightPreset,
-    dark: darkPreset,
-    slate: slatePreset,
-    cartoon: cartoonThemeConfig,
-    shadcn: shadcnThemeConfig,
-    glass: glassThemeConfig,
-    geek: geekThemeConfig,
-    illustration: illustrationThemeConfig,
-  }
-  const activeTheme = themesByName[currentThemeName]
-  const currentTheme = useMemo(
+  const themeRegistry = useThemeRegistry()
+  const activeTheme =
+    themeRegistry[currentTheme][currentMode] ??
+    themeRegistry[currentTheme][THEME_METADATA[currentTheme].defaultMode]!
+  const currentThemeConfig = useMemo(
     () =>
       mergeThemeConfig(
         activeTheme.configProvider.theme ?? ({} as ThemeConfig),
@@ -156,7 +181,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   useLayoutEffect(() => {
     const root = document.documentElement
-    root.setAttribute('data-theme', currentThemeName)
+    root.setAttribute('data-theme', currentTheme)
+    root.setAttribute('data-mode', currentMode)
 
     // Skip animation for first paint; only animate explicit theme changes.
     if (!hasMountedRef.current) {
@@ -172,7 +198,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       root.classList.remove('theme-transitioning')
       transitionTimeoutRef.current = null
     }, 350)
-  }, [currentThemeName])
+  }, [currentTheme, currentMode])
 
   useEffect(
     () => () => {
@@ -187,15 +213,18 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   return (
     <ConfigProvider
       {...providerPassthrough}
-      theme={currentTheme}
+      theme={currentThemeConfig}
       modal={modalConfig}
       popover={providerOverrides.popover}
       progress={providerOverrides.progress}
       colorPicker={providerOverrides.colorPicker}
     >
       <ThemeTokenProvider
-        currentThemeName={currentThemeName}
-        setCurrentThemeName={setCurrentThemeName}
+        currentTheme={currentTheme}
+        currentMode={currentMode}
+        availableModes={availableModes}
+        setCurrentTheme={setCurrentTheme}
+        setCurrentMode={setCurrentMode}
         appBar={activeTheme.appBar}
         allowsPrimaryOverride={activeTheme.behavior.allowsPrimaryOverride}
         defaultPrimaryColor={String(activeTheme.configProvider.theme?.token?.colorPrimary ?? '')}
@@ -212,8 +241,11 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
 interface ThemeTokenProviderProps {
   children: ReactNode
-  currentThemeName: ThemeName
-  setCurrentThemeName: (value: ThemeName) => void
+  currentTheme: ThemeId
+  currentMode: ThemeMode
+  availableModes: ThemeMode[]
+  setCurrentTheme: (theme: ThemeId) => void
+  setCurrentMode: (mode: ThemeMode) => void
   appBar: ThemeContextType['appBar']
   allowsPrimaryOverride: boolean
   defaultPrimaryColor: string
@@ -225,8 +257,11 @@ interface ThemeTokenProviderProps {
 
 const ThemeTokenProvider = ({
   children,
-  currentThemeName,
-  setCurrentThemeName,
+  currentTheme,
+  currentMode,
+  availableModes,
+  setCurrentTheme,
+  setCurrentMode,
   appBar,
   allowsPrimaryOverride,
   defaultPrimaryColor,
@@ -240,8 +275,11 @@ const ThemeTokenProvider = ({
 
   const themeContextValue = useMemo(
     () => ({
-      currentThemeName,
-      setCurrentThemeName,
+      currentTheme,
+      currentMode,
+      availableModes,
+      setCurrentTheme,
+      setCurrentMode,
       appBar,
       allowsPrimaryOverride,
       defaultPrimaryColor,
@@ -253,8 +291,11 @@ const ThemeTokenProvider = ({
       setUserThemeConfig,
     }),
     [
-      currentThemeName,
-      setCurrentThemeName,
+      currentTheme,
+      currentMode,
+      availableModes,
+      setCurrentTheme,
+      setCurrentMode,
       appBar,
       allowsPrimaryOverride,
       defaultPrimaryColor,

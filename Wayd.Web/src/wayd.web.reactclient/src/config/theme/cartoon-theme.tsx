@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { theme } from 'antd'
 import { createStyles } from 'antd-style'
-import { AppThemeConfig, TimeLineStyles } from './theme-preset'
+import { AppThemeConfig } from './theme-preset'
 
 export const cartoonThemeTokens = {
   brand: {
@@ -28,26 +28,7 @@ export const cartoonThemeTokens = {
     controlHeightSM: 28,
     controlHeight: 36,
   },
-  timeline: {
-    itemBackground: '#f3ebd8',
-    itemForeground: '#225555',
-    itemFont: '#51463B',
-    background: '#cbc4af',
-  },
 } as const
-
-export const cartoonThemeConfig: { timeLineColors: TimeLineStyles } = {
-  timeLineColors: {
-    item: {
-      background: cartoonThemeTokens.timeline.itemBackground,
-      foreground: cartoonThemeTokens.timeline.itemForeground,
-      font: cartoonThemeTokens.timeline.itemFont,
-    },
-    background: {
-      background: cartoonThemeTokens.timeline.background,
-    },
-  },
-}
 
 const useStyles = createStyles(({ css, cssVar }) => {
   const sharedBorder = {
@@ -150,7 +131,6 @@ const useCartoonTheme = () => {
       behavior: {
         allowsPrimaryOverride: false,
       },
-      timeline: cartoonThemeConfig.timeLineColors,
       appBar: {
         backgroundColor: 'var(--ant-color-primary)',
         color: '#ffffff',

@@ -1,19 +1,8 @@
 import { theme } from 'antd'
 import { useMemo } from 'react'
 import { ThemeConstants } from './theme-constants'
-import { AppThemeConfig, TimeLineStyles } from './theme-preset'
+import { AppThemeConfig } from './theme-preset'
 const { defaultAlgorithm } = theme
-
-export const lightTimeLineColors: TimeLineStyles = {
-  item: {
-    background: '#ecf0f1',
-    foreground: '#c7edff',
-    font: '#4d4d4d',
-  },
-  background: {
-    background: '#d0d3d4',
-  },
-}
 
 /** Wayd theme — light mode. */
 export const useWaydLightTheme = (): AppThemeConfig =>
@@ -40,7 +29,6 @@ export const useWaydLightTheme = (): AppThemeConfig =>
       behavior: {
         allowsPrimaryOverride: true,
       },
-      timeline: lightTimeLineColors,
       appBar: {
         backgroundColor: 'var(--ant-color-primary)',
         color: '#ffffff',

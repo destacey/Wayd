@@ -1,18 +1,7 @@
 import { useMemo } from 'react'
 import { theme } from 'antd'
 import { createStyles } from 'antd-style'
-import { AppThemeConfig, TimeLineStyles } from './theme-preset'
-
-export const geekTimeLineStyles: TimeLineStyles = {
-  item: {
-    background: '#163114',
-    foreground: '#39ff14',
-    font: '#9aff86',
-  },
-  background: {
-    background: '#0d1e0c',
-  },
-}
+import { AppThemeConfig } from './theme-preset'
 
 const cx = (...classes: Array<string | false | null | undefined>) =>
   classes.filter(Boolean).join(' ')
@@ -187,7 +176,6 @@ const useGeekTheme = (): AppThemeConfig => {
       behavior: {
         allowsPrimaryOverride: false,
       },
-      timeline: geekTimeLineStyles,
       appBar: {
         backgroundColor: '#313131',
         color: '#39ff14',

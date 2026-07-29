@@ -1,18 +1,7 @@
 import { theme } from 'antd'
 import { useMemo } from 'react'
-import { AppThemeConfig, TimeLineStyles } from './theme-preset'
+import { AppThemeConfig } from './theme-preset'
 const { darkAlgorithm } = theme
-
-export const darkTimeLineColors: TimeLineStyles = {
-  item: {
-    background: '#303030',
-    foreground: '#17354d',
-    font: '#FFFFFF',
-  },
-  background: {
-    background: '#61646e',
-  },
-}
 
 /** Wayd theme — dark mode. */
 export const useWaydDarkTheme = (): AppThemeConfig =>
@@ -44,7 +33,6 @@ export const useWaydDarkTheme = (): AppThemeConfig =>
       behavior: {
         allowsPrimaryOverride: true,
       },
-      timeline: darkTimeLineColors,
       appBar: {
         backgroundColor: '#313131',
         color: '#ffffff',

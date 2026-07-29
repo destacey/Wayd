@@ -14,7 +14,8 @@ export const slateTimeLineColors: TimeLineStyles = {
   },
 }
 
-export const useSlateThemePreset = (): AppThemeConfig =>
+/** Wayd theme — slate mode (alternate dark). */
+export const useWaydSlateTheme = (): AppThemeConfig =>
   useMemo(
     () => ({
       configProvider: {
@@ -61,7 +62,5 @@ export const useSlateThemePreset = (): AppThemeConfig =>
     [],
   )
 
-const slateTheme = useSlateThemePreset
-
-export default slateTheme
+export default useWaydSlateTheme
 

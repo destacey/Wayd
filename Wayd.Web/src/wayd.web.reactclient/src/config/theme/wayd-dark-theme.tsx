@@ -14,7 +14,8 @@ export const darkTimeLineColors: TimeLineStyles = {
   },
 }
 
-export const useDarkThemePreset = (): AppThemeConfig =>
+/** Wayd theme — dark mode. */
+export const useWaydDarkTheme = (): AppThemeConfig =>
   useMemo(
     () => ({
       configProvider: {
@@ -57,7 +58,5 @@ export const useDarkThemePreset = (): AppThemeConfig =>
     [],
   )
 
-const darkTheme = useDarkThemePreset
-
-export default darkTheme
+export default useWaydDarkTheme
 

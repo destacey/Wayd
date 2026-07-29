@@ -25,7 +25,7 @@ jest.mock('antd', () => {
     },
     Select: ({ value, options, onChange }: any) => (
       <select
-        aria-label="Mode"
+        aria-label="Theme"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       >
@@ -41,7 +41,7 @@ jest.mock('antd', () => {
         {options.map((o: any) => (
           <button
             key={o.value}
-            aria-label={`Density ${o.label}`}
+            aria-label={o.label}
             aria-pressed={value === o.value}
             onClick={() => onChange(o.value)}
           >
@@ -53,12 +53,16 @@ jest.mock('antd', () => {
   }
 })
 
-const setCurrentThemeName = jest.fn()
+const setCurrentTheme = jest.fn()
+const setCurrentMode = jest.fn()
 const setUserThemeConfig = jest.fn()
 
 const baseThemeContext: ThemeContextType = {
-  currentThemeName: 'light',
-  setCurrentThemeName,
+  currentTheme: 'wayd',
+  currentMode: 'light',
+  availableModes: ['light', 'dark', 'slate'],
+  setCurrentTheme,
+  setCurrentMode,
   appBar: {
     backgroundColor: '#1890ff',
     color: '#ffffff',
@@ -81,7 +85,7 @@ describe('ThemeManagerDrawer', () => {
     ;(useTheme as jest.Mock).mockReturnValue(baseThemeContext)
   })
 
-  it('resets primary override on mode change and preserves compact density', () => {
+  it('resets primary override on theme change and preserves compact density', () => {
     ;(useTheme as jest.Mock).mockReturnValue({
       ...baseThemeContext,
       userThemeConfig: {
@@ -92,12 +96,41 @@ describe('ThemeManagerDrawer', () => {
 
     render(<ThemeManagerDrawer open={true} onClose={jest.fn()} />)
 
-    fireEvent.change(screen.getByLabelText('Mode'), {
-      target: { value: 'dark' },
+    fireEvent.change(screen.getByLabelText('Theme'), {
+      target: { value: 'glass' },
     })
 
-    expect(setCurrentThemeName).toHaveBeenCalledWith('dark')
+    expect(setCurrentTheme).toHaveBeenCalledWith('glass')
     expect(setUserThemeConfig).toHaveBeenCalledWith({ useCompactAlgorithm: true })
+  })
+
+  it('changes mode without resetting user overrides', () => {
+    ;(useTheme as jest.Mock).mockReturnValue({
+      ...baseThemeContext,
+      userThemeConfig: {
+        colorPrimary: '#f5222d',
+        useCompactAlgorithm: false,
+      },
+    })
+
+    render(<ThemeManagerDrawer open={true} onClose={jest.fn()} />)
+
+    fireEvent.click(screen.getByLabelText('Dark'))
+
+    expect(setCurrentMode).toHaveBeenCalledWith('dark')
+    expect(setUserThemeConfig).not.toHaveBeenCalled()
+  })
+
+  it('hides the mode control when the theme supports a single mode', () => {
+    ;(useTheme as jest.Mock).mockReturnValue({
+      ...baseThemeContext,
+      currentTheme: 'glass',
+      availableModes: ['light'],
+    })
+
+    render(<ThemeManagerDrawer open={true} onClose={jest.fn()} />)
+
+    expect(screen.queryByText('Mode')).not.toBeInTheDocument()
   })
 
   it('hides primary color controls when theme does not allow primary override', () => {
@@ -139,4 +172,3 @@ describe('ThemeManagerDrawer', () => {
     expect(setUserThemeConfig).toHaveBeenCalledWith(null)
   })
 })
-

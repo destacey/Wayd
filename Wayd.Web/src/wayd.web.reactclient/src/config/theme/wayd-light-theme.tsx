@@ -15,7 +15,8 @@ export const lightTimeLineColors: TimeLineStyles = {
   },
 }
 
-export const useLightThemePreset = (): AppThemeConfig =>
+/** Wayd theme — light mode. */
+export const useWaydLightTheme = (): AppThemeConfig =>
   useMemo(
     () => ({
       configProvider: {
@@ -53,7 +54,5 @@ export const useLightThemePreset = (): AppThemeConfig =>
     [],
   )
 
-const lightTheme = useLightThemePreset
-
-export default lightTheme
+export default useWaydLightTheme
 

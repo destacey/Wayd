@@ -2,54 +2,39 @@
 
 import { HighlightFilled, HighlightOutlined, BgColorsOutlined } from '@ant-design/icons'
 import useTheme from '../../components/contexts/theme'
-import { ThemeName } from '../../components/contexts/theme/types'
+import { ThemeMode } from '../../components/contexts/theme/types'
 
-const CYCLE: ThemeName[] = [
-  'cartoon',
-  'dark',
-  'geek',
-  'glass',
-  'illustration',
-  'light',
-  'shadcn',
-  'slate',
-]
-
-const ICONS: Record<ThemeName, React.ReactNode> = {
+const ICONS: Record<ThemeMode, React.ReactNode> = {
   light: <HighlightOutlined />,
   dark: <HighlightFilled />,
   slate: <BgColorsOutlined />,
-  cartoon: <BgColorsOutlined />,
-  shadcn: <BgColorsOutlined />,
-  glass: <BgColorsOutlined />,
-  geek: <BgColorsOutlined />,
-  illustration: <BgColorsOutlined />,
 }
 
-const LABELS: Record<ThemeName, string> = {
-  light: 'Theme: Light',
-  dark: 'Theme: Dark',
-  slate: 'Theme: Slate',
-  cartoon: 'Theme: Cartoon',
-  shadcn: 'Theme: Shadcn',
-  glass: 'Theme: Glass',
-  geek: 'Theme: Geek',
-  illustration: 'Theme: Illustration',
+const LABELS: Record<ThemeMode, string> = {
+  light: 'Mode: Light',
+  dark: 'Mode: Dark',
+  slate: 'Mode: Slate',
 }
 
+/**
+ * Menu item that cycles through the current theme's available modes.
+ * Returns null when the theme only supports a single mode.
+ */
 const useThemeToggleMenuItem = () => {
-  const { setCurrentThemeName, currentThemeName } = useTheme()
+  const { currentMode, availableModes, setCurrentMode } = useTheme()
 
-  const toggleTheme = () => {
-    const idx = CYCLE.indexOf(currentThemeName)
-    setCurrentThemeName(CYCLE[(idx + 1) % CYCLE.length])
+  if (availableModes.length < 2) return null
+
+  const toggleMode = () => {
+    const idx = availableModes.indexOf(currentMode)
+    setCurrentMode(availableModes[(idx + 1) % availableModes.length])
   }
 
   return {
-    key: 'theme',
-    label: LABELS[currentThemeName],
-    icon: ICONS[currentThemeName],
-    onClick: toggleTheme,
+    key: 'theme-mode',
+    label: LABELS[currentMode],
+    icon: ICONS[currentMode],
+    onClick: toggleMode,
   }
 }
 

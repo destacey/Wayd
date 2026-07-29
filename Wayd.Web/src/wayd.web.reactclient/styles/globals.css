@@ -79,12 +79,12 @@ body {
       scrollbar-color: #d0d0d0 #f0f0f0; /* Thumb color and track color for light mode */
     }
 
-    [data-theme='dark'] * {
+    [data-mode='dark'] * {
       scrollbar-width: thin;
       scrollbar-color: #656565 #2a2a2a; /* Thumb color and track color for dark mode */
     }
 
-    [data-theme='slate'] * {
+    [data-mode='slate'] * {
       scrollbar-width: thin;
       scrollbar-color: #656565 #2d2d2d;
     }
@@ -100,7 +100,7 @@ body {
       scrollbar-color: #d0d0d0 #f0f0f0;
     }
 
-    [data-theme='dark'] .ant-drawer-body {
+    [data-mode='dark'] .ant-drawer-body {
       scrollbar-width: thin;
       scrollbar-color: #656565 #2a2a2a;
     }
@@ -132,29 +132,29 @@ body {
   }
 
   /* Scrollbar Styling for Dark Mode */
-  [data-theme='dark'] ::-webkit-scrollbar-thumb {
+  [data-mode='dark'] ::-webkit-scrollbar-thumb {
     background-color: #656565; /* Dark thumb color */
     border: 3px solid #2a2a2a; /* Matches the track background color */
   }
 
-  [data-theme='dark'] ::-webkit-scrollbar-track {
+  [data-mode='dark'] ::-webkit-scrollbar-track {
     background-color: #2a2a2a; /* Dark track color */
   }
 
-  [data-theme='dark'] ::-webkit-scrollbar-corner {
+  [data-mode='dark'] ::-webkit-scrollbar-corner {
     background-color: #2a2a2a;
   }
 
-  [data-theme='slate'] ::-webkit-scrollbar-thumb {
+  [data-mode='slate'] ::-webkit-scrollbar-thumb {
     background-color: #656565;
     border: 3px solid #2d2d2d;
   }
 
-    [data-theme='slate'] ::-webkit-scrollbar-track {
+    [data-mode='slate'] ::-webkit-scrollbar-track {
       background-color: #2d2d2d;
     }
 
-  [data-theme='slate'] ::-webkit-scrollbar-corner {
+  [data-mode='slate'] ::-webkit-scrollbar-corner {
     background-color: #2d2d2d;
   }
 
@@ -189,21 +189,21 @@ body {
   }
 
   /* Ant Design Drawer Body Scrollbar - Dark Mode (override) */
-  html[data-theme='dark'] .ant-drawer-body::-webkit-scrollbar-thumb {
+  html[data-mode='dark'] .ant-drawer-body::-webkit-scrollbar-thumb {
     background-color: #656565 !important;
     border: 2px solid #2a2a2a !important;
   }
 
-  html[data-theme='dark'] .ant-drawer-body::-webkit-scrollbar-track {
+  html[data-mode='dark'] .ant-drawer-body::-webkit-scrollbar-track {
     background-color: #2a2a2a !important;
   }
 
-  html[data-theme='slate'] .ant-drawer-body::-webkit-scrollbar-thumb {
+  html[data-mode='slate'] .ant-drawer-body::-webkit-scrollbar-thumb {
     background-color: #656565 !important;
     border: 2px solid #2d2d2d !important;
   }
 
-  html[data-theme='slate'] .ant-drawer-body::-webkit-scrollbar-track {
+  html[data-mode='slate'] .ant-drawer-body::-webkit-scrollbar-track {
     background-color: #2d2d2d !important;
   }
 

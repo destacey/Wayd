@@ -21,7 +21,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(
   ({ value, onChange, maxLength }: MarkdownEditorProps) => {
     const [isFocused, setIsFocused] = useState(false)
     const [isHovered, setIsHovered] = useState(false)
-    const { token, currentThemeName } = useTheme()
+    const { token, currentMode } = useTheme()
 
     const editorRef = useRef<HTMLDivElement | null>(null)
 
@@ -47,7 +47,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(
     return (
       <>
         <div
-          data-color-mode={currentThemeName ?? 'dark'}
+          data-color-mode={currentMode === 'light' ? 'light' : 'dark'}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           onClick={handleWrapperClick}

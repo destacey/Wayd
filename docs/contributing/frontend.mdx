@@ -90,36 +90,50 @@ The client app is installable as a PWA, providing a native app-like experience w
 
 ## Theming
 
-Wayd supports multiple built-in themes (for example: **Light**, **Dark**, **Slate**, **Cartoon**, **Shadcn**, **Glass**, **Geek**, and **Illustration**) and per-user customization of density and (for eligible themes) primary color. All theming is built on Ant Design's `ThemeConfig` and `ConfigProvider`.
+Theming has two orthogonal axes:
+
+- **Theme** — a visual identity (shape language, typography, surface treatments): **Wayd** (the default), **Cartoon**, **Shadcn**, **Glass**, **Geek**, and **Illustration**.
+- **Mode** — a color-scheme variant of a theme: `light`, `dark`, or `slate` (the Wayd theme's alternate dark). Each theme declares which modes it supports; single-mode themes (e.g. Geek is dark-only) simply declare one.
+
+On top of that, users can customize density and (for eligible themes) primary color. All theming is built on Ant Design's `ThemeConfig` and `ConfigProvider`; a mode maps to an algorithm + token seed, exactly like Ant Design's `darkAlgorithm`/`compactAlgorithm` model.
+
+The active selection is exposed on `<html>` as two attributes: `data-theme` (identity) and `data-mode` (color scheme). Global CSS keys mode-dependent rules (e.g. scrollbars) off `data-mode` and identity-dependent rules (e.g. background textures) off `data-theme`.
 
 ### Theme files
 
 | File | Purpose |
 |------|---------|
-| `src/config/theme/light-theme.tsx` | Light theme config |
-| `src/config/theme/dark-theme.tsx` | Dark theme config |
-| `src/config/theme/slate-theme.tsx` | Slate (mid-dark) theme config |
+| `src/config/theme/wayd-light-theme.tsx` | Wayd theme — light mode |
+| `src/config/theme/wayd-dark-theme.tsx` | Wayd theme — dark mode |
+| `src/config/theme/wayd-slate-theme.tsx` | Wayd theme — slate mode (alternate dark) |
 | `src/config/theme/cartoon-theme.tsx` | Cartoon theme config |
 | `src/config/theme/shadcn-theme.tsx` | Shadcn-inspired theme config |
 | `src/config/theme/glass-theme.tsx` | Glass theme config |
 | `src/config/theme/geek-theme.tsx` | Geek theme config |
 | `src/config/theme/illustration-theme.tsx` | Illustration theme config |
+| `src/config/theme/theme-registry.tsx` | `THEME_METADATA` catalog, `useThemeRegistry`, legacy-selection migration |
 | `src/config/theme/theme-preset.ts` | Shared `AppThemeConfig` contract |
-| `src/config/theme/timeline-colors.ts` | Theme-to-timeline style mapping |
 | `src/config/theme/theme-constants.ts` | Brand color (`COLOR_PRIMARY`) — single source of truth |
 | `src/components/contexts/theme/theme-context.tsx` | `ThemeProvider`, `mergeThemeConfig`, chart theme wiring |
-| `src/components/contexts/theme/types.d.ts` | `ThemeName`, `ThemeContextType` |
+| `src/components/contexts/theme/types.d.ts` | `ThemeId`, `ThemeMode`, `ThemeContextType` |
 | `src/app/_components/theme-manager-drawer.tsx` | User-facing theme manager UI |
 
 ### Adding a new theme
 
-1. Create `src/config/theme/my-theme.tsx` exporting an `AppThemeConfig`
-2. Add `'my-theme'` to the `ThemeName` union in `types.d.ts`
-3. Wire it into `theme-context.tsx` theme registry
-4. Add scrollbar CSS rules in `styles/globals.css` for `[data-theme='my-theme']`
-5. Add a timeline style entry in `src/config/theme/timeline-colors.ts`
-6. Add the option in `theme-manager-drawer.tsx`
-7. Set `behavior.allowsPrimaryOverride` explicitly in the theme config
+1. Create `src/config/theme/my-theme.tsx` exporting an `AppThemeConfig` hook (one per supported mode)
+2. Add `'my-theme'` to the `ThemeId` union in `types.d.ts`
+3. Add its entry to `THEME_METADATA` (label, `defaultMode`, supported `modes`) and wire the preset hook(s) into `useThemeRegistry` in `theme-registry.tsx`
+4. If the theme needs identity-specific CSS (backgrounds, scrollbars), key it off `[data-theme='my-theme']` in `styles/globals.css`; mode-generic rules already apply via `[data-mode='...']`
+5. Set `behavior.allowsPrimaryOverride` explicitly in the theme config
+
+The theme select and mode control in `theme-manager-drawer.tsx` are driven by `THEME_METADATA`, so no UI change is needed.
+
+### Adding a mode to an existing theme
+
+1. Create the mode's `AppThemeConfig` hook (e.g. a dark variant of Glass)
+2. Add the mode to the theme's `modes` list in `THEME_METADATA` and its config to `useThemeRegistry`
+
+The mode control appears automatically for any theme with more than one mode.
 
 ### User theme overrides
 
@@ -130,15 +144,26 @@ Per-user overrides (`colorPrimary`, `useCompactAlgorithm`) are stored as JSON in
 - `useCompactAlgorithm` is always eligible.
 - `colorPrimary` is only applied when the active theme sets `behavior.allowsPrimaryOverride = true`.
 
-When switching themes from the Theme Manager, any custom primary override is cleared so the newly selected theme starts from its own default primary color.
+When switching themes from the Theme Manager, any custom primary override is cleared so the newly selected theme starts from its own default primary color. Switching modes within a theme keeps user overrides — it's an appearance flip, not an identity change.
 
 ### Theme context
 
 Consume the theme context via `useTheme()`:
 
 ```typescript
-const { currentThemeName, setCurrentThemeName, token, userThemeConfig, setUserThemeConfig } = useTheme()
+const {
+  currentTheme,      // ThemeId, e.g. 'wayd'
+  currentMode,       // ThemeMode: 'light' | 'dark' | 'slate'
+  availableModes,    // modes supported by the current theme
+  setCurrentTheme,   // keeps the current mode when the new theme supports it
+  setCurrentMode,    // ignored if the current theme doesn't support the mode
+  token,
+  userThemeConfig,
+  setUserThemeConfig,
+} = useTheme()
 ```
+
+The selection persists in localStorage under the `appTheme` key as `{ theme, mode }`. Legacy flat values (a bare theme/mode name string from before the theme × mode split) are normalized transparently on read — `light`/`dark`/`slate` map to the Wayd theme in that mode; other names map to that theme in its default mode.
 
 ## Key Libraries
 

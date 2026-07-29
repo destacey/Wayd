@@ -86,7 +86,7 @@ body {
 
     [data-mode='slate'] * {
       scrollbar-width: thin;
-      scrollbar-color: #656565 #2d2d2d;
+      scrollbar-color: #6b7684 #282e35;
     }
 
     [data-theme='geek'] * {
@@ -146,16 +146,16 @@ body {
   }
 
   [data-mode='slate'] ::-webkit-scrollbar-thumb {
-    background-color: #656565;
-    border: 3px solid #2d2d2d;
+    background-color: #6b7684;
+    border: 3px solid #282e35;
   }
 
-    [data-mode='slate'] ::-webkit-scrollbar-track {
-      background-color: #2d2d2d;
-    }
+  [data-mode='slate'] ::-webkit-scrollbar-track {
+    background-color: #282e35;
+  }
 
   [data-mode='slate'] ::-webkit-scrollbar-corner {
-    background-color: #2d2d2d;
+    background-color: #282e35;
   }
 
   [data-theme='geek'] ::-webkit-scrollbar-thumb {
@@ -198,13 +198,14 @@ body {
     background-color: #2a2a2a !important;
   }
 
+  /* Drawer bodies sit on colorBgElevated, so their track is a step lighter */
   html[data-mode='slate'] .ant-drawer-body::-webkit-scrollbar-thumb {
-    background-color: #656565 !important;
-    border: 2px solid #2d2d2d !important;
+    background-color: #6b7684 !important;
+    border: 2px solid #3a424c !important;
   }
 
   html[data-mode='slate'] .ant-drawer-body::-webkit-scrollbar-track {
-    background-color: #2d2d2d !important;
+    background-color: #3a424c !important;
   }
 
   html[data-theme='geek'] .ant-drawer-body::-webkit-scrollbar-thumb {

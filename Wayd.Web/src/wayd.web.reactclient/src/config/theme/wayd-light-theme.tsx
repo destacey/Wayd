@@ -13,6 +13,14 @@ export const useWaydLightTheme = (): AppThemeConfig =>
           algorithm: defaultAlgorithm,
           token: {
             colorPrimary: ThemeConstants.COLOR_PRIMARY,
+            // Cool-grey neutrals (~213°, matching dark/slate) instead of the
+            // stock pure-neutral greys. The canvas tint separates white cards
+            // from the page; containers stay pure white on purpose — tinting
+            // white surfaces reads as dirty. Borders are a step stronger than
+            // stock so grid lines and dividers survive projectors.
+            colorBgLayout: '#f2f4f8',
+            colorBorder: '#ccd3db',
+            colorBorderSecondary: '#e2e6eb',
             borderRadius: 4,
             wireframe: false,
           },

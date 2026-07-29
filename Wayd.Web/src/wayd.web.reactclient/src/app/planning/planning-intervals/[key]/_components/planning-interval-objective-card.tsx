@@ -14,6 +14,7 @@ import {
 } from 'antd'
 import dayjs from 'dayjs'
 import Link from 'next/link'
+import EntityLink from '@/src/components/common/entity-link'
 import { CSSProperties, HTMLAttributes, ReactNode, useState } from 'react'
 import { MoreOutlined } from '@ant-design/icons'
 import PiObjectiveHealthCheckTag from '@/src/app/planning/planning-intervals/_components/pi-objective-health-check-tag'
@@ -66,12 +67,12 @@ const PlanningIntervalObjectiveCard = ({
 
   const title = () => {
     return (
-      <Link
+      <EntityLink
         onClick={(e) => e.stopPropagation()}
         href={`/planning/planning-intervals/${piKey}/objectives/${objective.key}`}
       >
         {objective.key} - {objective.name}
-      </Link>
+      </EntityLink>
     )
   }
 

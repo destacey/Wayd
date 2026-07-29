@@ -165,6 +165,17 @@ const {
 
 The selection persists in localStorage under the `appTheme` key as `{ theme, mode }`. Legacy flat values (a bare theme/mode name string from before the theme × mode split) are normalized transparently on read — `light`/`dark`/`slate` map to the Wayd theme in that mode; other names map to that theme in its default mode.
 
+## Links
+
+Two link styles, chosen by link *density*:
+
+- **Sparse links** — a link surrounded by static text (prose, metadata rows, "View all"): use the standard blue link (`Typography.Link` / `<Link>`). Color is the affordance.
+- **Dense links** — entity titles in lists, cards, and grids where nearly every item navigates: use `EntityLink` (`src/components/common/entity-link.tsx`). It renders in the default text color with semibold weight; hover and keyboard focus reveal the affordance (primary color + underline). The surrounding collection already implies interactivity, so painting every title blue is noise.
+
+Rule of thumb: *is this link surrounded by other links? `EntityLink`. Surrounded by static text? blue.*
+
+In grids, keep the entity **key column** as a standard blue link (the row's anchor) and use quiet styling for name/title columns. Reserve the chain icon for "copy link" affordances and the external-link icon for navigation that leaves Wayd — icons are not link indicators.
+
 ## Key Libraries
 
 | Library | Purpose |

@@ -81,7 +81,7 @@ body {
 
     [data-mode='dark'] * {
       scrollbar-width: thin;
-      scrollbar-color: #656565 #2a2a2a; /* Thumb color and track color for dark mode */
+      scrollbar-color: #4d535c #17191d; /* Thumb color and track color for dark mode */
     }
 
     [data-mode='slate'] * {
@@ -102,7 +102,7 @@ body {
 
     [data-mode='dark'] .ant-drawer-body {
       scrollbar-width: thin;
-      scrollbar-color: #656565 #2a2a2a;
+      scrollbar-color: #4d535c #17191d;
     }
   }
 }
@@ -133,16 +133,16 @@ body {
 
   /* Scrollbar Styling for Dark Mode */
   [data-mode='dark'] ::-webkit-scrollbar-thumb {
-    background-color: #656565; /* Dark thumb color */
-    border: 3px solid #2a2a2a; /* Matches the track background color */
+    background-color: #4d535c; /* Dark thumb color */
+    border: 3px solid #17191d; /* Matches the track background color */
   }
 
   [data-mode='dark'] ::-webkit-scrollbar-track {
-    background-color: #2a2a2a; /* Dark track color */
+    background-color: #17191d; /* Dark track color */
   }
 
   [data-mode='dark'] ::-webkit-scrollbar-corner {
-    background-color: #2a2a2a;
+    background-color: #17191d;
   }
 
   [data-mode='slate'] ::-webkit-scrollbar-thumb {
@@ -190,12 +190,12 @@ body {
 
   /* Ant Design Drawer Body Scrollbar - Dark Mode (override) */
   html[data-mode='dark'] .ant-drawer-body::-webkit-scrollbar-thumb {
-    background-color: #656565 !important;
-    border: 2px solid #2a2a2a !important;
+    background-color: #4d535c !important;
+    border: 2px solid #1f2226 !important;
   }
 
   html[data-mode='dark'] .ant-drawer-body::-webkit-scrollbar-track {
-    background-color: #2a2a2a !important;
+    background-color: #1f2226 !important;
   }
 
   /* Drawer bodies sit on colorBgElevated, so their track is a step lighter */

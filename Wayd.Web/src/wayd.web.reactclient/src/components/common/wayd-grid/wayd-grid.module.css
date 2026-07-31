@@ -86,34 +86,95 @@
 }
 
 /* ── Right chart pane (Gantt) ──────────────────────────────────────────────
-   When a right pane is present the OUTER scroller owns vertical scroll, so the
-   table wrapper only scrolls horizontally (its columns) and grows to full row
-   height inside the shared scroller. */
-.tableWrapperWithRightPane {
-  overflow-y: visible;
-  height: 100%;
-}
+   The grid table keeps its OWN scroller (.tableWrapper, unchanged) so scroll
+   performance matches baseline. The bar track clips vertically and its canvas is
+   translated to follow the grid's scrollTop — one virtualizer drives both. */
 
-/* The one vertical scroller wrapping the grid table + bar track, so they scroll
-   as one. Horizontal scroll stays inside each pane. */
-.bodyVerticalScroller {
-  overflow-y: auto;
-  overflow-x: hidden;
-  flex: 1;
+/* Flex row holding [ grid table (scrolls) | divider | bar track ]. Fills the
+   body area height so the grid table's own scroller works as usual. */
+.rightPaneLayout {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
   min-height: 0;
 }
 
-/* The bar-track pane: its own horizontal scroll (the time axis), full row
-   height inside the shared vertical scroller. */
-.rightPaneTrack {
-  overflow-x: auto;
-  overflow-y: hidden;
-  height: 100%;
-  border-left: 1px solid var(--ant-color-border);
+/* The grid table keeps flex:1 so it fills the space left of the chart pane. */
+.rightPaneLayout .tableWrapper {
+  flex: 1;
+  min-width: 0;
 }
 
-/* Positioning context for the absolutely-placed row bars. */
+/* Draggable vertical divider between the grid table and the bar track, styled to
+   match antd's Splitter bar: a wide transparent hit-area with a thin centered
+   split-colored line and a small centered handle pill that highlights to primary
+   on hover. */
+.rightPaneDivider {
+  flex: none;
+  position: relative;
+  width: 8px; /* splitTriggerSize hit-area */
+  cursor: col-resize;
+  touch-action: none;
+  align-self: stretch;
+}
+
+/* The 2px bar line (splitBarSize), centered. */
+.rightPaneDivider::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--ant-color-split);
+  transition: background 0.2s;
+}
+
+/* The centered draggable handle pill (splitBarDraggableSize), like antd's. */
+.rightPaneDivider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 20px;
+  transform: translate(-50%, -50%);
+  border-radius: 4px;
+  background: var(--ant-color-fill);
+  transition: background 0.2s;
+}
+
+.rightPaneDivider:hover::before,
+.rightPaneDivider:hover::after {
+  background: var(--ant-color-primary);
+}
+
+/* Header spacer accounting for the divider width (keeps the axis header aligned
+   above the bar track, mirroring the divider column below). */
+.rightPaneDividerSpacer {
+  flex: none;
+  width: 8px;
+  background: var(--wayd-grid-header-bg);
+  border-bottom: 1px solid var(--ant-color-border);
+}
+
+/* The bar-track pane: fixed width (inline), clips both axes; its OWN horizontal
+   scroll is the time axis, vertical is clipped (the canvas is translated). */
+.rightPaneTrack {
+  flex: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Translated wrapper — moved up by the grid's scrollTop to follow the rows. */
 .rightPaneCanvas {
+  position: relative;
+  will-change: transform;
+}
+
+/* Full-height inner holding the absolutely-placed row bars. */
+.rightPaneCanvasInner {
   position: relative;
   min-width: 100%;
 }

@@ -11,6 +11,7 @@ import type { Row } from '@tanstack/react-table'
 import dayjs from 'dayjs'
 import { createTimeScale } from '@/src/components/common/timeline/core/scale'
 import { rollupSummaries } from '@/src/components/common/timeline/core/rollup'
+import { contrastText } from '@/src/components/common/timeline/core/color'
 import type { RoadmapItemTreeNode } from './roadmap-items-grid'
 import styles from './roadmap-gantt.module.css'
 
@@ -149,6 +150,8 @@ export function useRoadmapGantt(
     }) => {
       const node = row.original
       const barH = Math.max(8, height - 10)
+      // Bars are absolutely placed in the canvas: `top` is the row's offset,
+      // centered vertically within the row height.
       const barTop = top + (height - barH) / 2
       const color = node.color ?? undefined
 
@@ -195,6 +198,10 @@ export function useRoadmapGantt(
         const left = scale.toX(s)
         const w = Math.max(2, scale.toX(e) - left)
         const isTimebox = node.type === 'Timebox'
+        // Derive readable text color from the BAR's fill (not the page theme) so
+        // a light bar (e.g. yellow) gets dark text in any theme — same contrast
+        // logic the timeline uses. Timeboxes keep the theme's secondary text.
+        const useCustomBg = !!color && !isTimebox
         return (
           <div
             className={`${styles.bar} ${isTimebox ? styles.timeboxBar : ''}`}
@@ -203,7 +210,9 @@ export function useRoadmapGantt(
               top: barTop,
               width: w,
               height: barH,
-              ...(color && !isTimebox ? { backgroundColor: color } : {}),
+              ...(useCustomBg
+                ? { backgroundColor: color, color: contrastText(color) }
+                : {}),
             }}
             title={`${node.name} · ${dayjs(s).format('MMM D')} – ${dayjs(e).format(
               'MMM D, YYYY',

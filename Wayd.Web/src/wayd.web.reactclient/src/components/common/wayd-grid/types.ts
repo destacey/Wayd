@@ -85,7 +85,8 @@ export interface WaydGridRightPane<T> {
   /**
    * Renders the bar(s) for one row. `top`/`height` are the row's resolved
    * geometry from the SAME virtualizer the grid rows use, so bars stay aligned.
-   * Content is absolutely positioned within the pane's scrolling track.
+   * Content is absolutely positioned within the pane's scrolling track: place a
+   * bar at `top` and center it vertically with `(height - barHeight) / 2`.
    */
   renderRow: (ctx: { row: Row<T>; top: number; height: number }) => React.ReactNode
 }
@@ -125,6 +126,9 @@ export interface WaydGridProps<T> {
     | ((context: GridColumnContext) => React.ReactNode)
   /** Content rendered inside the help popover. */
   helpContent?: React.ReactNode
+  /** Slot for actions rendered just before the export/help group (a divider
+   *  separates it from export). For grid-specific toggles (e.g. a Gantt chart). */
+  actionsSlot?: React.ReactNode
   /** Slot for actions rendered on the far right of the toolbar. */
   rightSlot?: React.ReactNode
   emptyMessage?: string

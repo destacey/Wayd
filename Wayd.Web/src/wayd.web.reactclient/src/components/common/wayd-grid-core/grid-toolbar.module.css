@@ -25,6 +25,6 @@
 
 .toolbarDivider {
   width: 1px;
-  height: 30px;
+  height: 24px;
   background-color: var(--ant-color-split);
 }

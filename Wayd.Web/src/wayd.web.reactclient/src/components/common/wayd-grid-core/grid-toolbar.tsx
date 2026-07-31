@@ -29,6 +29,9 @@ export interface GridToolbarProps {
   leftSlot?: React.ReactNode
   /** Content rendered inside the help popover. */
   helpContent?: React.ReactNode
+  /** Slot for actions rendered just BEFORE the export/help group, set apart by a
+   *  divider on each side. For grid-specific toggles (e.g. a Gantt chart). */
+  actionsSlot?: React.ReactNode
   /** Slot for actions rendered on the far right of the toolbar. */
   rightSlot?: React.ReactNode
 }
@@ -49,6 +52,7 @@ const GridToolbar = ({
   onClearFilters,
   hasActiveFilters,
   onExportCsv,
+  actionsSlot,
   isLoading,
   includeGlobalSearch = true,
   leftSlot,
@@ -92,6 +96,12 @@ const GridToolbar = ({
             disabled={!hasActiveFilters}
           />
         </WaydTooltip>
+        {actionsSlot && (
+          <>
+            <span className={styles.toolbarDivider} />
+            {actionsSlot}
+          </>
+        )}
         {onExportCsv && (
           <>
             <span className={styles.toolbarDivider} />

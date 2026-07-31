@@ -8,7 +8,7 @@ import {
   RoadmapMilestoneListDto,
   RoadmapTimeboxListDto,
 } from '@/src/services/wayd-api'
-import { PlusOutlined, BarsOutlined } from '@ant-design/icons'
+import { PlusOutlined, BarChartOutlined } from '@ant-design/icons'
 import { Button, Form, Tooltip } from 'antd'
 import dayjs from 'dayjs'
 import {
@@ -185,7 +185,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
     useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-  const [showGantt, setShowGantt] = useState(false)
+  const [showGantt, setShowGantt] = useState(true)
   const draftsRef = useRef<DraftItem[]>([])
 
   const [createRoadmapItem] = useCreateRoadmapItemMutation()
@@ -707,21 +707,33 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
           getSubRows={(row) => row.children}
           isLoading={roadmapItemsIsLoading}
           columns={columns}
-          rightSlot={
-            <>
-              <Tooltip title={showGantt ? 'Hide Gantt chart' : 'Show Gantt chart'}>
-                <Button
-                  icon={<BarsOutlined />}
-                  type={showGantt ? 'primary' : 'default'}
-                  aria-pressed={showGantt}
-                  onClick={() => setShowGantt((v) => !v)}
-                >
-                  Gantt
-                </Button>
-              </Tooltip>
-              {viewSelector}
-            </>
+          actionsSlot={
+            <Tooltip
+              title={showGantt ? 'Hide Gantt chart' : 'Show Gantt chart'}
+            >
+              <Button
+                type="text"
+                shape="circle"
+                icon={
+                  <BarChartOutlined
+                    // Mirror (invert) + rotate -90°, statically, so the bars read
+                    // left-anchored like Gantt rows. Both transforms in one style
+                    // so they compose (the `rotate` prop can't combine with flip).
+                    style={{ transform: 'scaleX(-1) rotate(-90deg)' }}
+                  />
+                }
+                onClick={() => setShowGantt((v) => !v)}
+                aria-pressed={showGantt}
+                aria-label="Toggle Gantt chart"
+                style={
+                  showGantt
+                    ? { color: 'var(--ant-color-primary)' }
+                    : undefined
+                }
+              />
+            </Tooltip>
           }
+          rightSlot={viewSelector}
           rightPane={
             showGantt
               ? {

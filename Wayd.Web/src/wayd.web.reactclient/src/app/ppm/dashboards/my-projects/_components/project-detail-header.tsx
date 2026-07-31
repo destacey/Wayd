@@ -1,11 +1,10 @@
 'use client'
 
 import { LifecycleStatusTag, WaydDateRange } from '@/src/components/common'
-import { LinkOutlined } from '@ant-design/icons'
 import { ProjectDetailsDto } from '@/src/services/wayd-api'
 import { getSortedNames } from '@/src/utils'
-import { Button, Flex, Typography } from 'antd'
-import { WaydTooltip } from '@/src/components/common'
+import { Flex, Typography } from 'antd'
+import EntityLink from '@/src/components/common/entity-link'
 import Link from 'next/link'
 import { FC } from 'react'
 import styles from '../my-projects-dashboard.module.css'
@@ -25,17 +24,10 @@ const ProjectDetailHeader: FC<ProjectDetailHeaderProps> = ({ project }) => {
       <Flex vertical gap={8}>
         <Flex align="center" gap={4}>
           <Title level={4} style={{ margin: 0 }}>
-            {project.name}
+            <EntityLink href={`/ppm/projects/${project.key}`}>
+              {project.name}
+            </EntityLink>
           </Title>
-          <WaydTooltip title="Open project details">
-            <Link href={`/ppm/projects/${project.key}`}>
-              <Button
-                type="text"
-                size="small"
-                icon={<LinkOutlined style={{ fontSize: 11 }} />}
-              />
-            </Link>
-          </WaydTooltip>
           <LifecycleStatusTag status={project.status} />
         </Flex>
         <Flex gap={12} align="center" wrap>

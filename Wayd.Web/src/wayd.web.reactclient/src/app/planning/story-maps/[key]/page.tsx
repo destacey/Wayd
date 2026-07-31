@@ -33,10 +33,14 @@ import {
   useSetTaskPersonasMutation,
 } from '@/src/store/features/planning/story-maps-api'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { Avatar, Button, Divider, Dropdown, Flex, Tag } from 'antd'
+import { Avatar, Button, Divider, Dropdown, Flex, Tag, Tour } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { WaydTooltip } from '@/src/components/common'
-import { MoreOutlined, PlusOutlined } from '@ant-design/icons'
+import {
+  MoreOutlined,
+  PlusOutlined,
+  QuestionCircleOutlined,
+} from '@ant-design/icons'
 import { notFound, useParams, usePathname, useRouter } from 'next/navigation'
 import {
   CSSProperties,
@@ -61,6 +65,7 @@ import {
   PersonaFilterBar,
   StoryMapBoard,
 } from './_components'
+import { useStoryMapTour } from './_components/use-story-map-tour'
 import { ArchiveStoryMapForm, DeleteStoryMapForm } from '../_components'
 import StoryMapDetailsLoading from './loading'
 import styles from '../_components/story-map.module.css'
@@ -136,6 +141,17 @@ const StoryMapDetailPage: FC = () => {
   const [openManagePersonas, setOpenManagePersonas] = useState(false)
   // The id of an item just created inline, so its name field opens in edit mode.
   const [autoEditId, setAutoEditId] = useState<string | null>(null)
+
+  // First-run interactive tour. Build-along steps advance themselves as the map data changes.
+  const {
+    tourOpen,
+    tourCurrent,
+    tourSteps,
+    tourActionsRender,
+    onTourChange,
+    onTourClose,
+    onTourStart,
+  } = useStoryMapTour(map, canUpdate && map?.status === 'Active')
 
   const messageApi = useMessage()
 
@@ -543,7 +559,23 @@ const StoryMapDetailPage: FC = () => {
         </AvatarGroup>
       )}
       {canEdit && (
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleAddGoal}>
+        <WaydTooltip title="Take a tour">
+          <Button
+            type="text"
+            shape="circle"
+            icon={<QuestionCircleOutlined />}
+            aria-label="Start story map tour"
+            onClick={onTourStart}
+          />
+        </WaydTooltip>
+      )}
+      {canEdit && (
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          data-tour="add-goal-header"
+          onClick={handleAddGoal}
+        >
           Goal
         </Button>
       )}
@@ -609,6 +641,7 @@ const StoryMapDetailPage: FC = () => {
             <Button
               type="primary"
               icon={<PlusOutlined />}
+              data-tour="add-goal-empty"
               onClick={handleAddGoal}
             >
               Add goal
@@ -658,6 +691,16 @@ const StoryMapDetailPage: FC = () => {
           onFormCancel={() => setOpenDeleteMap(false)}
         />
       )}
+
+      <Tour
+        open={tourOpen}
+        current={tourCurrent}
+        steps={tourSteps}
+        actionsRender={tourActionsRender}
+        onChange={onTourChange}
+        onClose={onTourClose}
+        onFinish={onTourClose}
+      />
     </div>
   )
 }

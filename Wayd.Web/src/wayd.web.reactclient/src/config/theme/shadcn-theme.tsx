@@ -1,18 +1,7 @@
 import { useMemo } from 'react'
 import { theme } from 'antd'
 import { createStyles } from 'antd-style'
-import { AppThemeConfig, TimeLineStyles } from './theme-preset'
-
-export const shadcnTimeLineColors: TimeLineStyles = {
-  item: {
-    background: '#f5f5f5',
-    foreground: '#262626',
-    font: '#262626',
-  },
-  background: {
-    background: '#e5e5e5',
-  },
-}
+import { AppThemeConfig } from './theme-preset'
 
 const useStyles = createStyles(({ css }) => ({
   buttonPrimary: css({
@@ -238,7 +227,6 @@ const useShadcnTheme = (): AppThemeConfig => {
       behavior: {
         allowsPrimaryOverride: true,
       },
-      timeline: shadcnTimeLineColors,
       appBar: {
         backgroundColor: '#fafafa',
         color: '#18181b',

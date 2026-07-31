@@ -34,7 +34,8 @@ jest.mock('./../../contexts/theme/use-theme', () => ({
   __esModule: true,
   default: () => ({
     token: { colorBgContainer: '#ffffff' },
-    currentThemeName: 'light',
+    currentTheme: 'wayd',
+    currentMode: 'light',
   }),
 }))
 

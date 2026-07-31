@@ -4,10 +4,8 @@ import { WaydEmpty } from '@/src/components/common'
 import PhaseTimeline from '@/src/app/ppm/_components/phase-timeline'
 import ProjectTaskMetrics from '@/src/app/ppm/projects/_components/project-task-metrics'
 import { useGetProjectQuery } from '@/src/store/features/ppm/projects-api'
-import { LinkOutlined } from '@ant-design/icons'
-import { Button, Card, Flex, Skeleton, Typography } from 'antd'
-import { WaydTooltip } from '@/src/components/common'
-import Link from 'next/link'
+import { Card, Flex, Skeleton, Typography } from 'antd'
+import EntityLink from '@/src/components/common/entity-link'
 import { FC } from 'react'
 import ProjectDetailHeader from './project-detail-header'
 import ProjectPlanView from './project-plan-view'
@@ -68,14 +66,14 @@ const ProjectDetailContent: FC<{ projectKey: string }> = ({ projectKey }) => {
           </Flex>
 
           <Flex vertical gap={8}>
-            <Flex align="center" gap={4}>
-              <Text strong style={{ fontSize: 13 }}>Project Plan</Text>
-              <WaydTooltip title="Open full project plan">
-                <Link href={`/ppm/projects/${project.key}#plan`}>
-                  <Button type="text" size="small" icon={<LinkOutlined style={{ fontSize: 11 }} />} />
-                </Link>
-              </WaydTooltip>
-            </Flex>
+            <div>
+              <EntityLink
+                href={`/ppm/projects/${project.key}#plan`}
+                style={{ fontSize: 13 }}
+              >
+                Project Plan
+              </EntityLink>
+            </div>
             <ProjectPlanView projectKey={project.key} />
           </Flex>
         </>

@@ -118,6 +118,7 @@ const StoryMapsGrid: FC<StoryMapsGridProps> = ({
       onRefresh={refetch}
       isLoading={isLoading}
       persistStateKey="planning-story-maps"
+      initialSorting={[{ id: 'name', desc: false }]}
       csvFileName="story-maps"
       emptyMessage="No story maps found."
       rightSlot={

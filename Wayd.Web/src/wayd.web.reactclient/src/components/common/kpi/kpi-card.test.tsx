@@ -27,7 +27,8 @@ jest.mock('dayjs', () => {
 jest.mock('../../contexts/theme', () => ({
   __esModule: true,
   default: () => ({
-    currentThemeName: 'dark',
+    currentTheme: 'wayd',
+    currentMode: 'dark',
     token: {
       colorSuccess: '#49aa19',
       colorSuccessBg: '#162312',

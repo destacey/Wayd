@@ -18,7 +18,8 @@ jest.mock('next/dynamic', () => ({
 jest.mock('../../contexts/theme', () => ({
   __esModule: true,
   default: jest.fn(() => ({
-    currentThemeName: 'light',
+    currentTheme: 'wayd',
+    currentMode: 'light',
     antDesignChartsTheme: 'light',
   })),
 }))

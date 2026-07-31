@@ -1,7 +1,11 @@
 import useTheme, { ThemeContextType } from '../../components/contexts/theme'
 import useThemeToggleMenuItem from './use-theme-toggle-menu-item'
 import { Mock } from 'jest-mock'
-import { BgColorsOutlined, HighlightFilled, HighlightOutlined } from '@ant-design/icons'
+import {
+  BgColorsOutlined,
+  HighlightFilled,
+  HighlightOutlined,
+} from '@ant-design/icons'
 
 jest.mock('../../components/contexts/theme', () => ({
   __esModule: true,
@@ -24,9 +28,14 @@ const mockToken = {
   colorTextSecondary: '#666666',
 }
 
+const setCurrentMode = jest.fn()
+
 const mockThemeContext: ThemeContextType = {
-  currentThemeName: 'light',
-  setCurrentThemeName: jest.fn(),
+  currentTheme: 'wayd',
+  currentMode: 'light',
+  availableModes: ['light', 'dark', 'slate'],
+  setCurrentTheme: jest.fn(),
+  setCurrentMode,
   appBar: {
     backgroundColor: '#1890ff',
     color: '#ffffff',
@@ -44,180 +53,113 @@ const mockThemeContext: ThemeContextType = {
 
 describe('useThemeToggleMenuItem', () => {
   beforeEach(() => {
-    jest.resetAllMocks()
+    jest.clearAllMocks()
     ;(useTheme as Mock).mockReturnValue(mockThemeContext)
   })
 
   it('returns correct menu item structure', () => {
-    const themeToggle = useThemeToggleMenuItem()
-    expect(themeToggle).toMatchObject({
-      key: 'theme',
-      label: 'Theme: Light',
+    // Arrange & Act
+    const modeToggle = useThemeToggleMenuItem()
+
+    // Assert
+    expect(modeToggle).toMatchObject({
+      key: 'theme-mode',
+      label: 'Mode: Light',
       icon: expect.any(Object),
       onClick: expect.any(Function),
     })
   })
 
-  it('cycles from light to shadcn theme when clicked', () => {
-    const themeToggle = useThemeToggleMenuItem()
-    themeToggle.onClick()
+  it('cycles from light to dark mode when clicked', () => {
+    // Arrange
+    const modeToggle = useThemeToggleMenuItem()
 
-    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('shadcn')
+    // Act
+    modeToggle!.onClick()
+
+    // Assert
+    expect(setCurrentMode).toHaveBeenCalledWith('dark')
   })
 
-  it('cycles from dark to geek theme when clicked', () => {
+  it('cycles from dark to slate mode when clicked', () => {
+    // Arrange
     ;(useTheme as Mock).mockReturnValue({
       ...mockThemeContext,
-      currentThemeName: 'dark',
+      currentMode: 'dark',
     })
+    const modeToggle = useThemeToggleMenuItem()
 
-    const themeToggle = useThemeToggleMenuItem()
-    themeToggle.onClick()
+    // Act
+    modeToggle!.onClick()
 
-    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('geek')
+    // Assert
+    expect(setCurrentMode).toHaveBeenCalledWith('slate')
   })
 
-  it('cycles from slate to cartoon theme when clicked', () => {
+  it('cycles from slate back to light mode when clicked', () => {
+    // Arrange
     ;(useTheme as Mock).mockReturnValue({
       ...mockThemeContext,
-      currentThemeName: 'slate',
+      currentMode: 'slate',
     })
+    const modeToggle = useThemeToggleMenuItem()
 
-    const themeToggle = useThemeToggleMenuItem()
-    themeToggle.onClick()
+    // Act
+    modeToggle!.onClick()
 
-    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('cartoon')
+    // Assert
+    expect(setCurrentMode).toHaveBeenCalledWith('light')
   })
 
-  it('cycles from cartoon to dark theme when clicked', () => {
+  it('returns null when the theme supports a single mode', () => {
+    // Arrange
     ;(useTheme as Mock).mockReturnValue({
       ...mockThemeContext,
-      currentThemeName: 'cartoon',
+      currentTheme: 'glass',
+      currentMode: 'light',
+      availableModes: ['light'],
     })
 
-    const themeToggle = useThemeToggleMenuItem()
-    themeToggle.onClick()
+    // Act
+    const modeToggle = useThemeToggleMenuItem()
 
-    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('dark')
+    // Assert
+    expect(modeToggle).toBeNull()
   })
 
-  it('cycles from shadcn to slate theme when clicked', () => {
+  it('shows the light mode icon in light mode', () => {
+    // Arrange & Act
+    const modeToggle = useThemeToggleMenuItem()
+
+    // Assert
+    expect(modeToggle!.icon).toEqual(<HighlightOutlined />)
+  })
+
+  it('shows the dark mode icon in dark mode', () => {
+    // Arrange
     ;(useTheme as Mock).mockReturnValue({
       ...mockThemeContext,
-      currentThemeName: 'shadcn',
+      currentMode: 'dark',
     })
 
-    const themeToggle = useThemeToggleMenuItem()
-    themeToggle.onClick()
+    // Act
+    const modeToggle = useThemeToggleMenuItem()
 
-    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('slate')
+    // Assert
+    expect(modeToggle!.icon).toEqual(<HighlightFilled />)
   })
 
-  it('cycles from glass to illustration theme when clicked', () => {
+  it('shows the slate mode icon in slate mode', () => {
+    // Arrange
     ;(useTheme as Mock).mockReturnValue({
       ...mockThemeContext,
-      currentThemeName: 'glass',
+      currentMode: 'slate',
     })
 
-    const themeToggle = useThemeToggleMenuItem()
-    themeToggle.onClick()
+    // Act
+    const modeToggle = useThemeToggleMenuItem()
 
-    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('illustration')
-  })
-
-  it('cycles from geek to glass theme when clicked', () => {
-    ;(useTheme as Mock).mockReturnValue({
-      ...mockThemeContext,
-      currentThemeName: 'geek',
-    })
-
-    const themeToggle = useThemeToggleMenuItem()
-    themeToggle.onClick()
-
-    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('glass')
-  })
-
-  it('cycles from illustration to light theme when clicked', () => {
-    ;(useTheme as Mock).mockReturnValue({
-      ...mockThemeContext,
-      currentThemeName: 'illustration',
-    })
-
-    const themeToggle = useThemeToggleMenuItem()
-    themeToggle.onClick()
-
-    expect(mockThemeContext.setCurrentThemeName).toHaveBeenCalledWith('light')
-  })
-
-  it('uses the correct icon for the light theme', () => {
-    const themeToggle = useThemeToggleMenuItem()
-    const icon = themeToggle.icon as React.ReactElement
-    expect(icon.type).toBe(HighlightOutlined)
-  })
-
-  it('uses the correct icon for the dark theme', () => {
-    ;(useTheme as Mock).mockReturnValue({
-      ...mockThemeContext,
-      currentThemeName: 'dark',
-    })
-
-    const themeToggle = useThemeToggleMenuItem()
-    const icon = themeToggle.icon as React.ReactElement
-    expect(icon.type).toBe(HighlightFilled)
-  })
-
-  it('uses the correct icon for the cartoon theme', () => {
-    ;(useTheme as Mock).mockReturnValue({
-      ...mockThemeContext,
-      currentThemeName: 'cartoon',
-    })
-
-    const themeToggle = useThemeToggleMenuItem()
-    const icon = themeToggle.icon as React.ReactElement
-    expect(icon.type).toBe(BgColorsOutlined)
-  })
-
-  it('uses the correct icon for the shadcn theme', () => {
-    ;(useTheme as Mock).mockReturnValue({
-      ...mockThemeContext,
-      currentThemeName: 'shadcn',
-    })
-
-    const themeToggle = useThemeToggleMenuItem()
-    const icon = themeToggle.icon as React.ReactElement
-    expect(icon.type).toBe(BgColorsOutlined)
-  })
-
-  it('uses the correct icon for the glass theme', () => {
-    ;(useTheme as Mock).mockReturnValue({
-      ...mockThemeContext,
-      currentThemeName: 'glass',
-    })
-
-    const themeToggle = useThemeToggleMenuItem()
-    const icon = themeToggle.icon as React.ReactElement
-    expect(icon.type).toBe(BgColorsOutlined)
-  })
-
-  it('uses the correct icon for the geek theme', () => {
-    ;(useTheme as Mock).mockReturnValue({
-      ...mockThemeContext,
-      currentThemeName: 'geek',
-    })
-
-    const themeToggle = useThemeToggleMenuItem()
-    const icon = themeToggle.icon as React.ReactElement
-    expect(icon.type).toBe(BgColorsOutlined)
-  })
-
-  it('uses the correct icon for the illustration theme', () => {
-    ;(useTheme as Mock).mockReturnValue({
-      ...mockThemeContext,
-      currentThemeName: 'illustration',
-    })
-
-    const themeToggle = useThemeToggleMenuItem()
-    const icon = themeToggle.icon as React.ReactElement
-    expect(icon.type).toBe(BgColorsOutlined)
+    // Assert
+    expect(modeToggle!.icon).toEqual(<BgColorsOutlined />)
   })
 })

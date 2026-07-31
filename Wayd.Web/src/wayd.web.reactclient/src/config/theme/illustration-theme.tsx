@@ -1,18 +1,7 @@
 import { useMemo } from 'react'
 import { theme } from 'antd'
 import { createStyles } from 'antd-style'
-import { AppThemeConfig, TimeLineStyles } from './theme-preset'
-
-export const illustrationTimeLineStyles: TimeLineStyles = {
-  item: {
-    background: '#fff0f6',
-    foreground: '#52c41a',
-    font: '#2c2c2c',
-  },
-  background: {
-    background: '#fff9f0',
-  },
-}
+import { AppThemeConfig } from './theme-preset'
 
 const useStyles = createStyles(({ css, cssVar }) => {
   const illustrationBorder = {
@@ -195,7 +184,6 @@ const useIllustrationTheme = (): AppThemeConfig => {
       behavior: {
         allowsPrimaryOverride: false,
       },
-      timeline: illustrationTimeLineStyles,
       appBar: {
         backgroundColor: 'var(--ant-color-primary)',
         color: '#ffffff',

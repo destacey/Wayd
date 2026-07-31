@@ -79,14 +79,22 @@ body {
       scrollbar-color: #d0d0d0 #f0f0f0; /* Thumb color and track color for light mode */
     }
 
-    [data-theme='dark'] * {
+    /* Wayd light: cool-grey scrollbars matching the tinted canvas. Scoped to
+       the Wayd theme so other light themes (cartoon, shadcn, ...) keep the
+       neutral defaults above. */
+    [data-theme='wayd'][data-mode='light'] * {
       scrollbar-width: thin;
-      scrollbar-color: #656565 #2a2a2a; /* Thumb color and track color for dark mode */
+      scrollbar-color: #c6cdd6 #eef1f5;
     }
 
-    [data-theme='slate'] * {
+    [data-mode='dark'] * {
       scrollbar-width: thin;
-      scrollbar-color: #656565 #2d2d2d;
+      scrollbar-color: #4d535c #17191d; /* Thumb color and track color for dark mode */
+    }
+
+    [data-mode='slate'] * {
+      scrollbar-width: thin;
+      scrollbar-color: #6b7684 #282e35;
     }
 
     [data-theme='geek'] * {
@@ -100,9 +108,9 @@ body {
       scrollbar-color: #d0d0d0 #f0f0f0;
     }
 
-    [data-theme='dark'] .ant-drawer-body {
+    [data-mode='dark'] .ant-drawer-body {
       scrollbar-width: thin;
-      scrollbar-color: #656565 #2a2a2a;
+      scrollbar-color: #4d535c #17191d;
     }
   }
 }
@@ -131,31 +139,46 @@ body {
     background-color: #f0f0f0;
   }
 
+  /* Wayd light: cool-grey scrollbars matching the tinted canvas (other light
+     themes keep the neutral defaults above). */
+  html[data-theme='wayd'][data-mode='light'] ::-webkit-scrollbar-thumb {
+    background-color: #c6cdd6;
+    border: 3px solid #eef1f5;
+  }
+
+  html[data-theme='wayd'][data-mode='light'] ::-webkit-scrollbar-track {
+    background-color: #eef1f5;
+  }
+
+  html[data-theme='wayd'][data-mode='light'] ::-webkit-scrollbar-corner {
+    background-color: #eef1f5;
+  }
+
   /* Scrollbar Styling for Dark Mode */
-  [data-theme='dark'] ::-webkit-scrollbar-thumb {
-    background-color: #656565; /* Dark thumb color */
-    border: 3px solid #2a2a2a; /* Matches the track background color */
+  [data-mode='dark'] ::-webkit-scrollbar-thumb {
+    background-color: #4d535c; /* Dark thumb color */
+    border: 3px solid #17191d; /* Matches the track background color */
   }
 
-  [data-theme='dark'] ::-webkit-scrollbar-track {
-    background-color: #2a2a2a; /* Dark track color */
+  [data-mode='dark'] ::-webkit-scrollbar-track {
+    background-color: #17191d; /* Dark track color */
   }
 
-  [data-theme='dark'] ::-webkit-scrollbar-corner {
-    background-color: #2a2a2a;
+  [data-mode='dark'] ::-webkit-scrollbar-corner {
+    background-color: #17191d;
   }
 
-  [data-theme='slate'] ::-webkit-scrollbar-thumb {
-    background-color: #656565;
-    border: 3px solid #2d2d2d;
+  [data-mode='slate'] ::-webkit-scrollbar-thumb {
+    background-color: #6b7684;
+    border: 3px solid #282e35;
   }
 
-    [data-theme='slate'] ::-webkit-scrollbar-track {
-      background-color: #2d2d2d;
-    }
+  [data-mode='slate'] ::-webkit-scrollbar-track {
+    background-color: #282e35;
+  }
 
-  [data-theme='slate'] ::-webkit-scrollbar-corner {
-    background-color: #2d2d2d;
+  [data-mode='slate'] ::-webkit-scrollbar-corner {
+    background-color: #282e35;
   }
 
   [data-theme='geek'] ::-webkit-scrollbar-thumb {
@@ -189,22 +212,23 @@ body {
   }
 
   /* Ant Design Drawer Body Scrollbar - Dark Mode (override) */
-  html[data-theme='dark'] .ant-drawer-body::-webkit-scrollbar-thumb {
-    background-color: #656565 !important;
-    border: 2px solid #2a2a2a !important;
+  html[data-mode='dark'] .ant-drawer-body::-webkit-scrollbar-thumb {
+    background-color: #4d535c !important;
+    border: 2px solid #1f2226 !important;
   }
 
-  html[data-theme='dark'] .ant-drawer-body::-webkit-scrollbar-track {
-    background-color: #2a2a2a !important;
+  html[data-mode='dark'] .ant-drawer-body::-webkit-scrollbar-track {
+    background-color: #1f2226 !important;
   }
 
-  html[data-theme='slate'] .ant-drawer-body::-webkit-scrollbar-thumb {
-    background-color: #656565 !important;
-    border: 2px solid #2d2d2d !important;
+  /* Drawer bodies sit on colorBgElevated, so their track is a step lighter */
+  html[data-mode='slate'] .ant-drawer-body::-webkit-scrollbar-thumb {
+    background-color: #6b7684 !important;
+    border: 2px solid #3a424c !important;
   }
 
-  html[data-theme='slate'] .ant-drawer-body::-webkit-scrollbar-track {
-    background-color: #2d2d2d !important;
+  html[data-mode='slate'] .ant-drawer-body::-webkit-scrollbar-track {
+    background-color: #3a424c !important;
   }
 
   html[data-theme='geek'] .ant-drawer-body::-webkit-scrollbar-thumb {

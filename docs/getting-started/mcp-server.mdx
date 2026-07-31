@@ -13,13 +13,14 @@ Wayd provides an [MCP (Model Context Protocol)](https://modelcontextprotocol.io)
 
 ## What Can It Do?
 
-The MCP server exposes 50+ tools across Wayd's core modules:
+The MCP server exposes 80+ tools across Wayd's core modules:
 
 | Module | Capabilities |
 |--------|-------------|
 | **[PPM](../user-guide/ppm/index.mdx)** | List/view portfolios, programs, projects, phases, tasks. Create and update tasks. View project plan tree and summary metrics. Get critical path. Manage task dependencies. Review and log project health checks. |
 | **[Planning](../user-guide/planning/index.mdx)** | List/view planning intervals, iterations, objectives, risks. Get PI predictability and health reports. Review and log objective health checks. View calendars. |
 | **[Roadmaps](../user-guide/planning/roadmaps.mdx)** | List/view roadmaps and their items (activities, milestones, timeboxes). |
+| **[Story Maps](../user-guide/planning/story-maps.mdx)** | List story maps and read a full map — goals, steps, tasks (with checklists, personas, and work item links), swim lanes, and personas. Create and manage maps: build out goals/steps/tasks, reorder and move cards, manage swim lanes, personas, checklists, and work item links. |
 | **[Organizations](../user-guide/organizations/index.mdx)** | List/view teams and users. |
 
 ## Prerequisites
@@ -124,11 +125,12 @@ CLI arguments take precedence over environment variables.
 
 ## Agent Skills
 
-For Claude Code users, five pre-built skills provide guided workflows:
+For Claude Code users, six pre-built skills provide guided workflows:
 
 - **`/wayd-ppm`** — Portfolio, program, and project operations
 - **`/wayd-pi`** — Planning intervals, iterations, objectives, and risks
 - **`/wayd-roadmaps`** — Roadmap exploration with activities and milestones
+- **`/wayd-story-maps`** — Story map analysis and management with goals, steps, tasks, swim lanes, and personas
 - **`/wayd-teams`** — Team lookup and resolving team names to IDs
 - **`/wayd-users`** — User lookup and resolving names to UUIDs for assignees and project roles
 
@@ -194,6 +196,30 @@ npx skills add destacey/wayd
 | `Roadmaps_GetRoadmaps` | List all roadmaps |
 | `Roadmaps_GetRoadmap` | Get roadmap details |
 | `Roadmaps_GetItems` | Get all roadmap items |
+
+### Story Maps
+
+| Tool | Description |
+|------|-------------|
+| `StoryMaps_GetStoryMaps` | List story maps (optionally including archived) |
+| `StoryMaps_GetStoryMap` | Get a full story map — goals, steps, tasks, swim lanes, personas |
+| `StoryMaps_CreateStoryMap` | Create a story map |
+| `StoryMaps_UpdateStoryMap` | Update a map's name and description |
+| `StoryMaps_ChangeStoryMapOwner` | Change the map's owner |
+| `StoryMaps_ArchiveStoryMap` | Archive a story map |
+| `StoryMaps_DeleteStoryMap` | Permanently delete a story map |
+| `StoryMaps_AddGoal` | Add a goal (created with one step) |
+| `StoryMaps_RenameGoal` / `StoryMaps_ReorderGoal` / `StoryMaps_DeleteGoal` | Manage goals |
+| `StoryMaps_AddStep` | Add a step to a goal |
+| `StoryMaps_RenameStep` / `StoryMaps_ReorderStep` / `StoryMaps_MoveStep` / `StoryMaps_DeleteStep` | Manage steps |
+| `StoryMaps_AddTask` | Add a task to a step (defaults to the default swim lane) |
+| `StoryMaps_UpdateTask` / `StoryMaps_MoveTask` / `StoryMaps_DeleteTask` | Manage tasks |
+| `StoryMaps_AddChecklistItem` / `StoryMaps_RenameChecklistItem` / `StoryMaps_SetChecklistItemChecked` / `StoryMaps_RemoveChecklistItem` | Manage a task's checklist |
+| `StoryMaps_PromoteChecklistItem` | Promote a checklist item into a task |
+| `StoryMaps_LinkWorkItem` / `StoryMaps_UnlinkWorkItem` | Link/unlink a task to a work item |
+| `StoryMaps_AddSwimLane` / `StoryMaps_RenameSwimLane` / `StoryMaps_SetSwimLaneDates` / `StoryMaps_ReorderSwimLane` / `StoryMaps_RemoveSwimLane` | Manage swim lanes |
+| `StoryMaps_AddPersona` / `StoryMaps_UpdatePersona` / `StoryMaps_ReorderPersona` / `StoryMaps_DeletePersona` | Manage personas |
+| `StoryMaps_SetGoalPersonas` / `StoryMaps_SetStepPersonas` / `StoryMaps_SetTaskPersonas` | Set persona tags on a node |
 
 ### Organization
 

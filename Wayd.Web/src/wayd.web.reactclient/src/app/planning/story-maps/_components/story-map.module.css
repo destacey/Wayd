@@ -294,6 +294,32 @@
   touch-action: none;
 }
 
+/* Hover lift on the three card-like drag surfaces: a slight rise and shadow — the kanban idiom for
+   "this is a card you can pick up" — signalling drag-ability alongside the grab cursor. The
+   swim-lane banner is deliberately excluded: it is a full-width sticky bar whose own z-index
+   layering must not change on hover, and a whole row lifting reads as a glitch rather than a card.
+   `.draggable` is only applied when the viewer can actually drag, so read-only users see no lift. */
+.goalCell.draggable,
+.stepCell.draggable,
+.taskCard.draggable {
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+
+.goalCell.draggable:hover,
+.stepCell.draggable:hover,
+.taskCard.draggable:hover {
+  /* Grid cells sit flush against their neighbours, which are painted later in DOM order — without
+     a stacking context the lifted cell's shadow vanishes under them. */
+  position: relative;
+  z-index: 1;
+  transform: translateY(-2px);
+  /* The same shadow as the floating drag-overlay chip, so hover and mid-drag read as one
+     "picked up" state. */
+  box-shadow: var(--ant-box-shadow-secondary);
+}
+
 /* Controls inside a cell are not drag surfaces. The sensor's 4px activation distance separates a
    click from a drag; these cursors make that distinction visible. */
 .inlineEditText,
@@ -601,14 +627,12 @@
   cursor: default;
 }
 
-/* Goal-level header actions (add / delete) — revealed on hover of the goal cell. */
+/* Goal-level header actions (add / delete) — always visible so the affordance is discoverable. */
 .headerActions {
   display: flex;
   align-items: center;
   gap: 2px;
   flex: none;
-  opacity: 0;
-  transition: opacity 0.15s;
 }
 
 /* Match the compact footer buttons so the goal row does not sit taller than it needs to. */
@@ -620,14 +644,14 @@
   font-size: 12px;
 }
 
-.goalCell:hover .headerActions,
-.headerActions:focus-within {
+/* Step cells keep their actions always visible, like the goal row — the shared .footerActions
+   class stays hover-revealed for task cards and swim lanes. */
+.stepCell .footerActions {
   opacity: 1;
 }
 
-/* Footer actions reveal on hover of the owning step cell or task card. Keyboard users get them via
+/* Footer actions reveal on hover of the owning task card. Keyboard users get them via
    :focus-within, so they are reachable without a pointer. */
-.stepCell:hover .footerActions,
 .taskCard:hover .footerActions,
 .footerActions:focus-within {
   opacity: 1;

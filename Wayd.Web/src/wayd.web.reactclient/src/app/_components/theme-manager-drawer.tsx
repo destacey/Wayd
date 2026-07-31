@@ -4,8 +4,9 @@ import { useMemo } from 'react'
 import { Button, Drawer, Flex, Segmented, Select, Tooltip, Typography } from 'antd'
 import { CheckOutlined } from '@ant-design/icons'
 import useTheme from '@/src/components/contexts/theme'
-import { ThemeName } from '@/src/components/contexts/theme/types'
+import { ThemeId, ThemeMode } from '@/src/components/contexts/theme/types'
 import { ThemeConstants } from '@/src/config/theme/theme-constants'
+import { THEME_METADATA } from '@/src/config/theme/theme-registry'
 
 const { Text } = Typography
 
@@ -23,16 +24,17 @@ const PRESET_COLORS: { label: string; value: string }[] = [
   { label: 'Cyan', value: '#13c2c2' },
 ]
 
-const THEME_OPTIONS: { label: string; value: ThemeName }[] = [
-  { label: 'Cartoon', value: 'cartoon' },
-  { label: 'Dark', value: 'dark' },
-  { label: 'Geek', value: 'geek' },
-  { label: 'Glass', value: 'glass' },
-  { label: 'Illustration', value: 'illustration' },
-  { label: 'Light', value: 'light' },
-  { label: 'Shadcn', value: 'shadcn' },
-  { label: 'Slate', value: 'slate' },
-]
+const THEME_OPTIONS: { label: string; value: ThemeId }[] = (
+  Object.entries(THEME_METADATA) as [ThemeId, { label: string }][]
+)
+  .map(([value, { label }]) => ({ label, value }))
+  .sort((a, b) => a.label.localeCompare(b.label))
+
+const MODE_LABELS: Record<ThemeMode, string> = {
+  light: 'Light',
+  dark: 'Dark',
+  slate: 'Slate',
+}
 
 interface ThemeManagerDrawerProps {
   open: boolean
@@ -41,8 +43,11 @@ interface ThemeManagerDrawerProps {
 
 const ThemeManagerDrawer = ({ open, onClose }: ThemeManagerDrawerProps) => {
   const {
-    currentThemeName,
-    setCurrentThemeName,
+    currentTheme,
+    currentMode,
+    availableModes,
+    setCurrentTheme,
+    setCurrentMode,
     userThemeConfig,
     setUserThemeConfig,
     token,
@@ -80,12 +85,12 @@ const ThemeManagerDrawer = ({ open, onClose }: ThemeManagerDrawerProps) => {
     >
       <Flex vertical gap="large">
         <Flex vertical gap="small">
-          <Text strong>Mode</Text>
+          <Text strong>Theme</Text>
           <Select
-            value={currentThemeName}
+            value={currentTheme}
             options={THEME_OPTIONS}
             onChange={(v) => {
-              setCurrentThemeName(v as ThemeName)
+              setCurrentTheme(v as ThemeId)
               setUserThemeConfig(
                 userThemeConfig?.useCompactAlgorithm
                   ? { useCompactAlgorithm: true }
@@ -95,6 +100,21 @@ const ThemeManagerDrawer = ({ open, onClose }: ThemeManagerDrawerProps) => {
             popupMatchSelectWidth
           />
         </Flex>
+
+        {availableModes.length > 1 && (
+          <Flex vertical gap="small">
+            <Text strong>Mode</Text>
+            <Segmented<ThemeMode>
+              block
+              value={currentMode}
+              options={availableModes.map((mode) => ({
+                label: MODE_LABELS[mode],
+                value: mode,
+              }))}
+              onChange={(mode) => setCurrentMode(mode)}
+            />
+          </Flex>
+        )}
 
         {allowsPrimaryOverride && (
           <Flex vertical gap="small">

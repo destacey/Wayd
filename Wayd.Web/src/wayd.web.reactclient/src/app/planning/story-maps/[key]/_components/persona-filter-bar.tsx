@@ -108,7 +108,7 @@ const PersonaFilterBar: FC<PersonaFilterBarProps> = ({
   }
 
   return (
-    <Flex align="center" gap={8} wrap>
+    <Flex align="center" gap={8} wrap data-tour="persona-bar">
       <TeamOutlined className={styles.personaBarIcon} aria-hidden />
 
       <Button
@@ -156,6 +156,7 @@ const PersonaFilterBar: FC<PersonaFilterBarProps> = ({
             size="small"
             type="dashed"
             icon={<PlusOutlined />}
+            data-tour="add-persona"
             onClick={startQuickAdd}
           >
             Persona

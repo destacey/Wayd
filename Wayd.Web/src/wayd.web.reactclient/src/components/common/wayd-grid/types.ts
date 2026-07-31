@@ -89,6 +89,20 @@ export interface WaydGridRightPane<T> {
    * bar at `top` and center it vertically with `(height - barHeight) / 2`.
    */
   renderRow: (ctx: { row: Row<T>; top: number; height: number }) => React.ReactNode
+  /**
+   * Optional chart-wide layer rendered BEHIND all rows, spanning the full canvas
+   * (e.g. vertical gridlines). Receives the total content height so it can fill
+   * the whole track. Positioned absolutely within the scrolling canvas.
+   */
+  renderBackground?: (ctx: { totalHeight: number }) => React.ReactNode
+  /**
+   * Optional wheel handler over the chart, called before the grid forwards the
+   * wheel to its vertical scroller. Receives the NATIVE WheelEvent from a
+   * non-passive listener, so `preventDefault()` works (e.g. to block the
+   * browser's Ctrl/Cmd+wheel page zoom). Return true if you handled it to
+   * suppress the default vertical-scroll forwarding.
+   */
+  onWheel?: (e: WheelEvent) => boolean | void
 }
 
 /**

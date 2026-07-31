@@ -16,9 +16,14 @@ import type { RoadmapItemTreeNode } from './roadmap-items-grid'
 import styles from './roadmap-gantt.module.css'
 
 const DAY_MS = 86_400_000
-// Pixel width of one day on the axis. Fixed so long roadmaps scroll horizontally
-// rather than crushing bars; the pane resizes independently via the Splitter.
-const PX_PER_DAY = 6
+// Default pixel width of one day on the axis (zoom level). Long roadmaps scroll
+// horizontally rather than crushing bars; zoom in/out adjusts this.
+export const DEFAULT_PX_PER_DAY = 6
+// Zoom clamps: fit ~years across at the low end, day-level detail at the high end.
+export const MIN_PX_PER_DAY = 1
+export const MAX_PX_PER_DAY = 40
+// Multiplier per zoom step (matches the timeline's ZOOM_STEP).
+export const ZOOM_STEP = 1.2
 const AXIS_HEIGHT = 48
 // Padding around the domain so the first/last bars aren't flush to the edges.
 const DOMAIN_PAD_DAYS = 14
@@ -58,6 +63,8 @@ export interface RoadmapGanttModel {
     top: number
     height: number
   }) => React.ReactNode
+  /** Chart-wide gridline layer for WaydGrid's rightPane.renderBackground. */
+  renderBackground: (ctx: { totalHeight: number }) => React.ReactNode
   /** Suggested default pane width, px. */
   defaultWidth: number
 }
@@ -71,6 +78,7 @@ export function useRoadmapGantt(
   roadmapStart: Date | string,
   roadmapEnd: Date | string,
   treeData: RoadmapItemTreeNode[],
+  pxPerDay: number = DEFAULT_PX_PER_DAY,
 ): RoadmapGanttModel {
   return useMemo(() => {
     // Domain = roadmap window, padded, and widened to include any item that
@@ -93,13 +101,29 @@ export function useRoadmapGantt(
     const domainStart = min - DOMAIN_PAD_DAYS * DAY_MS
     const domainEnd = max + DOMAIN_PAD_DAYS * DAY_MS
     const days = Math.max(1, Math.ceil((domainEnd - domainStart) / DAY_MS))
-    const width = days * PX_PER_DAY
+    const width = days * pxPerDay
     const scale = createTimeScale(domainStart, domainEnd, width)
 
     // Summary spans for parent rows (bars derived from descendants).
     const summaries = rollupSummaries(treeData, rollupAccessors)
 
     const { upper, lower } = scale.tiers()
+
+    // Vertical gridlines at the lower-tier tick boundaries (same positions as the
+    // axis ticks — month when zoomed out, week/day when zoomed in), matching the
+    // timeline's gridline approach. Rendered full-height behind the bars.
+    const gridlineMs = lower.map((s) => s.startMs)
+    const renderBackground = ({ totalHeight }: { totalHeight: number }) => (
+      <>
+        {gridlineMs.map((ms) => (
+          <div
+            key={`gl-${ms}`}
+            className={styles.gridline}
+            style={{ left: scale.toX(ms), height: totalHeight }}
+          />
+        ))}
+      </>
+    )
 
     const header = (
       <div className={styles.axis} style={{ width, height: AXIS_HEIGHT }}>
@@ -226,6 +250,6 @@ export function useRoadmapGantt(
       return null
     }
 
-    return { header, renderRow, defaultWidth: 520 }
-  }, [roadmapStart, roadmapEnd, treeData])
+    return { header, renderRow, renderBackground, defaultWidth: 520 }
+  }, [roadmapStart, roadmapEnd, treeData, pxPerDay])
 }

@@ -38,6 +38,16 @@
   text-overflow: ellipsis;
 }
 
+/* ── Vertical gridlines (behind bars) ──────────────────────────────────── */
+.gridline {
+  position: absolute;
+  top: 0;
+  width: 0;
+  z-index: 1;
+  border-left: 1px solid var(--ant-color-split);
+  pointer-events: none;
+}
+
 /* ── Bars ──────────────────────────────────────────────────────────────── */
 .bar {
   position: absolute;

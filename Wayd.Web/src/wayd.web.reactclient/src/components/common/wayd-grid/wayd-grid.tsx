@@ -314,8 +314,6 @@ interface GridBodyProps<T> {
   rightPaneCanvasRef?: React.RefObject<HTMLDivElement | null>
   /** Mirrors the bar track's horizontal scroll into the axis header. */
   onBarTrackScroll?: (e: React.UIEvent<HTMLDivElement>) => void
-  /** Forwards vertical wheel over the chart to the grid's scroller. */
-  onBarTrackWheel?: (e: React.WheelEvent<HTMLDivElement>) => void
   /** The shared colgroup element (same instance the header table renders).
    *  Stable across scrolls, so React skips reconciling it. */
   colGroup: ReactNode
@@ -356,7 +354,6 @@ function GridBody<T>({
   rightPaneTrackRef,
   rightPaneCanvasRef,
   onBarTrackScroll,
-  onBarTrackWheel,
   colGroup,
   isLoading,
   emptyMessage,
@@ -623,7 +620,6 @@ function GridBody<T>({
       className={styles.rightPaneTrack}
       style={{ width: rightPaneWidth }}
       onScroll={onBarTrackScroll}
-      onWheel={onBarTrackWheel}
     >
       <div ref={rightPaneCanvasRef} className={styles.rightPaneCanvas}>
         {/* Geometry is in REAL-pixel space (estimate scaled to the measured row
@@ -633,6 +629,9 @@ function GridBody<T>({
           className={styles.rightPaneCanvasInner}
           style={{ height: totalSize * rowScale }}
         >
+          {/* Chart-wide layer behind rows (e.g. vertical gridlines). */}
+          {!showStatusOverlay &&
+            rightPane.renderBackground?.({ totalHeight: totalSize * rowScale })}
           {!showStatusOverlay &&
             virtualRows.map((virtualRow) => (
               <div key={rows[virtualRow.index].id} data-gantt-row="">
@@ -769,18 +768,27 @@ function WaydGridInner<T>(props: WaydGridProps<T>, ref: Ref<WaydGridHandle>) {
     [],
   )
 
-  // The bar track clips vertically (the canvas is translated to follow the grid),
-  // so a wheel over the chart has nothing to scroll there. Forward the vertical
-  // wheel delta to the grid's scroller so vertical scrolling works over the chart
-  // too; its onScroll then re-syncs the canvas + header. Horizontal wheel is left
-  // to the track's own overflow-x (the time axis).
-  const handleBarTrackWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
-    if (e.deltaY !== 0 && bodyViewportRef.current) {
-      bodyViewportRef.current.scrollTop += e.deltaY
-    }
-  }, [])
-
   const hasRightPane = !!rightPane
+
+  // The bar track clips vertically (the canvas is translated to follow the grid),
+  // so a wheel over the chart has nothing to scroll there. A NON-PASSIVE native
+  // wheel listener lets the consumer's onWheel call preventDefault (e.g. to block
+  // the browser's Ctrl/Cmd+wheel page zoom) — React's onWheel is passive and
+  // cannot. When the consumer doesn't handle it, forward the vertical delta to
+  // the grid's scroller so vertical scrolling works over the chart too.
+  const rightPaneOnWheel = rightPane?.onWheel
+  useEffect(() => {
+    const el = rightPaneTrackRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      if (rightPaneOnWheel?.(e) === true) return
+      if (e.deltaY !== 0 && bodyViewportRef.current) {
+        bodyViewportRef.current.scrollTop += e.deltaY
+      }
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [rightPaneOnWheel, hasRightPane])
 
   // Right-pane width (chart pane). Seeded from the config default; the consumer
   // persists it via onWidthChange when a drag ends.
@@ -2086,7 +2094,6 @@ function WaydGridInner<T>(props: WaydGridProps<T>, ref: Ref<WaydGridHandle>) {
         rightPaneTrackRef={rightPaneTrackRef}
         rightPaneCanvasRef={rightPaneCanvasRef}
         onBarTrackScroll={handleBarTrackScroll}
-        onBarTrackWheel={handleBarTrackWheel}
         colGroup={colGroup}
         isLoading={isLoading}
         emptyMessage={emptyMessage}

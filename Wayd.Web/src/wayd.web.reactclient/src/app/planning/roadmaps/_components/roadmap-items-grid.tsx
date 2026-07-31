@@ -8,7 +8,13 @@ import {
   RoadmapMilestoneListDto,
   RoadmapTimeboxListDto,
 } from '@/src/services/wayd-api'
-import { PlusOutlined, BarChartOutlined } from '@ant-design/icons'
+import {
+  PlusOutlined,
+  BarChartOutlined,
+  ZoomInOutlined,
+  ZoomOutOutlined,
+  UndoOutlined,
+} from '@ant-design/icons'
 import { Button, Form, Tooltip } from 'antd'
 import dayjs from 'dayjs'
 import {
@@ -34,7 +40,13 @@ import DeleteRoadmapItemForm from './delete-roadmap-item-form'
 import EditRoadmapTimeboxForm from './edit-roadmap-timebox-form'
 import { getRoadmapItemsGridColumns } from './roadmap-items-grid.columns'
 import { RoadmapItemsHelp } from './roadmap-items-grid.keyboard-shortcuts'
-import { useRoadmapGantt } from './roadmap-gantt'
+import {
+  useRoadmapGantt,
+  DEFAULT_PX_PER_DAY,
+  MIN_PX_PER_DAY,
+  MAX_PX_PER_DAY,
+  ZOOM_STEP,
+} from './roadmap-gantt'
 
 export interface RoadmapItemTreeNode extends TreeNode {
   id: string
@@ -186,6 +198,16 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [showGantt, setShowGantt] = useState(true)
+  // Gantt zoom level (pixels per day). Clamped; adjusted via toolbar +/- and
+  // Ctrl/Cmd+wheel over the chart.
+  const [pxPerDay, setPxPerDay] = useState(DEFAULT_PX_PER_DAY)
+  const zoomBy = useCallback((factor: number) => {
+    setPxPerDay((prev) =>
+      Math.min(MAX_PX_PER_DAY, Math.max(MIN_PX_PER_DAY, prev * factor)),
+    )
+  }, [])
+  const resetZoom = useCallback(() => setPxPerDay(DEFAULT_PX_PER_DAY), [])
+  const isZoomed = pxPerDay !== DEFAULT_PX_PER_DAY
   const draftsRef = useRef<DraftItem[]>([])
 
   const [createRoadmapItem] = useCreateRoadmapItemMutation()
@@ -219,6 +241,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
     roadmap?.start ?? new Date(),
     roadmap?.end ?? new Date(),
     treeData,
+    pxPerDay,
   )
 
   const roadmapActivityMoveValidator: MoveValidator<RoadmapItemTreeNode> =
@@ -708,30 +731,66 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
           isLoading={roadmapItemsIsLoading}
           columns={columns}
           actionsSlot={
-            <Tooltip
-              title={showGantt ? 'Hide Gantt chart' : 'Show Gantt chart'}
-            >
-              <Button
-                type="text"
-                shape="circle"
-                icon={
-                  <BarChartOutlined
-                    // Mirror (invert) + rotate -90°, statically, so the bars read
-                    // left-anchored like Gantt rows. Both transforms in one style
-                    // so they compose (the `rotate` prop can't combine with flip).
-                    style={{ transform: 'scaleX(-1) rotate(-90deg)' }}
-                  />
-                }
-                onClick={() => setShowGantt((v) => !v)}
-                aria-pressed={showGantt}
-                aria-label="Toggle Gantt chart"
-                style={
-                  showGantt
-                    ? { color: 'var(--ant-color-primary)' }
-                    : undefined
-                }
-              />
-            </Tooltip>
+            <>
+              <Tooltip
+                title={showGantt ? 'Hide Gantt chart' : 'Show Gantt chart'}
+              >
+                <Button
+                  type="text"
+                  shape="circle"
+                  icon={
+                    <BarChartOutlined
+                      // Mirror (invert) + rotate -90°, statically, so the bars read
+                      // left-anchored like Gantt rows. Both transforms in one style
+                      // so they compose (the `rotate` prop can't combine with flip).
+                      style={{ transform: 'scaleX(-1) rotate(-90deg)' }}
+                    />
+                  }
+                  onClick={() => setShowGantt((v) => !v)}
+                  aria-pressed={showGantt}
+                  aria-label="Toggle Gantt chart"
+                  style={
+                    showGantt
+                      ? { color: 'var(--ant-color-primary)' }
+                      : undefined
+                  }
+                />
+              </Tooltip>
+              {showGantt && (
+                <>
+                  <Tooltip title="Zoom out">
+                    <Button
+                      type="text"
+                      shape="circle"
+                      icon={<ZoomOutOutlined />}
+                      onClick={() => zoomBy(1 / ZOOM_STEP)}
+                      disabled={pxPerDay <= MIN_PX_PER_DAY}
+                      aria-label="Zoom out"
+                    />
+                  </Tooltip>
+                  <Tooltip title="Zoom in">
+                    <Button
+                      type="text"
+                      shape="circle"
+                      icon={<ZoomInOutlined />}
+                      onClick={() => zoomBy(ZOOM_STEP)}
+                      disabled={pxPerDay >= MAX_PX_PER_DAY}
+                      aria-label="Zoom in"
+                    />
+                  </Tooltip>
+                  <Tooltip title="Reset zoom">
+                    <Button
+                      type="text"
+                      shape="circle"
+                      icon={<UndoOutlined />}
+                      onClick={resetZoom}
+                      disabled={!isZoomed}
+                      aria-label="Reset zoom"
+                    />
+                  </Tooltip>
+                </>
+              )}
+            </>
           }
           rightSlot={viewSelector}
           rightPane={
@@ -740,6 +799,15 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
                   header: gantt.header,
                   defaultWidth: gantt.defaultWidth,
                   renderRow: gantt.renderRow,
+                  renderBackground: gantt.renderBackground,
+                  // Ctrl/Cmd+wheel zooms the chart (matches the timeline). Return
+                  // true so the grid doesn't also scroll vertically.
+                  onWheel: (e) => {
+                    if (!e.ctrlKey && !e.metaKey) return false
+                    e.preventDefault()
+                    zoomBy(e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP)
+                    return true
+                  },
                 }
               : undefined
           }

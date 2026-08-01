@@ -8,7 +8,6 @@ import {
   CollisionDetection,
   DndContext,
   DragEndEvent,
-  DragMoveEvent,
   DragOverlay,
   DragStartEvent,
   PointerSensor,
@@ -157,6 +156,12 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
   const dropSideRef = useRef<DropSide>('before')
   const [dropSide, setDropSide] = useState<DropSide>('before')
 
+  // The target the side above was measured against, captured in the same pass. `event.over` from
+  // onDragMove is not interchangeable with it: the two can describe different frames, and a side
+  // left over from the previous target sends the seam to the wrong cell for a frame — a visible
+  // flick to the far end of the neighbouring step.
+  const dropTargetRef = useRef<string | null>(null)
+
   // Restrict hit testing to legal targets, so an illegal one never highlights.
   const collisionDetection: CollisionDetection = useMemo(
     () => (args) => {
@@ -187,6 +192,7 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
               : pointer.x > rect.left + rect.width / 2
                 ? 'after'
                 : 'before'
+          dropTargetRef.current = String(top.id)
         }
       }
 
@@ -197,13 +203,16 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
 
   // onDragMove, not onDragOver: the side flips as the pointer crosses a target's midpoint, which is
   // not a change of target. Both setStates are no-ops unless the value actually changed.
-  const handleDragMove = (event: DragMoveEvent) => {
+  //
+  // Both values come from the refs, so the pair always describes one collision pass. Taking the
+  // target from `event.over` instead would let it run ahead of the side measured against it.
+  const handleDragMove = () => {
     setDropSide((current) =>
       current === dropSideRef.current ? current : dropSideRef.current,
     )
-
-    const next = event.over ? String(event.over.id) : null
-    setOverId((current) => (current === next ? current : next))
+    setOverId((current) =>
+      current === dropTargetRef.current ? current : dropTargetRef.current,
+    )
   }
 
   // The node being dragged, rendered into the DragOverlay. Board nodes are grid children, so
@@ -213,8 +222,9 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
   const [overId, setOverId] = useState<string | null>(null)
 
   const handleDragStart = (event: DragStartEvent) => {
-    // Start neutral rather than inheriting the previous drag's side.
+    // Start neutral rather than inheriting the previous drag's side and target.
     dropSideRef.current = 'before'
+    dropTargetRef.current = null
     setDropSide('before')
     setOverId(null)
     setActiveDragId(String(event.active.id))
@@ -227,19 +237,26 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
     const { active, over } = event
     if (!over) return
 
+    // The side was measured against dropTargetRef, so pair them here too. Falling back to `over`
+    // keeps the drop working if the release lands without a fresh collision pass; mixing the two
+    // would resolve the side against a target it was never measured on.
+    const targetId =
+      dropTargetRef.current !== null ? dropTargetRef.current : String(over.id)
+
     const drop = resolveDrop(
       layout,
       dragIndex,
       String(active.id),
-      String(over.id),
+      targetId,
       dropSideRef.current,
     )
     if (drop) actions.onDrop(drop)
   }
 
   /**
-   * The goal a dragged step would join, or null when the drag stays inside its current goal — a
-   * reorder needs no destination marker, since the insertion line already says where it lands.
+   * The goal a dragged step would join, and whose step columns the band marks. Null when the drag
+   * stays inside its current goal — a reorder needs no destination marker, since the insertion line
+   * already says where it lands.
    */
   const receivingGoal = useMemo(() => {
     if (!activeDragId || !overId) return null
@@ -253,8 +270,45 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
 
     if (!toGoalId || toGoalId === fromGoalId) return null
 
-    return goals.find((g) => g.goal.id === toGoalId) ?? null
+    const placement = goals.find((g) => g.goal.id === toGoalId)
+
+    // A step-less goal's slot already marks itself as the drop target, and the band around a single
+    // cell would only ring it a second time.
+    return placement && !placement.isPlaceholderColumn ? placement : null
   }, [activeDragId, overId, dragIndex, goals])
+
+  /**
+   * Which step cell draws the insertion line, and on which edge.
+   *
+   * A seam has two names — "after step A" and "before step B" — that resolve to the same index, so
+   * letting each cell light its own hovered edge gave one landing position two appearances. This
+   * picks a single cell per seam: normally the step that follows it, drawing a leading edge. A
+   * goal's last step has no follower, so that one seam keeps a trailing edge.
+   */
+  const litStepSeam = useMemo(() => {
+    if (!activeDragId || dragIndex.kindById.get(activeDragId) !== 'step') {
+      return null
+    }
+    if (!overId || dragIndex.kindById.get(overId) !== 'step') return null
+
+    const hovered = steps.find((s) => s.step.id === overId)
+    if (!hovered) return null
+
+    if (dropSide === 'before') {
+      return { stepId: hovered.step.id, edge: 'before' as const }
+    }
+
+    // Hand the seam to the next step in the same goal, which draws it as its own leading edge.
+    const next = steps.find(
+      (s) =>
+        s.goalId === hovered.goalId &&
+        s.indexInGoal === hovered.indexInGoal + 1,
+    )
+
+    return next
+      ? { stepId: next.step.id, edge: 'before' as const }
+      : { stepId: hovered.step.id, edge: 'after' as const }
+  }, [activeDragId, overId, dropSide, dragIndex, steps])
 
   /**
    * The cell a dragged task would land in, or null when that is the cell it already sits in. A
@@ -370,7 +424,14 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
                 selectedPersonaId={selectedPersonaId}
                 actions={actions}
                 isLastColumn={placement.column === lastColumn}
-                dropSide={dropSide}
+                showsDropBefore={
+                  litStepSeam?.stepId === placement.step.id &&
+                  litStepSeam.edge === 'before'
+                }
+                showsDropAfter={
+                  litStepSeam?.stepId === placement.step.id &&
+                  litStepSeam.edge === 'after'
+                }
               />
             ))}
 
@@ -415,6 +476,8 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
                 <TaskCell
                   key={cellKey(step.id, swimLane.id)}
                   cellId={taskCellId(step.id, swimLane.id)}
+                  stepId={step.id}
+                  swimLaneId={swimLane.id}
                   tasks={tasksByCell.get(cellKey(step.id, swimLane.id)) ?? []}
                   column={column}
                   row={row}

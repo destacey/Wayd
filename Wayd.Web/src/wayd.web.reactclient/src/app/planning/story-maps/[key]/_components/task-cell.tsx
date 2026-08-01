@@ -1,6 +1,7 @@
 'use client'
 
 import { StoryMapTaskDto } from '@/src/services/wayd-api'
+import { PlusOutlined } from '@ant-design/icons'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSSProperties, FC } from 'react'
@@ -13,6 +14,9 @@ export interface TaskCellProps {
   tasks: StoryMapTaskDto[]
   /** Identifies this (step × swim lane) cell as a drop target. */
   cellId: string
+  /** The cell's own coordinates, so a task added here lands in this lane rather than the default. */
+  stepId: string
+  swimLaneId: string
   /** 1-based grid column of the owning step. */
   column: number
   /** 1-based grid row of the owning swim lane. */
@@ -34,6 +38,8 @@ export interface TaskCellProps {
 const TaskCell: FC<TaskCellProps> = ({
   tasks,
   cellId,
+  stepId,
+  swimLaneId,
   column,
   row,
   selectedPersonaId,
@@ -87,6 +93,20 @@ const TaskCell: FC<TaskCellProps> = ({
           />
         ))}
       </SortableContext>
+
+      {/* Hidden mid-drag: the cell is a drop target then, and a button inside it would offer a
+          second meaning for the same space. */}
+      {actions.canUpdate && !isOver && (
+        <button
+          type="button"
+          className={styles.ghostTask}
+          aria-label="Add task"
+          onClick={() => actions.onAddTask(stepId, swimLaneId)}
+        >
+          <PlusOutlined />
+          Task
+        </button>
+      )}
     </div>
   )
 }

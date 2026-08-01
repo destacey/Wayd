@@ -233,7 +233,9 @@ const StoryMapDetailPage: FC = () => {
     }
   }
 
-  const handleAddTask = async (stepId: string) => {
+  // The lane is optional: the step header's add button has no cell in mind and falls back to the
+  // default lane, while a cell's own ghost row names the lane it sits in.
+  const handleAddTask = async (stepId: string, swimLaneId?: string) => {
     if (!map) return
     try {
       const task = await addTask({
@@ -241,7 +243,7 @@ const StoryMapDetailPage: FC = () => {
         request: {
           stepId,
           title: DEFAULT_TASK_TITLE,
-          swimLaneId: map.swimLanes.find((l) => l.isDefault)?.id,
+          swimLaneId: swimLaneId ?? map.swimLanes.find((l) => l.isDefault)?.id,
         },
       }).unwrap()
       setAutoEditId(task.id)

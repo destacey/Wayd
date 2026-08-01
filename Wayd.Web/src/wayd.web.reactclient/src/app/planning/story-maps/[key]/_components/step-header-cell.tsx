@@ -4,7 +4,6 @@ import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { Button, Popconfirm } from 'antd'
 import { CSSProperties, FC } from 'react'
 import { BoardActions } from './board-actions'
-import { DropSide } from './board-drag'
 import { StepPlacement, STEP_ROW } from './board-layout'
 import InlineEditText from './inline-edit-text'
 import PersonaToggleDots from './persona-toggle-dots'
@@ -17,8 +16,17 @@ export interface StepHeaderCellProps {
   actions: BoardActions
   /** Cells in the right-most column drop the border that would double against the grid's own. */
   isLastColumn: boolean
-  /** Which edge of the hovered node a drop lands on, from the board's pointer tracking. */
-  dropSide: DropSide
+  /**
+   * The lit seam, decided by the board rather than by each cell's own `isOver`.
+   *
+   * "After this step" and "before the next" are the same gap and resolve to the same index, so a
+   * cell lighting its own trailing edge gave one landing position two appearances that swapped as
+   * the pointer crossed a midpoint. The board picks one cell per seam instead: the leading edge of
+   * whichever step follows it, falling back to a trailing edge for a goal's last step, which has no
+   * following step to borrow an edge from.
+   */
+  showsDropBefore: boolean
+  showsDropAfter: boolean
 }
 
 /** A step's header cell — one column track wide, above its own task cells. */
@@ -27,7 +35,8 @@ const StepHeaderCell: FC<StepHeaderCellProps> = ({
   selectedPersonaId,
   actions,
   isLastColumn,
-  dropSide,
+  showsDropBefore,
+  showsDropAfter,
 }) => {
   const { step, column } = placement
 
@@ -37,9 +46,7 @@ const StepHeaderCell: FC<StepHeaderCellProps> = ({
     setNodeRef,
     style: sortableStyle,
     dragClassName,
-    isDropTarget,
-    dropsAfter,
-  } = useBoardSortable(step.id, !actions.canUpdate, { dropSide })
+  } = useBoardSortable(step.id, !actions.canUpdate)
 
   const style: CSSProperties = {
     gridRow: STEP_ROW,
@@ -66,11 +73,11 @@ const StepHeaderCell: FC<StepHeaderCellProps> = ({
       className={`${styles.stepCell} ${dragClassName} ${muted ? styles.muted : ''} ${
         isLastColumn ? styles.lastColumn : ''
       } ${
-        isDropTarget
-          ? dropsAfter
+        showsDropBefore
+          ? styles.stepCellDropBefore
+          : showsDropAfter
             ? styles.stepCellDropAfter
-            : styles.stepCellDropBefore
-          : ''
+            : ''
       }`}
       style={style}
       {...attributes}

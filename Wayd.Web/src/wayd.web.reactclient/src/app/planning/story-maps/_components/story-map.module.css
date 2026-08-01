@@ -428,6 +428,42 @@
   background-color: var(--sm-bg);
 }
 
+/* Ghost row at the foot of every task cell. One appears in every cell on the board, so at rest it
+   is invisible and only surfaces on hover of its own cell — a permanent dashed box in each would
+   read as clutter at board scale. Kept in the flow (not absolute) so it never overlaps a card.
+
+   `margin-top: auto` is deliberately absent: the row sits directly under the last card rather than
+   at the foot of a tall cell, so it reads as "add after this one". */
+.ghostTask {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px dashed var(--sm-border);
+  border-radius: var(--sm-radius);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  color: var(--sm-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+  /* Sits inside the cell's drop target; the sensor's activation distance separates click from drag. */
+  touch-action: auto;
+}
+
+.taskCell:hover .ghostTask,
+.ghostTask:focus-visible {
+  opacity: 1;
+}
+
+.ghostTask:hover,
+.ghostTask:focus-visible {
+  border-color: var(--ant-color-primary);
+  color: var(--ant-color-primary);
+}
+
 .taskTitle {
   font-size: 13px;
   color: var(--sm-text);
@@ -567,35 +603,14 @@
   z-index: 1;
 }
 
-/* The leading dot matches the task indicator, so both axes read as the same marker. */
-.stepCellDropBefore::after,
-.stepCellDropAfter::after {
-  content: '';
-  position: absolute;
-  top: -3px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: var(--ant-color-primary);
-  z-index: 1;
-}
-
 /* Centred on the 1px border between cells, so the line reads as the seam rather than as an outline
    of either neighbour. */
 .stepCellDropBefore::before {
   left: -1px;
 }
 
-.stepCellDropBefore::after {
-  left: -4px;
-}
-
 .stepCellDropAfter::before {
   right: -1px;
-}
-
-.stepCellDropAfter::after {
-  right: -4px;
 }
 
 /* The step columns of the goal a dragged step is crossing into. Outline rather than fill — the

@@ -229,7 +229,9 @@ describe('countTasksByLane', () => {
 
   it('omits a lane holding no tasks', () => {
     // Arrange
-    const details = map([goal('g1', [step('s1', [], [task('t1', [], 'lane-a')])])])
+    const details = map([
+      goal('g1', [step('s1', [], [task('t1', [], 'lane-a')])]),
+    ])
 
     // Act
     const counts = countTasksByLane(details, null)
@@ -266,7 +268,11 @@ describe('countTasksByLane', () => {
     // Arrange
     const details = map([
       goal('g1', [
-        step('s1', [], [task('t1', ['p1'], 'lane-a'), task('t2', [], 'lane-b')]),
+        step(
+          's1',
+          [],
+          [task('t1', ['p1'], 'lane-a'), task('t2', [], 'lane-b')],
+        ),
       ]),
     ])
 

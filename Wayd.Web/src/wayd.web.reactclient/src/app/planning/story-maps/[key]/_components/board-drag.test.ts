@@ -11,6 +11,9 @@ import {
   emptyStepSlotId,
   isValidDropTarget,
   resolveDrop,
+  resolveReceivingCellId,
+  resolveReceivingGoalId,
+  resolveStepSeam,
   taskCellId,
   type DropResult,
   type DropSide,
@@ -154,7 +157,10 @@ describe('resolveDrop', () => {
 
     it('ignores a goal dropped on a different kind of node', () => {
       // Arrange
-      const withSteps = map([goal('g1', 0, [step('s1', 'g1', 0)]), goal('g2', 1)])
+      const withSteps = map([
+        goal('g1', 0, [step('s1', 'g1', 0)]),
+        goal('g2', 1),
+      ])
 
       // Act / Assert — a goal has no meaning as a child of a step.
       expect(drop(withSteps, 'g1', 's1')).toBeNull()
@@ -644,5 +650,398 @@ describe('isValidDropTarget', () => {
   it('rejects an unknown target id', () => {
     // Arrange / Act / Assert
     expect(isValid('g1', 'unknown')).toBe(false)
+  })
+})
+
+describe('collapsed swim lanes', () => {
+  const open = 'lane-default'
+  const folded = 'l1'
+
+  const details = map(
+    [
+      goal('g1', 0, [
+        step('s1', 'g1', 0, [
+          task('t-open', 's1', open, 0),
+          task('t-folded', 's1', folded, 0),
+        ]),
+      ]),
+    ],
+    [swimLane(open, 0, true), swimLane(folded, 1)],
+  )
+
+  const layout = buildBoardLayout(details, { swimLaneIds: new Set([folded]) })
+  const index = buildDragIndex(layout)
+
+  it('does not index a task in a collapsed lane', () => {
+    // Arrange / Act / Assert — it renders no card, so it is not a draggable node.
+    expect(index.kindById.get('t-folded')).toBeUndefined()
+    expect(index.kindById.get('t-open')).toBe('task')
+  })
+
+  it('rejects a collapsed lane task as a drag source', () => {
+    // Arrange / Act / Assert
+    expect(isValidDropTarget(index, 't-folded', taskCellId('s1', open))).toBe(
+      false,
+    )
+  })
+
+  it('rejects a collapsed lane task as a drop target', () => {
+    // Arrange / Act / Assert — dropping onto a hidden card would land the task out of sight.
+    expect(isValidDropTarget(index, 't-open', 't-folded')).toBe(false)
+    expect(
+      resolveDrop(layout, index, 't-open', 't-folded', 'before'),
+    ).toBeNull()
+  })
+
+  it('appends to an empty cell without counting the collapsed lane task', () => {
+    // Arrange / Act — the open lane's own cell still resolves normally.
+    const result = resolveDrop(
+      layout,
+      index,
+      't-open',
+      taskCellId('s1', open),
+      'before',
+    )
+
+    // Assert — already the only (and last) task there, so appending changes nothing.
+    expect(result).toBeNull()
+  })
+
+  it('still allows a collapsed lane itself to be reordered', () => {
+    // Arrange — a third lane, so there is somewhere for the collapsed one to actually go.
+    const threeLanes = map(
+      [goal('g1', 0, [step('s1', 'g1', 0)])],
+      [swimLane(open, 0, true), swimLane(folded, 1), swimLane('l2', 2)],
+    )
+    const threeLaneLayout = buildBoardLayout(threeLanes, {
+      swimLaneIds: new Set([folded]),
+    })
+
+    // Act — folding a lane away must not pin it in place.
+    const result = resolveDrop(
+      threeLaneLayout,
+      buildDragIndex(threeLaneLayout),
+      folded,
+      'l2',
+      'after',
+    )
+
+    // Assert — removing l1 first pulls l2 back to index 1, so the end is index 2.
+    expect(result).toEqual({
+      kind: 'swimLane',
+      swimLaneId: folded,
+      newOrder: 2,
+    })
+  })
+})
+
+describe('collapsed goals', () => {
+  const lane = 'lane-default'
+
+  const details = map([
+    goal('g1', 0, [step('s1', 'g1', 0, [task('t1', 's1', lane, 0)])]),
+    goal('g2', 1, [step('s2', 'g2', 0, [task('t2', 's2', lane, 0)])]),
+    goal('g3', 2, [step('s3', 'g3', 0)]),
+  ])
+
+  const layout = buildBoardLayout(details, { goalIds: new Set(['g2']) })
+  const index = buildDragIndex(layout)
+
+  it('does not index the steps or tasks of a collapsed goal', () => {
+    // Arrange / Act / Assert — neither renders a cell, so neither is a drag node.
+    expect(index.kindById.get('s2')).toBeUndefined()
+    expect(index.kindById.get('t2')).toBeUndefined()
+    expect(index.kindById.get('s1')).toBe('step')
+    expect(index.kindById.get('t1')).toBe('task')
+  })
+
+  it('rejects a collapsed goal’s step as a drop target', () => {
+    // Arrange / Act / Assert — dropping there would land the step out of sight.
+    expect(isValidDropTarget(index, 's1', 's2')).toBe(false)
+    expect(resolveDrop(layout, index, 's1', 's2', 'before')).toBeNull()
+  })
+
+  it('rejects a task dropped into a collapsed goal’s cell', () => {
+    // Arrange / Act / Assert
+    expect(isValidDropTarget(index, 't1', taskCellId('s2', lane))).toBe(false)
+  })
+
+  it('still allows the collapsed goal itself to be reordered', () => {
+    // Arrange / Act — folding a goal away must not pin it in place.
+    const result = resolveDrop(layout, index, 'g2', 'g1', 'before')
+
+    // Assert
+    expect(result).toEqual({ kind: 'goal', goalId: 'g2', newOrder: 0 })
+  })
+
+  it('still allows an expanded goal to reorder across a collapsed one', () => {
+    // Arrange / Act — g1 past g3, with the collapsed g2 in between.
+    const result = resolveDrop(layout, index, 'g1', 'g3', 'after')
+
+    // Assert — removing g1 first pulls g3 back to index 1, so the end is index 2.
+    expect(result).toEqual({ kind: 'goal', goalId: 'g1', newOrder: 2 })
+  })
+
+  it('still reorders steps among the goals that remain expanded', () => {
+    // Arrange / Act — s1 joins g3, across the collapsed g2 sitting between them on screen.
+    const result = resolveDrop(layout, index, 's1', 's3', 'after')
+
+    // Assert
+    expect(result).toEqual({
+      kind: 'step',
+      stepId: 's1',
+      targetGoalId: 'g3',
+      newOrder: 1,
+    })
+  })
+})
+
+/** A well-formed cell id can still name a cell no longer on the board once a collapse hides it. */
+describe('task cells that are not rendered', () => {
+  const details = map(
+    [
+      goal('g1', 0, [step('s1', 'g1', 0, [task('t1', 's1', 'l0', 0)])]),
+      goal('g2', 1, [step('s2', 'g2', 0)]),
+    ],
+    [swimLane('l0', 0, true), swimLane('l1', 1)],
+  )
+
+  const layout = buildBoardLayout(details, {
+    goalIds: new Set(['g2']),
+    swimLaneIds: new Set(['l1']),
+  })
+  const index = buildDragIndex(layout)
+
+  it('accepts a cell on a rendered step crossed with an expanded lane', () => {
+    // Arrange / Act / Assert — the control case: this cell really is on the board.
+    expect(isValidDropTarget(index, 't1', taskCellId('s1', 'l0'))).toBe(true)
+  })
+
+  it('rejects a well-formed cell id naming a collapsed lane', () => {
+    // Arrange / Act / Assert — s1 renders, but l1 owns no task row.
+    const hidden = taskCellId('s1', 'l1')
+    expect(isValidDropTarget(index, 't1', hidden)).toBe(false)
+    expect(resolveDrop(layout, index, 't1', hidden)).toBeNull()
+  })
+
+  it('rejects a well-formed cell id naming a collapsed goal’s step', () => {
+    // Arrange / Act / Assert — l0 is expanded, but s2 lives inside the collapsed g2.
+    const hidden = taskCellId('s2', 'l0')
+    expect(isValidDropTarget(index, 't1', hidden)).toBe(false)
+    expect(resolveDrop(layout, index, 't1', hidden)).toBeNull()
+  })
+
+  it('rejects a cell id for a step that does not exist at all', () => {
+    // Arrange / Act / Assert
+    expect(isValidDropTarget(index, 't1', taskCellId('nope', 'l0'))).toBe(false)
+  })
+})
+
+/**
+ * The drag preview. These share their inputs with `resolveDrop`, so what the board shows mid-drag
+ * and what the drop does cannot disagree.
+ */
+describe('resolveStepSeam', () => {
+  const lane = 'lane-default'
+  const details = map([
+    goal('g1', 0, [
+      step('s1', 'g1', 0),
+      step('s2', 'g1', 1),
+      step('s3', 'g1', 2),
+    ]),
+    goal('g2', 1, [step('s4', 'g2', 0)]),
+  ])
+
+  const layout = buildBoardLayout(details)
+  const index = buildDragIndex(layout)
+
+  const seam = (activeId: string, overId: string, side: DropSide) =>
+    resolveStepSeam(layout, index, activeId, overId, side)
+
+  it('draws on the hovered step when the pointer is on its leading half', () => {
+    // Arrange / Act / Assert
+    expect(seam('s3', 's1', 'before')).toEqual({
+      stepId: 's1',
+      edge: 'before',
+    })
+  })
+
+  it('hands a trailing-half hover to the next step as its leading edge', () => {
+    // Arrange / Act — "after s1" and "before s2" are the same gap.
+    const result = seam('s3', 's1', 'after')
+
+    // Assert — one seam, one line: s2 draws it, s1 does not.
+    expect(result).toEqual({ stepId: 's2', edge: 'before' })
+  })
+
+  it('gives one seam the same answer from either side', () => {
+    // Arrange / Act — the gap between s1 and s2, approached from both directions.
+    const fromLeft = seam('s3', 's1', 'after')
+    const fromRight = seam('s3', 's2', 'before')
+
+    // Assert — the flicker this prevents was these two disagreeing.
+    expect(fromLeft).toEqual(fromRight)
+  })
+
+  it('keeps a trailing edge on the last step of a goal', () => {
+    // Arrange / Act — s3 ends g1, and the next column belongs to g2.
+    const result = seam('s1', 's3', 'after')
+
+    // Assert — nothing follows it inside the goal to borrow a leading edge from.
+    expect(result).toEqual({ stepId: 's3', edge: 'after' })
+  })
+
+  it('does not hand a seam across a goal boundary', () => {
+    // Arrange / Act — s4 is the next column on the board, but belongs to another goal.
+    const result = seam('s1', 's3', 'after')
+
+    // Assert
+    expect(result).not.toEqual({ stepId: 's4', edge: 'before' })
+  })
+
+  it('ignores drags that are not steps', () => {
+    // Arrange
+    const withTask = map([
+      goal('g1', 0, [step('s1', 'g1', 0, [task('t1', 's1', lane, 0)])]),
+    ])
+    const taskLayout = buildBoardLayout(withTask)
+
+    // Act / Assert — a goal or task drag draws no step seam.
+    expect(
+      resolveStepSeam(
+        taskLayout,
+        buildDragIndex(taskLayout),
+        't1',
+        's1',
+        'before',
+      ),
+    ).toBeNull()
+    expect(seam('g1', 's1', 'before')).toBeNull()
+  })
+
+  it('returns null with no target', () => {
+    // Arrange / Act / Assert
+    expect(seam('s1', '', 'before')).toBeNull()
+    expect(resolveStepSeam(layout, index, null, 's1', 'before')).toBeNull()
+  })
+})
+
+describe('resolveReceivingGoalId', () => {
+  const details = map([
+    goal('g1', 0, [step('s1', 'g1', 0), step('s2', 'g1', 1)]),
+    goal('g2', 1, [step('s3', 'g2', 0)]),
+    goal('g3', 2),
+  ])
+
+  const index = buildDragIndex(buildBoardLayout(details))
+
+  it('names the goal a step is crossing into', () => {
+    // Arrange / Act / Assert
+    expect(resolveReceivingGoalId(index, 's1', 's3')).toBe('g2')
+  })
+
+  it('returns null for a reorder inside the same goal', () => {
+    // Arrange / Act / Assert — the parent is not in question, so nothing is marked.
+    expect(resolveReceivingGoalId(index, 's1', 's2')).toBeNull()
+  })
+
+  it('names the goal behind an empty step slot', () => {
+    // Arrange / Act / Assert — g3 has no steps, so its slot is the only way in.
+    expect(resolveReceivingGoalId(index, 's1', emptyStepSlotId('g3'))).toBe(
+      'g3',
+    )
+  })
+
+  it('ignores drags that are not steps', () => {
+    // Arrange / Act / Assert
+    expect(resolveReceivingGoalId(index, 'g1', 's3')).toBeNull()
+  })
+})
+
+describe('resolveReceivingCellId', () => {
+  const laneA = 'lane-default'
+  const laneB = 'l1'
+
+  const details = map(
+    [
+      goal('g1', 0, [
+        step('s1', 'g1', 0, [
+          task('t1', 's1', laneA, 0),
+          task('t2', 's1', laneB, 0),
+        ]),
+        step('s2', 'g1', 1, [task('t3', 's2', laneA, 0)]),
+      ]),
+    ],
+    [swimLane(laneA, 0, true), swimLane(laneB, 1)],
+  )
+
+  const index = buildDragIndex(buildBoardLayout(details))
+
+  it('names the cell when the step changes', () => {
+    // Arrange / Act / Assert — t1 dropped on a card in another step's column.
+    expect(resolveReceivingCellId(index, 't1', 't3')).toBe(
+      taskCellId('s2', laneA),
+    )
+  })
+
+  it('names the cell when only the lane changes', () => {
+    // Arrange / Act / Assert — same step, different lane is still a reparent.
+    expect(resolveReceivingCellId(index, 't1', 't2')).toBe(
+      taskCellId('s1', laneB),
+    )
+  })
+
+  it('names an empty cell targeted directly', () => {
+    // Arrange / Act / Assert
+    expect(resolveReceivingCellId(index, 't1', taskCellId('s2', laneB))).toBe(
+      taskCellId('s2', laneB),
+    )
+  })
+
+  it('returns null for a reorder inside the same cell', () => {
+    // Arrange — a second task in t1's own cell.
+    const sameCell = map(
+      [
+        goal('g1', 0, [
+          step('s1', 'g1', 0, [
+            task('t1', 's1', laneA, 0),
+            task('t2', 's1', laneA, 1),
+          ]),
+        ]),
+      ],
+      [swimLane(laneA, 0, true)],
+    )
+
+    // Act / Assert — the insertion line alone says where it lands.
+    expect(
+      resolveReceivingCellId(
+        buildDragIndex(buildBoardLayout(sameCell)),
+        't1',
+        't2',
+      ),
+    ).toBeNull()
+  })
+
+  it('returns null for a cell the board is not rendering', () => {
+    // Arrange — collapse the lane holding the target cell.
+    const collapsed = buildBoardLayout(details, {
+      swimLaneIds: new Set([laneB]),
+    })
+
+    // Act / Assert
+    expect(
+      resolveReceivingCellId(
+        buildDragIndex(collapsed),
+        't1',
+        taskCellId('s2', laneB),
+      ),
+    ).toBeNull()
+  })
+
+  it('ignores drags that are not tasks', () => {
+    // Arrange / Act / Assert
+    expect(
+      resolveReceivingCellId(index, 's1', taskCellId('s2', laneA)),
+    ).toBeNull()
   })
 })

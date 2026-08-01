@@ -20,7 +20,8 @@ export interface BoardActions {
   onDeleteGoal: (goalId: string) => void
   onRenameStep: (stepId: string, name: string) => void
   onDeleteStep: (stepId: string) => void
-  onAddTask: (stepId: string) => void
+  /** Omitting the lane adds to the default one; a task cell passes its own. */
+  onAddTask: (stepId: string, swimLaneId?: string) => void
   onRenameTask: (task: StoryMapTaskDto, title: string) => void
   onDeleteTask: (taskId: string) => void
   /** Link or unlink a single persona; the handler sends the resulting full list to the API. */

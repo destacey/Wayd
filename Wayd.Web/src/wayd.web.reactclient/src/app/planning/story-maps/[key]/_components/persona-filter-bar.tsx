@@ -184,4 +184,3 @@ const PersonaFilterBar: FC<PersonaFilterBarProps> = ({
 }
 
 export default PersonaFilterBar
-

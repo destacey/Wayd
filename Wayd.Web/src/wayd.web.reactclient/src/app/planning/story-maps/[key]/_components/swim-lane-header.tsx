@@ -2,7 +2,12 @@
 
 import { StoryMapSwimLaneDto } from '@/src/services/wayd-api'
 import { WaydTooltip } from '@/src/components/common'
-import { CalendarOutlined, DeleteOutlined } from '@ant-design/icons'
+import {
+  CalendarOutlined,
+  DeleteOutlined,
+  DownOutlined,
+  RightOutlined,
+} from '@ant-design/icons'
 import { Button, DatePicker, Popconfirm, Popover } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
 import { FC, useState } from 'react'
@@ -43,6 +48,9 @@ export interface SwimLaneHeaderProps {
   taskCount: number
   /** Tasks left after the persona filter — what the banner reports. */
   visibleTaskCount: number
+  /** Collapsed lanes hide their task row; the banner stays. */
+  isCollapsed: boolean
+  onToggleCollapsed: (swimLaneId: string) => void
   actions: BoardActions
 }
 
@@ -55,6 +63,8 @@ const SwimLaneHeader: FC<SwimLaneHeaderProps> = ({
   row,
   taskCount,
   visibleTaskCount,
+  isCollapsed,
+  onToggleCollapsed,
   actions,
 }) => {
   const isFixed = swimLane.isDefault
@@ -70,9 +80,7 @@ const SwimLaneHeader: FC<SwimLaneHeaderProps> = ({
 
   const dateLabel = formatRange(swimLane.startDate, swimLane.endDate)
 
-  const handleDatesChange = (
-    dates: [Dayjs | null, Dayjs | null] | null,
-  ) => {
+  const handleDatesChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
     // Clearing the whole control yields null; clearing one side yields a null in that slot.
     actions.onSetSwimLaneDates(
       swimLane.id,
@@ -99,7 +107,9 @@ const SwimLaneHeader: FC<SwimLaneHeaderProps> = ({
           format={DISPLAY_FORMAT}
           value={[toDayjs(swimLane.startDate), toDayjs(swimLane.endDate)]}
           onChange={handleDatesChange}
-          getPopupContainer={(trigger) => trigger.parentElement ?? document.body}
+          getPopupContainer={(trigger) =>
+            trigger.parentElement ?? document.body
+          }
         />
       }
     >
@@ -132,6 +142,23 @@ const SwimLaneHeader: FC<SwimLaneHeaderProps> = ({
       {...listeners}
     >
       <div className={styles.swimLaneHeaderSticky}>
+        {/* The default lane collapses too — it is usually the fullest. */}
+        <WaydTooltip title={isCollapsed ? 'Expand lane' : 'Collapse lane'}>
+          <Button
+            size="small"
+            type="text"
+            icon={isCollapsed ? <RightOutlined /> : <DownOutlined />}
+            className={styles.swimLaneCollapseButton}
+            aria-expanded={!isCollapsed}
+            aria-label={
+              isCollapsed
+                ? `Expand ${swimLane.name}`
+                : `Collapse ${swimLane.name}`
+            }
+            onClick={() => onToggleCollapsed(swimLane.id)}
+          />
+        </WaydTooltip>
+
         {isFixed ? (
           <span className={styles.swimLaneName}>{swimLane.name}</span>
         ) : (
@@ -151,13 +178,11 @@ const SwimLaneHeader: FC<SwimLaneHeaderProps> = ({
         {/* Both dates are optional and independent — a lane can have just a start, just an end,
             neither, or both. The picker's own range semantics stop an end before a start. */}
         {!isFixed &&
-          (actions.canUpdate ? (
-            datesControl
-          ) : (
-            dateLabel && (
-              <span className={styles.swimLaneDatesText}>{dateLabel}</span>
-            )
-          ))}
+          (actions.canUpdate
+            ? datesControl
+            : dateLabel && (
+                <span className={styles.swimLaneDatesText}>{dateLabel}</span>
+              ))}
 
         {actions.canUpdate && !isFixed && (
           <div className={styles.footerActions}>

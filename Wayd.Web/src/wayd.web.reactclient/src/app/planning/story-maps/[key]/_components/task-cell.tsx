@@ -1,11 +1,9 @@
 'use client'
 
 import { StoryMapTaskDto } from '@/src/services/wayd-api'
+import { PlusOutlined } from '@ant-design/icons'
 import { useDroppable } from '@dnd-kit/core'
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSSProperties, FC } from 'react'
 import { BoardActions } from './board-actions'
 import { DropSide } from './board-drag'
@@ -16,6 +14,9 @@ export interface TaskCellProps {
   tasks: StoryMapTaskDto[]
   /** Identifies this (step × swim lane) cell as a drop target. */
   cellId: string
+  /** The cell's own coordinates, so a task added here lands in this lane rather than the default. */
+  stepId: string
+  swimLaneId: string
   /** 1-based grid column of the owning step. */
   column: number
   /** 1-based grid row of the owning swim lane. */
@@ -26,6 +27,8 @@ export interface TaskCellProps {
   isLastColumn: boolean
   /** Which edge of the hovered node a drop lands on, from the board's pointer tracking. */
   dropSide: DropSide
+  /** A task from another cell would land here, so this cell is the destination. */
+  isReceiving: boolean
 }
 
 /**
@@ -35,12 +38,15 @@ export interface TaskCellProps {
 const TaskCell: FC<TaskCellProps> = ({
   tasks,
   cellId,
+  stepId,
+  swimLaneId,
   column,
   row,
   selectedPersonaId,
   actions,
   isLastColumn,
   dropSide,
+  isReceiving,
 }) => {
   // The cell itself is a drop target, not just its cards — an empty cell has no sortable items to
   // aim at. dnd-kit reports isOver on the innermost target only, so a cell and one of its cards
@@ -60,9 +66,13 @@ const TaskCell: FC<TaskCellProps> = ({
   return (
     <div
       ref={setNodeRef}
+      // The receiving outline marks the destination cell; .taskCellOver is the append-here glow an
+      // empty cell gets under the pointer. Both can apply at once — an empty cell in another step
+      // is both — and .taskCellOver's own outline wins, which is the louder and more specific of
+      // the two signals.
       className={`${styles.taskCell} ${isLastColumn ? styles.lastColumn : ''} ${
-        isOver && !appendsToEnd ? styles.taskCellOver : ''
-      }`}
+        isReceiving ? styles.taskCellReceiving : ''
+      } ${isOver && !appendsToEnd ? styles.taskCellOver : ''}`}
       style={style}
     >
       <SortableContext
@@ -83,6 +93,20 @@ const TaskCell: FC<TaskCellProps> = ({
           />
         ))}
       </SortableContext>
+
+      {/* Hidden mid-drag: the cell is a drop target then, and a button inside it would offer a
+          second meaning for the same space. */}
+      {actions.canUpdate && !isOver && (
+        <button
+          type="button"
+          className={styles.ghostTask}
+          aria-label="Add task"
+          onClick={() => actions.onAddTask(stepId, swimLaneId)}
+        >
+          <PlusOutlined />
+          Task
+        </button>
+      )}
     </div>
   )
 }

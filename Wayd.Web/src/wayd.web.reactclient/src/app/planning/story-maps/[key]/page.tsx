@@ -33,7 +33,7 @@ import {
   useSetTaskPersonasMutation,
 } from '@/src/store/features/planning/story-maps-api'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { Avatar, Button, Divider, Dropdown, Flex, Tag, Tour } from 'antd'
+import { Avatar, Button, Dropdown, Flex, Tag, Tour } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { WaydTooltip } from '@/src/components/common'
 import {
@@ -100,7 +100,6 @@ const StoryMapDetailPage: FC = () => {
   const pathname = usePathname()
   const router = useRouter()
   const dispatch = useAppDispatch()
-  useDocumentTitle(`Story Map ${key}`)
 
   const { token } = useTheme()
   const { hasPermissionClaim } = useAuth()
@@ -108,6 +107,8 @@ const StoryMapDetailPage: FC = () => {
   const canDelete = hasPermissionClaim('Permissions.StoryMaps.Delete')
 
   const { data: map, isLoading } = useGetStoryMapQuery(key)
+
+  useDocumentTitle(`${map?.name ?? key} - Story Map Details`)
 
   const [presence, setPresence] = useState<PresenceParticipant[]>([])
 
@@ -139,6 +140,32 @@ const StoryMapDetailPage: FC = () => {
     null,
   )
   const [openManagePersonas, setOpenManagePersonas] = useState(false)
+  // Lanes and goals the viewer has folded away. Transient and local — never sent to the server, so
+  // collapsing does not affect anyone else editing the same map.
+  const [collapsedSwimLaneIds, setCollapsedSwimLaneIds] = useState<
+    ReadonlySet<string>
+  >(() => new Set())
+
+  const [collapsedGoalIds, setCollapsedGoalIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  )
+
+  const handleToggleSwimLaneCollapsed = useCallback((swimLaneId: string) => {
+    setCollapsedSwimLaneIds((current) => {
+      const next = new Set(current)
+      if (!next.delete(swimLaneId)) next.add(swimLaneId)
+      return next
+    })
+  }, [])
+
+  const handleToggleGoalCollapsed = useCallback((goalId: string) => {
+    setCollapsedGoalIds((current) => {
+      const next = new Set(current)
+      if (!next.delete(goalId)) next.add(goalId)
+      return next
+    })
+  }, [])
+
   // The id of an item just created inline, so its name field opens in edit mode.
   const [autoEditId, setAutoEditId] = useState<string | null>(null)
 
@@ -180,7 +207,6 @@ const StoryMapDetailPage: FC = () => {
     [map],
   )
 
-
   const handleAddGoal = async () => {
     if (!map) return
     try {
@@ -207,7 +233,9 @@ const StoryMapDetailPage: FC = () => {
     }
   }
 
-  const handleAddTask = async (stepId: string) => {
+  // The lane is optional: the step header's add button has no cell in mind and falls back to the
+  // default lane, while a cell's own ghost row names the lane it sits in.
+  const handleAddTask = async (stepId: string, swimLaneId?: string) => {
     if (!map) return
     try {
       const task = await addTask({
@@ -215,7 +243,7 @@ const StoryMapDetailPage: FC = () => {
         request: {
           stepId,
           title: DEFAULT_TASK_TITLE,
-          swimLaneId: map.swimLanes.find((l) => l.isDefault)?.id,
+          swimLaneId: swimLaneId ?? map.swimLanes.find((l) => l.isDefault)?.id,
         },
       }).unwrap()
       setAutoEditId(task.id)
@@ -369,7 +397,11 @@ const StoryMapDetailPage: FC = () => {
   const handleDeleteGoal = async (goalId: string) => {
     if (!map) return
     try {
-      await deleteGoal({ storyMapId: map.id, storyMapKey: key, goalId }).unwrap()
+      await deleteGoal({
+        storyMapId: map.id,
+        storyMapKey: key,
+        goalId,
+      }).unwrap()
     } catch {
       messageApi.error('Failed to delete goal.')
     }
@@ -392,7 +424,11 @@ const StoryMapDetailPage: FC = () => {
   const handleDeleteStep = async (stepId: string) => {
     if (!map) return
     try {
-      await deleteStep({ storyMapId: map.id, storyMapKey: key, stepId }).unwrap()
+      await deleteStep({
+        storyMapId: map.id,
+        storyMapKey: key,
+        stepId,
+      }).unwrap()
     } catch {
       messageApi.error('Failed to delete step.')
     }
@@ -415,7 +451,11 @@ const StoryMapDetailPage: FC = () => {
   const handleDeleteTask = async (taskId: string) => {
     if (!map) return
     try {
-      await deleteTask({ storyMapId: map.id, storyMapKey: key, taskId }).unwrap()
+      await deleteTask({
+        storyMapId: map.id,
+        storyMapKey: key,
+        taskId,
+      }).unwrap()
     } catch {
       messageApi.error('Failed to delete task.')
     }
@@ -523,12 +563,9 @@ const StoryMapDetailPage: FC = () => {
           },
         ]
       : []),
-    // Only separate the export once something sits above it — a viewer with neither permission sees
-    // export alone, and a leading divider would hang off the top of the menu.
     ...(canEdit || canDelete
       ? [{ key: 'export-divider', type: 'divider' as const }]
       : []),
-    // Viewing is enough to export — it reads nothing the page is not already showing.
     {
       key: 'export',
       label: 'Export CSV',
@@ -614,8 +651,6 @@ const StoryMapDetailPage: FC = () => {
         actions={pageTitleActions}
       />
 
-      <Divider className={styles.headerDivider} />
-
       <PersonaFilterBar
         storyMapId={map.id}
         storyMapKey={key}
@@ -655,6 +690,10 @@ const StoryMapDetailPage: FC = () => {
           actions={actions}
           onAddStep={handleAddStep}
           onAddSwimLane={handleAddSwimLane}
+          collapsedSwimLaneIds={collapsedSwimLaneIds}
+          onToggleSwimLaneCollapsed={handleToggleSwimLaneCollapsed}
+          collapsedGoalIds={collapsedGoalIds}
+          onToggleGoalCollapsed={handleToggleGoalCollapsed}
         />
       )}
 
@@ -685,7 +724,6 @@ const StoryMapDetailPage: FC = () => {
           onFormComplete={() => {
             deletedHereRef.current = true
             setOpenDeleteMap(false)
-            // The map no longer exists — return to the list.
             router.push('/planning/story-maps')
           }}
           onFormCancel={() => setOpenDeleteMap(false)}

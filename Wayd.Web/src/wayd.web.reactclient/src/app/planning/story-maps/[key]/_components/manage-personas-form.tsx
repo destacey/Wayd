@@ -13,11 +13,7 @@ import {
 } from '@/src/store/features/planning/story-maps-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { nextUnusedPersonaColor, personaColorPalette } from '@/src/utils'
-import {
-  DeleteOutlined,
-  HolderOutlined,
-  PlusOutlined,
-} from '@ant-design/icons'
+import { DeleteOutlined, HolderOutlined, PlusOutlined } from '@ant-design/icons'
 import {
   Button,
   ColorPicker,
@@ -43,7 +39,14 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { CSSProperties, FC, KeyboardEvent, useMemo, useRef, useState } from 'react'
+import {
+  CSSProperties,
+  FC,
+  KeyboardEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import styles from '../../_components/story-map.module.css'
 
 const { Text } = Typography
@@ -379,7 +382,13 @@ const ManagePersonasForm: FC<ManagePersonasFormProps> = ({
   }
 
   return (
-    <Modal title="Personas" open onCancel={onClose} footer={null} destroyOnHidden>
+    <Modal
+      title="Personas"
+      open
+      onCancel={onClose}
+      footer={null}
+      destroyOnHidden
+    >
       <Text type="secondary" className={styles.personaModalSubtitle}>
         Scoped to this map. Tag them on steps and tasks to filter.
       </Text>
@@ -442,10 +451,7 @@ const ManagePersonasForm: FC<ManagePersonasFormProps> = ({
                 name="description"
                 className={styles.personaEditorField}
               >
-                <Input
-                  placeholder="Who is this, in one line"
-                  maxLength={256}
-                />
+                <Input placeholder="Who is this, in one line" maxLength={256} />
               </Form.Item>
               <Flex gap={8} justify="flex-end">
                 <Button size="small" onClick={cancelAdd}>

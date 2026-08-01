@@ -235,7 +235,7 @@ export const useStoryMapTour = (
   const moveStep = {
     title: 'Move things around',
     description:
-      'Everything drags. Reorder goals and steps by dragging them along their row — a step can even move to another goal — and drag tasks between cells and swim lanes.',
+      'Everything drags. Reorder goals and steps by dragging them along their row — a step can even move to another goal — and drag tasks between cells and swim lanes. A blue line shows where it will land, and moving something to a new parent outlines the destination.',
     target: anchor('board'),
     style: stepStyle,
   }
@@ -269,7 +269,7 @@ export const useStoryMapTour = (
   const swimLaneStep = {
     title: 'Slice releases with swim lanes',
     description:
-      'Swim lanes split tasks into releases or phases — each can carry a date range. Click Add swim lane to create one, then drag tasks into it.',
+      'Swim lanes split tasks into releases or phases — each can carry a date range. Click Add swim lane to create one, then drag tasks into it. A lane’s caret collapses it, which keeps a finished release out of the way.',
     target: anchor('add-swim-lane'),
     mask: false,
     placement: 'top' as const,
@@ -287,7 +287,9 @@ export const useStoryMapTour = (
   // ── Build mode: create along with the tour ──────────────────────────────────
 
   const buildSteps: TourProps['steps'] = [
-    welcomeStep('Let’s build yours together — the tour waits for you at each step.'),
+    welcomeStep(
+      'Let’s build yours together — the tour waits for you at each step.',
+    ),
     {
       title: 'Create your first goal',
       description:
@@ -307,7 +309,7 @@ export const useStoryMapTour = (
     {
       title: 'Break it into steps',
       description:
-        'Steps are the actions a user takes toward the goal, read left to right. Click the + in your goal’s header to add the first step.',
+        'Steps are the actions a user takes toward the goal, read left to right. Click the + in your goal’s header — or the Add step placeholder below it — to add the first one.',
       target: anchor('add-step'),
       mask: false,
       style: stepStyle,
@@ -315,7 +317,7 @@ export const useStoryMapTour = (
     {
       title: 'Add a task',
       description:
-        'Tasks are the concrete work under each step. Click the + in your step’s footer to add one — it lands in the swim lane below.',
+        'Tasks are the concrete work under each step. Click the + in your step’s footer to add one, or the + Task placeholder in any cell to add it straight to that swim lane.',
       target: anchor('add-task'),
       mask: false,
       style: stepStyle,
@@ -334,7 +336,7 @@ export const useStoryMapTour = (
     {
       title: 'Goals',
       description:
-        'Goals are what your users are trying to accomplish; each spans the steps beneath it. Click a name to rename it, use the + in its header to add steps, and add more goals with + Goal in the page header.',
+        'Goals are what your users are trying to accomplish; each spans the steps beneath it. Click a name to rename it, use the + in its header to add steps, and add more goals with + Goal in the page header. The caret beside the name folds the goal away when you want it out of the way.',
       target: anchor('goal-cell'),
       style: stepStyle,
     },
@@ -348,7 +350,7 @@ export const useStoryMapTour = (
     {
       title: 'Tasks',
       description:
-        'Tasks are the concrete work under each step, sorted into the swim lanes below. Click a title to edit it.',
+        'Tasks are the concrete work under each step, sorted into the swim lanes below. Click a title to edit it, or use the + Task placeholder at the bottom of any cell to add one there.',
       target: anchor('task-card'),
       style: stepStyle,
     },

@@ -114,7 +114,9 @@ const InlineEditText: FC<InlineEditTextProps> = ({
 
     // Otherwise an auto-sizing textarea that matches the display text's box, so the caret lands
     // where the user clicked (including on a wrapped second line) and the layout does not jump.
-    return <TextArea ref={inputRef as Ref<TextAreaRef>} autoSize {...editorProps} />
+    return (
+      <TextArea ref={inputRef as Ref<TextAreaRef>} autoSize {...editorProps} />
+    )
   }
 
   return (

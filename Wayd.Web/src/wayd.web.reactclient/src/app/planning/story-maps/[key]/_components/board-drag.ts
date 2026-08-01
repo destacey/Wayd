@@ -43,7 +43,8 @@ export const EMPTY_STEP_SLOT_PREFIX = 'step-slot:'
 export const emptyStepSlotId = (goalId: string) =>
   `${EMPTY_STEP_SLOT_PREFIX}${goalId}`
 
-const parseEmptyStepSlotId = (id: string) =>
+/** The goal id behind an empty-slot target, or null when the id is not one. */
+export const parseEmptyStepSlotId = (id: string) =>
   id.startsWith(EMPTY_STEP_SLOT_PREFIX)
     ? id.slice(EMPTY_STEP_SLOT_PREFIX.length)
     : null
@@ -84,13 +85,37 @@ export interface BoardDragIndex {
   kindById: Map<string, DragKind>
   goalIdByStepId: Map<string, string>
   cellByTaskId: Map<string, { stepId: string; swimLaneId: string }>
+  /**
+   * Every task-cell id the board renders — one per rendered step × expanded lane. Cell ids are
+   * structured strings, so a well-formed one can still name a cell a collapse has hidden; targets
+   * are checked against this set rather than by parsing.
+   */
+  renderedCellIds: Set<string>
 }
 
-/** Index every draggable id once per drag, so drop resolution is plain lookups. */
+/**
+ * Index every draggable id once per drag, so drop resolution is plain lookups.
+ *
+ * Anything a collapse hides is left out — indexing it would let `resolveDrop` compute a landing
+ * position among siblings the user cannot see. A collapsed node's own header stays draggable, so
+ * goals and lanes can still be reordered while collapsed.
+ */
 export const buildDragIndex = (layout: BoardLayout): BoardDragIndex => {
   const kindById = new Map<string, DragKind>()
   const goalIdByStepId = new Map<string, string>()
   const cellByTaskId = new Map<string, { stepId: string; swimLaneId: string }>()
+
+  const collapsedLaneIds = new Set(
+    layout.swimLanes
+      .filter(({ isCollapsed }) => isCollapsed)
+      .map(({ swimLane }) => swimLane.id),
+  )
+
+  const expandedLaneIds = layout.swimLanes
+    .filter(({ isCollapsed }) => !isCollapsed)
+    .map(({ swimLane }) => swimLane.id)
+
+  const renderedCellIds = new Set<string>()
 
   for (const { goal } of layout.goals) kindById.set(goal.id, 'goal')
   for (const { swimLane } of layout.swimLanes) {
@@ -99,7 +124,14 @@ export const buildDragIndex = (layout: BoardLayout): BoardDragIndex => {
   for (const { step, goalId } of layout.steps) {
     kindById.set(step.id, 'step')
     goalIdByStepId.set(step.id, goalId)
+
+    for (const swimLaneId of expandedLaneIds) {
+      renderedCellIds.add(taskCellId(step.id, swimLaneId))
+    }
+
     for (const task of step.tasks) {
+      if (collapsedLaneIds.has(task.swimLaneId)) continue
+
       kindById.set(task.id, 'task')
       cellByTaskId.set(task.id, {
         stepId: step.id,
@@ -108,7 +140,7 @@ export const buildDragIndex = (layout: BoardLayout): BoardDragIndex => {
     }
   }
 
-  return { kindById, goalIdByStepId, cellByTaskId }
+  return { kindById, goalIdByStepId, cellByTaskId, renderedCellIds }
 }
 
 /**
@@ -165,9 +197,9 @@ export const isValidDropTarget = (
     // goals row itself is never a target.
     case 'step':
       return overKind === 'step' || parseEmptyStepSlotId(overId) !== null
-    // A task lands on another task, or on a (step × lane) cell — including an empty one.
+    // A task lands on another task, or on a rendered (step × lane) cell — including an empty one.
     case 'task':
-      return overKind === 'task' || parseTaskCellId(overId) !== null
+      return overKind === 'task' || index.renderedCellIds.has(overId)
   }
 }
 
@@ -250,8 +282,10 @@ export const resolveDrop = (
   if (!from) return null
 
   // Dropped on a cell rather than a card — the empty space below the last one, or an empty cell.
-  // Either way the task appends to the end.
-  const cell = parseTaskCellId(overId)
+  // Either way the task appends to the end. Parseable is not enough: a hidden cell parses fine.
+  const cell = index.renderedCellIds.has(overId)
+    ? parseTaskCellId(overId)
+    : null
   if (cell) {
     const existing =
       layout.tasksByCell.get(`${cell.stepId}:${cell.swimLaneId}`) ?? []
@@ -294,7 +328,100 @@ export const resolveDrop = (
     targetStepId: to.stepId,
     targetSwimLaneId: to.swimLaneId,
     newOrder,
-    changedCell:
-      to.stepId !== from.stepId || to.swimLaneId !== from.swimLaneId,
+    changedCell: to.stepId !== from.stepId || to.swimLaneId !== from.swimLaneId,
   }
+}
+
+/**
+ * What a drag should show while it is in flight — the counterpart to {@link resolveDrop}, which says
+ * what the drop will do. Both read the same `(activeId, overId, side)`, so the preview and the
+ * outcome cannot disagree.
+ */
+
+/** The one cell drawing the insertion line for the current seam, and which of its edges. */
+export interface StepSeam {
+  stepId: string
+  edge: DropSide
+}
+
+/**
+ * Which step cell draws the insertion line.
+ *
+ * A seam has two names — "after step A" and "before step B" — that resolve to the same index, so
+ * letting each cell light its own hovered edge gives one landing position two appearances that swap
+ * as the pointer crosses a midpoint. This picks a single cell per seam: normally the step that
+ * follows it, drawing a leading edge. A goal's last step has no follower, so that seam alone keeps a
+ * trailing edge.
+ */
+export const resolveStepSeam = (
+  layout: BoardLayout,
+  index: BoardDragIndex,
+  activeId: string | null,
+  overId: string | null,
+  side: DropSide,
+): StepSeam | null => {
+  if (!activeId || index.kindById.get(activeId) !== 'step') return null
+  if (!overId || index.kindById.get(overId) !== 'step') return null
+
+  const hovered = layout.steps.find((s) => s.step.id === overId)
+  if (!hovered) return null
+
+  if (side === 'before') return { stepId: hovered.step.id, edge: 'before' }
+
+  const next = layout.steps.find(
+    (s) =>
+      s.goalId === hovered.goalId && s.indexInGoal === hovered.indexInGoal + 1,
+  )
+
+  return next
+    ? { stepId: next.step.id, edge: 'before' }
+    : { stepId: hovered.step.id, edge: 'after' }
+}
+
+/**
+ * The goal a dragged step would join, whose run of step columns is outlined as the destination.
+ * Null when the drag stays inside its current goal — a reorder needs no destination marker — and for
+ * a step-less goal, whose slot already marks itself as the target.
+ */
+export const resolveReceivingGoalId = (
+  index: BoardDragIndex,
+  activeId: string | null,
+  overId: string | null,
+): string | null => {
+  if (!activeId || !overId) return null
+  if (index.kindById.get(activeId) !== 'step') return null
+
+  const fromGoalId = index.goalIdByStepId.get(activeId)
+
+  // Either hovering a sibling step, or the empty slot of a goal with no steps of its own.
+  const toGoalId =
+    index.goalIdByStepId.get(overId) ?? parseEmptyStepSlotId(overId)
+
+  return toGoalId && toGoalId !== fromGoalId ? toGoalId : null
+}
+
+/**
+ * The cell a dragged task would land in, or null when that is the cell it already sits in. A task's
+ * parent is its step crossed with its swim lane, so either axis changing is a reparent.
+ */
+export const resolveReceivingCellId = (
+  index: BoardDragIndex,
+  activeId: string | null,
+  overId: string | null,
+): string | null => {
+  if (!activeId || !overId) return null
+  if (index.kindById.get(activeId) !== 'task') return null
+
+  const from = index.cellByTaskId.get(activeId)
+  if (!from) return null
+
+  // The target is either an empty cell, or a card — in which case the cell is the one it sits in.
+  const overCell = index.cellByTaskId.get(overId)
+  const to = overCell
+    ? taskCellId(overCell.stepId, overCell.swimLaneId)
+    : index.renderedCellIds.has(overId)
+      ? overId
+      : null
+
+  return to && to !== taskCellId(from.stepId, from.swimLaneId) ? to : null
 }

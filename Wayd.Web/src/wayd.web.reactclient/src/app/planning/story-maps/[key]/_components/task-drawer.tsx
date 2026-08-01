@@ -8,6 +8,7 @@ import {
 import { LabeledContent } from '@/src/components/common/content'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { getDrawerWidthPixels } from '@/src/utils'
+import { isTempId } from '@/src/store/features/planning/story-map-patches'
 import {
   useAddChecklistItemMutation,
   useLinkWorkItemMutation,
@@ -39,6 +40,9 @@ import styles from '../../_components/story-map.module.css'
 
 const { TextArea } = Input
 const { Text } = Typography
+
+/** Flip on once linking is a work item picker rather than raw id entry — see the field's own note. */
+const SHOW_WORK_ITEM_LINK = false
 
 export interface TaskDrawerProps {
   /** The whole map, so the drawer can offer every swim lane and persona. */
@@ -257,65 +261,59 @@ const TaskDrawerBody: FC<TaskDrawerBodyProps> = ({
         </div>
       </LabeledContent>
 
-      {/* ── Linked work item ── */}
-      {task.linkedWorkItemId !== undefined ? (
-        <Flex align="center" justify="space-between" gap={8}>
-          <span className={styles.drawerLinkedItem}>
-            <LinkOutlined /> Work item {task.linkedWorkItemId}
-          </span>
-          {canUpdate && (
-            <Button
-              type="text"
-              size="small"
-              icon={<DisconnectOutlined />}
-              aria-label="Unlink work item"
-              onClick={() =>
-                unlinkWorkItem(common)
-                  .unwrap()
-                  .catch(() => messageApi.error('Failed to unlink work item.'))
-              }
-            />
-          )}
-        </Flex>
-      ) : (
-        canUpdate &&
-        (isLinking ? (
-          <Flex gap={8}>
-            <InputNumber
-              autoFocus
-              min={1}
-              placeholder="Work item ID"
-              style={{ flex: 1 }}
-              value={workItemId}
-              onChange={setWorkItemId}
-              onPressEnter={handleLink}
-            />
-            <Button onClick={handleLink}>Link</Button>
+      {/* ── Linked work item ──
+          Hidden pending a proper picker. Linking currently means typing a raw numeric id: nothing
+          validates it exists, no title is shown, and there is no way through to the item. A
+          type-ahead over searchWorkItems is the fix, but that returns keys like "WI-1234" while
+          StoryMapTask.LinkedWorkItemId is an int, so the two need reconciling first — a domain
+          decision, not a UI one. The mutations and unlink path below stay wired for that work. */}
+      {SHOW_WORK_ITEM_LINK &&
+        (task.linkedWorkItemId !== undefined ? (
+          <Flex align="center" justify="space-between" gap={8}>
+            <span className={styles.drawerLinkedItem}>
+              <LinkOutlined /> Work item {task.linkedWorkItemId}
+            </span>
+            {canUpdate && (
+              <Button
+                type="text"
+                size="small"
+                icon={<DisconnectOutlined />}
+                aria-label="Unlink work item"
+                onClick={() =>
+                  unlinkWorkItem(common)
+                    .unwrap()
+                    .catch(() =>
+                      messageApi.error('Failed to unlink work item.'),
+                    )
+                }
+              />
+            )}
           </Flex>
         ) : (
-          <Button
-            block
-            icon={<LinkOutlined />}
-            onClick={() => setIsLinking(true)}
-          >
-            Link work item
-          </Button>
-        ))
-      )}
-
-      {/* ── Swim lane ── */}
-      <LabeledContent label="Swim Lane">
-        <Select
-          value={task.swimLaneId}
-          disabled={!canUpdate}
-          style={{ width: '100%' }}
-          onChange={(swimLaneId) => onMoveTaskToLane(task, swimLaneId)}
-          options={orderedLanes.map((lane) => ({
-            value: lane.id,
-            label: lane.name,
-          }))}
-        />
-      </LabeledContent>
+          canUpdate &&
+          (isLinking ? (
+            <Flex gap={8}>
+              <InputNumber
+                autoFocus
+                min={1}
+                placeholder="Work item ID"
+                style={{ flex: 1 }}
+                value={workItemId}
+                onChange={setWorkItemId}
+                onPressEnter={handleLink}
+              />
+              <Button onClick={handleLink}>Link</Button>
+            </Flex>
+          ) : (
+            <Button
+              block
+              icon={<LinkOutlined />}
+              onClick={() => setIsLinking(true)}
+            >
+              Link work item
+            </Button>
+          ))
+        ))}
 
       {/* ── Description ── */}
       {/* maxLength mirrors SetTaskDescriptionCommandValidator. */}
@@ -334,6 +332,20 @@ const TaskDrawerBody: FC<TaskDrawerBodyProps> = ({
             onKeyDown={handleDescriptionKeyDown}
           />
         </div>
+      </LabeledContent>
+
+      {/* ── Swim lane ── */}
+      <LabeledContent label="Swim Lane">
+        <Select
+          value={task.swimLaneId}
+          disabled={!canUpdate}
+          style={{ width: '100%' }}
+          onChange={(swimLaneId) => onMoveTaskToLane(task, swimLaneId)}
+          options={orderedLanes.map((lane) => ({
+            value: lane.id,
+            label: lane.name,
+          }))}
+        />
       </LabeledContent>
 
       {/* ── Personas ── */}
@@ -357,89 +369,100 @@ const TaskDrawerBody: FC<TaskDrawerBodyProps> = ({
       <LabeledContent label="Checklist">
         {/* LabeledContent lays its children out inline, so the rows need their own column. */}
         <Flex vertical gap={6} style={{ width: '100%' }}>
-          {orderedChecklist.map((item) => (
-            // Centred so the checkbox and delete stay aligned when the name swaps to its editor.
-            //
-            // Escape is stopped here: Typography's editor cancels on it, but the event would carry
-            // on to the Drawer's own handler and close the whole drawer mid-edit.
-            <Flex
-              key={item.id}
-              align="center"
-              gap={8}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') e.stopPropagation()
-              }}
-            >
-              <Checkbox
-                checked={item.isChecked}
-                disabled={!canUpdate}
-                aria-label={item.name}
-                onChange={(e) =>
-                  setChecklistItemChecked({
-                    ...common,
-                    itemId: item.id,
-                    request: { isChecked: e.target.checked },
-                  })
-                    .unwrap()
-                    .catch(() =>
-                      messageApi.error('Failed to update checklist item.'),
-                    )
-                }
-              />
-              <div className={styles.drawerChecklistName}>
-                <Text
-                  delete={item.isChecked}
-                  type={item.isChecked ? 'secondary' : undefined}
-                  editable={
-                    canUpdate
-                      ? {
-                          // Omitting 'icon' from triggerType hides the pencil; enterIcon null drops
-                          // the corner glyph, matching the plain textareas above.
-                          triggerType: ['text'],
-                          enterIcon: null,
-                          maxLength: 256,
-                          autoSize: { minRows: 1 },
-                          tooltip: 'Click to rename',
-                          onChange: (name) => {
-                            const next = name.trim()
-                            if (!next || next === item.name) return
-                            renameChecklistItem({
-                              ...common,
-                              itemId: item.id,
-                              request: { name: next },
-                            })
-                              .unwrap()
-                              .catch(() =>
-                                messageApi.error(
-                                  'Failed to rename checklist item.',
-                                ),
-                              )
-                          },
-                        }
-                      : false
-                  }
-                >
-                  {item.name}
-                </Text>
-              </div>
-              {canUpdate && (
-                <Button
-                  type="text"
-                  danger
-                  size="small"
-                  icon={<DeleteOutlined />}
-                  aria-label="Delete checklist item"
-                  onClick={() =>
-                    removeChecklistItem({ ...common, itemId: item.id })
+          {orderedChecklist.map((item) => {
+            // A just-added item holds a placeholder id until the server responds. Acting on it
+            // would send an id the server has never seen, so the row's controls wait — the add row
+            // stays open for rapid entry, which makes this a normal thing to hit rather than a race
+            // you have to go looking for.
+            const isPending = isTempId(item.id)
+            const canEditItem = canUpdate && !isPending
+
+            return (
+              // Centred so the checkbox and delete stay aligned when the name swaps to its editor.
+              //
+              // Escape is stopped here: Typography's editor cancels on it, but the event would carry
+              // on to the Drawer's own handler and close the whole drawer mid-edit.
+              <Flex
+                key={item.id}
+                align="center"
+                gap={8}
+                className={isPending ? styles.drawerChecklistPending : ''}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') e.stopPropagation()
+                }}
+              >
+                <Checkbox
+                  checked={item.isChecked}
+                  disabled={!canEditItem}
+                  aria-label={item.name}
+                  onChange={(e) =>
+                    setChecklistItemChecked({
+                      ...common,
+                      itemId: item.id,
+                      request: { isChecked: e.target.checked },
+                    })
                       .unwrap()
                       .catch(() =>
-                        messageApi.error('Failed to delete checklist item.'),
+                        messageApi.error('Failed to update checklist item.'),
                       )
                   }
                 />
-              )}
-            </Flex>
-          ))}
+                <div className={styles.drawerChecklistName}>
+                  <Text
+                    delete={item.isChecked}
+                    type={item.isChecked ? 'secondary' : undefined}
+                    editable={
+                      canEditItem
+                        ? {
+                            // Omitting 'icon' from triggerType hides the pencil; enterIcon null
+                            // drops the corner glyph, matching the plain textareas above.
+                            triggerType: ['text'],
+                            enterIcon: null,
+                            maxLength: 256,
+                            autoSize: { minRows: 1 },
+                            tooltip: 'Click to rename',
+                            onChange: (name) => {
+                              const next = name.trim()
+                              if (!next || next === item.name) return
+                              renameChecklistItem({
+                                ...common,
+                                itemId: item.id,
+                                request: { name: next },
+                              })
+                                .unwrap()
+                                .catch(() =>
+                                  messageApi.error(
+                                    'Failed to rename checklist item.',
+                                  ),
+                                )
+                            },
+                          }
+                        : false
+                    }
+                  >
+                    {item.name}
+                  </Text>
+                </div>
+                {canUpdate && (
+                  <Button
+                    type="text"
+                    danger
+                    size="small"
+                    disabled={isPending}
+                    icon={<DeleteOutlined />}
+                    aria-label="Delete checklist item"
+                    onClick={() =>
+                      removeChecklistItem({ ...common, itemId: item.id })
+                        .unwrap()
+                        .catch(() =>
+                          messageApi.error('Failed to delete checklist item.'),
+                        )
+                    }
+                  />
+                )}
+              </Flex>
+            )
+          })}
 
           {canUpdate &&
             (isAddingItem ? (

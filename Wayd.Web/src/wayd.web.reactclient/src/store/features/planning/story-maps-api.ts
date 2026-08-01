@@ -40,6 +40,7 @@ import {
   findTaskInDraft,
   recountChecklist,
   reorderInPlace,
+  tempId,
 } from './story-map-patches'
 
 export const storyMapsApi = apiSlice.injectEndpoints({
@@ -710,7 +711,11 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, stepId, request }) => {
         try {
-          await getStoryMapsClient().setStepPersonas(storyMapId, stepId, request)
+          await getStoryMapsClient().setStepPersonas(
+            storyMapId,
+            stepId,
+            request,
+          )
           return { data: null }
         } catch (error) {
           return { error }
@@ -758,7 +763,11 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, taskId, request }) => {
         try {
-          await getStoryMapsClient().setTaskPersonas(storyMapId, taskId, request)
+          await getStoryMapsClient().setTaskPersonas(
+            storyMapId,
+            taskId,
+            request,
+          )
           return { data: null }
         } catch (error) {
           return { error }
@@ -802,7 +811,10 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, request }) => {
         try {
-          const data = await getStoryMapsClient().addSwimLane(storyMapId, request)
+          const data = await getStoryMapsClient().addSwimLane(
+            storyMapId,
+            request,
+          )
           return { data }
         } catch (error) {
           return { error }
@@ -980,7 +992,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
         { storyMapKey, taskId, request },
         { dispatch, queryFulfilled },
       ) => {
-        const tempId = `temp-${crypto.randomUUID()}`
+        const itemTempId = tempId()
         const patchResult = dispatch(
           storyMapsApi.util.updateQueryData(
             'getStoryMap',
@@ -992,7 +1004,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
                 ? Math.max(...task.checklist.map((i) => i.order)) + 1
                 : 0
               task.checklist.push({
-                id: tempId,
+                id: itemTempId,
                 name: request.name,
                 isChecked: false,
                 order: nextOrder,
@@ -1269,7 +1281,10 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, request }) => {
         try {
-          const data = await getStoryMapsClient().addPersona(storyMapId, request)
+          const data = await getStoryMapsClient().addPersona(
+            storyMapId,
+            request,
+          )
           return { data }
         } catch (error) {
           return { error }
@@ -1282,7 +1297,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
         { storyMapKey, request },
         { dispatch, queryFulfilled },
       ) => {
-        const tempId = `temp-${crypto.randomUUID()}`
+        const personaTempId = tempId()
         const patchResult = dispatch(
           storyMapsApi.util.updateQueryData(
             'getStoryMap',
@@ -1293,7 +1308,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
                 ? Math.max(...draft.personas.map((p) => p.order)) + 1
                 : 0
               draft.personas.push({
-                id: tempId,
+                id: personaTempId,
                 name: request.name,
                 description: request.description,
                 color: request.color,
@@ -1309,7 +1324,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
               'getStoryMap',
               storyMapKey,
               (draft) => {
-                const temp = draft.personas.find((p) => p.id === tempId)
+                const temp = draft.personas.find((p) => p.id === personaTempId)
                 if (temp) {
                   temp.id = created.id
                   temp.name = created.name
@@ -1409,7 +1424,8 @@ export const storyMapsApi = apiSlice.injectEndpoints({
             storyMapKey,
             (draft) => {
               draft.personas = draft.personas.filter((p) => p.id !== personaId)
-              const strip = (ids: string[]) => ids.filter((id) => id !== personaId)
+              const strip = (ids: string[]) =>
+                ids.filter((id) => id !== personaId)
               for (const goal of draft.goals) {
                 goal.personaIds = strip(goal.personaIds)
                 for (const step of goal.steps) {

@@ -277,6 +277,41 @@ describe('TaskDrawer', () => {
     ).toBeNull()
   })
 
+  it('disables a checklist row whose id is still a temp placeholder', async () => {
+    // Arrange — an optimistic insert holds a temp id until the server responds. Acting on it would
+    // send an id the server has never seen, so the row waits.
+    const user = userEvent.setup()
+    renderDrawer(
+      buildTask({
+        checklist: [
+          { id: 'temp-abc', name: 'Just added', isChecked: false, order: 0 },
+          { id: 'i-2', name: 'Already saved', isChecked: false, order: 1 },
+        ],
+        checklistTotalCount: 2,
+      }),
+    )
+
+    // Assert — the pending row's controls are inert.
+    expect(screen.getByRole('checkbox', { name: 'Just added' })).toBeDisabled()
+    const [pendingDelete] = screen.getAllByRole('button', {
+      name: 'Delete checklist item',
+    })
+    expect(pendingDelete).toBeDisabled()
+
+    // Act — clicking the pending name must not open an editor.
+    await user.click(screen.getByText('Just added'))
+
+    // Assert
+    expect(screen.queryByDisplayValue('Just added')).not.toBeInTheDocument()
+
+    // Assert — a saved row alongside it is unaffected.
+    expect(
+      screen.getByRole('checkbox', { name: 'Already saved' }),
+    ).not.toBeDisabled()
+    await user.click(screen.getByText('Already saved'))
+    expect(screen.getByDisplayValue('Already saved')).toBeInTheDocument()
+  })
+
   it('renders the checklist delete action as danger', () => {
     // Arrange / Act — matches the Delete task button below it.
     renderDrawer(

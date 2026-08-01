@@ -15,6 +15,18 @@ import {
  * left and the one it joined.
  */
 
+/** Prefix for the placeholder id an optimistic insert carries until the server returns a real one. */
+const TEMP_ID_PREFIX = 'temp-'
+
+/** A placeholder id for an optimistic insert. */
+export const tempId = () => `${TEMP_ID_PREFIX}${crypto.randomUUID()}`
+
+/**
+ * Whether a node is still an unsaved optimistic insert. The server has never seen this id, so any
+ * request naming it would 404 — callers disable the row's own actions until the real id lands.
+ */
+export const isTempId = (id: string) => id.startsWith(TEMP_ID_PREFIX)
+
 /** Find a task anywhere in the map, without the caller walking goals → steps itself. */
 export const findTaskInDraft = (
   draft: StoryMapDetailsDto,

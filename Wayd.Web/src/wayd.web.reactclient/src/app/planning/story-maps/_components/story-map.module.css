@@ -1047,6 +1047,12 @@
   min-width: 0;
 }
 
+/* A just-added item, waiting for the server to hand back its real id. Usually a single frame, so
+   this only needs to explain the disabled controls rather than draw attention. */
+.drawerChecklistPending {
+  opacity: 0.6;
+}
+
 /* antd offsets the inline editor so it overlays the text it replaced — a negative top margin and a
    left inset. Both are wrong here: the row is a flex line that should simply centre the editor
    against the checkbox and delete, so the offsets are zeroed and the wrapper made a plain block. */

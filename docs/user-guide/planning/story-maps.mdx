@@ -41,7 +41,7 @@ graph TD
 
 - **Goal** — What the user is trying to accomplish. The top row of the board, read left to right as the journey unfolds. Goals are sometimes called activities or backbone items.
 - **Step** — A stage within a goal. Each step gets its own column, so the second row reads as the narrative flow across the whole map.
-- **Task** — A specific piece of work under a step. Tasks stack vertically inside the grid cell where their step column meets a swim lane row. A task can also carry a description, a checklist, and a linked work item — see [Task Details](#task-details).
+- **Task** — A specific piece of work under a step. Tasks stack vertically inside the grid cell where their step column meets a swim lane row. A task can also carry a description and a checklist — see [Task Details](#task-details).
 - **Swim Lane** — A horizontal band slicing the map into releases, milestones, or phases. Every task sits in exactly one lane.
 - **Persona** — Who a step or task is for. Personas are tags, not a level of the hierarchy — see [Personas](#personas).
 
@@ -140,7 +140,7 @@ Delete buttons appear on hover in the same places. Deleting a goal deletes its s
 
 ## Task Details
 
-Click a task card to open its details. Everything a card cannot show — a description, a checklist, a linked work item — lives here.
+Click a task card to open its details. Everything a card cannot show — a description, a checklist — lives there.
 
 The panel is **not modal**. The board stays live beside it: you can keep dragging cards, editing names, and clicking other tasks, and the panel re-points at whichever task you pick. Clicking the open task again closes it, as does the **✕** in the panel header.
 
@@ -149,9 +149,8 @@ On a wide screen the panel opens beside the board and the board narrows to make 
 | Field | Notes |
 |---|---|
 | **Title** | The same title shown on the card. **Enter** saves, **Escape** cancels. Leaving it empty keeps the previous title. |
-| **Work item** | Links the task to a work item by ID. Once linked, the panel shows the ID with an unlink button beside it. |
-| **Swim Lane** | Moves the task to another lane in the same step — the keyboard-friendly alternative to dragging it. |
 | **Description** | Free text for anything the title cannot carry. Saves when you click away. |
+| **Swim Lane** | Moves the task to another lane in the same step — the keyboard-friendly alternative to dragging it. |
 | **Personas** | The same tags as the card's dots, with names. A tagged persona shows in its own colour; an untagged one is muted. Click to toggle. |
 | **Checklist** | Sub-items for work too small to be its own task. |
 
@@ -270,4 +269,3 @@ Getting the top two rows right first is worth the time. The backbone is what mak
 1. Click the task card to open its details
 2. Add a description for anything the title cannot carry
 3. Break the work into checklist items — the card shows the tally, so progress reads from the board
-4. Link the work item once the task is picked up, so the map points at the delivery record

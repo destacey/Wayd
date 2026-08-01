@@ -285,10 +285,20 @@
   padding: 8px 4px;
   background-color: var(--sm-bg-elevated);
   overflow: hidden;
-  /* The spine already spans every row, so it is on screen throughout the scroll and has nothing to
-     pin against — sticking it would shunt its content down as the board scrolls. Its caret and name
-     stay put at the top instead, which is where the pinned header rows are. */
+  /* Not sticky, unlike the goal cells beside it: the spine spans every row, and a sticky element
+     moves only within its own grid area, so pinning it would slide its content down the spine as
+     the board scrolls. The caret inside it sticks instead — see .goalCellCollapsed .goalCollapseButton. */
   position: static;
+}
+
+/* Keeps the expand control on screen while a tall board scrolls. The spine itself cannot pin, so
+   without this the only way back out of a collapsed goal scrolls away with the top of the board.
+   Offset past the pinned goals row it would otherwise slide under, plus the spine's own top padding
+   so it rests exactly where it sits unscrolled. */
+.goalCellCollapsed .goalCollapseButton {
+  position: sticky;
+  top: calc(var(--sm-goal-row-height) + 8px);
+  z-index: var(--sm-z-sticky-row);
 }
 
 /* `writing-mode` rather than a transform: a rotated element keeps its unrotated box, so a long name

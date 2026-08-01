@@ -182,20 +182,23 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
 
       const top = resolved[0]
       const pointer = args.pointerCoordinates
-      if (top && pointer) {
-        const rect = args.droppableRects.get(top.id)
-        if (rect) {
-          // Tasks stack vertically; goals and steps read left to right.
-          dropSideRef.current =
-            dragIndex.kindById.get(activeId) === 'task'
-              ? pointer.y > rect.top + rect.height / 2
-                ? 'after'
-                : 'before'
-              : pointer.x > rect.left + rect.width / 2
-                ? 'after'
-                : 'before'
-          dropTargetRef.current = String(top.id)
-        }
+      const rect = top ? args.droppableRects.get(top.id) : undefined
+
+      if (top && pointer && rect) {
+        // Tasks stack vertically; goals and steps read left to right.
+        dropSideRef.current =
+          dragIndex.kindById.get(activeId) === 'task'
+            ? pointer.y > rect.top + rect.height / 2
+              ? 'after'
+              : 'before'
+            : pointer.x > rect.left + rect.width / 2
+              ? 'after'
+              : 'before'
+        dropTargetRef.current = String(top.id)
+      } else {
+        // Dragged clear of every valid target. Without this the ref keeps the last one, and its
+        // seam and destination highlights stay lit over a drop that would no longer happen.
+        dropTargetRef.current = null
       }
 
       return resolved
@@ -236,19 +239,16 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
     setActiveDragId(null)
     setOverId(null)
 
-    const { active, over } = event
-    if (!over) return
-
-    // The side was measured against dropTargetRef, so pair them here too. Falling back to `over`
-    // keeps the drop working if the release lands without a fresh collision pass; mixing the two
-    // would resolve the side against a target it was never measured on.
-    const targetId =
-      dropTargetRef.current !== null ? dropTargetRef.current : String(over.id)
+    // The side is only meaningful against the target it was measured on, so the drop uses that same
+    // target rather than dnd-kit's `over` — the two can describe different frames. A null ref means
+    // the last pass found no valid target, which is a drop on nothing.
+    const targetId = dropTargetRef.current
+    if (!targetId) return
 
     const drop = resolveDrop(
       layout,
       dragIndex,
-      String(active.id),
+      String(event.active.id),
       targetId,
       dropSideRef.current,
     )

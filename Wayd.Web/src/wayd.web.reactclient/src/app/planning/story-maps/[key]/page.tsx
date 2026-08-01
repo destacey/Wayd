@@ -33,7 +33,7 @@ import {
   useSetTaskPersonasMutation,
 } from '@/src/store/features/planning/story-maps-api'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { Avatar, Button, Divider, Dropdown, Flex, Tag, Tour } from 'antd'
+import { Avatar, Button, Dropdown, Flex, Tag, Tour } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { WaydTooltip } from '@/src/components/common'
 import {
@@ -648,8 +648,6 @@ const StoryMapDetailPage: FC = () => {
         tags={pageTitleTags}
         actions={pageTitleActions}
       />
-
-      <Divider className={styles.headerDivider} />
 
       <PersonaFilterBar
         storyMapId={map.id}

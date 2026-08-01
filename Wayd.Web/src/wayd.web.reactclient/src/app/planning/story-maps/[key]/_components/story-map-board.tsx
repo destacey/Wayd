@@ -1,6 +1,7 @@
 'use client'
 
 import { StoryMapDetailsDto } from '@/src/services/wayd-api'
+import { useRemainingHeight } from '@/src/hooks'
 import { PlusOutlined } from '@ant-design/icons'
 import { Button } from 'antd'
 import {
@@ -38,6 +39,7 @@ import GoalHeaderCell from './goal-header-cell'
 import StepHeaderCell from './step-header-cell'
 import SwimLaneHeader from './swim-lane-header'
 import TaskCell from './task-cell'
+import { useGoalRowHeight } from './use-goal-row-height'
 import styles from '../../_components/story-map.module.css'
 
 export interface StoryMapBoardProps {
@@ -58,6 +60,8 @@ interface BoardGridCssVars extends CSSProperties {
   /** Counts of each track kind, so the CSS can floor the board's width at their minimums. */
   '--sm-flexible-col-count': number
   '--sm-collapsed-col-count': number
+  /** How far down the steps row pins, measured rather than assumed. */
+  '--sm-goal-row-height': string
 }
 
 /**
@@ -99,12 +103,19 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
     collapsedColumnCount,
   } = layout
 
+  const [goalRowRef, goalRowHeight] = useGoalRowHeight()
+
+  // Sticky rows need a scrollport of their own to pin against, so the board takes the viewport
+  // height that is left below it rather than letting the page scroll.
+  const [scrollRef, scrollHeight] = useRemainingHeight()
+
   // An explicit track list rather than one repeat(): a collapsed goal's spine is a fixed width
   // while every other step column shares the leftover space equally.
   const gridStyle: BoardGridCssVars = {
     '--sm-step-columns': stepColumnTracks.join(' '),
     '--sm-flexible-col-count': flexibleColumnCount,
     '--sm-collapsed-col-count': collapsedColumnCount,
+    '--sm-goal-row-height': `${goalRowHeight}px`,
   }
 
   // Everything placed in a task row iterates this rather than every lane. The predicate is a type
@@ -258,11 +269,16 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveDragId(null)}
     >
-      <div className={styles.boardScroll}>
+      <div
+        ref={scrollRef}
+        className={styles.boardScroll}
+        style={{ height: scrollHeight }}
+      >
         <div className={styles.boardGrid} style={gridStyle} data-tour="board">
           <SortableContext items={sortableIds}>
             {/* ── Sticky label column ── */}
             <div
+              ref={goalRowRef}
               className={`${styles.labelCell} ${styles.labelCellGoals}`}
               style={{ gridRow: GOAL_ROW, gridColumn: LABEL_COLUMN }}
             >

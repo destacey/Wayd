@@ -23,8 +23,10 @@ import { countTasksByLane } from './board-counts'
 import {
   buildDragIndex,
   isValidDropTarget,
-  parseEmptyStepSlotId,
   resolveDrop,
+  resolveReceivingCellId,
+  resolveReceivingGoalId,
+  resolveStepSeam,
   taskCellId,
   type DropSide,
 } from './board-drag'
@@ -253,84 +255,26 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
     if (drop) actions.onDrop(drop)
   }
 
-  /**
-   * The goal a dragged step would join, and whose step columns the band marks. Null when the drag
-   * stays inside its current goal — a reorder needs no destination marker, since the insertion line
-   * already says where it lands.
-   */
+  // A step-less goal's slot already marks itself as the drop target, so the band would only ring it
+  // a second time.
   const receivingGoal = useMemo(() => {
-    if (!activeDragId || !overId) return null
-    if (dragIndex.kindById.get(activeDragId) !== 'step') return null
+    const goalId = resolveReceivingGoalId(dragIndex, activeDragId, overId)
+    const placement = goalId
+      ? goals.find((g) => g.goal.id === goalId)
+      : undefined
 
-    const fromGoalId = dragIndex.goalIdByStepId.get(activeDragId)
-
-    // Either hovering a sibling step, or the empty slot of a goal with no steps of its own.
-    const toGoalId =
-      dragIndex.goalIdByStepId.get(overId) ?? parseEmptyStepSlotId(overId)
-
-    if (!toGoalId || toGoalId === fromGoalId) return null
-
-    const placement = goals.find((g) => g.goal.id === toGoalId)
-
-    // A step-less goal's slot already marks itself as the drop target, and the band around a single
-    // cell would only ring it a second time.
     return placement && !placement.isPlaceholderColumn ? placement : null
   }, [activeDragId, overId, dragIndex, goals])
 
-  /**
-   * Which step cell draws the insertion line, and on which edge.
-   *
-   * A seam has two names — "after step A" and "before step B" — that resolve to the same index, so
-   * letting each cell light its own hovered edge gave one landing position two appearances. This
-   * picks a single cell per seam: normally the step that follows it, drawing a leading edge. A
-   * goal's last step has no follower, so that one seam keeps a trailing edge.
-   */
-  const litStepSeam = useMemo(() => {
-    if (!activeDragId || dragIndex.kindById.get(activeDragId) !== 'step') {
-      return null
-    }
-    if (!overId || dragIndex.kindById.get(overId) !== 'step') return null
+  const litStepSeam = useMemo(
+    () => resolveStepSeam(layout, dragIndex, activeDragId, overId, dropSide),
+    [layout, dragIndex, activeDragId, overId, dropSide],
+  )
 
-    const hovered = steps.find((s) => s.step.id === overId)
-    if (!hovered) return null
-
-    if (dropSide === 'before') {
-      return { stepId: hovered.step.id, edge: 'before' as const }
-    }
-
-    // Hand the seam to the next step in the same goal, which draws it as its own leading edge.
-    const next = steps.find(
-      (s) =>
-        s.goalId === hovered.goalId &&
-        s.indexInGoal === hovered.indexInGoal + 1,
-    )
-
-    return next
-      ? { stepId: next.step.id, edge: 'before' as const }
-      : { stepId: hovered.step.id, edge: 'after' as const }
-  }, [activeDragId, overId, dropSide, dragIndex, steps])
-
-  /**
-   * The cell a dragged task would land in, or null when that is the cell it already sits in. A
-   * task's parent is the step crossed with the swim lane, so either axis changing is a reparent.
-   */
-  const receivingCellId = useMemo(() => {
-    if (!activeDragId || !overId) return null
-    if (dragIndex.kindById.get(activeDragId) !== 'task') return null
-
-    const from = dragIndex.cellByTaskId.get(activeDragId)
-    if (!from) return null
-
-    // The target is either an empty cell, or a card — in which case the cell is the one it sits in.
-    const overCell = dragIndex.cellByTaskId.get(overId)
-    const to = overCell
-      ? taskCellId(overCell.stepId, overCell.swimLaneId)
-      : dragIndex.renderedCellIds.has(overId)
-        ? overId
-        : null
-
-    return to && to !== taskCellId(from.stepId, from.swimLaneId) ? to : null
-  }, [activeDragId, overId, dragIndex])
+  const receivingCellId = useMemo(
+    () => resolveReceivingCellId(dragIndex, activeDragId, overId),
+    [dragIndex, activeDragId, overId],
+  )
 
   // What to show inside the overlay: the name of whatever kind is being dragged.
   const activeDragLabel = useMemo(() => {

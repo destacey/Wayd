@@ -33,7 +33,9 @@ import {
   useGetRoadmapQuery,
   usePatchRoadmapItemMutation,
   useUpdateRoadmapActivityPlacementMutation,
+  useUpdateRoadmapItemDatesMutation,
 } from '@/src/store/features/planning/roadmaps-api'
+import { isApiError, type ApiError } from '@/src/utils'
 import { FC, ReactNode, useCallback, useMemo, useRef, useState } from 'react'
 import EditRoadmapActivityForm from './edit-roadmap-activity-form'
 import DeleteRoadmapItemForm from './delete-roadmap-item-form'
@@ -42,11 +44,14 @@ import { getRoadmapItemsGridColumns } from './roadmap-items-grid.columns'
 import { RoadmapItemsHelp } from './roadmap-items-grid.keyboard-shortcuts'
 import {
   useRoadmapGantt,
+  computeGanttDomain,
+  pxPerMsFor,
   DEFAULT_PX_PER_DAY,
   MIN_PX_PER_DAY,
   MAX_PX_PER_DAY,
   ZOOM_STEP,
 } from './roadmap-gantt'
+import { useBarDrag } from '@/src/components/common/timeline'
 
 export interface RoadmapItemTreeNode extends TreeNode {
   id: string
@@ -235,13 +240,78 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
     return roadmapItemsData.map((item) => mapToTreeNode(item))
   }, [roadmapItemsData, roadmapItemsIsLoading])
 
+  // ── Gantt bar drag/resize (reuses the timeline's interaction core) ─────────
+  // Commit a bar's new dates via the SAME mutation the timeline view uses.
+  const [updateRoadmapItemDates] = useUpdateRoadmapItemDatesMutation()
+  const commitBarDates = useCallback(
+    async (change: { id: string; start: number; end: number }) => {
+      const node = findNodeById(treeData, change.id) as RoadmapItemTreeNode | null
+      if (!node) return
+      try {
+        const response = await updateRoadmapItemDates({
+          $type: node.$type,
+          roadmapId,
+          itemId: change.id,
+          start: dayjs(change.start).format('YYYY-MM-DD') as unknown as Date,
+          end: dayjs(change.end).format('YYYY-MM-DD') as unknown as Date,
+        })
+        if ('error' in response && response.error) throw response.error
+      } catch (error) {
+        const apiError: ApiError = isApiError(error) ? error : {}
+        messageApi.error(
+          apiError.detail ??
+            'An error occurred while updating the roadmap item. Please try again.',
+        )
+      }
+    },
+    [treeData, roadmapId, updateRoadmapItemDates, messageApi],
+  )
+
+  // Domain drives the drag clamp range; pxPerMs comes from the zoom level. Both
+  // are computed the same way the chart's scale is (no duplication).
+  const { domainStart, domainEnd } = useMemo(
+    () =>
+      computeGanttDomain(
+        roadmap?.start ?? new Date(),
+        roadmap?.end ?? new Date(),
+        treeData,
+      ),
+    [roadmap?.start, roadmap?.end, treeData],
+  )
+  const barDrag = useBarDrag({
+    pxPerMs: pxPerMsFor(pxPerDay),
+    min: domainStart,
+    max: domainEnd,
+    onCommit: commitBarDates,
+  })
+  // Pointer offset from the bar's left edge at move-drag start, so the live date
+  // label can follow the cursor rather than centering on the whole bar. Captured
+  // in the wrapper below (outside the memoized gantt hook) and surfaced only
+  // while a move drag is active.
+  const grabOffsetRef = useRef(0)
+  const onBarPointerDown = useCallback(
+    (e: React.PointerEvent, item: { id: string; start: number; end: number; kind: 'range' }, mode: 'move' | 'resize-start' | 'resize-end') => {
+      if (mode === 'move') grabOffsetRef.current = e.nativeEvent.offsetX
+      barDrag.start(e, item, mode)
+    },
+    [barDrag],
+  )
+
   // Gantt chart pane (attached to the grid's right when toggled on). The hook is
   // called unconditionally (rules of hooks); the pane is only wired when shown.
   const gantt = useRoadmapGantt(
     roadmap?.start ?? new Date(),
     roadmap?.end ?? new Date(),
     treeData,
-    pxPerDay,
+    {
+      pxPerDay,
+      editable: isRoadmapManager,
+      activeDrag: barDrag.active,
+      onBarPointerDown,
+      // Only meaningful during a move drag; read from the ref captured above.
+      moveGrabOffset:
+        barDrag.active?.mode === 'move' ? grabOffsetRef.current : undefined,
+    },
   )
 
   const roadmapActivityMoveValidator: MoveValidator<RoadmapItemTreeNode> =

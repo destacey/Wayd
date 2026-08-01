@@ -69,6 +69,59 @@
   text-overflow: ellipsis;
 }
 
+/* Editable range bar — grab cursor + endpoint resize handles (match timeline). */
+.barEditable {
+  cursor: grab;
+}
+
+.barEditable:active {
+  cursor: grabbing;
+}
+
+.handle {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--ant-color-bg-container);
+  border: 2px solid var(--ant-color-primary);
+  transform: translateY(-50%);
+  opacity: 0;
+  cursor: ew-resize;
+  z-index: 3;
+  transition: opacity 0.1s ease;
+}
+
+.bar:hover .handle,
+.bar:focus-within .handle {
+  opacity: 1;
+}
+
+.handleStart {
+  left: -5px;
+}
+
+.handleEnd {
+  right: -5px;
+}
+
+/* Live date indicator shown while dragging/resizing a bar. Floats above the
+   dragged edge; positioned in canvas coords, offset via transform per anchor. */
+.dragLabel {
+  position: absolute;
+  z-index: 4;
+  padding: 1px var(--ant-padding-xxs);
+  border-radius: var(--ant-border-radius-sm);
+  background-color: var(--ant-color-text);
+  color: var(--ant-color-bg-container);
+  font-size: var(--ant-font-size-sm);
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--ant-box-shadow-tertiary);
+}
+
 /* Timebox — a lighter background band rather than a solid task bar. */
 .timeboxBar {
   background-color: var(--ant-color-fill-secondary);

@@ -1639,8 +1639,9 @@ describe('WaydGrid', () => {
     })
 
     it('keeps exactly one vertical scroll viewport when rightPane is present', () => {
-      // Arrange / Act — the outer scroller carries the viewport attribute; the
-      // table wrapper must NOT also carry it (the virtualizer measures one).
+      // Arrange / Act — the grid's own table wrapper stays the single scroll
+      // viewport (carrying data-grid-body-viewport); the chart pane follows its
+      // scroll rather than introducing a second scroller.
       const { container } = renderGrid({
         rightPane: { renderRow: () => null },
       })

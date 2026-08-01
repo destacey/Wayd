@@ -754,14 +754,17 @@ function WaydGridInner<T>(props: WaydGridProps<T>, ref: Ref<WaydGridHandle>) {
   // synchronous layout every frame; batching to one write per frame keeps the
   // chart's horizontal scroll smooth.
   const barTrackScrollRafRef = useRef<number | null>(null)
+  const barTrackScrollLeftRef = useRef(0)
   const handleBarTrackScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
-      const left = e.currentTarget.scrollLeft
+      // Record the LATEST scrollLeft each event; the rAF applies the most recent
+      // value so fast/inertial scrolls don't leave the header a frame behind.
+      barTrackScrollLeftRef.current = e.currentTarget.scrollLeft
       if (barTrackScrollRafRef.current != null) return
       barTrackScrollRafRef.current = requestAnimationFrame(() => {
         barTrackScrollRafRef.current = null
         if (rightPaneHeaderRef.current) {
-          rightPaneHeaderRef.current.scrollLeft = left
+          rightPaneHeaderRef.current.scrollLeft = barTrackScrollLeftRef.current
         }
       })
     },
@@ -776,19 +779,28 @@ function WaydGridInner<T>(props: WaydGridProps<T>, ref: Ref<WaydGridHandle>) {
   // the browser's Ctrl/Cmd+wheel page zoom) — React's onWheel is passive and
   // cannot. When the consumer doesn't handle it, forward the vertical delta to
   // the grid's scroller so vertical scrolling works over the chart too.
-  const rightPaneOnWheel = rightPane?.onWheel
+  //
+  // The consumer's onWheel is held in a ref so the (non-passive) listener stays
+  // stable across renders — consumers commonly pass an inline callback, which
+  // would otherwise tear down and re-add the listener every render (including
+  // mid-drag).
+  const rightPaneOnWheelRef = useRef(rightPane?.onWheel)
+  rightPaneOnWheelRef.current = rightPane?.onWheel
   useEffect(() => {
     const el = rightPaneTrackRef.current
     if (!el) return
     const onWheel = (e: WheelEvent) => {
-      if (rightPaneOnWheel?.(e) === true) return
+      if (rightPaneOnWheelRef.current?.(e) === true) return
       if (e.deltaY !== 0 && bodyViewportRef.current) {
+        // Forward vertical wheel to the grid's scroller; preventDefault so the
+        // browser doesn't also scroll an ancestor (e.g. the page) at the edge.
+        e.preventDefault()
         bodyViewportRef.current.scrollTop += e.deltaY
       }
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
-  }, [rightPaneOnWheel, hasRightPane])
+  }, [hasRightPane])
 
   // Right-pane width (chart pane). Seeded from the config default; the consumer
   // persists it via onWidthChange when a drag ends.

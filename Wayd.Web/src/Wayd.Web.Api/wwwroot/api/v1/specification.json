@@ -17540,6 +17540,142 @@
         ]
       }
     },
+    "/api/planning/story-maps/{storyMapId}/tasks/{taskId}/title": {
+      "put": {
+        "tags": [
+          "StoryMaps"
+        ],
+        "summary": "Rename a task.",
+        "description": "Updates only the title, leaving the description untouched. Prefer this over the combined update when editing one field, so a concurrent edit to the other is not reverted.",
+        "operationId": "StoryMaps_RenameTask",
+        "parameters": [
+          {
+            "name": "storyMapId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameTaskRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/planning/story-maps/{storyMapId}/tasks/{taskId}/description": {
+      "put": {
+        "tags": [
+          "StoryMaps"
+        ],
+        "summary": "Set a task's description.",
+        "description": "Updates only the description, leaving the title untouched. Prefer this over the combined update when editing one field, so a concurrent edit to the other is not reverted.",
+        "operationId": "StoryMaps_SetTaskDescription",
+        "parameters": [
+          {
+            "name": "storyMapId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetTaskDescriptionRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/planning/story-maps/{storyMapId}/tasks/{taskId}/move": {
       "put": {
         "tags": [
@@ -39333,6 +39469,33 @@
             "minLength": 1,
             "nullable": false
           },
+          "description": {
+            "type": "string",
+            "maxLength": 2048,
+            "minLength": 0,
+            "nullable": true
+          }
+        }
+      },
+      "RenameTaskRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "nullable": false
+          }
+        }
+      },
+      "SetTaskDescriptionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
           "description": {
             "type": "string",
             "maxLength": 2048,

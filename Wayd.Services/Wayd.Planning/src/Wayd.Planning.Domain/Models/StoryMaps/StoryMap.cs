@@ -412,6 +412,14 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         }
     }
 
+    /// <summary>
+    /// Sets a task's title and description together.
+    /// </summary>
+    /// <remarks>
+    /// Prefer <see cref="RenameTask"/> or <see cref="SetTaskDescription"/> when only one field is
+    /// being edited: this overwrites both, so sending the untouched field back reverts a concurrent
+    /// edit to it. Kept for API consumers setting both at once.
+    /// </remarks>
     public Result UpdateTask(Guid taskId, string title, string? description)
     {
         if (IsArchived) return Result.Failure(ArchivedError);
@@ -423,6 +431,50 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         try
         {
             located.Value.Task.UpdateDetails(title, description);
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Renames a task, leaving its description untouched.
+    /// </summary>
+    public Result RenameTask(Guid taskId, string title)
+    {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
+        var located = LocateTask(taskId);
+        if (located.IsFailure)
+            return Result.Failure(located.Error);
+
+        try
+        {
+            located.Value.Task.Rename(title);
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Sets a task's description, leaving its title untouched.
+    /// </summary>
+    public Result SetTaskDescription(Guid taskId, string? description)
+    {
+        if (IsArchived) return Result.Failure(ArchivedError);
+
+        var located = LocateTask(taskId);
+        if (located.IsFailure)
+            return Result.Failure(located.Error);
+
+        try
+        {
+            located.Value.Task.SetDescription(description);
             return Result.Success();
         }
         catch (Exception ex)

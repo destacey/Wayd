@@ -39,6 +39,38 @@ public sealed class UpdateTaskRequestValidator : CustomValidator<UpdateTaskReque
     }
 }
 
+public class RenameTaskRequest
+{
+    public string Title { get; set; } = default!;
+
+    public RenameTaskCommand ToCommand(Guid storyMapId, Guid taskId) => new(storyMapId, taskId, Title);
+}
+
+public sealed class RenameTaskRequestValidator : CustomValidator<RenameTaskRequest>
+{
+    public RenameTaskRequestValidator()
+    {
+        RuleLevelCascadeMode = CascadeMode.Stop;
+        RuleFor(r => r.Title).NotEmpty().MaximumLength(128);
+    }
+}
+
+public class SetTaskDescriptionRequest
+{
+    public string? Description { get; set; }
+
+    public SetTaskDescriptionCommand ToCommand(Guid storyMapId, Guid taskId) => new(storyMapId, taskId, Description);
+}
+
+public sealed class SetTaskDescriptionRequestValidator : CustomValidator<SetTaskDescriptionRequest>
+{
+    public SetTaskDescriptionRequestValidator()
+    {
+        RuleLevelCascadeMode = CascadeMode.Stop;
+        RuleFor(r => r.Description).MaximumLength(2048);
+    }
+}
+
 public class MoveTaskRequest
 {
     public Guid TargetStepId { get; set; }

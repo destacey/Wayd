@@ -2,6 +2,7 @@ import {
   MoveStepRequest,
   MoveTaskRequest,
   StoryMapDetailsDto,
+  StoryMapTaskDto,
 } from '@/src/services/wayd-api'
 
 /**
@@ -13,6 +14,32 @@ import {
  * goal for steps, a (step × swim lane) cell for tasks — so a move renumbers both the list the node
  * left and the one it joined.
  */
+
+/** Find a task anywhere in the map, without the caller walking goals → steps itself. */
+export const findTaskInDraft = (
+  draft: StoryMapDetailsDto,
+  taskId: string,
+): StoryMapTaskDto | undefined => {
+  for (const goal of draft.goals) {
+    for (const step of goal.steps) {
+      const task = step.tasks.find((t) => t.id === taskId)
+      if (task) return task
+    }
+  }
+  return undefined
+}
+
+/**
+ * Recompute a task's denormalized checklist counts. The server derives these from the items, and the
+ * task card renders them as its `2/5` badge — so an optimistic checklist edit that skipped this
+ * would leave the badge disagreeing with the list the drawer is showing.
+ */
+export const recountChecklist = (task: StoryMapTaskDto) => {
+  task.checklistTotalCount = task.checklist.length
+  task.checklistCompletedCount = task.checklist.filter(
+    (item) => item.isChecked,
+  ).length
+}
 
 /** Move an ordered sibling to a new position and renumber the list contiguously. */
 export const reorderInPlace = <T extends { id: string; order: number }>(

@@ -9,6 +9,8 @@ import {
   applyMoveStep,
   applyMoveTask,
   applyRemoveSwimLane,
+  findTaskInDraft,
+  recountChecklist,
   reorderInPlace,
   togglePersonaId,
 } from './story-map-patches'
@@ -620,5 +622,66 @@ describe('togglePersonaId', () => {
 
     // Assert
     expect(ids).toEqual(['a'])
+  })
+})
+
+describe('findTaskInDraft', () => {
+  it('finds a task in a later goal and step', () => {
+    // Arrange
+    const details = map([
+      goal('g1', 0, [step('s1', 'g1', 0, [task('t1', 's1', 'lane-default', 0)])]),
+      goal('g2', 1, [step('s2', 'g2', 0, [task('t2', 's2', 'lane-default', 0)])]),
+    ])
+
+    // Act
+    const found = findTaskInDraft(details, 't2')
+
+    // Assert
+    expect(found?.id).toBe('t2')
+  })
+
+  it('returns undefined when the task is not on the map', () => {
+    // Arrange
+    const details = map([goal('g1', 0, [step('s1', 'g1', 0)])])
+
+    // Act
+    const found = findTaskInDraft(details, 'missing')
+
+    // Assert
+    expect(found).toBeUndefined()
+  })
+})
+
+describe('recountChecklist', () => {
+  it('recomputes both counts from the items', () => {
+    // Arrange
+    const subject = task('t1', 's1', 'lane-default', 0)
+    subject.checklist = [
+      { id: 'i1', name: 'one', isChecked: true, order: 0 },
+      { id: 'i2', name: 'two', isChecked: false, order: 1 },
+      { id: 'i3', name: 'three', isChecked: true, order: 2 },
+    ]
+
+    // Act
+    recountChecklist(subject)
+
+    // Assert
+    expect(subject.checklistTotalCount).toBe(3)
+    expect(subject.checklistCompletedCount).toBe(2)
+  })
+
+  it('zeroes both counts for an empty checklist', () => {
+    // Arrange
+    const subject = task('t1', 's1', 'lane-default', 0)
+    subject.checklist = []
+    subject.checklistTotalCount = 4
+    subject.checklistCompletedCount = 2
+
+    // Act
+    recountChecklist(subject)
+
+    // Assert
+    expect(subject.checklistTotalCount).toBe(0)
+    expect(subject.checklistCompletedCount).toBe(0)
   })
 })

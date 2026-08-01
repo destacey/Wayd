@@ -2,18 +2,24 @@ import { getStoryMapsClient } from '@/src/services/clients'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import {
+  AddChecklistItemRequest,
   AddGoalRequest,
   AddSwimLaneRequest,
   AddPersonaRequest,
   AddStepRequest,
   AddTaskRequest,
   CreateStoryMapRequest,
+  LinkWorkItemRequest,
   MoveStepRequest,
   MoveTaskRequest,
   ObjectIdAndKey,
+  RenameChecklistItemRequest,
   RenameGoalRequest,
   RenameStepRequest,
   RenameSwimLaneRequest,
+  RenameTaskRequest,
+  SetChecklistItemCheckedRequest,
+  SetTaskDescriptionRequest,
   SetSwimLaneDatesRequest,
   SetStepPersonasRequest,
   SetTaskPersonasRequest,
@@ -26,12 +32,13 @@ import {
   StoryMapTaskDto,
   UpdatePersonaRequest,
   UpdateStoryMapRequest,
-  UpdateTaskRequest,
 } from '@/src/services/wayd-api'
 import {
   applyMoveStep,
   applyMoveTask,
   applyRemoveSwimLane,
+  findTaskInDraft,
+  recountChecklist,
   reorderInPlace,
 } from './story-map-patches'
 
@@ -559,18 +566,23 @@ export const storyMapsApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    updateTask: builder.mutation<
+    // Title and description have a mutation each rather than sharing the combined updateTask
+    // endpoint. The board edits them from two places at once — the card renames inline while the
+    // drawer edits notes — and sending both fields from either would revert the other's change.
+    // updateTask itself is left on the API for consumers setting both together.
+
+    renameTask: builder.mutation<
       null,
       {
         storyMapId: string
         storyMapKey: string
         taskId: string
-        request: UpdateTaskRequest
+        request: RenameTaskRequest
       }
     >({
       queryFn: async ({ storyMapId, taskId, request }) => {
         try {
-          await getStoryMapsClient().updateTask(storyMapId, taskId, request)
+          await getStoryMapsClient().renameTask(storyMapId, taskId, request)
           return { data: null }
         } catch (error) {
           return { error }
@@ -585,16 +597,54 @@ export const storyMapsApi = apiSlice.injectEndpoints({
             'getStoryMap',
             storyMapKey,
             (draft) => {
-              for (const goal of draft.goals) {
-                for (const step of goal.steps) {
-                  const task = step.tasks.find((t) => t.id === taskId)
-                  if (task) {
-                    task.title = request.title
-                    task.description = request.description
-                    return
-                  }
-                }
-              }
+              const task = findTaskInDraft(draft, taskId)
+              if (task) task.title = request.title
+            },
+          ),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patchResult.undo()
+        }
+      },
+      invalidatesTags: (_r, _e, { storyMapId }) => [
+        { type: QueryTags.StoryMap, id: storyMapId },
+      ],
+    }),
+
+    setTaskDescription: builder.mutation<
+      null,
+      {
+        storyMapId: string
+        storyMapKey: string
+        taskId: string
+        request: SetTaskDescriptionRequest
+      }
+    >({
+      queryFn: async ({ storyMapId, taskId, request }) => {
+        try {
+          await getStoryMapsClient().setTaskDescription(
+            storyMapId,
+            taskId,
+            request,
+          )
+          return { data: null }
+        } catch (error) {
+          return { error }
+        }
+      },
+      onQueryStarted: async (
+        { storyMapKey, taskId, request },
+        { dispatch, queryFulfilled },
+      ) => {
+        const patchResult = dispatch(
+          storyMapsApi.util.updateQueryData(
+            'getStoryMap',
+            storyMapKey,
+            (draft) => {
+              const task = findTaskInDraft(draft, taskId)
+              if (task) task.description = request.description
             },
           ),
         )
@@ -899,6 +949,320 @@ export const storyMapsApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    // ---- Task checklist. The task's `checklist` array and its two denormalized counts are patched
+    // together, so the drawer's list and the card's badge never disagree mid-flight. ----
+
+    addChecklistItem: builder.mutation<
+      StoryMapTaskDto,
+      {
+        storyMapId: string
+        storyMapKey: string
+        taskId: string
+        request: AddChecklistItemRequest
+      }
+    >({
+      queryFn: async ({ storyMapId, taskId, request }) => {
+        try {
+          const data = await getStoryMapsClient().addChecklistItem(
+            storyMapId,
+            taskId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          return { error }
+        }
+      },
+      // Insert under a temporary id so the row appears as soon as the user presses Enter, then swap
+      // in the server's real id — checking or deleting the row before it resolves would otherwise
+      // send a temp id the server has never seen.
+      onQueryStarted: async (
+        { storyMapKey, taskId, request },
+        { dispatch, queryFulfilled },
+      ) => {
+        const tempId = `temp-${crypto.randomUUID()}`
+        const patchResult = dispatch(
+          storyMapsApi.util.updateQueryData(
+            'getStoryMap',
+            storyMapKey,
+            (draft) => {
+              const task = findTaskInDraft(draft, taskId)
+              if (!task) return
+              const nextOrder = task.checklist.length
+                ? Math.max(...task.checklist.map((i) => i.order)) + 1
+                : 0
+              task.checklist.push({
+                id: tempId,
+                name: request.name,
+                isChecked: false,
+                order: nextOrder,
+              })
+              recountChecklist(task)
+            },
+          ),
+        )
+        try {
+          const { data: updated } = await queryFulfilled
+          dispatch(
+            storyMapsApi.util.updateQueryData(
+              'getStoryMap',
+              storyMapKey,
+              (draft) => {
+                const task = findTaskInDraft(draft, taskId)
+                if (!task) return
+                // The command returns the whole task, so take its checklist as authoritative rather
+                // than guessing which server id belongs to the temporary row.
+                task.checklist = [...updated.checklist]
+                recountChecklist(task)
+              },
+            ),
+          )
+        } catch {
+          patchResult.undo()
+        }
+      },
+      invalidatesTags: (_r, _e, { storyMapId }) => [
+        { type: QueryTags.StoryMap, id: storyMapId },
+      ],
+    }),
+
+    renameChecklistItem: builder.mutation<
+      null,
+      {
+        storyMapId: string
+        storyMapKey: string
+        taskId: string
+        itemId: string
+        request: RenameChecklistItemRequest
+      }
+    >({
+      queryFn: async ({ storyMapId, taskId, itemId, request }) => {
+        try {
+          await getStoryMapsClient().renameChecklistItem(
+            storyMapId,
+            taskId,
+            itemId,
+            request,
+          )
+          return { data: null }
+        } catch (error) {
+          return { error }
+        }
+      },
+      onQueryStarted: async (
+        { storyMapKey, taskId, itemId, request },
+        { dispatch, queryFulfilled },
+      ) => {
+        const patchResult = dispatch(
+          storyMapsApi.util.updateQueryData(
+            'getStoryMap',
+            storyMapKey,
+            (draft) => {
+              const item = findTaskInDraft(draft, taskId)?.checklist.find(
+                (i) => i.id === itemId,
+              )
+              if (item) item.name = request.name
+            },
+          ),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patchResult.undo()
+        }
+      },
+      invalidatesTags: (_r, _e, { storyMapId }) => [
+        { type: QueryTags.StoryMap, id: storyMapId },
+      ],
+    }),
+
+    setChecklistItemChecked: builder.mutation<
+      null,
+      {
+        storyMapId: string
+        storyMapKey: string
+        taskId: string
+        itemId: string
+        request: SetChecklistItemCheckedRequest
+      }
+    >({
+      queryFn: async ({ storyMapId, taskId, itemId, request }) => {
+        try {
+          await getStoryMapsClient().setChecklistItemChecked(
+            storyMapId,
+            taskId,
+            itemId,
+            request,
+          )
+          return { data: null }
+        } catch (error) {
+          return { error }
+        }
+      },
+      // The checkbox must fill on click, not a round trip later.
+      onQueryStarted: async (
+        { storyMapKey, taskId, itemId, request },
+        { dispatch, queryFulfilled },
+      ) => {
+        const patchResult = dispatch(
+          storyMapsApi.util.updateQueryData(
+            'getStoryMap',
+            storyMapKey,
+            (draft) => {
+              const task = findTaskInDraft(draft, taskId)
+              const item = task?.checklist.find((i) => i.id === itemId)
+              if (!task || !item) return
+              item.isChecked = request.isChecked
+              recountChecklist(task)
+            },
+          ),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patchResult.undo()
+        }
+      },
+      invalidatesTags: (_r, _e, { storyMapId }) => [
+        { type: QueryTags.StoryMap, id: storyMapId },
+      ],
+    }),
+
+    removeChecklistItem: builder.mutation<
+      null,
+      {
+        storyMapId: string
+        storyMapKey: string
+        taskId: string
+        itemId: string
+      }
+    >({
+      queryFn: async ({ storyMapId, taskId, itemId }) => {
+        try {
+          await getStoryMapsClient().removeChecklistItem(
+            storyMapId,
+            taskId,
+            itemId,
+          )
+          return { data: null }
+        } catch (error) {
+          return { error }
+        }
+      },
+      onQueryStarted: async (
+        { storyMapKey, taskId, itemId },
+        { dispatch, queryFulfilled },
+      ) => {
+        const patchResult = dispatch(
+          storyMapsApi.util.updateQueryData(
+            'getStoryMap',
+            storyMapKey,
+            (draft) => {
+              const task = findTaskInDraft(draft, taskId)
+              if (!task) return
+              task.checklist = task.checklist.filter((i) => i.id !== itemId)
+              // Order is contiguous server-side, so close the gap the removal left.
+              task.checklist
+                .sort((a, b) => a.order - b.order)
+                .forEach((item, index) => {
+                  item.order = index
+                })
+              recountChecklist(task)
+            },
+          ),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patchResult.undo()
+        }
+      },
+      invalidatesTags: (_r, _e, { storyMapId }) => [
+        { type: QueryTags.StoryMap, id: storyMapId },
+      ],
+    }),
+
+    // ---- Linked work item ----
+
+    linkWorkItem: builder.mutation<
+      null,
+      {
+        storyMapId: string
+        storyMapKey: string
+        taskId: string
+        request: LinkWorkItemRequest
+      }
+    >({
+      queryFn: async ({ storyMapId, taskId, request }) => {
+        try {
+          await getStoryMapsClient().linkWorkItem(storyMapId, taskId, request)
+          return { data: null }
+        } catch (error) {
+          return { error }
+        }
+      },
+      onQueryStarted: async (
+        { storyMapKey, taskId, request },
+        { dispatch, queryFulfilled },
+      ) => {
+        const patchResult = dispatch(
+          storyMapsApi.util.updateQueryData(
+            'getStoryMap',
+            storyMapKey,
+            (draft) => {
+              const task = findTaskInDraft(draft, taskId)
+              if (task) task.linkedWorkItemId = request.workItemId
+            },
+          ),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patchResult.undo()
+        }
+      },
+      invalidatesTags: (_r, _e, { storyMapId }) => [
+        { type: QueryTags.StoryMap, id: storyMapId },
+      ],
+    }),
+
+    unlinkWorkItem: builder.mutation<
+      null,
+      { storyMapId: string; storyMapKey: string; taskId: string }
+    >({
+      queryFn: async ({ storyMapId, taskId }) => {
+        try {
+          await getStoryMapsClient().unlinkWorkItem(storyMapId, taskId)
+          return { data: null }
+        } catch (error) {
+          return { error }
+        }
+      },
+      onQueryStarted: async (
+        { storyMapKey, taskId },
+        { dispatch, queryFulfilled },
+      ) => {
+        const patchResult = dispatch(
+          storyMapsApi.util.updateQueryData(
+            'getStoryMap',
+            storyMapKey,
+            (draft) => {
+              const task = findTaskInDraft(draft, taskId)
+              if (task) task.linkedWorkItemId = undefined
+            },
+          ),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patchResult.undo()
+        }
+      },
+      invalidatesTags: (_r, _e, { storyMapId }) => [
+        { type: QueryTags.StoryMap, id: storyMapId },
+      ],
+    }),
+
     addPersona: builder.mutation<
       StoryMapPersonaDto,
       { storyMapId: string; storyMapKey: string; request: AddPersonaRequest }
@@ -1136,10 +1500,17 @@ export const {
   useRenameStepMutation,
   useDeleteStepMutation,
   useAddTaskMutation,
-  useUpdateTaskMutation,
+  useRenameTaskMutation,
+  useSetTaskDescriptionMutation,
   useDeleteTaskMutation,
   useSetStepPersonasMutation,
   useSetTaskPersonasMutation,
+  useAddChecklistItemMutation,
+  useRenameChecklistItemMutation,
+  useSetChecklistItemCheckedMutation,
+  useRemoveChecklistItemMutation,
+  useLinkWorkItemMutation,
+  useUnlinkWorkItemMutation,
   useAddSwimLaneMutation,
   useRenameSwimLaneMutation,
   useSetSwimLaneDatesMutation,

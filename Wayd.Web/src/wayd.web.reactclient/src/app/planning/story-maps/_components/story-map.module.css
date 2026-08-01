@@ -745,9 +745,12 @@
   outline-offset: 2px;
 }
 
+/* The hollow "not linked" dot. --sm-muted is declared on the board's page container, so it resolves
+   to nothing in the task drawer, which renders in a portal outside that subtree — the antd token is
+   the fallback that keeps the ring visible there (and in both light and dark). */
 .personaDotUnlinked {
   background-color: transparent;
-  box-shadow: inset 0 0 0 1px var(--sm-muted);
+  box-shadow: inset 0 0 0 1px var(--sm-muted, var(--ant-color-text-tertiary));
 }
 
 .personaDotToggle:hover:not(:disabled) {
@@ -955,6 +958,140 @@
 .muted {
   opacity: 0.35;
   transition: opacity 0.15s;
+}
+
+/* ─── Board + task panel row ─────────────────────────────────────────────── */
+
+/* Height is set inline from useRemainingHeight — see the note at the call site. */
+.boardRow {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  min-height: 0;
+}
+
+/* min-width: 0 is what lets the board actually give up width — without it the grid's own min-width
+   floor makes this column refuse to shrink and the panel pushes off-screen instead. */
+.boardRowMain {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ─── Task panel (wide viewports) ────────────────────────────────────────── */
+
+/* The sider form of the task details. A flex sibling of the board rather than an overlay, so the
+   board's grid re-divides the remaining width and nothing ends up unreachable under it. */
+/* height: 100% caps it at the row, so .taskPanelBody's overflow actually engages. Sizing to content
+   instead lets a long checklist push the panel past the viewport, out of reach. */
+.taskPanel {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  height: 100%;
+  min-height: 0;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--sm-radius-lg);
+  background-color: var(--ant-color-bg-container);
+  overflow: hidden;
+}
+
+.taskPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+}
+
+.taskPanelTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ant-color-text);
+}
+
+.taskPanelBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+}
+
+/* ─── Task drawer ────────────────────────────────────────────────────────── */
+
+/* The card the drawer is currently showing. A ring rather than a background change: the card already
+   uses background to mean "not filtered out", and persona dots sit on top of it. */
+.taskCardSelected {
+  border-color: var(--ant-color-primary);
+  box-shadow: 0 0 0 1px var(--ant-color-primary);
+}
+
+/* Clicking the card body opens the drawer, so the whole card is a pointer target — but only where a
+   real control has not claimed the space (see the touch-action block above). */
+.taskCard.clickable {
+  cursor: pointer;
+}
+
+/* Drawer classes use antd tokens directly, not the board's --sm-* variables: the drawer renders in
+   a portal outside the page container those are declared on. */
+.drawerLinkedItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ant-color-text);
+}
+
+.drawerChecklistName {
+  flex: 1;
+  min-width: 0;
+}
+
+/* antd offsets the inline editor so it overlays the text it replaced — a negative top margin and a
+   left inset. Both are wrong here: the row is a flex line that should simply centre the editor
+   against the checkbox and delete, so the offsets are zeroed and the wrapper made a plain block. */
+.drawerChecklistName :global(.ant-typography-edit-content) {
+  margin: 0;
+  inset-inline-start: 0;
+  inset-block-start: 0;
+  left: 0;
+  top: 0;
+  width: 100%;
+}
+
+/* The textarea's own line-height must match the resting text's, or the row changes height as the
+   editor opens and the checkbox and delete shift with it. */
+.drawerChecklistName :global(.ant-typography-edit-content textarea) {
+  margin: 0;
+  padding-block: 2px;
+  line-height: 1.5715;
+  resize: none;
+}
+
+/* Reveals antd's character counter only while a field is focused.
+ *
+ * Done in CSS rather than by toggling `showCount`: that prop changes how antd wraps the control, so
+ * flipping it on focus remounts the textarea and the field loses focus as you click into it.
+ * `visibility` keeps the counter's space reserved so nothing below shifts.
+ *
+ * width: LabeledContent aligns children to flex-start, so the wrapper would otherwise shrink-wrap. */
+.countOnFocus {
+  width: 100%;
+}
+
+.countOnFocus :global(.ant-input-data-count) {
+  visibility: hidden;
+}
+
+.countOnFocus:focus-within :global(.ant-input-data-count) {
+  visibility: visible;
+}
+
+/* Both sit flush with the section text above them rather than indented like a form control. */
+.drawerAddItem,
+.drawerDelete {
+  align-self: flex-start;
+  padding-left: 0;
 }
 
 /* ─── Manage personas modal ───────────────────────────────────────────────── */

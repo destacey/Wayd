@@ -256,6 +256,28 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
     return goals.find((g) => g.goal.id === toGoalId) ?? null
   }, [activeDragId, overId, dragIndex, goals])
 
+  /**
+   * The cell a dragged task would land in, or null when that is the cell it already sits in. A
+   * task's parent is the step crossed with the swim lane, so either axis changing is a reparent.
+   */
+  const receivingCellId = useMemo(() => {
+    if (!activeDragId || !overId) return null
+    if (dragIndex.kindById.get(activeDragId) !== 'task') return null
+
+    const from = dragIndex.cellByTaskId.get(activeDragId)
+    if (!from) return null
+
+    // The target is either an empty cell, or a card — in which case the cell is the one it sits in.
+    const overCell = dragIndex.cellByTaskId.get(overId)
+    const to = overCell
+      ? taskCellId(overCell.stepId, overCell.swimLaneId)
+      : dragIndex.renderedCellIds.has(overId)
+        ? overId
+        : null
+
+    return to && to !== taskCellId(from.stepId, from.swimLaneId) ? to : null
+  }, [activeDragId, overId, dragIndex])
+
   // What to show inside the overlay: the name of whatever kind is being dragged.
   const activeDragLabel = useMemo(() => {
     if (!activeDragId) return null
@@ -400,6 +422,9 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
                   actions={actions}
                   isLastColumn={column === lastColumn}
                   dropSide={dropSide}
+                  isReceiving={
+                    taskCellId(step.id, swimLane.id) === receivingCellId
+                  }
                 />
               )),
             )}

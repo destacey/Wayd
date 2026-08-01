@@ -23,6 +23,8 @@ export interface TaskCellProps {
   isLastColumn: boolean
   /** Which edge of the hovered node a drop lands on, from the board's pointer tracking. */
   dropSide: DropSide
+  /** A task from another cell would land here, so this cell is the destination. */
+  isReceiving: boolean
 }
 
 /**
@@ -38,6 +40,7 @@ const TaskCell: FC<TaskCellProps> = ({
   actions,
   isLastColumn,
   dropSide,
+  isReceiving,
 }) => {
   // The cell itself is a drop target, not just its cards — an empty cell has no sortable items to
   // aim at. dnd-kit reports isOver on the innermost target only, so a cell and one of its cards
@@ -57,9 +60,13 @@ const TaskCell: FC<TaskCellProps> = ({
   return (
     <div
       ref={setNodeRef}
+      // The receiving outline marks the destination cell; .taskCellOver is the append-here glow an
+      // empty cell gets under the pointer. Both can apply at once — an empty cell in another step
+      // is both — and .taskCellOver's own outline wins, which is the louder and more specific of
+      // the two signals.
       className={`${styles.taskCell} ${isLastColumn ? styles.lastColumn : ''} ${
-        isOver && !appendsToEnd ? styles.taskCellOver : ''
-      }`}
+        isReceiving ? styles.taskCellReceiving : ''
+      } ${isOver && !appendsToEnd ? styles.taskCellOver : ''}`}
       style={style}
     >
       <SortableContext

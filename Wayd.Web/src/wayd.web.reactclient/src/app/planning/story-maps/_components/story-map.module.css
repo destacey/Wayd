@@ -529,6 +529,15 @@
   overflow-wrap: anywhere;
 }
 
+/* The cell a dragged task is crossing into, from a different step or lane. Marks the destination
+   while the insertion line marks the position within it. Declared before .taskCellOver so that
+   rule's louder treatment wins when a cell is both. */
+.taskCellReceiving {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: -2px;
+  border-radius: var(--sm-radius);
+}
+
 /* A task cell under the pointer — including an empty one, the only way to reach a cell with no
    cards. Lights up only when the drop would append; hovering a card shows an insertion line there. */
 .taskCellOver {

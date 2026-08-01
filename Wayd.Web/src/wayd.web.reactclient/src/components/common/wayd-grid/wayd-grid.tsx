@@ -296,11 +296,24 @@ const resolveColumnFilterType = <T,>(
 
 interface GridBodyProps<T> {
   rows: Row<T>[]
-  /** The scrolling viewport ref — owned by the grid (scrollbar-width
-   *  measurement) but attached here. */
+  /** The grid's single scroll viewport ref — the table wrapper (both axes). Its
+   *  scrollLeft mirrors into the header; its scrollTop drives the bar track. */
   bodyViewportRef: React.RefObject<HTMLDivElement | null>
-  /** Mirrors scrollLeft into the header viewport. */
+  /** Mirrors scrollLeft into the header viewport + scrollTop into the bar track. */
   onBodyScroll: (e: React.UIEvent<HTMLDivElement>) => void
+  /** Optional right chart pane (Gantt). When set, the body wraps the table and
+   *  a bar track in a shared vertical scroller split by a divider. */
+  rightPane?: import('./types').WaydGridRightPane<T>
+  /** Current bar-pane width, px. */
+  rightPaneWidth?: number
+  /** Pointer-down on the resize divider (starts a width drag). */
+  onRightPaneDividerDown?: (e: React.PointerEvent) => void
+  /** Ref to the bar-track element (width mutated directly during divider drag). */
+  rightPaneTrackRef?: React.RefObject<HTMLDivElement | null>
+  /** Ref to the bar canvas — translated vertically to follow the grid scroll. */
+  rightPaneCanvasRef?: React.RefObject<HTMLDivElement | null>
+  /** Mirrors the bar track's horizontal scroll into the axis header. */
+  onBarTrackScroll?: (e: React.UIEvent<HTMLDivElement>) => void
   /** The shared colgroup element (same instance the header table renders).
    *  Stable across scrolls, so React skips reconciling it. */
   colGroup: ReactNode
@@ -335,6 +348,12 @@ function GridBody<T>({
   rows,
   bodyViewportRef,
   onBodyScroll,
+  rightPane,
+  rightPaneWidth,
+  onRightPaneDividerDown,
+  rightPaneTrackRef,
+  rightPaneCanvasRef,
+  onBarTrackScroll,
   colGroup,
   isLoading,
   emptyMessage,
@@ -365,11 +384,47 @@ function GridBody<T>({
   // eslint-disable-next-line react-hooks/incompatible-library -- the warning is about compiler memoization, which 'use no memo' above already opts out of
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
+    // The grid's own table wrapper is the single vertical scroller (unchanged
+    // from the no-pane case, so scroll performance is identical to baseline).
+    // When a right (chart) pane is present the bar track FOLLOWS this scroller's
+    // scrollTop — one virtualizer drives both, so bars can't drift from rows.
     getScrollElement: () => bodyViewportRef.current,
     estimateSize: () => ROW_HEIGHT_ESTIMATE,
     overscan: ROW_OVERSCAN,
   })
   const virtualRows = rowVirtualizer.getVirtualItems()
+  const totalSize = rowVirtualizer.getTotalSize()
+
+  // Chart pane only: the grid's real rows render at a content-driven height that
+  // can differ from the virtualizer's estimate (e.g. 29px actual vs 28 estimate).
+  // The grid itself is unaffected (its <tr>s flow naturally), but bars positioned
+  // by the estimate-based `virtualRow.start` would drift down the list. Measure
+  // the real row height and scale the geometry handed to renderRow so bars sit on
+  // their rows. Only active when a right pane is present; no effect otherwise.
+  const [measuredRowHeight, setMeasuredRowHeight] = useState<number | null>(null)
+  useLayoutEffect(() => {
+    if (!rightPane) return
+    const viewport = bodyViewportRef.current
+    if (!viewport) return
+    const measure = () => {
+      const tr = viewport.querySelector<HTMLTableRowElement>(
+        'tbody tr:not([aria-hidden])',
+      )
+      const h = tr?.getBoundingClientRect().height
+      if (h && h > 0) setMeasuredRowHeight((prev) => (prev === h ? prev : h))
+    }
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(measure)
+    observer.observe(viewport)
+    return () => observer.disconnect()
+  }, [rightPane, rows.length, bodyViewportRef])
+  // Scale factor from the virtualizer's estimate to the real row height.
+  const rowScale =
+    measuredRowHeight && ROW_HEIGHT_ESTIMATE > 0
+      ? measuredRowHeight / ROW_HEIGHT_ESTIMATE
+      : 1
+
   const spacerTop = virtualRows.length > 0 ? virtualRows[0].start : 0
   const spacerBottom =
     virtualRows.length > 0
@@ -394,18 +449,21 @@ function GridBody<T>({
   // entirely off-screen.
   const showStatusOverlay = isLoading || rows.length === 0
 
-  return (
-    <div className={styles.bodyArea}>
-      <div
-        className={styles.tableWrapper}
-        ref={bodyViewportRef}
-        onScroll={onBodyScroll}
-        // Measurement hook for jsdom tests: layoutless environments report a
-        // 0×0 rect here, which makes the row virtualizer render nothing —
-        // jest.setup.ts returns a fixed rect for this attribute instead.
-        data-grid-body-viewport=""
-      >
-        <table className={styles.tableElement}>
+  // The grid's table wrapper — the single vertical + horizontal scroller. This
+  // is unchanged whether or not a right (chart) pane is present, so scroll
+  // performance matches the baseline grid exactly; the bar track follows this
+  // element's scrollTop rather than sharing a different scroller.
+  const tableWrapperEl = (
+    <div
+      className={styles.tableWrapper}
+      ref={bodyViewportRef}
+      onScroll={onBodyScroll}
+      // Measurement hook for jsdom tests: layoutless environments report a
+      // 0×0 rect here, which makes the row virtualizer render nothing —
+      // jest.setup.ts returns a fixed rect for this attribute instead.
+      data-grid-body-viewport=""
+    >
+      <table className={styles.tableElement}>
           {colGroup}
           <tbody>
             {!showStatusOverlay && (
@@ -531,15 +589,78 @@ function GridBody<T>({
           </tbody>
         </table>
       </div>
-      {showStatusOverlay && (
-        <div className={styles.statusOverlay}>
-          {isLoading ? (
-            <Spin size="large" />
-          ) : (
-            <WaydEmpty message={emptyMessage} />
-          )}
+  )
+
+  const statusOverlayEl = showStatusOverlay ? (
+    <div className={styles.statusOverlay}>
+      {isLoading ? <Spin size="large" /> : <WaydEmpty message={emptyMessage} />}
+    </div>
+  ) : null
+
+  // ─── Default layout: the table wrapper IS the single scroller ────────────
+  if (!rightPane) {
+    return (
+      <div className={styles.bodyArea}>
+        {tableWrapperEl}
+        {statusOverlayEl}
+      </div>
+    )
+  }
+
+  // ─── Right chart pane: bar track FOLLOWS the grid's own scroller ──────────
+  // The grid table keeps its original, untouched scroller (fast). The bar track
+  // clips (overflow hidden) and its canvas is translated by the grid's scrollTop
+  // (set in onBodyScroll, rAF-throttled) so bars track their rows. One
+  // virtualizer drives both — the bar track renders the SAME virtualRows — so
+  // geometry can't drift; only a scroll position is followed. The bar track owns
+  // its horizontal (time-axis) scroll independently.
+  const barTrack = (
+    <div
+      ref={rightPaneTrackRef}
+      className={styles.rightPaneTrack}
+      style={{ width: rightPaneWidth }}
+      onScroll={onBarTrackScroll}
+    >
+      <div ref={rightPaneCanvasRef} className={styles.rightPaneCanvas}>
+        {/* Geometry is in REAL-pixel space (estimate scaled to the measured row
+            height) so bars align with the grid's naturally-flowing rows and the
+            canvas translate (real scrollTop) stays in sync. */}
+        <div
+          className={styles.rightPaneCanvasInner}
+          style={{ height: totalSize * rowScale }}
+        >
+          {/* Chart-wide layer behind rows (e.g. vertical gridlines). */}
+          {!showStatusOverlay &&
+            rightPane.renderBackground?.({ totalHeight: totalSize * rowScale })}
+          {!showStatusOverlay &&
+            virtualRows.map((virtualRow) => (
+              <div key={rows[virtualRow.index].id} data-gantt-row="">
+                {rightPane.renderRow({
+                  row: rows[virtualRow.index],
+                  top: virtualRow.start * rowScale,
+                  height: virtualRow.size * rowScale,
+                })}
+              </div>
+            ))}
         </div>
-      )}
+      </div>
+    </div>
+  )
+
+  return (
+    <div className={styles.bodyArea}>
+      <div className={styles.rightPaneLayout}>
+        {tableWrapperEl}
+        <div
+          className={styles.rightPaneDivider}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize chart pane"
+          onPointerDown={onRightPaneDividerDown}
+        />
+        {barTrack}
+      </div>
+      {statusOverlayEl}
     </div>
   )
 }
@@ -558,6 +679,7 @@ function WaydGridInner<T>(props: WaydGridProps<T>, ref: Ref<WaydGridHandle>) {
     onRefresh,
     leftSlot,
     helpContent,
+    actionsSlot,
     rightSlot,
     emptyMessage = 'No records found',
     csvFileName = 'grid-export',
@@ -582,6 +704,7 @@ function WaydGridInner<T>(props: WaydGridProps<T>, ref: Ref<WaydGridHandle>) {
     createDraftNode,
     onDraftCancelled,
     onDraftsChange,
+    rightPane,
   } = props
 
   // Undefined data (a query hook still loading) renders as an empty grid —
@@ -603,15 +726,147 @@ function WaydGridInner<T>(props: WaydGridProps<T>, ref: Ref<WaydGridHandle>) {
   // body's vertical scrollbar keeps the two tables' columns aligned.
   const headerViewportRef = useRef<HTMLDivElement>(null)
   const bodyViewportRef = useRef<HTMLDivElement>(null)
+  // The right-pane (Gantt) axis header viewport — mirrors the bar track's
+  // horizontal scroll so the date axis tracks the bars.
+  const rightPaneHeaderRef = useRef<HTMLDivElement>(null)
+  // The bar-track pane element — width is mutated directly during a divider drag
+  // (see onRightPaneDividerDown) so dragging doesn't re-render the whole grid.
+  const rightPaneTrackRef = useRef<HTMLDivElement>(null)
+  // The bar canvas — translated vertically to follow the grid's scrollTop so the
+  // bars track their rows without the chart owning a second vertical scroller.
+  const rightPaneCanvasRef = useRef<HTMLDivElement>(null)
   const [scrollbarWidth, setScrollbarWidth] = useState(0)
 
   const handleBodyScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     if (headerViewportRef.current) {
       headerViewportRef.current.scrollLeft = e.currentTarget.scrollLeft
     }
+    // Follow the grid's vertical scroll in the bar canvas (chart pane). A single
+    // transform write is cheap and must be in-frame so bars don't lag their rows.
+    if (rightPaneCanvasRef.current) {
+      rightPaneCanvasRef.current.style.transform = `translateY(${-e.currentTarget.scrollTop}px)`
+    }
   }, [])
 
+  // The bar track's horizontal scroll mirrors into the axis header so the date
+  // axis stays aligned above the bars (same pattern as the grid header sync).
+  // rAF-throttled: writing scrollLeft straight from the scroll event forces a
+  // synchronous layout every frame; batching to one write per frame keeps the
+  // chart's horizontal scroll smooth.
+  const barTrackScrollRafRef = useRef<number | null>(null)
+  const barTrackScrollLeftRef = useRef(0)
+  const handleBarTrackScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      // Record the LATEST scrollLeft each event; the rAF applies the most recent
+      // value so fast/inertial scrolls don't leave the header a frame behind.
+      barTrackScrollLeftRef.current = e.currentTarget.scrollLeft
+      if (barTrackScrollRafRef.current != null) return
+      barTrackScrollRafRef.current = requestAnimationFrame(() => {
+        barTrackScrollRafRef.current = null
+        if (rightPaneHeaderRef.current) {
+          rightPaneHeaderRef.current.scrollLeft = barTrackScrollLeftRef.current
+        }
+      })
+    },
+    [],
+  )
+
+  const hasRightPane = !!rightPane
+
+  // The bar track clips vertically (the canvas is translated to follow the grid),
+  // so a wheel over the chart has nothing to scroll there. A NON-PASSIVE native
+  // wheel listener lets the consumer's onWheel call preventDefault (e.g. to block
+  // the browser's Ctrl/Cmd+wheel page zoom) — React's onWheel is passive and
+  // cannot. When the consumer doesn't handle it, forward the vertical delta to
+  // the grid's scroller so vertical scrolling works over the chart too.
+  //
+  // The consumer's onWheel is held in a ref so the (non-passive) listener stays
+  // stable across renders — consumers commonly pass an inline callback, which
+  // would otherwise tear down and re-add the listener every render (including
+  // mid-drag).
+  const rightPaneOnWheelRef = useRef(rightPane?.onWheel)
+  rightPaneOnWheelRef.current = rightPane?.onWheel
+  useEffect(() => {
+    const el = rightPaneTrackRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      if (rightPaneOnWheelRef.current?.(e) === true) return
+      if (e.deltaY !== 0 && bodyViewportRef.current) {
+        // Forward vertical wheel to the grid's scroller; preventDefault so the
+        // browser doesn't also scroll an ancestor (e.g. the page) at the edge.
+        e.preventDefault()
+        bodyViewportRef.current.scrollTop += e.deltaY
+      }
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [hasRightPane])
+
+  // Right-pane width (chart pane). Seeded from the config default; the consumer
+  // persists it via onWidthChange when a drag ends.
+  const [rightPaneWidth, setRightPaneWidth] = useState(
+    rightPane?.defaultWidth ?? 480,
+  )
+  const rightPaneDragRef = useRef<{
+    startX: number
+    startWidth: number
+    min: number
+    latest: number
+  } | null>(null)
+  const onRightPaneDividerDown = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault()
+      const drag = {
+        startX: e.clientX,
+        startWidth: rightPaneWidth,
+        min: rightPane?.minWidth ?? 200,
+        latest: rightPaneWidth,
+      }
+      rightPaneDragRef.current = drag
+      // During the drag, mutate the pane + axis widths DIRECTLY (no React state)
+      // so a per-frame resize doesn't re-render the whole grid — commit once on
+      // release. rAF-throttle the DOM writes to one per frame.
+      let rafId: number | null = null
+      const applyWidth = (w: number) => {
+        if (rightPaneTrackRef.current)
+          rightPaneTrackRef.current.style.width = `${w}px`
+        if (rightPaneHeaderRef.current)
+          rightPaneHeaderRef.current.style.width = `${w}px`
+      }
+      const onMove = (ev: PointerEvent) => {
+        const d = rightPaneDragRef.current
+        if (!d) return
+        // Dragging the divider LEFT widens the bar pane (it sits on the right).
+        const next = Math.max(d.min, d.startWidth - (ev.clientX - d.startX))
+        d.latest = next
+        if (rafId == null) {
+          rafId = requestAnimationFrame(() => {
+            rafId = null
+            applyWidth(d.latest)
+          })
+        }
+      }
+      const onUp = () => {
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+        if (rafId != null) cancelAnimationFrame(rafId)
+        const finalWidth = rightPaneDragRef.current?.latest
+        rightPaneDragRef.current = null
+        // Commit to state once (keeps the DOM width authoritative) + persist.
+        if (finalWidth != null) {
+          setRightPaneWidth(finalWidth)
+          rightPane?.onWidthChange?.(finalWidth)
+        }
+      }
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+    },
+    [rightPaneWidth, rightPane],
+  )
+
   useLayoutEffect(() => {
+    // Measure the grid scroller's vertical scrollbar width so the header spacer
+    // keeps header/body columns aligned.
     const el = bodyViewportRef.current
     if (!el) return
     // offsetWidth - clientWidth = the vertical scrollbar's width (0 for
@@ -1814,18 +2069,43 @@ function WaydGridInner<T>(props: WaydGridProps<T>, ref: Ref<WaydGridHandle>) {
         <div className={styles.headerViewport} ref={headerViewportRef}>
           {headerTableContent}
         </div>
-        {/* Spacer above the body's vertical scrollbar — same header band
-            styling, sized from the live scrollbar measurement. */}
+        {/* Spacer above the grid's vertical scrollbar — same header band
+            styling, sized from the live scrollbar measurement. The grid table
+            keeps its own scrollbar whether or not a chart pane is present. */}
         <div
           className={styles.headerScrollbarSpacer}
           style={{ width: scrollbarWidth }}
           aria-hidden="true"
         />
+        {/* Right-pane header (e.g. the date axis), sized to match the pane so it
+            stays aligned above the bar track. Its own horizontal scroll is
+            mirrored from the bar track. */}
+        {hasRightPane && (
+          <>
+            <div
+              className={styles.rightPaneDividerSpacer}
+              aria-hidden="true"
+            />
+            <div
+              ref={rightPaneHeaderRef}
+              className={styles.rightPaneHeader}
+              style={{ width: rightPaneWidth }}
+            >
+              {rightPane!.header}
+            </div>
+          </>
+        )}
       </div>
       <GridBody
         rows={rows}
         bodyViewportRef={bodyViewportRef}
         onBodyScroll={handleBodyScroll}
+        rightPane={rightPane}
+        rightPaneWidth={rightPaneWidth}
+        onRightPaneDividerDown={onRightPaneDividerDown}
+        rightPaneTrackRef={rightPaneTrackRef}
+        rightPaneCanvasRef={rightPaneCanvasRef}
+        onBarTrackScroll={handleBarTrackScroll}
         colGroup={colGroup}
         isLoading={isLoading}
         emptyMessage={emptyMessage}
@@ -1866,6 +2146,7 @@ function WaydGridInner<T>(props: WaydGridProps<T>, ref: Ref<WaydGridHandle>) {
         includeGlobalSearch={includeGlobalSearch}
         leftSlot={resolvedLeftSlot}
         helpContent={helpContent}
+        actionsSlot={actionsSlot}
         rightSlot={rightSlot}
       />
 

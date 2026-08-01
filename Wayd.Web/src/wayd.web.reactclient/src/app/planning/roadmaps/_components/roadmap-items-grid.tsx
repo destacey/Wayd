@@ -8,8 +8,14 @@ import {
   RoadmapMilestoneListDto,
   RoadmapTimeboxListDto,
 } from '@/src/services/wayd-api'
-import { PlusOutlined } from '@ant-design/icons'
-import { Button, Form } from 'antd'
+import {
+  PlusOutlined,
+  BarChartOutlined,
+  ZoomInOutlined,
+  ZoomOutOutlined,
+  UndoOutlined,
+} from '@ant-design/icons'
+import { Button, Form, Tooltip } from 'antd'
 import dayjs from 'dayjs'
 import {
   type DraftItem,
@@ -27,13 +33,25 @@ import {
   useGetRoadmapQuery,
   usePatchRoadmapItemMutation,
   useUpdateRoadmapActivityPlacementMutation,
+  useUpdateRoadmapItemDatesMutation,
 } from '@/src/store/features/planning/roadmaps-api'
+import { isApiError, type ApiError } from '@/src/utils'
 import { FC, ReactNode, useCallback, useMemo, useRef, useState } from 'react'
 import EditRoadmapActivityForm from './edit-roadmap-activity-form'
 import DeleteRoadmapItemForm from './delete-roadmap-item-form'
 import EditRoadmapTimeboxForm from './edit-roadmap-timebox-form'
 import { getRoadmapItemsGridColumns } from './roadmap-items-grid.columns'
 import { RoadmapItemsHelp } from './roadmap-items-grid.keyboard-shortcuts'
+import {
+  useRoadmapGantt,
+  computeGanttDomain,
+  pxPerMsFor,
+  DEFAULT_PX_PER_DAY,
+  MIN_PX_PER_DAY,
+  MAX_PX_PER_DAY,
+  ZOOM_STEP,
+} from './roadmap-gantt'
+import { useBarDrag } from '@/src/components/common/timeline'
 
 export interface RoadmapItemTreeNode extends TreeNode {
   id: string
@@ -184,6 +202,17 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
     useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [showGantt, setShowGantt] = useState(true)
+  // Gantt zoom level (pixels per day). Clamped; adjusted via toolbar +/- and
+  // Ctrl/Cmd+wheel over the chart.
+  const [pxPerDay, setPxPerDay] = useState(DEFAULT_PX_PER_DAY)
+  const zoomBy = useCallback((factor: number) => {
+    setPxPerDay((prev) =>
+      Math.min(MAX_PX_PER_DAY, Math.max(MIN_PX_PER_DAY, prev * factor)),
+    )
+  }, [])
+  const resetZoom = useCallback(() => setPxPerDay(DEFAULT_PX_PER_DAY), [])
+  const isZoomed = pxPerDay !== DEFAULT_PX_PER_DAY
   const draftsRef = useRef<DraftItem[]>([])
 
   const [createRoadmapItem] = useCreateRoadmapItemMutation()
@@ -210,6 +239,80 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
     if (roadmapItemsIsLoading) return []
     return roadmapItemsData.map((item) => mapToTreeNode(item))
   }, [roadmapItemsData, roadmapItemsIsLoading])
+
+  // ── Gantt bar drag/resize (reuses the timeline's interaction core) ─────────
+  // Commit a bar's new dates via the SAME mutation the timeline view uses.
+  const [updateRoadmapItemDates] = useUpdateRoadmapItemDatesMutation()
+  const commitBarDates = useCallback(
+    async (change: { id: string; start: number; end: number }) => {
+      const node = findNodeById(treeData, change.id) as RoadmapItemTreeNode | null
+      if (!node) return
+      try {
+        const response = await updateRoadmapItemDates({
+          $type: node.$type,
+          roadmapId,
+          itemId: change.id,
+          start: dayjs(change.start).format('YYYY-MM-DD') as unknown as Date,
+          end: dayjs(change.end).format('YYYY-MM-DD') as unknown as Date,
+        })
+        if ('error' in response && response.error) throw response.error
+      } catch (error) {
+        const apiError: ApiError = isApiError(error) ? error : {}
+        messageApi.error(
+          apiError.detail ??
+            'An error occurred while updating the roadmap item. Please try again.',
+        )
+      }
+    },
+    [treeData, roadmapId, updateRoadmapItemDates, messageApi],
+  )
+
+  // Domain drives the drag clamp range; pxPerMs comes from the zoom level. Both
+  // are computed the same way the chart's scale is (no duplication).
+  const { domainStart, domainEnd } = useMemo(
+    () =>
+      computeGanttDomain(
+        roadmap?.start ?? new Date(),
+        roadmap?.end ?? new Date(),
+        treeData,
+      ),
+    [roadmap?.start, roadmap?.end, treeData],
+  )
+  const barDrag = useBarDrag({
+    pxPerMs: pxPerMsFor(pxPerDay),
+    min: domainStart,
+    max: domainEnd,
+    onCommit: commitBarDates,
+  })
+  // Pointer offset from the bar's left edge at move-drag start, so the live date
+  // label can follow the cursor rather than centering on the whole bar. Captured
+  // in the wrapper below (outside the memoized gantt hook) and surfaced only
+  // while a move drag is active.
+  const grabOffsetRef = useRef(0)
+  const onBarPointerDown = useCallback(
+    (e: React.PointerEvent, item: { id: string; start: number; end: number; kind: 'range' }, mode: 'move' | 'resize-start' | 'resize-end') => {
+      if (mode === 'move') grabOffsetRef.current = e.nativeEvent.offsetX
+      barDrag.start(e, item, mode)
+    },
+    [barDrag],
+  )
+
+  // Gantt chart pane (attached to the grid's right when toggled on). The hook is
+  // called unconditionally (rules of hooks); the pane is only wired when shown.
+  const gantt = useRoadmapGantt(
+    roadmap?.start ?? new Date(),
+    roadmap?.end ?? new Date(),
+    treeData,
+    {
+      pxPerDay,
+      editable: isRoadmapManager,
+      activeDrag: barDrag.active,
+      onBarPointerDown,
+      // Only meaningful during a move drag; read from the ref captured above.
+      moveGrabOffset:
+        barDrag.active?.mode === 'move' ? grabOffsetRef.current : undefined,
+    },
+  )
 
   const roadmapActivityMoveValidator: MoveValidator<RoadmapItemTreeNode> =
     useCallback((activeNode, targetParentNode, targetParentId) => {
@@ -697,7 +800,87 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
           getSubRows={(row) => row.children}
           isLoading={roadmapItemsIsLoading}
           columns={columns}
+          actionsSlot={
+            <>
+              <Tooltip
+                title={showGantt ? 'Hide Gantt chart' : 'Show Gantt chart'}
+              >
+                <Button
+                  type="text"
+                  shape="circle"
+                  icon={
+                    <BarChartOutlined
+                      // Mirror (invert) + rotate -90°, statically, so the bars read
+                      // left-anchored like Gantt rows. Both transforms in one style
+                      // so they compose (the `rotate` prop can't combine with flip).
+                      style={{ transform: 'scaleX(-1) rotate(-90deg)' }}
+                    />
+                  }
+                  onClick={() => setShowGantt((v) => !v)}
+                  aria-pressed={showGantt}
+                  aria-label="Toggle Gantt chart"
+                  style={
+                    showGantt
+                      ? { color: 'var(--ant-color-primary)' }
+                      : undefined
+                  }
+                />
+              </Tooltip>
+              {showGantt && (
+                <>
+                  <Tooltip title="Zoom out">
+                    <Button
+                      type="text"
+                      shape="circle"
+                      icon={<ZoomOutOutlined />}
+                      onClick={() => zoomBy(1 / ZOOM_STEP)}
+                      disabled={pxPerDay <= MIN_PX_PER_DAY}
+                      aria-label="Zoom out"
+                    />
+                  </Tooltip>
+                  <Tooltip title="Zoom in">
+                    <Button
+                      type="text"
+                      shape="circle"
+                      icon={<ZoomInOutlined />}
+                      onClick={() => zoomBy(ZOOM_STEP)}
+                      disabled={pxPerDay >= MAX_PX_PER_DAY}
+                      aria-label="Zoom in"
+                    />
+                  </Tooltip>
+                  <Tooltip title="Reset zoom">
+                    <Button
+                      type="text"
+                      shape="circle"
+                      icon={<UndoOutlined />}
+                      onClick={resetZoom}
+                      disabled={!isZoomed}
+                      aria-label="Reset zoom"
+                    />
+                  </Tooltip>
+                </>
+              )}
+            </>
+          }
           rightSlot={viewSelector}
+          rightPane={
+            showGantt
+              ? {
+                  header: gantt.header,
+                  defaultWidth: gantt.defaultWidth,
+                  renderRow: gantt.renderRow,
+                  renderBackground: gantt.renderBackground,
+                  // Ctrl/Cmd+wheel zooms the chart (matches the timeline). Return
+                  // true so the grid doesn't also scroll vertically.
+                  onWheel: (e) => {
+                    if (!e.ctrlKey && !e.metaKey) return false
+                    e.preventDefault()
+                    zoomBy(e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP)
+                    return true
+                  },
+                }
+              : undefined
+          }
           onRefresh={async () => refreshRoadmapItems()}
           emptyMessage="No Roadmap Items"
           csvFileName="roadmap-items"

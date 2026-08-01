@@ -1586,4 +1586,69 @@ describe('WaydGrid', () => {
       expect(bodyCells('isEnabled')[0].className).not.toContain('tdNumeric')
     })
   })
+
+  describe('rightPane (Gantt chart pane)', () => {
+    it('does not render a bar track when rightPane is absent', () => {
+      // Arrange / Act
+      const { container } = renderGrid()
+      // Assert — no gantt rows, one body viewport (the default single scroller).
+      expect(container.querySelectorAll('[data-gantt-row]')).toHaveLength(0)
+      expect(
+        container.querySelectorAll('[data-grid-body-viewport]'),
+      ).toHaveLength(1)
+    })
+
+    it('renders one bar per row via renderRow with its geometry', () => {
+      // Arrange — a renderRow that emits a labeled marker carrying its top/height.
+      const renderRow = jest.fn(
+        ({ row, top, height }) => (
+          <div
+            data-testid={`bar-${(row.original as Flag).id}`}
+            data-top={top}
+            data-height={height}
+          >
+            {(row.original as Flag).name}
+          </div>
+        ),
+      )
+      // Act
+      const { container } = renderGrid({
+        rightPane: { renderRow, header: <div>Axis</div> },
+      })
+      // Assert — a bar per data row, wrapped in a gantt-row, geometry passed in.
+      expect(container.querySelectorAll('[data-gantt-row]')).toHaveLength(
+        DATA.length,
+      )
+      expect(screen.getByTestId('bar-1')).toBeInTheDocument()
+      expect(screen.getByTestId('bar-1').getAttribute('data-top')).toBe('0')
+      // Row 2 sits one row-height (28) below row 1 (uniform estimate).
+      expect(screen.getByTestId('bar-2').getAttribute('data-top')).toBe('28')
+      expect(renderRow).toHaveBeenCalled()
+    })
+
+    it('renders the rightPane header (e.g. the date axis)', () => {
+      // Arrange / Act
+      renderGrid({
+        rightPane: {
+          renderRow: () => null,
+          header: <div>Date Axis</div>,
+        },
+      })
+      // Assert
+      expect(screen.getByText('Date Axis')).toBeInTheDocument()
+    })
+
+    it('keeps exactly one vertical scroll viewport when rightPane is present', () => {
+      // Arrange / Act — the grid's own table wrapper stays the single scroll
+      // viewport (carrying data-grid-body-viewport); the chart pane follows its
+      // scroll rather than introducing a second scroller.
+      const { container } = renderGrid({
+        rightPane: { renderRow: () => null },
+      })
+      // Assert
+      expect(
+        container.querySelectorAll('[data-grid-body-viewport]'),
+      ).toHaveLength(1)
+    })
+  })
 })

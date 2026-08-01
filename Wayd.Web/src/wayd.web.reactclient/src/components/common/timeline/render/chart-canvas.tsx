@@ -8,16 +8,19 @@
 
 import {
   FC,
+  Fragment,
   useCallback,
   useEffect,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
 } from 'react'
 import type { TimeScale } from '../core/scale'
 import type { ResolvedRow, TimelineItem } from '../core/types'
 import { itemBox, backgroundBox, type GeometryConfig } from '../core/geometry'
-import { progressFromX } from '../core/interaction'
+import { progressFromX, type DragMode } from '../core/interaction'
+import { dragLabel } from '../core/drag-label'
 import { ItemBar } from './item-bar'
 import { useBarDrag } from './use-bar-drag'
 import { suppressNextClick } from './suppress-next-click'
@@ -125,13 +128,24 @@ export const ChartCanvas: FC<ChartCanvasProps> = ({
 
   // Move / resize drag (date change). Bounds are the EDITABLE window (dragMin/Max),
   // not the rendered domain — the domain may be wider to fit out-of-window items.
-  const { active, start: startDrag } = useBarDrag({
+  const { active, start: startDragRaw } = useBarDrag({
     pxPerMs: scale.pxPerMs,
     min: dragMin ?? scale.domain[0],
     max: dragMax ?? scale.domain[1],
     snap: true,
     onCommit: (change) => onItemDateChange?.(change),
   })
+  // On a MOVE drag, capture where on the bar the user grabbed so the live date
+  // label can follow the cursor rather than centering on the whole bar. State
+  // (set once at drag start) so the label can read it during render.
+  const [moveGrabOffset, setMoveGrabOffset] = useState(0)
+  const startDrag = useCallback(
+    (e: ReactPointerEvent, item: TimelineItem, mode: DragMode) => {
+      if (mode === 'move') setMoveGrabOffset(e.nativeEvent.offsetX)
+      startDragRaw(e, item, mode)
+    },
+    [startDragRaw],
+  )
 
   // Progress drag — lighter weight, tracked on the canvas element. The pointer
   // listeners are stored on the session ref so they can reference each other
@@ -387,25 +401,63 @@ export const ChartCanvas: FC<ChartCanvasProps> = ({
             0,
             Math.min(viewportLeft - box.left, box.width),
           )
+
+          // Live date indicator while THIS bar is being dragged/resized, so the
+          // user sees where the endpoint(s) land (matches the Gantt).
+          let dragLabelNode: ReactNode = null
+          if (active?.id === item.id) {
+            const { text, anchor } = dragLabel(
+              active.mode,
+              box.item.start,
+              box.item.end,
+            )
+            const cursorX =
+              box.left + Math.min(Math.max(moveGrabOffset, 0), box.width)
+            const anchorX =
+              anchor === 'start'
+                ? box.left
+                : anchor === 'end'
+                  ? box.left + box.width
+                  : cursorX
+            const xShift =
+              anchor === 'cursor' ? '-50%' : anchor === 'end' ? '-100%' : '0'
+            // Flip below the bar when there's no room above (top rows).
+            const below = box.top < 24
+            dragLabelNode = (
+              <div
+                className={styles.dragLabel}
+                style={{
+                  left: anchorX,
+                  top: below ? box.top + box.height + 4 : box.top - 4,
+                  transform: `translate(${xShift}, ${below ? '0' : '-100%'})`,
+                }}
+              >
+                {text}
+              </div>
+            )
+          }
+
           return (
-            <ItemBar
-              key={item.id}
-              box={box}
-              labelOffset={labelOffset}
-              selected={item.id === selectedId}
-              editable={editable}
-              itemRenderer={itemRenderer}
-              onClick={onItemClick}
-              onDragStart={startDrag}
-              onProgressDragStart={(e, dragItem) => {
-                e.preventDefault()
-                e.stopPropagation()
-                beginProgressDrag(dragItem, {
-                  left: box.left,
-                  width: box.width,
-                })
-              }}
-            />
+            <Fragment key={item.id}>
+              <ItemBar
+                box={box}
+                labelOffset={labelOffset}
+                selected={item.id === selectedId}
+                editable={editable}
+                itemRenderer={itemRenderer}
+                onClick={onItemClick}
+                onDragStart={startDrag}
+                onProgressDragStart={(e, dragItem) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  beginProgressDrag(dragItem, {
+                    left: box.left,
+                    width: box.width,
+                  })
+                }}
+              />
+              {dragLabelNode}
+            </Fragment>
           )
         }),
       )}

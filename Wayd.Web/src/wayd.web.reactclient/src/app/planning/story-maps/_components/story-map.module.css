@@ -77,7 +77,11 @@
 }
 
 /* The two corner cells: sticky on both axes at once, so they must outrank everything that sticks on
-   only one — otherwise the goal and step cells slide underneath them. */
+   only one — otherwise the goal and step cells slide underneath them.
+ *
+ * Do not give either an explicit height or an `align-self`. The grid's `align-items: stretch` sizes
+ * them to their row, which is what lets the goals label be measured as the row height (see
+ * use-goal-row-height.ts) — overriding that would leave the steps row pinning at a stale offset. */
 .labelCellGoals,
 .labelCellSteps {
   align-items: center;
@@ -88,17 +92,14 @@
   top: 0;
 }
 
-/* Offset by the goals row's measured height, published by the board — the row's height depends on
-   how far its longest goal name wraps, so it cannot be a constant. */
+/* Measured, not constant: the row is as tall as its longest wrapped goal name. */
 .labelCellSteps {
   top: var(--sm-goal-row-height);
 }
 
 /* ─── Pinned header rows ──────────────────────────────────────────────────── */
 
-/* Goals and steps stay in view while the task rows scroll under them. Both need an opaque fill for
-   the same reason the label column does: the default cell backgrounds let scrolled content ghost
-   through. */
+/* Goals and steps stay in view while the task rows scroll under them. */
 .goalCell {
   position: sticky;
   top: 0;
@@ -264,9 +265,8 @@
   padding: 0;
   font-size: 10px;
   color: var(--sm-text-secondary);
-  /* Pulls the name in past the glyph's own bearing: the caret is drawn well inside its 18px hit
-     target, so .goalCell's 8px gap reads as ~13px of empty space against it. The button keeps its
-     full width, so only the visual gap closes. */
+  /* The caret is drawn well inside its 18px hit target, so the 8px flex gap reads as ~13px. Closes
+     the visual gap without shrinking the target. */
   margin-right: -5px;
   /* The goal cell is itself the drag surface; the caret is a control on top of it, so it opts back
      out of `touch-action: none` the way the other inline controls do. */
@@ -291,10 +291,8 @@
   position: static;
 }
 
-/* `writing-mode` rather than a transform: a rotated element still occupies its unrotated box, so a
-   transform would make a long name claim its full horizontal width and blow the track open.
-   writing-mode changes the box itself, so the text flows within the spine and clips. The full name
-   is on the tooltip. */
+/* `writing-mode` rather than a transform: a rotated element keeps its unrotated box, so a long name
+   would claim its full horizontal width and blow the track open. The full name is on the tooltip. */
 .goalNameVertical {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
@@ -322,6 +320,53 @@
     var(--sm-bg-elevated),
     var(--sm-bg-elevated)
   );
+}
+
+/* The ghost step under a step-less goal — a vacancy to fill, not a blank real step. */
+.emptyStepSlot {
+  align-items: center;
+  justify-content: center;
+  /* Inset so the dash sits inside the cell's own borders instead of doubling them. */
+  outline: 1px dashed var(--sm-border);
+  outline-offset: -5px;
+  background-image: none;
+}
+
+/* Carries .stepCell, so it must shed the browser's button defaults. */
+.emptyStepSlotButton {
+  border: none;
+  border-right: 1px solid var(--sm-border);
+  border-bottom: 1px solid var(--sm-border);
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  /* The slot is a drop target, so a touch drag onto it must not be stolen by page scrolling. */
+  touch-action: none;
+}
+
+/* The border-right reset above re-adds what .lastColumn exists to remove, and both carry one class
+   worth of specificity — so the outer-edge case needs restating here to win on source order. */
+.emptyStepSlotButton.lastColumn {
+  border-right: none;
+}
+
+.emptyStepSlotButton:hover,
+.emptyStepSlotButton:focus-visible {
+  outline-color: var(--ant-color-primary);
+}
+
+.emptyStepSlotButton:hover .emptyStepSlotHint,
+.emptyStepSlotButton:focus-visible .emptyStepSlotHint {
+  color: var(--ant-color-primary);
+}
+
+/* Muted until hovered — a step-less goal is a normal state mid-mapping. */
+.emptyStepSlotHint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--sm-muted);
 }
 
 .stepName {
@@ -493,11 +538,12 @@
 }
 
 /* Insertion line for the horizontal rows (goals and steps): a vertical rule on the target's leading
-   or trailing edge, marking the seam the dragged node will land on. */
-.stepCellDropBefore,
-.stepCellDropAfter {
-  position: relative;
-}
+   or trailing edge, marking the seam the dragged node will land on.
+ *
+ * These pseudo-elements need a positioned ancestor, and the cells already are one — goal and step
+ * cells are `sticky` so the header rows pin while the board scrolls. Declaring `position: relative`
+ * here would override that (same specificity, later in the file) and unpin the drop target for the
+ * duration of the drag, dropping it out of the header row. */
 
 .stepCellDropBefore::before,
 .stepCellDropAfter::before {
@@ -541,6 +587,18 @@
 
 .stepCellDropAfter::after {
   right: -4px;
+}
+
+/* The step columns of the goal a dragged step is crossing into. Outline rather than fill — the
+   cells beneath carry the step names and the insertion line, which a tint would fight. */
+.receivingStepBand {
+  pointer-events: none;
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: -2px;
+  border-radius: var(--sm-radius);
+  /* Above the step cells it covers — they are sticky with a z-index of their own. */
+  position: relative;
+  z-index: var(--sm-z-sticky-row);
 }
 
 /* The empty steps slot under a step-less goal, while a step is held over it. Same treatment as an

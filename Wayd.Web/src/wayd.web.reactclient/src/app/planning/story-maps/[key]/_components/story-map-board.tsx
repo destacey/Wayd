@@ -8,6 +8,7 @@ import {
   CollisionDetection,
   DndContext,
   DragEndEvent,
+  DragMoveEvent,
   DragOverlay,
   DragStartEvent,
   PointerSensor,
@@ -23,6 +24,7 @@ import { countTasksByLane } from './board-counts'
 import {
   buildDragIndex,
   isValidDropTarget,
+  parseEmptyStepSlotId,
   resolveDrop,
   taskCellId,
   type DropSide,
@@ -194,26 +196,33 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
   )
 
   // onDragMove, not onDragOver: the side flips as the pointer crosses a target's midpoint, which is
-  // not a change of target. The setState is a no-op unless the side actually changed.
-  const handleDragMove = () => {
+  // not a change of target. Both setStates are no-ops unless the value actually changed.
+  const handleDragMove = (event: DragMoveEvent) => {
     setDropSide((current) =>
       current === dropSideRef.current ? current : dropSideRef.current,
     )
+
+    const next = event.over ? String(event.over.id) : null
+    setOverId((current) => (current === next ? current : next))
   }
 
   // The node being dragged, rendered into the DragOverlay. Board nodes are grid children, so
   // transforming the original in place would slide it across its neighbours instead.
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
 
+  const [overId, setOverId] = useState<string | null>(null)
+
   const handleDragStart = (event: DragStartEvent) => {
     // Start neutral rather than inheriting the previous drag's side.
     dropSideRef.current = 'before'
     setDropSide('before')
+    setOverId(null)
     setActiveDragId(String(event.active.id))
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveDragId(null)
+    setOverId(null)
 
     const { active, over } = event
     if (!over) return
@@ -227,6 +236,25 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
     )
     if (drop) actions.onDrop(drop)
   }
+
+  /**
+   * The goal a dragged step would join, or null when the drag stays inside its current goal — a
+   * reorder needs no destination marker, since the insertion line already says where it lands.
+   */
+  const receivingGoal = useMemo(() => {
+    if (!activeDragId || !overId) return null
+    if (dragIndex.kindById.get(activeDragId) !== 'step') return null
+
+    const fromGoalId = dragIndex.goalIdByStepId.get(activeDragId)
+
+    // Either hovering a sibling step, or the empty slot of a goal with no steps of its own.
+    const toGoalId =
+      dragIndex.goalIdByStepId.get(overId) ?? parseEmptyStepSlotId(overId)
+
+    if (!toGoalId || toGoalId === fromGoalId) return null
+
+    return goals.find((g) => g.goal.id === toGoalId) ?? null
+  }, [activeDragId, overId, dragIndex, goals])
 
   // What to show inside the overlay: the name of whatever kind is being dragged.
   const activeDragLabel = useMemo(() => {
@@ -267,7 +295,10 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
       onDragStart={handleDragStart}
       onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
-      onDragCancel={() => setActiveDragId(null)}
+      onDragCancel={() => {
+        setActiveDragId(null)
+        setOverId(null)
+      }}
     >
       <div
         ref={scrollRef}
@@ -321,6 +352,18 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
               />
             ))}
 
+            {/* Its own overlay rather than a class on the step cells: outlining each cell would
+                draw interior edges between them instead of one boundary round the run. */}
+            {receivingGoal && (
+              <div
+                className={styles.receivingStepBand}
+                style={{
+                  gridRow: STEP_ROW,
+                  gridColumn: `${receivingGoal.columnStart} / span ${receivingGoal.columnSpan}`,
+                }}
+              />
+            )}
+
             {/* ── Task band: per swim lane, a full-width header banner then a row of task cells ── */}
             {swimLanes.map(({ swimLane, headerRow, isCollapsed }) => (
               <SwimLaneHeader
@@ -371,6 +414,7 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
                     column={placement.columnStart}
                     canUpdate={actions.canUpdate}
                     isLastColumn={placement.columnStart === lastColumn}
+                    onAddStep={onAddStep}
                   />
                   {expandedSwimLanes.map(({ swimLane, row }) => (
                     <div

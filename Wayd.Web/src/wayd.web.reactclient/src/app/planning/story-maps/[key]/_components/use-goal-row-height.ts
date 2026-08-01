@@ -3,13 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 /**
- * Measures the pinned goals row, so the steps row beneath it knows how far down to pin.
+ * Measures the pinned goals row, so the steps row beneath it knows how far down to pin. A stale
+ * offset either overlaps the two rows or leaves a strip of scrolled content between them.
  *
- * The offset cannot be a constant: the goals row is as tall as its longest wrapped goal name, which
- * changes with the name, the column width, and the viewport. Measuring keeps the two pinned rows
- * flush — a stale offset either overlaps them or leaves a strip of scrolled content between.
- *
- * Returns a callback ref for any cell in the goals row, plus its measured height.
+ * Attach the ref to the row's LABEL cell, not a goal cell: any one goal may be shorter than the
+ * row, while `align-items: stretch` sizes the label to the tallest. Giving that cell its own height
+ * or `align-self` would silently break this.
  */
 export const useGoalRowHeight = (): [
   ref: (node: HTMLElement | null) => void,

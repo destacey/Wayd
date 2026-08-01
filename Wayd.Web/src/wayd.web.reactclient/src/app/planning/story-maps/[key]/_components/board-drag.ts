@@ -43,7 +43,8 @@ export const EMPTY_STEP_SLOT_PREFIX = 'step-slot:'
 export const emptyStepSlotId = (goalId: string) =>
   `${EMPTY_STEP_SLOT_PREFIX}${goalId}`
 
-const parseEmptyStepSlotId = (id: string) =>
+/** The goal id behind an empty-slot target, or null when the id is not one. */
+export const parseEmptyStepSlotId = (id: string) =>
   id.startsWith(EMPTY_STEP_SLOT_PREFIX)
     ? id.slice(EMPTY_STEP_SLOT_PREFIX.length)
     : null

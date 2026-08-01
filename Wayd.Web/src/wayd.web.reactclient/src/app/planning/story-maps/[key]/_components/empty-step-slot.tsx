@@ -1,6 +1,7 @@
 'use client'
 
 import { useDroppable } from '@dnd-kit/core'
+import { PlusOutlined } from '@ant-design/icons'
 import { CSSProperties, FC } from 'react'
 import { emptyStepSlotId } from './board-drag'
 import { STEP_ROW } from './board-layout'
@@ -12,17 +13,23 @@ export interface EmptyStepSlotProps {
   column: number
   canUpdate: boolean
   isLastColumn: boolean
+  onAddStep: (goalId: string) => void
 }
 
 /**
  * The empty slot in the steps row beneath a step-less goal. Fills the placeholder column so the grid
- * has no hole, and is the drop target for moving a step into that goal.
+ * has no hole, is the drop target for moving a step into that goal, and for editors is a ghost step
+ * that adds the goal's first one when clicked.
+ *
+ * A <button> only for editors — a viewer who cannot add gets no focusable element promising an
+ * action that would fail.
  */
 const EmptyStepSlot: FC<EmptyStepSlotProps> = ({
   goalId,
   column,
   canUpdate,
   isLastColumn,
+  onAddStep,
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: emptyStepSlotId(goalId),
@@ -31,14 +38,31 @@ const EmptyStepSlot: FC<EmptyStepSlotProps> = ({
 
   const style: CSSProperties = { gridRow: STEP_ROW, gridColumn: column }
 
+  const className = `${styles.stepCell} ${styles.emptyStepSlot} ${
+    isLastColumn ? styles.lastColumn : ''
+  } ${isOver ? styles.stepCellOver : ''}`
+
+  if (!canUpdate) {
+    return <div ref={setNodeRef} className={className} style={style} />
+  }
+
   return (
-    <div
+    <button
       ref={setNodeRef}
-      className={`${styles.stepCell} ${isLastColumn ? styles.lastColumn : ''} ${
-        isOver ? styles.stepCellOver : ''
-      }`}
+      type="button"
+      className={`${className} ${styles.emptyStepSlotButton}`}
       style={style}
-    />
+      aria-label="Add the first step"
+      onClick={() => onAddStep(goalId)}
+    >
+      {/* The drop highlight is the message while a step is held over the slot. */}
+      {!isOver && (
+        <span className={styles.emptyStepSlotHint}>
+          <PlusOutlined />
+          Add step
+        </span>
+      )}
+    </button>
   )
 }
 

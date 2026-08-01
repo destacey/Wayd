@@ -12,6 +12,7 @@ import dayjs from 'dayjs'
 import { createTimeScale } from '@/src/components/common/timeline/core/scale'
 import { rollupSummaries } from '@/src/components/common/timeline/core/rollup'
 import { contrastText } from '@/src/components/common/timeline/core/color'
+import { dragLabel } from '@/src/components/common/timeline/core/drag-label'
 import type {
   BarDragState,
   DragMode,
@@ -46,18 +47,6 @@ const toMs = (d: Date | string | null | undefined): number | undefined => {
   return Number.isFinite(v) ? v : undefined
 }
 
-const fmtDay = (ms: number) => dayjs(ms).format('MMM D, YYYY')
-
-/** The live-drag label + which edge to anchor it to, per drag mode. */
-function dragLabelFor(
-  mode: DragMode,
-  start: number,
-  end: number,
-): { text: string; anchor: 'start' | 'end' | 'center' } {
-  if (mode === 'resize-start') return { text: fmtDay(start), anchor: 'start' }
-  if (mode === 'resize-end') return { text: fmtDay(end), anchor: 'end' }
-  return { text: `${fmtDay(start)} – ${fmtDay(end)}`, anchor: 'center' }
-}
 
 /** The [start, end] a row occupies: a range for activity/timebox, the instant
  *  for a milestone, or undefined when it has no dates. */
@@ -317,20 +306,20 @@ export function useRoadmapGantt(
 
         // Live date indicator shown while THIS bar is being dragged/resized, so
         // the user sees where the endpoint(s) will land.
-        let dragLabel: React.ReactNode = null
+        let dragLabelNode: React.ReactNode = null
         if (dragging) {
-          const { text, anchor } = dragLabelFor(activeDrag!.mode, s, e)
+          const { text, anchor } = dragLabel(activeDrag!.mode, s, e)
           // On MOVE, anchor the label to the CURSOR (bar-left + captured grab
           // offset), clamped within the bar; on resize, to the dragged edge.
           const cursorX = left + Math.min(Math.max(moveGrabOffset ?? w / 2, 0), w)
           const anchorX =
             anchor === 'start' ? left : anchor === 'end' ? left + w : cursorX
           const xShift =
-            anchor === 'center' ? '-50%' : anchor === 'end' ? '-100%' : '0'
+            anchor === 'cursor' ? '-50%' : anchor === 'end' ? '-100%' : '0'
           // Flip the label BELOW the bar when there isn't room above it (top
           // rows), so it's never clipped by the canvas top. ~24px = label height.
           const below = barTop < 24
-          dragLabel = (
+          dragLabelNode = (
             <div
               className={styles.dragLabel}
               style={{
@@ -386,7 +375,7 @@ export function useRoadmapGantt(
               </>
             )}
           </div>
-          {dragLabel}
+          {dragLabelNode}
           </>
         )
       }

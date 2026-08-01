@@ -278,6 +278,22 @@
   text-overflow: ellipsis;
 }
 
+/* Live date indicator shown while dragging/resizing a bar (edit mode). Floats
+   above the dragged edge; positioned in canvas coords, offset via transform. */
+.dragLabel {
+  position: absolute;
+  z-index: 4;
+  padding: 1px var(--ant-padding-xxs);
+  border-radius: var(--ant-border-radius-sm);
+  background-color: var(--ant-color-text);
+  color: var(--ant-color-bg-container);
+  font-size: var(--ant-font-size-sm);
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--ant-box-shadow-tertiary);
+}
+
 /* ── Item bars ─────────────────────────────────────────────────────────── */
 .bar {
   position: absolute;

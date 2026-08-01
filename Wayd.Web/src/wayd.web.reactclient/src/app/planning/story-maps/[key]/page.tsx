@@ -139,17 +139,28 @@ const StoryMapDetailPage: FC = () => {
     null,
   )
   const [openManagePersonas, setOpenManagePersonas] = useState(false)
-  // Lanes the viewer has folded away while working. Deliberately transient and local: it is a way to
-  // get a finished lane out of the way while filling the next one, not a property of the map — so it
-  // is never sent to the server and never broadcast to the others editing alongside you.
+  // Lanes and goals the viewer has folded away. Transient and local — never sent to the server, so
+  // collapsing does not affect anyone else editing the same map.
   const [collapsedSwimLaneIds, setCollapsedSwimLaneIds] = useState<
     ReadonlySet<string>
   >(() => new Set())
+
+  const [collapsedGoalIds, setCollapsedGoalIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  )
 
   const handleToggleSwimLaneCollapsed = useCallback((swimLaneId: string) => {
     setCollapsedSwimLaneIds((current) => {
       const next = new Set(current)
       if (!next.delete(swimLaneId)) next.add(swimLaneId)
+      return next
+    })
+  }, [])
+
+  const handleToggleGoalCollapsed = useCallback((goalId: string) => {
+    setCollapsedGoalIds((current) => {
+      const next = new Set(current)
+      if (!next.delete(goalId)) next.add(goalId)
       return next
     })
   }, [])
@@ -194,7 +205,6 @@ const StoryMapDetailPage: FC = () => {
     () => [...(map?.personas ?? [])].sort((a, b) => a.order - b.order),
     [map],
   )
-
 
   const handleAddGoal = async () => {
     if (!map) return
@@ -384,7 +394,11 @@ const StoryMapDetailPage: FC = () => {
   const handleDeleteGoal = async (goalId: string) => {
     if (!map) return
     try {
-      await deleteGoal({ storyMapId: map.id, storyMapKey: key, goalId }).unwrap()
+      await deleteGoal({
+        storyMapId: map.id,
+        storyMapKey: key,
+        goalId,
+      }).unwrap()
     } catch {
       messageApi.error('Failed to delete goal.')
     }
@@ -407,7 +421,11 @@ const StoryMapDetailPage: FC = () => {
   const handleDeleteStep = async (stepId: string) => {
     if (!map) return
     try {
-      await deleteStep({ storyMapId: map.id, storyMapKey: key, stepId }).unwrap()
+      await deleteStep({
+        storyMapId: map.id,
+        storyMapKey: key,
+        stepId,
+      }).unwrap()
     } catch {
       messageApi.error('Failed to delete step.')
     }
@@ -430,7 +448,11 @@ const StoryMapDetailPage: FC = () => {
   const handleDeleteTask = async (taskId: string) => {
     if (!map) return
     try {
-      await deleteTask({ storyMapId: map.id, storyMapKey: key, taskId }).unwrap()
+      await deleteTask({
+        storyMapId: map.id,
+        storyMapKey: key,
+        taskId,
+      }).unwrap()
     } catch {
       messageApi.error('Failed to delete task.')
     }
@@ -672,6 +694,8 @@ const StoryMapDetailPage: FC = () => {
           onAddSwimLane={handleAddSwimLane}
           collapsedSwimLaneIds={collapsedSwimLaneIds}
           onToggleSwimLaneCollapsed={handleToggleSwimLaneCollapsed}
+          collapsedGoalIds={collapsedGoalIds}
+          onToggleGoalCollapsed={handleToggleGoalCollapsed}
         />
       )}
 

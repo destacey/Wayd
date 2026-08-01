@@ -141,4 +141,3 @@ const StoryMapsPageWithAuthorization = requireFeatureFlag(
 )
 
 export default StoryMapsPageWithAuthorization
-

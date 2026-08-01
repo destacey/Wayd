@@ -84,15 +84,20 @@ export interface BoardDragIndex {
   kindById: Map<string, DragKind>
   goalIdByStepId: Map<string, string>
   cellByTaskId: Map<string, { stepId: string; swimLaneId: string }>
+  /**
+   * Every task-cell id the board renders — one per rendered step × expanded lane. Cell ids are
+   * structured strings, so a well-formed one can still name a cell a collapse has hidden; targets
+   * are checked against this set rather than by parsing.
+   */
+  renderedCellIds: Set<string>
 }
 
 /**
  * Index every draggable id once per drag, so drop resolution is plain lookups.
  *
- * Tasks in a collapsed swim lane are deliberately left out: they render no card and no cell, so they
- * are neither draggable nor droppable, and indexing them would let `resolveDrop` compute a landing
- * position among siblings the user cannot see. A collapsed lane's own banner stays draggable, so
- * lanes can still be reordered while collapsed.
+ * Anything a collapse hides is left out — indexing it would let `resolveDrop` compute a landing
+ * position among siblings the user cannot see. A collapsed node's own header stays draggable, so
+ * goals and lanes can still be reordered while collapsed.
  */
 export const buildDragIndex = (layout: BoardLayout): BoardDragIndex => {
   const kindById = new Map<string, DragKind>()
@@ -105,6 +110,12 @@ export const buildDragIndex = (layout: BoardLayout): BoardDragIndex => {
       .map(({ swimLane }) => swimLane.id),
   )
 
+  const expandedLaneIds = layout.swimLanes
+    .filter(({ isCollapsed }) => !isCollapsed)
+    .map(({ swimLane }) => swimLane.id)
+
+  const renderedCellIds = new Set<string>()
+
   for (const { goal } of layout.goals) kindById.set(goal.id, 'goal')
   for (const { swimLane } of layout.swimLanes) {
     kindById.set(swimLane.id, 'swimLane')
@@ -112,6 +123,11 @@ export const buildDragIndex = (layout: BoardLayout): BoardDragIndex => {
   for (const { step, goalId } of layout.steps) {
     kindById.set(step.id, 'step')
     goalIdByStepId.set(step.id, goalId)
+
+    for (const swimLaneId of expandedLaneIds) {
+      renderedCellIds.add(taskCellId(step.id, swimLaneId))
+    }
+
     for (const task of step.tasks) {
       if (collapsedLaneIds.has(task.swimLaneId)) continue
 
@@ -123,7 +139,7 @@ export const buildDragIndex = (layout: BoardLayout): BoardDragIndex => {
     }
   }
 
-  return { kindById, goalIdByStepId, cellByTaskId }
+  return { kindById, goalIdByStepId, cellByTaskId, renderedCellIds }
 }
 
 /**
@@ -180,9 +196,9 @@ export const isValidDropTarget = (
     // goals row itself is never a target.
     case 'step':
       return overKind === 'step' || parseEmptyStepSlotId(overId) !== null
-    // A task lands on another task, or on a (step × lane) cell — including an empty one.
+    // A task lands on another task, or on a rendered (step × lane) cell — including an empty one.
     case 'task':
-      return overKind === 'task' || parseTaskCellId(overId) !== null
+      return overKind === 'task' || index.renderedCellIds.has(overId)
   }
 }
 
@@ -265,8 +281,10 @@ export const resolveDrop = (
   if (!from) return null
 
   // Dropped on a cell rather than a card — the empty space below the last one, or an empty cell.
-  // Either way the task appends to the end.
-  const cell = parseTaskCellId(overId)
+  // Either way the task appends to the end. Parseable is not enough: a hidden cell parses fine.
+  const cell = index.renderedCellIds.has(overId)
+    ? parseTaskCellId(overId)
+    : null
   if (cell) {
     const existing =
       layout.tasksByCell.get(`${cell.stepId}:${cell.swimLaneId}`) ?? []
@@ -309,7 +327,6 @@ export const resolveDrop = (
     targetStepId: to.stepId,
     targetSwimLaneId: to.swimLaneId,
     newOrder,
-    changedCell:
-      to.stepId !== from.stepId || to.swimLaneId !== from.swimLaneId,
+    changedCell: to.stepId !== from.stepId || to.swimLaneId !== from.swimLaneId,
   }
 }

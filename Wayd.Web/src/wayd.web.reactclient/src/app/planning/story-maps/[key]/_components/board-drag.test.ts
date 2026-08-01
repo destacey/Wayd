@@ -154,7 +154,10 @@ describe('resolveDrop', () => {
 
     it('ignores a goal dropped on a different kind of node', () => {
       // Arrange
-      const withSteps = map([goal('g1', 0, [step('s1', 'g1', 0)]), goal('g2', 1)])
+      const withSteps = map([
+        goal('g1', 0, [step('s1', 'g1', 0)]),
+        goal('g2', 1),
+      ])
 
       // Act / Assert — a goal has no meaning as a child of a step.
       expect(drop(withSteps, 'g1', 's1')).toBeNull()
@@ -663,7 +666,7 @@ describe('collapsed swim lanes', () => {
     [swimLane(open, 0, true), swimLane(folded, 1)],
   )
 
-  const layout = buildBoardLayout(details, new Set([folded]))
+  const layout = buildBoardLayout(details, { swimLaneIds: new Set([folded]) })
   const index = buildDragIndex(layout)
 
   it('does not index a task in a collapsed lane', () => {
@@ -707,7 +710,9 @@ describe('collapsed swim lanes', () => {
       [goal('g1', 0, [step('s1', 'g1', 0)])],
       [swimLane(open, 0, true), swimLane(folded, 1), swimLane('l2', 2)],
     )
-    const threeLaneLayout = buildBoardLayout(threeLanes, new Set([folded]))
+    const threeLaneLayout = buildBoardLayout(threeLanes, {
+      swimLaneIds: new Set([folded]),
+    })
 
     // Act — folding a lane away must not pin it in place.
     const result = resolveDrop(
@@ -724,5 +729,107 @@ describe('collapsed swim lanes', () => {
       swimLaneId: folded,
       newOrder: 2,
     })
+  })
+})
+
+describe('collapsed goals', () => {
+  const lane = 'lane-default'
+
+  const details = map([
+    goal('g1', 0, [step('s1', 'g1', 0, [task('t1', 's1', lane, 0)])]),
+    goal('g2', 1, [step('s2', 'g2', 0, [task('t2', 's2', lane, 0)])]),
+    goal('g3', 2, [step('s3', 'g3', 0)]),
+  ])
+
+  const layout = buildBoardLayout(details, { goalIds: new Set(['g2']) })
+  const index = buildDragIndex(layout)
+
+  it('does not index the steps or tasks of a collapsed goal', () => {
+    // Arrange / Act / Assert — neither renders a cell, so neither is a drag node.
+    expect(index.kindById.get('s2')).toBeUndefined()
+    expect(index.kindById.get('t2')).toBeUndefined()
+    expect(index.kindById.get('s1')).toBe('step')
+    expect(index.kindById.get('t1')).toBe('task')
+  })
+
+  it('rejects a collapsed goal’s step as a drop target', () => {
+    // Arrange / Act / Assert — dropping there would land the step out of sight.
+    expect(isValidDropTarget(index, 's1', 's2')).toBe(false)
+    expect(resolveDrop(layout, index, 's1', 's2', 'before')).toBeNull()
+  })
+
+  it('rejects a task dropped into a collapsed goal’s cell', () => {
+    // Arrange / Act / Assert
+    expect(isValidDropTarget(index, 't1', taskCellId('s2', lane))).toBe(false)
+  })
+
+  it('still allows the collapsed goal itself to be reordered', () => {
+    // Arrange / Act — folding a goal away must not pin it in place.
+    const result = resolveDrop(layout, index, 'g2', 'g1', 'before')
+
+    // Assert
+    expect(result).toEqual({ kind: 'goal', goalId: 'g2', newOrder: 0 })
+  })
+
+  it('still allows an expanded goal to reorder across a collapsed one', () => {
+    // Arrange / Act — g1 past g3, with the collapsed g2 in between.
+    const result = resolveDrop(layout, index, 'g1', 'g3', 'after')
+
+    // Assert — removing g1 first pulls g3 back to index 1, so the end is index 2.
+    expect(result).toEqual({ kind: 'goal', goalId: 'g1', newOrder: 2 })
+  })
+
+  it('still reorders steps among the goals that remain expanded', () => {
+    // Arrange / Act — s1 joins g3, across the collapsed g2 sitting between them on screen.
+    const result = resolveDrop(layout, index, 's1', 's3', 'after')
+
+    // Assert
+    expect(result).toEqual({
+      kind: 'step',
+      stepId: 's1',
+      targetGoalId: 'g3',
+      newOrder: 1,
+    })
+  })
+})
+
+/** A well-formed cell id can still name a cell no longer on the board once a collapse hides it. */
+describe('task cells that are not rendered', () => {
+  const details = map(
+    [
+      goal('g1', 0, [step('s1', 'g1', 0, [task('t1', 's1', 'l0', 0)])]),
+      goal('g2', 1, [step('s2', 'g2', 0)]),
+    ],
+    [swimLane('l0', 0, true), swimLane('l1', 1)],
+  )
+
+  const layout = buildBoardLayout(details, {
+    goalIds: new Set(['g2']),
+    swimLaneIds: new Set(['l1']),
+  })
+  const index = buildDragIndex(layout)
+
+  it('accepts a cell on a rendered step crossed with an expanded lane', () => {
+    // Arrange / Act / Assert — the control case: this cell really is on the board.
+    expect(isValidDropTarget(index, 't1', taskCellId('s1', 'l0'))).toBe(true)
+  })
+
+  it('rejects a well-formed cell id naming a collapsed lane', () => {
+    // Arrange / Act / Assert — s1 renders, but l1 owns no task row.
+    const hidden = taskCellId('s1', 'l1')
+    expect(isValidDropTarget(index, 't1', hidden)).toBe(false)
+    expect(resolveDrop(layout, index, 't1', hidden)).toBeNull()
+  })
+
+  it('rejects a well-formed cell id naming a collapsed goal’s step', () => {
+    // Arrange / Act / Assert — l0 is expanded, but s2 lives inside the collapsed g2.
+    const hidden = taskCellId('s2', 'l0')
+    expect(isValidDropTarget(index, 't1', hidden)).toBe(false)
+    expect(resolveDrop(layout, index, 't1', hidden)).toBeNull()
+  })
+
+  it('rejects a cell id for a step that does not exist at all', () => {
+    // Arrange / Act / Assert
+    expect(isValidDropTarget(index, 't1', taskCellId('nope', 'l0'))).toBe(false)
   })
 })

@@ -102,4 +102,3 @@ const CreateStoryMapForm = ({
 }
 
 export default CreateStoryMapForm
-

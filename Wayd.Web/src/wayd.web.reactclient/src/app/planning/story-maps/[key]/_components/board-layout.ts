@@ -20,6 +20,9 @@ import {
 export const LABEL_COLUMN = 1
 const FIRST_STEP_COLUMN = 2
 
+/** Shared empty set, so the default collapse state allocates nothing per call. */
+const EMPTY_IDS: ReadonlySet<string> = new Set()
+
 /**
  * Grid row lines: goals, then steps, then the swim lanes. An expanded lane takes two rows — its
  * header banner, then its row of task cells — while a collapsed one takes only the banner.
@@ -47,6 +50,8 @@ export interface GoalPlacement {
   index: number
   /** A step-less goal still claims one track, which needs blank filler cells in the rows below. */
   isPlaceholderColumn: boolean
+  /** Folds to a single narrow track its header runs down; contributes no step columns. */
+  isCollapsed: boolean
 }
 
 export interface SwimLanePlacement {
@@ -54,12 +59,12 @@ export interface SwimLanePlacement {
   /** 1-based grid row line of the lane's full-width header banner. */
   headerRow: number
   /**
-   * 1-based grid row line this lane's task cells occupy, directly under the header — or null when
-   * the lane is collapsed, in which case it claims no task row at all.
+   * 1-based grid row line this lane's task cells occupy, directly under the header — null when the
+   * lane is collapsed and claims no task row.
    */
   row: number | null
   index: number
-  /** Collapsed lanes render as the banner alone; their tasks are hidden, not filtered. */
+  /** Renders as the banner alone. */
   isCollapsed: boolean
 }
 
@@ -70,11 +75,15 @@ export interface BoardLayout {
   /** 1-based line number of the right-most column, used to spot outer-edge cells. */
   lastColumn: number
   /**
-   * Number of step tracks the grid template must declare. NOT `steps.length` — a step-less goal
-   * still claims a placeholder track, and declaring too few makes the browser size the overflow
-   * columns by content instead of `1fr`, so goals stop sharing width equally.
+   * One entry per step track, in column order, each the CSS width for that track. NOT derivable from
+   * `steps.length` — a step-less goal claims a placeholder track and a collapsed goal a narrow
+   * spine, and declaring too few tracks makes the browser size the overflow ones by content instead
+   * of `1fr`, so goals stop sharing width equally.
    */
-  stepColumnCount: number
+  stepColumnTracks: string[]
+  /** Track counts by kind, so the board can floor its width at the sum of the minimums. */
+  flexibleColumnCount: number
+  collapsedColumnCount: number
   /** Tasks keyed by `${stepId}:${swimLaneId}`, each list sorted by order. */
   tasksByCell: Map<string, StoryMapTaskDto[]>
 }
@@ -86,42 +95,65 @@ export const cellKey = (stepId: string, swimLaneId: string) =>
 const byOrder = <T extends { order: number }>(items: T[]): T[] =>
   [...items].sort((a, b) => a.order - b.order)
 
+/** What the viewer has folded away. Transient view state — see the note on `buildBoardLayout`. */
+export interface BoardCollapseState {
+  goalIds?: ReadonlySet<string>
+  swimLaneIds?: ReadonlySet<string>
+}
+
+const NO_COLLAPSE: BoardCollapseState = {}
+
 /**
  * Walk the map in display order, assigning each step the next column and each goal a header span
  * covering its steps. A step-less goal still claims one column so its header stays reachable.
  *
- * `collapsedSwimLaneIds` is transient view state, so it changes geometry rather than data: a
- * collapsed lane claims its banner row and nothing else, and the lanes below shuffle up. Row numbers
- * are therefore accumulated, not derived from the lane's index.
+ * A collapsed node renders no cells, so anything it hides is left out of `tasksByCell` — a cell that
+ * renders nothing must not be a drop target.
  */
 export const buildBoardLayout = (
   map: StoryMapDetailsDto,
-  collapsedSwimLaneIds: ReadonlySet<string> = new Set(),
+  collapsed: BoardCollapseState = NO_COLLAPSE,
 ): BoardLayout => {
+  const collapsedGoalIds = collapsed.goalIds ?? EMPTY_IDS
+  const collapsedSwimLaneIds = collapsed.swimLaneIds ?? EMPTY_IDS
+
   const goals: GoalPlacement[] = []
   const steps: StepPlacement[] = []
 
   let column = FIRST_STEP_COLUMN
 
+  const collapsedColumns = new Set<number>()
+
   byOrder(map.goals).forEach((goal, index) => {
     const goalSteps = byOrder(goal.steps)
+    const isCollapsed = collapsedGoalIds.has(goal.id)
     const columnStart = column
 
-    goalSteps.forEach((step, indexInGoal) => {
-      steps.push({ step, goalId: goal.id, column, indexInGoal })
-      column += 1
+    if (!isCollapsed) {
+      goalSteps.forEach((step, indexInGoal) => {
+        steps.push({ step, goalId: goal.id, column, indexInGoal })
+        column += 1
+      })
+    }
+
+    // Both fold to a single track, but the placeholder accepts a dropped step and the spine does not.
+    const isPlaceholderColumn = !isCollapsed && goalSteps.length === 0
+    const columnSpan = isCollapsed ? 1 : Math.max(goalSteps.length, 1)
+    if (isCollapsed) collapsedColumns.add(column)
+    if (isCollapsed || isPlaceholderColumn) column += 1
+
+    goals.push({
+      goal,
+      columnStart,
+      columnSpan,
+      index,
+      isPlaceholderColumn,
+      isCollapsed,
     })
-
-    // An empty goal still occupies a single placeholder column.
-    const isPlaceholderColumn = goalSteps.length === 0
-    const columnSpan = Math.max(goalSteps.length, 1)
-    if (isPlaceholderColumn) column += 1
-
-    goals.push({ goal, columnStart, columnSpan, index, isPlaceholderColumn })
   })
 
-  // An expanded lane occupies two rows — a full-width header banner, then the row of task cells
-  // under it — and a collapsed one just the banner, so rows are handed out as the walk proceeds.
+  // Rows are accumulated, not derived from the index: an expanded lane takes two (banner, tasks)
+  // and a collapsed one takes only its banner.
   let laneRow = FIRST_SWIM_LANE_ROW
   const swimLanes = byOrder(map.swimLanes).map((swimLane, index) => {
     const isCollapsed = collapsedSwimLaneIds.has(swimLane.id)
@@ -135,8 +167,9 @@ export const buildBoardLayout = (
   const tasksByCell = new Map<string, StoryMapTaskDto[]>()
   for (const { step } of steps) {
     for (const task of step.tasks) {
-      // A collapsed lane renders no cells, so its tasks must not appear here either — this map is
-      // what drop resolution counts siblings in, and a hidden cell is not a legal landing place.
+      // Drop resolution counts siblings in this map, so a hidden cell must not appear in it. A
+      // collapsed goal needs no equivalent check — it contributes no steps, so the loop above never
+      // reaches its tasks.
       if (collapsedSwimLaneIds.has(task.swimLaneId)) continue
 
       const key = cellKey(step.id, task.swimLaneId)
@@ -151,13 +184,23 @@ export const buildBoardLayout = (
 
   const lastColumn = column - 1
 
+  // Floored at 1 so a map with no goals still has a track for the grid template to declare.
+  const stepColumnCount = Math.max(lastColumn - LABEL_COLUMN, 1)
+
+  const stepColumnTracks = Array.from({ length: stepColumnCount }, (_, i) =>
+    collapsedColumns.has(FIRST_STEP_COLUMN + i)
+      ? 'var(--sm-collapsed-col-width)'
+      : 'minmax(var(--sm-col-min), 1fr)',
+  )
+
   return {
     goals,
     steps,
     swimLanes,
     lastColumn,
-    // Floored at 1 so a map with no goals still has a track for the grid template to declare.
-    stepColumnCount: Math.max(lastColumn - LABEL_COLUMN, 1),
+    stepColumnTracks,
+    collapsedColumnCount: collapsedColumns.size,
+    flexibleColumnCount: stepColumnCount - collapsedColumns.size,
     tasksByCell,
   }
 }

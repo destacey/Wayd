@@ -42,5 +42,4 @@ const EmptyStepSlot: FC<EmptyStepSlotProps> = ({
   )
 }
 
-
 export default EmptyStepSlot

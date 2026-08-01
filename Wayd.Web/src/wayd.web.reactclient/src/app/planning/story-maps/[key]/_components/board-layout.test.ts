@@ -9,8 +9,15 @@ import { buildBoardLayout, cellKey } from './board-layout'
 
 /**
  * Two invariants are asserted throughout: a goal header spans exactly its own steps' tracks, and
- * `stepColumnCount` includes a placeholder track for every step-less goal.
+ * `stepColumnTracks` declares one track per step plus a placeholder for every step-less goal and a
+ * narrow spine for every collapsed one.
  */
+
+/** The flexible track every non-collapsed step column gets. */
+const FLEX_TRACK = 'minmax(var(--sm-col-min), 1fr)'
+
+/** The fixed narrow track a collapsed goal's spine gets. */
+const SPINE_TRACK = 'var(--sm-collapsed-col-width)'
 
 const task = (
   id: string,
@@ -85,7 +92,7 @@ describe('buildBoardLayout', () => {
       ])
 
       // Act
-      const { steps, lastColumn, stepColumnCount } = buildBoardLayout(details)
+      const { steps, lastColumn, stepColumnTracks } = buildBoardLayout(details)
 
       // Assert — column 1 is the label column, so steps start at 2.
       expect(steps.map((s) => [s.step.id, s.column])).toEqual([
@@ -94,7 +101,7 @@ describe('buildBoardLayout', () => {
         ['s3', 4],
       ])
       expect(lastColumn).toBe(4)
-      expect(stepColumnCount).toBe(3)
+      expect(stepColumnTracks).toEqual([FLEX_TRACK, FLEX_TRACK, FLEX_TRACK])
     })
 
     it('spans a goal header across exactly its own steps', () => {
@@ -160,11 +167,11 @@ describe('buildBoardLayout', () => {
       const details = map([goal('g1', 0), goal('g2', 1), goal('g3', 2)])
 
       // Act
-      const { goals, steps, stepColumnCount } = buildBoardLayout(details)
+      const { goals, steps, stepColumnTracks } = buildBoardLayout(details)
 
       // Assert — three tracks for three goals, despite there being no steps at all.
       expect(steps).toHaveLength(0)
-      expect(stepColumnCount).toBe(3)
+      expect(stepColumnTracks).toEqual([FLEX_TRACK, FLEX_TRACK, FLEX_TRACK])
       expect(
         goals.map((g) => [g.goal.id, g.columnStart, g.columnSpan]),
       ).toEqual([
@@ -197,7 +204,7 @@ describe('buildBoardLayout', () => {
       ])
 
       // Act
-      const { goals, steps, stepColumnCount } = buildBoardLayout(details)
+      const { goals, steps, stepColumnTracks } = buildBoardLayout(details)
 
       // Assert — g2 occupies column 4, so g3's step lands at 5.
       expect(
@@ -208,15 +215,153 @@ describe('buildBoardLayout', () => {
         ['g3', 5, 1],
       ])
       expect(steps.map((s) => s.column)).toEqual([2, 3, 5])
-      expect(stepColumnCount).toBe(4)
+      expect(stepColumnTracks).toHaveLength(4)
     })
 
     it('declares one track for a map with no goals at all', () => {
       // Arrange / Act
-      const { stepColumnCount } = buildBoardLayout(map([]))
+      const { stepColumnTracks } = buildBoardLayout(map([]))
 
       // Assert — the grid template still needs a track to name.
-      expect(stepColumnCount).toBe(1)
+      expect(stepColumnTracks).toEqual([FLEX_TRACK])
+    })
+  })
+
+  describe('collapsed goals', () => {
+    it('folds a collapsed goal to one narrow track and shuffles the rest left', () => {
+      // Arrange
+      const details = map([
+        goal('g1', 0, [step('s1', 'g1', 0), step('s2', 'g1', 1)]),
+        goal('g2', 1, [step('s3', 'g2', 0), step('s4', 'g2', 1)]),
+        goal('g3', 2, [step('s5', 'g3', 0)]),
+      ])
+
+      // Act
+      const { goals, stepColumnTracks, lastColumn } = buildBoardLayout(
+        details,
+        {
+          goalIds: new Set(['g2']),
+        },
+      )
+
+      // Assert — g2 spans one track instead of two, so g3 starts at 5 rather than 6.
+      expect(
+        goals.map((g) => [
+          g.goal.id,
+          g.columnStart,
+          g.columnSpan,
+          g.isCollapsed,
+        ]),
+      ).toEqual([
+        ['g1', 2, 2, false],
+        ['g2', 4, 1, true],
+        ['g3', 5, 1, false],
+      ])
+      expect(lastColumn).toBe(5)
+      expect(stepColumnTracks).toEqual([
+        FLEX_TRACK,
+        FLEX_TRACK,
+        SPINE_TRACK,
+        FLEX_TRACK,
+      ])
+    })
+
+    it('contributes no step placements for a collapsed goal', () => {
+      // Arrange
+      const details = map([
+        goal('g1', 0, [step('s1', 'g1', 0)]),
+        goal('g2', 1, [step('s2', 'g2', 0), step('s3', 'g2', 1)]),
+      ])
+
+      // Act
+      const { steps } = buildBoardLayout(details, { goalIds: new Set(['g2']) })
+
+      // Assert — a collapsed goal's steps render no cells, so they are not placed at all.
+      expect(steps.map((s) => s.step.id)).toEqual(['s1'])
+    })
+
+    it('leaves a collapsed goal’s tasks out of the task buckets', () => {
+      // Arrange
+      const details = map([
+        goal('g1', 0, [
+          step('s1', 'g1', 0, [task('t1', 's1', 'lane-default', 0)]),
+        ]),
+        goal('g2', 1, [
+          step('s2', 'g2', 0, [task('t2', 's2', 'lane-default', 0)]),
+        ]),
+      ])
+
+      // Act
+      const { tasksByCell } = buildBoardLayout(details, {
+        goalIds: new Set(['g2']),
+      })
+
+      // Assert — hidden cells must not be drop targets.
+      expect(tasksByCell.has(cellKey('s1', 'lane-default'))).toBe(true)
+      expect(tasksByCell.has(cellKey('s2', 'lane-default'))).toBe(false)
+    })
+
+    it('does not flag a collapsed goal as a placeholder column', () => {
+      // Arrange — both fold to one track, but only the placeholder accepts a dropped step.
+      const details = map([goal('g1', 0), goal('g2', 1)])
+
+      // Act
+      const { goals } = buildBoardLayout(details, { goalIds: new Set(['g2']) })
+
+      // Assert
+      expect(
+        goals.map((g) => [g.goal.id, g.isPlaceholderColumn, g.isCollapsed]),
+      ).toEqual([
+        ['g1', true, false],
+        ['g2', false, true],
+      ])
+    })
+
+    it('declares a spine for every collapsed goal when all are collapsed', () => {
+      // Arrange
+      const details = map([
+        goal('g1', 0, [step('s1', 'g1', 0)]),
+        goal('g2', 1, [step('s2', 'g2', 0)]),
+      ])
+
+      // Act
+      const {
+        steps,
+        stepColumnTracks,
+        collapsedColumnCount,
+        flexibleColumnCount,
+      } = buildBoardLayout(details, { goalIds: new Set(['g1', 'g2']) })
+
+      // Assert
+      expect(steps).toHaveLength(0)
+      expect(stepColumnTracks).toEqual([SPINE_TRACK, SPINE_TRACK])
+      expect(collapsedColumnCount).toBe(2)
+      expect(flexibleColumnCount).toBe(0)
+    })
+
+    it('collapses goals and swim lanes independently', () => {
+      // Arrange
+      const details = map(
+        [
+          goal('g1', 0, [step('s1', 'g1', 0, [task('t1', 's1', 'l0', 0)])]),
+          goal('g2', 1, [step('s2', 'g2', 0)]),
+        ],
+        [swimLane('l0', 0, true), swimLane('l1', 1)],
+      )
+
+      // Act
+      const { goals, swimLanes, steps } = buildBoardLayout(details, {
+        goalIds: new Set(['g2']),
+        swimLaneIds: new Set(['l1']),
+      })
+
+      // Assert — the two axes fold independently.
+      expect(goals.map((g) => g.isCollapsed)).toEqual([false, true])
+      expect(swimLanes.map((l) => [l.swimLane.id, l.row])).toEqual([
+        ['l0', 4],
+        ['l1', null],
+      ])
+      expect(steps.map((s) => s.step.id)).toEqual(['s1'])
     })
   })
 
@@ -232,12 +377,12 @@ describe('buildBoardLayout', () => {
       const { swimLanes } = buildBoardLayout(details)
 
       // Assert — rows 1 and 2 are goals and steps, so lanes start at 3.
-      expect(
-        swimLanes.map((l) => [l.swimLane.id, l.headerRow, l.row]),
-      ).toEqual([
-        ['l0', 3, 4],
-        ['l1', 5, 6],
-      ])
+      expect(swimLanes.map((l) => [l.swimLane.id, l.headerRow, l.row])).toEqual(
+        [
+          ['l0', 3, 4],
+          ['l1', 5, 6],
+        ],
+      )
     })
 
     it('orders lanes by their order field', () => {
@@ -264,11 +409,18 @@ describe('buildBoardLayout', () => {
       )
 
       // Act
-      const { swimLanes } = buildBoardLayout(details, new Set(['l1']))
+      const { swimLanes } = buildBoardLayout(details, {
+        swimLaneIds: new Set(['l1']),
+      })
 
       // Assert — l1 keeps only its banner (row 5), so l2 starts at 6 rather than 7.
       expect(
-        swimLanes.map((l) => [l.swimLane.id, l.headerRow, l.row, l.isCollapsed]),
+        swimLanes.map((l) => [
+          l.swimLane.id,
+          l.headerRow,
+          l.row,
+          l.isCollapsed,
+        ]),
       ).toEqual([
         ['l0', 3, 4, false],
         ['l1', 5, null, true],
@@ -291,12 +443,14 @@ describe('buildBoardLayout', () => {
       )
 
       // Act
-      const { tasksByCell } = buildBoardLayout(details, new Set(['l1']))
+      const { tasksByCell } = buildBoardLayout(details, {
+        swimLaneIds: new Set(['l1']),
+      })
 
       // Assert — a collapsed lane renders no cells, so its tasks are not drop siblings.
-      expect(
-        tasksByCell.get(cellKey('s1', 'l0'))?.map((t) => t.id),
-      ).toEqual(['t-open'])
+      expect(tasksByCell.get(cellKey('s1', 'l0'))?.map((t) => t.id)).toEqual([
+        't-open',
+      ])
       expect(tasksByCell.has(cellKey('s1', 'l1'))).toBe(false)
     })
 
@@ -308,13 +462,17 @@ describe('buildBoardLayout', () => {
       )
 
       // Act
-      const { swimLanes } = buildBoardLayout(details, new Set(['l0', 'l1']))
+      const { swimLanes } = buildBoardLayout(details, {
+        swimLaneIds: new Set(['l0', 'l1']),
+      })
 
       // Assert — consecutive banner rows, no task rows at all.
-      expect(swimLanes.map((l) => [l.swimLane.id, l.headerRow, l.row])).toEqual([
-        ['l0', 3, null],
-        ['l1', 4, null],
-      ])
+      expect(swimLanes.map((l) => [l.swimLane.id, l.headerRow, l.row])).toEqual(
+        [
+          ['l0', 3, null],
+          ['l1', 4, null],
+        ],
+      )
     })
 
     it('treats an unknown collapsed id as collapsing nothing', () => {
@@ -322,7 +480,9 @@ describe('buildBoardLayout', () => {
       const details = map([goal('g1', 0)], [swimLane('l0', 0, true)])
 
       // Act
-      const { swimLanes } = buildBoardLayout(details, new Set(['gone']))
+      const { swimLanes } = buildBoardLayout(details, {
+        swimLaneIds: new Set(['gone']),
+      })
 
       // Assert
       expect(swimLanes.map((l) => [l.swimLane.id, l.row])).toEqual([['l0', 4]])

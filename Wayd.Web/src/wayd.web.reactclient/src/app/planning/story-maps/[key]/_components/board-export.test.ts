@@ -40,7 +40,14 @@ const step = (
   tasks: StoryMapTaskDto[] = [],
   personaIds: string[] = [],
 ): StoryMapStepDto =>
-  ({ id: name, goalId: 'g1', name, order, personaIds, tasks }) as StoryMapStepDto
+  ({
+    id: name,
+    goalId: 'g1',
+    name,
+    order,
+    personaIds,
+    tasks,
+  }) as StoryMapStepDto
 
 const goal = (
   name: string,
@@ -52,11 +59,7 @@ const goal = (
 const lane = (id: string, name: string, order: number): StoryMapSwimLaneDto =>
   ({ id, name, order, isDefault: order === 0 }) as StoryMapSwimLaneDto
 
-const persona = (
-  id: string,
-  name: string,
-  order: number,
-): StoryMapPersonaDto =>
+const persona = (id: string, name: string, order: number): StoryMapPersonaDto =>
   ({ id, name, order, color: '#fff' }) as StoryMapPersonaDto
 
 const map = (
@@ -95,7 +98,9 @@ describe('buildExportRows', () => {
 
   it('produces a row for every header column', () => {
     // Arrange
-    const details = map([goal('Goal A', 0, [step('Step 1', 0, [task('T', 0)])])])
+    const details = map([
+      goal('Goal A', 0, [step('Step 1', 0, [task('T', 0)])]),
+    ])
 
     // Act
     const rows = buildExportRows(details)
@@ -166,7 +171,7 @@ describe('buildExportRows', () => {
       ])
     })
 
-    it('groups a step\'s tasks by swim lane in board order', () => {
+    it("groups a step's tasks by swim lane in board order", () => {
       // Arrange
       const details = map(
         [
@@ -254,7 +259,11 @@ describe('buildExportRows', () => {
     it('joins linked persona names with a semicolon', () => {
       // Arrange
       const details = map(
-        [goal('Goal A', 0, [step('Step 1', 0, [task('T', 0, 'lane-1', ['p1', 'p2'])])])],
+        [
+          goal('Goal A', 0, [
+            step('Step 1', 0, [task('T', 0, 'lane-1', ['p1', 'p2'])]),
+          ]),
+        ],
         undefined,
         [persona('p1', 'Engineer', 0), persona('p2', 'Designer', 1)],
       )
@@ -266,10 +275,14 @@ describe('buildExportRows', () => {
       expect(rows[0][7]).toBe('Engineer; Designer')
     })
 
-    it('lists personas in the map\'s order, not the order they were linked', () => {
+    it("lists personas in the map's order, not the order they were linked", () => {
       // Arrange
       const details = map(
-        [goal('Goal A', 0, [step('Step 1', 0, [task('T', 0, 'lane-1', ['p2', 'p1'])])])],
+        [
+          goal('Goal A', 0, [
+            step('Step 1', 0, [task('T', 0, 'lane-1', ['p2', 'p1'])]),
+          ]),
+        ],
         undefined,
         [persona('p1', 'Engineer', 0), persona('p2', 'Designer', 1)],
       )
@@ -283,9 +296,11 @@ describe('buildExportRows', () => {
 
     it('leaves the column blank when nothing is linked', () => {
       // Arrange
-      const details = map([goal('Goal A', 0, [step('Step 1', 0, [task('T', 0)])])], undefined, [
-        persona('p1', 'Engineer', 0),
-      ])
+      const details = map(
+        [goal('Goal A', 0, [step('Step 1', 0, [task('T', 0)])])],
+        undefined,
+        [persona('p1', 'Engineer', 0)],
+      )
 
       // Act
       const rows = buildExportRows(details)
@@ -297,7 +312,11 @@ describe('buildExportRows', () => {
     it('ignores a persona id the map no longer has', () => {
       // Arrange — a stale link left by a deleted persona.
       const details = map(
-        [goal('Goal A', 0, [step('Step 1', 0, [task('T', 0, 'lane-1', ['gone', 'p1'])])])],
+        [
+          goal('Goal A', 0, [
+            step('Step 1', 0, [task('T', 0, 'lane-1', ['gone', 'p1'])]),
+          ]),
+        ],
         undefined,
         [persona('p1', 'Engineer', 0)],
       )
@@ -398,7 +417,11 @@ describe('buildExportRows', () => {
   it('still exports a task whose swim lane is missing from the map', () => {
     // Arrange
     const details = map(
-      [goal('Goal A', 0, [step('Step 1', 0, [task('Orphan', 0, 'lane-gone')])])],
+      [
+        goal('Goal A', 0, [
+          step('Step 1', 0, [task('Orphan', 0, 'lane-gone')]),
+        ]),
+      ],
       [lane('lane-1', 'Tasks', 0)],
     )
 
@@ -406,8 +429,6 @@ describe('buildExportRows', () => {
     const rows = buildExportRows(details)
 
     // Assert — kept, with the lane name blank rather than dropped from the file.
-    expect(rows).toEqual([
-      ['Goal A', 1, 'Step 1', 1, 'Orphan', 1, '', '', ''],
-    ])
+    expect(rows).toEqual([['Goal A', 1, 'Step 1', 1, 'Orphan', 1, '', '', '']])
   })
 })

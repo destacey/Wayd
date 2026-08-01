@@ -2,10 +2,7 @@
 
 import { StoryMapTaskDto } from '@/src/services/wayd-api'
 import { useDroppable } from '@dnd-kit/core'
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSSProperties, FC } from 'react'
 import { BoardActions } from './board-actions'
 import { DropSide } from './board-drag'

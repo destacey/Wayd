@@ -46,14 +46,18 @@ export interface StoryMapBoardProps {
   actions: BoardActions
   onAddStep: (goalId: string) => void
   onAddSwimLane: () => void
-  /** Lane ids the viewer has folded away — a local view preference, not map data. */
+  /** Lane and goal ids the viewer has folded away — local view state, not map data. */
   collapsedSwimLaneIds: ReadonlySet<string>
   onToggleSwimLaneCollapsed: (swimLaneId: string) => void
+  collapsedGoalIds: ReadonlySet<string>
+  onToggleGoalCollapsed: (goalId: string) => void
 }
 
 interface BoardGridCssVars extends CSSProperties {
   '--sm-step-columns': string
-  '--sm-step-count': number
+  /** Counts of each track kind, so the CSS can floor the board's width at their minimums. */
+  '--sm-flexible-col-count': number
+  '--sm-collapsed-col-count': number
 }
 
 /**
@@ -73,28 +77,48 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
   onAddSwimLane,
   collapsedSwimLaneIds,
   onToggleSwimLaneCollapsed,
+  collapsedGoalIds,
+  onToggleGoalCollapsed,
 }) => {
   const layout = useMemo(
-    () => buildBoardLayout(map, collapsedSwimLaneIds),
-    [map, collapsedSwimLaneIds],
+    () =>
+      buildBoardLayout(map, {
+        goalIds: collapsedGoalIds,
+        swimLaneIds: collapsedSwimLaneIds,
+      }),
+    [map, collapsedGoalIds, collapsedSwimLaneIds],
   )
-  const { goals, steps, swimLanes, tasksByCell, lastColumn, stepColumnCount } =
-    layout
+  const {
+    goals,
+    steps,
+    swimLanes,
+    tasksByCell,
+    lastColumn,
+    stepColumnTracks,
+    flexibleColumnCount,
+    collapsedColumnCount,
+  } = layout
 
-  // Equal-width step columns. The count is published too, so the CSS can floor the board's width at
-  // the sum of the track minimums.
+  // An explicit track list rather than one repeat(): a collapsed goal's spine is a fixed width
+  // while every other step column shares the leftover space equally.
   const gridStyle: BoardGridCssVars = {
-    '--sm-step-columns': `repeat(${stepColumnCount}, minmax(var(--sm-col-min), 1fr))`,
-    '--sm-step-count': stepColumnCount,
+    '--sm-step-columns': stepColumnTracks.join(' '),
+    '--sm-flexible-col-count': flexibleColumnCount,
+    '--sm-collapsed-col-count': collapsedColumnCount,
   }
 
-  // Only expanded lanes own a task row, so everything placed in one — the cells, the label-column
-  // spacer, and a step-less goal's blank filler — iterates this rather than every lane. The
-  // predicate is a type guard so `row` narrows to a number for the inline gridRow.
+  // Everything placed in a task row iterates this rather than every lane. The predicate is a type
+  // guard so `row` narrows to a number for the inline gridRow.
   const expandedSwimLanes = swimLanes.filter(
     (placement): placement is typeof placement & { row: number } =>
       placement.row !== null,
   )
+
+  // The grid line just past the last lane row, which a collapsed goal's spine spans down to.
+  const bottomRow =
+    STEP_ROW +
+    1 +
+    swimLanes.reduce((rows, lane) => rows + (lane.isCollapsed ? 1 : 2), 0)
 
   // Deleting a lane moves its tasks to the default lane, so the confirmation says how many — every
   // task moves, not just the ones the filter leaves visible.
@@ -204,14 +228,13 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
         return steps.find((s) => s.step.id === activeDragId)?.step.name ?? null
       case 'swimLane':
         return (
-          swimLanes.find((l) => l.swimLane.id === activeDragId)?.swimLane.name ??
-          null
+          swimLanes.find((l) => l.swimLane.id === activeDragId)?.swimLane
+            .name ?? null
         )
       case 'task':
         return (
-          steps
-            .flatMap((s) => s.step.tasks)
-            .find((t) => t.id === activeDragId)?.title ?? null
+          steps.flatMap((s) => s.step.tasks).find((t) => t.id === activeDragId)
+            ?.title ?? null
         )
       default:
         return null
@@ -235,133 +258,143 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveDragId(null)}
     >
-    <div className={styles.boardScroll}>
-      <div className={styles.boardGrid} style={gridStyle} data-tour="board">
-      <SortableContext items={sortableIds}>
-        {/* ── Sticky label column ── */}
-        <div
-          className={`${styles.labelCell} ${styles.labelCellGoals}`}
-          style={{ gridRow: GOAL_ROW, gridColumn: LABEL_COLUMN }}
-        >
-          Goals
-        </div>
-        <div
-          className={`${styles.labelCell} ${styles.labelCellSteps}`}
-          style={{ gridRow: STEP_ROW, gridColumn: LABEL_COLUMN }}
-        >
-          Steps
-        </div>
+      <div className={styles.boardScroll}>
+        <div className={styles.boardGrid} style={gridStyle} data-tour="board">
+          <SortableContext items={sortableIds}>
+            {/* ── Sticky label column ── */}
+            <div
+              className={`${styles.labelCell} ${styles.labelCellGoals}`}
+              style={{ gridRow: GOAL_ROW, gridColumn: LABEL_COLUMN }}
+            >
+              Goals
+            </div>
+            <div
+              className={`${styles.labelCell} ${styles.labelCellSteps}`}
+              style={{ gridRow: STEP_ROW, gridColumn: LABEL_COLUMN }}
+            >
+              Steps
+            </div>
 
-        {/* ── Goals row ── */}
-        {goals.map((placement) => (
-          <GoalHeaderCell
-            key={placement.goal.id}
-            placement={placement}
-            selectedPersonaId={selectedPersonaId}
-            actions={actions}
-            onAddStep={onAddStep}
-            isLastColumn={
-              placement.columnStart + placement.columnSpan - 1 === lastColumn
-            }
-            dropSide={dropSide}
-          />
-        ))}
-
-        {/* ── Steps row ── */}
-        {steps.map((placement) => (
-          <StepHeaderCell
-            key={placement.step.id}
-            placement={placement}
-            selectedPersonaId={selectedPersonaId}
-            actions={actions}
-            isLastColumn={placement.column === lastColumn}
-            dropSide={dropSide}
-          />
-        ))}
-
-        {/* ── Task band: per swim lane, a full-width header banner then a row of task cells ── */}
-        {swimLanes.map(({ swimLane, headerRow, isCollapsed }) => (
-          <SwimLaneHeader
-            key={`lane-header-${swimLane.id}`}
-            swimLane={swimLane}
-            row={headerRow}
-            taskCount={taskCountsByLane.get(swimLane.id) ?? 0}
-            visibleTaskCount={visibleCountsByLane.get(swimLane.id) ?? 0}
-            isCollapsed={isCollapsed}
-            onToggleCollapsed={onToggleSwimLaneCollapsed}
-            actions={actions}
-          />
-        ))}
-
-        {/* Empty filler beside each lane's task row, so the label column's right border continues
-            past the Steps row. The lane name itself lives in the banner above. A collapsed lane has
-            no task row to sit beside. */}
-        {expandedSwimLanes.map(({ swimLane, row }) => (
-          <div
-            key={`lane-spacer-${swimLane.id}`}
-            className={`${styles.labelCell} ${styles.labelCellSpacer}`}
-            style={{ gridRow: row, gridColumn: LABEL_COLUMN }}
-          />
-        ))}
-
-        {expandedSwimLanes.map(({ swimLane, row }) =>
-          steps.map(({ step, column }) => (
-            <TaskCell
-              key={cellKey(step.id, swimLane.id)}
-              cellId={taskCellId(step.id, swimLane.id)}
-              tasks={tasksByCell.get(cellKey(step.id, swimLane.id)) ?? []}
-              column={column}
-              row={row}
-              selectedPersonaId={selectedPersonaId}
-              actions={actions}
-              isLastColumn={column === lastColumn}
-              dropSide={dropSide}
-            />
-          )),
-        )}
-
-        {/* ── Blank cells filling a step-less goal's placeholder track ── */}
-        {goals
-          .filter((placement) => placement.isPlaceholderColumn)
-          .map((placement) => (
-            <Fragment key={`placeholder-${placement.goal.id}`}>
-              <EmptyStepSlot
-                goalId={placement.goal.id}
-                column={placement.columnStart}
-                canUpdate={actions.canUpdate}
-                isLastColumn={placement.columnStart === lastColumn}
+            {/* ── Goals row ── */}
+            {goals.map((placement) => (
+              <GoalHeaderCell
+                key={placement.goal.id}
+                placement={placement}
+                selectedPersonaId={selectedPersonaId}
+                actions={actions}
+                onAddStep={onAddStep}
+                isLastColumn={
+                  placement.columnStart + placement.columnSpan - 1 ===
+                  lastColumn
+                }
+                dropSide={dropSide}
+                onToggleCollapsed={onToggleGoalCollapsed}
+                bottomRow={bottomRow}
               />
-              {expandedSwimLanes.map(({ swimLane, row }) => (
-                <div
-                  key={`placeholder-${placement.goal.id}-${swimLane.id}`}
-                  className={`${styles.taskCell} ${
-                    placement.columnStart === lastColumn ? styles.lastColumn : ''
-                  }`}
-                  style={{ gridRow: row, gridColumn: placement.columnStart }}
-                />
-              ))}
-            </Fragment>
-          ))}
+            ))}
 
-        {/* ── Add swim lane: a full-width footer under the last lane row. Always rendered (empty
+            {/* ── Steps row ── */}
+            {steps.map((placement) => (
+              <StepHeaderCell
+                key={placement.step.id}
+                placement={placement}
+                selectedPersonaId={selectedPersonaId}
+                actions={actions}
+                isLastColumn={placement.column === lastColumn}
+                dropSide={dropSide}
+              />
+            ))}
+
+            {/* ── Task band: per swim lane, a full-width header banner then a row of task cells ── */}
+            {swimLanes.map(({ swimLane, headerRow, isCollapsed }) => (
+              <SwimLaneHeader
+                key={`lane-header-${swimLane.id}`}
+                swimLane={swimLane}
+                row={headerRow}
+                taskCount={taskCountsByLane.get(swimLane.id) ?? 0}
+                visibleTaskCount={visibleCountsByLane.get(swimLane.id) ?? 0}
+                isCollapsed={isCollapsed}
+                onToggleCollapsed={onToggleSwimLaneCollapsed}
+                actions={actions}
+              />
+            ))}
+
+            {/* Empty filler beside each lane's task row, so the label column's right border continues
+            past the Steps row. The lane name itself lives in the banner above. */}
+            {expandedSwimLanes.map(({ swimLane, row }) => (
+              <div
+                key={`lane-spacer-${swimLane.id}`}
+                className={`${styles.labelCell} ${styles.labelCellSpacer}`}
+                style={{ gridRow: row, gridColumn: LABEL_COLUMN }}
+              />
+            ))}
+
+            {expandedSwimLanes.map(({ swimLane, row }) =>
+              steps.map(({ step, column }) => (
+                <TaskCell
+                  key={cellKey(step.id, swimLane.id)}
+                  cellId={taskCellId(step.id, swimLane.id)}
+                  tasks={tasksByCell.get(cellKey(step.id, swimLane.id)) ?? []}
+                  column={column}
+                  row={row}
+                  selectedPersonaId={selectedPersonaId}
+                  actions={actions}
+                  isLastColumn={column === lastColumn}
+                  dropSide={dropSide}
+                />
+              )),
+            )}
+
+            {/* ── Blank cells filling a step-less goal's placeholder track ── */}
+            {goals
+              .filter((placement) => placement.isPlaceholderColumn)
+              .map((placement) => (
+                <Fragment key={`placeholder-${placement.goal.id}`}>
+                  <EmptyStepSlot
+                    goalId={placement.goal.id}
+                    column={placement.columnStart}
+                    canUpdate={actions.canUpdate}
+                    isLastColumn={placement.columnStart === lastColumn}
+                  />
+                  {expandedSwimLanes.map(({ swimLane, row }) => (
+                    <div
+                      key={`placeholder-${placement.goal.id}-${swimLane.id}`}
+                      className={`${styles.taskCell} ${
+                        placement.columnStart === lastColumn
+                          ? styles.lastColumn
+                          : ''
+                      }`}
+                      style={{
+                        gridRow: row,
+                        gridColumn: placement.columnStart,
+                      }}
+                    />
+                  ))}
+                </Fragment>
+              ))}
+
+            {/* ── Add swim lane: a full-width footer under the last lane row. Always rendered (empty
             when the user cannot edit) so it forms the grid's bottom edge and the lane cells above
             keep their own bottom border. ── */}
-        <div className={styles.addSwimLaneCell} style={{ gridColumn: '1 / -1' }}>
-          {actions.canUpdate && (
-            <Button
-              type="text"
-              size="small"
-              icon={<PlusOutlined />}
-              data-tour="add-swim-lane"
-              onClick={onAddSwimLane}
+            <div
+              className={styles.addSwimLaneCell}
+              style={{ gridColumn: '1 / -1' }}
             >
-              Add swim lane
-            </Button>
-          )}
+              {actions.canUpdate && (
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<PlusOutlined />}
+                  data-tour="add-swim-lane"
+                  onClick={onAddSwimLane}
+                >
+                  Add swim lane
+                </Button>
+              )}
+            </div>
+          </SortableContext>
         </div>
-      </SortableContext>
       </div>
-    </div>
 
       {/* The floating copy that follows the cursor. A plain labelled chip rather than a clone of the
           card: the real cells are sized by their grid track, which does not exist outside the grid,

@@ -287,7 +287,9 @@ export const useStoryMapTour = (
   // ── Build mode: create along with the tour ──────────────────────────────────
 
   const buildSteps: TourProps['steps'] = [
-    welcomeStep('Let’s build yours together — the tour waits for you at each step.'),
+    welcomeStep(
+      'Let’s build yours together — the tour waits for you at each step.',
+    ),
     {
       title: 'Create your first goal',
       description:

@@ -12,9 +12,9 @@ using Wolverine.Runtime;
 
 namespace Internal.Generated.WolverineHandlers
 {
-    // START: ReorderProjectLifecyclePhasesCommandHandler1324712846
+    // START: RenameTaskCommandHandler514137164
     [global::System.CodeDom.Compiler.GeneratedCode("JasperFx", "1.0.0")]
-    public sealed class ReorderProjectLifecyclePhasesCommandHandler1324712846 : Wolverine.Runtime.Handlers.MessageHandler
+    public sealed class RenameTaskCommandHandler514137164 : Wolverine.Runtime.Handlers.MessageHandler
     {
         private readonly Microsoft.AspNetCore.Http.IHttpContextAccessor _httpContextAccessor1;
         private readonly Microsoft.AspNetCore.Http.IHttpContextAccessor _httpContextAccessor2;
@@ -22,14 +22,14 @@ namespace Internal.Generated.WolverineHandlers
         private readonly Microsoft.Extensions.DependencyInjection.IServiceScopeFactory _serviceScopeFactory;
         private readonly Microsoft.Extensions.Logging.ILogger<Wayd.Common.Application.Behaviors.PerformanceBehaviorLog> _loggerOfPerformanceBehaviorLog;
         private readonly Microsoft.Extensions.Logging.ILogger<Wayd.Infrastructure.Common.Services.EventPublisher> _loggerOfEventPublisher;
-        private readonly Microsoft.Extensions.Logging.ILogger<Wayd.ProjectPortfolioManagement.Application.ProjectLifecycles.Commands.ReorderProjectLifecyclePhasesCommandHandler> _loggerOfReorderProjectLifecyclePhasesCommandHandler;
+        private readonly Microsoft.Extensions.Logging.ILogger<Wayd.Planning.Application.StoryMaps.Commands.RenameTaskCommandHandler> _loggerOfRenameTaskCommandHandler;
         private readonly Microsoft.Extensions.Options.IOptions<Wayd.Infrastructure.Persistence.DatabaseSettings> _optionsOfDatabaseSettings;
         private readonly System.Collections.Generic.IEnumerable<Wolverine.EntityFrameworkCore.IDomainEventScraper> _domainEventScraperIEnumerable;
         private readonly System.TimeProvider _timeProvider;
-        private readonly Wolverine.FluentValidation.IFailureAction<Wayd.ProjectPortfolioManagement.Application.ProjectLifecycles.Commands.ReorderProjectLifecyclePhasesCommand> _failureActionOfReorderProjectLifecyclePhasesCommand;
+        private readonly Wolverine.FluentValidation.IFailureAction<Wayd.Planning.Application.StoryMaps.Commands.RenameTaskCommand> _failureActionOfRenameTaskCommand;
         private readonly Wolverine.Runtime.IWolverineRuntime _wolverineRuntime;
 
-        public ReorderProjectLifecyclePhasesCommandHandler1324712846(Microsoft.AspNetCore.Http.IHttpContextAccessor __httpContextAccessor1, Microsoft.AspNetCore.Http.IHttpContextAccessor __httpContextAccessor2, Microsoft.EntityFrameworkCore.DbContextOptions dbContextOptions, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory serviceScopeFactory, Microsoft.Extensions.Logging.ILogger<Wayd.Common.Application.Behaviors.PerformanceBehaviorLog> loggerOfPerformanceBehaviorLog, Microsoft.Extensions.Logging.ILogger<Wayd.Infrastructure.Common.Services.EventPublisher> loggerOfEventPublisher, Microsoft.Extensions.Logging.ILogger<Wayd.ProjectPortfolioManagement.Application.ProjectLifecycles.Commands.ReorderProjectLifecyclePhasesCommandHandler> loggerOfReorderProjectLifecyclePhasesCommandHandler, Microsoft.Extensions.Options.IOptions<Wayd.Infrastructure.Persistence.DatabaseSettings> optionsOfDatabaseSettings, System.Collections.Generic.IEnumerable<Wolverine.EntityFrameworkCore.IDomainEventScraper> domainEventScraperIEnumerable, System.TimeProvider timeProvider, Wolverine.FluentValidation.IFailureAction<Wayd.ProjectPortfolioManagement.Application.ProjectLifecycles.Commands.ReorderProjectLifecyclePhasesCommand> failureActionOfReorderProjectLifecyclePhasesCommand, Wolverine.Runtime.IWolverineRuntime wolverineRuntime)
+        public RenameTaskCommandHandler514137164(Microsoft.AspNetCore.Http.IHttpContextAccessor __httpContextAccessor1, Microsoft.AspNetCore.Http.IHttpContextAccessor __httpContextAccessor2, Microsoft.EntityFrameworkCore.DbContextOptions dbContextOptions, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory serviceScopeFactory, Microsoft.Extensions.Logging.ILogger<Wayd.Common.Application.Behaviors.PerformanceBehaviorLog> loggerOfPerformanceBehaviorLog, Microsoft.Extensions.Logging.ILogger<Wayd.Infrastructure.Common.Services.EventPublisher> loggerOfEventPublisher, Microsoft.Extensions.Logging.ILogger<Wayd.Planning.Application.StoryMaps.Commands.RenameTaskCommandHandler> loggerOfRenameTaskCommandHandler, Microsoft.Extensions.Options.IOptions<Wayd.Infrastructure.Persistence.DatabaseSettings> optionsOfDatabaseSettings, System.Collections.Generic.IEnumerable<Wolverine.EntityFrameworkCore.IDomainEventScraper> domainEventScraperIEnumerable, System.TimeProvider timeProvider, Wolverine.FluentValidation.IFailureAction<Wayd.Planning.Application.StoryMaps.Commands.RenameTaskCommand> failureActionOfRenameTaskCommand, Wolverine.Runtime.IWolverineRuntime wolverineRuntime)
         {
             _httpContextAccessor1 = __httpContextAccessor1;
             _httpContextAccessor2 = __httpContextAccessor2;
@@ -37,11 +37,11 @@ namespace Internal.Generated.WolverineHandlers
             _serviceScopeFactory = serviceScopeFactory;
             _loggerOfPerformanceBehaviorLog = loggerOfPerformanceBehaviorLog;
             _loggerOfEventPublisher = loggerOfEventPublisher;
-            _loggerOfReorderProjectLifecyclePhasesCommandHandler = loggerOfReorderProjectLifecyclePhasesCommandHandler;
+            _loggerOfRenameTaskCommandHandler = loggerOfRenameTaskCommandHandler;
             _optionsOfDatabaseSettings = optionsOfDatabaseSettings;
             _domainEventScraperIEnumerable = domainEventScraperIEnumerable;
             _timeProvider = timeProvider;
-            _failureActionOfReorderProjectLifecyclePhasesCommand = failureActionOfReorderProjectLifecyclePhasesCommand;
+            _failureActionOfRenameTaskCommand = failureActionOfRenameTaskCommand;
             _wolverineRuntime = wolverineRuntime;
         }
 
@@ -50,7 +50,7 @@ namespace Internal.Generated.WolverineHandlers
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
             var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
-            var reorderProjectLifecyclePhasesCommandValidator = new Wayd.ProjectPortfolioManagement.Application.ProjectLifecycles.Commands.ReorderProjectLifecyclePhasesCommandValidator();
+            var renameTaskCommandValidator = new Wayd.Planning.Application.StoryMaps.Commands.RenameTaskCommandValidator();
             await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var ambientUserId = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Infrastructure.Auth.AmbientUserId>(serviceScope.ServiceProvider);
@@ -60,20 +60,22 @@ namespace Internal.Generated.WolverineHandlers
             var dateTimeProvider = new Wayd.Infrastructure.Common.Services.DateTimeProvider(_timeProvider);
             var currentUser = new Wayd.Infrastructure.Auth.CurrentUser(_httpContextAccessor1, ambientUserId);
             await using var waydDbContext = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions, currentUser, dateTimeProvider, _optionsOfDatabaseSettings, eventPublisher, dbContextOutbox, requestCorrelationIdProvider);
+            // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
+            var storyMapNotifier = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wayd.Planning.Application.StoryMaps.Interfaces.IStoryMapNotifier>(serviceScope.ServiceProvider);
             // The actual message body
-            var reorderProjectLifecyclePhasesCommand = (Wayd.ProjectPortfolioManagement.Application.ProjectLifecycles.Commands.ReorderProjectLifecyclePhasesCommand)context.Envelope.Message;
+            var renameTaskCommand = (Wayd.Planning.Application.StoryMaps.Commands.RenameTaskCommand)context.Envelope.Message;
 
             Wayd.Infrastructure.Messaging.UserIdentityMiddleware.Before(context.Envelope, ambientUserId);
             var result_of_Before = Wayd.Common.Application.Behaviors.PerformanceBehavior.Before();
             try
             {
-                System.Diagnostics.Activity.Current?.SetTag("message.handler", "Wayd.ProjectPortfolioManagement.Application.ProjectLifecycles.Commands.ReorderProjectLifecyclePhasesCommandHandler");
-                System.Diagnostics.Activity.Current?.SetTag("handler.type", "Wayd.ProjectPortfolioManagement.Application.ProjectLifecycles.Commands.ReorderProjectLifecyclePhasesCommandHandler");
-                await Wolverine.FluentValidation.Internals.FluentValidationExecutor.ExecuteOne<Wayd.ProjectPortfolioManagement.Application.ProjectLifecycles.Commands.ReorderProjectLifecyclePhasesCommand>(reorderProjectLifecyclePhasesCommandValidator, _failureActionOfReorderProjectLifecyclePhasesCommand, reorderProjectLifecyclePhasesCommand).ConfigureAwait(false);
-                var reorderProjectLifecyclePhasesCommandHandler = new Wayd.ProjectPortfolioManagement.Application.ProjectLifecycles.Commands.ReorderProjectLifecyclePhasesCommandHandler(waydDbContext, _loggerOfReorderProjectLifecyclePhasesCommandHandler);
+                System.Diagnostics.Activity.Current?.SetTag("message.handler", "Wayd.Planning.Application.StoryMaps.Commands.RenameTaskCommandHandler");
+                System.Diagnostics.Activity.Current?.SetTag("handler.type", "Wayd.Planning.Application.StoryMaps.Commands.RenameTaskCommandHandler");
+                await Wolverine.FluentValidation.Internals.FluentValidationExecutor.ExecuteOne<Wayd.Planning.Application.StoryMaps.Commands.RenameTaskCommand>(renameTaskCommandValidator, _failureActionOfRenameTaskCommand, renameTaskCommand).ConfigureAwait(false);
+                var renameTaskCommandHandler = new Wayd.Planning.Application.StoryMaps.Commands.RenameTaskCommandHandler(waydDbContext, storyMapNotifier, _loggerOfRenameTaskCommandHandler);
                 
                 // The actual message execution
-                var outgoing1 = await reorderProjectLifecyclePhasesCommandHandler.Handle(reorderProjectLifecyclePhasesCommand, cancellation).ConfigureAwait(false);
+                var outgoing1 = await renameTaskCommandHandler.Handle(renameTaskCommand, cancellation).ConfigureAwait(false);
 
                 
                 // Outgoing, cascaded message
@@ -90,7 +92,7 @@ namespace Internal.Generated.WolverineHandlers
 
     }
 
-    // END: ReorderProjectLifecyclePhasesCommandHandler1324712846
+    // END: RenameTaskCommandHandler514137164
     
     
 }

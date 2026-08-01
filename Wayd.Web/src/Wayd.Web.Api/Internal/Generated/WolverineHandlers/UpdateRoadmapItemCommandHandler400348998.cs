@@ -49,6 +49,7 @@ namespace Internal.Generated.WolverineHandlers
 
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
+            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             var iUpsertRoadmapTimeboxValidator = new Wayd.Planning.Application.Roadmaps.Validators.IUpsertRoadmapTimeboxValidator();
             var iUpsertRoadmapMilestoneValidator = new Wayd.Planning.Application.Roadmaps.Validators.IUpsertRoadmapMilestoneValidator();
             var iUpsertRoadmapActivityValidator = new Wayd.Planning.Application.Roadmaps.Validators.IUpsertRoadmapActivityValidator();
@@ -62,7 +63,6 @@ namespace Internal.Generated.WolverineHandlers
             var dateTimeProvider = new Wayd.Infrastructure.Common.Services.DateTimeProvider(_timeProvider);
             var currentUser = new Wayd.Infrastructure.Auth.CurrentUser(_httpContextAccessor1, ambientUserId);
             await using var waydDbContext = new Wayd.Infrastructure.Persistence.Context.WaydDbContext(_dbContextOptions, currentUser, dateTimeProvider, _optionsOfDatabaseSettings, eventPublisher, dbContextOutbox, requestCorrelationIdProvider);
-            var systemTextJsonService = new Wayd.Infrastructure.Common.Services.SystemTextJsonService();
             // The actual message body
             var updateRoadmapItemCommand = (Wayd.Planning.Application.Roadmaps.Commands.UpdateRoadmapItemCommand)context.Envelope.Message;
 

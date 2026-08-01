@@ -100,7 +100,6 @@ const StoryMapDetailPage: FC = () => {
   const pathname = usePathname()
   const router = useRouter()
   const dispatch = useAppDispatch()
-  useDocumentTitle(`Story Map ${key}`)
 
   const { token } = useTheme()
   const { hasPermissionClaim } = useAuth()
@@ -108,6 +107,8 @@ const StoryMapDetailPage: FC = () => {
   const canDelete = hasPermissionClaim('Permissions.StoryMaps.Delete')
 
   const { data: map, isLoading } = useGetStoryMapQuery(key)
+
+  useDocumentTitle(`${map?.name ?? key} - Story Map Details`)
 
   const [presence, setPresence] = useState<PresenceParticipant[]>([])
 
@@ -560,12 +561,9 @@ const StoryMapDetailPage: FC = () => {
           },
         ]
       : []),
-    // Only separate the export once something sits above it — a viewer with neither permission sees
-    // export alone, and a leading divider would hang off the top of the menu.
     ...(canEdit || canDelete
       ? [{ key: 'export-divider', type: 'divider' as const }]
       : []),
-    // Viewing is enough to export — it reads nothing the page is not already showing.
     {
       key: 'export',
       label: 'Export CSV',
@@ -726,7 +724,6 @@ const StoryMapDetailPage: FC = () => {
           onFormComplete={() => {
             deletedHereRef.current = true
             setOpenDeleteMap(false)
-            // The map no longer exists — return to the list.
             router.push('/planning/story-maps')
           }}
           onFormCancel={() => setOpenDeleteMap(false)}

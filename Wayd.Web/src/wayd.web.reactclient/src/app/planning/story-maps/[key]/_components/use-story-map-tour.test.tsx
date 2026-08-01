@@ -131,6 +131,7 @@ describe('useStoryMapTour', () => {
       'Create your first goal',
       'Break it into steps',
       'Add a task',
+      'Open a task',
       'Move things around',
       'Create Personas',
       'Tag a persona',
@@ -150,6 +151,7 @@ describe('useStoryMapTour', () => {
       'Goals',
       'Steps',
       'Tasks',
+      'Open a task',
       'Move things around',
       'Create Personas',
       'Tag a persona',
@@ -187,7 +189,7 @@ describe('useStoryMapTour', () => {
 
     // Assert
     expect(result.current.tourSteps![0].target).toBeNull()
-    expect(result.current.tourSteps![8].target).toBeNull()
+    expect(result.current.tourSteps![9].target).toBeNull()
   })
 
   it('advances past the goal step when a goal is created', () => {
@@ -239,7 +241,7 @@ describe('useStoryMapTour', () => {
     act(() => result.current.onTourChange(2))
 
     // Assert
-    expect(result.current.tourCurrent).toBe(5)
+    expect(result.current.tourCurrent).toBe(6)
   })
 
   it('goes backward past steps whose subject does not exist yet', () => {
@@ -256,17 +258,19 @@ describe('useStoryMapTour', () => {
   })
 
   it('auto-advance also skips non-viable steps', () => {
-    // Arrange — at the persona step on an empty board; creating a persona must not move on to
-    // the swim-lane step, whose anchor only renders inside the board.
+    // Arrange — at the persona step (6) on an empty board. Creating a persona would normally
+    // advance to the tag stop (7), but with no step or task to carry the dots it is not viable,
+    // and neither is the swim-lane stop (8) whose anchor only renders inside the board.
     const { result, rerender } = render({ map: emptyMap, canEdit: true })
     act(() => result.current.onTourChange(1))
     act(() => result.current.onTourChange(2))
+    expect(result.current.tourCurrent).toBe(6)
 
     // Act
     rerender({ map: buildMap({ personas: [{}] }), canEdit: true })
 
-    // Assert — straight to the closing step: tagging and swim lanes both presuppose the board.
-    expect(result.current.tourCurrent).toBe(8)
+    // Assert — straight to the closing step, past both.
+    expect(result.current.tourCurrent).toBe(9)
   })
 
   it('walks the tag-persona stop when a persona and step exist', () => {
@@ -275,15 +279,15 @@ describe('useStoryMapTour', () => {
     act(() => result.current.onTourChange(1))
     rerender({ map: mapWithGoal, canEdit: true })
     rerender({ map: mapWithStep, canEdit: true })
-    act(() => result.current.onTourChange(4))
     act(() => result.current.onTourChange(5))
+    act(() => result.current.onTourChange(6))
 
     // Act / Assert — creating a persona advances to the tag stop, not past it.
     rerender({
       map: buildMap({ goals: [{ steps: [{ tasks: [] }] }], personas: [{}] }),
       canEdit: true,
     })
-    expect(result.current.tourCurrent).toBe(6)
+    expect(result.current.tourCurrent).toBe(7)
 
     // Act / Assert — tagging the persona on the step advances to the swim-lane stop.
     rerender({
@@ -293,7 +297,7 @@ describe('useStoryMapTour', () => {
       }),
       canEdit: true,
     })
-    expect(result.current.tourCurrent).toBe(7)
+    expect(result.current.tourCurrent).toBe(8)
   })
 
   it('does not advance when a different kind of node is created', () => {
@@ -379,7 +383,8 @@ describe('useStoryMapTour', () => {
   })
 
   it('walkthrough paging skips stops whose subject does not exist', () => {
-    // Arrange — a goal but no steps or tasks: the Steps and Tasks stops have nothing to show.
+    // Arrange — a goal but no steps or tasks: the Steps, Tasks, and Open-a-task stops all have
+    // nothing to point at.
     const { result } = render({ map: mapWithGoal, canEdit: true })
     act(() => result.current.onTourChange(1))
 
@@ -387,7 +392,7 @@ describe('useStoryMapTour', () => {
     act(() => result.current.onTourChange(2))
 
     // Assert — straight to the drag-and-drop stop.
-    expect(result.current.tourCurrent).toBe(4)
+    expect(result.current.tourCurrent).toBe(5)
   })
 
   it('onTourClose calls markCompleted', () => {

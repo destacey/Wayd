@@ -46,6 +46,9 @@ export interface StoryMapBoardProps {
   actions: BoardActions
   onAddStep: (goalId: string) => void
   onAddSwimLane: () => void
+  /** Lane ids the viewer has folded away — a local view preference, not map data. */
+  collapsedSwimLaneIds: ReadonlySet<string>
+  onToggleSwimLaneCollapsed: (swimLaneId: string) => void
 }
 
 interface BoardGridCssVars extends CSSProperties {
@@ -68,8 +71,13 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
   actions,
   onAddStep,
   onAddSwimLane,
+  collapsedSwimLaneIds,
+  onToggleSwimLaneCollapsed,
 }) => {
-  const layout = useMemo(() => buildBoardLayout(map), [map])
+  const layout = useMemo(
+    () => buildBoardLayout(map, collapsedSwimLaneIds),
+    [map, collapsedSwimLaneIds],
+  )
   const { goals, steps, swimLanes, tasksByCell, lastColumn, stepColumnCount } =
     layout
 
@@ -79,6 +87,14 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
     '--sm-step-columns': `repeat(${stepColumnCount}, minmax(var(--sm-col-min), 1fr))`,
     '--sm-step-count': stepColumnCount,
   }
+
+  // Only expanded lanes own a task row, so everything placed in one — the cells, the label-column
+  // spacer, and a step-less goal's blank filler — iterates this rather than every lane. The
+  // predicate is a type guard so `row` narrows to a number for the inline gridRow.
+  const expandedSwimLanes = swimLanes.filter(
+    (placement): placement is typeof placement & { row: number } =>
+      placement.row !== null,
+  )
 
   // Deleting a lane moves its tasks to the default lane, so the confirmation says how many — every
   // task moves, not just the ones the filter leaves visible.
@@ -264,20 +280,23 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
         ))}
 
         {/* ── Task band: per swim lane, a full-width header banner then a row of task cells ── */}
-        {swimLanes.map(({ swimLane, headerRow }) => (
+        {swimLanes.map(({ swimLane, headerRow, isCollapsed }) => (
           <SwimLaneHeader
             key={`lane-header-${swimLane.id}`}
             swimLane={swimLane}
             row={headerRow}
             taskCount={taskCountsByLane.get(swimLane.id) ?? 0}
             visibleTaskCount={visibleCountsByLane.get(swimLane.id) ?? 0}
+            isCollapsed={isCollapsed}
+            onToggleCollapsed={onToggleSwimLaneCollapsed}
             actions={actions}
           />
         ))}
 
         {/* Empty filler beside each lane's task row, so the label column's right border continues
-            past the Steps row. The lane name itself lives in the banner above. */}
-        {swimLanes.map(({ swimLane, row }) => (
+            past the Steps row. The lane name itself lives in the banner above. A collapsed lane has
+            no task row to sit beside. */}
+        {expandedSwimLanes.map(({ swimLane, row }) => (
           <div
             key={`lane-spacer-${swimLane.id}`}
             className={`${styles.labelCell} ${styles.labelCellSpacer}`}
@@ -285,7 +304,7 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
           />
         ))}
 
-        {swimLanes.map(({ swimLane, row }) =>
+        {expandedSwimLanes.map(({ swimLane, row }) =>
           steps.map(({ step, column }) => (
             <TaskCell
               key={cellKey(step.id, swimLane.id)}
@@ -312,7 +331,7 @@ const StoryMapBoard: FC<StoryMapBoardProps> = ({
                 canUpdate={actions.canUpdate}
                 isLastColumn={placement.columnStart === lastColumn}
               />
-              {swimLanes.map(({ swimLane, row }) => (
+              {expandedSwimLanes.map(({ swimLane, row }) => (
                 <div
                   key={`placeholder-${placement.goal.id}-${swimLane.id}`}
                   className={`${styles.taskCell} ${

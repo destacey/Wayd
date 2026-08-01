@@ -139,6 +139,21 @@ const StoryMapDetailPage: FC = () => {
     null,
   )
   const [openManagePersonas, setOpenManagePersonas] = useState(false)
+  // Lanes the viewer has folded away while working. Deliberately transient and local: it is a way to
+  // get a finished lane out of the way while filling the next one, not a property of the map — so it
+  // is never sent to the server and never broadcast to the others editing alongside you.
+  const [collapsedSwimLaneIds, setCollapsedSwimLaneIds] = useState<
+    ReadonlySet<string>
+  >(() => new Set())
+
+  const handleToggleSwimLaneCollapsed = useCallback((swimLaneId: string) => {
+    setCollapsedSwimLaneIds((current) => {
+      const next = new Set(current)
+      if (!next.delete(swimLaneId)) next.add(swimLaneId)
+      return next
+    })
+  }, [])
+
   // The id of an item just created inline, so its name field opens in edit mode.
   const [autoEditId, setAutoEditId] = useState<string | null>(null)
 
@@ -655,6 +670,8 @@ const StoryMapDetailPage: FC = () => {
           actions={actions}
           onAddStep={handleAddStep}
           onAddSwimLane={handleAddSwimLane}
+          collapsedSwimLaneIds={collapsedSwimLaneIds}
+          onToggleSwimLaneCollapsed={handleToggleSwimLaneCollapsed}
         />
       )}
 

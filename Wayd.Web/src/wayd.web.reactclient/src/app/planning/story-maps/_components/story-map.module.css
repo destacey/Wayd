@@ -114,6 +114,22 @@
   width: 220px;
 }
 
+/* The collapse caret. Always visible rather than hover-revealed: once a lane is folded away the
+   banner is all that is left of it, so the way back must never be hidden behind a hover. */
+.swimLaneCollapseButton {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  padding: 0;
+  font-size: 10px;
+  color: var(--sm-text-secondary);
+  /* The banner is itself the lane's drag surface; the caret is a control on top of it, so it opts
+     back out of `touch-action: none` the way the other inline controls do. */
+  touch-action: auto;
+  cursor: pointer;
+}
+
 /* Calendar icon alone on an undated lane; icon plus the range as text once set. */
 .swimLaneDatesButton {
   flex: none;

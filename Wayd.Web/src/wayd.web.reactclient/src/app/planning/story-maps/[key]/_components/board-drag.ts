@@ -86,11 +86,24 @@ export interface BoardDragIndex {
   cellByTaskId: Map<string, { stepId: string; swimLaneId: string }>
 }
 
-/** Index every draggable id once per drag, so drop resolution is plain lookups. */
+/**
+ * Index every draggable id once per drag, so drop resolution is plain lookups.
+ *
+ * Tasks in a collapsed swim lane are deliberately left out: they render no card and no cell, so they
+ * are neither draggable nor droppable, and indexing them would let `resolveDrop` compute a landing
+ * position among siblings the user cannot see. A collapsed lane's own banner stays draggable, so
+ * lanes can still be reordered while collapsed.
+ */
 export const buildDragIndex = (layout: BoardLayout): BoardDragIndex => {
   const kindById = new Map<string, DragKind>()
   const goalIdByStepId = new Map<string, string>()
   const cellByTaskId = new Map<string, { stepId: string; swimLaneId: string }>()
+
+  const collapsedLaneIds = new Set(
+    layout.swimLanes
+      .filter(({ isCollapsed }) => isCollapsed)
+      .map(({ swimLane }) => swimLane.id),
+  )
 
   for (const { goal } of layout.goals) kindById.set(goal.id, 'goal')
   for (const { swimLane } of layout.swimLanes) {
@@ -100,6 +113,8 @@ export const buildDragIndex = (layout: BoardLayout): BoardDragIndex => {
     kindById.set(step.id, 'step')
     goalIdByStepId.set(step.id, goalId)
     for (const task of step.tasks) {
+      if (collapsedLaneIds.has(task.swimLaneId)) continue
+
       kindById.set(task.id, 'task')
       cellByTaskId.set(task.id, {
         stepId: step.id,

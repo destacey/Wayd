@@ -646,3 +646,83 @@ describe('isValidDropTarget', () => {
     expect(isValid('g1', 'unknown')).toBe(false)
   })
 })
+
+describe('collapsed swim lanes', () => {
+  const open = 'lane-default'
+  const folded = 'l1'
+
+  const details = map(
+    [
+      goal('g1', 0, [
+        step('s1', 'g1', 0, [
+          task('t-open', 's1', open, 0),
+          task('t-folded', 's1', folded, 0),
+        ]),
+      ]),
+    ],
+    [swimLane(open, 0, true), swimLane(folded, 1)],
+  )
+
+  const layout = buildBoardLayout(details, new Set([folded]))
+  const index = buildDragIndex(layout)
+
+  it('does not index a task in a collapsed lane', () => {
+    // Arrange / Act / Assert — it renders no card, so it is not a draggable node.
+    expect(index.kindById.get('t-folded')).toBeUndefined()
+    expect(index.kindById.get('t-open')).toBe('task')
+  })
+
+  it('rejects a collapsed lane task as a drag source', () => {
+    // Arrange / Act / Assert
+    expect(isValidDropTarget(index, 't-folded', taskCellId('s1', open))).toBe(
+      false,
+    )
+  })
+
+  it('rejects a collapsed lane task as a drop target', () => {
+    // Arrange / Act / Assert — dropping onto a hidden card would land the task out of sight.
+    expect(isValidDropTarget(index, 't-open', 't-folded')).toBe(false)
+    expect(
+      resolveDrop(layout, index, 't-open', 't-folded', 'before'),
+    ).toBeNull()
+  })
+
+  it('appends to an empty cell without counting the collapsed lane task', () => {
+    // Arrange / Act — the open lane's own cell still resolves normally.
+    const result = resolveDrop(
+      layout,
+      index,
+      't-open',
+      taskCellId('s1', open),
+      'before',
+    )
+
+    // Assert — already the only (and last) task there, so appending changes nothing.
+    expect(result).toBeNull()
+  })
+
+  it('still allows a collapsed lane itself to be reordered', () => {
+    // Arrange — a third lane, so there is somewhere for the collapsed one to actually go.
+    const threeLanes = map(
+      [goal('g1', 0, [step('s1', 'g1', 0)])],
+      [swimLane(open, 0, true), swimLane(folded, 1), swimLane('l2', 2)],
+    )
+    const threeLaneLayout = buildBoardLayout(threeLanes, new Set([folded]))
+
+    // Act — folding a lane away must not pin it in place.
+    const result = resolveDrop(
+      threeLaneLayout,
+      buildDragIndex(threeLaneLayout),
+      folded,
+      'l2',
+      'after',
+    )
+
+    // Assert — removing l1 first pulls l2 back to index 1, so the end is index 2.
+    expect(result).toEqual({
+      kind: 'swimLane',
+      swimLaneId: folded,
+      newOrder: 2,
+    })
+  })
+})

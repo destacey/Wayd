@@ -255,6 +255,80 @@ describe('buildBoardLayout', () => {
     })
   })
 
+  describe('collapsed swim lanes', () => {
+    it('gives a collapsed lane no task row and pulls the lanes below it up', () => {
+      // Arrange
+      const details = map(
+        [goal('g1', 0, [step('s1', 'g1', 0)])],
+        [swimLane('l0', 0, true), swimLane('l1', 1), swimLane('l2', 2)],
+      )
+
+      // Act
+      const { swimLanes } = buildBoardLayout(details, new Set(['l1']))
+
+      // Assert — l1 keeps only its banner (row 5), so l2 starts at 6 rather than 7.
+      expect(
+        swimLanes.map((l) => [l.swimLane.id, l.headerRow, l.row, l.isCollapsed]),
+      ).toEqual([
+        ['l0', 3, 4, false],
+        ['l1', 5, null, true],
+        ['l2', 6, 7, false],
+      ])
+    })
+
+    it('leaves a collapsed lane out of the task buckets', () => {
+      // Arrange — one task in each lane, on the same step.
+      const details = map(
+        [
+          goal('g1', 0, [
+            step('s1', 'g1', 0, [
+              task('t-open', 's1', 'l0', 0),
+              task('t-folded', 's1', 'l1', 0),
+            ]),
+          ]),
+        ],
+        [swimLane('l0', 0, true), swimLane('l1', 1)],
+      )
+
+      // Act
+      const { tasksByCell } = buildBoardLayout(details, new Set(['l1']))
+
+      // Assert — a collapsed lane renders no cells, so its tasks are not drop siblings.
+      expect(
+        tasksByCell.get(cellKey('s1', 'l0'))?.map((t) => t.id),
+      ).toEqual(['t-open'])
+      expect(tasksByCell.has(cellKey('s1', 'l1'))).toBe(false)
+    })
+
+    it('collapses every lane when all are collapsed', () => {
+      // Arrange
+      const details = map(
+        [goal('g1', 0)],
+        [swimLane('l0', 0, true), swimLane('l1', 1)],
+      )
+
+      // Act
+      const { swimLanes } = buildBoardLayout(details, new Set(['l0', 'l1']))
+
+      // Assert — consecutive banner rows, no task rows at all.
+      expect(swimLanes.map((l) => [l.swimLane.id, l.headerRow, l.row])).toEqual([
+        ['l0', 3, null],
+        ['l1', 4, null],
+      ])
+    })
+
+    it('treats an unknown collapsed id as collapsing nothing', () => {
+      // Arrange — a lane deleted by someone else can leave a stale id in the set.
+      const details = map([goal('g1', 0)], [swimLane('l0', 0, true)])
+
+      // Act
+      const { swimLanes } = buildBoardLayout(details, new Set(['gone']))
+
+      // Assert
+      expect(swimLanes.map((l) => [l.swimLane.id, l.row])).toEqual([['l0', 4]])
+    })
+  })
+
   describe('task bucketing', () => {
     it('groups tasks by step and swim lane, sorted by order', () => {
       // Arrange — supplied out of order to prove they are sorted.

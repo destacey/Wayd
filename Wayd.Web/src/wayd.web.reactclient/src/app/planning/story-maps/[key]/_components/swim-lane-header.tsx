@@ -2,7 +2,12 @@
 
 import { StoryMapSwimLaneDto } from '@/src/services/wayd-api'
 import { WaydTooltip } from '@/src/components/common'
-import { CalendarOutlined, DeleteOutlined } from '@ant-design/icons'
+import {
+  CalendarOutlined,
+  DeleteOutlined,
+  DownOutlined,
+  RightOutlined,
+} from '@ant-design/icons'
 import { Button, DatePicker, Popconfirm, Popover } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
 import { FC, useState } from 'react'
@@ -43,6 +48,9 @@ export interface SwimLaneHeaderProps {
   taskCount: number
   /** Tasks left after the persona filter — what the banner reports. */
   visibleTaskCount: number
+  /** Collapsed lanes hide their task row; the banner stays, as the way back. */
+  isCollapsed: boolean
+  onToggleCollapsed: (swimLaneId: string) => void
   actions: BoardActions
 }
 
@@ -55,6 +63,8 @@ const SwimLaneHeader: FC<SwimLaneHeaderProps> = ({
   row,
   taskCount,
   visibleTaskCount,
+  isCollapsed,
+  onToggleCollapsed,
   actions,
 }) => {
   const isFixed = swimLane.isDefault
@@ -132,6 +142,24 @@ const SwimLaneHeader: FC<SwimLaneHeaderProps> = ({
       {...listeners}
     >
       <div className={styles.swimLaneHeaderSticky}>
+        {/* Every lane collapses, the default one included — it is usually the fullest, so it is the
+            one most worth folding away. */}
+        <WaydTooltip title={isCollapsed ? 'Expand lane' : 'Collapse lane'}>
+          <Button
+            size="small"
+            type="text"
+            icon={isCollapsed ? <RightOutlined /> : <DownOutlined />}
+            className={styles.swimLaneCollapseButton}
+            aria-expanded={!isCollapsed}
+            aria-label={
+              isCollapsed
+                ? `Expand ${swimLane.name}`
+                : `Collapse ${swimLane.name}`
+            }
+            onClick={() => onToggleCollapsed(swimLane.id)}
+          />
+        </WaydTooltip>
+
         {isFixed ? (
           <span className={styles.swimLaneName}>{swimLane.name}</span>
         ) : (

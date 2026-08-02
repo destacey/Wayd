@@ -20,10 +20,10 @@ jobs:
                 working-directory: Wayd.Web/src/Wayd.Web.Api
         steps:
             - name: checkout
-              uses: actions/checkout@v2
+              uses: actions/checkout@v4
 
             - name: Setup .NET
-              uses: actions/setup-dotnet@v3
+              uses: actions/setup-dotnet@v4
               with:
                   dotnet-version: 10.0.x
 
@@ -31,26 +31,48 @@ jobs:
               run: dotnet restore
 
             - name: Build
-              run: dotnet build --no-restore
+              run: dotnet build --no-restore -c Release
 
-            # The Debug build's RegenerateWolverineHandlers post-build target rewrites the committed
-            # handler tree (Internal/Generated/WolverineHandlers) from the freshly built app. If the tree
-            # committed to the repo was stale, the rewrite changes files and this diff fails the build.
-            # The host runs TypeLoadMode.Static from that tree with no runtime Roslyn compiler, so a stale
-            # tree would silently dispatch wrong/missing handlers — this check is what keeps it honest.
-            # The target pins OTEL_EXPORTER_OTLP_ENDPOINT empty during codegen so the output is the canonical
-            # no-OTLP form (the OTLP exporter services otherwise reorder the emitted service-locator locals);
-            # regenerate the same way when fixing a stale tree, or the diff will be spurious reordering.
-            - name: Verify committed Wolverine handler tree is fresh
-              run: |
-                  if ! git diff --quiet -- Internal/Generated/WolverineHandlers; then
-                      echo "::error::The committed Wolverine handler tree is stale. Regenerate with: (cd Wayd.Web/src/Wayd.Web.Api && OTEL_EXPORTER_OTLP_ENDPOINT= dotnet run --no-launch-profile -c Debug -- codegen write) and commit the result."
-                      git --no-pager diff --stat -- Internal/Generated/WolverineHandlers
-                      exit 1
-                  fi
+            # Generate the Wolverine handler tree (Internal/Generated/WolverineHandlers). It is NOT committed:
+            # `codegen write` boots the freshly built app to emit the TypeLoadMode.Static handler code that the
+            # integration tests and the shipped Docker image both run. This is the ONE generation per pipeline
+            # run — the tree is uploaded as an artifact below and reused by the image build, so the tested tree
+            # is byte-identical to the shipped tree (codegen output is DI-registration-order sensitive and not
+            # reproducible across environments, so regenerating separately would risk drift).
+            #
+            # Env: ASPNETCORE_ENVIRONMENT=Development runs the codegen boot in Auto mode (no pre-existing tree
+            # needed) and skips the production JWT-secret guard in AddLocalJwtAuth. WAYD_SKIP_DB_INIT + a
+            # placeholder connection string let the host boot without a database (codegen never connects; the
+            # `codegen write` verb builds the host but never calls app.Run(), so no hosted service runs).
+            # OTEL_EXPORTER_OTLP_ENDPOINT is cleared so the OTLP exporter services do not perturb registration
+            # order. The generated output is the same Static handler code regardless of the host's own mode.
+            - name: Generate Wolverine handler tree
+              env:
+                  ASPNETCORE_ENVIRONMENT: Development
+                  WAYD_SKIP_DB_INIT: "true"
+                  OTEL_EXPORTER_OTLP_ENDPOINT: ""
+                  DatabaseSettings__ConnectionString: "Server=(localdb)\\codegen;Database=Codegen;Trusted_Connection=True;"
+                  HangfireSettings__Storage__ConnectionString: "Server=(localdb)\\codegen;Database=Codegen;Trusted_Connection=True;"
+              run: dotnet run --no-build --no-launch-profile -c Release -- codegen write
 
+            # Share the freshly generated tree with the image build so it ships the exact tree that was tested.
+            - name: Upload Wolverine handler tree
+              uses: actions/upload-artifact@v4
+              with:
+                  name: wolverine-handler-tree
+                  path: Wayd.Web/src/Wayd.Web.Api/Internal/Generated/WolverineHandlers/
+                  if-no-files-found: error
+                  retention-days: 1
+
+            # Run the FULL .NET solution suite. This includes Wayd.Web.Api.IntegrationTests, which forces
+            # Wolverine:CodegenMode=Static (see WaydApiFactory) and so boots the handler tree generated above —
+            # validating the exact Static dispatch path the shipped artifact uses. NOT --no-build: the test
+            # build recompiles the API so the just-generated handler tree is compiled in. Run from the repo root
+            # (overriding the job's API-project working-directory) so the whole solution is tested; the previous
+            # `dotnet test` ran from the API project dir, which is not a test project, and silently tested nothing.
             - name: Test
-              run: dotnet test --no-build --verbosity normal
+              working-directory: .
+              run: dotnet test Wayd.slnx -c Release --verbosity normal
 
     build-and-test-client:
         runs-on: ubuntu-latest
@@ -97,17 +119,27 @@ jobs:
 
         steps:
             - name: Checkout repository
-              uses: actions/checkout@v2
+              uses: actions/checkout@v4
+
+            # Bring in the Wolverine handler tree generated by build-and-test-api so the API image ships the
+            # exact tree that was tested (see that job). Only the API image needs it; the client leg skips this.
+            # The tree is git-ignored, so the Dockerfile COPY of the build context would otherwise find nothing.
+            - name: Download Wolverine handler tree
+              if: matrix.image == 'awaldow/moda-api'
+              uses: actions/download-artifact@v4
+              with:
+                  name: wolverine-handler-tree
+                  path: Wayd.Web/src/Wayd.Web.Api/Internal/Generated/WolverineHandlers/
 
             - name: Log in to the Container registry
-              uses: docker/login-action@v2
+              uses: docker/login-action@v3
               with:
                   username: awaldow
                   password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
             - name: Extract metadata (tags, labels) for Docker
               id: meta
-              uses: docker/metadata-action@v4
+              uses: docker/metadata-action@v5
               with:
                   images: ${{ matrix.image }}
                   tags: |
@@ -120,7 +152,7 @@ jobs:
                       type=ref,event=pr
 
             - name: Build and push Docker image
-              uses: docker/build-push-action@v4
+              uses: docker/build-push-action@v6
               with:
                   context: ${{ matrix.contextDir }}
                   file: ${{ matrix.dockerfile }}
@@ -138,7 +170,7 @@ jobs:
                 working-directory: .iac/wayd
 
         steps:
-            - uses: actions/checkout@v3
+            - uses: actions/checkout@v4
               name: Checkout
 
             - uses: hashicorp/setup-terraform@v3
@@ -173,7 +205,7 @@ jobs:
         if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
         needs: [terraform]
         steps:
-            - uses: actions/checkout@v3
+            - uses: actions/checkout@v4
               name: Checkout
 
             - name: Terraform Output
@@ -186,7 +218,7 @@ jobs:
                   TERRAFORM_CLOUD_TOKENS: app.terraform.io=${{ secrets.TF_API_TOKEN }}
 
             - name: Setup .NET
-              uses: actions/setup-dotnet@v3
+              uses: actions/setup-dotnet@v4
               with:
                   dotnet-version: 10.0.x
 

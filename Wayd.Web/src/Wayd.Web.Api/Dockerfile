@@ -19,6 +19,14 @@ COPY ["Wayd.Web/src/Wayd.Web.Api/Wayd.Web.Api.csproj", "Wayd.Web/src/Wayd.Web.Ap
 RUN dotnet restore "Wayd.Web/src/Wayd.Web.Api/Wayd.Web.Api.csproj"
 COPY . .
 WORKDIR "/src/Wayd.Web/src/Wayd.Web.Api"
+# The Wolverine handler tree (Internal/Generated/WolverineHandlers) is git-ignored and generated once by the
+# build-and-test-api CI job, then downloaded into the build context before this image is built (see
+# .github/workflows/docker.yml). It is compiled in by the build below so the image runs TypeLoadMode.Static
+# with no runtime Roslyn. Fail loudly if it is absent — otherwise the image would build fine and only break at
+# first message dispatch (missing handlers). A local `docker build` without the CI step will hit this on
+# purpose; generate the tree first (see Wayd.Web.Api.csproj) or build the image through the pipeline.
+RUN test -n "$(ls -A Internal/Generated/WolverineHandlers/*.cs 2>/dev/null)" \
+    || (echo 'ERROR: Wolverine handler tree missing. It must be generated (codegen write) and present in the build context before building this image. See .github/workflows/docker.yml.' && exit 1)
 RUN dotnet build "Wayd.Web.Api.csproj" -c Release -o /app/build
 
 FROM build AS publish

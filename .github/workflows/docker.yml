@@ -51,8 +51,12 @@ jobs:
                   ASPNETCORE_ENVIRONMENT: Development
                   WAYD_SKIP_DB_INIT: "true"
                   OTEL_EXPORTER_OTLP_ENDPOINT: ""
-                  DatabaseSettings__ConnectionString: "Server=(localdb)\\codegen;Database=Codegen;Trusted_Connection=True;"
-                  HangfireSettings__Storage__ConnectionString: "Server=(localdb)\\codegen;Database=Codegen;Trusted_Connection=True;"
+                  # Placeholder connection string: codegen never opens a successful connection (WAYD_SKIP_DB_INIT
+                  # skips migrations/seeding and the `codegen write` verb never calls app.Run()). It must be a
+                  # syntactically valid SQL Server string on THIS runner though — a `(localdb)` data source throws
+                  # PlatformNotSupportedException at parse time on Linux, so use a plain unreachable TCP host.
+                  DatabaseSettings__ConnectionString: "Server=127.0.0.1,1433;Database=Codegen;User Id=sa;Password=Not_used_by_codegen_1;TrustServerCertificate=true;Connect Timeout=1"
+                  HangfireSettings__Storage__ConnectionString: "Server=127.0.0.1,1433;Database=Codegen;User Id=sa;Password=Not_used_by_codegen_1;TrustServerCertificate=true;Connect Timeout=1"
               run: dotnet run --no-build --no-launch-profile -c Release -- codegen write
 
             # Share the freshly generated tree with the image build so it ships the exact tree that was tested.

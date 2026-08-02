@@ -86,6 +86,7 @@ const TaskCell: FC<TaskCellProps> = ({
             actions={actions}
             dropSide={dropSide}
             forceDropAfter={appendsToEnd && i === tasks.length - 1}
+            isSelected={actions.selectedTaskId === task.id}
             muted={
               selectedPersonaId !== null &&
               !task.personaIds.includes(selectedPersonaId)

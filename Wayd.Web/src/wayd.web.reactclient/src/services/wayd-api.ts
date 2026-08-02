@@ -20973,6 +20973,134 @@ export class StoryMapsClient {
     }
 
     /**
+     * Rename a task.
+     */
+    renameTask(storyMapId: string, taskId: string, request: RenameTaskRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/story-maps/{storyMapId}/tasks/{taskId}/title";
+        if (storyMapId === undefined || storyMapId === null)
+            throw new globalThis.Error("The parameter 'storyMapId' must be defined.");
+        url_ = url_.replace("{storyMapId}", encodeURIComponent("" + storyMapId));
+        if (taskId === undefined || taskId === null)
+            throw new globalThis.Error("The parameter 'taskId' must be defined.");
+        url_ = url_.replace("{taskId}", encodeURIComponent("" + taskId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRenameTask(_response);
+        });
+    }
+
+    protected processRenameTask(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set a task's description.
+     */
+    setTaskDescription(storyMapId: string, taskId: string, request: SetTaskDescriptionRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/story-maps/{storyMapId}/tasks/{taskId}/description";
+        if (storyMapId === undefined || storyMapId === null)
+            throw new globalThis.Error("The parameter 'storyMapId' must be defined.");
+        url_ = url_.replace("{storyMapId}", encodeURIComponent("" + storyMapId));
+        if (taskId === undefined || taskId === null)
+            throw new globalThis.Error("The parameter 'taskId' must be defined.");
+        url_ = url_.replace("{taskId}", encodeURIComponent("" + taskId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetTaskDescription(_response);
+        });
+    }
+
+    protected processSetTaskDescription(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Move a task to a step and swim lane.
      */
     moveTask(storyMapId: string, taskId: string, request: MoveTaskRequest, cancelToken?: CancelToken): Promise<void> {
@@ -35456,6 +35584,14 @@ export interface AddTaskRequest {
 
 export interface UpdateTaskRequest {
     title: string;
+    description?: string | undefined;
+}
+
+export interface RenameTaskRequest {
+    title: string;
+}
+
+export interface SetTaskDescriptionRequest {
     description?: string | undefined;
 }
 

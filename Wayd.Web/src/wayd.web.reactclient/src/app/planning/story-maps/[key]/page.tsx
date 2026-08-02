@@ -1,6 +1,10 @@
 'use client'
 
-import { useAppDispatch, useDocumentTitle } from '@/src/hooks'
+import {
+  useAppDispatch,
+  useDocumentTitle,
+  useRemainingHeight,
+} from '@/src/hooks'
 import { getAvatarColor } from '@/src/utils'
 import {
   useStoryMapConnection,
@@ -18,7 +22,8 @@ import {
   useRenameStepMutation,
   useDeleteStepMutation,
   useAddTaskMutation,
-  useUpdateTaskMutation,
+  useRenameTaskMutation,
+  useSetTaskDescriptionMutation,
   useDeleteTaskMutation,
   useAddSwimLaneMutation,
   useRenameSwimLaneMutation,
@@ -33,7 +38,7 @@ import {
   useSetTaskPersonasMutation,
 } from '@/src/store/features/planning/story-maps-api'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { Avatar, Button, Dropdown, Flex, Tag, Tour } from 'antd'
+import { Avatar, Button, Dropdown, Flex, Grid, Tag, Tour } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { WaydTooltip } from '@/src/components/common'
 import {
@@ -64,6 +69,8 @@ import {
   ManagePersonasForm,
   PersonaFilterBar,
   StoryMapBoard,
+  TaskDrawer,
+  TaskPanel,
 } from './_components'
 import { useStoryMapTour } from './_components/use-story-map-tour'
 import { ArchiveStoryMapForm, DeleteStoryMapForm } from '../_components'
@@ -71,6 +78,7 @@ import StoryMapDetailsLoading from './loading'
 import styles from '../_components/story-map.module.css'
 
 const { Group: AvatarGroup } = Avatar
+const { useBreakpoint } = Grid
 
 /** Names the moved node in the failure toast. */
 const DROP_LABELS: Record<DropResult['kind'], string> = {
@@ -102,6 +110,10 @@ const StoryMapDetailPage: FC = () => {
   const dispatch = useAppDispatch()
 
   const { token } = useTheme()
+  // Below xl the panel would leave too little width for the board to be usable, so it overlays
+  // as a drawer instead.
+  const screens = useBreakpoint()
+  const [boardRowRef, boardRowHeight] = useRemainingHeight()
   const { hasPermissionClaim } = useAuth()
   const canUpdate = hasPermissionClaim('Permissions.StoryMaps.Update')
   const canDelete = hasPermissionClaim('Permissions.StoryMaps.Delete')
@@ -119,7 +131,8 @@ const StoryMapDetailPage: FC = () => {
   const [renameStep] = useRenameStepMutation()
   const [deleteStep] = useDeleteStepMutation()
   const [addTask] = useAddTaskMutation()
-  const [updateTask] = useUpdateTaskMutation()
+  const [renameTask] = useRenameTaskMutation()
+  const [setTaskDescription] = useSetTaskDescriptionMutation()
   const [deleteTask] = useDeleteTaskMutation()
   const [addSwimLane] = useAddSwimLaneMutation()
   const [renameSwimLane] = useRenameSwimLaneMutation()
@@ -140,6 +153,10 @@ const StoryMapDetailPage: FC = () => {
     null,
   )
   const [openManagePersonas, setOpenManagePersonas] = useState(false)
+  // The task the drawer is showing. Held as an id, not the task itself — the drawer stays
+  // pointed at it through cache updates, so an edit from the board or another user flows straight
+  // through instead of the drawer showing a stale copy captured when it opened.
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   // Lanes and goals the viewer has folded away. Transient and local — never sent to the server, so
   // collapsing does not affect anyone else editing the same map.
   const [collapsedSwimLaneIds, setCollapsedSwimLaneIds] = useState<
@@ -434,17 +451,36 @@ const StoryMapDetailPage: FC = () => {
     }
   }
 
-  const handleRenameTask = async (task: StoryMapTaskDto, title: string) => {
+  // Title and description are set through separate endpoints, so renaming here cannot revert notes
+  // being edited in the drawer at the same time (or by another user).
+  const handleRenameTask = async (taskId: string, title: string) => {
     if (!map) return
     try {
-      await updateTask({
+      await renameTask({
         storyMapId: map.id,
         storyMapKey: key,
-        taskId: task.id,
-        request: { title, description: task.description },
+        taskId,
+        request: { title },
       }).unwrap()
     } catch {
       messageApi.error('Failed to rename task.')
+    }
+  }
+
+  const handleSetTaskDescription = async (
+    taskId: string,
+    description: string | undefined,
+  ) => {
+    if (!map) return
+    try {
+      await setTaskDescription({
+        storyMapId: map.id,
+        storyMapKey: key,
+        taskId,
+        request: { description },
+      }).unwrap()
+    } catch {
+      messageApi.error('Failed to update task description.')
     }
   }
 
@@ -458,6 +494,36 @@ const StoryMapDetailPage: FC = () => {
       }).unwrap()
     } catch {
       messageApi.error('Failed to delete task.')
+    }
+  }
+
+  // Moves a task to another swim lane in the same step, from the drawer's picker. Appended to the
+  // end of the destination cell — the picker has no position to aim at, unlike a drag.
+  const handleMoveTaskToLane = async (
+    task: StoryMapTaskDto,
+    swimLaneId: string,
+  ) => {
+    if (!map || task.swimLaneId === swimLaneId) return
+
+    const destinationCount =
+      map.goals
+        .flatMap((goal) => goal.steps)
+        .find((s) => s.id === task.stepId)
+        ?.tasks.filter((t) => t.swimLaneId === swimLaneId).length ?? 0
+
+    try {
+      await moveTask({
+        storyMapId: map.id,
+        storyMapKey: key,
+        taskId: task.id,
+        request: {
+          targetStepId: task.stepId,
+          targetSwimLaneId: swimLaneId,
+          newOrder: destinationCount,
+        },
+      }).unwrap()
+    } catch {
+      messageApi.error('Failed to move task.')
     }
   }
 
@@ -622,9 +688,23 @@ const StoryMapDetailPage: FC = () => {
     </Flex>
   )
 
+  // Re-resolved every render rather than stored. A task deleted here or by another user resolves to
+  // undefined, which closes the drawer rather than leaving it on a task that no longer exists.
+  const selectedTask =
+    (selectedTaskId
+      ? map.goals
+          .flatMap((goal) => goal.steps)
+          .flatMap((step) => step.tasks)
+          .find((t) => t.id === selectedTaskId)
+      : undefined) ?? null
+
+  const showTaskPanel = !!screens.xl
+
   const actions: BoardActions = {
     canUpdate: canEdit,
     autoEditId,
+    onSelectTask: setSelectedTaskId,
+    selectedTaskId: selectedTask?.id ?? null,
     onAutoEditEnd: () => setAutoEditId(null),
     personas: orderedPersonas,
     onRenameGoal: handleRenameGoal,
@@ -684,16 +764,61 @@ const StoryMapDetailPage: FC = () => {
           )}
         </div>
       ) : (
-        <StoryMapBoard
+        // A row so the panel is a sibling of the board rather than an overlay: the board's grid
+        // takes the width that is left, keeping every column reachable.
+        //
+        // The row is measured, not stretched. The board sets its own scrollport height inline, so
+        // there is no natural height for the panel to stretch against — without this a long
+        // checklist grows the panel past the viewport with nothing to scroll it back.
+        <div
+          ref={boardRowRef}
+          className={styles.boardRow}
+          style={{ height: boardRowHeight }}
+        >
+          <div className={styles.boardRowMain}>
+            <StoryMapBoard
+              map={map}
+              selectedPersonaId={selectedPersonaId}
+              actions={actions}
+              onAddStep={handleAddStep}
+              onAddSwimLane={handleAddSwimLane}
+              collapsedSwimLaneIds={collapsedSwimLaneIds}
+              onToggleSwimLaneCollapsed={handleToggleSwimLaneCollapsed}
+              collapsedGoalIds={collapsedGoalIds}
+              onToggleGoalCollapsed={handleToggleGoalCollapsed}
+            />
+          </div>
+
+          {showTaskPanel && (
+            <TaskPanel
+              map={map}
+              storyMapKey={key}
+              task={selectedTask}
+              canUpdate={canEdit}
+              onClose={() => setSelectedTaskId(null)}
+              onRenameTask={handleRenameTask}
+              onSetTaskDescription={handleSetTaskDescription}
+              onDeleteTask={handleDeleteTask}
+              onToggleTaskPersona={handleToggleTaskPersona}
+              onMoveTaskToLane={handleMoveTaskToLane}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Narrow viewports cannot spare the width for a sider, so they overlay instead. */}
+      {!showTaskPanel && (
+        <TaskDrawer
           map={map}
-          selectedPersonaId={selectedPersonaId}
-          actions={actions}
-          onAddStep={handleAddStep}
-          onAddSwimLane={handleAddSwimLane}
-          collapsedSwimLaneIds={collapsedSwimLaneIds}
-          onToggleSwimLaneCollapsed={handleToggleSwimLaneCollapsed}
-          collapsedGoalIds={collapsedGoalIds}
-          onToggleGoalCollapsed={handleToggleGoalCollapsed}
+          storyMapKey={key}
+          task={selectedTask}
+          canUpdate={canEdit}
+          onClose={() => setSelectedTaskId(null)}
+          onRenameTask={handleRenameTask}
+          onSetTaskDescription={handleSetTaskDescription}
+          onDeleteTask={handleDeleteTask}
+          onToggleTaskPersona={handleToggleTaskPersona}
+          onMoveTaskToLane={handleMoveTaskToLane}
         />
       )}
 

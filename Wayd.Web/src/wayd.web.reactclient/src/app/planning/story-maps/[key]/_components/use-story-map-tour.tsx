@@ -66,9 +66,9 @@ const AUTO_ADVANCE: Record<number, keyof CreatableCounts> = {
   1: 'goals',
   2: 'steps',
   3: 'tasks',
-  5: 'personas',
-  6: 'personaLinks',
-  7: 'swimLanes',
+  6: 'personas',
+  7: 'personaLinks',
+  8: 'swimLanes',
 }
 
 /**
@@ -78,13 +78,16 @@ const AUTO_ADVANCE: Record<number, keyof CreatableCounts> = {
  */
 const DO_IT_STEPS = new Set([1, 2, 3])
 
-const TOTAL_STEPS = 9
+const TOTAL_STEPS = 10
 
 /**
  * Whether a step makes sense given what exists on the board. Skipping ahead (or paging in either
  * direction) must not land on a card that points at nothing. Both modes have the same shape —
- * indices 1–3 cover goals/steps/tasks, 4 and 6 sit inside the board — but walkthrough mode points
- * at the nodes themselves, so it additionally needs a task to exist for its task stop.
+ * indices 1–3 cover goals/steps/tasks, 4 opens a task's details, 5 and 7 sit inside the board — but
+ * walkthrough mode points at the nodes themselves, so it additionally needs a task to exist for its
+ * task stop.
+ *
+ * The cases below are positional: inserting a step shifts every index after it.
  */
 const isStepViable = (
   mode: TourMode,
@@ -100,10 +103,13 @@ const isStepViable = (
       return mode === 'build' ? counts.goals > 0 : counts.steps > 0
     case 3:
       return mode === 'build' ? counts.steps > 0 : counts.tasks > 0
-    case 4: // the board itself
-    case 7: // the board's Add swim lane footer
+    case 4:
+      // Opening a task's details needs a task card to click, in both modes.
+      return counts.tasks > 0
+    case 5: // the board itself
+    case 8: // the board's Add swim lane footer
       return counts.goals > 0
-    case 6:
+    case 7:
       // Tagging needs a persona to tag and a step/task footer carrying the dots.
       return counts.personas > 0 && (counts.steps > 0 || counts.tasks > 0)
     default:
@@ -232,6 +238,14 @@ export const useStoryMapTour = (
     style: stepStyle,
   })
 
+  const taskDetailsStep = {
+    title: 'Open a task',
+    description:
+      'Click a task card to open its details. That is where a description, a checklist, personas, and a linked work item live. The board stays live beside it, so you can keep working and click another card to switch. Click the open task again to close it.',
+    target: anchor('task-card'),
+    style: stepStyle,
+  }
+
   const moveStep = {
     title: 'Move things around',
     description:
@@ -322,6 +336,7 @@ export const useStoryMapTour = (
       mask: false,
       style: stepStyle,
     },
+    taskDetailsStep,
     moveStep,
     personaStep,
     tagPersonaStep,
@@ -350,10 +365,11 @@ export const useStoryMapTour = (
     {
       title: 'Tasks',
       description:
-        'Tasks are the concrete work under each step, sorted into the swim lanes below. Click a title to edit it, or use the + Task placeholder at the bottom of any cell to add one there.',
+        'Tasks are the concrete work under each step, sorted into the swim lanes below. Click a title to rename it in place, or use the + Task placeholder at the bottom of any cell to add one there.',
       target: anchor('task-card'),
       style: stepStyle,
     },
+    taskDetailsStep,
     moveStep,
     personaStep,
     tagPersonaStep,

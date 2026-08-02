@@ -74,11 +74,20 @@ public sealed class StoryMapTask : BaseAuditableEntity
     /// </summary>
     public IReadOnlyList<ChecklistItem> Checklist => [.. _checklist.OrderBy(x => x.Order)];
 
+    /// <remarks>
+    /// Sets both fields together. Callers editing one field in isolation should use <see cref="Rename"/>
+    /// or <see cref="SetDescription"/> instead — passing the other field back unchanged races with a
+    /// concurrent edit to it.
+    /// </remarks>
     internal void UpdateDetails(string title, string? description)
     {
         Title = title;
         Description = description;
     }
+
+    internal void Rename(string title) => Title = title;
+
+    internal void SetDescription(string? description) => Description = description;
 
     internal void SetOrder(int order) => Order = order;
 

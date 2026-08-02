@@ -595,6 +595,84 @@ public class StoryMapTests
     }
 
     [Fact]
+    public void RenameTask_ExistingTask_ShouldChangeTitleOnly()
+    {
+        // Arrange
+        var map = CreateMap();
+        var stepId = map.Goals.Single().Steps.Single().Id;
+        var task = map.AddTask(stepId, "Original").Value;
+        map.SetTaskDescription(task.Id, "Existing description");
+
+        // Act
+        var result = map.RenameTask(task.Id, "Updated");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        task.Title.Should().Be("Updated");
+        task.Description.Should().Be("Existing description");
+    }
+
+    [Fact]
+    public void RenameTask_UnknownTask_ShouldReturnFailure()
+    {
+        // Arrange
+        var map = CreateMap();
+
+        // Act
+        var result = map.RenameTask(Guid.NewGuid(), "Title");
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public void SetTaskDescription_ExistingTask_ShouldChangeDescriptionOnly()
+    {
+        // Arrange
+        var map = CreateMap();
+        var stepId = map.Goals.Single().Steps.Single().Id;
+        var task = map.AddTask(stepId, "Original").Value;
+
+        // Act
+        var result = map.SetTaskDescription(task.Id, "Some description");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        task.Title.Should().Be("Original");
+        task.Description.Should().Be("Some description");
+    }
+
+    [Fact]
+    public void SetTaskDescription_Null_ShouldClearDescription()
+    {
+        // Arrange
+        var map = CreateMap();
+        var stepId = map.Goals.Single().Steps.Single().Id;
+        var task = map.AddTask(stepId, "Original").Value;
+        map.SetTaskDescription(task.Id, "Existing description");
+
+        // Act
+        var result = map.SetTaskDescription(task.Id, null);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        task.Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void SetTaskDescription_UnknownTask_ShouldReturnFailure()
+    {
+        // Arrange
+        var map = CreateMap();
+
+        // Act
+        var result = map.SetTaskDescription(Guid.NewGuid(), "Description");
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
     public void MoveTask_AcrossStepsAndLanes_ShouldRelocateTask()
     {
         // Arrange
@@ -1181,6 +1259,8 @@ public class StoryMapTests
             { "DeleteStep", m => m.DeleteStep(missing) },
             { "AddTask", m => m.AddTask(missing, "Task") },
             { "UpdateTask", m => m.UpdateTask(missing, "Task", null) },
+            { "RenameTask", m => m.RenameTask(missing, "Task") },
+            { "SetTaskDescription", m => m.SetTaskDescription(missing, null) },
             { "MoveTask", m => m.MoveTask(missing, missing, missing, 0) },
             { "DeleteTask", m => m.DeleteTask(missing) },
             { "SetTaskPersonas", m => m.SetTaskPersonas(missing, []) },

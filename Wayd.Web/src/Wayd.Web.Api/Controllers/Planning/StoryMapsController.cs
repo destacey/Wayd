@@ -238,6 +238,28 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPut("{storyMapId}/tasks/{taskId}/title")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [OpenApiOperation("Rename a task.", "Updates only the title, leaving the description untouched. Prefer this over the combined update when editing one field, so a concurrent edit to the other is not reverted.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> RenameTask(Guid storyMapId, Guid taskId, [FromBody] RenameTaskRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToCommand(storyMapId, taskId), cancellationToken);
+        return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{storyMapId}/tasks/{taskId}/description")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [OpenApiOperation("Set a task's description.", "Updates only the description, leaving the title untouched. Prefer this over the combined update when editing one field, so a concurrent edit to the other is not reverted.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> SetTaskDescription(Guid storyMapId, Guid taskId, [FromBody] SetTaskDescriptionRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToCommand(storyMapId, taskId), cancellationToken);
+        return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpPut("{storyMapId}/tasks/{taskId}/move")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
     [OpenApiOperation("Move a task to a step and swim lane.", "")]

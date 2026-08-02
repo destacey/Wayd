@@ -1,4 +1,4 @@
-import { StoryMapPersonaDto, StoryMapTaskDto } from '@/src/services/wayd-api'
+import { StoryMapPersonaDto } from '@/src/services/wayd-api'
 import { DropResult } from './board-drag'
 
 /**
@@ -22,8 +22,13 @@ export interface BoardActions {
   onDeleteStep: (stepId: string) => void
   /** Omitting the lane adds to the default one; a task cell passes its own. */
   onAddTask: (stepId: string, swimLaneId?: string) => void
-  onRenameTask: (task: StoryMapTaskDto, title: string) => void
+  /** Sets the title only — the description is written through its own endpoint. */
+  onRenameTask: (taskId: string, title: string) => void
   onDeleteTask: (taskId: string) => void
+  /** Opens the task panel on this task, re-points it if already open, or closes it when null. */
+  onSelectTask: (taskId: string | null) => void
+  /** The task the drawer is showing, so its card can mark itself. */
+  selectedTaskId: string | null
   /** Link or unlink a single persona; the handler sends the resulting full list to the API. */
   onToggleStepPersona: (stepId: string, personaId: string) => void
   onToggleTaskPersona: (taskId: string, personaId: string) => void

@@ -88,27 +88,6 @@ jobs:
             # Ryuk's own container is a common source of hangs/failures in CI. --blame-hang-timeout aborts (with a
             # dump naming the stuck test) instead of silently burning the job's time if a container never becomes
             # ready, so a Testcontainers problem fails fast and legibly rather than as an opaque timeout.
-            # TEMPORARY DIAGNOSTIC — isolate why the Testcontainers integration test host dies during startup with
-            # no VSTest output. Verify the Docker daemon, pre-pull the exact pinned SQL image (surfacing any pull
-            # error directly), then run ONLY Wayd.Web.Api.IntegrationTests with diagnostic logging to a file we
-            # print. Remove once the root cause is understood.
-            - name: Diagnose Testcontainers
-              working-directory: .
-              env:
-                  TESTCONTAINERS_RYUK_DISABLED: "true"
-              run: |
-                  echo "===== docker info ====="
-                  docker version || true
-                  docker info || true
-                  echo "===== pre-pull pinned SQL image ====="
-                  docker pull mcr.microsoft.com/mssql/server:2022-CU25-GDR2-ubuntu-22.04
-                  echo "===== run ONLY Web.Api.IntegrationTests with diagnostics ====="
-                  dotnet test Wayd.Web/tests/Wayd.Web.Api.IntegrationTests/Wayd.Web.Api.IntegrationTests.csproj \
-                    -c Release --verbosity detailed --blame-hang-timeout 3m \
-                    --diag:/home/runner/work/tc-diag/diag.log 2>&1 | tail -120
-                  echo "===== diag host logs (startup exceptions) ====="
-                  for f in /home/runner/work/tc-diag/*.log; do echo "--- $f ---"; tail -60 "$f" || true; done
-
             - name: Test
               working-directory: .
               env:

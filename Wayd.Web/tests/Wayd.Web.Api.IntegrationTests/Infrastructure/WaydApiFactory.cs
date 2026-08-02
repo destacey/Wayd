@@ -40,8 +40,14 @@ public sealed class WaydApiFactory : WebApplicationFactory<Program>
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["DatabaseSettings:DBProvider"] = "mssql",
-                ["DatabaseSettings:ConnectionString"] = "Server=(localdb)\\test;Database=WaydTest;Trusted_Connection=True;",
-                ["HangfireSettings:Storage:ConnectionString"] = "Server=(localdb)\\test;Database=WaydTest;Trusted_Connection=True;",
+                // Placeholder connection strings — this factory uses the in-memory EF provider and in-memory
+                // Hangfire storage (below), so nothing connects. But Wolverine's PersistMessagesWithSqlServer
+                // constructs a SqlConnection from DatabaseSettings:ConnectionString eagerly during host build, so
+                // the string must PARSE on every platform. A `(localdb)` data source throws
+                // PlatformNotSupportedException at parse time on Linux (CI), killing the host boot; a plain
+                // unreachable TCP host parses everywhere and is never actually connected to.
+                ["DatabaseSettings:ConnectionString"] = "Server=127.0.0.1,1433;Database=WaydTest;User Id=sa;Password=Placeholder_not_used_1;TrustServerCertificate=true;Connect Timeout=1",
+                ["HangfireSettings:Storage:ConnectionString"] = "Server=127.0.0.1,1433;Database=WaydTest;User Id=sa;Password=Placeholder_not_used_1;TrustServerCertificate=true;Connect Timeout=1",
                 ["SecuritySettings:LocalJwt:Secret"] = "integration-test-secret-key-please-ignore-0123456789",
             });
         });

@@ -75,10 +75,12 @@ jobs:
             # (overriding the job's API-project working-directory) so the whole solution is tested; the previous
             # `dotnet test` ran from the API project dir, which is not a test project, and silently tested nothing.
             #
-            # Exclude Wayd.Integrations.AzureDevOps.IntegrationTests: those hit a live Azure DevOps org and require
-            # an organizationUrl + PAT (from an appsettings.json absent in CI), so they throw here. They are run
-            # locally/manually with real credentials. Everything else — unit, architecture, and the Testcontainers
-            # integration suites (Wayd.Web.Api / Wayd.Organization) — runs.
+            # The Wayd.Integrations.AzureDevOps.IntegrationTests hit a live Azure DevOps org (OrganizationUrl +
+            # PAT from a developer's config, absent in CI) — they skip themselves here via Assert.SkipUnless (see
+            # OptionsFixture.IsConfigured) rather than being filtered out. A name filter is deliberately avoided:
+            # under xUnit v3 / Microsoft.Testing.Platform a filter that matches zero tests in an assembly makes
+            # `dotnet test` exit non-zero, so filtering the solution run emptied unrelated assemblies and failed
+            # the whole step.
             #
             # The integration suites spin up a SQL Server via Testcontainers on the runner's preinstalled Docker.
             # TESTCONTAINERS_RYUK_DISABLED=true turns off the Ryuk resource-reaper sidecar: the GitHub runner is
@@ -90,7 +92,7 @@ jobs:
               working-directory: .
               env:
                   TESTCONTAINERS_RYUK_DISABLED: "true"
-              run: dotnet test Wayd.slnx -c Release --verbosity normal --filter "FullyQualifiedName!~Wayd.Integrations.AzureDevOps.IntegrationTests" --blame-hang-timeout 5m
+              run: dotnet test Wayd.slnx -c Release --verbosity normal --blame-hang-timeout 5m
 
     build-and-test-client:
         runs-on: ubuntu-latest

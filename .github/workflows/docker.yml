@@ -82,16 +82,12 @@ jobs:
             # `dotnet test` exit non-zero, so filtering the solution run emptied unrelated assemblies and failed
             # the whole step.
             #
-            # The integration suites spin up a SQL Server via Testcontainers on the runner's preinstalled Docker.
-            # TESTCONTAINERS_RYUK_DISABLED=true turns off the Ryuk resource-reaper sidecar: the GitHub runner is
-            # ephemeral and torn down after the job, so the container it would clean up is reclaimed anyway, and
-            # Ryuk's own container is a common source of hangs/failures in CI. --blame-hang-timeout aborts (with a
-            # dump naming the stuck test) instead of silently burning the job's time if a container never becomes
-            # ready, so a Testcontainers problem fails fast and legibly rather than as an opaque timeout.
+            # The integration suites spin up a SQL Server via Testcontainers on the runner's preinstalled Docker;
+            # Ryuk (the resource reaper) stays enabled, per Testcontainers' guidance for GitHub Actions.
+            # --blame-hang-timeout aborts (with a dump naming the stuck test) instead of silently burning the job's
+            # time if a container never becomes ready, so a Testcontainers problem fails fast and legibly.
             - name: Test
               working-directory: .
-              env:
-                  TESTCONTAINERS_RYUK_DISABLED: "true"
               run: dotnet test Wayd.slnx -c Release --verbosity normal --blame-hang-timeout 5m
 
     build-and-test-client:

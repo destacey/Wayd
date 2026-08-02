@@ -15,6 +15,16 @@ public class ProcessServiceTests
 
     public ProcessServiceTests(OptionsFixture fixture)
     {
+        // These tests hit a real Azure DevOps organization. Skip them when the OrganizationUrl + PAT are not
+        // configured (CI and any environment without the developer's appsettings.json / user-secrets); they run
+        // for real only where those settings are present. SkipUnless in the constructor skips every test in the
+        // class, so the assembly reports skipped tests rather than throwing — which keeps `dotnet test` green
+        // without a fragile name filter that would empty other assemblies to zero matches under MTP.
+        Assert.SkipUnless(
+            fixture.IsConfigured,
+            "Azure DevOps organization settings (OrganizationUrl + PersonalAccessToken) are not configured; "
+            + "these live integration tests run only where those settings are present.");
+
         _azdoOrganizationOptions = fixture.AzdoOrganizationOptions;
         _processServiceData = fixture.ProcessServiceData;
 

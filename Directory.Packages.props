@@ -16,6 +16,7 @@
     <PackageVersion Include="FluentValidation.AspNetCore" Version="11.3.1" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageVersion Include="Hangfire" Version="1.8.24" />
+    <PackageVersion Include="Hangfire.InMemory" Version="1.0.0" />
     <PackageVersion Include="JasperFx.Aspire" Version="2.34.0" />
     <PackageVersion Include="Hangfire.Console.Extensions" Version="2.1.2" />
     <PackageVersion Include="Hangfire.Console.Extensions.Serilog" Version="2.1.2" />
@@ -97,6 +98,7 @@
     <PackageVersion Include="WolverineFx" Version="6.21.0" />
     <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="6.21.0" />
     <PackageVersion Include="WolverineFx.FluentValidation" Version="6.21.0" />
+    <PackageVersion Include="WolverineFx.RuntimeCompilation" Version="6.21.0" />
     <PackageVersion Include="WolverineFx.SqlServer" Version="6.21.0" />
     <PackageVersion Include="ZymLabs.NSwag.FluentValidation.AspNetCore" Version="0.7.1" />
     <!-- Test packages -->

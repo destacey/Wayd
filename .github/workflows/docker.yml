@@ -79,9 +79,18 @@ jobs:
             # an organizationUrl + PAT (from an appsettings.json absent in CI), so they throw here. They are run
             # locally/manually with real credentials. Everything else — unit, architecture, and the Testcontainers
             # integration suites (Wayd.Web.Api / Wayd.Organization) — runs.
+            #
+            # The integration suites spin up a SQL Server via Testcontainers on the runner's preinstalled Docker.
+            # TESTCONTAINERS_RYUK_DISABLED=true turns off the Ryuk resource-reaper sidecar: the GitHub runner is
+            # ephemeral and torn down after the job, so the container it would clean up is reclaimed anyway, and
+            # Ryuk's own container is a common source of hangs/failures in CI. --blame-hang-timeout aborts (with a
+            # dump naming the stuck test) instead of silently burning the job's time if a container never becomes
+            # ready, so a Testcontainers problem fails fast and legibly rather than as an opaque timeout.
             - name: Test
               working-directory: .
-              run: dotnet test Wayd.slnx -c Release --verbosity normal --filter "FullyQualifiedName!~Wayd.Integrations.AzureDevOps.IntegrationTests"
+              env:
+                  TESTCONTAINERS_RYUK_DISABLED: "true"
+              run: dotnet test Wayd.slnx -c Release --verbosity normal --filter "FullyQualifiedName!~Wayd.Integrations.AzureDevOps.IntegrationTests" --blame-hang-timeout 5m
 
     build-and-test-client:
         runs-on: ubuntu-latest

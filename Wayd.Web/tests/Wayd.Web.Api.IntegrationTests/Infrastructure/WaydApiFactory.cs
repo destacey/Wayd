@@ -1,3 +1,4 @@
+using Hangfire;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -61,6 +62,15 @@ public sealed class WaydApiFactory : WebApplicationFactory<Program>
             services.AddDbContext<WaydDbContext>(options => options
                 .UseInMemoryDatabase("wolverine-config-check")
                 .UseInternalServiceProvider(inMemoryProvider));
+
+            // Swap Hangfire's SQL Server storage for in-memory. SqlServerStorage.Initialize() runs a schema
+            // migration against the configured connection string when the JobStorage singleton is constructed at
+            // startup — this factory points at an unreachable placeholder DB, so that connect blocks for ~20s and
+            // the failed startup tears the host down. In-memory storage keeps the Hangfire graph intact (the
+            // dashboard middleware and server still resolve) without any database. The Testcontainers
+            // WaydSqlServerApiFactory keeps SQL storage for the real end-to-end pipeline tests.
+            services.RemoveAll<JobStorage>();
+            services.AddHangfire(config => config.UseInMemoryStorage());
         });
     }
 }

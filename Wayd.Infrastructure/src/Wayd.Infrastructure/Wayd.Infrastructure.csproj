@@ -84,11 +84,15 @@
              arrives with a genuinely fire-and-forget feature. -->
         <PackageReference Include="WolverineFx.EntityFrameworkCore" />
         <PackageReference Include="WolverineFx.SqlServer" />
-        <!-- NOTE: WolverineFx.RuntimeCompilation (the Roslyn IAssemblyGenerator for dynamic/auto codegen)
-             is intentionally NOT referenced. The host runs TypeLoadMode.Static from the committed
-             handler tree (Wayd.Web.Api/Internal/Generated/WolverineHandlers), so no runtime compiler is
-             needed. See WolverineConfiguration.ConfigureWayd. Re-adding Dynamic/Auto anywhere requires
-             restoring this package or the host will not start (GH-2876). -->
+        <!-- WolverineFx.RuntimeCompilation is the Roslyn IAssemblyGenerator that TypeLoadMode.Auto needs to
+             compile handlers at runtime (WolverineFx core dropped the runtime compiler in GH-2876, so an Auto
+             host with no IAssemblyGenerator refuses to start). It is referenced so the LOCAL DEVELOPER inner
+             loop can run Auto (Wolverine:CodegenMode=Auto in appsettings.Development.json) with no committed
+             handler tree and no codegen step. Every CI-tested build and published artifact runs
+             TypeLoadMode.Static (pre-generated tree, no runtime compilation) and never invokes this — a
+             Production host is guarded to require Static (see WolverineConfiguration.ResolveTypeLoadMode), so
+             the Roslyn compiler ships in the assembly but is dead weight on the prod cold-start path. -->
+        <PackageReference Include="WolverineFx.RuntimeCompilation" />
         <PackageReference Include="ZymLabs.NSwag.FluentValidation.AspNetCore" />
     </ItemGroup>
 

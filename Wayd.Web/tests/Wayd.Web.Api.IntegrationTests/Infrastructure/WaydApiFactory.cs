@@ -26,6 +26,13 @@ public sealed class WaydApiFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("Development");
         builder.UseSetting("WAYD_SKIP_DB_INIT", "true");
 
+        // Force Static codegen so the integration suite boots the SAME pre-generated handler tree the shipped
+        // artifact runs — the whole point of this guard is to exercise prod's dispatch path, not the Auto/Roslyn
+        // path only local dev uses. Development environment otherwise picks up appsettings.Development.json's
+        // Wolverine:CodegenMode=Auto; this override wins. The freshly generated tree must exist on disk (CI runs
+        // `codegen write` before `dotnet test`); a plain local `dotnet test` needs it regenerated first too.
+        builder.UseSetting("Wolverine:CodegenMode", "Static");
+
         builder.ConfigureAppConfiguration((_, config) =>
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>

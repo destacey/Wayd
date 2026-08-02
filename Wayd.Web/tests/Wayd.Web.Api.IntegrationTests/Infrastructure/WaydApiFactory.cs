@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Wayd.Infrastructure.Persistence.Context;
+using Wolverine;
 
 namespace Wayd.Web.Api.IntegrationTests.Infrastructure;
 
@@ -47,6 +48,11 @@ public sealed class WaydApiFactory : WebApplicationFactory<Program>
 
         builder.ConfigureTestServices(services =>
         {
+            // Wolverine's documented convention for a host with no real database: solo mode skips the durable
+            // inbox/outbox agents and leader election (their background recovery loops would otherwise run
+            // against the swapped-out storage). See https://wolverinefx.io/guide/http/integration-testing.html
+            services.RunWolverineInSoloMode();
+
             // Replace the SQL Server WaydDbContext with the in-memory provider so nothing connects.
             // Both AddDbContext calls register their provider into the app service provider, so give the
             // in-memory context its own internal service provider to avoid the "multiple database

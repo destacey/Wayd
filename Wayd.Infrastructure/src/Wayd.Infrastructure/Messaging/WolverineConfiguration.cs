@@ -75,7 +75,17 @@ public static class WolverineConfiguration
 
         var typeLoadMode = ResolveTypeLoadMode(builder.Configuration, builder.Environment);
 
-        builder.UseWolverine(opts => opts.ConfigureWayd(applicationAssembly, connectionString, typeLoadMode));
+        // An in-memory / introspection boot with no reachable database (the WaydApiFactory config-validity host)
+        // sets Wolverine:DisableDurableOutbox=true. The SQL message-store provisioning below (AutoBuild +
+        // AddResourceSetupOnStartup) opens a SqlConnection at startup, which fails when there is no DB — killing
+        // the host. This flag replaces that with MediatorOnly (no store provisioning, no durability agent),
+        // leaving handler discovery + codegen + dispatch intact. Production and the Testcontainers factory leave
+        // it false so the real durable outbox is provisioned. Note RunWolverineInSoloMode alone does NOT prevent
+        // the store provisioning — only skipping AddResourceSetupOnStartup + AutoBuild does.
+        var disableDurableOutbox = string.Equals(
+            builder.Configuration["Wolverine:DisableDurableOutbox"], "true", StringComparison.OrdinalIgnoreCase);
+
+        builder.UseWolverine(opts => opts.ConfigureWayd(applicationAssembly, connectionString, typeLoadMode, disableDurableOutbox));
         return builder;
     }
 
@@ -119,7 +129,7 @@ public static class WolverineConfiguration
         return mode;
     }
 
-    private static WolverineOptions ConfigureWayd(this WolverineOptions opts, System.Reflection.Assembly applicationAssembly, string connectionString, TypeLoadMode typeLoadMode)
+    private static WolverineOptions ConfigureWayd(this WolverineOptions opts, System.Reflection.Assembly applicationAssembly, string connectionString, TypeLoadMode typeLoadMode, bool disableDurableOutbox)
     {
         // The assembly holding the pre-generated handler tree (Internal/Generated/WolverineHandlers), which
         // TypeLoadMode.Static loads the HandlerRegistry and per-handler types from. Must be Wayd.Web.Api; see
@@ -163,18 +173,29 @@ public static class WolverineConfiguration
         // DurabilitySettings.KeepAfterMessageHandling (default 5 minutes) before cleanup.
         opts.Policies.UseDurableLocalQueues();
 
-        // Provision the envelope tables on startup. BOTH settings are required, and each is silently a no-op
-        // without the other:
-        //   - AutoBuildMessageStorageOnStartup must be set explicitly. JasperFx overrides Wolverine's own
-        //     CreateOrUpdate default from the active runtime profile (Development's default is AutoCreate.None),
-        //     so without this the migrate path does nothing in dev/tests.
-        //   - AddResourceSetupOnStartup registers the hosted service that actually runs resource setup at boot.
-        //     Without it the tables are never created even with AutoBuild on.
-        // CreateOrUpdate adds missing resources without wiping existing data (never ResetState, which would
-        // clear the store every boot). This keeps a plain `dotnet run` / Testcontainers boot self-sufficient;
-        // under the Aspire AppHost the equivalent path is its `resources setup` startup gate.
-        opts.AutoBuildMessageStorageOnStartup = JasperFx.AutoCreate.CreateOrUpdate;
-        opts.Services.AddResourceSetupOnStartup();
+        if (disableDurableOutbox)
+        {
+            // In-memory / introspection boot with no reachable DB (see AddWaydWolverine). MediatorOnly disables
+            // the durability agent AND its startup message-store provisioning — the parts that open a SqlConnection
+            // at boot — while leaving handler discovery, codegen, and in-process dispatch intact. Do NOT
+            // AddResourceSetupOnStartup / AutoBuild here: those connect too.
+            opts.Durability.Mode = DurabilityMode.MediatorOnly;
+        }
+        else
+        {
+            // Provision the envelope tables on startup. BOTH settings are required, and each is silently a no-op
+            // without the other:
+            //   - AutoBuildMessageStorageOnStartup must be set explicitly. JasperFx overrides Wolverine's own
+            //     CreateOrUpdate default from the active runtime profile (Development's default is AutoCreate.None),
+            //     so without this the migrate path does nothing in dev/tests.
+            //   - AddResourceSetupOnStartup registers the hosted service that actually runs resource setup at boot.
+            //     Without it the tables are never created even with AutoBuild on.
+            // CreateOrUpdate adds missing resources without wiping existing data (never ResetState, which would
+            // clear the store every boot). This keeps a plain `dotnet run` / Testcontainers boot self-sufficient;
+            // under the Aspire AppHost the equivalent path is its `resources setup` startup gate.
+            opts.AutoBuildMessageStorageOnStartup = JasperFx.AutoCreate.CreateOrUpdate;
+            opts.Services.AddResourceSetupOnStartup();
+        }
 
         // Durable envelopes are serialized with System.Text.Json; our domain events carry NodaTime types
         // (Instant, LocalDate, LocalDateRange) and value objects, so register the same NodaTime converters

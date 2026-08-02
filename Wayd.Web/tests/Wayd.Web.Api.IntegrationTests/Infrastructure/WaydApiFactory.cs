@@ -35,6 +35,15 @@ public sealed class WaydApiFactory : WebApplicationFactory<Program>
         // `codegen write` before `dotnet test`); a plain local `dotnet test` needs it regenerated first too.
         builder.UseSetting("Wolverine:CodegenMode", "Static");
 
+        // Disable Wolverine's SQL durable outbox for this in-memory factory. Its startup message-store
+        // provisioning (AddResourceSetupOnStartup) opens a SqlConnection against DatabaseSettings:ConnectionString
+        // during host start; with no reachable DB that fails and the failed startup tears the host down (every
+        // test then fails with ObjectDisposedException at CreateClient). MediatorOnly (see WolverineConfiguration)
+        // keeps discovery + codegen + dispatch — all this guard checks. The Testcontainers WaydSqlServerApiFactory
+        // leaves this false and provisions the real outbox against its container. UseSetting reaches the eager
+        // config read in AddWaydWolverine, so it must be set here, not via a deferred ConfigureAppConfiguration.
+        builder.UseSetting("Wolverine:DisableDurableOutbox", "true");
+
         builder.ConfigureAppConfiguration((_, config) =>
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>

@@ -157,32 +157,40 @@ public static class WolverineConfiguration
         // enlist here; everything else dispatches inline via EventPublisher.InvokeAsync (the outbox is
         // post-commit/async only — there is no "durable + inline" mode). Inline dispatch preserves
         // read-your-writes for the cross-domain replication projections, guarded by CrossDomainReplicationTests.
-        opts.PersistMessagesWithSqlServer(connectionString, Persistence.ConfigureServices.WolverineSchemaName);
-        opts.UseEntityFrameworkCoreTransactions();
-
-        // REQUIRED for the outbox to actually be durable: Wolverine's outbox only persists envelopes
-        // destined for DURABLE endpoints. The durable events route to per-message-type LOCAL queues,
-        // which default to BufferedInMemory — in that mode the "outbox" merely defers an in-memory
-        // publish until post-commit, and a crash between commit and dispatch silently loses the event
-        // (verified 2026-07-19: zero envelope rows were ever written). This policy flips every local
-        // queue to durable so the envelope is written to wolverine_incoming_envelopes inside the same
-        // transaction as the entity change and recovered by the durability agent after a crash.
-        // Wolverine's internal system queues (agents) are not affected. Consequence: durable delivery
-        // is at-least-once for real now — durable-event handlers must stay idempotent (see
-        // DurableEventRoutes), and handled envelopes remain visible to the messaging dashboard for
-        // DurabilitySettings.KeepAfterMessageHandling (default 5 minutes) before cleanup.
-        opts.Policies.UseDurableLocalQueues();
-
         if (disableDurableOutbox)
         {
-            // In-memory / introspection boot with no reachable DB (see AddWaydWolverine). MediatorOnly disables
-            // the durability agent AND its startup message-store provisioning — the parts that open a SqlConnection
-            // at boot — while leaving handler discovery, codegen, and in-process dispatch intact. Do NOT
-            // AddResourceSetupOnStartup / AutoBuild here: those connect too.
+            // In-memory / introspection boot with no reachable database (the WaydApiFactory config-validity host;
+            // see AddWaydWolverine). Register NO SQL message store: PersistMessagesWithSqlServer would make
+            // WolverineRuntime.StartAsync → tryMigrateStorage() open a SqlConnection and run migrations against the
+            // (absent) database at startup — which times out and tears the host down (every test then fails with
+            // ObjectDisposedException at CreateClient). Neither MediatorOnly nor skipping AddResourceSetupOnStartup
+            // prevents that migration once the store is registered — the store must simply not exist. MediatorOnly
+            // also turns off the durability agent. Handler discovery, codegen, and in-process dispatch (all this
+            // guard checks) work without any persistence. Production and the Testcontainers WaydSqlServerApiFactory
+            // leave the flag false and get the real durable outbox below.
             opts.Durability.Mode = DurabilityMode.MediatorOnly;
         }
         else
         {
+            // DURABLE TRANSACTIONAL OUTBOX. PersistMessagesWithSqlServer stores message envelopes in a dedicated
+            // "wolverine" schema (never dbo), provisioned by Weasel at startup parallel to our EF migrations.
+            // UseEntityFrameworkCoreTransactions lets outgoing messages enlist in a WaydDbContext SaveChanges
+            // transaction so the envelope is durably persisted and delivered post-commit by the durability agent.
+            opts.PersistMessagesWithSqlServer(connectionString, Persistence.ConfigureServices.WolverineSchemaName);
+            opts.UseEntityFrameworkCoreTransactions();
+
+            // REQUIRED for the outbox to actually be durable: Wolverine's outbox only persists envelopes destined
+            // for DURABLE endpoints. The durable events route to per-message-type LOCAL queues, which default to
+            // BufferedInMemory — in that mode the "outbox" merely defers an in-memory publish until post-commit,
+            // and a crash between commit and dispatch silently loses the event (verified 2026-07-19: zero envelope
+            // rows were ever written). This policy flips every local queue to durable so the envelope is written to
+            // wolverine_incoming_envelopes inside the same transaction as the entity change and recovered by the
+            // durability agent after a crash. Wolverine's internal system queues (agents) are not affected.
+            // Consequence: durable delivery is at-least-once for real now — durable-event handlers must stay
+            // idempotent (see DurableEventRoutes), and handled envelopes remain visible to the messaging dashboard
+            // for DurabilitySettings.KeepAfterMessageHandling (default 5 minutes) before cleanup.
+            opts.Policies.UseDurableLocalQueues();
+
             // Provision the envelope tables on startup. BOTH settings are required, and each is silently a no-op
             // without the other:
             //   - AutoBuildMessageStorageOnStartup must be set explicitly. JasperFx overrides Wolverine's own

@@ -68,15 +68,20 @@ jobs:
                   if-no-files-found: error
                   retention-days: 1
 
-            # Run the FULL .NET solution suite. This includes Wayd.Web.Api.IntegrationTests, which forces
+            # Run the .NET solution suite. This includes Wayd.Web.Api.IntegrationTests, which forces
             # Wolverine:CodegenMode=Static (see WaydApiFactory) and so boots the handler tree generated above —
             # validating the exact Static dispatch path the shipped artifact uses. NOT --no-build: the test
             # build recompiles the API so the just-generated handler tree is compiled in. Run from the repo root
             # (overriding the job's API-project working-directory) so the whole solution is tested; the previous
             # `dotnet test` ran from the API project dir, which is not a test project, and silently tested nothing.
+            #
+            # Exclude Wayd.Integrations.AzureDevOps.IntegrationTests: those hit a live Azure DevOps org and require
+            # an organizationUrl + PAT (from an appsettings.json absent in CI), so they throw here. They are run
+            # locally/manually with real credentials. Everything else — unit, architecture, and the Testcontainers
+            # integration suites (Wayd.Web.Api / Wayd.Organization) — runs.
             - name: Test
               working-directory: .
-              run: dotnet test Wayd.slnx -c Release --verbosity normal
+              run: dotnet test Wayd.slnx -c Release --verbosity normal --filter "FullyQualifiedName!~Wayd.Integrations.AzureDevOps.IntegrationTests"
 
     build-and-test-client:
         runs-on: ubuntu-latest

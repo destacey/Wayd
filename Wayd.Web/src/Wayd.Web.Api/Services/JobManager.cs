@@ -34,8 +34,18 @@ public class JobManager(
     private readonly IPeopleSyncRunner _peopleSyncRunner = peopleSyncRunner;
     private readonly IDispatcher _dispatcher = dispatcher;
 
+    // No automatic retry. People-sync failures are overwhelmingly deterministic — a duplicate key
+    // on a uniquely-indexed employee field, an ambiguous identity match, a source returning zero
+    // workers. Re-running re-fetches every worker over SOAP, rebuilds the identical change set, and
+    // fails on the identical constraint, so the retries burn Workday API quota and emit a ~260 KB
+    // exception log apiece without ever changing the outcome. The failure is already durably
+    // recorded on the SyncRun row before the throw, so each retry also writes another failed row
+    // for one underlying problem.
+    //
+    // The job still throws and still lands in Hangfire's Failed state — that's the signal the team
+    // watches. This only removes the three pointless re-attempts in front of it.
     [DisableConcurrentExecution(60 * 3)]
-    [AutomaticRetry(Attempts = 3, DelaysInSeconds = [30, 60, 120])]
+    [AutomaticRetry(Attempts = 0)]
     public async Task RunPeopleSync(SyncType syncType, SyncTriggerSource trigger, Guid? connectionId, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Running {BackgroundJob} job (syncType={SyncType}, trigger={Trigger}, connectionId={ConnectionId})", nameof(RunPeopleSync), syncType, trigger, connectionId);

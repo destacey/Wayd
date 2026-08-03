@@ -44,7 +44,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             deactivateMissing: true);
 
         // Act
-        var result = await CreateHandler().Handle(command, CancellationToken.None);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -80,7 +80,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             deactivateMissing: true);
 
         // Act
-        var result = await CreateHandler().Handle(command, CancellationToken.None);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -115,7 +115,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             deactivateMissing: false);
 
         // Act
-        var result = await CreateHandler().Handle(command, CancellationToken.None);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -146,7 +146,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             deactivateMissing: false);
 
         // Act
-        var result = await CreateHandler().Handle(command, CancellationToken.None);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -180,7 +180,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             deactivateMissing: false);
 
         // Act
-        var result = await CreateHandler().Handle(command, CancellationToken.None);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue("an ambiguous record is skipped, not a batch failure");
@@ -215,7 +215,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             deactivateMissing: false);
 
         // Act
-        var result = await CreateHandler().Handle(command, CancellationToken.None);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -247,7 +247,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             deactivateMissing: false);
 
         // Act
-        var result = await CreateHandler().Handle(command, CancellationToken.None);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue("one malformed record must not fail the run");
@@ -285,7 +285,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             deactivateMissing: false);
 
         // Act
-        var result = await CreateHandler().Handle(command, CancellationToken.None);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -301,7 +301,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
     }
 
     private async Task<List<Employee>> GetEmployees() =>
-        await _dbContext.Employees.ToListAsync(CancellationToken.None);
+        await _dbContext.Employees.ToListAsync(TestContext.Current.CancellationToken);
 
     private Employee CreateExistingEmployee(string employeeNumber, string email) =>
         Employee.Create(

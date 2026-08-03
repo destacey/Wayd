@@ -58,7 +58,12 @@ public sealed class BulkUpsertEmployeesCommandValidator : CustomValidator<BulkUp
         RuleFor(e => e.Employees)
             .NotNull()
             .NotEmpty()
-            .Must(e => e.Select(emp => emp.EmployeeNumber).Distinct().Count() == e.Count())
+            // Case-insensitive to match the handler's lookup indexes and the DB's unique indexes
+            // (SQL Server's default collation is case-insensitive). A case-sensitive comparison here
+            // would pass a payload carrying "a1b2" and "A1B2", which the handler then treats as the
+            // same employee — the second record silently overwriting the first — or which collides
+            // at SaveChanges and fails the batch.
+            .Must(e => e.Select(emp => emp.EmployeeNumber).Distinct(StringComparer.OrdinalIgnoreCase).Count() == e.Count())
                 .WithMessage("EmployeeNumber must be unique.")
             // Email is uniquely indexed too, so two payload records sharing an address would fail
             // the whole batch at SaveChanges. Reject the payload here, where the message names the

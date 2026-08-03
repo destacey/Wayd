@@ -1,47 +1,45 @@
 {
-    "Serilog": {
-        "Using": [
-            "Serilog.Sinks.Console"
-        ],
-        "Enrich": [
-            "FromLogContext",
-            "WithAssemblyName",
-            "WithAssemblyVersion",
-            "WithMachineName",
-            "WithProcessId",
-            "WithThreadId",
-            "WithHangfireContext",
-            "WithExceptionDetails",
-            {
-                "Name": "WithSpan",
-                "Args": {
-                    "spanOptions": {
-                        "IncludeTags": "true",
-                        "IncludeBaggage": "true",
-                        "IncludeOperationName": "true",
-                        "IncludeTraceFlags": "true"
-                    }
-                }
-            }
-        ],
-        "MinimumLevel": {
-            "Default": "Information",
-            "Override": {
-                "Hangfire": "Warning",
-                "JasperFx": "Information",
-                "Microsoft": "Error",
-                "Microsoft.Hosting.Lifetime": "Information",
-                "Microsoft.IdentityModel": "Fatal",
-                "System": "Information",
-                "Wolverine": "Information",
-                "ZymLabs.NSwag.FluentValidation": "Warning"
-            }
-        },
-        "Properties": {
-            "Application": "Wayd"
-        },
-        "WriteTo": [
-            { "Name": "Console" }
-        ]
-    }
+  "Serilog": {
+    "Using": ["Serilog.Sinks.Console"],
+    "Enrich": [
+      "FromLogContext",
+      "WithAssemblyName",
+      "WithAssemblyVersion",
+      "WithMachineName",
+      "WithProcessId",
+      "WithThreadId",
+      "WithHangfireContext",
+      "WithExceptionDetails",
+      {
+        "Name": "WithSpan",
+        "Args": {
+          "spanOptions": {
+            "IncludeTags": "true",
+            "IncludeBaggage": "true",
+            "IncludeOperationName": "true",
+            "IncludeTraceFlags": "true"
+          }
+        }
+      }
+    ],
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "Hangfire": "Warning",
+        "JasperFx": "Information",
+        "Microsoft": "Error",
+        "Microsoft.Hosting.Lifetime": "Information",
+        "Microsoft.IdentityModel": "Fatal",
+        "Polly": "Warning",
+        "System": "Information",
+        "System.Net.Http.HttpClient": "Warning",
+        "Wolverine": "Information",
+        "ZymLabs.NSwag.FluentValidation": "Warning"
+      }
+    },
+    "Properties": {
+      "Application": "Wayd"
+    },
+    "WriteTo": [{ "Name": "Console" }]
+  }
 }

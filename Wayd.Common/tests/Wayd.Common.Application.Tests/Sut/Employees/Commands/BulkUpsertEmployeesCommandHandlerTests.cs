@@ -225,6 +225,73 @@ public class BulkUpsertEmployeesCommandHandlerTests
             "the second record must match the row the first one migrated, not insert a duplicate email");
     }
 
+    /// <summary>
+    /// A single over-long field must skip only its own record. Reaching SaveChanges with it would
+    /// throw a truncation error and roll back the entire batch, losing every other employee.
+    /// </summary>
+    [Fact]
+    public async Task Handle_WhenRecordExceedsColumnLength_SkipsOnlyThatRecord()
+    {
+        // Arrange — EmployeeType has a 128-char column; this record blows past it.
+        var payload = new IExternalEmployee[]
+        {
+            FakeExternalEmployee("E-7001", "ok-before@acme.example", isActive: true),
+            FakeExternalEmployee("E-7002", "too-long@acme.example", isActive: true)
+                with { EmployeeType = new string('x', 129) },
+            FakeExternalEmployee("E-7003", "ok-after@acme.example", isActive: true),
+        };
+
+        var command = new BulkUpsertEmployeesCommand(
+            payload,
+            EmployeeMatchProperty.Email,
+            deactivateMissing: false);
+
+        // Act
+        var result = await CreateHandler().Handle(command, CancellationToken.None);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue("one malformed record must not fail the run");
+
+        var employees = await GetEmployees();
+        employees.Should().HaveCount(2, "only the over-long record should be skipped");
+        employees.Select(e => e.EmployeeNumber).Should().BeEquivalentTo(["E-7001", "E-7003"]);
+    }
+
+    /// <summary>
+    /// Pins the handler's length constants to the values configured in <c>EmployeeConfig</c>. If a
+    /// migration widens or narrows a column, this test fails and points at the constant to update —
+    /// the Application layer cannot reference Infrastructure to read them directly.
+    /// </summary>
+    [Theory]
+    [InlineData(256, "EmployeeNumber")]
+    [InlineData(128, "EmployeeType")]
+    [InlineData(100, "MiddleName")]
+    public async Task Handle_AcceptsValuesAtTheConfiguredColumnLimit(int maxLength, string field)
+    {
+        // Arrange — a value exactly at the limit must be accepted, not skipped.
+        var atLimit = new string('x', maxLength);
+        var record = FakeExternalEmployee("E-8001", "at-limit@acme.example", isActive: true);
+
+        record = field switch
+        {
+            "EmployeeNumber" => record with { EmployeeNumber = atLimit },
+            "EmployeeType" => record with { EmployeeType = atLimit },
+            _ => record with { Name = new PersonName("First", atLimit, "Last") },
+        };
+
+        var command = new BulkUpsertEmployeesCommand(
+            [record],
+            EmployeeMatchProperty.Email,
+            deactivateMissing: false);
+
+        // Act
+        var result = await CreateHandler().Handle(command, CancellationToken.None);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        (await GetEmployees()).Should().HaveCount(1, $"a {field} of exactly {maxLength} characters fits the column");
+    }
+
     private void Seed(params Employee[] employees)
     {
         foreach (var employee in employees)

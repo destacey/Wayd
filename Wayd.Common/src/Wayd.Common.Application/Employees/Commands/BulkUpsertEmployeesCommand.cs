@@ -2,6 +2,7 @@
 using Wayd.Common.Application.Validators;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.AppIntegrations;
+using Wayd.Common.Models;
 
 namespace Wayd.Common.Application.Employees.Commands;
 
@@ -109,6 +110,21 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
         {
             try
             {
+                // Pre-flight the length-constrained columns. The command validator enforces these
+                // too, but a validator failure rejects the entire payload — one over-long value
+                // from the source would block every other employee in the run. Sync is a bulk
+                // reconciliation against data we do not control, so a malformed record is skipped
+                // and reported while the rest proceed. Reaching SaveChanges with an over-long value
+                // would throw a truncation error and roll back the whole batch.
+                var lengthError = FindLengthViolation(externalEmployee);
+                if (lengthError is not null)
+                {
+                    _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", requestName, lengthError);
+                    errors.Add(externalEmployee.EmployeeNumber, lengthError);
+
+                    continue;
+                }
+
                 var managerId = GetManagerId(externalEmployee.ManagerEmployeeNumber, employeeNumberToId);
 
                 var match = FindMatchingEmployee(externalEmployee, request.MatchBy, employeesByEmail, employeesByNumber);
@@ -231,6 +247,47 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
 
             return Result.Failure<int>($"Wayd Request: Exception for Request {requestName} {request}");
         }
+    }
+
+    /// <summary>
+    /// Column length limits from <c>EmployeeConfig</c>. Duplicated here rather than reflected out of
+    /// the model because the Application layer cannot reference Infrastructure — the
+    /// <see cref="FindLengthViolation"/> tests pin these to the configured values so a schema change
+    /// that moves a limit fails the build's test run rather than surfacing as a truncation error in
+    /// production.
+    /// </summary>
+    private const int EmployeeNumberMaxLength = 256;
+    private const int EmailMaxLength = 256;
+    private const int JobTitleMaxLength = 256;
+    private const int DepartmentMaxLength = 256;
+    private const int OfficeLocationMaxLength = 256;
+    private const int EmployeeTypeMaxLength = 128;
+    private const int NamePartMaxLength = 100;
+    private const int NameAffixMaxLength = 50;
+
+    /// <summary>
+    /// Returns a description of the first over-long field on the record, or null when every
+    /// length-constrained value fits its column. Checked per-record so one malformed value skips
+    /// that employee instead of failing the run.
+    /// </summary>
+    private static string? FindLengthViolation(IExternalEmployee employee)
+    {
+        return Check(employee.EmployeeNumber, EmployeeNumberMaxLength, nameof(employee.EmployeeNumber))
+            ?? Check(employee.Email.Value, EmailMaxLength, nameof(employee.Email))
+            ?? Check(employee.JobTitle, JobTitleMaxLength, nameof(employee.JobTitle))
+            ?? Check(employee.Department, DepartmentMaxLength, nameof(employee.Department))
+            ?? Check(employee.OfficeLocation, OfficeLocationMaxLength, nameof(employee.OfficeLocation))
+            ?? Check(employee.EmployeeType, EmployeeTypeMaxLength, nameof(employee.EmployeeType))
+            ?? Check(employee.Name?.FirstName, NamePartMaxLength, nameof(PersonName.FirstName))
+            ?? Check(employee.Name?.MiddleName, NamePartMaxLength, nameof(PersonName.MiddleName))
+            ?? Check(employee.Name?.LastName, NamePartMaxLength, nameof(PersonName.LastName))
+            ?? Check(employee.Name?.Suffix, NameAffixMaxLength, nameof(PersonName.Suffix))
+            ?? Check(employee.Name?.Title, NameAffixMaxLength, nameof(PersonName.Title));
+
+        static string? Check(string? value, int maxLength, string fieldName) =>
+            value is not null && value.Length > maxLength
+                ? $"{fieldName} exceeds the maximum length of {maxLength} characters (actual: {value.Length}). Skipped."
+                : null;
     }
 
     /// <summary>

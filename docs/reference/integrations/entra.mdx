@@ -63,7 +63,7 @@ Wayd does not write back to Entra. There is no `User.ReadWrite` or similar eleva
 | Client ID | — | Required. App registration's application ID. |
 | Client Secret | — | Required. Encrypted at rest. |
 | All Users Group Object ID | (blank) | Optional. Scope sync to transitive members of this group. |
-| Match Employees By | Email | Drives the `BulkUpsertEmployeesCommand` matcher. Email is cross-source stable; switch to Employee Number only if both your connectors emit the same stable identifier. |
+| Match Employees By | Email | The *preferred* key for the `BulkUpsertEmployeesCommand` matcher; it falls back to the other candidate key when the preferred one misses, so an upstream email or employee-number change never creates a duplicate row. Email is cross-source stable; switch to Employee Number only if both your connectors emit the same stable identifier. |
 | Include Disabled Users | Off | When on, accounts with `accountEnabled=false` are also imported. |
 | Normalize Name Casing | On | Title-cases all-caps names; preserves mixed-case input. |
 

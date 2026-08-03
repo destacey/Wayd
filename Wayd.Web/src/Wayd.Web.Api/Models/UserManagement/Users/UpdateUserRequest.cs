@@ -17,6 +17,9 @@ public sealed record UpdateUserRequest
             LastName = LastName,
             Email = Email,
             PhoneNumber = PhoneNumber,
-            EmployeeId = EmployeeId
+            EmployeeId = EmployeeId,
+            // The admin user-edit form owns the employee link, so it opts in to applying it —
+            // including clearing it (EmployeeId = null unlinks). The self-service profile edit does not.
+            ManageEmployeeLink = true
         };
 }

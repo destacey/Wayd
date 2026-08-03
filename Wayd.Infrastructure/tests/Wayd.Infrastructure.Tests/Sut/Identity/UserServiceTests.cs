@@ -449,6 +449,144 @@ public class UserServiceTests
         await act.Should().ThrowAsync<InternalServerException>();
     }
 
+    [Fact]
+    public async Task UpdateAsync_ShouldPreserveEmployeeLink_WhenUpdateDoesNotManageIt()
+    {
+        // Arrange — the self-service profile edit sends no employee id. Applying the command's
+        // default null would silently unlink the user from their employee record on every save.
+        var employeeId = Guid.NewGuid();
+        var user = CreateUser();
+        user.EmployeeId = employeeId;
+        var command = new UpdateUserCommand { Id = "user-1", FirstName = "Test", LastName = "User", Email = "test@example.com" };
+
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.GetPhoneNumberAsync(user)).ReturnsAsync((string?)null);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.UpdateAsync(command, "user-1");
+
+        // Assert
+        user.EmployeeId.Should().Be(employeeId);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldSetEmployeeLink_WhenUpdateManagesIt()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var user = CreateUser();
+        var command = new UpdateUserCommand
+        {
+            Id = "user-1",
+            FirstName = "Test",
+            LastName = "User",
+            Email = "test@example.com",
+            EmployeeId = employeeId,
+            ManageEmployeeLink = true
+        };
+
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.GetPhoneNumberAsync(user)).ReturnsAsync((string?)null);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.UpdateAsync(command, "user-1");
+
+        // Assert
+        user.EmployeeId.Should().Be(employeeId);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldClearEmployeeLink_WhenUpdateManagesItAndEmployeeIdIsNull()
+    {
+        // Arrange — unlinking stays possible, but only as an explicit act from the admin path.
+        var user = CreateUser();
+        user.EmployeeId = Guid.NewGuid();
+        var command = new UpdateUserCommand
+        {
+            Id = "user-1",
+            FirstName = "Test",
+            LastName = "User",
+            Email = "test@example.com",
+            EmployeeId = null,
+            ManageEmployeeLink = true
+        };
+
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.GetPhoneNumberAsync(user)).ReturnsAsync((string?)null);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.UpdateAsync(command, "user-1");
+
+        // Assert
+        user.EmployeeId.Should().BeNull();
+    }
+
+    #endregion
+
+    #region ExistsWithEmployeeIdAsync
+
+    [Fact]
+    public async Task ExistsWithEmployeeIdAsync_ShouldReturnTrue_WhenAnotherUserIsLinkedToTheEmployee()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var existing = CreateUser();
+        existing.EmployeeId = employeeId;
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { existing }.AsQueryable().BuildMockDbSet().Object);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ExistsWithEmployeeIdAsync(employeeId, "different-user");
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ExistsWithEmployeeIdAsync_ShouldReturnFalse_WhenOnlyTheExcludedUserIsLinked()
+    {
+        // Arrange — a user keeping their own existing link is not a conflict with themselves.
+        var employeeId = Guid.NewGuid();
+        var existing = CreateUser();
+        existing.EmployeeId = employeeId;
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { existing }.AsQueryable().BuildMockDbSet().Object);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ExistsWithEmployeeIdAsync(employeeId, existing.Id);
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ExistsWithEmployeeIdAsync_ShouldReturnFalse_WhenNoUserIsLinkedToTheEmployee()
+    {
+        // Arrange
+        var existing = CreateUser();
+        existing.EmployeeId = null;
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { existing }.AsQueryable().BuildMockDbSet().Object);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ExistsWithEmployeeIdAsync(Guid.NewGuid());
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
     #endregion
 
     #region ActivateUserAsync
@@ -1324,6 +1462,60 @@ public class UserServiceTests
         resolvedEmployeeId.Should().Be(employeeId.ToString());
         _mockUserManager.Verify(x => x.CreateAsync(It.Is<ApplicationUser>(u => u.EmployeeId == employeeId)), Times.Once);
         _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), roleName), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldCreateUserUnlinked_WhenMatchedEmployeeIsAlreadyLinked()
+    {
+        // Arrange — Employee.Email is connector-owned and mutable, so an employee renamed onto a new
+        // address can resolve by email for a second user. One user per employee is a DB invariant, so
+        // the new user is created unlinked rather than failing the insert and blocking their sign-in.
+        var employeeId = Guid.NewGuid();
+        var provider = CreateEntraProviderWithPolicy(allowAutoRegistration: true, requireEmployeeRecord: false);
+        ArrangeNewUserCreatePath(provider, employeeId: employeeId);
+
+        var alreadyLinked = CreateUser(id: "existing", userName: "someone-else", loginProvider: LoginProviders.MicrosoftEntraId);
+        alreadyLinked.NormalizedUserName = "SOMEONE-ELSE";
+        alreadyLinked.NormalizedEmail = "SOMEONE-ELSE@EXAMPLE.COM";
+        alreadyLinked.EmployeeId = employeeId;
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { alreadyLinked }.AsQueryable().BuildMockDbSet().Object);
+
+        var sut = CreateSut();
+
+        // Act
+        var (resolvedId, resolvedEmployeeId) = await sut.GetOrCreateFromPrincipalAsync(
+            CreateNewUserPrincipal("oid-9", "tenant-1", "renamed@acme.example"));
+
+        // Assert
+        resolvedId.Should().NotBeNullOrWhiteSpace();
+        resolvedEmployeeId.Should().BeNull();
+        _mockUserManager.Verify(x => x.CreateAsync(It.Is<ApplicationUser>(u => u.EmployeeId == null)), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldDenyRegistration_WhenMatchedEmployeeIsAlreadyLinkedAndEmployeeRequired()
+    {
+        // Arrange — with the employee gate on, an already-claimed employee is not a usable match, so
+        // registration is denied with the standard message instead of failing the unique index.
+        var employeeId = Guid.NewGuid();
+        var provider = CreateEntraProviderWithPolicy(allowAutoRegistration: true, requireEmployeeRecord: true, defaultRoleId: "role-guid-default");
+        ArrangeNewUserCreatePath(provider, employeeId: employeeId);
+
+        var alreadyLinked = CreateUser(id: "existing", userName: "someone-else", loginProvider: LoginProviders.MicrosoftEntraId);
+        alreadyLinked.NormalizedUserName = "SOMEONE-ELSE";
+        alreadyLinked.NormalizedEmail = "SOMEONE-ELSE@EXAMPLE.COM";
+        alreadyLinked.EmployeeId = employeeId;
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { alreadyLinked }.AsQueryable().BuildMockDbSet().Object);
+
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.GetOrCreateFromPrincipalAsync(
+            CreateNewUserPrincipal("oid-10", "tenant-1", "renamed@acme.example"));
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>().WithMessage("*restricted to users with an employee record*");
+        _mockUserManager.Verify(x => x.CreateAsync(It.IsAny<ApplicationUser>()), Times.Never);
     }
 
     [Fact]

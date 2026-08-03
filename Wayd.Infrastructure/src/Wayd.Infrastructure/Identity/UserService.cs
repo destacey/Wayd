@@ -56,6 +56,12 @@ internal partial class UserService(
         return await _userManager.Users.FirstOrDefaultAsync(x => x.PhoneNumber == phoneNumber) is ApplicationUser user && user.Id != exceptId;
     }
 
+    public async Task<bool> ExistsWithEmployeeIdAsync(Guid employeeId, string? exceptId = null)
+    {
+        return await _userManager.Users
+            .AnyAsync(u => u.EmployeeId == employeeId && u.Id != exceptId);
+    }
+
     public async Task<List<UserDetailsDto>> GetListAsync(CancellationToken cancellationToken)
     {
         return await _db.Users

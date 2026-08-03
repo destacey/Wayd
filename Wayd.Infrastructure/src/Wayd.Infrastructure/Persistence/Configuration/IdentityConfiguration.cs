@@ -15,6 +15,17 @@ public class ApplicationUserConfig : IEntityTypeConfiguration<ApplicationUser>
         builder.HasIndex(u => u.Id)
             .IncludeProperties(e => new { e.UserName, e.EmployeeId, e.Email, e.FirstName, e.LastName });
 
+        // One user per employee. Fine-grained authorization (PPM role assignments, roadmap manager
+        // visibility, team membership) is keyed on EmployeeId, so two users sharing one employee both
+        // inherit that employee's access — the link is an authorization edge, not a display field.
+        // Filtered because the link is optional and NULL is the norm (service accounts, admins, and
+        // external users legitimately have none); SQL Server would otherwise treat multiple NULLs as
+        // duplicates. Enforced only client-side (the edit-user picker) until now.
+        builder.HasIndex(u => u.EmployeeId)
+            .IsUnique()
+            .HasFilter("[EmployeeId] IS NOT NULL")
+            .HasDatabaseName("UX_Users_EmployeeId");
+
         builder.Property(u => u.FirstName).HasMaxLength(100);
         builder.Property(u => u.LastName).HasMaxLength(100);
         builder.Property(u => u.PhoneNumber).HasMaxLength(20);

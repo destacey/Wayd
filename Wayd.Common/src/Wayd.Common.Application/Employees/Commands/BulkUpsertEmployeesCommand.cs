@@ -7,9 +7,15 @@ namespace Wayd.Common.Application.Employees.Commands;
 
 public sealed record BulkUpsertEmployeesCommand : ICommand, ILongRunningRequest
 {
+    /// <param name="matchBy">
+    /// Required — no default. Every caller reads this from the connection's configuration, and a
+    /// default here could only ever disagree with one of the connectors (both default to
+    /// <see cref="EmployeeMatchProperty.Email"/>), silently giving an omitting caller the opposite
+    /// matching behavior from every real sync.
+    /// </param>
     public BulkUpsertEmployeesCommand(
         IEnumerable<IExternalEmployee> employees,
-        EmployeeMatchProperty matchBy = EmployeeMatchProperty.EmployeeNumber,
+        EmployeeMatchProperty matchBy,
         bool deactivateMissing = true)
     {
         // ignore records with no employee number

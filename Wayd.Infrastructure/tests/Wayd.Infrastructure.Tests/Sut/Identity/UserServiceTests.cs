@@ -589,6 +589,74 @@ public class UserServiceTests
 
     #endregion
 
+    #region GetEmployeeIdAsync
+
+    [Fact]
+    public async Task GetEmployeeIdAsync_ShouldReturnEmployeeId_WhenUserIsLinked()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var user = CreateUser();
+        user.EmployeeId = employeeId;
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetEmployeeIdAsync(user.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().Be(employeeId);
+    }
+
+    [Fact]
+    public async Task GetEmployeeIdAsync_ShouldReturnNull_WhenUserIsNotLinked()
+    {
+        // Arrange
+        var user = CreateUser();
+        user.EmployeeId = null;
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetEmployeeIdAsync(user.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetEmployeeIdAsync_ShouldReturnNull_WhenUserDoesNotExist()
+    {
+        // Arrange
+        _mockUserManager.Setup(x => x.Users).Returns(Array.Empty<ApplicationUser>().AsQueryable().BuildMockDbSet().Object);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetEmployeeIdAsync("missing", TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetEmployeeIdAsync_ShouldReturnNull_WhenUserIdIsEmpty()
+    {
+        // Arrange — background scopes can reach here with no acting user; that is not a store lookup.
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetEmployeeIdAsync(string.Empty, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeNull();
+        _mockUserManager.Verify(x => x.Users, Times.Never);
+    }
+
+    #endregion
+
     #region ActivateUserAsync
 
     [Fact]

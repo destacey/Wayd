@@ -151,9 +151,13 @@ public class PersonalAccessTokenAuthenticationHandler : AuthenticationHandler<Au
                 claims.Add(new Claim(ClaimTypes.Email, user.Email));
             }
 
-            if (matchingToken.EmployeeId.HasValue)
+            // From the user, not matchingToken.EmployeeId: the token's copy is frozen at creation, so a
+            // token minted before its owner was linked would stay employee-less for its whole lifetime
+            // (and keep a stale employee after an admin re-links the user). The stored column is
+            // retained as a record of the link at issue time; it is no longer an authorization input.
+            if (user.EmployeeId.HasValue)
             {
-                claims.Add(new Claim("EmployeeId", matchingToken.EmployeeId.Value.ToString()));
+                claims.Add(new Claim("EmployeeId", user.EmployeeId.Value.ToString()));
             }
 
             // TODO: In Phase 2, filter claims based on token scopes

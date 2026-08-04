@@ -62,6 +62,22 @@ internal partial class UserService(
             .AnyAsync(u => u.EmployeeId == employeeId && u.Id != exceptId);
     }
 
+    public async Task<Guid?> GetEmployeeIdAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(userId))
+        {
+            return null;
+        }
+
+        // Narrow projection: this runs on the per-request path behind ICurrentPrincipal.GetEmployeeId.
+        // Users.Id is the primary key, so this is a point lookup covered by the clustered index.
+        return await _userManager.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => u.EmployeeId)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<List<UserDetailsDto>> GetListAsync(CancellationToken cancellationToken)
     {
         return await _db.Users

@@ -20,6 +20,13 @@ public interface IUserService : ITransientService
     /// </summary>
     Task<bool> ExistsWithEmployeeIdAsync(Guid employeeId, string? exceptId = null);
 
+    /// <summary>
+    /// The employee linked to the given user, or <c>null</c> when the user has no link (or does not
+    /// exist). A narrow projection rather than <see cref="GetAsync"/> because this runs on the
+    /// per-request path behind <see cref="Interfaces.ICurrentPrincipal.GetEmployeeId"/>.
+    /// </summary>
+    Task<Guid?> GetEmployeeIdAsync(string userId, CancellationToken cancellationToken = default);
+
     Task<List<UserDetailsDto>> GetListAsync(CancellationToken cancellationToken);
 
     Task<UserDetailsDto?> GetAsync(string userId, CancellationToken cancellationToken);

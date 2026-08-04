@@ -79,11 +79,17 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     'Identity',
                     'ApplicationUser',
                     SYSUTCDATETIME(),
-                    '{{""employeeId"":""' + CONVERT(varchar(36), d.OldEmployeeId) + '""}}',
-                    '{{""employeeId"":null}}',
-                    '[""employeeId""]',
+                    -- PascalCase property names and lowercase GUIDs, matching the rows the app writes
+                    -- (verified against existing Identity/PersonalAccessToken rows). SQL's CONVERT
+                    -- yields uppercase GUIDs, hence the LOWER(). Getting this wrong would not just look
+                    -- inconsistent: the rollback below reads OldValues with JSON_VALUE, which is
+                    -- case-sensitive and would silently return NULL, clearing links instead of
+                    -- restoring them.
+                    '{{""EmployeeId"":""' + LOWER(CONVERT(varchar(36), d.OldEmployeeId)) + '""}}',
+                    '{{""EmployeeId"":null}}',
+                    '[""EmployeeId""]',
                     -- ApplicationUser.Id is an IdentityUser GUID string, so it needs no JSON escaping.
-                    '{{""id"":""' + CONVERT(varchar(450), d.[Id]) + '""}}',
+                    '{{""Id"":""' + CONVERT(varchar(450), d.[Id]) + '""}}',
                     '{CorrelationId}'
                 FROM #DuplicateEmployeeLinks d;
 
@@ -125,35 +131,35 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                                   AND later.[SchemaName] = 'Identity'
                                   AND later.[TableName] = 'ApplicationUser'
                                   AND later.[PrimaryKey] = mine.[PrimaryKey]
-                                  AND later.[AffectedColumns] LIKE '%""employeeId""%'
+                                  AND later.[AffectedColumns] LIKE '%""EmployeeId""%'
                                   AND later.[DateTime] > mine.[DateTime]
                             )
                             OR EXISTS (
                                 SELECT 1
                                 FROM [Identity].[Users] u
-                                WHERE '{{""id"":""' + u.[Id] + '""}}' = mine.[PrimaryKey]
+                                WHERE '{{""Id"":""' + u.[Id] + '""}}' = mine.[PrimaryKey]
                                   AND u.[EmployeeId] IS NOT NULL
                             )
                       )
                 )
                 BEGIN
                     UPDATE u
-                    SET u.[EmployeeId] = TRY_CONVERT(uniqueidentifier, JSON_VALUE(a.[OldValues], '$.employeeId'))
+                    SET u.[EmployeeId] = TRY_CONVERT(uniqueidentifier, JSON_VALUE(a.[OldValues], '$.EmployeeId'))
                     FROM [Identity].[Users] u
                     INNER JOIN [Auditing].[AuditTrails] a
-                        ON a.[PrimaryKey] = '{{""id"":""' + u.[Id] + '""}}'
+                        ON a.[PrimaryKey] = '{{""Id"":""' + u.[Id] + '""}}'
                     WHERE a.[CorrelationId] = '{CorrelationId}'
                       AND a.[SchemaName] = 'Identity'
                       AND a.[TableName] = 'ApplicationUser'
                       AND a.[Type] = 'Update'
-                      AND a.[AffectedColumns] = '[""employeeId""]';
+                      AND a.[AffectedColumns] = '[""EmployeeId""]';
 
                     DELETE FROM [Auditing].[AuditTrails]
                     WHERE [CorrelationId] = '{CorrelationId}'
                       AND [SchemaName] = 'Identity'
                       AND [TableName] = 'ApplicationUser'
                       AND [Type] = 'Update'
-                      AND [AffectedColumns] = '[""employeeId""]';
+                      AND [AffectedColumns] = '[""EmployeeId""]';
                 END
             ");
 

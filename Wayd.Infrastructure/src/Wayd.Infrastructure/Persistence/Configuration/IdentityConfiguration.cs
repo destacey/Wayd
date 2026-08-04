@@ -324,8 +324,6 @@ public class PersonalAccessTokenConfig : IEntityTypeConfiguration<PersonalAccess
             .HasMaxLength(450)
             .IsRequired();
 
-        builder.Property(p => p.EmployeeId);
-
         builder.Property(p => p.Scopes)
             .HasMaxLength(4000); // Allows for JSON array of permission names
 
@@ -343,10 +341,5 @@ public class PersonalAccessTokenConfig : IEntityTypeConfiguration<PersonalAccess
             .WithMany()
             .HasForeignKey(p => p.UserId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasOne<Employee>()
-            .WithMany()
-            .HasForeignKey(p => p.EmployeeId)
-            .OnDelete(DeleteBehavior.NoAction);
     }
 }

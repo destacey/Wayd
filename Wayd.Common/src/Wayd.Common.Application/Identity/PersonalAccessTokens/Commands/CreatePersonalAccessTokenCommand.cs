@@ -65,7 +65,6 @@ public sealed class CreatePersonalAccessTokenCommandValidator : CustomValidator<
 public sealed class CreatePersonalAccessTokenCommandHandler(
     IWaydDbContext dbContext,
     ICurrentUser currentUser,
-    ICurrentPrincipal currentPrincipal,
     IDateTimeProvider dateTimeProvider,
     ITokenHashingService tokenHashingService,
     ILogger<CreatePersonalAccessTokenCommandHandler> logger) : ICommandHandler<CreatePersonalAccessTokenCommand, CreatePersonalAccessTokenResult>
@@ -74,7 +73,6 @@ public sealed class CreatePersonalAccessTokenCommandHandler(
 
     private readonly IWaydDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
-    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ITokenHashingService _tokenHashingService = tokenHashingService;
     private readonly ILogger<CreatePersonalAccessTokenCommandHandler> _logger = logger;
@@ -84,9 +82,6 @@ public sealed class CreatePersonalAccessTokenCommandHandler(
         try
         {
             var userId = _currentUser.GetUserId();
-            // Resolved, not claim-read: the creator's own token may itself carry a stale link, which
-            // would otherwise be copied onto the new token and frozen there.
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
             var now = _dateTimeProvider.Now;
 
             // verify user hasn't exceeded token limit
@@ -106,7 +101,6 @@ public sealed class CreatePersonalAccessTokenCommandHandler(
                 tokenIdentifier: tokenIdentifier,
                 tokenHash: tokenHash,
                 userId: userId,
-                employeeId: employeeId,
                 expiresAt: request.ExpiresAt,
                 scopes: null,
                 timestamp: now

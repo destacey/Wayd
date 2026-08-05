@@ -4,6 +4,7 @@ import { RiskListDto } from '@/src/services/wayd-api'
 import Link from 'next/link'
 import { useGetMyRisksQuery } from '@/src/store/features/planning/risks-api'
 import useAuth from '../../contexts/auth'
+import { useLinkedEmployee } from '@/src/hooks'
 
 const { Item } = WaydList
 
@@ -16,13 +17,17 @@ const riskMessage = (risk: RiskListDto) => {
 
 const MyAssignedRisks = () => {
   const { user } = useAuth()
+  const { hasLinkedEmployee } = useLinkedEmployee()
+
+  // Risks are assigned to employees, so an unlinked account can never have any. Skipping the request
+  // avoids a round-trip whose answer is known to be empty.
   const { data: risks } = useGetMyRisksQuery(user?.username ?? '', {
-    skip: !user?.username,
+    skip: !user?.username || !hasLinkedEmployee,
   })
 
   const hasAssignedRisks = (risks?.length ?? 0) > 0
 
-  if (!hasAssignedRisks) return null
+  if (!hasLinkedEmployee || !hasAssignedRisks) return null
 
   return (
     <>

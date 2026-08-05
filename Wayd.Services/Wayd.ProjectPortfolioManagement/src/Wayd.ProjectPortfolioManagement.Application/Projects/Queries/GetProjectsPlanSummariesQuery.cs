@@ -16,12 +16,12 @@ public sealed record GetProjectsPlanSummariesQuery(
 
 public sealed class GetProjectsPlanSummariesQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
-    ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetProjectsPlanSummariesQuery, Dictionary<Guid, ProjectPlanSummaryDto>>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
-    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Dictionary<Guid, ProjectPlanSummaryDto>> Handle(
@@ -33,7 +33,10 @@ public sealed class GetProjectsPlanSummariesQueryHandler(
             return [];
         }
 
-        var employeeId = _currentUser.GetEmployeeId();
+        // Resolved rather than read from the token claim, which is a snapshot taken at sign-in: a user
+        // linked mid-session would otherwise see nothing until they signed in again. Empty remains the
+        // honest answer for a genuinely unlinked account.
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (!employeeId.HasValue)
         {
             return [];

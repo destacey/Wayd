@@ -6,15 +6,18 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 
 public sealed record GetMyProjectsSummaryQuery(ProjectStatus[]? StatusFilter = null) : IQuery<MyProjectsSummaryDto?>;
 
-public sealed class GetMyProjectsSummaryQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext, ICurrentUser currentUser)
+public sealed class GetMyProjectsSummaryQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext, ICurrentPrincipal currentPrincipal)
     : IQueryHandler<GetMyProjectsSummaryQuery, MyProjectsSummaryDto?>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
-    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
 
     public async Task<MyProjectsSummaryDto?> Handle(GetMyProjectsSummaryQuery request, CancellationToken cancellationToken)
     {
-        var employeeId = _currentUser.GetEmployeeId();
+        // Resolved rather than read from the token claim, which is a snapshot taken at sign-in: a user
+        // linked mid-session would otherwise see an empty summary until they signed in again. Empty
+        // remains the honest answer for a genuinely unlinked account — it holds no project roles.
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (!employeeId.HasValue)
         {
             return new MyProjectsSummaryDto();

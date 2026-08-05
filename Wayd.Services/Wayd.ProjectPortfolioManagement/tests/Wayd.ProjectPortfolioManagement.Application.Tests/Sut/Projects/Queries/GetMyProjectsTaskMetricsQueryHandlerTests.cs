@@ -16,7 +16,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Projects.Queries
 public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
 {
     private readonly FakeProjectPortfolioManagementDbContext _dbContext;
-    private readonly Mock<ICurrentUser> _currentUserMock;
+    private readonly Mock<ICurrentPrincipal> _currentPrincipalMock;
     private readonly TestingDateTimeProvider _dateTimeProvider;
     private readonly GetMyProjectsTaskMetricsQueryHandler _handler;
     private readonly Guid _employeeId = Guid.NewGuid();
@@ -28,14 +28,14 @@ public class GetMyProjectsTaskMetricsQueryHandlerTests : IDisposable
     public GetMyProjectsTaskMetricsQueryHandlerTests()
     {
         _dbContext = new FakeProjectPortfolioManagementDbContext();
-        _currentUserMock = new Mock<ICurrentUser>();
-        _currentUserMock.Setup(u => u.GetEmployeeId()).Returns(_employeeId);
+        _currentPrincipalMock = new Mock<ICurrentPrincipal>();
+        _currentPrincipalMock.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_employeeId);
 
         var instant = Today.AtStartOfDayInZone(DateTimeZone.Utc).ToInstant();
         var clock = new FakeClock(instant);
         _dateTimeProvider = new TestingDateTimeProvider(clock);
 
-        _handler = new GetMyProjectsTaskMetricsQueryHandler(_dbContext, _currentUserMock.Object, _dateTimeProvider);
+        _handler = new GetMyProjectsTaskMetricsQueryHandler(_dbContext, _currentPrincipalMock.Object, _dateTimeProvider);
     }
 
     #region Helpers

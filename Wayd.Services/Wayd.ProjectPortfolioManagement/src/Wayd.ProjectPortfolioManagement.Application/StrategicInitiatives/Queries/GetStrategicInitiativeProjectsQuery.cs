@@ -15,12 +15,12 @@ public sealed record GetStrategicInitiativeProjectsQuery : IQuery<List<ProjectLi
     public Expression<Func<StrategicInitiative, bool>> StrategicInitiativeIdOrKeyFilter { get; }
 }
 
-public sealed class GetStrategicInitiativeProjectsQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser)
+public sealed class GetStrategicInitiativeProjectsQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, IDateTimeProvider dateTimeProvider, ICurrentPrincipal currentPrincipal)
     : IQueryHandler<GetStrategicInitiativeProjectsQuery, List<ProjectListDto>?>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = projectPortfolioManagementDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
 
     public async Task<List<ProjectListDto>?> Handle(GetStrategicInitiativeProjectsQuery request, CancellationToken cancellationToken)
     {
@@ -33,7 +33,7 @@ public sealed class GetStrategicInitiativeProjectsQueryHandler(IProjectPortfolio
         }
 
         var now = _dateTimeProvider.Now;
-        var config = ProjectListDto.CreateTypeAdapterConfig(now, _currentUser.GetEmployeeId());
+        var config = ProjectListDto.CreateTypeAdapterConfig(now, await _currentPrincipal.GetEmployeeId(cancellationToken));
         return await query
             .SelectMany(i => i.StrategicInitiativeProjects.Select(ip => ip.Project))
             .ProjectToType<ProjectListDto>(config)

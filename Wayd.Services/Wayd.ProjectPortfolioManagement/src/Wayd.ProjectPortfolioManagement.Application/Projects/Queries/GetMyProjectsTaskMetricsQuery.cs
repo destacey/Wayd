@@ -11,17 +11,20 @@ public sealed record GetMyProjectsTaskMetricsQuery(ProjectStatus[]? StatusFilter
 
 public sealed class GetMyProjectsTaskMetricsQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
-    ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetMyProjectsTaskMetricsQuery, MyProjectsTaskMetricsDto>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
-    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<MyProjectsTaskMetricsDto> Handle(GetMyProjectsTaskMetricsQuery request, CancellationToken cancellationToken)
     {
-        var employeeId = _currentUser.GetEmployeeId();
+        // Resolved rather than read from the token claim, which is a snapshot taken at sign-in: a user
+        // linked mid-session would otherwise see nothing until they signed in again. Empty remains the
+        // honest answer for a genuinely unlinked account.
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (!employeeId.HasValue)
         {
             return new MyProjectsTaskMetricsDto();

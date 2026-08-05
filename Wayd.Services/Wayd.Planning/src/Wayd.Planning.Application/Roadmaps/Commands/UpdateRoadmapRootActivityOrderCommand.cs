@@ -24,16 +24,22 @@ public sealed class UpdateRoadmapRootActivityOrderCommandValidator : CustomValid
     }
 }
 
-public sealed class UpdateRoadmapRootActivityOrderCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<UpdateRoadmapRootActivityOrderCommandHandler> logger) : ICommandHandler<UpdateRoadmapRootActivityOrderCommand>
+public sealed class UpdateRoadmapRootActivityOrderCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<UpdateRoadmapRootActivityOrderCommandHandler> logger) : ICommandHandler<UpdateRoadmapRootActivityOrderCommand>
 {
     private const string AppRequestName = nameof(UpdateRoadmapRootActivityOrderCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly Guid _currentUserEmployeeId = Guard.Against.NullOrEmpty(currentUser.GetEmployeeId());
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<UpdateRoadmapRootActivityOrderCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateRoadmapRootActivityOrderCommand request, CancellationToken cancellationToken)
     {
+        // Outside the try: this is a refusal, and the catch-all below would turn it into a
+        // generic failure, losing both the 403 and its explanation.
+        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        if (currentUserEmployeeId is null)
+            LinkedEmployeeRequired.Throw();
+
         try
         {
             var roadmap = await _planningDbContext.Roadmaps
@@ -45,7 +51,7 @@ public sealed class UpdateRoadmapRootActivityOrderCommandHandler(IPlanningDbCont
             if (roadmap is null)
                 return Result.Failure($"Roadmap with id {request.RoadmapId} not found");
 
-            var updateResult = roadmap.SetActivityOrder(request.RoadmapActivityId, request.Order, _currentUserEmployeeId);
+            var updateResult = roadmap.SetActivityOrder(request.RoadmapActivityId, request.Order, currentUserEmployeeId.Value);
             if (updateResult.IsFailure)
             {
                 // Reset the entity

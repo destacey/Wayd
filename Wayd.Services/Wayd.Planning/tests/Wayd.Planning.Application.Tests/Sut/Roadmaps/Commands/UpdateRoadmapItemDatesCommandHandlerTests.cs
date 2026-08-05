@@ -16,7 +16,7 @@ public class UpdateRoadmapItemDatesCommandHandlerTests : IDisposable
 {
     private readonly FakePlanningDbContext _dbContext;
     private readonly Mock<ILogger<UpdateRoadmapItemDatesCommandHandler>> _mockLogger;
-    private readonly Mock<ICurrentUser> _mockCurrentUser;
+    private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal;
     private readonly Guid _currentEmployeeId = Guid.NewGuid();
     private readonly RoadmapFaker _faker = new();
     private readonly LocalDate _today = LocalDate.FromDateTime(DateTime.Today);
@@ -25,12 +25,12 @@ public class UpdateRoadmapItemDatesCommandHandlerTests : IDisposable
     {
         _dbContext = new FakePlanningDbContext();
         _mockLogger = new Mock<ILogger<UpdateRoadmapItemDatesCommandHandler>>();
-        _mockCurrentUser = new Mock<ICurrentUser>();
-        _mockCurrentUser.Setup(u => u.GetEmployeeId()).Returns(_currentEmployeeId);
+        _mockCurrentPrincipal = new Mock<ICurrentPrincipal>();
+        _mockCurrentPrincipal.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_currentEmployeeId);
     }
 
     private UpdateRoadmapItemDatesCommandHandler CreateHandler() =>
-        new(_dbContext, _mockCurrentUser.Object, _mockLogger.Object);
+        new(_dbContext, _mockCurrentPrincipal.Object, _mockLogger.Object);
 
     private Roadmap CreateActiveRoadmap()
     {

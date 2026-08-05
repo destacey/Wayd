@@ -40,20 +40,20 @@ public sealed class UpdateProjectHealthCheckCommandValidator
 public sealed class UpdateProjectHealthCheckCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     IDateTimeProvider dateTimeProvider,
-    ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<UpdateProjectHealthCheckCommandHandler> logger)
     : ICommandHandler<UpdateProjectHealthCheckCommand, ProjectHealthCheckDetailsDto>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<UpdateProjectHealthCheckCommandHandler> _logger = logger;
 
     public async Task<Result<ProjectHealthCheckDetailsDto>> Handle(UpdateProjectHealthCheckCommand request, CancellationToken cancellationToken)
     {
-        Guid? employeeId = _currentUser.GetEmployeeId();
+        Guid? employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (employeeId is null)
-            return Result.Failure<ProjectHealthCheckDetailsDto>("Unable to determine the current user's employee Id.");
+            LinkedEmployeeRequired.Throw();
 
         var project = await _ppmDbContext.Projects
             .AsSplitQuery()

@@ -38,19 +38,19 @@ public sealed class MoveProjectRanksCommandValidator : AbstractValidator<MovePro
 
 public sealed class MoveProjectRanksCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
-    ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<MoveProjectRanksCommandHandler> logger)
     : ICommandHandler<MoveProjectRanksCommand>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
-    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<MoveProjectRanksCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(MoveProjectRanksCommand request, CancellationToken cancellationToken)
     {
-        var employeeId = _currentUser.GetEmployeeId();
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (employeeId is null)
-            return Result.Failure("Unable to determine the current user's employee Id.");
+            LinkedEmployeeRequired.Throw();
 
         var portfolio = await _ppmDbContext.Portfolios
             .AsSplitQuery()

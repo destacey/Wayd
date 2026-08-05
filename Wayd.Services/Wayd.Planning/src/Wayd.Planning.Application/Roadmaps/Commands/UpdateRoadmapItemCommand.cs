@@ -53,14 +53,20 @@ public sealed class UpdateRoadmapItemCommandValidator : AbstractValidator<Update
     }
 }
 
-public sealed class UpdateRoadmapItemCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<UpdateRoadmapItemCommandHandler> logger) : ICommandHandler<UpdateRoadmapItemCommand>
+public sealed class UpdateRoadmapItemCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<UpdateRoadmapItemCommandHandler> logger) : ICommandHandler<UpdateRoadmapItemCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly Guid _currentUserEmployeeId = Guard.Against.NullOrEmpty(currentUser.GetEmployeeId());
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<UpdateRoadmapItemCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateRoadmapItemCommand request, CancellationToken cancellationToken)
     {
+        // Outside the try: this is a refusal, and the catch-all below would turn it into a
+        // generic failure, losing both the 403 and its explanation.
+        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        if (currentUserEmployeeId is null)
+            LinkedEmployeeRequired.Throw();
+
         try
         {
             var roadmap = await _planningDbContext.Roadmaps
@@ -73,9 +79,9 @@ public sealed class UpdateRoadmapItemCommandHandler(IPlanningDbContext planningD
                 return Result.Failure<Guid>($"Roadmap with id {request.RoadmapId} not found");
 
             Result result = request.Item.Match(
-               activity => roadmap.UpdateActivity(request.ItemId, activity, _currentUserEmployeeId),
-               milestone => roadmap.UpdateMilestone(request.ItemId, milestone, _currentUserEmployeeId),
-               timebox => roadmap.UpdateTimebox(request.ItemId, timebox, _currentUserEmployeeId)
+               activity => roadmap.UpdateActivity(request.ItemId, activity, currentUserEmployeeId.Value),
+               milestone => roadmap.UpdateMilestone(request.ItemId, milestone, currentUserEmployeeId.Value),
+               timebox => roadmap.UpdateTimebox(request.ItemId, timebox, currentUserEmployeeId.Value)
             );
 
             if (result.IsFailure)

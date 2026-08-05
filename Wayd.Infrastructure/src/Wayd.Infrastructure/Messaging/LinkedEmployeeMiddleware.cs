@@ -26,9 +26,8 @@ namespace Wayd.Infrastructure.Messaging;
 /// </remarks>
 public static class LinkedEmployeeMiddleware
 {
-    internal const string UnlinkedMessage =
-        "Your account isn't linked to an employee record, which this action requires. "
-        + "Ask an administrator to link your account in Settings → Users.";
+    // Shared with the handlers' own resolve so the 403 and the failed Result read identically.
+    internal const string UnlinkedMessage = LinkedEmployeeRequired.Message;
 
     public static async Task Before(
         Envelope envelope,

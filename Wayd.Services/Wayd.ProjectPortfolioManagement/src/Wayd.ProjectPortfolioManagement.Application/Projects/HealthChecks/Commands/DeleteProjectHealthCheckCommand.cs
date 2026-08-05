@@ -21,19 +21,19 @@ public sealed class DeleteProjectHealthCheckCommandValidator
 
 public sealed class DeleteProjectHealthCheckCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
-    ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<DeleteProjectHealthCheckCommandHandler> logger)
     : ICommandHandler<DeleteProjectHealthCheckCommand>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
-    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<DeleteProjectHealthCheckCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeleteProjectHealthCheckCommand request, CancellationToken cancellationToken)
     {
-        Guid? employeeId = _currentUser.GetEmployeeId();
+        Guid? employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (employeeId is null)
-            return Result.Failure("Unable to determine the current user's employee Id.");
+            LinkedEmployeeRequired.Throw();
 
         var project = await _ppmDbContext.Projects
             .AsSplitQuery()

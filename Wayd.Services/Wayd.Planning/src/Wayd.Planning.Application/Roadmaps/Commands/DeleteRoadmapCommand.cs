@@ -12,14 +12,20 @@ public sealed class DeleteRoadmapCommandValidator : AbstractValidator<DeleteRoad
     }
 }
 
-public sealed class DeleteRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<DeleteRoadmapCommandHandler> logger) : ICommandHandler<DeleteRoadmapCommand>
+public sealed class DeleteRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<DeleteRoadmapCommandHandler> logger) : ICommandHandler<DeleteRoadmapCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly Guid _currentUserEmployeeId = Guard.Against.NullOrEmpty(currentUser.GetEmployeeId());
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<DeleteRoadmapCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeleteRoadmapCommand request, CancellationToken cancellationToken)
     {
+        // Outside the try: this is a refusal, and the catch-all below would turn it into a
+        // generic failure, losing both the 403 and its explanation.
+        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        if (currentUserEmployeeId is null)
+            LinkedEmployeeRequired.Throw();
+
         try
         {
             var roadmap = await _planningDbContext.Roadmaps
@@ -31,7 +37,7 @@ public sealed class DeleteRoadmapCommandHandler(IPlanningDbContext planningDbCon
             if (roadmap is null)
                 return Result.Failure($"Roadmap with id {request.Id} not found");
 
-            var deleteResult = roadmap.CanDelete(_currentUserEmployeeId);
+            var deleteResult = roadmap.CanDelete(currentUserEmployeeId.Value);
             if (deleteResult.IsFailure)
             {
                 _logger.LogError("Wayd Request: Failure for Request {Name} {@Request}.  Error message: {Error}", request.GetType().Name, request, deleteResult.Error);

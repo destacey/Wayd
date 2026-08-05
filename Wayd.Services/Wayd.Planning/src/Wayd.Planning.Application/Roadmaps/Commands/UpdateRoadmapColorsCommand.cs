@@ -35,16 +35,22 @@ public sealed class UpdateRoadmapColorsCommandValidator : AbstractValidator<Upda
     }
 }
 
-public sealed class UpdateRoadmapColorsCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<UpdateRoadmapColorsCommandHandler> logger) : ICommandHandler<UpdateRoadmapColorsCommand>
+public sealed class UpdateRoadmapColorsCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<UpdateRoadmapColorsCommandHandler> logger) : ICommandHandler<UpdateRoadmapColorsCommand>
 {
     private const string AppRequestName = nameof(UpdateRoadmapColorsCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly Guid _currentUserEmployeeId = Guard.Against.NullOrEmpty(currentUser.GetEmployeeId());
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<UpdateRoadmapColorsCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateRoadmapColorsCommand request, CancellationToken cancellationToken)
     {
+        // Outside the try: this is a refusal, and the catch-all below would turn it into a
+        // generic failure, losing both the 403 and its explanation.
+        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        if (currentUserEmployeeId is null)
+            LinkedEmployeeRequired.Throw();
+
         try
         {
             var roadmap = await _planningDbContext.Roadmaps
@@ -57,7 +63,7 @@ public sealed class UpdateRoadmapColorsCommandHandler(IPlanningDbContext plannin
                 return Result.Failure($"Roadmap with id {request.RoadmapId} not found");
             }
 
-            var updateResult = roadmap.UpdateColors(request.Colors, _currentUserEmployeeId);
+            var updateResult = roadmap.UpdateColors(request.Colors, currentUserEmployeeId.Value);
 
             if (updateResult.IsFailure)
             {

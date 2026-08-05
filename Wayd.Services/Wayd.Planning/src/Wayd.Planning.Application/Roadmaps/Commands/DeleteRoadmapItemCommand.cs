@@ -15,14 +15,20 @@ public sealed class DeleteRoadmapItemCommandValidator : AbstractValidator<Delete
     }
 }
 
-public sealed class DeleteRoadmapItemCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<DeleteRoadmapItemCommandHandler> logger) : ICommandHandler<DeleteRoadmapItemCommand>
+public sealed class DeleteRoadmapItemCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<DeleteRoadmapItemCommandHandler> logger) : ICommandHandler<DeleteRoadmapItemCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly Guid _currentUserEmployeeId = Guard.Against.NullOrEmpty(currentUser.GetEmployeeId());
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<DeleteRoadmapItemCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeleteRoadmapItemCommand request, CancellationToken cancellationToken)
     {
+        // Outside the try: this is a refusal, and the catch-all below would turn it into a
+        // generic failure, losing both the 403 and its explanation.
+        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        if (currentUserEmployeeId is null)
+            LinkedEmployeeRequired.Throw();
+
         try
         {
             var roadmap = await _planningDbContext.Roadmaps
@@ -34,7 +40,7 @@ public sealed class DeleteRoadmapItemCommandHandler(IPlanningDbContext planningD
             if (roadmap is null)
                 return Result.Failure("Roadmap not found");
 
-            var deleteResult = roadmap.DeleteItem(request.ActivityId, _currentUserEmployeeId);
+            var deleteResult = roadmap.DeleteItem(request.ActivityId, currentUserEmployeeId.Value);
             if (deleteResult.IsFailure)
             {
                 _logger.LogError("Wayd Request: Failure for Request {Name} {@Request}.  Error message: {Error}", request.GetType().Name, request, deleteResult.Error);

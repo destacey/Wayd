@@ -41,15 +41,21 @@ public sealed class CreateRiskCommandValidator : CustomValidator<CreateRiskComma
     }
 }
 
-public sealed class CreateRiskCommandHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, ILogger<CreateRiskCommandHandler> logger, ICurrentUser currentUser) : ICommandHandler<CreateRiskCommand, ObjectIdAndKey>
+public sealed class CreateRiskCommandHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, ILogger<CreateRiskCommandHandler> logger, ICurrentPrincipal currentPrincipal) : ICommandHandler<CreateRiskCommand, ObjectIdAndKey>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<CreateRiskCommandHandler> _logger = logger;
-    private readonly Guid _currentUserEmployeeId = Guard.Against.NullOrEmpty(currentUser.GetEmployeeId());
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateRiskCommand request, CancellationToken cancellationToken)
     {
+        // Outside the try: this is a refusal, and the catch-all below would turn it into a
+        // generic failure, losing both the 403 and its explanation.
+        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        if (currentUserEmployeeId is null)
+            LinkedEmployeeRequired.Throw();
+
         try
         {
             var risk = Risk.Create(
@@ -57,7 +63,7 @@ public sealed class CreateRiskCommandHandler(IPlanningDbContext planningDbContex
                 request.Description,
                 request.TeamId,
                 _dateTimeProvider.Now,
-                _currentUserEmployeeId,
+                currentUserEmployeeId.Value,
                 request.Category,
                 request.Impact,
                 request.Likelihood,

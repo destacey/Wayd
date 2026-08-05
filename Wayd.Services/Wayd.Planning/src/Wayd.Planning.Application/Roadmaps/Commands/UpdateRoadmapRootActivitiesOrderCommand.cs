@@ -21,16 +21,22 @@ public sealed class UpdateRoadmapRootActivitiesOrderCommandValidator : CustomVal
     }
 }
 
-public sealed class UpdateRoadmapRootActivitiesOrderCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<UpdateRoadmapRootActivitiesOrderCommandHandler> logger) : ICommandHandler<UpdateRoadmapRootActivitiesOrderCommand>
+public sealed class UpdateRoadmapRootActivitiesOrderCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<UpdateRoadmapRootActivitiesOrderCommandHandler> logger) : ICommandHandler<UpdateRoadmapRootActivitiesOrderCommand>
 {
     private const string AppRequestName = nameof(UpdateRoadmapRootActivitiesOrderCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly Guid _currentUserEmployeeId = Guard.Against.NullOrEmpty(currentUser.GetEmployeeId());
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<UpdateRoadmapRootActivitiesOrderCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateRoadmapRootActivitiesOrderCommand request, CancellationToken cancellationToken)
     {
+        // Outside the try: this is a refusal, and the catch-all below would turn it into a
+        // generic failure, losing both the 403 and its explanation.
+        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        if (currentUserEmployeeId is null)
+            LinkedEmployeeRequired.Throw();
+
         try
         {
             var roadmap = await _planningDbContext.Roadmaps
@@ -51,7 +57,7 @@ public sealed class UpdateRoadmapRootActivitiesOrderCommandHandler(IPlanningDbCo
                 return Result.Failure("Not all root roadmap activities provided were found.");
             }
 
-            var updateResult = roadmap.SetChildrenOrder(request.ChildrenOrder, _currentUserEmployeeId);
+            var updateResult = roadmap.SetChildrenOrder(request.ChildrenOrder, currentUserEmployeeId.Value);
             if (updateResult.IsFailure)
             {
                 // Reset the entity

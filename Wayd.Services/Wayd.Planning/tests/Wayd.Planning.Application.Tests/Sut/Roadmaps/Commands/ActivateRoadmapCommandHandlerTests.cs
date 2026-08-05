@@ -13,7 +13,7 @@ public class ActivateRoadmapCommandHandlerTests : IDisposable
 {
     private readonly FakePlanningDbContext _dbContext;
     private readonly Mock<ILogger<ActivateRoadmapCommandHandler>> _mockLogger;
-    private readonly Mock<ICurrentUser> _mockCurrentUser;
+    private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal;
     private readonly Guid _currentEmployeeId = Guid.NewGuid();
     private readonly RoadmapFaker _faker;
 
@@ -21,13 +21,13 @@ public class ActivateRoadmapCommandHandlerTests : IDisposable
     {
         _dbContext = new FakePlanningDbContext();
         _mockLogger = new Mock<ILogger<ActivateRoadmapCommandHandler>>();
-        _mockCurrentUser = new Mock<ICurrentUser>();
-        _mockCurrentUser.Setup(u => u.GetEmployeeId()).Returns(_currentEmployeeId);
+        _mockCurrentPrincipal = new Mock<ICurrentPrincipal>();
+        _mockCurrentPrincipal.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_currentEmployeeId);
         _faker = new RoadmapFaker();
     }
 
     private ActivateRoadmapCommandHandler CreateHandler() =>
-        new(_dbContext, _mockCurrentUser.Object, _mockLogger.Object);
+        new(_dbContext, _mockCurrentPrincipal.Object, _mockLogger.Object);
 
     private Roadmap CreateArchivedRoadmap(Guid? managerId = null)
     {

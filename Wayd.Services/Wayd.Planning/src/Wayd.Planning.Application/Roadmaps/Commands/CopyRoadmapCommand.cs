@@ -8,11 +8,11 @@ public sealed record CopyRoadmapCommand(Guid SourceRoadmapId, string Name, List<
 
 public sealed class CopyRoadmapCommandValidator : AbstractValidator<CopyRoadmapCommand>
 {
-    private readonly ICurrentUser _currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal;
 
-    public CopyRoadmapCommandValidator(ICurrentUser currentUser)
+    public CopyRoadmapCommandValidator(ICurrentPrincipal currentPrincipal)
     {
-        _currentUser = currentUser;
+        _currentPrincipal = currentPrincipal;
 
         RuleFor(x => x.SourceRoadmapId)
             .NotEmpty();
@@ -23,7 +23,7 @@ public sealed class CopyRoadmapCommandValidator : AbstractValidator<CopyRoadmapC
 
         RuleFor(x => x.RoadmapManagerIds)
             .NotEmpty()
-            .Must(IncludeCurrentUser).WithMessage("The current user must be a manager of the Roadmap.");
+            .MustAsync(IncludeCurrentUser).WithMessage("The current user must be a manager of the Roadmap.");
 
         RuleForEach(x => x.RoadmapManagerIds)
             .NotEmpty();
@@ -32,24 +32,36 @@ public sealed class CopyRoadmapCommandValidator : AbstractValidator<CopyRoadmapC
             .IsInEnum();
     }
 
-    public bool IncludeCurrentUser(IEnumerable<Guid> roadmapManagerIds)
+    // Resolved rather than read from the token claim (a sign-in snapshot); see CreateRoadmapCommand.
+    public async Task<bool> IncludeCurrentUser(IEnumerable<Guid> roadmapManagerIds, CancellationToken cancellationToken)
     {
-        var employeeId = Guard.Against.NullOrEmpty(_currentUser.GetEmployeeId());
-        return roadmapManagerIds.Contains(employeeId);
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        return employeeId.HasValue && roadmapManagerIds.Contains(employeeId.Value);
     }
 }
 
 public sealed class CopyRoadmapCommandHandler(
     IPlanningDbContext planningDbContext,
-    ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<CopyRoadmapCommandHandler> logger) : ICommandHandler<CopyRoadmapCommand, ObjectIdAndKey>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly Guid _currentUserEmployeeId = Guard.Against.NullOrEmpty(currentUser.GetEmployeeId());
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<CopyRoadmapCommandHandler> _logger = logger;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CopyRoadmapCommand request, CancellationToken cancellationToken)
     {
+        // Outside the try: this is a refusal, and the catch-all below would turn it into a
+        // generic failure, losing both the 403 and its explanation.
+        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        if (currentUserEmployeeId is null)
+            LinkedEmployeeRequired.Throw();
+
+        // Likewise the creator-is-a-manager rule: Copy accepts whatever manager ids it is given, so a
+        // direct call could otherwise produce a roadmap the caller cannot administer.
+        if (!request.RoadmapManagerIds.Contains(currentUserEmployeeId.Value))
+            return Result.Failure<ObjectIdAndKey>("The current user must be a manager of the Roadmap.");
+
         try
         {
             var publicVisibility = Visibility.Public;
@@ -58,7 +70,7 @@ public sealed class CopyRoadmapCommandHandler(
             var sourceRoadmap = await _planningDbContext.Roadmaps
                 .Include(r => r.Items)
                 .Where(r => r.Id == request.SourceRoadmapId)
-                .Where(r => r.Visibility == publicVisibility || r.RoadmapManagers.Any(m => m.ManagerId == _currentUserEmployeeId))
+                .Where(r => r.Visibility == publicVisibility || r.RoadmapManagers.Any(m => m.ManagerId == currentUserEmployeeId.Value))
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (sourceRoadmap is null)

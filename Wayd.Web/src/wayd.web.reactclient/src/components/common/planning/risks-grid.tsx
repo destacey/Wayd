@@ -5,6 +5,7 @@ import { RiskListDto } from '@/src/services/wayd-api'
 import { ItemType } from 'antd/es/menu/interface'
 import { Button } from 'antd'
 import useAuth from '../../contexts/auth'
+import { useLinkedEmployee } from '@/src/hooks'
 import CreateRiskForm from './create-risk-form'
 import EditRiskForm from './edit-risk-form'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -41,7 +42,11 @@ const RisksGrid = ({
   const [editRiskKey, setEditRiskKey] = useState<number | undefined>(undefined)
 
   const { hasPermissionClaim } = useAuth()
-  const canCreateRisks = hasPermissionClaim('Permissions.Risks.Create')
+  const { hasLinkedEmployee } = useLinkedEmployee()
+  // Creating a risk records the reporter, so it needs an employee link as well as the permission —
+  // the API rejects an unlinked account with 403.
+  const canCreateRisks =
+    hasPermissionClaim('Permissions.Risks.Create') && hasLinkedEmployee
   const canUpdateRisks = hasPermissionClaim('Permissions.Risks.Update')
   const showActions = newRisksAllowed && canCreateRisks
 

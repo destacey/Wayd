@@ -4,7 +4,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Scoring.Commands;
 
 public sealed record RecordProjectScoreCommand(
     Guid ProjectId,
-    IReadOnlyList<RecordProjectScoreCommand.CriterionRatingInput> Ratings) : ICommand<Guid>
+    IReadOnlyList<RecordProjectScoreCommand.CriterionRatingInput> Ratings) : ICommand<Guid>, IRequireLinkedEmployee
 {
     /// <summary>
     /// A single criterion's rating. For scale-based criteria, supply <see cref="RatingLevelId"/>; the

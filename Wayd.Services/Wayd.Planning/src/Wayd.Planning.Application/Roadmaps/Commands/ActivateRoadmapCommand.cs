@@ -2,7 +2,7 @@
 
 namespace Wayd.Planning.Application.Roadmaps.Commands;
 
-public sealed record ActivateRoadmapCommand(Guid Id) : ICommand;
+public sealed record ActivateRoadmapCommand(Guid Id) : ICommand, IRequireLinkedEmployee;
 
 public sealed class ActivateRoadmapCommandValidator : AbstractValidator<ActivateRoadmapCommand>
 {

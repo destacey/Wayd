@@ -1,6 +1,6 @@
 ﻿namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
 
-public sealed record RebalancePortfolioRanksCommand(Guid PortfolioId) : ICommand;
+public sealed record RebalancePortfolioRanksCommand(Guid PortfolioId) : ICommand, IRequireLinkedEmployee;
 
 public sealed class RebalancePortfolioRanksCommandValidator : AbstractValidator<RebalancePortfolioRanksCommand>
 {

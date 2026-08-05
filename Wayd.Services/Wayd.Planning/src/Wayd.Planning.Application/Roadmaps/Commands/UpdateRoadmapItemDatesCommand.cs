@@ -4,7 +4,7 @@ using OneOf;
 
 namespace Wayd.Planning.Application.Roadmaps.Commands;
 
-public sealed record UpdateRoadmapItemDatesCommand(Guid RoadmapId, Guid ItemId, OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange> Dates) : ICommand;
+public sealed record UpdateRoadmapItemDatesCommand(Guid RoadmapId, Guid ItemId, OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange> Dates) : ICommand, IRequireLinkedEmployee;
 
 
 public sealed class UpdateRoadmapItemDatesCommandValidator : AbstractValidator<UpdateRoadmapItemDatesCommand>

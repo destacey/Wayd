@@ -4,7 +4,7 @@ using Wayd.Planning.Domain.Models.Roadmaps;
 
 namespace Wayd.Planning.Application.Roadmaps.Commands;
 
-public sealed record UpdateRoadmapColorsCommand(Guid RoadmapId, List<UpsertRoadmapColorModel> Colors) : ICommand;
+public sealed record UpdateRoadmapColorsCommand(Guid RoadmapId, List<UpsertRoadmapColorModel> Colors) : ICommand, IRequireLinkedEmployee;
 
 public sealed record UpsertRoadmapColorModel(string Color, string Name, int Order, bool IsDefault) : IUpsertRoadmapColor;
 

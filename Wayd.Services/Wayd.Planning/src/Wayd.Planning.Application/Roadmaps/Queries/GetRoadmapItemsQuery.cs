@@ -1,5 +1,4 @@
 ﻿using System.Linq.Expressions;
-using Ardalis.GuardClauses;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums;
 using Wayd.Planning.Application.Roadmaps.Dtos;
@@ -17,18 +16,26 @@ public sealed record GetRoadmapItemsQuery : IQuery<List<RoadmapItemListDto>>
     public Expression<Func<Roadmap, bool>> IdOrKeyFilter { get; }
 }
 
-public sealed class GetRoadmapItemsQueryHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser) : IQueryHandler<GetRoadmapItemsQuery, List<RoadmapItemListDto>>
+public sealed class GetRoadmapItemsQueryHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal) : IQueryHandler<GetRoadmapItemsQuery, List<RoadmapItemListDto>>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly Guid _currentUserEmployeeId = Guard.Against.NullOrEmpty(currentUser.GetEmployeeId());
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
 
     public async Task<List<RoadmapItemListDto>> Handle(GetRoadmapItemsQuery request, CancellationToken cancellationToken)
     {
         var publicVisibility = Visibility.Public;
 
-        var items = await _planningDbContext.Roadmaps
-            .Where(request.IdOrKeyFilter)
-            .Where(r => r.Visibility == publicVisibility || r.RoadmapManagers.Any(m => m.ManagerId == _currentUserEmployeeId))
+        // Unlinked callers manage nothing and so see public roadmaps only. The manager check is
+        // omitted rather than run against a sentinel id.
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
+        var roadmaps = _planningDbContext.Roadmaps.Where(request.IdOrKeyFilter);
+
+        roadmaps = employeeId is { } managerId
+            ? roadmaps.Where(r => r.Visibility == publicVisibility || r.RoadmapManagers.Any(m => m.ManagerId == managerId))
+            : roadmaps.Where(r => r.Visibility == publicVisibility);
+
+        var items = await roadmaps
             .SelectMany(r => r.Items)
             //.ProjectToType<RoadmapItemDto>() // not working, it's always returning only the BaseRoadmapItem properties
             .ToListAsync(cancellationToken);

@@ -5,7 +5,7 @@ using Wayd.Planning.Domain.Models.Roadmaps;
 
 namespace Wayd.Planning.Application.Roadmaps.Commands;
 
-public sealed record CreateRoadmapCommand(string Name, string? Description, LocalDateRange DateRange, List<Guid> RoadmapManagerIds, Visibility Visibility) : ICommand<ObjectIdAndKey>;
+public sealed record CreateRoadmapCommand(string Name, string? Description, LocalDateRange DateRange, List<Guid> RoadmapManagerIds, Visibility Visibility) : ICommand<ObjectIdAndKey>, IRequireLinkedEmployee;
 
 public sealed class CreateRoadmapCommandValidator : AbstractValidator<CreateRoadmapCommand>
 {

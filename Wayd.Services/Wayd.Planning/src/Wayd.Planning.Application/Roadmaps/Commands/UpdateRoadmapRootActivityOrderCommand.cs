@@ -2,7 +2,7 @@
 
 namespace Wayd.Planning.Application.Roadmaps.Commands;
 
-public sealed record UpdateRoadmapRootActivityOrderCommand(Guid RoadmapId, Guid RoadmapActivityId, int Order) : ICommand;
+public sealed record UpdateRoadmapRootActivityOrderCommand(Guid RoadmapId, Guid RoadmapActivityId, int Order) : ICommand, IRequireLinkedEmployee;
 
 public sealed class UpdateRoadmapRootActivityOrderCommandValidator : CustomValidator<UpdateRoadmapRootActivityOrderCommand>
 {

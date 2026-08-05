@@ -4,7 +4,7 @@ using Wayd.Common.Domain.Enums;
 
 namespace Wayd.Planning.Application.Roadmaps.Commands;
 
-public sealed record CopyRoadmapCommand(Guid SourceRoadmapId, string Name, List<Guid> RoadmapManagerIds, Visibility Visibility) : ICommand<ObjectIdAndKey>;
+public sealed record CopyRoadmapCommand(Guid SourceRoadmapId, string Name, List<Guid> RoadmapManagerIds, Visibility Visibility) : ICommand<ObjectIdAndKey>, IRequireLinkedEmployee;
 
 public sealed class CopyRoadmapCommandValidator : AbstractValidator<CopyRoadmapCommand>
 {

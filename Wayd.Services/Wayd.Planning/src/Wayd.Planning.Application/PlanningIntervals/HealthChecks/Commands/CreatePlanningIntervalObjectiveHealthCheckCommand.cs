@@ -6,7 +6,7 @@ public sealed record CreatePlanningIntervalObjectiveHealthCheckCommand(
     Guid PlanningIntervalObjectiveId,
     HealthStatus Status,
     Instant Expiration,
-    string? Note) : ICommand<Guid>;
+    string? Note) : ICommand<Guid>, IRequireLinkedEmployee;
 
 public sealed class CreatePlanningIntervalObjectiveHealthCheckCommandValidator
     : CustomValidator<CreatePlanningIntervalObjectiveHealthCheckCommand>

@@ -4,7 +4,7 @@ public sealed record MoveProjectRanksCommand(
     Guid PortfolioId,
     IReadOnlyList<Guid> ProjectIds,
     Guid? AfterProjectId,
-    Guid? BeforeProjectId) : ICommand;
+    Guid? BeforeProjectId) : ICommand, IRequireLinkedEmployee;
 
 public sealed class MoveProjectRanksCommandValidator : AbstractValidator<MoveProjectRanksCommand>
 {

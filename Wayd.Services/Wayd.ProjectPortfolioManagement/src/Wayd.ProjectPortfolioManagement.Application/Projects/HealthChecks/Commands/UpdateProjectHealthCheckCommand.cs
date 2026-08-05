@@ -8,7 +8,7 @@ public sealed record UpdateProjectHealthCheckCommand(
     Guid HealthCheckId,
     HealthStatus Status,
     Instant Expiration,
-    string? Note) : ICommand<ProjectHealthCheckDetailsDto>;
+    string? Note) : ICommand<ProjectHealthCheckDetailsDto>, IRequireLinkedEmployee;
 
 public sealed class UpdateProjectHealthCheckCommandValidator
     : CustomValidator<UpdateProjectHealthCheckCommand>

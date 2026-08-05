@@ -3,7 +3,7 @@ using Wayd.Common.Domain.Enums;
 
 namespace Wayd.Planning.Application.Roadmaps.Commands;
 
-public sealed record UpdateRoadmapCommand(Guid Id, string Name, string? Description, LocalDateRange DateRange, List<Guid> RoadmapManagerIds, Visibility Visibility) : ICommand;
+public sealed record UpdateRoadmapCommand(Guid Id, string Name, string? Description, LocalDateRange DateRange, List<Guid> RoadmapManagerIds, Visibility Visibility) : ICommand, IRequireLinkedEmployee;
 
 public sealed class UpdateRoadmapCommandValidator : AbstractValidator<UpdateRoadmapCommand>
 {

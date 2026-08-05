@@ -2,7 +2,7 @@
 
 public sealed record DeleteProjectHealthCheckCommand(
     Guid ProjectId,
-    Guid HealthCheckId) : ICommand;
+    Guid HealthCheckId) : ICommand, IRequireLinkedEmployee;
 
 public sealed class DeleteProjectHealthCheckCommandValidator
     : CustomValidator<DeleteProjectHealthCheckCommand>

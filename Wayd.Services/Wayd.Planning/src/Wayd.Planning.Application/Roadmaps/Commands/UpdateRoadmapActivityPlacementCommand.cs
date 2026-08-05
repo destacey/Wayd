@@ -3,7 +3,7 @@ using Wayd.Planning.Domain.Models.Roadmaps;
 
 namespace Wayd.Planning.Application.Roadmaps.Commands;
 
-public sealed record UpdateRoadmapActivityPlacementCommand(Guid RoadmapId, Guid? ParentId, Guid ItemId, int Order) : ICommand;
+public sealed record UpdateRoadmapActivityPlacementCommand(Guid RoadmapId, Guid? ParentId, Guid ItemId, int Order) : ICommand, IRequireLinkedEmployee;
 
 public sealed class UpdateRoadmapActivityPlacementCommandValidator : CustomValidator<UpdateRoadmapActivityPlacementCommand>
 {

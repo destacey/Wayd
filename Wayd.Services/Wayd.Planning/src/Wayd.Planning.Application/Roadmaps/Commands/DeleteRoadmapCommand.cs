@@ -2,7 +2,7 @@
 
 namespace Wayd.Planning.Application.Roadmaps.Commands;
 
-public sealed record DeleteRoadmapCommand(Guid Id) : ICommand;
+public sealed record DeleteRoadmapCommand(Guid Id) : ICommand, IRequireLinkedEmployee;
 public sealed class DeleteRoadmapCommandValidator : AbstractValidator<DeleteRoadmapCommand>
 {
     public DeleteRoadmapCommandValidator()

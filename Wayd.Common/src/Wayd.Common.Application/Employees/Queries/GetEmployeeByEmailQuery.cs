@@ -9,17 +9,20 @@ namespace Wayd.Common.Application.Employees.Queries;
 /// </summary>
 public sealed record GetEmployeeByEmailQuery(string Email) : IQuery<Guid?>;
 
-public sealed class GetEmployeeByEmailQueryHandler : IQueryHandler<GetEmployeeByEmailQuery, Guid?>
+public sealed class GetEmployeeByEmailQueryHandler(IWaydDbContext waydDbContext) : IQueryHandler<GetEmployeeByEmailQuery, Guid?>
 {
-    private readonly IWaydDbContext _waydDbContext;
-
-    public GetEmployeeByEmailQueryHandler(IWaydDbContext waydDbContext)
-    {
-        _waydDbContext = waydDbContext;
-    }
+    private readonly IWaydDbContext _waydDbContext = waydDbContext;
 
     public async Task<Guid?> Handle(GetEmployeeByEmailQuery request, CancellationToken cancellationToken)
     {
+        // Fail closed on a malformed address. The EmailAddress constructor throws on blank or invalid
+        // input, and this runs on the sign-in path against an identity-provider claim we don't control —
+        // an unexpected claim value should be "no match", not a 500.
+        if (!request.Email.IsValidEmailAddressFormat())
+        {
+            return null;
+        }
+
         // Compare the whole EmailAddress: Email is mapped with a value converter, so e.Email.Value is
         // untranslatable and throws at runtime. This form also matches the unique filtered index on Email.
         var email = new EmailAddress(request.Email);

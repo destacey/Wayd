@@ -105,6 +105,29 @@ public sealed class GetEmployeeByEmailQueryHandlerTests
         employeeId.Should().Be(expectedId);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("not-an-email")]
+    [InlineData("missing@tld")]
+    public async Task Handle_ReturnsNull_WhenTheEmailIsMalformed(string email)
+    {
+        // Arrange — this runs on the sign-in path against an identity-provider claim we don't control, so a
+        // malformed value must be "no match". Constructing EmailAddress from it would throw and 500 the login.
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await _fixture.ResetOrganizationData(cancellationToken);
+        await SeedEmployee(SeededEmail, cancellationToken);
+
+        await using var context = _fixture.CreateContext();
+        var handler = new GetEmployeeByEmailQueryHandler(context);
+
+        // Act
+        var employeeId = await handler.Handle(new GetEmployeeByEmailQuery(email), cancellationToken);
+
+        // Assert
+        employeeId.Should().BeNull();
+    }
+
     /// <summary>
     /// Pins the email projection in <c>UserService.UpdateMissingEmployeeIds</c>, which carried the same
     /// converter hazard and failed every PeopleSync run. Covers the EF shape only — the method itself needs

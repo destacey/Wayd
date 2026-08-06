@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Wayd.Common.Application.Exceptions;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
@@ -16,7 +17,7 @@ public class CreatePlanningIntervalObjectiveHealthCheckCommandHandlerTests : IDi
     private readonly FakePlanningDbContext _dbContext;
     private readonly CreatePlanningIntervalObjectiveHealthCheckCommandHandler _handler;
     private readonly Mock<ILogger<CreatePlanningIntervalObjectiveHealthCheckCommandHandler>> _mockLogger = new();
-    private readonly Mock<ICurrentUser> _mockCurrentUser = new();
+    private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal = new();
     private readonly Mock<IDateTimeProvider> _mockDateTimeProvider = new();
     private readonly Guid _currentEmployeeId = Guid.NewGuid();
     private readonly Instant _now = Instant.FromUtc(2026, 4, 1, 0, 0);
@@ -25,14 +26,14 @@ public class CreatePlanningIntervalObjectiveHealthCheckCommandHandlerTests : IDi
     public CreatePlanningIntervalObjectiveHealthCheckCommandHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _mockCurrentUser.Setup(u => u.GetEmployeeId()).Returns(_currentEmployeeId);
+        _mockCurrentPrincipal.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_currentEmployeeId);
         _mockDateTimeProvider.Setup(d => d.Now).Returns(_now);
 
         var team = new PlanningTeamFaker(TeamType.Team).Generate();
         _objectiveFaker = new PlanningIntervalObjectiveFaker(Guid.NewGuid(), team, ObjectiveStatus.NotStarted, false);
 
         _handler = new CreatePlanningIntervalObjectiveHealthCheckCommandHandler(
-            _dbContext, _mockDateTimeProvider.Object, _mockCurrentUser.Object, _mockLogger.Object);
+            _dbContext, _mockDateTimeProvider.Object, _mockCurrentPrincipal.Object, _mockLogger.Object);
     }
 
     [Fact]
@@ -60,17 +61,19 @@ public class CreatePlanningIntervalObjectiveHealthCheckCommandHandlerTests : IDi
         var command = new CreatePlanningIntervalObjectiveHealthCheckCommand(
             Guid.NewGuid(), HealthStatus.Healthy, _now.Plus(Duration.FromDays(7)), null);
 
+        // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
 
+        // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not found");
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 
     [Fact]
-    public async Task Handle_WhenCurrentUserHasNoEmployeeId_ReturnsFailure()
+    public async Task Handle_WhenCurrentUserHasNoEmployeeId_Refuses()
     {
-        _mockCurrentUser.Setup(u => u.GetEmployeeId()).Returns((Guid?)null);
+        _mockCurrentPrincipal.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync((Guid?)null);
 
         var objective = _objectiveFaker.Generate();
         _dbContext.AddPlanningIntervalObjective(objective);
@@ -78,10 +81,13 @@ public class CreatePlanningIntervalObjectiveHealthCheckCommandHandlerTests : IDi
         var command = new CreatePlanningIntervalObjectiveHealthCheckCommand(
             objective.Id, HealthStatus.Healthy, _now.Plus(Duration.FromDays(7)), null);
 
-        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+        // Act — a refusal, not a business outcome; the handler throws so a caller that bypassed the
+        // middleware (handlers are public for Wolverine codegen) cannot ignore it.
+        var act = () => _handler.Handle(command, TestContext.Current.CancellationToken);
 
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("employee Id");
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>()
+            .WithMessage("*isn't linked to an employee record*");
         objective.HealthChecks.Should().BeEmpty();
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }

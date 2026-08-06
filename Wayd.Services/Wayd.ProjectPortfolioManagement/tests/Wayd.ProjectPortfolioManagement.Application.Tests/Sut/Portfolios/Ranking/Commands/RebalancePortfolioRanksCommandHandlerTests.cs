@@ -15,6 +15,7 @@ public class RebalancePortfolioRanksCommandHandlerTests : IDisposable
     private readonly FakeProjectPortfolioManagementDbContext _dbContext;
     private readonly RebalancePortfolioRanksCommandHandler _handler;
     private readonly Mock<ILogger<RebalancePortfolioRanksCommandHandler>> _mockLogger = new();
+    private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal = new();
     private readonly Mock<ICurrentUser> _mockCurrentUser = new();
     private readonly Guid _employeeId = Guid.NewGuid();
     private readonly ProjectPortfolioFaker _portfolioFaker = new();
@@ -23,8 +24,9 @@ public class RebalancePortfolioRanksCommandHandlerTests : IDisposable
     public RebalancePortfolioRanksCommandHandlerTests()
     {
         _dbContext = new FakeProjectPortfolioManagementDbContext();
-        _mockCurrentUser.Setup(u => u.GetEmployeeId()).Returns(_employeeId);
-        _handler = new RebalancePortfolioRanksCommandHandler(_dbContext, _mockCurrentUser.Object, _mockLogger.Object);
+        _mockCurrentPrincipal.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_employeeId);
+        _mockCurrentUser.Setup(u => u.Kind).Returns(ActorKind.User);
+        _handler = new RebalancePortfolioRanksCommandHandler(_dbContext, _mockCurrentUser.Object, _mockCurrentPrincipal.Object, _mockLogger.Object);
     }
 
     private Project Project(string name, double rank) =>
@@ -99,7 +101,7 @@ public class RebalancePortfolioRanksCommandHandlerTests : IDisposable
     {
         // Arrange — the scheduled job runs as the system actor: no employee id, ActorKind.System,
         // and not a portfolio owner. The rebalance should still proceed.
-        _mockCurrentUser.Setup(u => u.GetEmployeeId()).Returns((Guid?)null);
+        _mockCurrentPrincipal.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync((Guid?)null);
         _mockCurrentUser.Setup(u => u.Kind).Returns(ActorKind.System);
 
         var project = Project("A", 1234.5d);

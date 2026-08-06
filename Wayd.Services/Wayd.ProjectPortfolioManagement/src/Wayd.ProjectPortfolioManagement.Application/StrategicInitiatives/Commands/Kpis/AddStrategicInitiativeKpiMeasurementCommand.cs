@@ -3,7 +3,7 @@ using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 
 namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands.Kpis;
 
-public sealed record AddStrategicInitiativeKpiMeasurementCommand(Guid StrategicInitiativeId, Guid KpiId, double ActualValue, Instant MeasurementDate, string? Note) : ICommand;
+public sealed record AddStrategicInitiativeKpiMeasurementCommand(Guid StrategicInitiativeId, Guid KpiId, double ActualValue, Instant MeasurementDate, string? Note) : ICommand, IRequireLinkedEmployee;
 
 public sealed class AddStrategicInitiativeKpiMeasurementCommandValidator : AbstractValidator<AddStrategicInitiativeKpiMeasurementCommand>
 {
@@ -30,7 +30,7 @@ public sealed class AddStrategicInitiativeKpiMeasurementCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<AddStrategicInitiativeKpiMeasurementCommandHandler> logger,
     IDateTimeProvider dateTimeProvider,
-    ICurrentUser currentUser)
+    ICurrentPrincipal currentPrincipal)
     : ICommandHandler<AddStrategicInitiativeKpiMeasurementCommand>
 {
     private const string AppRequestName = nameof(AddStrategicInitiativeKpiMeasurementCommand);
@@ -38,10 +38,16 @@ public sealed class AddStrategicInitiativeKpiMeasurementCommandHandler(
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<AddStrategicInitiativeKpiMeasurementCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
 
     public async Task<Result> Handle(AddStrategicInitiativeKpiMeasurementCommand request, CancellationToken cancellationToken)
     {
+        // A measurement records who took it, so this needs a linked employee. Outside the try because
+        // the catch-all below would turn the refusal into a generic failure.
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        if (employeeId is null)
+            LinkedEmployeeRequired.Throw();
+
         try
         {
             var strategicInitiative = await _projectPortfolioManagementDbContext.StrategicInitiatives
@@ -63,8 +69,7 @@ public sealed class AddStrategicInitiativeKpiMeasurementCommandHandler(
                 return Result.Failure("KPI not found.");
             }
 
-            var employeeId = _currentUser.GetEmployeeId() ?? throw new InvalidOperationException("Current user does not have an employee ID.");
-            var measurementResult = StrategicInitiativeKpiMeasurement.Create(request.KpiId, request.ActualValue, request.MeasurementDate, employeeId, request.Note, _dateTimeProvider.Now);
+            var measurementResult = StrategicInitiativeKpiMeasurement.Create(request.KpiId, request.ActualValue, request.MeasurementDate, employeeId.Value, request.Note, _dateTimeProvider.Now);
             if (measurementResult.IsFailure)
             {
                 _logger.LogError("Error creating KPI measurement for Strategic Initiative {StrategicInitiativeId}. Error message: {Error}", request.StrategicInitiativeId, measurementResult.Error);

@@ -6,11 +6,11 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 
 public sealed record GetProjectsQuery(ProjectStatus[]? StatusFilter = null, IdOrKey? PortfolioIdOrKey = null, IdOrKey? ProgramIdOrKey = null, ProjectMemberRole[]? RoleFilter = null) : IQuery<List<ProjectListDto>?>;
 
-public sealed class GetProjectsQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider)
+public sealed class GetProjectsQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext, ICurrentPrincipal currentPrincipal, IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetProjectsQuery, List<ProjectListDto>?>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
-    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<List<ProjectListDto>?> Handle(GetProjectsQuery request, CancellationToken cancellationToken)
@@ -59,7 +59,7 @@ public sealed class GetProjectsQueryHandler(IProjectPortfolioManagementDbContext
 
         if (request.RoleFilter is { Length: > 0 })
         {
-            var employeeId = _currentUser.GetEmployeeId();
+            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
             if (!employeeId.HasValue)
             {
                 return [];
@@ -91,7 +91,7 @@ public sealed class GetProjectsQueryHandler(IProjectPortfolioManagementDbContext
         }
 
         var now = _dateTimeProvider.Now;
-        var config = ProjectListDto.CreateTypeAdapterConfig(now, _currentUser.GetEmployeeId());
+        var config = ProjectListDto.CreateTypeAdapterConfig(now, await _currentPrincipal.GetEmployeeId(cancellationToken));
         var projects = await query.ProjectToType<ProjectListDto>(config).ToListAsync(cancellationToken);
 
         var ordered = projects

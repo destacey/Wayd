@@ -125,4 +125,112 @@ public sealed class CurrentPrincipalTests
         // Assert
         result.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task GetEmployeeId_ForLinkedUser_ResolvesFromTheStore()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        _currentUser.Setup(u => u.Kind).Returns(ActorKind.User);
+        _currentUser.Setup(u => u.GetUserId()).Returns("user-1");
+        _userService
+            .Setup(s => s.GetEmployeeIdAsync("user-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(employeeId);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetEmployeeId(TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().Be(employeeId);
+    }
+
+    [Fact]
+    public async Task GetEmployeeId_ForUnlinkedUser_ReturnsNull()
+    {
+        // Arrange
+        _currentUser.Setup(u => u.Kind).Returns(ActorKind.User);
+        _currentUser.Setup(u => u.GetUserId()).Returns("user-1");
+        _userService
+            .Setup(s => s.GetEmployeeIdAsync("user-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid?)null);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetEmployeeId(TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetEmployeeId_ForSystemActor_ReturnsNullWithoutStoreLookup()
+    {
+        // Arrange — the platform acting on its own behalf is not a person.
+        _currentUser.Setup(u => u.Kind).Returns(ActorKind.System);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetEmployeeId(TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeNull();
+        _userService.Verify(s => s.GetEmployeeIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetEmployeeId_ForAnonymousActor_ReturnsNullWithoutStoreLookup()
+    {
+        // Arrange
+        _currentUser.Setup(u => u.Kind).Returns(ActorKind.Anonymous);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetEmployeeId(TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeNull();
+        _userService.Verify(s => s.GetEmployeeIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetEmployeeId_WhenCalledRepeatedly_HitsTheStoreOnce()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        _currentUser.Setup(u => u.Kind).Returns(ActorKind.User);
+        _currentUser.Setup(u => u.GetUserId()).Returns("user-1");
+        _userService
+            .Setup(s => s.GetEmployeeIdAsync("user-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(employeeId);
+        var sut = CreateSut();
+
+        // Act
+        await sut.GetEmployeeId(TestContext.Current.CancellationToken);
+        await sut.GetEmployeeId(TestContext.Current.CancellationToken);
+        await sut.GetEmployeeId(TestContext.Current.CancellationToken);
+
+        // Assert
+        _userService.Verify(s => s.GetEmployeeIdAsync("user-1", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetEmployeeId_ForUnlinkedUserCalledRepeatedly_HitsTheStoreOnce()
+    {
+        // Arrange — "no link" is a normal answer and must be cached too, or every unlinked caller
+        // (service accounts, admins, external users) re-queries on each check.
+        _currentUser.Setup(u => u.Kind).Returns(ActorKind.User);
+        _currentUser.Setup(u => u.GetUserId()).Returns("user-1");
+        _userService
+            .Setup(s => s.GetEmployeeIdAsync("user-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid?)null);
+        var sut = CreateSut();
+
+        // Act
+        await sut.GetEmployeeId(TestContext.Current.CancellationToken);
+        await sut.GetEmployeeId(TestContext.Current.CancellationToken);
+
+        // Assert
+        _userService.Verify(s => s.GetEmployeeIdAsync("user-1", It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

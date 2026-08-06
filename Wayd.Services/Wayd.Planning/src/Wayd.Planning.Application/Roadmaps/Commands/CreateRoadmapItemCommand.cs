@@ -5,7 +5,7 @@ using OneOf;
 
 namespace Wayd.Planning.Application.Roadmaps.Commands;
 
-public sealed record CreateRoadmapItemCommand(Guid RoadmapId, OneOf<IUpsertRoadmapActivity, IUpsertRoadmapMilestone, IUpsertRoadmapTimebox> Item) : ICommand<Guid>;
+public sealed record CreateRoadmapItemCommand(Guid RoadmapId, OneOf<IUpsertRoadmapActivity, IUpsertRoadmapMilestone, IUpsertRoadmapTimebox> Item) : ICommand<Guid>, IRequireLinkedEmployee;
 
 public sealed class CreateRoadmapItemCommandValidator : AbstractValidator<CreateRoadmapItemCommand>
 {
@@ -50,14 +50,20 @@ public sealed class CreateRoadmapItemCommandValidator : AbstractValidator<Create
     }
 }
 
-public sealed class CreateRoadmapItemCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<CreateRoadmapItemCommandHandler> logger) : ICommandHandler<CreateRoadmapItemCommand, Guid>
+public sealed class CreateRoadmapItemCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<CreateRoadmapItemCommandHandler> logger) : ICommandHandler<CreateRoadmapItemCommand, Guid>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly Guid _currentUserEmployeeId = Guard.Against.NullOrEmpty(currentUser.GetEmployeeId());
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<CreateRoadmapItemCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(CreateRoadmapItemCommand request, CancellationToken cancellationToken)
     {
+        // Outside the try: this is a refusal, and the catch-all below would turn it into a
+        // generic failure, losing both the 403 and its explanation.
+        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        if (currentUserEmployeeId is null)
+            LinkedEmployeeRequired.Throw();
+
         try
         {
             var roadmap = await _planningDbContext.Roadmaps
@@ -70,9 +76,9 @@ public sealed class CreateRoadmapItemCommandHandler(IPlanningDbContext planningD
                 return Result.Failure<Guid>($"Roadmap with id {request.RoadmapId} not found");
 
             Result<BaseRoadmapItem> result = request.Item.Match(
-               activity => roadmap.CreateActivity(activity, _currentUserEmployeeId).Map(x => (BaseRoadmapItem)x),
-               milestone => roadmap.CreateMilestone(milestone, _currentUserEmployeeId).Map(x => (BaseRoadmapItem)x),
-               timebox => roadmap.CreateTimebox(timebox, _currentUserEmployeeId).Map(x => (BaseRoadmapItem)x)
+               activity => roadmap.CreateActivity(activity, currentUserEmployeeId.Value).Map(x => (BaseRoadmapItem)x),
+               milestone => roadmap.CreateMilestone(milestone, currentUserEmployeeId.Value).Map(x => (BaseRoadmapItem)x),
+               timebox => roadmap.CreateTimebox(timebox, currentUserEmployeeId.Value).Map(x => (BaseRoadmapItem)x)
             );
 
             if (result.IsFailure)

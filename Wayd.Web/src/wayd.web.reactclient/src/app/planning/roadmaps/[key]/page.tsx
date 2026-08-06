@@ -64,7 +64,12 @@ const RoadmapDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const currentUserInternalEmployeeId = user?.employeeId
   const canUpdateRoadmap = hasPermissionClaim('Permissions.Roadmaps.Update')
   const canDeleteRoadmap = hasPermissionClaim('Permissions.Roadmaps.Delete')
-  const canCreateRoadmap = hasPermissionClaim('Permissions.Roadmaps.Create')
+  // Copying creates a roadmap managed by the current user, so it needs an employee link as well as
+  // the permission — the API rejects an unlinked account with 403. The manager-only actions below
+  // are already unreachable without a link, since isRoadmapManager requires one.
+  const canCreateRoadmap =
+    hasPermissionClaim('Permissions.Roadmaps.Create') &&
+    !!currentUserInternalEmployeeId
 
   const {
     data: roadmapData,

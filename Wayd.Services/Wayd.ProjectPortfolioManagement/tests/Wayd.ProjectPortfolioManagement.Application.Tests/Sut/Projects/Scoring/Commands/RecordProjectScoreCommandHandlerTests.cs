@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using Wayd.Common.Application.Exceptions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
@@ -19,7 +20,7 @@ public class RecordProjectScoreCommandHandlerTests : IDisposable
     private readonly FakeProjectPortfolioManagementDbContext _dbContext;
     private readonly RecordProjectScoreCommandHandler _handler;
     private readonly Mock<ILogger<RecordProjectScoreCommandHandler>> _mockLogger = new();
-    private readonly Mock<ICurrentUser> _mockCurrentUser = new();
+    private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal = new();
     private readonly Mock<IDateTimeProvider> _mockDateTimeProvider = new();
     private readonly Guid _currentEmployeeId = Guid.NewGuid();
     private readonly Instant _now = Instant.FromUtc(2026, 5, 1, 0, 0);
@@ -44,11 +45,11 @@ public class RecordProjectScoreCommandHandlerTests : IDisposable
     public RecordProjectScoreCommandHandlerTests()
     {
         _dbContext = new FakeProjectPortfolioManagementDbContext();
-        _mockCurrentUser.Setup(u => u.GetEmployeeId()).Returns(_currentEmployeeId);
+        _mockCurrentPrincipal.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_currentEmployeeId);
         _mockDateTimeProvider.Setup(d => d.Now).Returns(_now);
 
         _handler = new RecordProjectScoreCommandHandler(
-            _dbContext, _mockDateTimeProvider.Object, _mockCurrentUser.Object, _mockLogger.Object);
+            _dbContext, _mockDateTimeProvider.Object, _mockCurrentPrincipal.Object, _mockLogger.Object);
     }
 
     private (Project Project, ScoringModel Model) ScorableProject(bool withModel = true, bool ownerIsActor = true)
@@ -154,19 +155,20 @@ public class RecordProjectScoreCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_WhenCurrentUserHasNoEmployeeId_ReturnsFailure()
+    public async Task Handle_WhenCurrentUserHasNoEmployeeId_Refuses()
     {
         // Arrange
-        _mockCurrentUser.Setup(u => u.GetEmployeeId()).Returns((Guid?)null);
+        _mockCurrentPrincipal.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync((Guid?)null);
         var (project, model) = ScorableProject();
         var command = CommandFor(model, project.Id, 10m, 2m);
 
-        // Act
-        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+        // Act — a refusal, not a business outcome; the handler throws so a caller that bypassed the
+        // middleware (handlers are public for Wolverine codegen) cannot ignore it.
+        var act = () => _handler.Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("employee Id");
+        await act.Should().ThrowAsync<ForbiddenException>()
+            .WithMessage("*isn't linked to an employee record*");
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 

@@ -5,6 +5,7 @@ import { Card, MenuProps } from 'antd'
 import { use, useState } from 'react'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 import useAuth from '@/src/components/contexts/auth'
+import { useLinkedEmployee } from '@/src/hooks'
 import { ItemType } from 'antd/es/menu/interface'
 import { authorizePage } from '@/src/components/hoc'
 import { notFound, useRouter } from 'next/navigation'
@@ -57,10 +58,13 @@ const ObjectiveDetailsPage = (props: {
 
   const router = useRouter()
   const { hasPermissionClaim } = useAuth()
+  const { hasLinkedEmployee } = useLinkedEmployee()
   const canManageObjectives = hasPermissionClaim(
     'Permissions.PlanningIntervalObjectives.Manage',
   )
-  const canCreateHealthChecks = !!canManageObjectives
+  // A health check records who reported it, so it needs an employee link as well as the permission —
+  // the API rejects an unlinked account with 403.
+  const canCreateHealthChecks = !!canManageObjectives && hasLinkedEmployee
   const showActions = canManageObjectives
 
   const renderTabContent = () => {

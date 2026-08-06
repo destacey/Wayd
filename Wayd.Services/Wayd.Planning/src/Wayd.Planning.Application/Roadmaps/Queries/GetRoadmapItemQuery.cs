@@ -1,5 +1,4 @@
 ﻿using System.Linq.Expressions;
-using Ardalis.GuardClauses;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums;
 using Wayd.Planning.Application.Roadmaps.Dtos;
@@ -19,18 +18,26 @@ public sealed record GetRoadmapItemQuery : IQuery<RoadmapItemDetailsDto?>
     public Guid ItemId { get; }
 }
 
-public sealed class GetRoadmapItemQueryHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser) : IQueryHandler<GetRoadmapItemQuery, RoadmapItemDetailsDto?>
+public sealed class GetRoadmapItemQueryHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal) : IQueryHandler<GetRoadmapItemQuery, RoadmapItemDetailsDto?>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly Guid _currentUserEmployeeId = Guard.Against.NullOrEmpty(currentUser.GetEmployeeId());
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
 
     public async Task<RoadmapItemDetailsDto?> Handle(GetRoadmapItemQuery request, CancellationToken cancellationToken)
     {
         var publicVisibility = Visibility.Public;
 
-        var item = await _planningDbContext.Roadmaps
-            .Where(request.IdOrKeyFilter)
-            .Where(r => r.Visibility == publicVisibility || r.RoadmapManagers.Any(m => m.ManagerId == _currentUserEmployeeId))
+        // Unlinked callers manage nothing and so see public roadmaps only. The manager check is
+        // omitted rather than run against a sentinel id.
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
+        var roadmaps = _planningDbContext.Roadmaps.Where(request.IdOrKeyFilter);
+
+        roadmaps = employeeId is { } managerId
+            ? roadmaps.Where(r => r.Visibility == publicVisibility || r.RoadmapManagers.Any(m => m.ManagerId == managerId))
+            : roadmaps.Where(r => r.Visibility == publicVisibility);
+
+        var item = await roadmaps
             .SelectMany(r => r.Items)
             .Include(r => r.Parent)
             .Where(r => r.Id == request.ItemId)

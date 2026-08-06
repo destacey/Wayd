@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using Wayd.Common.Application.Exceptions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Wayd.Common.Application.Interfaces;
@@ -15,7 +16,7 @@ public class MoveProjectRanksCommandHandlerTests : IDisposable
     private readonly FakeProjectPortfolioManagementDbContext _dbContext;
     private readonly MoveProjectRanksCommandHandler _handler;
     private readonly Mock<ILogger<MoveProjectRanksCommandHandler>> _mockLogger = new();
-    private readonly Mock<ICurrentUser> _mockCurrentUser = new();
+    private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal = new();
     private readonly Guid _employeeId = Guid.NewGuid();
     private readonly ProjectPortfolioFaker _portfolioFaker = new();
     private readonly ProjectFaker _projectFaker = new();
@@ -23,8 +24,8 @@ public class MoveProjectRanksCommandHandlerTests : IDisposable
     public MoveProjectRanksCommandHandlerTests()
     {
         _dbContext = new FakeProjectPortfolioManagementDbContext();
-        _mockCurrentUser.Setup(u => u.GetEmployeeId()).Returns(_employeeId);
-        _handler = new MoveProjectRanksCommandHandler(_dbContext, _mockCurrentUser.Object, _mockLogger.Object);
+        _mockCurrentPrincipal.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_employeeId);
+        _handler = new MoveProjectRanksCommandHandler(_dbContext, _mockCurrentPrincipal.Object, _mockLogger.Object);
     }
 
     private Project Project(string name, double rank) =>
@@ -58,10 +59,10 @@ public class MoveProjectRanksCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_WhenEmployeeIdNull_ReturnsFailureWithoutSaving()
+    public async Task Handle_WhenEmployeeIdNull_RefusesWithoutSaving()
     {
         // Arrange
-        _mockCurrentUser.Setup(u => u.GetEmployeeId()).Returns((Guid?)null);
+        _mockCurrentPrincipal.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync((Guid?)null);
         var after = Project("After", 1000d);
         var moved = Project("Moved", 90000d);
         var portfolio = Portfolio(after, moved);
@@ -69,11 +70,13 @@ public class MoveProjectRanksCommandHandlerTests : IDisposable
 
         var command = new MoveProjectRanksCommand(portfolio.Id, [moved.Id], after.Id, null);
 
-        // Act
-        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+        // Act — a refusal, not a business outcome; the handler throws so a caller that bypassed the
+        // middleware (handlers are public for Wolverine codegen) cannot ignore it.
+        var act = () => _handler.Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
+        await act.Should().ThrowAsync<ForbiddenException>()
+            .WithMessage("*isn't linked to an employee record*");
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 
@@ -96,7 +99,7 @@ public class MoveProjectRanksCommandHandlerTests : IDisposable
     public async Task Handle_WhenActorNotAuthorized_ReturnsFailureWithoutSaving()
     {
         // Arrange — actor has no portfolio role.
-        _mockCurrentUser.Setup(u => u.GetEmployeeId()).Returns(Guid.NewGuid());
+        _mockCurrentPrincipal.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(Guid.NewGuid());
         var after = Project("After", 1000d);
         var moved = Project("Moved", 90000d);
         var portfolio = Portfolio(after, moved);

@@ -15,7 +15,6 @@ public sealed class PersonalAccessTokenFaker : PrivateConstructorFaker<PersonalA
         RuleFor(x => x.TokenIdentifier, f => f.Random.Hash(40).Substring(0, 8));
         RuleFor(x => x.TokenHash, f => f.Random.Hash(40));
         RuleFor(x => x.UserId, f => f.Random.Guid().ToString());
-        RuleFor(x => x.EmployeeId, f => f.Random.Bool() ? f.Random.Guid() : (Guid?)null);
         RuleFor(x => x.ExpiresAt, f => now.Plus(Duration.FromDays(f.Random.Int(30, 730))));
         RuleFor(x => x.Scopes, f => f.Random.Bool() ? null : $"[\"Permissions.{f.PickRandom("WorkItems", "Teams", "Projects")}.{f.PickRandom("View", "Create", "Update")}\"]");
         RuleFor(x => x.LastUsedAt, (Instant?)null);
@@ -53,12 +52,6 @@ public static class PersonalAccessTokenFakerExtensions
     public static PersonalAccessTokenFaker WithUserId(this PersonalAccessTokenFaker faker, string userId)
     {
         faker.RuleFor(x => x.UserId, userId);
-        return faker;
-    }
-
-    public static PersonalAccessTokenFaker WithEmployeeId(this PersonalAccessTokenFaker faker, Guid? employeeId)
-    {
-        faker.RuleFor(x => x.EmployeeId, employeeId);
         return faker;
     }
 

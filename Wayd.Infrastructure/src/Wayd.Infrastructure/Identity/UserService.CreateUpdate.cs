@@ -734,7 +734,15 @@ internal partial class UserService
         user.FirstName = command.FirstName;
         user.LastName = command.LastName;
         user.PhoneNumber = command.PhoneNumber;
-        user.EmployeeId = command.EmployeeId;
+
+        // The employee link is resolved by email elsewhere (GetEmployeeIdByEmail on registration,
+        // UpdateMissingEmployeeIds, SyncUsersFromEmployeeRecords); only the admin user-edit path
+        // overrides it by hand. Assigning unconditionally wrote the command's default null over an
+        // existing link on every self-service profile save — see UpdateUserCommand.ManageEmployeeLink.
+        if (command.ManageEmployeeLink)
+        {
+            user.EmployeeId = command.EmployeeId;
+        }
 
         if (!string.Equals(user.Email, command.Email, StringComparison.OrdinalIgnoreCase))
         {
@@ -868,10 +876,28 @@ internal partial class UserService
             .GroupBy(e => e.Email, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.Last().Id, StringComparer.OrdinalIgnoreCase);
 
+        // Employees already spoken for. One user per employee is a database invariant
+        // (UX_Users_EmployeeId), and Employee.Email is connector-owned and mutable — so a renamed
+        // employee can resolve by email to a second, still-unlinked user. Claiming an employee twice
+        // used to pass silently; it is now a DbUpdateException that would abort the whole backfill.
+        var linkedEmployeeIds = await _userManager.Users
+            .Where(u => u.EmployeeId.HasValue)
+            .Select(u => u.EmployeeId!.Value)
+            .ToHashSetAsync(cancellationToken);
+
         foreach (var user in users)
         {
             if (string.IsNullOrEmpty(user.Email)) continue;
             if (!employeeIdByEmail.TryGetValue(user.Email, out var employeeId)) continue;
+
+            if (!linkedEmployeeIds.Add(employeeId))
+            {
+                // Also covers two users in this same batch resolving to one employee.
+                _logger.LogWarning(
+                    "Skipped linking user {UserId} to employee {EmployeeId}: that employee is already linked to another user.",
+                    user.Id, employeeId);
+                continue;
+            }
 
             user.EmployeeId = employeeId;
             var result = await _userManager.UpdateAsync(user);
@@ -947,6 +973,19 @@ internal partial class UserService
         {
             employeeId = null;
             _logger.LogWarning("Employee with email {Email} not found.", email);
+        }
+
+        // One user per employee is a database invariant (UX_Users_EmployeeId). Employee.Email is
+        // connector-owned and mutable, so an employee renamed onto a new address can resolve here for
+        // a second user — which would fail the insert and block that user's sign-in outright. Treat an
+        // already-claimed employee as "no match": the user is still created, just unlinked, and an
+        // admin can sort out the correct link from Settings → Users.
+        if (employeeId.HasValue && await _userManager.Users.AnyAsync(u => u.EmployeeId == employeeId.Value))
+        {
+            _logger.LogWarning(
+                "Employee {EmployeeId} (email {Email}) is already linked to another user; leaving the new user unlinked.",
+                employeeId.Value, email);
+            return null;
         }
 
         return employeeId;

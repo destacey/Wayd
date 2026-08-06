@@ -1,6 +1,6 @@
 ﻿namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
 
-public sealed record RebalancePortfolioRanksCommand(Guid PortfolioId) : ICommand;
+public sealed record RebalancePortfolioRanksCommand(Guid PortfolioId) : ICommand, IRequireLinkedEmployee;
 
 public sealed class RebalancePortfolioRanksCommandValidator : AbstractValidator<RebalancePortfolioRanksCommand>
 {
@@ -13,11 +13,15 @@ public sealed class RebalancePortfolioRanksCommandValidator : AbstractValidator<
 public sealed class RebalancePortfolioRanksCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<RebalancePortfolioRanksCommandHandler> logger)
     : ICommandHandler<RebalancePortfolioRanksCommand>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
+    // Both: ICurrentUser answers "what kind of actor is this?" (the system path below), while
+    // ICurrentPrincipal resolves the employee link from the database rather than the token claim.
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<RebalancePortfolioRanksCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(RebalancePortfolioRanksCommand request, CancellationToken cancellationToken)
@@ -27,9 +31,9 @@ public sealed class RebalancePortfolioRanksCommandHandler(
         // runs as ActorKind.System and carries no employee claim). For the system path we bypass the
         // per-actor check; a normal user still needs an employee id + Owner/Manager.
         var isSystem = _currentUser.Kind == ActorKind.System;
-        var employeeId = _currentUser.GetEmployeeId();
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (!isSystem && employeeId is null)
-            return Result.Failure("Unable to determine the current user's employee Id.");
+            LinkedEmployeeRequired.Throw();
 
         var portfolio = await _ppmDbContext.Portfolios
             .AsSplitQuery()

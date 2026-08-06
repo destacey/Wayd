@@ -26,7 +26,7 @@ public sealed class PersonalAccessTokenTests
         var fakePat = _tokenFaker.Generate();
 
         // Act
-        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.EmployeeId, fakePat.ExpiresAt, fakePat.Scopes, _now);
+        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scopes, _now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -35,7 +35,6 @@ public sealed class PersonalAccessTokenTests
         token.TokenIdentifier.Should().Be(fakePat.TokenIdentifier);
         token.TokenHash.Should().Be(fakePat.TokenHash);
         token.UserId.Should().Be(fakePat.UserId);
-        token.EmployeeId.Should().Be(fakePat.EmployeeId);
         token.ExpiresAt.Should().Be(fakePat.ExpiresAt);
         token.Scopes.Should().Be(fakePat.Scopes);
         token.IsActiveAt(_now).Should().BeTrue();
@@ -52,7 +51,7 @@ public sealed class PersonalAccessTokenTests
         var fakePat = _tokenFaker.AsExpired(_now.Minus(Duration.FromDays(1))).Generate();
 
         // Act
-        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.EmployeeId, fakePat.ExpiresAt, fakePat.Scopes, _now);
+        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scopes, _now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -66,7 +65,7 @@ public sealed class PersonalAccessTokenTests
         var fakePat = _tokenFaker.Generate();
 
         // Act
-        var result = PersonalAccessToken.Create(string.Empty, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.EmployeeId, fakePat.ExpiresAt, fakePat.Scopes, _now);
+        var result = PersonalAccessToken.Create(string.Empty, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scopes, _now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -79,7 +78,7 @@ public sealed class PersonalAccessTokenTests
         var fakePat = _tokenFaker.Generate();
 
         // Act
-        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, string.Empty, fakePat.UserId, fakePat.EmployeeId, fakePat.ExpiresAt, fakePat.Scopes, _now);
+        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, string.Empty, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scopes, _now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -92,7 +91,7 @@ public sealed class PersonalAccessTokenTests
         var fakePat = _tokenFaker.Generate();
 
         // Act
-        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, string.Empty, fakePat.EmployeeId, fakePat.ExpiresAt, fakePat.Scopes, _now);
+        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, string.Empty, fakePat.ExpiresAt, fakePat.Scopes, _now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -116,7 +115,7 @@ public sealed class PersonalAccessTokenTests
     {
         // Arrange
         var expiresAt = _now.Plus(Duration.FromDays(1));
-        var token = PersonalAccessToken.Create("Test", "hash1234", "hash1234567890", "user1", null, expiresAt, null, _now).Value;
+        var token = PersonalAccessToken.Create("Test", "hash1234", "hash1234567890", "user1", expiresAt, null, _now).Value;
         var futureTime = _now.Plus(Duration.FromDays(2));
 
         // Act
@@ -285,7 +284,7 @@ public sealed class PersonalAccessTokenTests
     {
         // Arrange
         var expiresAt = _now.Plus(Duration.FromDays(1));
-        var token = PersonalAccessToken.Create("Test", "hash1234", "hash1234567890", "user1", null, expiresAt, null, _now).Value;
+        var token = PersonalAccessToken.Create("Test", "hash1234", "hash1234567890", "user1", expiresAt, null, _now).Value;
 
         // Act & Assert
         token.IsExpiredAt(_now).Should().BeFalse();
@@ -317,28 +316,11 @@ public sealed class PersonalAccessTokenTests
         var expiresAt = _now.Plus(Duration.FromDays(365));
 
         // Act
-        var result = PersonalAccessToken.Create(name, tokenIdentifier, tokenHash, userId, null, expiresAt, null, _now);
+        var result = PersonalAccessToken.Create(name, tokenIdentifier, tokenHash, userId, expiresAt, null, _now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Scopes.Should().BeNull();
     }
 
-    [Fact]
-    public void Create_WithNullEmployeeId_ShouldSucceed()
-    {
-        // Arrange
-        var name = "Test Token";
-        var tokenHash = "hash12345678";
-        var tokenIdentifier = "hash1234";
-        var userId = "user123";
-        var expiresAt = _now.Plus(Duration.FromDays(365));
-
-        // Act
-        var result = PersonalAccessToken.Create(name, tokenIdentifier, tokenHash, userId, null, expiresAt, null, _now);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.EmployeeId.Should().BeNull();
-    }
 }

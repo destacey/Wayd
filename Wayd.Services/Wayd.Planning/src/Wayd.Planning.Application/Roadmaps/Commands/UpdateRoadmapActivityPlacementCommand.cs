@@ -3,7 +3,7 @@ using Wayd.Planning.Domain.Models.Roadmaps;
 
 namespace Wayd.Planning.Application.Roadmaps.Commands;
 
-public sealed record UpdateRoadmapActivityPlacementCommand(Guid RoadmapId, Guid? ParentId, Guid ItemId, int Order) : ICommand;
+public sealed record UpdateRoadmapActivityPlacementCommand(Guid RoadmapId, Guid? ParentId, Guid ItemId, int Order) : ICommand, IRequireLinkedEmployee;
 
 public sealed class UpdateRoadmapActivityPlacementCommandValidator : CustomValidator<UpdateRoadmapActivityPlacementCommand>
 {
@@ -52,16 +52,22 @@ public sealed class UpdateRoadmapActivityPlacementCommandValidator : CustomValid
     }
 }
 
-public sealed class UpdateRoadmapActivityPlacementCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<UpdateRoadmapActivityPlacementCommandHandler> logger) : ICommandHandler<UpdateRoadmapActivityPlacementCommand>
+public sealed class UpdateRoadmapActivityPlacementCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<UpdateRoadmapActivityPlacementCommandHandler> logger) : ICommandHandler<UpdateRoadmapActivityPlacementCommand>
 {
     private const string AppRequestName = nameof(UpdateRoadmapActivityPlacementCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly Guid _currentUserEmployeeId = Guard.Against.NullOrEmpty(currentUser.GetEmployeeId());
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<UpdateRoadmapActivityPlacementCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateRoadmapActivityPlacementCommand request, CancellationToken cancellationToken)
     {
+        // Outside the try: this is a refusal, and the catch-all below would turn it into a
+        // generic failure, losing both the 403 and its explanation.
+        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        if (currentUserEmployeeId is null)
+            LinkedEmployeeRequired.Throw();
+
         try
         {
             var roadmap = await _planningDbContext.Roadmaps
@@ -86,12 +92,12 @@ public sealed class UpdateRoadmapActivityPlacementCommandHandler(IPlanningDbCont
             Result placementResult = Result.Success();
             if (activity.ParentId == request.ParentId)
             {
-                placementResult = roadmap.SetActivityOrder(activity.Id, request.Order, _currentUserEmployeeId);
+                placementResult = roadmap.SetActivityOrder(activity.Id, request.Order, currentUserEmployeeId.Value);
                 _logger.LogInformation("Updated roadmap activity {RoadmapActivityId} order to {Order}.", request.ItemId, request.Order);
             }
             else
             {
-                placementResult = roadmap.MoveActivity(activity.Id, request.ParentId, request.Order, _currentUserEmployeeId);
+                placementResult = roadmap.MoveActivity(activity.Id, request.ParentId, request.Order, currentUserEmployeeId.Value);
                 _logger.LogInformation("Moved roadmap activity {RoadmapActivityId} to parent {ParentId} with order {Order}.", request.ItemId, request.ParentId, request.Order);
             }
 

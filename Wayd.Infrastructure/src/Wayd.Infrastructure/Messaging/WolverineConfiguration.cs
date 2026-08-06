@@ -222,6 +222,11 @@ public static class WolverineConfiguration
         // remarks.
         opts.Policies.AddMiddleware(typeof(UserIdentityMiddleware));
 
+        // Rejects IRequireLinkedEmployee messages from callers with no employee link. Registered AFTER
+        // UserIdentityMiddleware because it resolves the link for the acting user, and on a non-HTTP
+        // dispatch that user id only exists once the identity middleware has seeded it from the envelope.
+        opts.Policies.AddMiddleware(typeof(LinkedEmployeeMiddleware));
+
         // Warns on long-running requests.
         opts.Policies.AddMiddleware(typeof(PerformanceBehavior));
 

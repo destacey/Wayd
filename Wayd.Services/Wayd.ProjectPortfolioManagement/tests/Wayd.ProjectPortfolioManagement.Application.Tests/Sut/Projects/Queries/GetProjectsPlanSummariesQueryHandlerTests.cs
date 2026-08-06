@@ -16,7 +16,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Projects.Queries
 public class GetProjectsPlanSummariesQueryHandlerTests : IDisposable
 {
     private readonly FakeProjectPortfolioManagementDbContext _dbContext;
-    private readonly Mock<ICurrentUser> _currentUserMock;
+    private readonly Mock<ICurrentPrincipal> _currentPrincipalMock;
     private readonly TestingDateTimeProvider _dateTimeProvider;
     private readonly GetProjectsPlanSummariesQueryHandler _handler;
     private readonly Guid _employeeId = Guid.NewGuid();
@@ -28,14 +28,14 @@ public class GetProjectsPlanSummariesQueryHandlerTests : IDisposable
     public GetProjectsPlanSummariesQueryHandlerTests()
     {
         _dbContext = new FakeProjectPortfolioManagementDbContext();
-        _currentUserMock = new Mock<ICurrentUser>();
-        _currentUserMock.Setup(u => u.GetEmployeeId()).Returns(_employeeId);
+        _currentPrincipalMock = new Mock<ICurrentPrincipal>();
+        _currentPrincipalMock.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_employeeId);
 
         var instant = Today.AtStartOfDayInZone(DateTimeZone.Utc).ToInstant();
         var clock = new FakeClock(instant);
         _dateTimeProvider = new TestingDateTimeProvider(clock);
 
-        _handler = new GetProjectsPlanSummariesQueryHandler(_dbContext, _currentUserMock.Object, _dateTimeProvider);
+        _handler = new GetProjectsPlanSummariesQueryHandler(_dbContext, _currentPrincipalMock.Object, _dateTimeProvider);
     }
 
     #region Helpers
@@ -72,7 +72,7 @@ public class GetProjectsPlanSummariesQueryHandlerTests : IDisposable
     [Fact]
     public async Task Handle_NoEmployeeId_ShouldReturnEmptyDictionary()
     {
-        _currentUserMock.Setup(u => u.GetEmployeeId()).Returns((Guid?)null);
+        _currentPrincipalMock.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync((Guid?)null);
 
         var project = new ProjectFaker().WithStatus(ProjectStatus.Active).Generate();
         _dbContext.AddProject(project);

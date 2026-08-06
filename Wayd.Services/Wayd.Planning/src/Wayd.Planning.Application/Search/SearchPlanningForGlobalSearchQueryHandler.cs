@@ -1,5 +1,4 @@
-﻿using Ardalis.GuardClauses;
-using Wayd.Common.Application.Requests.Goals.Queries;
+﻿using Wayd.Common.Application.Requests.Goals.Queries;
 using Wayd.Common.Application.Search;
 using Wayd.Common.Application.Search.Dtos;
 using Wayd.Common.Domain.Enums;
@@ -9,7 +8,7 @@ using Wayd.Planning.Domain.Models.Roadmaps;
 
 namespace Wayd.Planning.Application.Search;
 
-public sealed class SearchPlanningForGlobalSearchQueryHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser)
+public sealed class SearchPlanningForGlobalSearchQueryHandler(IPlanningDbContext planningDbContext, IDispatcher dispatcher, IDateTimeProvider dateTimeProvider, ICurrentPrincipal currentPrincipal)
     : IQueryHandler<SearchPlanningForGlobalSearchQuery, ServiceSearchResponse>
 {
     public async Task<ServiceSearchResponse> Handle(SearchPlanningForGlobalSearchQuery request, CancellationToken cancellationToken)
@@ -128,11 +127,17 @@ public sealed class SearchPlanningForGlobalSearchQueryHandler(IPlanningDbContext
             TotalCount = piTeamCount
         });
 
-        // Roadmaps (respect visibility: public or current user is a manager)
-        var currentUserEmployeeId = Guard.Against.NullOrEmpty(currentUser.GetEmployeeId());
+        // Roadmaps (respect visibility: public or current user is a manager). An unlinked caller
+        // manages nothing and sees public roadmaps only — this used to throw, which took the whole
+        // of global search down for anyone without an employee record, not just this one category.
+        var employeeId = await currentPrincipal.GetEmployeeId(cancellationToken);
         var publicVisibility = Visibility.Public;
-        var roadmapQuery = planningDbContext.Roadmaps
-            .Where(r => r.Visibility == publicVisibility || r.RoadmapManagers.Any(m => m.ManagerId == currentUserEmployeeId))
+
+        var visibleRoadmaps = employeeId is { } managerId
+            ? planningDbContext.Roadmaps.Where(r => r.Visibility == publicVisibility || r.RoadmapManagers.Any(m => m.ManagerId == managerId))
+            : planningDbContext.Roadmaps.Where(r => r.Visibility == publicVisibility);
+
+        var roadmapQuery = visibleRoadmaps
             .Where(r => r.Name.Contains(term));
 
         var roadmapCount = await roadmapQuery.CountAsync(cancellationToken);

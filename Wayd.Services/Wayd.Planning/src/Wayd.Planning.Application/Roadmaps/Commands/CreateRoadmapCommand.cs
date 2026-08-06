@@ -5,15 +5,15 @@ using Wayd.Planning.Domain.Models.Roadmaps;
 
 namespace Wayd.Planning.Application.Roadmaps.Commands;
 
-public sealed record CreateRoadmapCommand(string Name, string? Description, LocalDateRange DateRange, List<Guid> RoadmapManagerIds, Visibility Visibility) : ICommand<ObjectIdAndKey>;
+public sealed record CreateRoadmapCommand(string Name, string? Description, LocalDateRange DateRange, List<Guid> RoadmapManagerIds, Visibility Visibility) : ICommand<ObjectIdAndKey>, IRequireLinkedEmployee;
 
 public sealed class CreateRoadmapCommandValidator : AbstractValidator<CreateRoadmapCommand>
 {
-    private readonly ICurrentUser _currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal;
 
-    public CreateRoadmapCommandValidator(ICurrentUser currentUser)
+    public CreateRoadmapCommandValidator(ICurrentPrincipal currentPrincipal)
     {
-        _currentUser = currentUser;
+        _currentPrincipal = currentPrincipal;
 
         RuleFor(x => x.Name)
             .NotEmpty()
@@ -27,7 +27,7 @@ public sealed class CreateRoadmapCommandValidator : AbstractValidator<CreateRoad
 
         RuleFor(x => x.RoadmapManagerIds)
             .NotEmpty()
-            .Must(IncludeCurrentUser).WithMessage("The current user must be a manager of the Roadmap.");
+            .MustAsync(IncludeCurrentUser).WithMessage("The current user must be a manager of the Roadmap.");
 
         RuleForEach(x => x.RoadmapManagerIds)
             .NotEmpty();
@@ -44,20 +44,38 @@ public sealed class CreateRoadmapCommandValidator : AbstractValidator<CreateRoad
         //});
     }
 
-    public bool IncludeCurrentUser(IEnumerable<Guid> roadmapManagerIds)
+    // Resolved rather than read from the token claim, which is a snapshot taken at sign-in: an admin
+    // who links a user mid-session would otherwise see this throw. LinkedEmployeeMiddleware has already
+    // rejected callers with no link, so a null here means the resolve raced a concurrent unlink — treat
+    // it as "not a manager" and let validation report it, rather than throwing.
+    public async Task<bool> IncludeCurrentUser(IEnumerable<Guid> roadmapManagerIds, CancellationToken cancellationToken)
     {
-        var employeeId = Guard.Against.NullOrEmpty(_currentUser.GetEmployeeId());
-        return roadmapManagerIds.Contains(employeeId);
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        return employeeId.HasValue && roadmapManagerIds.Contains(employeeId.Value);
     }
 }
 
-public sealed class CreateRoadmapCommandHandler(IPlanningDbContext planningDbContext, ILogger<CreateRoadmapCommandHandler> logger) : ICommandHandler<CreateRoadmapCommand, ObjectIdAndKey>
+public sealed class CreateRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<CreateRoadmapCommandHandler> logger) : ICommandHandler<CreateRoadmapCommand, ObjectIdAndKey>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<CreateRoadmapCommandHandler> _logger = logger;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateRoadmapCommand request, CancellationToken cancellationToken)
     {
+        // Enforced here, not only in the validator: Wolverine's code generation requires handlers to
+        // be public, so this can be constructed and called directly, skipping both the validator and
+        // LinkedEmployeeMiddleware. Outside the try because the catch-all below would turn a refusal
+        // into a generic failure.
+        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        if (currentUserEmployeeId is null)
+            LinkedEmployeeRequired.Throw();
+
+        // Likewise the creator-is-a-manager rule: the domain accepts whatever manager ids it is
+        // given, so a direct call could otherwise create a roadmap the caller cannot administer.
+        if (!request.RoadmapManagerIds.Contains(currentUserEmployeeId.Value))
+            return Result.Failure<ObjectIdAndKey>("The current user must be a manager of the Roadmap.");
+
         try
         {
             var result = Roadmap.Create(

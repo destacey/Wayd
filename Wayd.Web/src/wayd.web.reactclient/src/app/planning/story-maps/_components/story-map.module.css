@@ -287,9 +287,10 @@
   --sm-spine-inset: max(8px, calc((var(--sm-goal-row-height) - 18px) / 2));
   padding: 0 4px 8px;
   background-color: var(--sm-bg-elevated);
-  /* Must not clip (no overflow, no gap): a non-visible overflow would make this the sticky caret's
-     scroll container, and a flex gap measures against the caret's pre-sticky position. The name
-     handles its own spacing and clipping — see .goalNameVertical. */
+  /* Clears .goalCell's gap, and must not clip: a flex gap measures against the caret's pre-sticky
+     position, and a non-visible overflow would make this the sticky caret's scroll container. The
+     name handles its own spacing and clipping — see .goalNameVertical. */
+  gap: 0;
   /* Not sticky, unlike the goal cells beside it: the spine spans every row, and a sticky element
      moves only within its own grid area, so pinning it would slide its content down the spine as
      the board scrolls. The caret inside it sticks instead. */
@@ -318,10 +319,12 @@
   text-overflow: ellipsis;
   /* The spine cannot clip or space this itself without breaking the caret's stickiness, so the name
      bounds itself: shrink to nothing and it vanishes, so cap instead — less the margin, which would
-     otherwise push a long name past the spine's end. */
+     otherwise push a long name past the spine's end.
+     The margin clears the caret's flow position, which sticky then paints --sm-spine-inset lower,
+     so it carries that inset on top of the 6px gap or the two overlap. */
   flex-shrink: 0;
-  max-height: calc(100% - 6px);
-  margin-top: 6px;
+  max-height: calc(100% - var(--sm-spine-inset) - 6px);
+  margin-top: calc(var(--sm-spine-inset) + 6px);
   font-size: 13px;
 }
 

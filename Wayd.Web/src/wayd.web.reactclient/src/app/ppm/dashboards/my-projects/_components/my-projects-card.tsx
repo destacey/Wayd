@@ -1,6 +1,7 @@
 'use client'
 
 import useAuth from '@/src/components/contexts/auth'
+import { useLinkedEmployee } from '@/src/hooks'
 import { useGetMyProjectsSummaryQuery } from '@/src/store/features/ppm/projects-api'
 import { RightOutlined } from '@ant-design/icons'
 import { Badge, Card, Divider, Flex, Skeleton, Tag, Typography } from 'antd'
@@ -34,18 +35,21 @@ function getRoleCounts(summary: {
 
 const MyProjectsCard: FC = () => {
   const { hasPermissionClaim } = useAuth()
+  const { hasLinkedEmployee } = useLinkedEmployee()
   const router = useRouter()
 
   const canViewProjects = hasPermissionClaim('Permissions.Projects.View')
 
+  // Project roles are held by employees, so an unlinked account can never be on a project. Skipping
+  // the request avoids a round-trip whose answer is known to be empty.
   const { data: summary, isLoading } = useGetMyProjectsSummaryQuery(
     { status: [5, 2] }, // Approved, Active
-    { skip: !canViewProjects },
+    { skip: !canViewProjects || !hasLinkedEmployee },
   )
 
   const roleCounts = summary ? getRoleCounts(summary) : []
 
-  if (!canViewProjects) return null
+  if (!canViewProjects || !hasLinkedEmployee) return null
   if (!isLoading && (!summary || summary.totalCount === 0)) return null
 
   return (

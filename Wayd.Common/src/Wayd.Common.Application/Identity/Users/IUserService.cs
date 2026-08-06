@@ -12,6 +12,21 @@ public interface IUserService : ITransientService
 
     Task<bool> ExistsWithPhoneNumberAsync(string phoneNumber, string? exceptId = null);
 
+    /// <summary>
+    /// Whether another user is already linked to the given employee. Backs the server-side
+    /// one-user-per-employee rule, which the database enforces with a filtered unique index on
+    /// <c>Identity.Users.EmployeeId</c>; validating here turns that constraint violation into a
+    /// readable message instead of a 500.
+    /// </summary>
+    Task<bool> ExistsWithEmployeeIdAsync(Guid employeeId, string? exceptId = null);
+
+    /// <summary>
+    /// The employee linked to the given user, or <c>null</c> when the user has no link (or does not
+    /// exist). A narrow projection rather than <see cref="GetAsync"/> because this runs on the
+    /// per-request path behind <see cref="Interfaces.ICurrentPrincipal.GetEmployeeId"/>.
+    /// </summary>
+    Task<Guid?> GetEmployeeIdAsync(string userId, CancellationToken cancellationToken = default);
+
     Task<List<UserDetailsDto>> GetListAsync(CancellationToken cancellationToken);
 
     Task<UserDetailsDto?> GetAsync(string userId, CancellationToken cancellationToken);

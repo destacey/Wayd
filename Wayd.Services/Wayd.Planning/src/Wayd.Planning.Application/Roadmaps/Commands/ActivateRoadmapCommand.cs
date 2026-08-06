@@ -1,8 +1,6 @@
-﻿using Ardalis.GuardClauses;
+﻿namespace Wayd.Planning.Application.Roadmaps.Commands;
 
-namespace Wayd.Planning.Application.Roadmaps.Commands;
-
-public sealed record ActivateRoadmapCommand(Guid Id) : ICommand;
+public sealed record ActivateRoadmapCommand(Guid Id) : ICommand, IRequireLinkedEmployee;
 
 public sealed class ActivateRoadmapCommandValidator : AbstractValidator<ActivateRoadmapCommand>
 {
@@ -13,16 +11,22 @@ public sealed class ActivateRoadmapCommandValidator : AbstractValidator<Activate
     }
 }
 
-public sealed class ActivateRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<ActivateRoadmapCommandHandler> logger) : ICommandHandler<ActivateRoadmapCommand>
+public sealed class ActivateRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<ActivateRoadmapCommandHandler> logger) : ICommandHandler<ActivateRoadmapCommand>
 {
     private const string AppRequestName = nameof(ActivateRoadmapCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly Guid _currentUserEmployeeId = Guard.Against.NullOrEmpty(currentUser.GetEmployeeId());
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<ActivateRoadmapCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ActivateRoadmapCommand request, CancellationToken cancellationToken)
     {
+        // Outside the try: this is a refusal, and the catch-all below would turn it into a
+        // generic failure, losing both the 403 and its explanation.
+        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        if (currentUserEmployeeId is null)
+            LinkedEmployeeRequired.Throw();
+
         try
         {
             var roadmap = await _planningDbContext.Roadmaps
@@ -35,7 +39,7 @@ public sealed class ActivateRoadmapCommandHandler(IPlanningDbContext planningDbC
                 return Result.Failure("Roadmap not found.");
             }
 
-            var activateResult = roadmap.Activate(_currentUserEmployeeId);
+            var activateResult = roadmap.Activate(currentUserEmployeeId.Value);
             if (activateResult.IsFailure)
             {
                 // Reset the entity

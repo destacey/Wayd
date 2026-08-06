@@ -4,7 +4,7 @@ using OneOf;
 
 namespace Wayd.Planning.Application.Roadmaps.Commands;
 
-public sealed record UpdateRoadmapItemDatesCommand(Guid RoadmapId, Guid ItemId, OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange> Dates) : ICommand;
+public sealed record UpdateRoadmapItemDatesCommand(Guid RoadmapId, Guid ItemId, OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange> Dates) : ICommand, IRequireLinkedEmployee;
 
 
 public sealed class UpdateRoadmapItemDatesCommandValidator : AbstractValidator<UpdateRoadmapItemDatesCommand>
@@ -53,16 +53,22 @@ public sealed class UpdateRoadmapItemDatesCommandValidator : AbstractValidator<U
     }
 }
 
-public sealed class UpdateRoadmapItemDatesCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, ILogger<UpdateRoadmapItemDatesCommandHandler> logger) : ICommandHandler<UpdateRoadmapItemDatesCommand>
+public sealed class UpdateRoadmapItemDatesCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<UpdateRoadmapItemDatesCommandHandler> logger) : ICommandHandler<UpdateRoadmapItemDatesCommand>
 {
     private const string AppRequestName = nameof(UpdateRoadmapItemDatesCommand);
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly Guid _currentUserEmployeeId = Guard.Against.NullOrEmpty(currentUser.GetEmployeeId());
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<UpdateRoadmapItemDatesCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateRoadmapItemDatesCommand request, CancellationToken cancellationToken)
     {
+        // Outside the try: this is a refusal, and the catch-all below would turn it into a
+        // generic failure, losing both the 403 and its explanation.
+        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        if (currentUserEmployeeId is null)
+            LinkedEmployeeRequired.Throw();
+
         try
         {
             var roadmap = await _planningDbContext.Roadmaps
@@ -74,7 +80,7 @@ public sealed class UpdateRoadmapItemDatesCommandHandler(IPlanningDbContext plan
             if (roadmap is null)
                 return Result.Failure<Guid>($"Roadmap with id {request.RoadmapId} not found");
 
-            var updateResult = roadmap.UpdateRoadmapItemDates(request.ItemId, request.Dates, _currentUserEmployeeId);
+            var updateResult = roadmap.UpdateRoadmapItemDates(request.ItemId, request.Dates, currentUserEmployeeId.Value);
             if (updateResult.IsFailure)
             {
                 // Reset the entity

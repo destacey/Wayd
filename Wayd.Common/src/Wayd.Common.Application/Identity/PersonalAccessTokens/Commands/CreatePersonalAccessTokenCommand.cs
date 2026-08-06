@@ -82,7 +82,6 @@ public sealed class CreatePersonalAccessTokenCommandHandler(
         try
         {
             var userId = _currentUser.GetUserId();
-            var employeeId = _currentUser.GetEmployeeId();
             var now = _dateTimeProvider.Now;
 
             // verify user hasn't exceeded token limit
@@ -102,7 +101,6 @@ public sealed class CreatePersonalAccessTokenCommandHandler(
                 tokenIdentifier: tokenIdentifier,
                 tokenHash: tokenHash,
                 userId: userId,
-                employeeId: employeeId,
                 expiresAt: request.ExpiresAt,
                 scopes: null,
                 timestamp: now

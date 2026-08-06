@@ -4,7 +4,7 @@ import PageTitle from '@/src/components/common/page-title'
 import { FC, useEffect, useState } from 'react'
 import { useDocumentTitle } from '../../../hooks/use-document-title'
 import useAuth from '../../../components/contexts/auth'
-import { Button } from 'antd'
+import { Alert, Button } from 'antd'
 import { authorizePage } from '../../../components/hoc'
 import {
   ROADMAP_STATE,
@@ -16,6 +16,7 @@ import {
   RoadmapsGrid,
 } from './_components'
 import { useMessage } from '@/src/components/contexts/messaging'
+import { useLinkedEmployee } from '@/src/hooks'
 
 const DEFAULT_STATES = [ROADMAP_STATE.Active]
 
@@ -45,7 +46,15 @@ const RoadmapsPage: FC = () => {
   }, [error, messageApi])
 
   const { hasPermissionClaim } = useAuth()
-  const canCreateRoadmap = hasPermissionClaim('Permissions.Roadmaps.Create')
+  const { hasLinkedEmployee } = useLinkedEmployee()
+
+  // Creating a roadmap records the creator as its manager, so it needs an employee link as well as
+  // the permission — the API rejects an unlinked account with 403. Offering the button anyway would
+  // walk the user into a form they cannot submit.
+  const hasCreateRoadmapPermission = hasPermissionClaim(
+    'Permissions.Roadmaps.Create',
+  )
+  const canCreateRoadmap = hasCreateRoadmapPermission && hasLinkedEmployee
   const showActions = canCreateRoadmap
 
   const handleStateChange = (states: number[]) => {
@@ -78,6 +87,15 @@ const RoadmapsPage: FC = () => {
   return (
     <>
       <PageTitle title="Roadmaps" actions={showActions && actions()} />
+      {hasCreateRoadmapPermission && !hasLinkedEmployee && (
+        <Alert
+          title="Your account isn't linked to an employee record"
+          description="Creating a roadmap requires a linked employee record, so that action is unavailable. Ask an administrator to link your account. You can still view roadmaps that are shared publicly."
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
       <RoadmapsFilterBar
         selectedStates={selectedStates}
         onStateChange={handleStateChange}

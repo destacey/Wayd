@@ -1,6 +1,6 @@
 'use client'
 
-import { PageTitle } from '@/src/components/common'
+import { PageTitle, UnlinkedEmployeeAlert } from '@/src/components/common'
 import { authorizePage } from '@/src/components/hoc'
 import {
   useAppDispatch,
@@ -138,6 +138,7 @@ const MyProjectsPage: FC = () => {
           </WaydTooltip>
         }
       />
+      <UnlinkedEmployeeAlert consequence="Projects are assigned to employees, so this dashboard has nothing to show." />
       <MyProjectsDashboardFilterBar
         selectedRoles={selectedRoles}
         onRoleChange={handleRoleChange}

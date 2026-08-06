@@ -13,23 +13,23 @@ namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Projects.Queries
 public class GetMyProjectsSummaryQueryHandlerTests : IDisposable
 {
     private readonly FakeProjectPortfolioManagementDbContext _dbContext;
-    private readonly Mock<ICurrentUser> _currentUserMock;
+    private readonly Mock<ICurrentPrincipal> _currentPrincipalMock;
     private readonly GetMyProjectsSummaryQueryHandler _handler;
     private readonly Guid _employeeId = Guid.NewGuid();
 
     public GetMyProjectsSummaryQueryHandlerTests()
     {
         _dbContext = new FakeProjectPortfolioManagementDbContext();
-        _currentUserMock = new Mock<ICurrentUser>();
-        _currentUserMock.Setup(u => u.GetEmployeeId()).Returns(_employeeId);
-        _handler = new GetMyProjectsSummaryQueryHandler(_dbContext, _currentUserMock.Object);
+        _currentPrincipalMock = new Mock<ICurrentPrincipal>();
+        _currentPrincipalMock.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_employeeId);
+        _handler = new GetMyProjectsSummaryQueryHandler(_dbContext, _currentPrincipalMock.Object);
     }
 
     [Fact]
     public async Task Handle_ShouldReturnEmptySummary_WhenNoEmployeeId()
     {
         // Arrange
-        _currentUserMock.Setup(u => u.GetEmployeeId()).Returns((Guid?)null);
+        _currentPrincipalMock.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync((Guid?)null);
         var query = new GetMyProjectsSummaryQuery();
 
         // Act

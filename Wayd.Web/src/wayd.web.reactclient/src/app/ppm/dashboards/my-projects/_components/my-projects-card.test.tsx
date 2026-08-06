@@ -15,13 +15,21 @@ jest.mock('next/navigation', () => ({
 }))
 
 const mockHasPermissionClaim = jest.fn()
+const mockAuth = { employeeId: 'emp-1' as string | null }
 
 jest.mock('@/src/components/contexts/auth', () => ({
   __esModule: true,
   default: () => ({
-    user: { employeeId: 'emp-1' },
+    user: { employeeId: mockAuth.employeeId },
     hasClaim: () => false,
     hasPermissionClaim: mockHasPermissionClaim,
+  }),
+}))
+
+jest.mock('@/src/hooks', () => ({
+  useLinkedEmployee: () => ({
+    employeeId: mockAuth.employeeId,
+    hasLinkedEmployee: mockAuth.employeeId !== null,
   }),
 }))
 
@@ -37,6 +45,21 @@ describe('MyProjectsCard', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockHasPermissionClaim.mockReturnValue(true)
+    mockAuth.employeeId = 'emp-1'
+  })
+
+  it('renders nothing and skips the request when the account has no linked employee', () => {
+    // Project roles are held by employees, so the answer is known to be empty — no round-trip.
+    mockAuth.employeeId = null
+    mockQuery.mockReturnValue({ data: undefined, isLoading: false })
+
+    const { container } = render(<MyProjectsCard />)
+
+    expect(container).toBeEmptyDOMElement()
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ skip: true }),
+    )
   })
 
   it('renders nothing when user lacks permission', () => {

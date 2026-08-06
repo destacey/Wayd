@@ -8,17 +8,20 @@ public sealed record GetMyRisksQuery() : IQuery<IReadOnlyList<RiskListDto>>;
 public sealed class GetMyRisksQueryHandler : IQueryHandler<GetMyRisksQuery, IReadOnlyList<RiskListDto>>
 {
     private readonly IPlanningDbContext _planningDbContext;
-    private readonly ICurrentUser _currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal;
 
-    public GetMyRisksQueryHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser)
+    public GetMyRisksQueryHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal)
     {
         _planningDbContext = planningDbContext;
-        _currentUser = currentUser;
+        _currentPrincipal = currentPrincipal;
     }
 
     public async Task<IReadOnlyList<RiskListDto>> Handle(GetMyRisksQuery request, CancellationToken cancellationToken)
     {
-        var employeeId = _currentUser.GetEmployeeId();
+        // Resolved rather than read from the token claim, which is a snapshot taken at sign-in: a user
+        // linked mid-session would otherwise see an empty list until they signed in again. Empty
+        // remains the honest answer for a genuinely unlinked account — nothing can be assigned to it.
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (employeeId is null)
             return [];
 

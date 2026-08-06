@@ -17,7 +17,6 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
         string tokenIdentifier,
         string tokenHash,
         string userId,
-        Guid? employeeId,
         Instant expiresAt,
         Instant timestamp)
     {
@@ -25,7 +24,6 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
         TokenIdentifier = tokenIdentifier;
         TokenHash = tokenHash;
         UserId = userId;
-        EmployeeId = employeeId;
         ExpiresAt = expiresAt;
         LastUsedAt = null;
         RevokedAt = null;
@@ -67,11 +65,6 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
         get;
         private set => field = Guard.Against.NullOrWhiteSpace(value, nameof(UserId));
     } = null!;
-
-    /// <summary>
-    /// Gets the optional employee ID associated with this token's user.
-    /// </summary>
-    public Guid? EmployeeId { get; private set; }
 
     /// <summary>
     /// Gets the scopes/permissions this token is limited to.
@@ -218,7 +211,6 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
     /// <param name="tokenIdentifier">The token identifier (first 8 characters).</param>
     /// <param name="tokenHash">The hashed token value.</param>
     /// <param name="userId">The ID of the user who owns this token.</param>
-    /// <param name="employeeId">Optional employee ID.</param>
     /// <param name="expiresAt">When the token expires.</param>
     /// <param name="scopes">Optional scopes to limit token permissions.</param>
     /// <param name="timestamp">The timestamp of the creation.</param>
@@ -228,7 +220,6 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
         string tokenIdentifier,
         string tokenHash,
         string userId,
-        Guid? employeeId,
         Instant expiresAt,
         string? scopes,
         Instant timestamp)
@@ -240,7 +231,7 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
                 return Result.Failure<PersonalAccessToken>("Expiration date must be in the future.");
             }
 
-            var token = new PersonalAccessToken(name, tokenIdentifier, tokenHash, userId, employeeId, expiresAt, timestamp)
+            var token = new PersonalAccessToken(name, tokenIdentifier, tokenHash, userId, expiresAt, timestamp)
             {
                 Scopes = scopes
             };

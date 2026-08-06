@@ -19,6 +19,7 @@ import {
   useGetPlanningIntervalRisksQuery,
 } from '@/src/store/features/planning/planning-interval-api'
 import useAuth from '@/src/components/contexts/auth'
+import { useLinkedEmployee } from '@/src/hooks'
 import dynamic from 'next/dynamic'
 
 const PlanningIntervalObjectivesTimeline = dynamic(
@@ -95,11 +96,16 @@ const TeamPlanReview = ({
     )
 
   const { hasPermissionClaim } = useAuth()
+  const { hasLinkedEmployee } = useLinkedEmployee()
   const canManageObjectives = hasPermissionClaim(
     'Permissions.PlanningIntervalObjectives.Manage',
   )
-  const canCreatePIObjectiveHealthChecks = !!canManageObjectives
-  const canCreateRisks = hasPermissionClaim('Permissions.Risks.Create')
+  // Health checks and risks both record who reported them, so they need an employee link as well as
+  // the permission — the API rejects an unlinked account with 403.
+  const canCreatePIObjectiveHealthChecks =
+    !!canManageObjectives && hasLinkedEmployee
+  const canCreateRisks =
+    hasPermissionClaim('Permissions.Risks.Create') && hasLinkedEmployee
   const canUpdateRisks = hasPermissionClaim('Permissions.Risks.Update')
 
   const viewSelector = (

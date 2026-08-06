@@ -6,7 +6,7 @@ public sealed record CreateProjectHealthCheckCommand(
     Guid ProjectId,
     HealthStatus Status,
     Instant Expiration,
-    string? Note) : ICommand<Guid>;
+    string? Note) : ICommand<Guid>, IRequireLinkedEmployee;
 
 public sealed class CreateProjectHealthCheckCommandValidator
     : CustomValidator<CreateProjectHealthCheckCommand>
@@ -35,20 +35,20 @@ public sealed class CreateProjectHealthCheckCommandValidator
 public sealed class CreateProjectHealthCheckCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     IDateTimeProvider dateTimeProvider,
-    ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<CreateProjectHealthCheckCommandHandler> logger)
     : ICommandHandler<CreateProjectHealthCheckCommand, Guid>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<CreateProjectHealthCheckCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(CreateProjectHealthCheckCommand request, CancellationToken cancellationToken)
     {
-        Guid? employeeId = _currentUser.GetEmployeeId();
+        Guid? employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (employeeId is null)
-            return Result.Failure<Guid>("Unable to determine the current user's employee Id.");
+            LinkedEmployeeRequired.Throw();
 
         var project = await _ppmDbContext.Projects
             .AsSplitQuery()

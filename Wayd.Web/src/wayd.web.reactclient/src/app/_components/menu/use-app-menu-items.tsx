@@ -20,7 +20,7 @@ import {
 } from './menu-helper'
 import { ItemType, MenuItemType } from 'antd/es/menu/interface'
 import useAuth from '../../../components/contexts/auth'
-import { useFeatureFlag } from '../../../hooks'
+import { useFeatureFlag, useLinkedEmployee } from '../../../hooks'
 
 const menuIcons = {
   home: <HomeOutlined />,
@@ -32,10 +32,17 @@ const menuIcons = {
   settings: <SettingOutlined />,
 }
 
-const buildMenuItems = (featureFlags: {
+interface MenuOptions {
   planningPoker: boolean
   storyMaps: boolean
-}): (Item | MenuItem)[] => [
+  /**
+   * Whether the signed-in account is linked to an employee record. Personal views are keyed on the
+   * employee, so they are omitted entirely for an unlinked account rather than offered and empty.
+   */
+  hasLinkedEmployee: boolean
+}
+
+const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
   menuItem('Home', 'home', '/', menuIcons.home),
   menuItem('Organizations', 'org', undefined, menuIcons.org, [
     menuItem('Teams', 'org.teams', '/organizations/teams'),
@@ -66,10 +73,10 @@ const buildMenuItems = (featureFlags: {
       'plan.roadmaps',
       '/planning/roadmaps',
     ),
-    ...(featureFlags.planningPoker || featureFlags.storyMaps
+    ...(options.planningPoker || options.storyMaps
       ? [{ key: 'settings-planning-divider', type: 'divider' as const }]
       : []),
-    ...(featureFlags.planningPoker
+    ...(options.planningPoker
       ? [
           restrictedPermissionMenuItem(
             'Permissions.PokerSessions.View',
@@ -79,7 +86,7 @@ const buildMenuItems = (featureFlags: {
           ),
         ]
       : []),
-    ...(featureFlags.storyMaps
+    ...(options.storyMaps
       ? [
           restrictedPermissionMenuItem(
             'Permissions.StoryMaps.View',
@@ -109,13 +116,20 @@ const buildMenuItems = (featureFlags: {
   //     menuItem('Requirements Management', 'pdc.requirements-management'),
   // ]),
   restrictedMenuSection('PPM', 'ppm', undefined, menuIcons.ppm, [
-    restrictedPermissionMenuItem(
-      'Permissions.Projects.View',
-      'My Projects',
-      'ppm.dashboards.my-projects',
-      '/ppm/dashboards/my-projects',
-    ),
-    { key: 'ppm-dashboards-divider', type: 'divider' },
+    // "My Projects" resolves the caller's own project roles, which are held by the employee record.
+    // An unlinked account has none, so the page would always be empty — omit it, along with the
+    // divider that would otherwise be left leading the section.
+    ...(options.hasLinkedEmployee
+      ? [
+          restrictedPermissionMenuItem(
+            'Permissions.Projects.View',
+            'My Projects',
+            'ppm.dashboards.my-projects',
+            '/ppm/dashboards/my-projects',
+          ),
+          { key: 'ppm-dashboards-divider', type: 'divider' as const },
+        ]
+      : []),
     restrictedPermissionMenuItem(
       'Permissions.ProjectPortfolios.View',
       'Portfolios',
@@ -168,10 +182,11 @@ const buildMenuItems = (featureFlags: {
 
 const useAppMenuItems = () => {
   const { hasClaim } = useAuth()
+  const { hasLinkedEmployee } = useLinkedEmployee()
   const { isEnabled: planningPoker } = useFeatureFlag('planning-poker')
   const { isEnabled: storyMaps } = useFeatureFlag('story-maps')
 
-  const items = buildMenuItems({ planningPoker, storyMaps })
+  const items = buildMenuItems({ planningPoker, storyMaps, hasLinkedEmployee })
 
   const filteredMenuItems = items.reduce(
     (acc, item) =>

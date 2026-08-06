@@ -12,7 +12,7 @@ public class UpdateRoadmapColorsCommandHandlerTests : IDisposable
 {
     private readonly FakePlanningDbContext _dbContext;
     private readonly Mock<ILogger<UpdateRoadmapColorsCommandHandler>> _mockLogger;
-    private readonly Mock<ICurrentUser> _mockCurrentUser;
+    private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal;
     private readonly Guid _currentEmployeeId = Guid.NewGuid();
     private readonly RoadmapFaker _faker;
 
@@ -20,13 +20,13 @@ public class UpdateRoadmapColorsCommandHandlerTests : IDisposable
     {
         _dbContext = new FakePlanningDbContext();
         _mockLogger = new Mock<ILogger<UpdateRoadmapColorsCommandHandler>>();
-        _mockCurrentUser = new Mock<ICurrentUser>();
-        _mockCurrentUser.Setup(u => u.GetEmployeeId()).Returns(_currentEmployeeId);
+        _mockCurrentPrincipal = new Mock<ICurrentPrincipal>();
+        _mockCurrentPrincipal.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_currentEmployeeId);
         _faker = new RoadmapFaker();
     }
 
     private UpdateRoadmapColorsCommandHandler CreateHandler() =>
-        new(_dbContext, _mockCurrentUser.Object, _mockLogger.Object);
+        new(_dbContext, _mockCurrentPrincipal.Object, _mockLogger.Object);
 
     private Roadmap CreateActiveRoadmap(Guid? managerId = null)
     {

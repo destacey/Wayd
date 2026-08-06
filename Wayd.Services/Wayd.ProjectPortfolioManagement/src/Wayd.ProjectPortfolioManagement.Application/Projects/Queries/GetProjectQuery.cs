@@ -20,17 +20,17 @@ public sealed record GetProjectQuery : IQuery<ProjectDetailsDto?>
 public sealed class GetProjectQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     IDateTimeProvider dateTimeProvider,
-    ICurrentUser currentUser)
+    ICurrentPrincipal currentPrincipal)
     : IQueryHandler<GetProjectQuery, ProjectDetailsDto?>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
 
     public async Task<ProjectDetailsDto?> Handle(GetProjectQuery request, CancellationToken cancellationToken)
     {
         var now = _dateTimeProvider.Now;
-        var employeeId = _currentUser.GetEmployeeId();
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
 
         var cfg = ProjectDetailsDto.CreateTypeAdapterConfig(now, employeeId);
 

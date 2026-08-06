@@ -265,8 +265,8 @@
   padding: 0;
   font-size: 10px;
   color: var(--sm-text-secondary);
-  /* The caret is drawn well inside its 18px hit target, so the 8px flex gap reads as ~13px. Closes
-     the visual gap without shrinking the target. */
+  /* Pulls the name in against the caret's hit box, which is wider than the glyph drawn inside it.
+     Closes the visual gap without shrinking the target: the boxes end up ~3px apart. */
   margin-right: -5px;
   /* The goal cell is itself the drag surface; the caret is a control on top of it, so it opts back
      out of `touch-action: none` the way the other inline controls do. */
@@ -281,24 +281,32 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
-  padding: 8px 4px;
+  /* Half the row's leftover space once the 18px caret is taken out — the same line .goalCell's
+     centred carets sit on. The caret's sticky `top` applies it; padding-top must stay 0 or the two
+     stack. max() floors the first paint, when --sm-goal-row-height is still 0px. */
+  --sm-spine-inset: max(8px, calc((var(--sm-goal-row-height) - 18px) / 2));
+  padding: 0 4px 8px;
   background-color: var(--sm-bg-elevated);
-  overflow: hidden;
+  /* Clears .goalCell's gap, and must not clip: a flex gap measures against the caret's pre-sticky
+     position, and a non-visible overflow would make this the sticky caret's scroll container. The
+     name handles its own spacing and clipping — see .goalNameVertical. */
+  gap: 0;
   /* Not sticky, unlike the goal cells beside it: the spine spans every row, and a sticky element
      moves only within its own grid area, so pinning it would slide its content down the spine as
-     the board scrolls. The caret inside it sticks instead — see .goalCellCollapsed .goalCollapseButton. */
+     the board scrolls. The caret inside it sticks instead. */
   position: static;
 }
 
-/* Keeps the expand control on screen while a tall board scrolls. The spine itself cannot pin, so
-   without this the only way back out of a collapsed goal scrolls away with the top of the board.
-   Offset past the pinned goals row it would otherwise slide under, plus the spine's own top padding
-   so it rests exactly where it sits unscrolled. */
+/* Keeps the expand control on screen while a tall board scrolls — the spine itself cannot pin, so
+   otherwise the only way back out of a collapsed goal scrolls away with the top of the board.
+   `top` measures from the scrollport, and the spine starts level with the goals row, so the inset
+   is the whole offset: --sm-goal-row-height here would drop the caret a full row. */
 .goalCellCollapsed .goalCollapseButton {
   position: sticky;
-  top: calc(var(--sm-goal-row-height) + 8px);
+  top: var(--sm-spine-inset);
   z-index: var(--sm-z-sticky-row);
+  /* The base rule's -5px is row-axis tuning; in this column it only knocks the caret off centre. */
+  margin-right: 0;
 }
 
 /* `writing-mode` rather than a transform: a rotated element keeps its unrotated box, so a long name
@@ -309,7 +317,14 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-height: 0;
+  /* The spine cannot clip or space this itself without breaking the caret's stickiness, so the name
+     bounds itself: shrink to nothing and it vanishes, so cap instead — less the margin, which would
+     otherwise push a long name past the spine's end.
+     The margin clears the caret's flow position, which sticky then paints --sm-spine-inset lower,
+     so it carries that inset on top of the 6px gap or the two overlap. */
+  flex-shrink: 0;
+  max-height: calc(100% - var(--sm-spine-inset) - 6px);
+  margin-top: calc(var(--sm-spine-inset) + 6px);
   font-size: 13px;
 }
 

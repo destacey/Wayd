@@ -39,7 +39,7 @@ public sealed class GetCriticalPathQueryHandler(
 
         _logger.LogInformation("GetCriticalPath: Critical path calculation requested for project {ProjectId}. Returning empty stub result.", projectId);
 
-        return Array.Empty<Guid>();
+        return [];
     }
 
     private async Task<Guid?> ResolveProjectId(string projectIdOrKey, CancellationToken cancellationToken)
@@ -52,9 +52,11 @@ public sealed class GetCriticalPathQueryHandler(
         try
         {
             var key = new ProjectKey(projectIdOrKey);
+            // Cast to Guid? or an unmatched key returns Guid.Empty, which the `is null` check above
+            // accepts as a real project.
             var projectId = await _ppmDbContext.Projects
                 .Where(p => p.Key == key)
-                .Select(p => p.Id)
+                .Select(p => (Guid?)p.Id)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return projectId;

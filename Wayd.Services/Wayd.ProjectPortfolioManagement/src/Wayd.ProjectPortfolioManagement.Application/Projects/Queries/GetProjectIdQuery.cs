@@ -16,9 +16,11 @@ public sealed class GetProjectIdQueryHandler(IProjectPortfolioManagementDbContex
             return null;
         }
 
+        // Cast to Guid? or an unmatched key returns Guid.Empty, which callers' `is null` checks
+        // (ProjectTasksController.ResolveProjectId) accept as a real project.
         return await _ppmDbContext.Projects
             .Where(p => p.Key == request.Key)
-            .Select(p => p.Id)
+            .Select(p => (Guid?)p.Id)
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

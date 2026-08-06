@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Application.Persistence;
+using Wayd.Common.Models;
 
 namespace Wayd.Common.Application.Employees.Queries;
 
@@ -8,20 +9,29 @@ namespace Wayd.Common.Application.Employees.Queries;
 /// </summary>
 public sealed record GetEmployeeByEmailQuery(string Email) : IQuery<Guid?>;
 
-public sealed class GetEmployeeByEmailQueryHandler : IQueryHandler<GetEmployeeByEmailQuery, Guid?>
+public sealed class GetEmployeeByEmailQueryHandler(IWaydDbContext waydDbContext) : IQueryHandler<GetEmployeeByEmailQuery, Guid?>
 {
-    private readonly IWaydDbContext _waydDbContext;
-
-    public GetEmployeeByEmailQueryHandler(IWaydDbContext waydDbContext)
-    {
-        _waydDbContext = waydDbContext;
-    }
+    private readonly IWaydDbContext _waydDbContext = waydDbContext;
 
     public async Task<Guid?> Handle(GetEmployeeByEmailQuery request, CancellationToken cancellationToken)
     {
+        // Fail closed on a malformed address. The EmailAddress constructor throws on blank or invalid
+        // input, and this runs on the sign-in path against an identity-provider claim we don't control —
+        // an unexpected claim value should be "no match", not a 500.
+        if (!request.Email.IsValidEmailAddressFormat())
+        {
+            return null;
+        }
+
+        // Compare the whole EmailAddress: Email is mapped with a value converter, so e.Email.Value is
+        // untranslatable and throws at runtime. This form also matches the unique filtered index on Email.
+        var email = new EmailAddress(request.Email);
+
+        // Cast to Guid? or an unmatched email returns Guid.Empty, which callers' HasValue checks accept as
+        // a real employee — including UserService's RequireEmployeeRecord registration gate.
         return await _waydDbContext.Employees
-            .Where(e => e.Email.Value == request.Email)
-            .Select(e => e.Id)
+            .Where(e => e.Email == email)
+            .Select(e => (Guid?)e.Id)
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

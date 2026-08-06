@@ -31,10 +31,12 @@ public sealed class GetSprintWorkItemMetricsQueryHandler(
         GetSprintWorkItemMetricsQuery request,
         CancellationToken cancellationToken)
     {
-        Guid? sprintId = await _workDbContext.WorkIterations
+        // Cast to Guid? or the HasValue check below never fires: FirstOrDefaultAsync over a non-nullable
+        // Guid returns Guid.Empty on a miss, making an unknown sprint a 200 with empty metrics, not a 404.
+        var sprintId = await _workDbContext.WorkIterations
             .Where(request.IdOrKeyFilter)
             .Where(i => i.Type == IterationType.Sprint)
-            .Select(i => i.Id)
+            .Select(i => (Guid?)i.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (!sprintId.HasValue)

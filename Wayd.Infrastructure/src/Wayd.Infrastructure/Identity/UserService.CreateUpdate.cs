@@ -867,13 +867,13 @@ internal partial class UserService
 
         // Email is the cross-source-stable User↔Employee link key. The active PeopleSync
         // connector owns Employee.Email; the user's email is set by registration and updated by
-        // SyncUsersFromEmployeeRecords. Case-insensitive match.
+        // SyncUsersFromEmployeeRecords. Case-insensitive match. Project e.Email, not e.Email.Value —
+        // Email is mapped with a value converter, so .Value is untranslatable and throws at runtime.
         var employees = await _db.Employees
-            .Where(e => !e.IsDeleted)
-            .Select(e => new { e.Id, Email = e.Email.Value })
+            .Select(e => new { e.Id, e.Email })
             .ToListAsync(cancellationToken);
         var employeeIdByEmail = employees
-            .GroupBy(e => e.Email, StringComparer.OrdinalIgnoreCase)
+            .GroupBy(e => e.Email.Value, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.Last().Id, StringComparer.OrdinalIgnoreCase);
 
         // Employees already spoken for. One user per employee is a database invariant
@@ -969,9 +969,8 @@ internal partial class UserService
         // is currently active. EmployeeNumber's value depends on the source's preferences
         // (Entra User.Id, Workday Employee_ID, etc.) and isn't a stable cross-source key.
         var employeeId = await _dispatcher.Send(new GetEmployeeByEmailQuery(email));
-        if (employeeId.IsNullEmptyOrDefault())
+        if (employeeId is null)
         {
-            employeeId = null;
             _logger.LogWarning("Employee with email {Email} not found.", email);
         }
 

@@ -37,9 +37,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             //
             // Each unlink is audited so the change is attributable and reversible: without a trail an admin
             // sees a user who "lost" their employee for no recorded reason, and the old EmployeeId — the
-            // only record of what the link used to be — is gone. Columns mirror what BaseDbContext writes at
-            // runtime: TableName is the CLR entity name (not the SQL table), and PrimaryKey/OldValues/
-            // NewValues are camelCase JSON.
+            // only record of what the link used to be — is gone.
+            //
+            // Columns mirror what the application writes at runtime, verified against existing
+            // Identity/PersonalAccessToken rows: TableName is the CLR entity name (not the SQL table), and
+            // PrimaryKey/OldValues/NewValues are PascalCase JSON with lowercase GUIDs. The casing is load-
+            // bearing — Down reads OldValues back with JSON_VALUE, which is case-sensitive, so a mismatch
+            // would silently yield NULL and clear every affected link instead of restoring it.
             migrationBuilder.Sql($@"
                 -- Capture the losing rows and their old link BEFORE mutating, so the update is the single
                 -- source of truth and the audit rows record what was actually applied.

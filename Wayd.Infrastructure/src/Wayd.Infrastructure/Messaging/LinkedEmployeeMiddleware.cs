@@ -26,9 +26,6 @@ namespace Wayd.Infrastructure.Messaging;
 /// </remarks>
 public static class LinkedEmployeeMiddleware
 {
-    // Shared with the handlers' own resolve so the 403 and the failed Result read identically.
-    internal const string UnlinkedMessage = LinkedEmployeeRequired.Message;
-
     public static async Task Before(
         Envelope envelope,
         ICurrentUser currentUser,
@@ -47,7 +44,9 @@ public static class LinkedEmployeeMiddleware
 
         if (await currentPrincipal.GetEmployeeId(cancellationToken) is null)
         {
-            throw new ForbiddenException(UnlinkedMessage);
+            // Same refusal the handlers raise for themselves, so the caller sees one explanation
+            // whether it arrived through the dispatch pipeline or called the handler directly.
+            LinkedEmployeeRequired.Throw();
         }
     }
 }

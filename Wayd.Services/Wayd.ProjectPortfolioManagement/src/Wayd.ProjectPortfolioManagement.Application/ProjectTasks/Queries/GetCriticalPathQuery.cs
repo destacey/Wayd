@@ -52,8 +52,8 @@ public sealed class GetCriticalPathQueryHandler(
         try
         {
             var key = new ProjectKey(projectIdOrKey);
-            // The Guid? cast is required: over a non-nullable Guid, FirstOrDefaultAsync returns Guid.Empty
-            // for an unmatched key, which the caller's `is null` check accepts as a real project.
+            // Cast to Guid? or an unmatched key returns Guid.Empty, which the `is null` check above
+            // accepts as a real project.
             var projectId = await _ppmDbContext.Projects
                 .Where(p => p.Key == key)
                 .Select(p => (Guid?)p.Id)

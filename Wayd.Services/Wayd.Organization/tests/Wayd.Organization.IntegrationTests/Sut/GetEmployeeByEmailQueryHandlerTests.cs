@@ -12,18 +12,11 @@ namespace Wayd.Organization.IntegrationTests.Sut;
 
 /// <summary>
 /// Integration tests for <see cref="GetEmployeeByEmailQueryHandler"/> against a real SQL Server container.
-///
 /// <para>
-/// <c>Employee.Email</c> is mapped with a value converter (<c>EmailAddress</c> → <c>nvarchar</c>), not as a
-/// complex property, so EF can translate the property as a whole but has no mapping for its <c>.Value</c>
-/// sub-member. A filter written as <c>e.Email.Value == ...</c> therefore throws
-/// <see cref="InvalidOperationException"/> ("could not be translated") at query-compilation time — on the
-/// login path, since <c>UserService.GetEmployeeIdByEmail</c> dispatches this query during token exchange.
-/// </para>
-/// <para>
-/// This class of failure is invisible to the in-memory <c>FakeWaydDbContext</c>, which runs LINQ-to-Objects
-/// where <c>.Value</c> is an ordinary property read that evaluates fine. Only the production EF provider
-/// compiles the expression to SQL, which is why these tests need the container fixture.
+/// These need the container: <c>Employee.Email</c> is mapped with a value converter, so filtering on
+/// <c>e.Email.Value</c> throws "could not be translated" — but only under a real provider. The in-memory
+/// <c>FakeWaydDbContext</c> runs LINQ-to-Objects, where <c>.Value</c> evaluates fine and the same test
+/// passes against broken code. This query runs on the login path via <c>UserService</c>.
 /// </para>
 /// </summary>
 [Collection(SqlServerTestCollection.Name)]
@@ -39,8 +32,8 @@ public sealed class GetEmployeeByEmailQueryHandlerTests
     private const string SeededEmail = "ada.lovelace@acme.example";
 
     /// <summary>
-    /// Seeds one employee through the real import handler, so the row is written by the production
-    /// persistence path (converter included) rather than hand-inserted.
+    /// Seeds through the real import handler so the row is written by the production persistence path,
+    /// converter included, rather than hand-inserted in a shape the app would never produce.
     /// </summary>
     private async Task<Guid> SeedEmployee(string email, CancellationToken cancellationToken)
     {
@@ -95,9 +88,8 @@ public sealed class GetEmployeeByEmailQueryHandlerTests
     [Fact]
     public async Task Handle_ReturnsTheEmployeeId_WhenTheEmailCasingDiffersFromTheStoredValue()
     {
-        // Arrange — the handler documents this lookup as case-insensitive. Nothing in the LINQ folds case, so
-        // this pins the behaviour the doc promises (today it rests on the database's CI collation). Querying
-        // with different casing than was seeded also stops a client-evaluation "fix" from passing by accident.
+        // Arrange — the handler's doc promises case-insensitive lookup, but nothing in the LINQ folds case:
+        // it rests entirely on the database's CI collation, so a collation change would break it silently.
         var cancellationToken = TestContext.Current.CancellationToken;
         await _fixture.ResetOrganizationData(cancellationToken);
         var expectedId = await SeedEmployee(SeededEmail, cancellationToken);
@@ -114,11 +106,9 @@ public sealed class GetEmployeeByEmailQueryHandlerTests
     }
 
     /// <summary>
-    /// Pins the email projection <c>UserService.UpdateMissingEmployeeIds</c> runs (the PeopleSync
-    /// User↔Employee backfill). It shares this query's converter hazard: projecting <c>e.Email.Value</c>
-    /// instead of <c>e.Email</c> throws "could not be translated" and fails every people sync. The method
-    /// itself needs UserManager/Identity plumbing this fixture doesn't host, so this covers the EF shape
-    /// only — the part that can't be caught without a real provider.
+    /// Pins the email projection in <c>UserService.UpdateMissingEmployeeIds</c>, which carried the same
+    /// converter hazard and failed every PeopleSync run. Covers the EF shape only — the method itself needs
+    /// UserManager plumbing this fixture doesn't host.
     /// </summary>
     [Fact]
     public async Task EmployeeEmailProjection_UsedByUpdateMissingEmployeeIds_Translates()

@@ -16,8 +16,8 @@ public sealed class GetProjectIdQueryHandler(IProjectPortfolioManagementDbContex
             return null;
         }
 
-        // The Guid? cast is required: over a non-nullable Guid, FirstOrDefaultAsync returns Guid.Empty for
-        // an unmatched key, which callers' `is null` checks accept as a real project.
+        // Cast to Guid? or an unmatched key returns Guid.Empty, which callers' `is null` checks
+        // (ProjectTasksController.ResolveProjectId) accept as a real project.
         return await _ppmDbContext.Projects
             .Where(p => p.Key == request.Key)
             .Select(p => (Guid?)p.Id)

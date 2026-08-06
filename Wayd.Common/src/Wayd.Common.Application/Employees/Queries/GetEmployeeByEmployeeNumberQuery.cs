@@ -15,8 +15,8 @@ public sealed class GetEmployeeByEmployeeNumberQueryHandler : IQueryHandler<GetE
 
     public async Task<Guid?> Handle(GetEmployeeByEmployeeNumberQuery request, CancellationToken cancellationToken)
     {
-        // The Guid? cast is required: over a non-nullable Guid, FirstOrDefaultAsync returns Guid.Empty for
-        // an unmatched number, which callers' HasValue checks accept as a real employee.
+        // Cast to Guid? or an unmatched number returns Guid.Empty, which a caller's HasValue check would
+        // accept as a real employee.
         return await _waydDbContext.Employees
             .Where(e => e.EmployeeNumber == request.EmployeeNumber)
             .Select(e => (Guid?)e.Id)

@@ -867,9 +867,8 @@ internal partial class UserService
 
         // Email is the cross-source-stable User↔Employee link key. The active PeopleSync
         // connector owns Employee.Email; the user's email is set by registration and updated by
-        // SyncUsersFromEmployeeRecords. Case-insensitive match.
-        // Email is mapped with a value converter, so EF can translate the property but not its .Value
-        // sub-member — projecting e.Email.Value here throws "could not be translated" at runtime.
+        // SyncUsersFromEmployeeRecords. Case-insensitive match. Project e.Email, not e.Email.Value —
+        // Email is mapped with a value converter, so .Value is untranslatable and throws at runtime.
         var employees = await _db.Employees
             .Select(e => new { e.Id, e.Email })
             .ToListAsync(cancellationToken);

@@ -25,9 +25,8 @@ public sealed class GetSprintBacklogQueryHandler(IWorkDbContext workDbContext, I
 
     public async Task<List<SprintBacklogItemDto>?> Handle(GetSprintBacklogQuery request, CancellationToken cancellationToken)
     {
-        // The Guid? cast is required: over a non-nullable Guid, FirstOrDefaultAsync returns Guid.Empty on a
-        // miss, so the HasValue check below never fires and an unknown sprint yields an empty backlog (200)
-        // rather than null (404).
+        // Cast to Guid? or the HasValue check below never fires: FirstOrDefaultAsync over a non-nullable
+        // Guid returns Guid.Empty on a miss, making an unknown sprint a 200 with an empty backlog, not a 404.
         var sprintId = await _workDbContext.WorkIterations
             .Where(request.IdOrKeyFilter)
             .Where(i => i.Type == IterationType.Sprint)

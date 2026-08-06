@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Application.Persistence;
+using Wayd.Common.Models;
 
 namespace Wayd.Common.Application.Employees.Queries;
 
@@ -19,9 +20,17 @@ public sealed class GetEmployeeByEmailQueryHandler : IQueryHandler<GetEmployeeBy
 
     public async Task<Guid?> Handle(GetEmployeeByEmailQuery request, CancellationToken cancellationToken)
     {
+        // Email is mapped with a value converter, so EF can translate the property but not its .Value
+        // sub-member — comparing e.Email.Value throws "could not be translated" at runtime. Comparing the
+        // whole EmailAddress also matches the unique filtered index on Email, which INCLUDEs Id.
+        var email = new EmailAddress(request.Email);
+
+        // The Guid? cast is required: over a non-nullable Guid, FirstOrDefaultAsync returns Guid.Empty for
+        // an unmatched email, which callers' HasValue checks accept as a real employee — including the
+        // RequireEmployeeRecord registration gate in UserService.
         return await _waydDbContext.Employees
-            .Where(e => e.Email.Value == request.Email)
-            .Select(e => e.Id)
+            .Where(e => e.Email == email)
+            .Select(e => (Guid?)e.Id)
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

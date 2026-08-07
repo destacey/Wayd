@@ -70,6 +70,34 @@ public class EmployeeConfig : IEntityTypeConfiguration<Employee>
 
         // Relationships
         builder.HasOne(e => e.Manager).WithMany(m => m.DirectReports).HasForeignKey(e => e.ManagerId).OnDelete(DeleteBehavior.NoAction);
+        builder.HasMany(e => e.Emails).WithOne(e => e.Employee).HasForeignKey(e => e.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+        builder.Metadata.FindNavigation(nameof(Employee.Emails))!.SetPropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class EmployeeEmailConfig : IEntityTypeConfiguration<EmployeeEmail>
+{
+    public void Configure(EntityTypeBuilder<EmployeeEmail> builder)
+    {
+        builder.ToTable("EmployeeEmails", SchemaNames.Organization);
+
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.Id).ValueGeneratedNever();
+
+        // One employee owns any given work address. Unfiltered (unlike the Employees indexes)
+        // because these rows are hard-deleted on reconcile rather than soft-deleted.
+        builder.HasIndex(e => e.Email).IsUnique();
+
+        builder.HasIndex(e => e.EmployeeId);
+
+        builder.Property(e => e.Email)
+            .HasConversion(
+                e => e.Value,
+                e => new EmailAddress(e))
+            .HasMaxLength(256)
+            .IsRequired();
+
+        builder.Property(e => e.IsPrimary).IsRequired();
     }
 }
 

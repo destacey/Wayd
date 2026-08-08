@@ -99,7 +99,11 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
         string requestName = request.GetType().Name;
         Dictionary<string, string> errors = [];
         Dictionary<string, string> missingManagers = [];
-        List<Employee> employees = await _waydDbContext.Employees.ToListAsync(cancellationToken) ?? [];
+
+        List<Employee> employees = await _waydDbContext.Employees
+            .Include(e => e.Emails)
+            .ToListAsync(cancellationToken) ?? [];
+
         var blacklist = await _waydDbContext.ExternalEmployeeBlacklistItems.Select(b => b.ObjectId).ToListAsync(cancellationToken);
 
         // Lookup indexes for the active match property. Both candidate fields are uniquely indexed
@@ -135,7 +139,9 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
                 var lengthError = FindLengthViolation(externalEmployee);
                 if (lengthError is not null)
                 {
-                    _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", requestName, lengthError);
+                    // lengthError names the field and its length, never the offending value.
+                    _logger.LogError("Wayd Request: Failure for Request {Name} on {Employee}.  Error message: {Error}",
+                        requestName, Describe(externalEmployee), lengthError);
                     errors.Add(externalEmployee.EmployeeNumber, lengthError);
 
                     continue;
@@ -258,11 +264,10 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
+                _logger.LogError(ex, "Wayd Request: Exception for Request {Name} on {Employee}.",
+                    requestName, Describe(externalEmployee));
 
-                // The record is skipped either way — record it so the run detail reflects what
-                // actually happened instead of reporting a clean sync.
-                errors.TryAdd(externalEmployee.EmployeeNumber, $"Unexpected error: {ex.Message}. Skipped.");
+                errors.TryAdd(externalEmployee.EmployeeNumber, $"Unexpected error for {Describe(externalEmployee)}: {ex.Message}. Skipped.");
             }
         }
 
@@ -279,11 +284,41 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} while updating the database.", requestName);
+            // Log the shape of the batch, never its contents: the payload is thousands of names and email
+            // addresses, and EF has already logged the failing command. What is actually diagnostic is how
+            // big the batch was and what the database objected to.
+            _logger.LogError(ex,
+                "Wayd Request: Exception for Request {Name} while updating the database. {Upserted} employees claimed, {Skipped} skipped.",
+                requestName, claimedEmployeeIds.Count, errors.Count);
 
-            return Result.Failure<BulkUpsertEmployeesResult>($"Wayd Request: Exception for Request {requestName} {request}");
+            return Result.Failure<BulkUpsertEmployeesResult>($"{requestName} failed while saving: {DescribeDatabaseError(ex)}");
         }
     }
+
+    /// <summary>
+    /// A short, human-readable reason for a save failure. Surfaces in sync history, so it names the
+    /// constraint rather than repeating the payload — SQL Server's duplicate-key message already carries
+    /// the offending value, which is the one piece of row detail worth keeping.
+    /// </summary>
+    private static string DescribeDatabaseError(Exception ex)
+    {
+        // Unwrap DbUpdateException, whose own message is the generic "An error occurred while saving...".
+        var inner = ex.InnerException ?? ex;
+        return inner.Message;
+    }
+
+    /// <summary>
+    /// Identifies a payload record for a human reading an error. Both keys, because neither is reliable
+    /// alone: <c>EmployeeNumber</c> falls back to the Entra object id when a tenant leaves <c>employeeId</c>
+    /// unset (an opaque GUID that matches nothing an admin can see), while email is the actual lookup key
+    /// whenever the connection matches on it.
+    /// <para>
+    /// This is one line per failed record, not per row of a batch — the volume that truncates a log entry
+    /// comes from dumping every parameter of a bulk command, not from naming the records that failed.
+    /// </para>
+    /// </summary>
+    private static string Describe(IExternalEmployee employee) =>
+        $"employee '{employee.EmployeeNumber}' ({employee.Email.Value})";
 
     /// <summary>
     /// Column length limits from <c>EmployeeConfig</c>. Duplicated here rather than reflected out of

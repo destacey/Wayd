@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using NodaTime.Extensions;
 using NodaTime.Testing;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
@@ -8,9 +8,11 @@ using Wayd.Common.Domain.Tests.Data;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions;
 using Wayd.Tests.Shared;
+using static Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions.PpmActorDataExtensions;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Sut.Models;
 
@@ -56,7 +58,7 @@ public class ProjectPortfolioTests
         var updatedDescription = "Updated Description";
 
         // Act
-        var result = portfolio.UpdateDetails(updatedName, updatedDescription);
+        var result = portfolio.UpdateDetails(AnAuthorizedActor(), updatedName, updatedDescription);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -73,7 +75,7 @@ public class ProjectPortfolioTests
         var updatedDescription = "Updated Description";
 
         // Act
-        var result = portfolio.UpdateDetails(updatedName, updatedDescription);
+        var result = portfolio.UpdateDetails(AnAuthorizedActor(), updatedName, updatedDescription);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -92,7 +94,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.Generate();
 
         // Act
-        var result = portfolio.AssignRole(ProjectPortfolioRole.Owner, employeeId);
+        var result = portfolio.AssignRole(AnAuthorizedActor(), ProjectPortfolioRole.Owner, employeeId);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -112,7 +114,7 @@ public class ProjectPortfolioTests
         }).Generate();
 
         // Act
-        var result = portfolio.AssignRole(ProjectPortfolioRole.Owner, employeeId);
+        var result = portfolio.AssignRole(AnAuthorizedActor(), ProjectPortfolioRole.Owner, employeeId);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -126,7 +128,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.AsArchived(_dateTimeProvider);
 
         // Act
-        var result = portfolio.AssignRole(ProjectPortfolioRole.Owner, Guid.NewGuid());
+        var result = portfolio.AssignRole(AnAuthorizedActor(), ProjectPortfolioRole.Owner, Guid.NewGuid());
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -144,7 +146,7 @@ public class ProjectPortfolioTests
         }).Generate();
 
         // Act
-        var result = portfolio.RemoveRole(ProjectPortfolioRole.Owner, employeeId);
+        var result = portfolio.RemoveRole(AnAuthorizedActor(), ProjectPortfolioRole.Owner, employeeId);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -163,7 +165,7 @@ public class ProjectPortfolioTests
         }).Generate();
 
         // Act
-        var result = portfolio.RemoveRole(ProjectPortfolioRole.Owner, employeeId1);
+        var result = portfolio.RemoveRole(AnAuthorizedActor(), ProjectPortfolioRole.Owner, employeeId1);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -180,7 +182,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.Generate();
 
         // Act
-        var result = portfolio.RemoveRole(ProjectPortfolioRole.Owner, employeeId);
+        var result = portfolio.RemoveRole(AnAuthorizedActor(), ProjectPortfolioRole.Owner, employeeId);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -194,7 +196,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.AsArchived(_dateTimeProvider);
 
         // Act
-        var result = portfolio.RemoveRole(ProjectPortfolioRole.Owner, Guid.NewGuid());
+        var result = portfolio.RemoveRole(AnAuthorizedActor(), ProjectPortfolioRole.Owner, Guid.NewGuid());
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -214,7 +216,7 @@ public class ProjectPortfolioTests
         };
 
         // Act
-        var result = portfolio.UpdateRoles(updatedRoles);
+        var result = portfolio.UpdateRoles(AnAuthorizedActor(), updatedRoles);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -238,7 +240,7 @@ public class ProjectPortfolioTests
         };
 
         // Act
-        var result = portfolio.UpdateRoles(updatedRoles);
+        var result = portfolio.UpdateRoles(AnAuthorizedActor(), updatedRoles);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -262,7 +264,7 @@ public class ProjectPortfolioTests
         };
 
         // Act
-        var result = portfolio.UpdateRoles(updatedRoles);
+        var result = portfolio.UpdateRoles(AnAuthorizedActor(), updatedRoles);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -282,7 +284,7 @@ public class ProjectPortfolioTests
         };
 
         // Act
-        var result = portfolio.UpdateRoles(updatedRoles);
+        var result = portfolio.UpdateRoles(AnAuthorizedActor(), updatedRoles);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -301,7 +303,7 @@ public class ProjectPortfolioTests
         };
 
         // Act
-        var result = portfolio.UpdateRoles(updatedRoles);
+        var result = portfolio.UpdateRoles(AnAuthorizedActor(), updatedRoles);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -320,7 +322,7 @@ public class ProjectPortfolioTests
         var startDate = _dateTimeProvider.Today;
 
         // Act
-        var result = portfolio.Activate(startDate);
+        var result = portfolio.Activate(AnAuthorizedActor(), startDate);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -340,7 +342,7 @@ public class ProjectPortfolioTests
         var endDate = _dateTimeProvider.Today.PlusDays(10);
 
         // Act
-        var result = portfolio.Close(endDate);
+        var result = portfolio.Close(AnAuthorizedActor(), endDate);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -360,13 +362,13 @@ public class ProjectPortfolioTests
 
         var endDate = _dateTimeProvider.Today.PlusDays(10);
 
-        var activateProjectResult = project.Activate();
+        var activateProjectResult = project.Activate(AnAuthorizedActor(), NoProjectAncestry());
         activateProjectResult.IsSuccess.Should().BeTrue();
-        var completeProjectResult = project.Complete();
+        var completeProjectResult = project.Complete(AnAuthorizedActor(), NoProjectAncestry());
         completeProjectResult.IsSuccess.Should().BeTrue();
 
         // Act
-        var result = portfolio.Close(endDate);
+        var result = portfolio.Close(AnAuthorizedActor(), endDate);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -382,7 +384,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
 
         // Act
-        var result = portfolio.Archive();
+        var result = portfolio.Archive(AnAuthorizedActor());
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -396,7 +398,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.AsClosed(_dateTimeProvider);
 
         // Act
-        var result = portfolio.Archive();
+        var result = portfolio.Archive(AnAuthorizedActor());
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -404,6 +406,280 @@ public class ProjectPortfolioTests
     }
 
     #endregion Lifecycle Tests
+
+    #region Authorization Tests
+
+    // A portfolio has no ancestor, so only Owner/Manager on the portfolio itself qualifies — or the PPM
+    // administrator grant, which is the only way to seed the first Owner on a newly created portfolio.
+
+    [Fact]
+    public void Archive_ShouldSucceed_WhenActorIsPortfolioOwner()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var portfolio = _portfolioFaker
+            .WithStatus(ProjectPortfolioStatus.Closed)
+            .WithOwner(employeeId)
+            .Generate();
+
+        // Act
+        var result = portfolio.Archive(employeeId.AsActor());
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        portfolio.Status.Should().Be(ProjectPortfolioStatus.Archived);
+    }
+
+    [Fact]
+    public void Archive_ShouldFail_WhenActorHoldsNoRole()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.WithStatus(ProjectPortfolioStatus.Closed).Generate();
+
+        // Act
+        var result = portfolio.Archive(AnUnauthorizedActor());
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+        portfolio.Status.Should().Be(ProjectPortfolioStatus.Closed);
+    }
+
+    [Fact]
+    public void Archive_ShouldFail_WhenActorIsOnlyASponsor()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var portfolio = _portfolioFaker
+            .WithStatus(ProjectPortfolioStatus.Closed)
+            .WithRoles(new Dictionary<ProjectPortfolioRole, HashSet<Guid>> { [ProjectPortfolioRole.Sponsor] = [employeeId] })
+            .Generate();
+
+        // Act
+        var result = portfolio.Archive(employeeId.AsActor());
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+    }
+
+    [Fact]
+    public void Archive_ShouldSucceed_WhenActorIsPpmAdministratorWithNoMembership()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.WithStatus(ProjectPortfolioStatus.Closed).Generate();
+
+        // Act
+        var result = portfolio.Archive(Guid.NewGuid().AsPpmAdministrator());
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Activate_ShouldFail_WhenActorHoldsNoRole()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.Generate();
+
+        // Act
+        var result = portfolio.Activate(AnUnauthorizedActor(), _dateTimeProvider.Today);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+        portfolio.Status.Should().Be(ProjectPortfolioStatus.Proposed);
+    }
+
+    [Fact]
+    public void Close_ShouldFail_WhenActorHoldsNoRole()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+
+        // Act
+        var result = portfolio.Close(AnUnauthorizedActor(), _dateTimeProvider.Today.PlusDays(10));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+        portfolio.Status.Should().Be(ProjectPortfolioStatus.Active);
+    }
+
+    [Fact]
+    public void UpdateRoles_ShouldFail_WhenActorHoldsNoRole()
+    {
+        // Arrange — the privilege-escalation case. A newly created portfolio has no ancestor to inherit
+        // from, so without the administrator grant nobody outside its roles may seed ownership.
+        var attackerId = Guid.NewGuid();
+        var portfolio = _portfolioFaker.Generate();
+        var grabOwnership = new Dictionary<ProjectPortfolioRole, HashSet<Guid>> { [ProjectPortfolioRole.Owner] = [attackerId] };
+
+        // Act
+        var result = portfolio.UpdateRoles(attackerId.AsActor(), grabOwnership);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+        portfolio.Roles.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void UpdateRoles_ShouldSucceed_ForPpmAdministratorSeedingFirstOwner()
+    {
+        // Arrange — the bootstrap path: a fresh portfolio has no leadership until an administrator sets it.
+        var newOwnerId = Guid.NewGuid();
+        var portfolio = _portfolioFaker.Generate();
+        var seedOwnership = new Dictionary<ProjectPortfolioRole, HashSet<Guid>> { [ProjectPortfolioRole.Owner] = [newOwnerId] };
+
+        // Act
+        var result = portfolio.UpdateRoles(Guid.NewGuid().AsPpmAdministrator(), seedOwnership);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        portfolio.Roles.Should().ContainSingle(r => r.EmployeeId == newOwnerId && r.Role == ProjectPortfolioRole.Owner);
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldFail_WhenActorHoldsNoRole()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.WithName("Original").Generate();
+
+        // Act
+        var result = portfolio.UpdateDetails(AnUnauthorizedActor(), "Renamed", "New description");
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+        portfolio.Name.Should().Be("Original");
+    }
+
+    [Fact]
+    public void CanManagePortfolio_ShouldReturnFalse_ForNonMember()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.Generate();
+
+        // Act
+        var canManage = portfolio.CanManagePortfolio(AnUnauthorizedActor());
+
+        // Assert
+        canManage.Should().BeFalse();
+    }
+
+    // ChangeProjectProgram lives on the portfolio but reassigns a project, so it is gated by the PROJECT's
+    // rule — a program Owner/Manager qualifies just as they would for any other project edit. These tests
+    // pin that distinction, which is easy to lose if someone later "simplifies" it to the portfolio's rule.
+
+    [Fact]
+    public void ChangeProjectProgram_ShouldFail_WhenActorHoldsNoRole()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        var program = portfolio.CreateProgram("Target Program", "Description",
+            new LocalDateRange(_dateTimeProvider.Today.PlusDays(-5), _dateTimeProvider.Today.PlusMonths(3)),
+            null, null, _dateTimeProvider.Now).Value;
+        // A program only accepts projects once it is active.
+        program.Activate(AnAuthorizedActor(), NoProgramAncestry()).IsSuccess.Should().BeTrue();
+        var seed = _projectFaker.AsProposed(_dateTimeProvider, portfolio.Id);
+        var project = portfolio.CreateProject(
+            seed.Name, seed.Description, seed.Key, 1, null, null, null, null, null, null, _dateTimeProvider.Now).Value;
+
+        // Act
+        var result = portfolio.ChangeProjectProgram(AnUnauthorizedActor(), project.Id, program.Id);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+        project.ProgramId.Should().BeNull();
+    }
+
+    [Fact]
+    public void ChangeProjectProgram_ShouldSucceed_WhenActorIsPortfolioOwner()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var portfolio = _portfolioFaker
+            .WithStatus(ProjectPortfolioStatus.Active)
+            .WithDateRange(new FlexibleDateRange(_dateTimeProvider.Today.PlusDays(-10)))
+            .WithOwner(employeeId)
+            .Generate();
+        var program = portfolio.CreateProgram("Target Program", "Description",
+            new LocalDateRange(_dateTimeProvider.Today.PlusDays(-5), _dateTimeProvider.Today.PlusMonths(3)),
+            null, null, _dateTimeProvider.Now).Value;
+        // A program only accepts projects once it is active.
+        program.Activate(AnAuthorizedActor(), NoProgramAncestry()).IsSuccess.Should().BeTrue();
+        var seed = _projectFaker.AsProposed(_dateTimeProvider, portfolio.Id);
+        var project = portfolio.CreateProject(
+            seed.Name, seed.Description, seed.Key, 1, null, null, null, null, null, null, _dateTimeProvider.Now).Value;
+
+        // Act
+        var result = portfolio.ChangeProjectProgram(employeeId.AsActor(), project.Id, program.Id);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        project.ProgramId.Should().Be(program.Id);
+    }
+
+    [Fact]
+    public void ChangeProjectProgram_ShouldSucceed_WhenActorIsProjectOwner()
+    {
+        // Arrange — the actor leads the project but holds no portfolio role, so this passes only because
+        // the project's rule is applied rather than the portfolio's.
+        var employeeId = Guid.NewGuid();
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        var program = portfolio.CreateProgram("Target Program", "Description",
+            new LocalDateRange(_dateTimeProvider.Today.PlusDays(-5), _dateTimeProvider.Today.PlusMonths(3)),
+            null, null, _dateTimeProvider.Now).Value;
+        // A program only accepts projects once it is active.
+        program.Activate(AnAuthorizedActor(), NoProgramAncestry()).IsSuccess.Should().BeTrue();
+        var seed = _projectFaker.AsProposed(_dateTimeProvider, portfolio.Id);
+        var project = portfolio.CreateProject(
+            seed.Name,
+            seed.Description,
+            seed.Key,
+            1,
+            null,
+            null,
+            null,
+            null,
+            new Dictionary<ProjectRole, HashSet<Guid>> { [ProjectRole.Owner] = [employeeId] },
+            null,
+            _dateTimeProvider.Now).Value;
+
+        // Act
+        var result = portfolio.ChangeProjectProgram(employeeId.AsActor(), project.Id, program.Id);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.ProgramId.Should().Be(program.Id);
+    }
+
+    [Fact]
+    public void ChangeProjectProgram_ShouldSucceed_ForPpmAdministratorWithNoMembership()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        var program = portfolio.CreateProgram("Target Program", "Description",
+            new LocalDateRange(_dateTimeProvider.Today.PlusDays(-5), _dateTimeProvider.Today.PlusMonths(3)),
+            null, null, _dateTimeProvider.Now).Value;
+        // A program only accepts projects once it is active.
+        program.Activate(AnAuthorizedActor(), NoProgramAncestry()).IsSuccess.Should().BeTrue();
+        var seed = _projectFaker.AsProposed(_dateTimeProvider, portfolio.Id);
+        var project = portfolio.CreateProject(
+            seed.Name, seed.Description, seed.Key, 1, null, null, null, null, null, null, _dateTimeProvider.Now).Value;
+
+        // Act
+        var result = portfolio.ChangeProjectProgram(
+            Guid.NewGuid().AsPpmAdministrator(), project.Id, program.Id);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.ProgramId.Should().Be(program.Id);
+    }
+
+    #endregion Authorization Tests
 
     #region Program Management
 
@@ -449,7 +725,7 @@ public class ProjectPortfolioTests
         var endDate = _dateTimeProvider.Today.PlusDays(10);
 
         // Act
-        var result = portfolio.Close(endDate);
+        var result = portfolio.Close(AnAuthorizedActor(), endDate);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -631,7 +907,7 @@ public class ProjectPortfolioTests
         project.IsSuccess.Should().BeTrue();
 
         // Act
-        var result = portfolio.ChangeProjectProgram(project.Value.Id, program2.Id);
+        var result = portfolio.ChangeProjectProgram(AnAuthorizedActor(), project.Value.Id, program2.Id);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -652,7 +928,7 @@ public class ProjectPortfolioTests
         project.IsSuccess.Should().BeTrue();
 
         // Act
-        var result = portfolio.ChangeProjectProgram(project.Value.Id, null);
+        var result = portfolio.ChangeProjectProgram(AnAuthorizedActor(), project.Value.Id, null);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -672,7 +948,7 @@ public class ProjectPortfolioTests
         project.IsSuccess.Should().BeTrue();
 
         // Act
-        var result = portfolio.ChangeProjectProgram(project.Value.Id, program.Id);
+        var result = portfolio.ChangeProjectProgram(AnAuthorizedActor(), project.Value.Id, program.Id);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -693,7 +969,7 @@ public class ProjectPortfolioTests
         projectResult.IsSuccess.Should().BeTrue();
 
         // Act
-        var result = portfolio1.ChangeProjectProgram(projectResult.Value.Id, program2.Id);
+        var result = portfolio1.ChangeProjectProgram(AnAuthorizedActor(), projectResult.Value.Id, program2.Id);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -708,7 +984,7 @@ public class ProjectPortfolioTests
         var project = portfolio.CreateProject("Test Project", "Description", new ProjectKey("TEST"), 1, null, null, null, null, null, null, _dateTimeProvider.Now).Value;
 
         // Act
-        var result = portfolio.ChangeProjectProgram(project.Id, null);
+        var result = portfolio.ChangeProjectProgram(AnAuthorizedActor(), project.Id, null);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -952,7 +1228,7 @@ public class ProjectPortfolioTests
         var portfolio = RankingPortfolio(after, before, a, b);
 
         // Act
-        var result = portfolio.MoveProjectRanks(_ownerId, [a.Id, b.Id], after.Id, before.Id);
+        var result = portfolio.MoveProjectRanks(_ownerId.AsActor(), [a.Id, b.Id], after.Id, before.Id);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -974,7 +1250,7 @@ public class ProjectPortfolioTests
         var portfolio = RankingPortfolio(after, closed, before, moved);
 
         // Act — drag the moved project between the visible anchors (the client can't see the closed one).
-        var result = portfolio.MoveProjectRanks(_ownerId, [moved.Id], after.Id, before.Id);
+        var result = portfolio.MoveProjectRanks(_ownerId.AsActor(), [moved.Id], after.Id, before.Id);
 
         // Assert — no collision: every in-span project keeps a distinct rank strictly within the span.
         result.IsSuccess.Should().BeTrue();
@@ -993,7 +1269,7 @@ public class ProjectPortfolioTests
         var portfolio = RankingPortfolio(before, moved);
 
         // Act
-        var result = portfolio.MoveProjectRanks(_ownerId, [moved.Id], null, before.Id);
+        var result = portfolio.MoveProjectRanks(_ownerId.AsActor(), [moved.Id], null, before.Id);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1010,8 +1286,8 @@ public class ProjectPortfolioTests
         var portfolio = RankingPortfolio(top, a, b);
 
         // Act — move A above top, then B above A.
-        portfolio.MoveProjectRanks(_ownerId, [a.Id], null, top.Id);
-        var result = portfolio.MoveProjectRanks(_ownerId, [b.Id], null, a.Id);
+        portfolio.MoveProjectRanks(_ownerId.AsActor(), [a.Id], null, top.Id);
+        var result = portfolio.MoveProjectRanks(_ownerId.AsActor(), [b.Id], null, a.Id);
 
         // Assert — both stay strictly positive (no 0 / negative drift) and remain above the old top.
         result.IsSuccess.Should().BeTrue();
@@ -1031,7 +1307,7 @@ public class ProjectPortfolioTests
         var portfolio = RankingPortfolio(after, moved);
 
         // Act
-        var result = portfolio.MoveProjectRanks(_ownerId, [moved.Id], after.Id, null);
+        var result = portfolio.MoveProjectRanks(_ownerId.AsActor(), [moved.Id], after.Id, null);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1050,7 +1326,7 @@ public class ProjectPortfolioTests
         var portfolio = RankingPortfolio(after, before, x, y, z);
 
         // Act
-        var result = portfolio.MoveProjectRanks(_ownerId, [x.Id, y.Id, z.Id], after.Id, before.Id);
+        var result = portfolio.MoveProjectRanks(_ownerId.AsActor(), [x.Id, y.Id, z.Id], after.Id, before.Id);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1068,7 +1344,7 @@ public class ProjectPortfolioTests
         var portfolio = RankingPortfolio(moved);
 
         // Act
-        var result = portfolio.MoveProjectRanks(_ownerId, [moved.Id], null, null);
+        var result = portfolio.MoveProjectRanks(_ownerId.AsActor(), [moved.Id], null, null);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1083,7 +1359,7 @@ public class ProjectPortfolioTests
         var portfolio = RankingPortfolio(after);
 
         // Act
-        var result = portfolio.MoveProjectRanks(_ownerId, [], after.Id, null);
+        var result = portfolio.MoveProjectRanks(_ownerId.AsActor(), [], after.Id, null);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1099,7 +1375,7 @@ public class ProjectPortfolioTests
         var portfolio = RankingPortfolio(after, before, moved);
 
         // Act
-        var result = portfolio.MoveProjectRanks(_ownerId, [moved.Id], after.Id, before.Id);
+        var result = portfolio.MoveProjectRanks(_ownerId.AsActor(), [moved.Id], after.Id, before.Id);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1115,7 +1391,7 @@ public class ProjectPortfolioTests
         var portfolio = RankingPortfolio(after, moved);
 
         // Act
-        var result = portfolio.MoveProjectRanks(_ownerId, [moved.Id, after.Id], after.Id, null);
+        var result = portfolio.MoveProjectRanks(_ownerId.AsActor(), [moved.Id, after.Id], after.Id, null);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1130,7 +1406,7 @@ public class ProjectPortfolioTests
         var portfolio = RankingPortfolio(after);
 
         // Act
-        var result = portfolio.MoveProjectRanks(_ownerId, [Guid.NewGuid()], after.Id, null);
+        var result = portfolio.MoveProjectRanks(_ownerId.AsActor(), [Guid.NewGuid()], after.Id, null);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1146,7 +1422,7 @@ public class ProjectPortfolioTests
         var portfolio = RankingPortfolio(after, moved);
 
         // Act
-        var result = portfolio.MoveProjectRanks(_ownerId, [moved.Id, moved.Id], after.Id, null);
+        var result = portfolio.MoveProjectRanks(_ownerId.AsActor(), [moved.Id, moved.Id], after.Id, null);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1162,11 +1438,54 @@ public class ProjectPortfolioTests
         var portfolio = RankingPortfolio(after, moved);
 
         // Act
-        var result = portfolio.MoveProjectRanks(Guid.NewGuid(), [moved.Id], after.Id, null);
+        var result = portfolio.MoveProjectRanks(AnUnauthorizedActor(), [moved.Id], after.Id, null);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not authorized");
+    }
+
+    [Fact]
+    public void MoveProjectRanks_WhenPpmAdministratorWithNoMembership_Succeeds()
+    {
+        // Arrange — ranking honours the domain-wide administrator grant like every other portfolio
+        // management action, so an admin outside the delivery hierarchy is not locked out of the board.
+        var after = RankedProject("After", 1000d);
+        var moved = RankedProject("Moved", 90000d);
+        var portfolio = RankingPortfolio(after, moved);
+
+        // Act
+        var result = portfolio.MoveProjectRanks(
+            Guid.NewGuid().AsPpmAdministrator(), [moved.Id], after.Id, null);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+    }
+
+    [Fact]
+    public void CanManageRanking_ShouldReturnTrue_ForPpmAdministrator()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.WithRoles(null).Generate();
+
+        // Act
+        var canRank = portfolio.CanManageRanking(Guid.NewGuid().AsPpmAdministrator());
+
+        // Assert
+        canRank.Should().BeTrue();
+    }
+
+    [Fact]
+    public void CanManageRanking_ShouldReturnFalse_ForNonMember()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.WithRoles(null).Generate();
+
+        // Act
+        var canRank = portfolio.CanManageRanking(AnUnauthorizedActor());
+
+        // Assert
+        canRank.Should().BeFalse();
     }
 
     [Fact]
@@ -1183,7 +1502,7 @@ public class ProjectPortfolioTests
         portfolio.WithProjects(after, moved);
 
         // Act
-        var result = portfolio.MoveProjectRanks(managerId, [moved.Id], after.Id, null);
+        var result = portfolio.MoveProjectRanks(managerId.AsActor(), [moved.Id], after.Id, null);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1202,7 +1521,7 @@ public class ProjectPortfolioTests
         portfolio.WithProjects(after, moved);
 
         // Act
-        var result = portfolio.MoveProjectRanks(_ownerId, [moved.Id], after.Id, null);
+        var result = portfolio.MoveProjectRanks(_ownerId.AsActor(), [moved.Id], after.Id, null);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1219,7 +1538,7 @@ public class ProjectPortfolioTests
         var portfolio = RankingPortfolio(first, second, closedRanked, fourth);
 
         // Act
-        var result = portfolio.RebalanceRanks(_ownerId);
+        var result = portfolio.RebalanceRanks(_ownerId.AsActor());
 
         // Assert — relative order preserved; renumbered to clean whole numbers.
         result.IsSuccess.Should().BeTrue();
@@ -1237,7 +1556,7 @@ public class ProjectPortfolioTests
         var portfolio = RankingPortfolio(project);
 
         // Act
-        var result = portfolio.RebalanceRanks(Guid.NewGuid());
+        var result = portfolio.RebalanceRanks(AnUnauthorizedActor());
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1254,7 +1573,7 @@ public class ProjectPortfolioTests
         var portfolio = RankingPortfolio(apple, zebra);
 
         // Act
-        var result = portfolio.RebalanceRanks(Guid.NewGuid(), bypassManageCheck: true);
+        var result = portfolio.RebalanceRanks(PpmActor.System);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1274,7 +1593,7 @@ public class ProjectPortfolioTests
         portfolio.WithProjects(project);
 
         // Act
-        var result = portfolio.RebalanceRanks(Guid.NewGuid(), bypassManageCheck: true);
+        var result = portfolio.RebalanceRanks(PpmActor.System);
 
         // Assert
         result.IsFailure.Should().BeTrue();

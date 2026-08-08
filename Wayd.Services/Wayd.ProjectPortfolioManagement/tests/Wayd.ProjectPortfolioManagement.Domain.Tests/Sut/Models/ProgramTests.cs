@@ -1,11 +1,14 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using NodaTime.Extensions;
 using NodaTime.Testing;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
+using Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions;
 using Wayd.Tests.Shared;
+using static Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions.PpmActorDataExtensions;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Sut.Models;
 
@@ -54,7 +57,7 @@ public class ProgramTests
         var program = _programFaker.Generate();
 
         // Act
-        Action action = () => program.UpdateDetails("", "Valid Description", _dateTimeProvider.Now);
+        Action action = () => program.UpdateDetails(AnAuthorizedActor(), NoProgramAncestry(), "", "Valid Description", _dateTimeProvider.Now);
 
         // Assert
         action.Should().Throw<ArgumentException>().WithMessage("Required input Name was empty. (Parameter 'Name')");
@@ -67,7 +70,7 @@ public class ProgramTests
         var program = _programFaker.Generate();
 
         // Act
-        Action action = () => program.UpdateDetails("Valid Name", "", _dateTimeProvider.Now);
+        Action action = () => program.UpdateDetails(AnAuthorizedActor(), NoProgramAncestry(), "Valid Name", "", _dateTimeProvider.Now);
 
         // Assert
         action.Should().Throw<ArgumentException>().WithMessage("Required input Description was empty. (Parameter 'Description')");
@@ -87,7 +90,7 @@ public class ProgramTests
         var dateRange = new LocalDateRange(startDate, endDate);
 
         // Act
-        var result = program.UpdateTimeline(dateRange);
+        var result = program.UpdateTimeline(AnAuthorizedActor(), NoProgramAncestry(), dateRange);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -103,7 +106,7 @@ public class ProgramTests
         var program = _programFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
 
         // Act
-        var result = program.UpdateTimeline(null);
+        var result = program.UpdateTimeline(AnAuthorizedActor(), NoProgramAncestry(), null);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -117,7 +120,7 @@ public class ProgramTests
         var program = _programFaker.AsCompleted(_dateTimeProvider, Guid.NewGuid());
 
         // Act
-        var result = program.UpdateTimeline(null);
+        var result = program.UpdateTimeline(AnAuthorizedActor(), NoProgramAncestry(), null);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -134,7 +137,7 @@ public class ProgramTests
         var dateRange = new LocalDateRange(startDate, endDate);
 
         // Act
-        var result = program.UpdateTimeline(dateRange);
+        var result = program.UpdateTimeline(AnAuthorizedActor(), NoProgramAncestry(), dateRange);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -155,7 +158,7 @@ public class ProgramTests
         var program = _programFaker.Generate();
 
         // Act
-        var result = program.AssignRole(ProgramRole.Owner, employeeId);
+        var result = program.AssignRole(AnAuthorizedActor(), NoProgramAncestry(), ProgramRole.Owner, employeeId);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -175,7 +178,7 @@ public class ProgramTests
         }).Generate();
 
         // Act
-        var result = program.AssignRole(ProgramRole.Owner, employeeId);
+        var result = program.AssignRole(AnAuthorizedActor(), NoProgramAncestry(), ProgramRole.Owner, employeeId);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -193,7 +196,7 @@ public class ProgramTests
         }).Generate();
 
         // Act
-        var result = program.RemoveRole(ProgramRole.Owner, employeeId);
+        var result = program.RemoveRole(AnAuthorizedActor(), NoProgramAncestry(), ProgramRole.Owner, employeeId);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -212,7 +215,7 @@ public class ProgramTests
         }).Generate();
 
         // Act
-        var result = program.RemoveRole(ProgramRole.Owner, employeeId1);
+        var result = program.RemoveRole(AnAuthorizedActor(), NoProgramAncestry(), ProgramRole.Owner, employeeId1);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -229,7 +232,7 @@ public class ProgramTests
         var program = _programFaker.Generate();
 
         // Act
-        var result = program.RemoveRole(ProgramRole.Owner, employeeId);
+        var result = program.RemoveRole(AnAuthorizedActor(), NoProgramAncestry(), ProgramRole.Owner, employeeId);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -249,7 +252,7 @@ public class ProgramTests
         };
 
         // Act
-        var result = program.UpdateRoles(updatedRoles);
+        var result = program.UpdateRoles(AnAuthorizedActor(), NoProgramAncestry(), updatedRoles);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -273,7 +276,7 @@ public class ProgramTests
         };
 
         // Act
-        var result = program.UpdateRoles(updatedRoles);
+        var result = program.UpdateRoles(AnAuthorizedActor(), NoProgramAncestry(), updatedRoles);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -297,7 +300,7 @@ public class ProgramTests
         };
 
         // Act
-        var result = program.UpdateRoles(updatedRoles);
+        var result = program.UpdateRoles(AnAuthorizedActor(), NoProgramAncestry(), updatedRoles);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -317,7 +320,7 @@ public class ProgramTests
         };
 
         // Act
-        var result = program.UpdateRoles(updatedRoles);
+        var result = program.UpdateRoles(AnAuthorizedActor(), NoProgramAncestry(), updatedRoles);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -336,7 +339,7 @@ public class ProgramTests
         var program = _programFaker.WithDateRange(dateRange).Generate();
 
         // Act
-        var result = program.Activate();
+        var result = program.Activate(AnAuthorizedActor(), NoProgramAncestry());
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -350,7 +353,7 @@ public class ProgramTests
         var program = _programFaker.AsActive(_dateTimeProvider);
 
         // Act
-        var result = program.Activate();
+        var result = program.Activate(AnAuthorizedActor(), NoProgramAncestry());
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -364,7 +367,7 @@ public class ProgramTests
         var program = _programFaker.AsActive(_dateTimeProvider);
 
         // Act
-        var result = program.Complete();
+        var result = program.Complete(AnAuthorizedActor(), NoProgramAncestry());
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -378,7 +381,7 @@ public class ProgramTests
         var program = _programFaker.AsCompleted(_dateTimeProvider);
 
         // Act
-        var result = program.Complete();
+        var result = program.Complete(AnAuthorizedActor(), NoProgramAncestry());
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -392,7 +395,7 @@ public class ProgramTests
         var program = _programFaker.AsActive(_dateTimeProvider);
 
         // Act
-        var result = program.Cancel();
+        var result = program.Cancel(AnAuthorizedActor(), NoProgramAncestry());
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -408,7 +411,7 @@ public class ProgramTests
         program.AddProject(project);
 
         // Act
-        var result = program.Cancel();
+        var result = program.Cancel(AnAuthorizedActor(), NoProgramAncestry());
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -422,7 +425,7 @@ public class ProgramTests
         var program = _programFaker.AsCancelled(_dateTimeProvider);
 
         // Act
-        var result = program.Cancel();
+        var result = program.Cancel(AnAuthorizedActor(), NoProgramAncestry());
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -430,6 +433,183 @@ public class ProgramTests
     }
 
     #endregion Lifecycle Tests
+
+    #region Authorization Tests
+
+    // Managing a program requires Owner/Manager on the program itself or on the parent portfolio.
+    // Sponsors are excluded; the PPM administrator grant substitutes for membership.
+
+    [Fact]
+    public void Cancel_ShouldSucceed_WhenActorIsProgramOwner()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var program = _programFaker.WithStatus(ProgramStatus.Proposed).WithOwner(employeeId).Generate();
+
+        // Act
+        var result = program.Cancel(employeeId.AsActor(), NoProgramAncestry());
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        program.Status.Should().Be(ProgramStatus.Cancelled);
+    }
+
+    [Fact]
+    public void Cancel_ShouldFail_WhenActorHoldsNoRole()
+    {
+        // Arrange
+        var program = _programFaker.WithStatus(ProgramStatus.Proposed).Generate();
+
+        // Act
+        var result = program.Cancel(AnUnauthorizedActor(), NoProgramAncestry());
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+        program.Status.Should().Be(ProgramStatus.Proposed);
+    }
+
+    [Fact]
+    public void Cancel_ShouldSucceed_WhenActorIsPortfolioOwner()
+    {
+        // Arrange — leadership inherits downward from the parent portfolio.
+        var employeeId = Guid.NewGuid();
+        var portfolioId = Guid.NewGuid();
+        var program = _programFaker.WithStatus(ProgramStatus.Proposed).WithPortfolioId(portfolioId).Generate();
+        var ancestry = PpmActorDataExtensions.WithPortfolioRoleForProgram(portfolioId, employeeId, ProjectPortfolioRole.Owner);
+
+        // Act
+        var result = program.Cancel(employeeId.AsActor(), ancestry);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        program.Status.Should().Be(ProgramStatus.Cancelled);
+    }
+
+    [Fact]
+    public void Cancel_ShouldFail_WhenActorIsOnlyAPortfolioSponsor()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var portfolioId = Guid.NewGuid();
+        var program = _programFaker.WithStatus(ProgramStatus.Proposed).WithPortfolioId(portfolioId).Generate();
+        var ancestry = PpmActorDataExtensions.WithPortfolioRoleForProgram(portfolioId, employeeId, ProjectPortfolioRole.Sponsor);
+
+        // Act
+        var result = program.Cancel(employeeId.AsActor(), ancestry);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+    }
+
+    [Fact]
+    public void Cancel_ShouldSucceed_WhenActorIsPpmAdministratorWithNoMembership()
+    {
+        // Arrange
+        var program = _programFaker.WithStatus(ProgramStatus.Proposed).Generate();
+
+        // Act
+        var result = program.Cancel(Guid.NewGuid().AsPpmAdministrator(), NoProgramAncestry());
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Activate_ShouldFail_WhenActorHoldsNoRole()
+    {
+        // Arrange
+        var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3));
+        var program = _programFaker.WithStatus(ProgramStatus.Proposed).WithDateRange(dateRange).Generate();
+
+        // Act
+        var result = program.Activate(AnUnauthorizedActor(), NoProgramAncestry());
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+        program.Status.Should().Be(ProgramStatus.Proposed);
+    }
+
+    [Fact]
+    public void Complete_ShouldFail_WhenActorHoldsNoRole()
+    {
+        // Arrange
+        var program = _programFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
+
+        // Act
+        var result = program.Complete(AnUnauthorizedActor(), NoProgramAncestry());
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+        program.Status.Should().Be(ProgramStatus.Active);
+    }
+
+    [Fact]
+    public void UpdateRoles_ShouldFail_WhenActorHoldsNoRole()
+    {
+        // Arrange — the privilege-escalation case.
+        var attackerId = Guid.NewGuid();
+        var program = _programFaker.Generate();
+        var grabOwnership = new Dictionary<ProgramRole, HashSet<Guid>> { [ProgramRole.Owner] = [attackerId] };
+
+        // Act
+        var result = program.UpdateRoles(attackerId.AsActor(), NoProgramAncestry(), grabOwnership);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+        program.Roles.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldFail_WhenActorHoldsNoRole()
+    {
+        // Arrange
+        var program = _programFaker.WithName("Original").Generate();
+
+        // Act
+        var result = program.UpdateDetails(
+            AnUnauthorizedActor(), NoProgramAncestry(), "Renamed", "New description", _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+        program.Name.Should().Be("Original");
+    }
+
+    [Fact]
+    public void UpdateTimeline_ShouldFail_WhenActorHoldsNoRole()
+    {
+        // Arrange
+        var program = _programFaker.WithDateRange(null).Generate();
+        var newRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(1));
+
+        // Act
+        var result = program.UpdateTimeline(AnUnauthorizedActor(), NoProgramAncestry(), newRange);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+        program.DateRange.Should().BeNull();
+    }
+
+    [Fact]
+    public void CanManageProgram_ShouldReturnFalse_ForNonMember()
+    {
+        // Arrange
+        var program = _programFaker.Generate();
+
+        // Act
+        var canManage = program.CanManageProgram(AnUnauthorizedActor(), NoProgramAncestry());
+
+        // Assert
+        canManage.Should().BeFalse();
+    }
+
+    #endregion Authorization Tests
 
     #region Project Management
 

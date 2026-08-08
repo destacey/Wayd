@@ -1,5 +1,6 @@
-﻿using Wayd.ProjectPortfolioManagement.Application.Finalization.Dtos;
+using Wayd.ProjectPortfolioManagement.Application.Finalization.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Finalization.Commands;
 
@@ -124,9 +125,12 @@ public sealed class ImportPpmFinalizationsCommandHandler(
             return Fail($"Program name '{row.Name}' matches more than one program in portfolio '{row.PortfolioName}'.");
 
         var program = matches[0];
+
+        // Runs as PpmActor.System: finalization is a bulk administrative operation authorized by the
+        // caller's Permissions.ProjectPortfolios.Import claim, not by delivery-leadership membership.
         var result = row.Status is FinalizePpmItemStatus.Cancelled
-            ? program.Cancel()
-            : program.Complete();
+            ? program.Cancel(PpmActor.System, ProgramAncestryRoles.None)
+            : program.Complete(PpmActor.System, ProgramAncestryRoles.None);
 
         return result.IsFailure
             ? Fail($"Could not finalize program '{row.Name}' as {row.Status}: {result.Error}")
@@ -135,14 +139,15 @@ public sealed class ImportPpmFinalizationsCommandHandler(
 
     private Result FinalizePortfolio(ProjectPortfolio portfolio, FinalizePpmItemDto row)
     {
-        var close = portfolio.Close(row.EndDate!.Value);
+        // Runs as PpmActor.System — see FinalizeProgram.
+        var close = portfolio.Close(PpmActor.System, row.EndDate!.Value);
         if (close.IsFailure)
             return Fail($"Could not close portfolio '{row.Name}': {close.Error}");
 
         if (row.Status is not FinalizePpmItemStatus.Archived)
             return Result.Success();
 
-        var archive = portfolio.Archive();
+        var archive = portfolio.Archive(PpmActor.System);
 
         return archive.IsFailure
             ? Fail($"Could not archive portfolio '{row.Name}': {archive.Error}")

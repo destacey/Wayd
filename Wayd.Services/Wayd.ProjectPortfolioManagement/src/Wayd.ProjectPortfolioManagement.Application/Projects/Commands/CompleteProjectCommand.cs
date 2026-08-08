@@ -1,6 +1,8 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
+﻿using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
-public sealed record CompleteProjectCommand(Guid Id) : ICommand;
+namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
+
+public sealed record CompleteProjectCommand(Guid Id) : ICommand, IRequireLinkedEmployee;
 
 public sealed class CompleteProjectCommandValidator : AbstractValidator<CompleteProjectCommand>
 {
@@ -11,18 +13,28 @@ public sealed class CompleteProjectCommandValidator : AbstractValidator<Complete
     }
 }
 
-public sealed class CompleteProjectCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<CompleteProjectCommandHandler> logger) : ICommandHandler<CompleteProjectCommand>
+public sealed class CompleteProjectCommandHandler(
+    IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
+    ICurrentPrincipal currentPrincipal,
+    ILogger<CompleteProjectCommandHandler> logger) : ICommandHandler<CompleteProjectCommand>
 {
     private const string AppRequestName = nameof(CompleteProjectCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<CompleteProjectCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(CompleteProjectCommand request, CancellationToken cancellationToken)
     {
         try
         {
+            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+
             var project = await _projectPortfolioManagementDbContext.Projects
+                .AsSplitQuery()
+                .Include(p => p.Roles)
+                .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
+                .Include(p => p.Program).ThenInclude(p => p!.Roles)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
             if (project is null)
             {
@@ -30,7 +42,7 @@ public sealed class CompleteProjectCommandHandler(IProjectPortfolioManagementDbC
                 return Result.Failure("Project not found.");
             }
 
-            var completeResult = project.Complete();
+            var completeResult = project.Complete(actor, project.AncestryRoles());
             if (completeResult.IsFailure)
             {
                 // Reset the entity

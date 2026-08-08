@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+using Wayd.ProjectPortfolioManagement.Application.Common;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
@@ -15,6 +16,7 @@ public class ChangeProjectKeyCommandHandlerTests : IDisposable
     private readonly FakeProjectPortfolioManagementDbContext _dbContext;
     private readonly ChangeProjectKeyCommandHandler _handler;
     private readonly Mock<ILogger<ChangeProjectKeyCommandHandler>> _mockLogger;
+    private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider;
 
     private readonly ProjectFaker _projectFaker;
@@ -25,7 +27,17 @@ public class ChangeProjectKeyCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<ChangeProjectKeyCommandHandler>>();
         _dateTimeProvider = new TestingDateTimeProvider(new DateTime(2025, 3, 3));
 
-        _handler = new ChangeProjectKeyCommandHandler(_dbContext, _mockLogger.Object, _dateTimeProvider);
+        // Authorized by default so tests about key-change mechanics need not arrange membership.
+        _mockCurrentPrincipal = new Mock<ICurrentPrincipal>();
+        _mockCurrentPrincipal
+            .Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid());
+        _mockCurrentPrincipal
+            .Setup(p => p.HasPermission(PpmAuthorizationExtensions.PpmAdministratorPermission, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        _handler = new ChangeProjectKeyCommandHandler(
+            _dbContext, _mockCurrentPrincipal.Object, _mockLogger.Object, _dateTimeProvider);
 
         _projectFaker = new ProjectFaker();
     }

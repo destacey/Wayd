@@ -1,6 +1,8 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
-public sealed record ApproveProjectCommand(Guid Id) : ICommand;
+namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
+
+public sealed record ApproveProjectCommand(Guid Id) : ICommand, IRequireLinkedEmployee;
 
 public sealed class ApproveProjectCommandValidator : AbstractValidator<ApproveProjectCommand>
 {
@@ -11,18 +13,28 @@ public sealed class ApproveProjectCommandValidator : AbstractValidator<ApprovePr
     }
 }
 
-public sealed class ApproveProjectCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<ApproveProjectCommandHandler> logger) : ICommandHandler<ApproveProjectCommand>
+public sealed class ApproveProjectCommandHandler(
+    IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
+    ICurrentPrincipal currentPrincipal,
+    ILogger<ApproveProjectCommandHandler> logger) : ICommandHandler<ApproveProjectCommand>
 {
     private const string AppRequestName = nameof(ApproveProjectCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<ApproveProjectCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ApproveProjectCommand request, CancellationToken cancellationToken)
     {
         try
         {
+            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+
             var project = await _projectPortfolioManagementDbContext.Projects
+                .AsSplitQuery()
+                .Include(p => p.Roles)
+                .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
+                .Include(p => p.Program).ThenInclude(p => p!.Roles)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
             if (project is null)
             {
@@ -30,7 +42,7 @@ public sealed class ApproveProjectCommandHandler(IProjectPortfolioManagementDbCo
                 return Result.Failure("Project not found.");
             }
 
-            var approveResult = project.Approve();
+            var approveResult = project.Approve(actor, project.AncestryRoles());
             if (approveResult.IsFailure)
             {
                 // Reset the entity

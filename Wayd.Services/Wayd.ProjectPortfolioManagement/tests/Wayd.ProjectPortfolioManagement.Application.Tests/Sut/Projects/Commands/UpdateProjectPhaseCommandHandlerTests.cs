@@ -12,6 +12,8 @@ using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.Common.Models;
 
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Projects.Commands;
 
 public class UpdateProjectPhaseCommandHandlerTests : IDisposable
@@ -65,7 +67,7 @@ public class UpdateProjectPhaseCommandHandlerTests : IDisposable
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
         var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Plan", "Planning"), ("Execute", "Execution"), ("Deliver", "Delivery"));
-        project.AssignLifecycle(lifecycle);
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
         _dbContext.AddProject(project);
         _dbContext.AddProjectPhases(project.Phases);
 
@@ -103,7 +105,7 @@ public class UpdateProjectPhaseCommandHandlerTests : IDisposable
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
         var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Plan", "Planning"), ("Execute", "Execution"), ("Deliver", "Delivery"));
-        project.AssignLifecycle(lifecycle);
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
         _dbContext.AddProject(project);
         _dbContext.AddProjectPhases(project.Phases);
 
@@ -137,7 +139,7 @@ public class UpdateProjectPhaseCommandHandlerTests : IDisposable
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
         var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Plan", "Planning"));
-        project.AssignLifecycle(lifecycle);
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
         var phase = project.Phases.First();
         
         var rootTaskRange = new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 6, 12));
@@ -172,7 +174,7 @@ public class UpdateProjectPhaseCommandHandlerTests : IDisposable
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
         var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Plan", "Planning"));
-        project.AssignLifecycle(lifecycle);
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
         var phase = project.Phases.First();
         
         var rootTaskRange = new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 6, 12));

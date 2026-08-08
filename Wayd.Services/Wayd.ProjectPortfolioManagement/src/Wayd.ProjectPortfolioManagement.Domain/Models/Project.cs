@@ -1,4 +1,4 @@
-using Ardalis.GuardClauses;
+﻿using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
@@ -7,6 +7,7 @@ using Wayd.Common.Domain.Models.HealthChecks;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 using NodaTime;
@@ -18,6 +19,9 @@ namespace Wayd.ProjectPortfolioManagement.Domain.Models;
 /// </summary>
 public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISimpleProject
 {
+    private const string UnauthorizedManageActorError =
+        "You are not authorized to manage this project. Project, program, or portfolio Owners and Managers may.";
+
     private readonly HashSet<RoleAssignment<ProjectRole>> _roles = [];
     private readonly HashSet<StrategicThemeTag<Project>> _strategicThemeTags = [];
     private readonly HashSet<StrategicInitiativeProject> _strategicInitiativeProjects = [];
@@ -221,15 +225,31 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     public bool CanBeDeleted() => Status is ProjectStatus.Proposed;
 
     /// <summary>
-    /// Updates the core details of the project.
+    /// Updates the core details of the project on behalf of an actor who must be authorized to manage it.
     /// </summary>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
     /// <param name="name">The new name to assign to the project. Cannot be null.</param>
     /// <param name="description">The new description to assign to the project. Cannot be null.</param>
+    /// <param name="businessCase">The new business case.</param>
+    /// <param name="expectedBenefits">The new expected benefits.</param>
     /// <param name="expenditureCategoryId">The new expenditure category ID to assign to the project.</param>
     /// <param name="timestamp">The timestamp indicating when the update occurred.</param>
-    /// <returns></returns>
-    public Result UpdateDetails(string name, string description, string? businessCase, string? expectedBenefits, int expenditureCategoryId, Instant timestamp)
+    public Result UpdateDetails(
+        PpmActor actor,
+        ProjectAncestryRoles ancestry,
+        string name,
+        string description,
+        string? businessCase,
+        string? expectedBenefits,
+        int expenditureCategoryId,
+        Instant timestamp)
     {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         Name = name;
         Description = description;
         BusinessCase = businessCase?.Trim();
@@ -242,33 +262,71 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     }
 
     /// <summary>
-    /// Assigns an employee to a specific role within the project, allowing multiple employees per role.
+    /// Assigns an employee to a role on behalf of an actor who must be authorized to manage the project.
+    /// Role assignment is gated because it is the path by which membership itself is granted — leaving it
+    /// open would let any holder of the Update permission make themselves an Owner.
     /// </summary>
-    public Result AssignRole(ProjectRole role, Guid employeeId)
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
+    /// <param name="role">The role to assign.</param>
+    /// <param name="employeeId">The employee receiving the role.</param>
+    public Result AssignRole(PpmActor actor, ProjectAncestryRoles ancestry, ProjectRole role, Guid employeeId)
     {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         return RoleManager.AssignRole(_roles, Id, role, employeeId);
     }
 
     /// <summary>
-    /// Removes an employee from a specific role.
+    /// Removes an employee from a role on behalf of an actor who must be authorized to manage the project.
     /// </summary>
-    public Result RemoveRole(ProjectRole role, Guid employeeId)
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
+    /// <param name="role">The role to remove.</param>
+    /// <param name="employeeId">The employee losing the role.</param>
+    public Result RemoveRole(PpmActor actor, ProjectAncestryRoles ancestry, ProjectRole role, Guid employeeId)
     {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         return RoleManager.RemoveAssignment(_roles, role, employeeId);
     }
 
     /// <summary>
-    /// Updates the roles for the project.
+    /// Replaces the project's role assignments on behalf of an actor who must be authorized to manage it.
     /// </summary>
-    /// <param name="updatedRoles"></param>
-    /// <returns></returns>
-    public Result UpdateRoles(Dictionary<ProjectRole, HashSet<Guid>> updatedRoles)
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
+    /// <param name="updatedRoles">The replacement role assignments.</param>
+    public Result UpdateRoles(PpmActor actor, ProjectAncestryRoles ancestry, Dictionary<ProjectRole, HashSet<Guid>> updatedRoles)
     {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         return RoleManager.UpdateRoles(_roles, Id, updatedRoles);
     }
 
-    public Result UpdateTimeline(LocalDateRange? dateRange)
+    /// <summary>
+    /// Updates the project's timeline on behalf of an actor who must be authorized to manage it. Dates
+    /// are gated because lifecycle guards read them — moving them changes which transitions are legal.
+    /// </summary>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
+    /// <param name="dateRange">The new timeline, or null to clear it.</param>
+    public Result UpdateTimeline(PpmActor actor, ProjectAncestryRoles ancestry, LocalDateRange? dateRange)
     {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         if (Status is ProjectStatus.Active or ProjectStatus.Completed && dateRange is null)
         {
             return Result.Failure("Active and completed projects must have a start and end date.");
@@ -280,10 +338,20 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     }
 
     /// <summary>
-    /// Updates the project's key and cascades the change to all linked tasks by updating their task keys.
+    /// Updates the project's key on behalf of an actor who must be authorized to manage it, cascading the
+    /// change to all linked tasks.
     /// </summary>
-    public Result ChangeKey(ProjectKey key, Instant timestamp)
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
+    /// <param name="key">The new project key.</param>
+    /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
+    public Result ChangeKey(PpmActor actor, ProjectAncestryRoles ancestry, ProjectKey key, Instant timestamp)
     {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         Guard.Against.Null(key, nameof(key));
 
         if (Key.Value == key.Value)
@@ -372,12 +440,18 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     #region Lifecycle
 
     /// <summary>
-    /// Assigns a project lifecycle to this project, creating phase instances from the lifecycle template.
-    /// Only allowed when the project is in Proposed or Approved state and no lifecycle is currently assigned.
+    /// Assigns a project lifecycle on behalf of an actor who must be authorized to manage the project.
     /// </summary>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
     /// <param name="lifecycle">The lifecycle to assign. Must be in Active state.</param>
-    public Result AssignLifecycle(ProjectLifecycle lifecycle)
+    public Result AssignLifecycle(PpmActor actor, ProjectAncestryRoles ancestry, ProjectLifecycle lifecycle)
     {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         Guard.Against.Null(lifecycle, nameof(lifecycle));
 
         if (IsClosed)
@@ -406,12 +480,23 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     }
 
     /// <summary>
-    /// Changes the project's lifecycle to a new one, remapping tasks from old phases to new phases.
+    /// Changes the project's lifecycle on behalf of an actor who must be authorized to manage it.
     /// </summary>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
     /// <param name="newLifecycle">The new lifecycle to assign.</param>
-    /// <param name="phaseMapping">Maps old phase IDs to new lifecycle phase IDs (template phase IDs from the new lifecycle).</param>
-    public Result ChangeLifecycle(ProjectLifecycle newLifecycle, Dictionary<Guid, Guid> phaseMapping)
+    /// <param name="phaseMapping">Maps old phase IDs to new lifecycle phase IDs.</param>
+    public Result ChangeLifecycle(
+        PpmActor actor,
+        ProjectAncestryRoles ancestry,
+        ProjectLifecycle newLifecycle,
+        Dictionary<Guid, Guid> phaseMapping)
     {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         Guard.Against.Null(newLifecycle, nameof(newLifecycle));
         Guard.Against.Null(phaseMapping, nameof(phaseMapping));
 
@@ -506,10 +591,17 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     }
 
     /// <summary>
-    /// Approves the project. A lifecycle must be assigned before approval.
+    /// Approves the project on behalf of an actor who must be authorized to manage it.
     /// </summary>
-    public Result Approve()
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
+    public Result Approve(PpmActor actor, ProjectAncestryRoles ancestry)
     {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         if (Status != ProjectStatus.Proposed)
         {
             return Result.Failure("Only proposed projects can be approved.");
@@ -526,10 +618,17 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     }
 
     /// <summary>
-    /// Activates the project.
+    /// Activates the project on behalf of an actor who must be authorized to manage it.
     /// </summary>
-    public Result Activate()
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
+    public Result Activate(PpmActor actor, ProjectAncestryRoles ancestry)
     {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         if (Status is not (ProjectStatus.Proposed or ProjectStatus.Approved))
         {
             return Result.Failure("Only proposed or approved projects can be activated.");
@@ -546,10 +645,17 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     }
 
     /// <summary>
-    /// Marks the project as completed.
+    /// Marks the project as completed on behalf of an actor who must be authorized to manage it.
     /// </summary>
-    public Result Complete()
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
+    public Result Complete(PpmActor actor, ProjectAncestryRoles ancestry)
     {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         if (Status != ProjectStatus.Active)
         {
             return Result.Failure("Only active projects can be completed.");
@@ -566,10 +672,17 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     }
 
     /// <summary>
-    /// Cancels the project.
+    /// Cancels the project on behalf of an actor who must be authorized to manage it.
     /// </summary>
-    public Result Cancel()
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
+    public Result Cancel(PpmActor actor, ProjectAncestryRoles ancestry)
     {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         if (Status is ProjectStatus.Completed or ProjectStatus.Cancelled)
         {
             return Result.Failure("The project is already completed or cancelled.");
@@ -1108,6 +1221,32 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         "Only the project's owner or manager — or the parent portfolio's or program's owner or manager — may score this project.";
 
     /// <summary>
+    /// Records a new score on behalf of an actor who must be authorized to manage the project. Honours the
+    /// domain-wide PPM administrator grant.
+    /// </summary>
+    /// <param name="model">The active scoring model assigned to the project's portfolio.</param>
+    /// <param name="ratingValuesByCriterionId">The numeric rating value for each criterion, keyed by criterion ID.</param>
+    /// <param name="selectedLevels">For scale-rated criteria, the selected (level id, label) keyed by criterion ID.</param>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
+    /// <param name="timestamp">The current time.</param>
+    public Result<ProjectScore> RecordScore(
+        ScoringModel model,
+        IReadOnlyDictionary<Guid, decimal> ratingValuesByCriterionId,
+        IReadOnlyDictionary<Guid, (Guid LevelId, string Label)>? selectedLevels,
+        PpmActor actor,
+        ProjectAncestryRoles ancestry,
+        Instant timestamp)
+    {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure<ProjectScore>(UnauthorizedScoreActorError);
+        }
+
+        return RecordScoreCore(model, ratingValuesByCriterionId, selectedLevels, actor.EmployeeId, timestamp);
+    }
+
+    /// <summary>
     /// Records a new score for the project from a calculated scoring model result, capturing an immutable
     /// snapshot of the ratings and computed outputs. The actor must be authorized per <see cref="CanManageProject"/>.
     /// The supplied <paramref name="model"/> is read only — it is never attached to this aggregate.
@@ -1128,13 +1267,27 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         IEnumerable<RoleAssignment<ProgramRole>>? programRoles,
         Instant timestamp)
     {
-        Guard.Against.Null(model, nameof(model));
-        Guard.Against.Null(ratingValuesByCriterionId, nameof(ratingValuesByCriterionId));
-
         if (!CanManageProject(actorEmployeeId, portfolioRoles, programRoles))
         {
             return Result.Failure<ProjectScore>(UnauthorizedScoreActorError);
         }
+
+        return RecordScoreCore(model, ratingValuesByCriterionId, selectedLevels, actorEmployeeId, timestamp);
+    }
+
+    /// <summary>
+    /// Records the score once authorization has been established by a calling overload. Never call this
+    /// without having checked <see cref="CanManageProject(PpmActor, ProjectAncestryRoles)"/> first.
+    /// </summary>
+    private Result<ProjectScore> RecordScoreCore(
+        ScoringModel model,
+        IReadOnlyDictionary<Guid, decimal> ratingValuesByCriterionId,
+        IReadOnlyDictionary<Guid, (Guid LevelId, string Label)>? selectedLevels,
+        Guid actorEmployeeId,
+        Instant timestamp)
+    {
+        Guard.Against.Null(model, nameof(model));
+        Guard.Against.Null(ratingValuesByCriterionId, nameof(ratingValuesByCriterionId));
 
         var calculation = model.CalculateScore(ratingValuesByCriterionId);
         if (calculation.IsFailure)
@@ -1199,6 +1352,43 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         if (!CanManageProject(actorEmployeeId, portfolioRoles, programRoles))
             return Result.Failure<ProjectHealthCheck>(UnauthorizedHealthCheckActorError);
 
+        return AddHealthCheckCore(status, actorEmployeeId, expiration, note, now);
+    }
+
+    /// <summary>
+    /// Adds a health check on behalf of an actor who must be authorized to manage the project. Honours the
+    /// domain-wide PPM administrator grant.
+    /// </summary>
+    /// <param name="status">The health status of the new check.</param>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
+    /// <param name="expiration">The expiration time of the health check.</param>
+    /// <param name="note">An optional note for the health check.</param>
+    /// <param name="now">The current time.</param>
+    public Result<ProjectHealthCheck> AddHealthCheck(
+        HealthStatus status,
+        PpmActor actor,
+        ProjectAncestryRoles ancestry,
+        Instant expiration,
+        string? note,
+        Instant now)
+    {
+        if (!CanManageProject(actor, ancestry))
+            return Result.Failure<ProjectHealthCheck>(UnauthorizedHealthCheckActorError);
+
+        return AddHealthCheckCore(status, actor.EmployeeId, expiration, note, now);
+    }
+
+    /// <summary>
+    /// Adds the health check once authorization has been established by a calling overload.
+    /// </summary>
+    private Result<ProjectHealthCheck> AddHealthCheckCore(
+        HealthStatus status,
+        Guid actorEmployeeId,
+        Instant expiration,
+        string? note,
+        Instant now)
+    {
         if (expiration <= now)
             return Result.Failure<ProjectHealthCheck>("Expiration must be in the future.");
 
@@ -1238,6 +1428,45 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         if (!CanManageProject(actorEmployeeId, portfolioRoles, programRoles))
             return Result.Failure<ProjectHealthCheck>(UnauthorizedHealthCheckActorError);
 
+        return UpdateHealthCheckCore(healthCheckId, status, expiration, note, now);
+    }
+
+    /// <summary>
+    /// Updates a health check on behalf of an actor who must be authorized to manage the project. Honours
+    /// the domain-wide PPM administrator grant.
+    /// </summary>
+    /// <param name="healthCheckId">The ID of the health check to update.</param>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
+    /// <param name="status">The new health status.</param>
+    /// <param name="expiration">The new expiration time.</param>
+    /// <param name="note">An optional note for the health check.</param>
+    /// <param name="now">The current time.</param>
+    public Result<ProjectHealthCheck> UpdateHealthCheck(
+        Guid healthCheckId,
+        PpmActor actor,
+        ProjectAncestryRoles ancestry,
+        HealthStatus status,
+        Instant expiration,
+        string? note,
+        Instant now)
+    {
+        if (!CanManageProject(actor, ancestry))
+            return Result.Failure<ProjectHealthCheck>(UnauthorizedHealthCheckActorError);
+
+        return UpdateHealthCheckCore(healthCheckId, status, expiration, note, now);
+    }
+
+    /// <summary>
+    /// Updates the health check once authorization has been established by a calling overload.
+    /// </summary>
+    private Result<ProjectHealthCheck> UpdateHealthCheckCore(
+        Guid healthCheckId,
+        HealthStatus status,
+        Instant expiration,
+        string? note,
+        Instant now)
+    {
         var healthCheck = _healthChecks.FirstOrDefault(h => h.Id == healthCheckId);
         if (healthCheck is null)
             return Result.Failure<ProjectHealthCheck>($"Health check {healthCheckId} not found on project {Id}.");
@@ -1266,6 +1495,32 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         if (!CanManageProject(actorEmployeeId, portfolioRoles, programRoles))
             return Result.Failure<ProjectHealthCheck>(UnauthorizedHealthCheckActorError);
 
+        return RemoveHealthCheckCore(healthCheckId);
+    }
+
+    /// <summary>
+    /// Removes a health check on behalf of an actor who must be authorized to manage the project. Honours
+    /// the domain-wide PPM administrator grant.
+    /// </summary>
+    /// <param name="healthCheckId">The ID of the health check to remove.</param>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
+    public Result<ProjectHealthCheck> RemoveHealthCheck(
+        Guid healthCheckId,
+        PpmActor actor,
+        ProjectAncestryRoles ancestry)
+    {
+        if (!CanManageProject(actor, ancestry))
+            return Result.Failure<ProjectHealthCheck>(UnauthorizedHealthCheckActorError);
+
+        return RemoveHealthCheckCore(healthCheckId);
+    }
+
+    /// <summary>
+    /// Removes the health check once authorization has been established by a calling overload.
+    /// </summary>
+    private Result<ProjectHealthCheck> RemoveHealthCheckCore(Guid healthCheckId)
+    {
         var healthCheck = _healthChecks.FirstOrDefault(h => h.Id == healthCheckId);
         if (healthCheck is null)
             return Result.Failure<ProjectHealthCheck>($"Health check {healthCheckId} not found on project {Id}.");
@@ -1304,6 +1559,23 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return true;
 
         return false;
+    }
+
+    /// <summary>
+    /// Read-side authorization predicate honouring the domain-wide PPM administrator grant. Prefer this
+    /// overload everywhere an actor is available; the role-only overload remains for read-side
+    /// projections that evaluate membership in the database.
+    /// </summary>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
+    /// <returns>True if the actor may manage the project; otherwise, false.</returns>
+    public bool CanManageProject(PpmActor actor, ProjectAncestryRoles ancestry)
+    {
+        Guard.Against.Null(actor, nameof(actor));
+        Guard.Against.Null(ancestry, nameof(ancestry));
+
+        return actor.IsPpmAdministrator
+            || CanManageProject(actor.EmployeeId, ancestry.PortfolioRoles, ancestry.ProgramRoles);
     }
 
     #endregion Health Checks

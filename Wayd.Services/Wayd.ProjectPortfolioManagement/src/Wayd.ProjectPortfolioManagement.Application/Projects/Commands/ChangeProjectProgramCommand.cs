@@ -1,11 +1,13 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+
+namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 
 /// <summary>
 /// Command to change the Program of a Project.
 /// </summary>
 /// <param name="Id"></param>
 /// <param name="ProgramId">The new ProgramId to assign to the Project.  If null, the Program will be removed.</param>
-public sealed record ChangeProjectProgramCommand(Guid Id, Guid? ProgramId) : ICommand;
+public sealed record ChangeProjectProgramCommand(Guid Id, Guid? ProgramId) : ICommand, IRequireLinkedEmployee;
 
 public sealed class ChangeProjectProgramCommandValidator : AbstractValidator<ChangeProjectProgramCommand>
 {
@@ -20,21 +22,34 @@ public sealed class ChangeProjectProgramCommandValidator : AbstractValidator<Cha
     }
 }
 
-public sealed class ChangeProjectProgramCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<ChangeProjectProgramCommandHandler> logger) : ICommandHandler<ChangeProjectProgramCommand>
+public sealed class ChangeProjectProgramCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
+    ICurrentPrincipal currentPrincipal, ILogger<ChangeProjectProgramCommandHandler> logger) : ICommandHandler<ChangeProjectProgramCommand>
 {
     private const string AppRequestName = nameof(ChangeProjectProgramCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<ChangeProjectProgramCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ChangeProjectProgramCommand request, CancellationToken cancellationToken)
     {
         try
         {
+            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+
+            // The portfolio assembles the project's ancestry itself, so its own roles and its programs'
+            // roles both have to be loaded alongside the projects it owns.
             var project = await _projectPortfolioManagementDbContext.Projects
+                .AsSplitQuery()
                 .Include(p => p.Program)
                 .Include(p => p.Portfolio!)
                     .ThenInclude(p => p.Programs)
+                        .ThenInclude(p => p.Roles)
+                .Include(p => p.Portfolio!)
+                    .ThenInclude(p => p.Roles)
+                .Include(p => p.Portfolio!)
+                    .ThenInclude(p => p.Projects)
+                        .ThenInclude(p => p.Roles)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
             if (project is null)
             {
@@ -44,7 +59,7 @@ public sealed class ChangeProjectProgramCommandHandler(IProjectPortfolioManageme
 
             var portfolio = project.Portfolio;
 
-            var changeResult = portfolio!.ChangeProjectProgram(project.Id, request.ProgramId);
+            var changeResult = portfolio!.ChangeProjectProgram(actor, project.Id, request.ProgramId);
             if (changeResult.IsFailure)
             {
                 // Reset the entity

@@ -1,9 +1,10 @@
 ﻿using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
+using NodaTime;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
-using NodaTime;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Models;
 
@@ -12,6 +13,9 @@ namespace Wayd.ProjectPortfolioManagement.Domain.Models;
 /// </summary>
 public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
 {
+    private const string UnauthorizedManageActorError =
+        "You are not authorized to manage this program. Program or portfolio Owners and Managers may.";
+
     private readonly HashSet<RoleAssignment<ProgramRole>> _roles = [];
     private readonly HashSet<Project> _projects = [];
     private readonly HashSet<StrategicThemeTag<Program>> _strategicThemeTags = [];
@@ -116,16 +120,49 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     public bool CanBeDeleted() => Status is ProgramStatus.Proposed;
 
     /// <summary>
-    /// Updates the program's name and description with the specified values and records the update event.
+    /// Read-side authorization predicate: returns true if the given actor may manage this program.
+    /// Owner/Manager on the program itself OR on the parent portfolio is sufficient, as is the
+    /// domain-wide PPM administrator grant. Sponsors are intentionally excluded — they fund and
+    /// oversee but don't run delivery, matching <see cref="Project.CanManageProject(PpmActor, ProjectAncestryRoles)"/>.
+    ///
+    /// The aggregate's management methods enforce the same rule inline, so callers cannot bypass it;
+    /// this method also lets the API layer surface the decision to the UI for action-availability hints.
     /// </summary>
-    /// <remarks>This method raises a domain event to signal that the program details have been updated. The
-    /// event includes the provided timestamp.</remarks>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio.</param>
+    /// <returns>True if the actor may manage the program; otherwise, false.</returns>
+    public bool CanManageProgram(PpmActor actor, ProgramAncestryRoles ancestry)
+    {
+        Guard.Against.Null(actor, nameof(actor));
+        Guard.Against.Null(ancestry, nameof(ancestry));
+
+        if (actor.IsPpmAdministrator)
+            return true;
+
+        if (_roles.Any(r => r.EmployeeId == actor.EmployeeId && r.Role is ProgramRole.Owner or ProgramRole.Manager))
+            return true;
+
+        if (ancestry.PortfolioRoles.Any(r => r.EmployeeId == actor.EmployeeId && r.Role is ProjectPortfolioRole.Owner or ProjectPortfolioRole.Manager))
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
+    /// Updates the program's details on behalf of an actor who must be authorized to manage it.
+    /// </summary>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio.</param>
     /// <param name="name">The new name to assign to the program. Cannot be null.</param>
     /// <param name="description">The new description to assign to the program. Cannot be null.</param>
     /// <param name="timestamp">The timestamp indicating when the update occurred.</param>
-    /// <returns>A result indicating whether the update operation was successful.</returns>
-    public Result UpdateDetails(string name, string description, Instant timestamp)
+    public Result UpdateDetails(PpmActor actor, ProgramAncestryRoles ancestry, string name, string description, Instant timestamp)
     {
+        if (!CanManageProgram(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         Name = name;
         Description = description;
 
@@ -135,12 +172,19 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     }
 
     /// <summary>
-    /// Updates the program's timeline with the specified date range.
+    /// Updates the program's timeline on behalf of an actor who must be authorized to manage it. Dates
+    /// are gated because lifecycle guards read them — moving them changes which transitions are legal.
     /// </summary>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio.</param>
     /// <param name="dateRange">The new date range to assign to the program.</param>
-    /// <returns>A result indicating whether the update operation was successful.</returns>
-    public Result UpdateTimeline(LocalDateRange? dateRange)
+    public Result UpdateTimeline(PpmActor actor, ProgramAncestryRoles ancestry, LocalDateRange? dateRange)
     {
+        if (!CanManageProgram(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         if (Status is ProgramStatus.Active or ProgramStatus.Completed && dateRange is null)
         {
             return Result.Failure("An active and completed program must have a start and end date.");
@@ -152,28 +196,54 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     }
 
     /// <summary>
-    /// Assigns an employee to a specific role within the program, allowing multiple employees per role.
+    /// Assigns an employee to a role on behalf of an actor who must be authorized to manage the program.
+    /// Role assignment is gated because it is the path by which membership itself is granted — leaving it
+    /// open would let any holder of the Update permission make themselves an Owner.
     /// </summary>
-    public Result AssignRole(ProgramRole role, Guid employeeId)
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio.</param>
+    /// <param name="role">The role to assign.</param>
+    /// <param name="employeeId">The employee receiving the role.</param>
+    public Result AssignRole(PpmActor actor, ProgramAncestryRoles ancestry, ProgramRole role, Guid employeeId)
     {
+        if (!CanManageProgram(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         return RoleManager.AssignRole(_roles, Id, role, employeeId);
     }
 
     /// <summary>
-    /// Removes an employee from a specific role.
+    /// Removes an employee from a role on behalf of an actor who must be authorized to manage the program.
     /// </summary>
-    public Result RemoveRole(ProgramRole role, Guid employeeId)
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio.</param>
+    /// <param name="role">The role to remove.</param>
+    /// <param name="employeeId">The employee losing the role.</param>
+    public Result RemoveRole(PpmActor actor, ProgramAncestryRoles ancestry, ProgramRole role, Guid employeeId)
     {
+        if (!CanManageProgram(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         return RoleManager.RemoveAssignment(_roles, role, employeeId);
     }
 
     /// <summary>
-    /// Updates the roles for the program.
+    /// Replaces the program's role assignments on behalf of an actor who must be authorized to manage it.
     /// </summary>
-    /// <param name="updatedRoles"></param>
-    /// <returns></returns>
-    public Result UpdateRoles(Dictionary<ProgramRole, HashSet<Guid>> updatedRoles)
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio.</param>
+    /// <param name="updatedRoles">The replacement role assignments.</param>
+    public Result UpdateRoles(PpmActor actor, ProgramAncestryRoles ancestry, Dictionary<ProgramRole, HashSet<Guid>> updatedRoles)
     {
+        if (!CanManageProgram(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         return RoleManager.UpdateRoles(_roles, Id, updatedRoles);
     }
 
@@ -212,10 +282,17 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     #region Lifecycle
 
     /// <summary>
-    /// Activates the program.
+    /// Activates the program on behalf of an actor who must be authorized to manage it.
     /// </summary>
-    public Result Activate()
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio.</param>
+    public Result Activate(PpmActor actor, ProgramAncestryRoles ancestry)
     {
+        if (!CanManageProgram(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         if (Status != ProgramStatus.Proposed)
         {
             return Result.Failure("Only proposed programs can be activated.");
@@ -232,10 +309,17 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     }
 
     /// <summary>
-    /// Marks the program as completed.
+    /// Marks the program as completed on behalf of an actor who must be authorized to manage it.
     /// </summary>
-    public Result Complete()
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio.</param>
+    public Result Complete(PpmActor actor, ProgramAncestryRoles ancestry)
     {
+        if (!CanManageProgram(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         if (Status != ProgramStatus.Active)
         {
             return Result.Failure("Only active programs can be completed.");
@@ -243,7 +327,7 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
 
         if (DateRange is null)
         {
-            return Result.Failure("The program must have a start and end date before it can be activated.");
+            return Result.Failure("The program must have a start and end date before it can be completed.");
         }
 
         if (_projects.Any(p => !p.IsClosed))
@@ -257,10 +341,17 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     }
 
     /// <summary>
-    /// Cancels the program.
+    /// Cancels the program on behalf of an actor who must be authorized to manage it.
     /// </summary>
-    public Result Cancel()
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio.</param>
+    public Result Cancel(PpmActor actor, ProgramAncestryRoles ancestry)
     {
+        if (!CanManageProgram(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         if (Status is ProgramStatus.Completed or ProgramStatus.Cancelled)
         {
             return Result.Failure("The program is already completed or cancelled.");

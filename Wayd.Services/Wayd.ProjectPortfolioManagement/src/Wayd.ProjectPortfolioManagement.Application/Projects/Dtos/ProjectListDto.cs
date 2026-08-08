@@ -116,7 +116,14 @@ public sealed record ProjectListDto
     /// ProjectToType to perform an EF-friendly projection that uses a captured constant time.
     /// Pass <paramref name="employeeId"/> as null when no user is authenticated.
     /// </summary>
-    public static TypeAdapterConfig CreateTypeAdapterConfig(Instant now, Guid? employeeId)
+    /// <param name="now">The current time, used to filter expired health checks.</param>
+    /// <param name="employeeId">The current user's linked employee, or null when unauthenticated.</param>
+    /// <param name="isPpmAdministrator">
+    /// Whether the current user holds the domain-wide PPM administrator grant, which substitutes for role
+    /// membership. Must mirror the aggregate's rule — if this hint says false where the domain would allow
+    /// the action, the UI hides controls the server would accept.
+    /// </param>
+    public static TypeAdapterConfig CreateTypeAdapterConfig(Instant now, Guid? employeeId, bool isPpmAdministrator = false)
     {
         var config = new TypeAdapterConfig();
 
@@ -156,15 +163,16 @@ public sealed record ProjectListDto
                 ScoringModelName = src.CurrentScore.ScoringModelName,
             })
             .Ignore(dest => dest.Position!)
-            // Single-pass authorization for the grid: Owner/Manager on the project, its portfolio, or
-            // its program. Evaluated inline as SQL subqueries (no per-row second pass).
-            .Map(dest => dest.CanManageProject, src => employeeId.HasValue && (
+            // Single-pass authorization for the grid: the PPM administrator grant, or Owner/Manager on the
+            // project, its portfolio, or its program. Evaluated inline as SQL subqueries (no per-row second
+            // pass). Mirrors Project.CanManageProject — the two must agree or the UI and server disagree.
+            .Map(dest => dest.CanManageProject, src => isPpmAdministrator || (employeeId.HasValue && (
                 src.Roles.Any(r => r.EmployeeId == employeeId.Value &&
                     (r.Role == ProjectRole.Owner || r.Role == ProjectRole.Manager)) ||
                 src.Portfolio!.Roles.Any(r => r.EmployeeId == employeeId.Value &&
                     (r.Role == ProjectPortfolioRole.Owner || r.Role == ProjectPortfolioRole.Manager)) ||
                 (src.Program != null && src.Program.Roles.Any(r => r.EmployeeId == employeeId.Value &&
-                    (r.Role == ProgramRole.Owner || r.Role == ProgramRole.Manager)))));
+                    (r.Role == ProgramRole.Owner || r.Role == ProgramRole.Manager))))));
 
         return config;
     }

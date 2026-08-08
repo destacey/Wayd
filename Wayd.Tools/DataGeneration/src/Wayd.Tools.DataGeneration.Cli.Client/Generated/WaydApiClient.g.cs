@@ -61016,6 +61016,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> PortfolioManagers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
+        [System.Text.Json.Serialization.JsonPropertyName("canManagePortfolio")]
+        public bool CanManagePortfolio { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -61688,6 +61691,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("strategicThemes")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<NavigationDto> StrategicThemes { get; set; } = new System.Collections.ObjectModel.Collection<NavigationDto>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("canManageProgram")]
+        public bool CanManageProgram { get; set; } = default!;
 
     }
 

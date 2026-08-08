@@ -1,6 +1,8 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
-public sealed record ActivateProjectPortfolioCommand(Guid Id) : ICommand;
+namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
+
+public sealed record ActivateProjectPortfolioCommand(Guid Id) : ICommand, IRequireLinkedEmployee;
 
 public sealed class ActivateProjectPortfolioCommandValidator : AbstractValidator<ActivateProjectPortfolioCommand>
 {
@@ -11,11 +13,16 @@ public sealed class ActivateProjectPortfolioCommandValidator : AbstractValidator
     }
 }
 
-public sealed class ActivateProjectPortfolioCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<ActivateProjectPortfolioCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ActivateProjectPortfolioCommand>
+public sealed class ActivateProjectPortfolioCommandHandler(
+    IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
+    ICurrentPrincipal currentPrincipal,
+    ILogger<ActivateProjectPortfolioCommandHandler> logger,
+    IDateTimeProvider dateTimeProvider) : ICommandHandler<ActivateProjectPortfolioCommand>
 {
     private const string AppRequestName = nameof(ActivateProjectPortfolioCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<ActivateProjectPortfolioCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -23,7 +30,10 @@ public sealed class ActivateProjectPortfolioCommandHandler(IProjectPortfolioMana
     {
         try
         {
+            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+
             var portfolio = await _projectPortfolioManagementDbContext.Portfolios
+                .Include(p => p.Roles)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
             if (portfolio is null)
             {
@@ -31,7 +41,7 @@ public sealed class ActivateProjectPortfolioCommandHandler(IProjectPortfolioMana
                 return Result.Failure("Project Portfolio not found.");
             }
 
-            var activateResult = portfolio.Activate(_dateTimeProvider.Today);
+            var activateResult = portfolio.Activate(actor, _dateTimeProvider.Today);
             if (activateResult.IsFailure)
             {
                 // Reset the entity

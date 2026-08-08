@@ -1,5 +1,7 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Wayd.Common.Application.Interfaces;
+using Wayd.ProjectPortfolioManagement.Application.Common;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
@@ -8,6 +10,8 @@ using Moq;
 using NodaTime.Extensions;
 using NodaTime.Testing;
 
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Projects.Commands;
 
 public class AssignProjectLifecycleCommandHandlerTests : IDisposable
@@ -15,6 +19,7 @@ public class AssignProjectLifecycleCommandHandlerTests : IDisposable
     private readonly FakeProjectPortfolioManagementDbContext _dbContext;
     private readonly AssignProjectLifecycleCommandHandler _handler;
     private readonly Mock<ILogger<AssignProjectLifecycleCommandHandler>> _mockLogger;
+    private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal;
     private readonly TestingDateTimeProvider _dateTimeProvider;
 
     private readonly ProjectFaker _projectFaker;
@@ -26,7 +31,16 @@ public class AssignProjectLifecycleCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<AssignProjectLifecycleCommandHandler>>();
         _dateTimeProvider = new TestingDateTimeProvider(new FakeClock(DateTime.UtcNow.ToInstant()));
 
-        _handler = new AssignProjectLifecycleCommandHandler(_dbContext, _mockLogger.Object);
+        // Authorized by default so tests about assignment mechanics need not arrange membership.
+        _mockCurrentPrincipal = new Mock<ICurrentPrincipal>();
+        _mockCurrentPrincipal
+            .Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid());
+        _mockCurrentPrincipal
+            .Setup(p => p.HasPermission(PpmAuthorizationExtensions.PpmAdministratorPermission, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        _handler = new AssignProjectLifecycleCommandHandler(_dbContext, _mockCurrentPrincipal.Object, _mockLogger.Object);
 
         _projectFaker = new ProjectFaker();
         _lifecycleFaker = new ProjectLifecycleFaker();
@@ -93,7 +107,7 @@ public class AssignProjectLifecycleCommandHandlerTests : IDisposable
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
         var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Plan", "Planning"), ("Execute", "Execution"));
-        project.AssignLifecycle(lifecycle);
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
         _dbContext.AddProject(project);
 
         var secondLifecycle = _lifecycleFaker.AsActiveWithPhases(("Design", "Design Phase"), ("Build", "Build Phase"));

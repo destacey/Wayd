@@ -1,5 +1,7 @@
-﻿using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Validators;
+
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 
@@ -8,7 +10,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 /// </summary>
 /// <param name="Id"></param>
 /// <param name="Key">The new Key to assign to the Project.</param>
-public sealed record ChangeProjectKeyCommand(Guid Id, ProjectKey Key) : ICommand;
+public sealed record ChangeProjectKeyCommand(Guid Id, ProjectKey Key) : ICommand, IRequireLinkedEmployee;
 
 public sealed class ChangeProjectKeyCommandValidator : AbstractValidator<ChangeProjectKeyCommand>
 {
@@ -25,6 +27,7 @@ public sealed class ChangeProjectKeyCommandValidator : AbstractValidator<ChangeP
 
 public sealed class ChangeProjectKeyCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
+    ICurrentPrincipal currentPrincipal,
     ILogger<ChangeProjectKeyCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<ChangeProjectKeyCommand>
@@ -32,6 +35,7 @@ public sealed class ChangeProjectKeyCommandHandler(
     private const string AppRequestName = nameof(ChangeProjectKeyCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<ChangeProjectKeyCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -39,8 +43,14 @@ public sealed class ChangeProjectKeyCommandHandler(
     {
         try
         {
+            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+
             var project = await _projectPortfolioManagementDbContext.Projects
+                .AsSplitQuery()
                 .Include(p => p.Tasks)
+                .Include(p => p.Roles)
+                .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
+                .Include(p => p.Program).ThenInclude(p => p!.Roles)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
             if (project is null)
             {
@@ -51,7 +61,7 @@ public sealed class ChangeProjectKeyCommandHandler(
             var originalKey = project.Key;
             var newKey = request.Key;
 
-            var changeResult = project.ChangeKey(newKey, _dateTimeProvider.Now);
+            var changeResult = project.ChangeKey(actor, project.AncestryRoles(), newKey, _dateTimeProvider.Now);
             if (changeResult.IsFailure)
             {
                 // Reset the entity

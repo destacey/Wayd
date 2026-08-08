@@ -136,9 +136,6 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   // Managing a project needs the Update permission AND delivery leadership on it — project, program, or
   // portfolio Owner/Manager, or the PPM administrator grant. The server computes the membership half
   // (canManageProject) so the UI cannot drift from the rule the aggregate enforces.
-  //
-  // Note this gates the operations the domain gates: edit, and the four lifecycle transitions. Actions the
-  // domain has NOT gated (change program, change key, assign/change lifecycle) stay on canUpdateProject.
   const canManageProject =
     canUpdateProject && !!projectData?.canManageProject
 
@@ -295,7 +292,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         onClick: () => setOpenEditProjectForm(true),
       })
     }
-    if (canUpdateProject) {
+    if (canManageProject) {
       items.push({
         key: 'change-program',
         label: ProjectAction.ChangeProgram,

@@ -13,6 +13,8 @@ using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Models;
 
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.ProjectTasks.Commands;
 
 public class UpdateProjectTaskCommandHandlerTests : IDisposable
@@ -69,7 +71,7 @@ public class UpdateProjectTaskCommandHandlerTests : IDisposable
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
         var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Plan", "Planning"));
-        project.AssignLifecycle(lifecycle);
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
         var phase = project.Phases.First();
         
         var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
@@ -111,7 +113,7 @@ public class UpdateProjectTaskCommandHandlerTests : IDisposable
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
         var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Plan", "Planning"));
-        project.AssignLifecycle(lifecycle);
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
         var phase = project.Phases.First();
         
         var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
@@ -155,7 +157,7 @@ public class UpdateProjectTaskCommandHandlerTests : IDisposable
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
         var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Plan", "Planning"));
-        project.AssignLifecycle(lifecycle);
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
         var phase = project.Phases.First();
         
         var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));

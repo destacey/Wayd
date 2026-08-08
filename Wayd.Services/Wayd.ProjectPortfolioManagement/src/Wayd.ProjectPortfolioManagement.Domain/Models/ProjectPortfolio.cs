@@ -291,13 +291,13 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     private const double RankStep = 1000d;
 
     /// <summary>
-    /// Whether the employee may rank this portfolio's projects — portfolio Owner or Manager.
-    /// Mirrors the portfolio-role clause of <see cref="Project.CanManageProject"/>. Surfaced so the
-    /// API can hint action availability; enforced inside the ranking methods so no path bypasses it.
+    /// Whether the actor may rank this portfolio's projects. Identical to
+    /// <see cref="CanManagePortfolio"/> — portfolio Owner or Manager, or the domain-wide PPM administrator
+    /// grant — because ranking is one of the portfolio's management actions. Surfaced so the API can hint
+    /// action availability; enforced inside the ranking methods so no path bypasses it.
     /// </summary>
-    public bool CanManageRanking(Guid employeeId) =>
-        _roles.Any(r => r.EmployeeId == employeeId
-            && r.Role is ProjectPortfolioRole.Owner or ProjectPortfolioRole.Manager);
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    public bool CanManageRanking(PpmActor actor) => CanManagePortfolio(actor);
 
     /// <summary>
     /// Places the ordered <paramref name="orderedProjectIds"/> between two ranked anchors, assigning
@@ -308,7 +308,7 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// order; this method owns the values.
     /// </summary>
     public Result MoveProjectRanks(
-        Guid employeeId,
+        PpmActor actor,
         IReadOnlyList<Guid> orderedProjectIds,
         Guid? afterProjectId,
         Guid? beforeProjectId)
@@ -318,7 +318,7 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure(ReadOnlyErrorMessage);
         }
 
-        if (!CanManageRanking(employeeId))
+        if (!CanManageRanking(actor))
         {
             return Result.Failure("You are not authorized to rank this portfolio's projects.");
         }
@@ -409,20 +409,19 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// continue the sequence. This bootstraps ranking when nothing is ranked yet and is also run
     /// periodically to remove fractional drift and gaps left by closed projects.
     /// </summary>
-    /// <param name="employeeId">The acting employee. Ignored when <paramref name="bypassManageCheck"/> is true.</param>
-    /// <param name="bypassManageCheck">
-    /// When true, skips the per-actor Owner/Manager check. Reserved for system-initiated maintenance
-    /// (e.g. a scheduled rebalance), where there is no human actor. The application layer is
-    /// responsible for only setting this for a trusted system context — never for a normal user.
+    /// <param name="actor">
+    /// The acting employee and their administrator standing. Pass <see cref="PpmActor.System"/> for
+    /// system-initiated maintenance (e.g. a scheduled rebalance), where there is no human actor — the
+    /// application layer is responsible for only using it in a trusted system context.
     /// </param>
-    public Result RebalanceRanks(Guid employeeId, bool bypassManageCheck = false)
+    public Result RebalanceRanks(PpmActor actor)
     {
         if (IsReadOnly)
         {
             return Result.Failure(ReadOnlyErrorMessage);
         }
 
-        if (!bypassManageCheck && !CanManageRanking(employeeId))
+        if (!CanManageRanking(actor))
         {
             return Result.Failure("You are not authorized to rank this portfolio's projects.");
         }
@@ -696,12 +695,34 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
         return Result.Success(project);
     }
 
-    public Result ChangeProjectProgram(Guid projectId, Guid? programId)
+    /// <summary>
+    /// Reassigns a project to a different program on behalf of an actor who must be authorized to manage
+    /// that project. The rule is the project's, not the portfolio's — reassignment is a change to the
+    /// project, so a program-level Owner/Manager qualifies just as they would for any other project edit.
+    /// </summary>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="projectId">The project to reassign.</param>
+    /// <param name="programId">The new program, or null to remove the project from its program.</param>
+    public Result ChangeProjectProgram(PpmActor actor, Guid projectId, Guid? programId)
     {
         var project = _projects.SingleOrDefault(p => p.Id == projectId);
         if (project is null)
         {
             return Result.Failure("The specified project does not belong to this portfolio.");
+        }
+
+        // The portfolio owns both collections, so the project's ancestry is assembled here rather than
+        // passed in.
+        var ancestry = new ProjectAncestryRoles(
+            _roles,
+            project.ProgramId.HasValue
+                ? _programs.SingleOrDefault(p => p.Id == project.ProgramId.Value)?.Roles
+                : null);
+
+        if (!project.CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(
+                "You are not authorized to manage this project. Project, program, or portfolio Owners and Managers may.");
         }
 
         if (project.ProgramId == programId)

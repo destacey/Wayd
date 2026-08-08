@@ -137,7 +137,12 @@ public sealed class ImportProjectsCommandHandler(
 
                 if (row.ProjectLifecycleName is not null)
                 {
-                    var assignResult = project.AssignLifecycle(lifecyclesByName[Normalize(row.ProjectLifecycleName)]);
+                    // PpmActor.System for the same reason as ApplyStatus below: import is authorized by the
+                    // Import claim, and the project was created by this batch so nobody holds a role on it.
+                    var assignResult = project.AssignLifecycle(
+                        PpmActor.System,
+                        ProjectAncestryRoles.None,
+                        lifecyclesByName[Normalize(row.ProjectLifecycleName)]);
                     if (assignResult.IsFailure)
                         return Fail($"Could not assign lifecycle '{row.ProjectLifecycleName}' to project '{row.Key.Value}': {assignResult.Error}");
                 }

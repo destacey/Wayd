@@ -338,10 +338,20 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     }
 
     /// <summary>
-    /// Updates the project's key and cascades the change to all linked tasks by updating their task keys.
+    /// Updates the project's key on behalf of an actor who must be authorized to manage it, cascading the
+    /// change to all linked tasks.
     /// </summary>
-    public Result ChangeKey(ProjectKey key, Instant timestamp)
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
+    /// <param name="key">The new project key.</param>
+    /// <param name="timestamp">The timestamp indicating when the change occurred.</param>
+    public Result ChangeKey(PpmActor actor, ProjectAncestryRoles ancestry, ProjectKey key, Instant timestamp)
     {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         Guard.Against.Null(key, nameof(key));
 
         if (Key.Value == key.Value)
@@ -430,12 +440,18 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     #region Lifecycle
 
     /// <summary>
-    /// Assigns a project lifecycle to this project, creating phase instances from the lifecycle template.
-    /// Only allowed when the project is in Proposed or Approved state and no lifecycle is currently assigned.
+    /// Assigns a project lifecycle on behalf of an actor who must be authorized to manage the project.
     /// </summary>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
     /// <param name="lifecycle">The lifecycle to assign. Must be in Active state.</param>
-    public Result AssignLifecycle(ProjectLifecycle lifecycle)
+    public Result AssignLifecycle(PpmActor actor, ProjectAncestryRoles ancestry, ProjectLifecycle lifecycle)
     {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         Guard.Against.Null(lifecycle, nameof(lifecycle));
 
         if (IsClosed)
@@ -464,12 +480,23 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     }
 
     /// <summary>
-    /// Changes the project's lifecycle to a new one, remapping tasks from old phases to new phases.
+    /// Changes the project's lifecycle on behalf of an actor who must be authorized to manage it.
     /// </summary>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
     /// <param name="newLifecycle">The new lifecycle to assign.</param>
-    /// <param name="phaseMapping">Maps old phase IDs to new lifecycle phase IDs (template phase IDs from the new lifecycle).</param>
-    public Result ChangeLifecycle(ProjectLifecycle newLifecycle, Dictionary<Guid, Guid> phaseMapping)
+    /// <param name="phaseMapping">Maps old phase IDs to new lifecycle phase IDs.</param>
+    public Result ChangeLifecycle(
+        PpmActor actor,
+        ProjectAncestryRoles ancestry,
+        ProjectLifecycle newLifecycle,
+        Dictionary<Guid, Guid> phaseMapping)
     {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         Guard.Against.Null(newLifecycle, nameof(newLifecycle));
         Guard.Against.Null(phaseMapping, nameof(phaseMapping));
 

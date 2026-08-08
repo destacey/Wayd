@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Interfaces;
 using Wayd.ProjectPortfolioManagement.Application.Common;
@@ -11,6 +11,8 @@ using Wayd.Tests.Shared.Extensions;
 using Moq;
 using NodaTime.Extensions;
 using NodaTime.Testing;
+
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Projects.Commands;
 
@@ -68,7 +70,7 @@ public class ApproveProjectCommandHandlerTests : IDisposable
             .ReturnsAsync(false);
 
         var project = _projectFaker.AsProposed(_dateTimeProvider, Guid.NewGuid());
-        project.AssignLifecycle(new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Planning")));
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Planning")));
         _dbContext.AddProject(project);
 
         var command = new ApproveProjectCommand(project.Id);
@@ -97,7 +99,7 @@ public class ApproveProjectCommandHandlerTests : IDisposable
             .WithRoles(new() { [ProjectRole.Owner] = [_actorEmployeeId] })
             .Generate();
         project.SetPrivate(p => p.Portfolio, portfolio);
-        project.AssignLifecycle(new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Planning")));
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Planning")));
         _dbContext.AddProject(project);
 
         var command = new ApproveProjectCommand(project.Id);
@@ -130,7 +132,7 @@ public class ApproveProjectCommandHandlerTests : IDisposable
             .WithRoles(null)
             .Generate();
         project.SetPrivate(p => p.Portfolio, portfolio);
-        project.AssignLifecycle(new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Planning")));
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Planning")));
         _dbContext.AddProject(project);
 
         var command = new ApproveProjectCommand(project.Id);
@@ -188,7 +190,7 @@ public class ApproveProjectCommandHandlerTests : IDisposable
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider, Guid.NewGuid());
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Planning"), ("Execute", "Execution"));
-        project.AssignLifecycle(lifecycle);
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
         _dbContext.AddProject(project);
 
         var command = new ApproveProjectCommand(project.Id);

@@ -59,7 +59,7 @@ public class ImportProjectPhasesCommandHandlerTests : IDisposable
             _dateTimeProvider.Now).Value;
 
         var lifecycle = new ProjectLifecycleFaker().WithName("Standard").AsActiveWithPhases((PhaseName, "Delivery"), ("Close", "Closure"));
-        _project.AssignLifecycle(lifecycle);
+        _project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
 
         _dbContext.AddProject(_project);
     }

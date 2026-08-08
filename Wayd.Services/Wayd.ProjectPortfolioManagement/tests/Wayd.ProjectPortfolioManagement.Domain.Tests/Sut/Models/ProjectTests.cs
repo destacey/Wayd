@@ -40,7 +40,7 @@ public class ProjectTests
     {
         var project = _projectFaker.Generate();
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(phases);
-        project.AssignLifecycle(lifecycle);
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
         return (project, project.Phases.ToList());
     }
 
@@ -404,7 +404,7 @@ public class ProjectTests
         // Arrange
         var project = _projectFaker.Generate();
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase"), ("Execute", "Execute phase"));
-        project.AssignLifecycle(lifecycle);
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
 
         // Act
         var result = project.Approve(AnAuthorizedActor(), NoProjectAncestry());
@@ -662,7 +662,7 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.Generate();
-        project.AssignLifecycle(new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase")));
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase")));
 
         // Act
         var result = project.Approve(AnUnauthorizedActor(), NoProjectAncestry());
@@ -812,6 +812,152 @@ public class ProjectTests
         canManage.Should().BeFalse();
     }
 
+    // The remaining mutating operations carry the same rule. These were gated later than the lifecycle
+    // transitions, so they get their own coverage rather than relying on the shared predicate being tested
+    // once — a future edit could drop the guard from any one of them without failing another test.
+
+    [Fact]
+    public void ChangeKey_ShouldFail_WhenActorHoldsNoRole()
+    {
+        // Arrange
+        var project = _projectFaker.WithKey(new ProjectKey("ORIG")).Generate();
+
+        // Act
+        var result = project.ChangeKey(
+            AnUnauthorizedActor(), NoProjectAncestry(), new ProjectKey("HIJACK"), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+        project.Key.Value.Should().Be("ORIG");
+    }
+
+    [Fact]
+    public void ChangeKey_ShouldSucceed_WhenActorIsProjectOwner()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var project = _projectFaker.WithKey(new ProjectKey("ORIG")).WithOwner(employeeId).Generate();
+
+        // Act
+        var result = project.ChangeKey(
+            employeeId.AsActor(), NoProjectAncestry(), new ProjectKey("NEWKEY"), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.Key.Value.Should().Be("NEWKEY");
+    }
+
+    [Fact]
+    public void ChangeKey_ShouldSucceed_WhenActorIsPortfolioOwner()
+    {
+        // Arrange — leadership inherits downward.
+        var employeeId = Guid.NewGuid();
+        var portfolioId = Guid.NewGuid();
+        var project = _projectFaker.WithKey(new ProjectKey("ORIG")).WithPortfolioId(portfolioId).Generate();
+        var ancestry = PpmActorDataExtensions.WithPortfolioRole(portfolioId, employeeId, ProjectPortfolioRole.Owner);
+
+        // Act
+        var result = project.ChangeKey(
+            employeeId.AsActor(), ancestry, new ProjectKey("NEWKEY"), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.Key.Value.Should().Be("NEWKEY");
+    }
+
+    [Fact]
+    public void AssignLifecycle_ShouldFail_WhenActorHoldsNoRole()
+    {
+        // Arrange
+        var project = _projectFaker.Generate();
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase"));
+
+        // Act
+        var result = project.AssignLifecycle(AnUnauthorizedActor(), NoProjectAncestry(), lifecycle);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+        project.ProjectLifecycleId.Should().BeNull();
+        project.Phases.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AssignLifecycle_ShouldSucceed_WhenActorIsProjectManager()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var project = _projectFaker
+            .WithRoles(new Dictionary<ProjectRole, HashSet<Guid>> { [ProjectRole.Manager] = [employeeId] })
+            .Generate();
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase"));
+
+        // Act
+        var result = project.AssignLifecycle(employeeId.AsActor(), NoProjectAncestry(), lifecycle);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.ProjectLifecycleId.Should().Be(lifecycle.Id);
+    }
+
+    [Fact]
+    public void AssignLifecycle_ShouldSucceed_ForPpmAdministratorWithNoMembership()
+    {
+        // Arrange
+        var project = _projectFaker.Generate();
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase"));
+
+        // Act
+        var result = project.AssignLifecycle(
+            Guid.NewGuid().AsPpmAdministrator(), NoProjectAncestry(), lifecycle);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ChangeLifecycle_ShouldFail_WhenActorHoldsNoRole()
+    {
+        // Arrange
+        var project = _projectFaker.Generate();
+        var original = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase"));
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), original);
+
+        var replacement = new ProjectLifecycleFaker().AsActiveWithPhases(("Discover", "Discovery phase"));
+        var phaseMapping = project.Phases.ToDictionary(p => p.Id, _ => replacement.Phases.First().Id);
+
+        // Act
+        var result = project.ChangeLifecycle(
+            AnUnauthorizedActor(), NoProjectAncestry(), replacement, phaseMapping);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not authorized");
+        project.ProjectLifecycleId.Should().Be(original.Id);
+    }
+
+    [Fact]
+    public void ChangeLifecycle_ShouldSucceed_WhenActorIsProjectOwner()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var project = _projectFaker.WithOwner(employeeId).Generate();
+        var original = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase"));
+        project.AssignLifecycle(employeeId.AsActor(), NoProjectAncestry(), original);
+
+        var replacement = new ProjectLifecycleFaker().AsActiveWithPhases(("Discover", "Discovery phase"));
+        var phaseMapping = project.Phases.ToDictionary(p => p.Id, _ => replacement.Phases.First().Id);
+
+        // Act
+        var result = project.ChangeLifecycle(
+            employeeId.AsActor(), NoProjectAncestry(), replacement, phaseMapping);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.ProjectLifecycleId.Should().Be(replacement.Id);
+    }
+
     #endregion Authorization Tests
 
     #region Program Association Tests
@@ -945,7 +1091,7 @@ public class ProjectTests
         var newKey = new ProjectKey("NEWPROJ");
 
         // Act
-        var result = project.ChangeKey(newKey, _dateTimeProvider.Now);
+        var result = project.ChangeKey(AnAuthorizedActor(), NoProjectAncestry(), newKey, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -961,7 +1107,7 @@ public class ProjectTests
         var originalKey = project.Key;
 
         // Act
-        var result = project.ChangeKey(originalKey, _dateTimeProvider.Now);
+        var result = project.ChangeKey(AnAuthorizedActor(), NoProjectAncestry(), originalKey, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1006,7 +1152,7 @@ public class ProjectTests
         var newKey = new ProjectKey("NEWTASKS");
 
         // Act
-        var result = project.ChangeKey(newKey, _dateTimeProvider.Now);
+        var result = project.ChangeKey(AnAuthorizedActor(), NoProjectAncestry(), newKey, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1470,7 +1616,7 @@ public class ProjectTests
             ("Deliver", "Release outcome"));
 
         // Act
-        var result = project.AssignLifecycle(lifecycle);
+        var result = project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1493,7 +1639,7 @@ public class ProjectTests
         var lifecycle = ProjectLifecycle.Create("Test", "Description", [("Phase 1", "Description")]);
 
         // Act
-        var result = project.AssignLifecycle(lifecycle);
+        var result = project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1506,12 +1652,12 @@ public class ProjectTests
         // Arrange
         var project = _projectFaker.Generate();
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Phase 1", "Description"));
-        project.AssignLifecycle(lifecycle);
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
 
         var anotherLifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Phase A", "Description"));
 
         // Act
-        var result = project.AssignLifecycle(anotherLifecycle);
+        var result = project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), anotherLifecycle);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1527,7 +1673,7 @@ public class ProjectTests
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Phase 1", "Description"));
 
         // Act
-        var result = project.AssignLifecycle(lifecycle);
+        var result = project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1807,7 +1953,7 @@ public class ProjectTests
         };
 
         // Act
-        var result = project.ChangeLifecycle(newLifecycle, phaseMapping);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, phaseMapping);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1835,7 +1981,7 @@ public class ProjectTests
         var newLifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Phase 1", "First phase"));
 
         // Act
-        var result = project.ChangeLifecycle(newLifecycle, []);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, []);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1850,7 +1996,7 @@ public class ProjectTests
         var newLifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Phase 1", "First phase"));
 
         // Act
-        var result = project.ChangeLifecycle(newLifecycle, []);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, []);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1865,7 +2011,7 @@ public class ProjectTests
         var newLifecycle = new ProjectLifecycleFaker().AsProposedWithPhases(("Phase 1", "First phase"));
 
         // Act
-        var result = project.ChangeLifecycle(newLifecycle, []);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, []);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1878,10 +2024,10 @@ public class ProjectTests
         // Arrange
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Planning phase"), ("Execute", "Execution phase"));
         var project = _projectFaker.Generate();
-        project.AssignLifecycle(lifecycle);
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
 
         // Act
-        var result = project.ChangeLifecycle(lifecycle, []);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle, []);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1909,7 +2055,7 @@ public class ProjectTests
         };
 
         // Act
-        var result = project.ChangeLifecycle(newLifecycle, phaseMapping);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, phaseMapping);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1931,7 +2077,7 @@ public class ProjectTests
         };
 
         // Act
-        var result = project.ChangeLifecycle(newLifecycle, phaseMapping);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, phaseMapping);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1952,7 +2098,7 @@ public class ProjectTests
         var phaseMapping = new Dictionary<Guid, Guid>();
 
         // Act
-        var result = project.ChangeLifecycle(newLifecycle, phaseMapping);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, phaseMapping);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1986,7 +2132,7 @@ public class ProjectTests
         };
 
         // Act
-        var result = project.ChangeLifecycle(newLifecycle, phaseMapping);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, phaseMapping);
 
         // Assert
         result.IsSuccess.Should().BeTrue();

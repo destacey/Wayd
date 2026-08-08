@@ -1,6 +1,8 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
-public sealed record AssignProjectLifecycleCommand(Guid ProjectId, Guid LifecycleId) : ICommand;
+namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
+
+public sealed record AssignProjectLifecycleCommand(Guid ProjectId, Guid LifecycleId) : ICommand, IRequireLinkedEmployee;
 
 public sealed class AssignProjectLifecycleCommandValidator : CustomValidator<AssignProjectLifecycleCommand>
 {
@@ -16,20 +18,28 @@ public sealed class AssignProjectLifecycleCommandValidator : CustomValidator<Ass
 
 public sealed class AssignProjectLifecycleCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
+    ICurrentPrincipal currentPrincipal,
     ILogger<AssignProjectLifecycleCommandHandler> logger)
     : ICommandHandler<AssignProjectLifecycleCommand>
 {
     private const string AppRequestName = nameof(AssignProjectLifecycleCommand);
 
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<AssignProjectLifecycleCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(AssignProjectLifecycleCommand request, CancellationToken cancellationToken)
     {
         try
         {
+            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+
             var project = await _ppmDbContext.Projects
+                .AsSplitQuery()
                 .Include(p => p.Phases)
+                .Include(p => p.Roles)
+                .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
+                .Include(p => p.Program).ThenInclude(p => p!.Roles)
                 .FirstOrDefaultAsync(p => p.Id == request.ProjectId, cancellationToken);
 
             if (project is null)
@@ -48,7 +58,7 @@ public sealed class AssignProjectLifecycleCommandHandler(
                 return Result.Failure($"Project Lifecycle {request.LifecycleId} not found.");
             }
 
-            var result = project.AssignLifecycle(lifecycle);
+            var result = project.AssignLifecycle(actor, project.AncestryRoles(), lifecycle);
             if (result.IsFailure)
             {
                 _logger.LogWarning("Unable to assign lifecycle to project {ProjectId}. Error: {Error}", request.ProjectId, result.Error);

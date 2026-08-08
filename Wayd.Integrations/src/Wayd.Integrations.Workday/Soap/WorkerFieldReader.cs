@@ -56,6 +56,23 @@ internal static class WorkerFieldReader
         }
     }
 
+    /// <summary>
+    /// Enumerates every <see cref="XElement"/> matching <paramref name="xpath"/>. For repeating
+    /// blocks whose attributes the caller needs to inspect, where <see cref="SelectValues"/>'s
+    /// flattening to strings would lose them.
+    /// </summary>
+    public static IEnumerable<XElement> SelectElements(XElement element, string xpath)
+    {
+        var expr = _compiled.GetOrAdd(xpath, static x => XPathExpression.Compile(x, _ns));
+        var navigator = element.CreateNavigator();
+        var iterator = navigator.Select(expr.Clone());
+        while (iterator.MoveNext())
+        {
+            if (iterator.Current?.UnderlyingObject is XElement node)
+                yield return node;
+        }
+    }
+
     /// <summary>Returns the first non-empty string value matching any of <paramref name="xpathCandidates"/>.</summary>
     public static string? GetValue(XElement worker, params string[] xpathCandidates)
     {

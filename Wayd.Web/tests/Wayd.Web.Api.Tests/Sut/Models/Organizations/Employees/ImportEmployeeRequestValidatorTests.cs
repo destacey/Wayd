@@ -1,3 +1,4 @@
+using FluentAssertions;
 using FluentValidation.TestHelper;
 using Wayd.Web.Api.Models.Organizations.Employees;
 
@@ -44,5 +45,90 @@ public sealed class ImportEmployeeRequestValidatorTests
 
         // Assert
         result.ShouldHaveValidationErrorFor(e => e.Email);
+    }
+
+    [Fact]
+    public void AdditionalEmails_SemicolonSeparated_Passes()
+    {
+        // Arrange
+        var request = ValidRequest();
+        request.AdditionalEmails = "ada@acme-legacy.example;a.lovelace@acme-legacy.example";
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Fact]
+    public void AdditionalEmails_Absent_Passes()
+    {
+        // Arrange — the column is optional, so existing files without it keep working.
+        var request = ValidRequest();
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Fact]
+    public void AdditionalEmails_Malformed_FailsValidation()
+    {
+        // Arrange — same reasoning as the primary Email: the EmailAddress cast throws on a bad value.
+        var request = ValidRequest();
+        request.AdditionalEmails = "ada@acme-legacy.example;not-an-email";
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(e => e.AdditionalEmails);
+    }
+
+    [Fact]
+    public void AdditionalEmails_RepeatingThePrimary_FailsValidation()
+    {
+        // Arrange — Email is already recorded as the primary; repeating it would collide on the
+        // EmployeeEmails unique index.
+        var request = ValidRequest();
+        request.AdditionalEmails = "ada.lovelace@acme.example";
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(e => e.AdditionalEmails);
+    }
+
+    [Fact]
+    public void AdditionalEmails_OverLongAddress_FailsValidation()
+    {
+        // Arrange
+        var request = ValidRequest();
+        request.AdditionalEmails = new string('x', 250) + "@acme-legacy.example";
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(e => e.AdditionalEmails);
+    }
+
+    [Fact]
+    public void ToImportEmployeeDto_SplitsAdditionalEmails()
+    {
+        // Arrange
+        var request = ValidRequest();
+        request.AdditionalEmails = " ada@acme-legacy.example ; a.lovelace@acme-legacy.example ";
+
+        // Act
+        var dto = request.ToImportEmployeeDto();
+
+        // Assert — CsvList trims each entry.
+        dto.AdditionalEmails!.Select(e => e.Value).Should().BeEquivalentTo(
+            ["ada@acme-legacy.example", "a.lovelace@acme-legacy.example"]);
     }
 }

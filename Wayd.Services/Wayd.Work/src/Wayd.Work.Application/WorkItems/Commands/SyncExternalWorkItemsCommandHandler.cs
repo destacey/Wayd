@@ -92,14 +92,19 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
             {
                 foreach (var batch in referencedEmails.Chunk(emailBatchSize))
                 {
+                    // Matched against every work address, not just the current one: Azure DevOps stamps
+                    // work items with whatever address the person had at the time, so items predating a
+                    // tenant or domain move still reference an address they have since left behind.
+                    // Employee.Email is always present in this collection, so it covers both cases.
                     var rows = await _workDbContext.Employees
+                        .SelectMany(e => e.Emails)
                         .Where(e => batch.Contains(e.Email))
-                        .Select(e => new { e.Id, e.Email })
+                        .Select(e => new { e.EmployeeId, e.Email })
                         .ToListAsync(cancellationToken);
 
                     foreach (var r in rows)
                     {
-                        employeesByEmail[r.Email.Value] = r.Id;
+                        employeesByEmail[r.Email.Value] = r.EmployeeId;
                     }
                 }
             }
@@ -419,22 +424,18 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
         IExternalWorkItem externalWorkItem,
         Dictionary<string, Guid> employeesByEmail)
     {
-        Guid? createdById = null;
-        if (!string.IsNullOrWhiteSpace(externalWorkItem.CreatedBy)
-            && employeesByEmail.TryGetValue(externalWorkItem.CreatedBy, out var tmpCreated))
-            createdById = tmpCreated;
+        return new EmployeeIds(
+            Resolve(externalWorkItem.CreatedBy),
+            Resolve(externalWorkItem.LastModifiedBy),
+            Resolve(externalWorkItem.AssignedTo));
 
-        Guid? lastModifiedById = null;
-        if (!string.IsNullOrWhiteSpace(externalWorkItem.LastModifiedBy)
-            && employeesByEmail.TryGetValue(externalWorkItem.LastModifiedBy, out var tmpLastModified))
-            lastModifiedById = tmpLastModified;
-
-        Guid? assignedToId = null;
-        if (!string.IsNullOrWhiteSpace(externalWorkItem.AssignedTo)
-            && employeesByEmail.TryGetValue(externalWorkItem.AssignedTo, out var tmpAssigned))
-            assignedToId = tmpAssigned;
-
-        return new EmployeeIds(createdById, lastModifiedById, assignedToId);
+        // Trimmed to match how the dictionary was keyed: the lookup is case-insensitive but not
+        // whitespace-insensitive, so an identifier with stray padding would key on the trimmed value
+        // and then miss on the raw one.
+        Guid? Resolve(string? identifier) =>
+            !string.IsNullOrWhiteSpace(identifier) && employeesByEmail.TryGetValue(identifier.Trim(), out var id)
+                ? id
+                : null;
     }
 
     private static WorkItemExtended? CreateExtendedPropsIfNeeded(Guid workItemId, string? externalTeamIdentifier)

@@ -40801,6 +40801,7 @@
           "email",
           "id",
           "key",
+          "emails",
           "isActive"
         ],
         "properties": {
@@ -40849,6 +40850,12 @@
           "email": {
             "type": "string"
           },
+          "emails": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeEmailDto"
+            }
+          },
           "jobTitle": {
             "type": "string",
             "nullable": true
@@ -40875,6 +40882,29 @@
           "employeeType": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "EmployeeEmailDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "email",
+          "id",
+          "isPrimary"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "email": {
+            "type": "string"
+          },
+          "isPrimary": {
+            "type": "boolean"
           }
         }
       },

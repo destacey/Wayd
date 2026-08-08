@@ -66,7 +66,8 @@ public class PeopleSyncRunnerTests
 
         _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<BulkUpsertEmployeesCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success());
+            .ReturnsAsync((BulkUpsertEmployeesCommand c, CancellationToken _) =>
+                Result.Success(new BulkUpsertEmployeesResult(c.Employees.Count(), new Dictionary<string, string>())));
         _mocker.GetMock<IUserService>()
             .Setup(u => u.UpdateMissingEmployeeIds(It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());

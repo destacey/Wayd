@@ -34,11 +34,37 @@ public sealed class ImportEmployeesCommandValidator : CustomValidator<ImportEmpl
             .NotNull()
             .NotEmpty()
             .Must(e => e.Select(emp => emp.EmployeeNumber).Distinct(StringComparer.OrdinalIgnoreCase).Count() == e.Count())
-                .WithMessage("EmployeeNumber must be unique.");
+                .WithMessage("EmployeeNumber must be unique.")
+            // Every address in the batch has to be unique across both columns and every row: Email and
+            // EmployeeEmails.Email are each uniquely indexed, so a repeat would otherwise fail the whole
+            // batch at SaveChanges with a raw duplicate-key error that names neither the row nor the field.
+            .Must(HasUniqueAddresses)
+                .WithMessage("Email must be unique, including AdditionalEmails.");
 
         RuleForEach(e => e.Employees)
             .NotNull()
             .SetValidator(new ImportEmployeeDtoValidator());
+    }
+
+    /// <summary>
+    /// True when no address appears twice across the batch, counting primary and additional alike.
+    /// </summary>
+    private static bool HasUniqueAddresses(List<ImportEmployeeDto> employees)
+    {
+        HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
+        foreach (var employee in employees)
+        {
+            if (!seen.Add(employee.Email.Value))
+                return false;
+
+            foreach (var additional in employee.AdditionalEmails ?? [])
+            {
+                if (!seen.Add(additional.Value))
+                    return false;
+            }
+        }
+
+        return true;
     }
 }
 
@@ -75,7 +101,9 @@ public sealed class ImportEmployeesCommandHandler(
                     managerId: null,
                     isActive: true,
                     employeeType: row.EmployeeType,
-                    timestamp);
+                    timestamp,
+                    // Email itself is seeded by the factory; these are the extra addresses only.
+                    emails: [.. (row.AdditionalEmails ?? []).Select(e => (e, false))]);
 
                 await _waydDbContext.Employees.AddAsync(employee, cancellationToken);
                 createdByNumber[row.EmployeeNumber] = employee;

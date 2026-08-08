@@ -14,6 +14,10 @@ namespace Wayd.Common.Application.Employees.Dtos;
 /// the domain, so the deactivation event fires.
 /// </para>
 /// </summary>
+/// <param name="AdditionalEmails">
+/// Further work addresses this person is known by, beyond <paramref name="Email"/>. Used to match people
+/// against systems still referencing an address they have moved away from.
+/// </param>
 public sealed record ImportEmployeeDto(
     string EmployeeNumber,
     string FirstName,
@@ -26,7 +30,8 @@ public sealed record ImportEmployeeDto(
     string? OfficeLocation,
     string? ManagerNumber,
     bool IsActive = true,
-    string? EmployeeType = null);
+    string? EmployeeType = null,
+    IReadOnlyList<EmailAddress>? AdditionalEmails = null);
 
 public sealed class ImportEmployeeDtoValidator : CustomValidator<ImportEmployeeDto>
 {

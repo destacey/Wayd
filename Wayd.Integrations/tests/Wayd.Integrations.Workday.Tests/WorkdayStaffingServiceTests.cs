@@ -10,7 +10,7 @@ namespace Wayd.Integrations.Workday.Tests;
 
 public class WorkdayStaffingServiceTests
 {
-    private static readonly DateTimeOffset TestNow = new(2026, 7, 1, 15, 30, 45, TimeSpan.Zero);
+    private static readonly DateTimeOffset _testNow = new(2026, 7, 1, 15, 30, 45, TimeSpan.Zero);
 
     private static WorkdayRequestContext BuildContext(
         WorkdayWorkerKey key = WorkdayWorkerKey.Wid,
@@ -37,7 +37,7 @@ public class WorkdayStaffingServiceTests
     {
         var handler = new FakeHttpMessageHandler();
         var httpClient = new HttpClient(handler);
-        var client = new WorkdayStaffingClient(httpClient, new FixedTimeProvider(TestNow), NullLogger<WorkdayStaffingClient>.Instance);
+        var client = new WorkdayStaffingClient(httpClient, new FixedTimeProvider(_testNow), NullLogger<WorkdayStaffingClient>.Instance);
         var service = new WorkdayStaffingService(client, NullLogger<WorkdayStaffingService>.Instance);
         return (service, handler);
     }
@@ -94,6 +94,101 @@ public class WorkdayStaffingServiceTests
 
         result.IsSuccess.Should().BeTrue();
         result.Value.Employees.Should().BeEmpty("workers with no usable email are skipped rather than failing the run");
+    }
+
+    [Fact]
+    public async Task GetEmployees_multipleWorkEmails_collectsAllOfThem()
+    {
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-multiple-emails.xml"));
+
+        var result = await service.GetEmployees(BuildContext(), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var avery = result.Value.Employees.Single(e => e.Name.FirstName == "Avery");
+        avery.Emails.Select(e => e.Email.Value).Should().BeEquivalentTo(
+            ["avery.chen@acme.example", "avery.chen@acme-legacy.example"]);
+    }
+
+    [Fact]
+    public async Task GetEmployees_homeTypedAddress_isExcluded()
+    {
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-multiple-emails.xml"));
+
+        var result = await service.GetEmployees(BuildContext(), CancellationToken.None);
+
+        var avery = result.Value.Employees.Single(e => e.Name.FirstName == "Avery");
+        avery.Emails.Select(e => e.Email.Value).Should().NotContain("avery.personal@mailbox.example",
+            "HOME addresses are personal data and are useless for cross-system matching");
+    }
+
+    [Fact]
+    public async Task GetEmployees_primaryFlaggedAddress_becomesTheCanonicalEmail()
+    {
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-multiple-emails.xml"));
+
+        var result = await service.GetEmployees(BuildContext(), CancellationToken.None);
+
+        var avery = result.Value.Employees.Single(e => e.Name.FirstName == "Avery");
+        // The Primary-flagged entry is listed second, so document order would pick the legacy one.
+        avery.Email.Value.Should().Be("avery.chen@acme.example");
+        avery.Emails.Single(e => e.IsPrimary).Email.Value.Should().Be("avery.chen@acme.example");
+    }
+
+    [Fact]
+    public async Task GetEmployees_nonPublicAddress_isExcluded()
+    {
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-multiple-emails.xml"));
+
+        var result = await service.GetEmployees(BuildContext(), CancellationToken.None);
+
+        var jordan = result.Value.Employees.Single(e => e.Name.FirstName == "Jordan");
+        // "true"/"false" spelling of the attributes, and the hidden address stays hidden.
+        jordan.Emails.Select(e => e.Email.Value).Should().BeEquivalentTo(["jordan.blake@acme.example"]);
+    }
+
+    [Fact]
+    public async Task GetEmployees_absentPublicAttribute_treatsAddressAsPublic()
+    {
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-multiple-emails.xml"));
+
+        var result = await service.GetEmployees(BuildContext(), CancellationToken.None);
+
+        var sam = result.Value.Employees.Single(e => e.Name.FirstName == "Sam");
+        sam.Emails.Select(e => e.Email.Value).Should().BeEquivalentTo(["sam.ortiz@acme.example"]);
+        sam.Emails.Single().IsPrimary.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetEmployees_singleEmail_stillPopulatesTheCollection()
+    {
+        var (service, handler) = BuildService();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
+
+        var result = await service.GetEmployees(BuildContext(), CancellationToken.None);
+
+        var alex = result.Value.Employees.Single(e => e.Name.FirstName == "Alex");
+        alex.Emails.Select(e => e.Email.Value).Should().BeEquivalentTo(["alex.rivera@acme.example"]);
+    }
+
+    [Fact]
+    public async Task GetEmployees_userIdEmailFallback_includesTheFallbackAddressInTheCollection()
+    {
+        var (service, handler) = BuildService();
+        // Contact_Data is absent entirely, so the collection can only come from the fallback.
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-workers-userid-email.xml"));
+
+        var result = await service.GetEmployees(BuildContext(useUserIdAsEmailFallback: true), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var employee = result.Value.Employees[0];
+        employee.Emails.Should().ContainSingle();
+        employee.Emails.Single().Email.Value.Should().Be(employee.Email.Value);
+        employee.Emails.Single().IsPrimary.Should().BeTrue();
     }
 
     [Fact]

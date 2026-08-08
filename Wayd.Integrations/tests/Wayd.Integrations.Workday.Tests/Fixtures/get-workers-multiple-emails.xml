@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Exercises work-email collection: usage-type filtering, the Public flag, primary selection, and
+  the "1"/"0" vs "true"/"false" spellings Workday uses inconsistently across tenants.
+-->
+<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/" xmlns:wd="urn:com.workday/bsvc">
+  <env:Body>
+    <wd:Get_Workers_Response wd:version="v46.1">
+      <wd:Response_Results>
+        <wd:Total_Results>3</wd:Total_Results>
+        <wd:Total_Pages>1</wd:Total_Pages>
+        <wd:Page_Results>3</wd:Page_Results>
+        <wd:Page>1</wd:Page>
+      </wd:Response_Results>
+      <wd:Response_Data>
+        <!--
+          Two WORK addresses (the second is the pre-migration one) plus a HOME address that must
+          never be captured. Primary is flagged on the second entry, not the first, so document
+          order alone would pick the wrong canonical address.
+        -->
+        <wd:Worker>
+          <wd:Worker_Reference wd:Descriptor="Avery Chen">
+            <wd:ID wd:type="WID">aaaa1111-bbbb-cccc-dddd-eeeeffff0001</wd:ID>
+            <wd:ID wd:type="Employee_ID">WX-10001</wd:ID>
+          </wd:Worker_Reference>
+          <wd:Worker_Data>
+            <wd:Worker_ID>WX-10001</wd:Worker_ID>
+            <wd:Personal_Data>
+              <wd:Name_Data>
+                <wd:Legal_Name_Data>
+                  <wd:Name_Detail_Data>
+                    <wd:First_Name>Avery</wd:First_Name>
+                    <wd:Last_Name>Chen</wd:Last_Name>
+                  </wd:Name_Detail_Data>
+                </wd:Legal_Name_Data>
+              </wd:Name_Data>
+              <wd:Contact_Data>
+                <wd:Email_Address_Data>
+                  <wd:Email_Address>avery.chen@acme-legacy.example</wd:Email_Address>
+                  <wd:Usage_Data wd:Public="1">
+                    <wd:Type_Data wd:Primary="0">
+                      <wd:Type_Reference>
+                        <wd:ID wd:type="Communication_Usage_Type_ID">WORK</wd:ID>
+                      </wd:Type_Reference>
+                    </wd:Type_Data>
+                  </wd:Usage_Data>
+                </wd:Email_Address_Data>
+                <wd:Email_Address_Data>
+                  <wd:Email_Address>avery.chen@acme.example</wd:Email_Address>
+                  <wd:Usage_Data wd:Public="1">
+                    <wd:Type_Data wd:Primary="1">
+                      <wd:Type_Reference>
+                        <wd:ID wd:type="Communication_Usage_Type_ID">WORK</wd:ID>
+                      </wd:Type_Reference>
+                    </wd:Type_Data>
+                  </wd:Usage_Data>
+                </wd:Email_Address_Data>
+                <wd:Email_Address_Data>
+                  <wd:Email_Address>avery.personal@mailbox.example</wd:Email_Address>
+                  <wd:Usage_Data wd:Public="1">
+                    <wd:Type_Data wd:Primary="1">
+                      <wd:Type_Reference>
+                        <wd:ID wd:type="Communication_Usage_Type_ID">HOME</wd:ID>
+                      </wd:Type_Reference>
+                    </wd:Type_Data>
+                  </wd:Usage_Data>
+                </wd:Email_Address_Data>
+              </wd:Contact_Data>
+            </wd:Personal_Data>
+            <wd:Employment_Data>
+              <wd:Worker_Status_Data><wd:Active>1</wd:Active></wd:Worker_Status_Data>
+            </wd:Employment_Data>
+          </wd:Worker_Data>
+        </wd:Worker>
+        <!--
+          Same shape with the "true"/"false" attribute spelling, plus a non-public WORK address:
+          Workday lets a worker hide an address, and a hidden one can be personal despite the type.
+        -->
+        <wd:Worker>
+          <wd:Worker_Reference wd:Descriptor="Jordan Blake">
+            <wd:ID wd:type="WID">aaaa1111-bbbb-cccc-dddd-eeeeffff0002</wd:ID>
+            <wd:ID wd:type="Employee_ID">WX-10002</wd:ID>
+          </wd:Worker_Reference>
+          <wd:Worker_Data>
+            <wd:Worker_ID>WX-10002</wd:Worker_ID>
+            <wd:Personal_Data>
+              <wd:Name_Data>
+                <wd:Legal_Name_Data>
+                  <wd:Name_Detail_Data>
+                    <wd:First_Name>Jordan</wd:First_Name>
+                    <wd:Last_Name>Blake</wd:Last_Name>
+                  </wd:Name_Detail_Data>
+                </wd:Legal_Name_Data>
+              </wd:Name_Data>
+              <wd:Contact_Data>
+                <wd:Email_Address_Data>
+                  <wd:Email_Address>jordan.blake@acme.example</wd:Email_Address>
+                  <wd:Usage_Data wd:Public="true">
+                    <wd:Type_Data wd:Primary="true">
+                      <wd:Type_Reference>
+                        <wd:ID wd:type="Communication_Usage_Type_ID">WORK</wd:ID>
+                      </wd:Type_Reference>
+                    </wd:Type_Data>
+                  </wd:Usage_Data>
+                </wd:Email_Address_Data>
+                <wd:Email_Address_Data>
+                  <wd:Email_Address>jblake.private@acme.example</wd:Email_Address>
+                  <wd:Usage_Data wd:Public="false">
+                    <wd:Type_Data wd:Primary="false">
+                      <wd:Type_Reference>
+                        <wd:ID wd:type="Communication_Usage_Type_ID">WORK</wd:ID>
+                      </wd:Type_Reference>
+                    </wd:Type_Data>
+                  </wd:Usage_Data>
+                </wd:Email_Address_Data>
+              </wd:Contact_Data>
+            </wd:Personal_Data>
+            <wd:Employment_Data>
+              <wd:Worker_Status_Data><wd:Active>1</wd:Active></wd:Worker_Status_Data>
+            </wd:Employment_Data>
+          </wd:Worker_Data>
+        </wd:Worker>
+        <!--
+          No Public/Primary attributes at all — the shape the existing fixtures use. Absent must
+          mean public (Workday's default), or tenants that omit the attribute capture nothing.
+        -->
+        <wd:Worker>
+          <wd:Worker_Reference wd:Descriptor="Sam Ortiz">
+            <wd:ID wd:type="WID">aaaa1111-bbbb-cccc-dddd-eeeeffff0003</wd:ID>
+            <wd:ID wd:type="Employee_ID">WX-10003</wd:ID>
+          </wd:Worker_Reference>
+          <wd:Worker_Data>
+            <wd:Worker_ID>WX-10003</wd:Worker_ID>
+            <wd:Personal_Data>
+              <wd:Name_Data>
+                <wd:Legal_Name_Data>
+                  <wd:Name_Detail_Data>
+                    <wd:First_Name>Sam</wd:First_Name>
+                    <wd:Last_Name>Ortiz</wd:Last_Name>
+                  </wd:Name_Detail_Data>
+                </wd:Legal_Name_Data>
+              </wd:Name_Data>
+              <wd:Contact_Data>
+                <wd:Email_Address_Data>
+                  <wd:Email_Address>sam.ortiz@acme.example</wd:Email_Address>
+                  <wd:Usage_Data>
+                    <wd:Type_Data>
+                      <wd:Type_Reference>
+                        <wd:ID wd:type="Communication_Usage_Type_ID">WORK</wd:ID>
+                      </wd:Type_Reference>
+                    </wd:Type_Data>
+                  </wd:Usage_Data>
+                </wd:Email_Address_Data>
+              </wd:Contact_Data>
+            </wd:Personal_Data>
+            <wd:Employment_Data>
+              <wd:Worker_Status_Data><wd:Active>1</wd:Active></wd:Worker_Status_Data>
+            </wd:Employment_Data>
+          </wd:Worker_Data>
+        </wd:Worker>
+      </wd:Response_Data>
+    </wd:Get_Workers_Response>
+  </env:Body>
+</env:Envelope>

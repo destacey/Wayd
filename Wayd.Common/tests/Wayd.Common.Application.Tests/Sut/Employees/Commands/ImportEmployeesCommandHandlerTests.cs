@@ -21,7 +21,7 @@ public class ImportEmployeesCommandHandlerTests
     private ImportEmployeesCommandHandler CreateHandler() =>
         new(_dbContext, _dateTimeProvider, NullLogger<ImportEmployeesCommandHandler>.Instance);
 
-    private static ImportEmployeeDto Row(string employeeNumber, string email, string? managerNumber = null, bool isActive = true, string? employeeType = null) =>
+    private static ImportEmployeeDto Row(string employeeNumber, string email, string? managerNumber = null, bool isActive = true, string? employeeType = null, string[]? additionalEmails = null) =>
         new(
             employeeNumber,
             FirstName: "Test",
@@ -34,7 +34,8 @@ public class ImportEmployeesCommandHandlerTests
             OfficeLocation: "Remote",
             ManagerNumber: managerNumber,
             IsActive: isActive,
-            EmployeeType: employeeType);
+            EmployeeType: employeeType,
+            AdditionalEmails: additionalEmails is null ? null : [.. additionalEmails.Select(e => new EmailAddress(e))]);
 
     private async Task<List<Employee>> GetEmployees() =>
         await _dbContext.Employees.ToListAsync(TestContext.Current.CancellationToken);
@@ -59,6 +60,43 @@ public class ImportEmployeesCommandHandlerTests
         byNumber["E-1001"].EmployeeType.Should().Be("Employee");
         byNumber["E-1002"].EmployeeType.Should().Be("Contractor");
         byNumber["E-1003"].EmployeeType.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_ImportsAdditionalEmails()
+    {
+        // Arrange
+        var command = new ImportEmployeesCommand(
+        [
+            Row("E-1001", "avery.chen@acme.example", additionalEmails: ["avery.chen@acme-legacy.example"]),
+        ]);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var employee = (await GetEmployees()).Single();
+        employee.Emails.Select(e => e.Email.Value).Should().BeEquivalentTo(
+            ["avery.chen@acme.example", "avery.chen@acme-legacy.example"]);
+        employee.Emails.Single(e => e.IsPrimary).Email.Value.Should().Be("avery.chen@acme.example");
+    }
+
+    [Fact]
+    public async Task Handle_NoAdditionalEmails_StillRecordsTheCanonicalAddress()
+    {
+        // Arrange — the column is optional, so most rows arrive without it.
+        var command = new ImportEmployeesCommand([Row("E-1002", "solo@acme.example")]);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var employee = (await GetEmployees()).Single();
+        employee.Emails.Should().ContainSingle();
+        employee.Emails.Single().Email.Value.Should().Be("solo@acme.example");
+        employee.Emails.Single().IsPrimary.Should().BeTrue();
     }
 
     [Fact]

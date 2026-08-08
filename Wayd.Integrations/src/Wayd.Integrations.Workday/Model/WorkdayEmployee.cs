@@ -21,7 +21,8 @@ public sealed record WorkdayEmployee : IExternalEmployee
         string? officeLocation,
         string? managerEmployeeNumber,
         bool isActive,
-        string? employeeType)
+        string? employeeType,
+        IReadOnlyList<ExternalEmployeeEmail>? emails = null)
     {
         EmployeeNumber = employeeNumber;
         Name = name;
@@ -33,6 +34,7 @@ public sealed record WorkdayEmployee : IExternalEmployee
         ManagerEmployeeNumber = managerEmployeeNumber;
         IsActive = isActive;
         EmployeeType = employeeType;
+        Emails = emails ?? [];
     }
 
     public string EmployeeNumber { get; }
@@ -45,4 +47,5 @@ public sealed record WorkdayEmployee : IExternalEmployee
     public string? ManagerEmployeeNumber { get; }
     public bool IsActive { get; }
     public string? EmployeeType { get; }
+    public IReadOnlyList<ExternalEmployeeEmail> Emails { get; }
 }

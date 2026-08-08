@@ -58,10 +58,25 @@ internal static class WorkerFieldPaths
     ];
 
     // Workday lists multiple email addresses with usage descriptors; "WORK" is the one we want.
+    // The Primary-qualified path comes first: with several WORK addresses on a worker, document
+    // order would otherwise decide which one becomes Employee.Email.
     public static readonly string[] WorkEmail =
     [
+        "wd:Worker_Data/wd:Personal_Data/wd:Contact_Data/wd:Email_Address_Data[wd:Usage_Data/wd:Type_Data[@wd:Primary='1' or @wd:Primary='true']/wd:Type_Reference/wd:ID[@wd:type='Communication_Usage_Type_ID']='WORK']/wd:Email_Address",
         "wd:Worker_Data/wd:Personal_Data/wd:Contact_Data/wd:Email_Address_Data[wd:Usage_Data/wd:Type_Data/wd:Type_Reference/wd:ID[@wd:type='Communication_Usage_Type_ID']='WORK']/wd:Email_Address",
         "wd:Worker_Data/wd:Personal_Data/wd:Contact_Data/wd:Email_Address_Data/wd:Email_Address",
+    ];
+
+    /// <summary>
+    /// The <c>Email_Address_Data</c> elements themselves, so the projector can read each one's
+    /// usage type and Public/Primary attributes in C#. Deliberately unfiltered: Workday emits those
+    /// attributes as "1"/"0" in some tenants and "true"/"false" in others (the same ambiguity the
+    /// Active flag has), and an XPath predicate pinned to one spelling fails silently against the
+    /// other. Filtering in code keeps the WORK-only and public-only rules explicit and testable.
+    /// </summary>
+    public static readonly string[] EmailAddressData =
+    [
+        "wd:Worker_Data/wd:Personal_Data/wd:Contact_Data/wd:Email_Address_Data",
     ];
 
     // The Workday account login. Always exposed by the base Public Worker Reports domain. We only

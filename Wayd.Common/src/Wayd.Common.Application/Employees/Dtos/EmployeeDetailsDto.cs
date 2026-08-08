@@ -54,6 +54,13 @@ public sealed record EmployeeDetailsDto : IMapFrom<Employee>
     /// <value>The email.</value>
     public required string Email { get; set; }
 
+    /// <summary>
+    /// Every work address this person is known by, <see cref="Email"/> included as the primary. Populated
+    /// by the active people connector (or the employee import) and used to match them against systems
+    /// still referencing an address they have moved away from.
+    /// </summary>
+    public List<EmployeeEmailDto> Emails { get; set; } = [];
+
     /// <summary>Gets the job title.</summary>
     /// <value>The job title.</value>
     public string? JobTitle { get; set; }

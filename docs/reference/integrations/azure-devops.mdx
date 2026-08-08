@@ -61,7 +61,26 @@ There are no admin toggles for filtering, projection, or sync cadence beyond the
 3. Each Azure DevOps project is initialized into a Wayd **Workspace**; each work process into a Wayd **Work Process**.
 4. The `WorkSyncRunner` (Hangfire job `WorkFullSync` or `WorkDiffSync`) iterates all active AzDO connections and dispatches work item fetches through the keyed `IWorkItemSource` registered for `Connector.AzureDevOps`.
 5. Synced items have **Managed** ownership and are read-only in Wayd. Differential syncs only re-fetch items changed since the last successful run; full syncs re-pull everything and reconcile deletions.
-6. Each run is captured as a `SyncRun` row; per-run details are stored as JSON and rendered in the Sync History tab on the connection detail page.
+6. A work item's **Assigned To**, **Created By**, and **Changed By** are matched to Wayd employees by email address, comparing against every [work email](#people-matching) an employee has — not just their current one.
+7. Each run is captured as a `SyncRun` row; per-run details are stored as JSON and rendered in the Sync History tab on the connection detail page.
+
+## People matching
+
+Azure DevOps identifies people on a work item by the email address they had **at the time the item was
+stamped**. That address does not change retroactively, so after a tenant or domain migration a project's
+history is full of references to addresses nobody uses any more.
+
+Wayd matches those references against an employee's full set of work addresses, which the active
+[people-sync connection](./index.mdx) populates — Entra from `proxyAddresses`, Workday from the worker's
+WORK-typed entries. An employee whose address changed still resolves on their historical work items.
+
+Two consequences worth knowing:
+
+- **A people sync has to have run.** The addresses come from the people connector, so an Azure DevOps
+  sync run before the first people sync has nothing to match against.
+- **Unmatched identities are silent.** An address Wayd has never seen — a contractor, a service account,
+  someone who left before Wayd was connected — leaves that field empty on the work item rather than
+  failing the sync. There is currently no report of which identities went unmatched.
 
 ## Cross-cutting
 

@@ -4,8 +4,10 @@ using System.Xml.Linq;
 using CSharpFunctionalExtensions;
 using Microsoft.Extensions.Logging;
 using NodaTime;
+using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Common.Domain.Enums.AppIntegrations;
+using Wayd.Common.Extensions;
 using Wayd.Common.Models;
 using Wayd.Integrations.Workday.Model;
 using Wayd.Integrations.Workday.Soap;
@@ -262,7 +264,83 @@ public sealed class WorkdayStaffingService(WorkdayStaffingClient client, ILogger
             officeLocation: WorkerFieldReader.GetValue(worker, WorkerFieldPaths.OfficeLocation),
             managerEmployeeNumber: managerKey,
             isActive: isActive,
-            employeeType: employeeType);
+            employeeType: employeeType,
+            emails: ResolveWorkEmails(worker, email));
+    }
+
+    /// <summary>
+    /// Collects every WORK-typed, public address on the worker. Home addresses are excluded by
+    /// design — they are useless for cross-system people matching and carry privacy risk once
+    /// surfaced in the app — so unlike <see cref="WorkerFieldPaths.WorkEmail"/> there is no
+    /// positional fallback here: a worker with no WORK-typed entry contributes nothing rather than
+    /// a guessed address.
+    /// </summary>
+    /// <param name="canonicalEmail">
+    /// The address already chosen for <c>Employee.Email</c>, always included so the collection
+    /// carries it even when it came from the User_ID fallback rather than Contact_Data.
+    /// </param>
+    private static IReadOnlyList<ExternalEmployeeEmail> ResolveWorkEmails(XElement worker, string canonicalEmail)
+    {
+        List<ExternalEmployeeEmail> emails = [];
+        HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var block in WorkerFieldReader.SelectElements(worker, WorkerFieldPaths.EmailAddressData[0]))
+        {
+            var address = block.Elements().FirstOrDefault(e => e.Name.LocalName == "Email_Address")?.Value?.Trim();
+            if (string.IsNullOrWhiteSpace(address) || !address.IsValidEmailAddressFormat())
+                continue;
+
+            var usage = block.Elements().FirstOrDefault(e => e.Name.LocalName == "Usage_Data");
+            if (usage is null || !IsPublic(usage) || !IsWorkUsage(usage))
+                continue;
+
+            // Primary tracks the address already chosen for Employee.Email rather than the source's
+            // flag: the canonical address is picked upstream (which consults Primary, then falls
+            // back), and a worker whose only address carries no Primary attribute still has one.
+            var isPrimary = string.Equals(address, canonicalEmail, StringComparison.OrdinalIgnoreCase);
+
+            if (seen.Add(address))
+                emails.Add(new ExternalEmployeeEmail(new EmailAddress(address), isPrimary));
+        }
+
+        if (seen.Add(canonicalEmail))
+            emails.Add(new ExternalEmployeeEmail(new EmailAddress(canonicalEmail), IsPrimary: true));
+
+        return emails;
+    }
+
+    /// <summary>
+    /// True when the usage block carries a WORK communication type. Matches on the reference ID
+    /// rather than the descriptor: WORK is a Workday-delivered value, but a tenant can rename it
+    /// via Maintain Reference IDs, in which case we capture nothing rather than guess wrong.
+    /// </summary>
+    private static bool IsWorkUsage(XElement usage) =>
+        usage.Descendants()
+            .Any(e => e.Name.LocalName == "ID"
+                      && e.Attributes().Any(a => a.Name.LocalName == "type" && a.Value == "Communication_Usage_Type_ID")
+                      && string.Equals(e.Value?.Trim(), "WORK", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Workday marks addresses the worker has not made visible as non-public; those can be personal
+    /// even when typed WORK. Absent attribute means public, which is Workday's default.
+    /// </summary>
+    private static bool IsPublic(XElement usage) =>
+        ReadWorkdayBoolean(usage, "Public") != false;
+
+    /// <summary>
+    /// Reads a Workday boolean attribute by local name. Workday emits these as "1"/"0" in some
+    /// tenants and "true"/"false" in others, so both spellings are accepted; null means the
+    /// attribute was absent, which callers distinguish from an explicit false.
+    /// </summary>
+    private static bool? ReadWorkdayBoolean(XElement element, string attributeLocalName)
+    {
+        var attr = element.Attributes().FirstOrDefault(a => a.Name.LocalName == attributeLocalName);
+        if (attr is null || string.IsNullOrWhiteSpace(attr.Value))
+            return null;
+
+        var value = attr.Value.Trim();
+        return string.Equals(value, "1", StringComparison.Ordinal)
+               || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

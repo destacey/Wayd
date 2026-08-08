@@ -12,10 +12,21 @@ interface EmployeeDetailsProps {
 const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
   if (!employee) return null
 
+  // Only the addresses beyond the primary — that one is already shown as Email, and most people
+  // have no others, so the row is omitted entirely rather than repeating it or rendering a dash.
+  const additionalEmails = (employee.emails ?? [])
+    .filter((e) => !e.isPrimary)
+    .map((e) => e.email)
+
   return (
     <>
       <Descriptions>
         <Item label="Email">{employee.email}</Item>
+        {additionalEmails.length > 0 && (
+          <Item label="Additional Emails">
+            {additionalEmails.join(', ')}
+          </Item>
+        )}
         <Item label="Employee Number">{employee.employeeNumber}</Item>
         <Item label="Employee Type">{employee.employeeType || '—'}</Item>
         <Item label="Job Title">{employee.jobTitle}</Item>

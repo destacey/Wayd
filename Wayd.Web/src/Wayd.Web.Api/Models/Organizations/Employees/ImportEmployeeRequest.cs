@@ -26,6 +26,13 @@ public sealed class ImportEmployeeRequest
     /// <summary>The worker type (e.g. Employee, Contractor, Intern), mirroring the HRIS descriptor. Free-form.</summary>
     public string? EmployeeType { get; set; }
 
+    /// <summary>
+    /// Further <em>work</em> addresses for this person, semicolon-separated. <see cref="Email"/> stays the
+    /// primary; these are additional addresses the person is known by in other systems — typically ones
+    /// left behind by a domain or tenant move. Home and personal addresses do not belong here.
+    /// </summary>
+    public string? AdditionalEmails { get; set; }
+
     public ImportEmployeeDto ToImportEmployeeDto()
     {
         Instant? hireDate = HireDate.HasValue
@@ -44,7 +51,8 @@ public sealed class ImportEmployeeRequest
             OfficeLocation,
             string.IsNullOrWhiteSpace(ManagerNumber) ? null : ManagerNumber.Trim(),
             IsActive,
-            string.IsNullOrWhiteSpace(EmployeeType) ? null : EmployeeType.Trim());
+            string.IsNullOrWhiteSpace(EmployeeType) ? null : EmployeeType.Trim(),
+            [.. CsvList.Split(AdditionalEmails).Select(e => (EmailAddress)e)]);
     }
 }
 
@@ -86,5 +94,18 @@ public sealed class ImportEmployeeRequestValidator : CustomValidator<ImportEmplo
 
         RuleFor(e => e.EmployeeType)
             .MaximumLength(256);
+
+        // Validated before ToImportEmployeeDto runs — the EmailAddress cast there throws on a
+        // malformed value, which would surface as a 500 rather than a row-level 422.
+        RuleFor(e => e.AdditionalEmails)
+            .Must(value => CsvList.Split(value).All(e => e.IsValidEmailAddressFormat()))
+                .WithMessage("'{PropertyName}' contains an invalid email address.")
+            .Must(value => CsvList.Split(value).All(e => e.Length <= 256))
+                .WithMessage("'{PropertyName}' contains an email address longer than 256 characters.");
+
+        RuleFor(e => e)
+            .Must(row => !CsvList.Split(row.AdditionalEmails).Contains(row.Email, StringComparer.OrdinalIgnoreCase))
+                .WithMessage("'AdditionalEmails' must not repeat the primary Email.")
+            .WithName(nameof(ImportEmployeeRequest.AdditionalEmails));
     }
 }

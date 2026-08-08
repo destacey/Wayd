@@ -1,6 +1,7 @@
 ﻿using Ardalis.GuardClauses;
 using Microsoft.Graph.Models;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Extensions;
 using Wayd.Common.Models;
 using NodaTime;
 
@@ -35,6 +36,7 @@ public sealed record EntraEmployee : IExternalEmployee
         // Pass Microsoft Graph's free-form employeeType through verbatim. Customers configure it
         // in their tenant; we don't normalize.
         EmployeeType = string.IsNullOrWhiteSpace(user.EmployeeType) ? null : user.EmployeeType.Trim();
+        Emails = ResolveWorkEmails(user.ProxyAddresses, Email);
     }
 
     public string EmployeeNumber { get; set; }
@@ -47,4 +49,50 @@ public sealed record EntraEmployee : IExternalEmployee
     public string? ManagerEmployeeNumber { get; set; }
     public bool IsActive { get; set; }
     public string? EmployeeType { get; set; }
+    public IReadOnlyList<ExternalEmployeeEmail> Emails { get; set; }
+
+    /// <summary>
+    /// Projects Entra's <c>proxyAddresses</c> into work addresses. Entries are prefixed with the
+    /// protocol: <c>SMTP:</c> uppercase marks the primary, lowercase <c>smtp:</c> a secondary, and
+    /// non-mail protocols (<c>X500:</c>, <c>SIP:</c>, <c>EUM:</c>) appear alongside them. The
+    /// prefix comparison is deliberately case-sensitive — casing is the only thing distinguishing
+    /// primary from secondary.
+    /// </summary>
+    private static IReadOnlyList<ExternalEmployeeEmail> ResolveWorkEmails(
+        IEnumerable<string>? proxyAddresses,
+        Common.Models.EmailAddress canonicalEmail)
+    {
+        List<ExternalEmployeeEmail> emails = [];
+        HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var entry in proxyAddresses ?? [])
+        {
+            if (string.IsNullOrWhiteSpace(entry))
+                continue;
+
+            var value = entry.Trim();
+            var isPrimary = value.StartsWith("SMTP:", StringComparison.Ordinal);
+            if (!isPrimary && !value.StartsWith("smtp:", StringComparison.Ordinal))
+                continue;
+
+            var address = value[5..].Trim();
+
+            // Routing addresses Microsoft generates for every mailbox. Real enough to deliver to,
+            // but nobody is referenced by one in another system, so they are noise here.
+            if (address.EndsWith(".onmicrosoft.com", StringComparison.OrdinalIgnoreCase)
+                || address.EndsWith(".microsoftonline.com", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (!address.IsValidEmailAddressFormat())
+                continue;
+
+            if (seen.Add(address))
+                emails.Add(new ExternalEmployeeEmail(new Common.Models.EmailAddress(address), isPrimary));
+        }
+
+        if (seen.Add(canonicalEmail.Value))
+            emails.Add(new ExternalEmployeeEmail(canonicalEmail, IsPrimary: true));
+
+        return emails;
+    }
 }

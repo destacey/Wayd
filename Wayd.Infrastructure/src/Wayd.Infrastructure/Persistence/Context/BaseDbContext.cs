@@ -79,8 +79,11 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        // TODO: We want this only for development probably... maybe better make it configurable in logger.json config?
-        optionsBuilder.EnableSensitiveDataLogging();
+        // Off unless a deployment opts in (Development does). Leaving it on everywhere meant every failed
+        // command logged every parameter — for a bulk sync, thousands of names and email addresses, which
+        // both leaks personal data into the log and buries the exception that actually matters.
+        if (_dbSettings.EnableSensitiveDataLogging)
+            optionsBuilder.EnableSensitiveDataLogging();
 
         // If you want to see the sql queries that efcore executes:
 

@@ -20,7 +20,8 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Methodology** | The team's delivery approach. Scrum = sprint-based with time-boxed iterations. Kanban = continuous flow from product backlog. |
 | **Sizing Method** | How the team estimates work. Story Points = relative sizing. Count = each item counts as 1. |
 | **Team Membership** | A date-ranged parent-child relationship between a team and a Team of Teams. States: Past, Active, Future. Only one active parent per team. |
-| **Employee** | An individual in the organization. Can be a member of multiple teams. May be synced from Azure AD via Microsoft Graph. |
+| **Employee** | An individual in the organization. Can be a member of multiple teams. May be synced from a people connector (Microsoft Entra ID via Graph, or Workday). |
+| **Work Email** | One of the email addresses an employee is known by. Exactly one is the primary (mirroring `Employee.Email`); the rest are other work addresses the same person uses or used to use — typically ones left behind by a tenant or domain migration. Only work addresses are recorded; home and personal addresses are filtered out at the connector. Owned by the active people connector and fully replaced on each sync. Used to match people against systems that still reference an older address, such as Azure DevOps work items. |
 | **Functional Organization Chart** | A visualization of the complete team hierarchy as of a specific date. |
 
 ## Planning

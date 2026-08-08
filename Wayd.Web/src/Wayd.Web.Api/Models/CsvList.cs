@@ -1,9 +1,10 @@
-namespace Wayd.Web.Api.Models.Ppm;
+namespace Wayd.Web.Api.Models;
 
 /// <summary>
-/// Parses the multi-value columns used by the PPM CSV imports — role assignments (employee numbers),
-/// strategic theme names, project keys and the like. A CSV cell cannot carry a list, so these columns hold
-/// their values separated by semicolons (commas would collide with the field delimiter).
+/// Parses the multi-value columns used by the CSV imports — role assignments (employee numbers),
+/// strategic theme names, project keys, additional employee emails and the like. A CSV cell cannot carry a
+/// list, so these columns hold their values separated by semicolons (commas would collide with the field
+/// delimiter).
 /// </summary>
 public static class CsvList
 {

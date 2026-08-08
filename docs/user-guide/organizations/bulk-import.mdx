@@ -32,6 +32,9 @@ A few rules apply to every import:
 - **Dates are ISO `yyyy-MM-dd`.** Only the date component is used.
 - **Boolean and status columns are case-insensitive** and, where a column is optional, have a sensible
   default (noted per column below).
+- **Multi-value columns are semicolon-separated.** A cell holding more than one value separates them with
+  `;` — for example `ada@acme-legacy.example;a.lovelace@acme-legacy.example`. A comma would collide with the
+  CSV field delimiter. Values are trimmed, and blanks are ignored.
 
 Imports create records **through the normal domain rules**, exactly as if you had used the app. A useful side
 effect: creating an organization record also replicates it into the PPM, Planning, and Work areas (for
@@ -84,6 +87,7 @@ still created (without a manager) rather than failing the batch.
 | `MiddleName` | No | |
 | `LastName` | Yes | Max 100 chars. |
 | `Email` | Yes | A valid email address. Max 256 chars. |
+| `AdditionalEmails` | No | Other **work** addresses this person is known by, semicolon-separated. Each must be a valid address, max 256 chars, and unique across the whole file — including against every `Email`. |
 | `HireDate` | No | The date the employee was hired. |
 | `JobTitle` | No | Max 256 chars. |
 | `Department` | No | Max 256 chars. |
@@ -96,6 +100,19 @@ still created (without a manager) rather than failing the batch.
 Set `IsActive` to `false` to record someone who has left. Inactive employees are created active and then
 deactivated through the domain, so the record is consistent — but note that an inactive employee **cannot
 hold a current team membership**, so leave them out of the [staffing import](#team-staffing-import).
+:::
+
+:::note Additional emails
+`AdditionalEmails` records other addresses the same person is known by — typically an address they used
+before a domain or tenant move. Wayd matches people against connected systems on email, so an Azure DevOps
+work item still stamped with someone's previous address resolves to them once that address is listed here.
+
+Record **work addresses only**. Home and personal addresses serve no purpose for matching and should never be
+loaded into Wayd.
+
+If a people-sync connection (Workday or Microsoft Entra ID) is active, it owns employee email addresses: each
+sync replaces them with exactly what the source reports, so addresses added by import are removed unless the
+source reports them too. Use this column for tenants without a people connector, or as a one-off backfill.
 :::
 
 ## Teams import

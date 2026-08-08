@@ -87,5 +87,6 @@ public class BulkUpsertEmployeesCommandValidatorTests
         public required string? ManagerEmployeeNumber { get; init; }
         public required bool IsActive { get; init; }
         public required string? EmployeeType { get; init; }
+        public IReadOnlyList<ExternalEmployeeEmail> Emails { get; init; } = [];
     }
 }

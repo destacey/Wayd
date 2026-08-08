@@ -6,7 +6,18 @@ using Wayd.Common.Models;
 
 namespace Wayd.Common.Application.Employees.Commands;
 
-public sealed record BulkUpsertEmployeesCommand : ICommand, ILongRunningRequest
+/// <summary>
+/// What the upsert actually did. Records skipped for a bad length or an ambiguous identity match are
+/// reported rather than merely logged: the run still succeeds, so without this an admin reading sync
+/// history sees every payload record counted as upserted.
+/// </summary>
+/// <param name="Upserted">Records that created or updated a row.</param>
+/// <param name="Skipped">
+/// Records that were rejected, keyed by EmployeeNumber with the reason as the value.
+/// </param>
+public sealed record BulkUpsertEmployeesResult(int Upserted, IReadOnlyDictionary<string, string> Skipped);
+
+public sealed record BulkUpsertEmployeesCommand : ICommand<BulkUpsertEmployeesResult>, ILongRunningRequest
 {
     /// <param name="matchBy">
     /// Required — no default. Every caller reads this from the connection's configuration, and a
@@ -77,13 +88,13 @@ public sealed class BulkUpsertEmployeesCommandValidator : CustomValidator<BulkUp
     }
 }
 
-public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbContext, IDateTimeProvider dateTimeProvider, ILogger<BulkUpsertEmployeesCommandHandler> logger) : ICommandHandler<BulkUpsertEmployeesCommand>
+public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbContext, IDateTimeProvider dateTimeProvider, ILogger<BulkUpsertEmployeesCommandHandler> logger) : ICommandHandler<BulkUpsertEmployeesCommand, BulkUpsertEmployeesResult>
 {
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<BulkUpsertEmployeesCommandHandler> _logger = logger;
 
-    public async Task<Result> Handle(BulkUpsertEmployeesCommand request, CancellationToken cancellationToken)
+    public async Task<Result<BulkUpsertEmployeesResult>> Handle(BulkUpsertEmployeesCommand request, CancellationToken cancellationToken)
     {
         string requestName = request.GetType().Name;
         Dictionary<string, string> errors = [];
@@ -186,6 +197,21 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
                         continue;
                     }
 
+                    // Runs after Update so the collection reconciles against the new canonical
+                    // address. The source owns this collection, so an address it stopped reporting
+                    // is removed here.
+                    var emailsResult = existing.SyncEmails(ToDomainEmails(externalEmployee));
+                    if (emailsResult.IsFailure)
+                    {
+                        await _waydDbContext.Entry(existing).ReloadAsync(cancellationToken);
+                        existing.ClearDomainEvents();
+
+                        _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", requestName, emailsResult.Error);
+                        errors.Add(externalEmployee.EmployeeNumber, emailsResult.Error);
+
+                        continue;
+                    }
+
                     // Re-point the indexes at the row's new keys. Without this the indexes stay a
                     // snapshot of the pre-run state, so a later payload record carrying the email
                     // this row just moved to would miss both keys and take the create branch —
@@ -207,7 +233,8 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
                         managerId,
                         externalEmployee.IsActive,
                         externalEmployee.EmployeeType,
-                        _dateTimeProvider.Now
+                        _dateTimeProvider.Now,
+                        ToDomainEmails(externalEmployee)
                         );
 
                     // Claim the new row so the deactivation pass below doesn't deactivate it. Id is
@@ -232,6 +259,10 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
+
+                // The record is skipped either way — record it so the run detail reflects what
+                // actually happened instead of reporting a clean sync.
+                errors.TryAdd(externalEmployee.EmployeeNumber, $"Unexpected error: {ex.Message}. Skipped.");
             }
         }
 
@@ -244,13 +275,13 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
             if (request.DeactivateMissing)
                 await DeactivateEmployeesNotInPayload(claimedEmployeeIds, cancellationToken);
 
-            return Result.Success();
+            return Result.Success(new BulkUpsertEmployeesResult(claimedEmployeeIds.Count, errors));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} while updating the database.", requestName);
 
-            return Result.Failure<int>($"Wayd Request: Exception for Request {requestName} {request}");
+            return Result.Failure<BulkUpsertEmployeesResult>($"Wayd Request: Exception for Request {requestName} {request}");
         }
     }
 
@@ -277,6 +308,15 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
     /// </summary>
     private static string? FindLengthViolation(IExternalEmployee employee)
     {
+        // EmployeeEmails.Email carries the same 256 limit as Employees.Email, and an over-long
+        // entry would truncate-and-roll-back the whole batch just the same.
+        foreach (var entry in employee.Emails ?? [])
+        {
+            var violation = Check(entry.Email.Value, EmailMaxLength, nameof(employee.Emails));
+            if (violation is not null)
+                return violation;
+        }
+
         return Check(employee.EmployeeNumber, EmployeeNumberMaxLength, nameof(employee.EmployeeNumber))
             ?? Check(employee.Email.Value, EmailMaxLength, nameof(employee.Email))
             ?? Check(employee.JobTitle, JobTitleMaxLength, nameof(employee.JobTitle))
@@ -293,6 +333,20 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
             value is not null && value.Length > maxLength
                 ? $"{fieldName} exceeds the maximum length of {maxLength} characters (actual: {value.Length}). Skipped."
                 : null;
+    }
+
+    /// <summary>
+    /// Flattens the source's work addresses into the tuple shape the domain takes. The canonical
+    /// address is appended when the source omitted it so the collection always carries it, though
+    /// the domain enforces that independently.
+    /// </summary>
+    private static IEnumerable<(EmailAddress Email, bool IsPrimary)> ToDomainEmails(IExternalEmployee employee)
+    {
+        var emails = employee.Emails ?? [];
+        if (emails.Count == 0)
+            return [(employee.Email, true)];
+
+        return emails.Select(e => (e.Email, e.IsPrimary));
     }
 
     /// <summary>

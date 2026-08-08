@@ -292,6 +292,192 @@ public class BulkUpsertEmployeesCommandHandlerTests
         (await GetEmployees()).Should().HaveCount(1, $"a {field} of exactly {maxLength} characters fits the column");
     }
 
+    [Fact]
+    public async Task Handle_NewEmployee_PersistsEveryReportedWorkEmail()
+    {
+        // Arrange
+        var record = FakeExternalEmployee("E-5001", "avery.chen@acme.example", isActive: true) with
+        {
+            Emails =
+            [
+                new ExternalEmployeeEmail(new EmailAddress("avery.chen@acme.example"), IsPrimary: true),
+                new ExternalEmployeeEmail(new EmailAddress("avery.chen@acme-legacy.example"), IsPrimary: false),
+            ],
+        };
+        var command = new BulkUpsertEmployeesCommand([record], EmployeeMatchProperty.EmployeeNumber);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var employee = (await GetEmployees()).Single();
+        employee.Emails.Select(e => e.Email.Value).Should().BeEquivalentTo(
+            ["avery.chen@acme.example", "avery.chen@acme-legacy.example"]);
+        employee.Emails.Single(e => e.IsPrimary).Email.Value.Should().Be("avery.chen@acme.example");
+    }
+
+    [Fact]
+    public async Task Handle_ExistingEmployee_RemovesEmailsTheSourceStoppedReporting()
+    {
+        // Arrange — the source is the system of record, so a dropped address is dropped here too.
+        var existing = CreateExistingEmployee("E-5002", "jordan.blake@acme.example");
+        existing.SyncEmails(
+        [
+            (new EmailAddress("jordan.blake@acme.example"), true),
+            (new EmailAddress("jordan.blake@acme-legacy.example"), false),
+        ]);
+        Seed(existing);
+
+        var record = FakeExternalEmployee("E-5002", "jordan.blake@acme.example", isActive: true) with
+        {
+            Emails = [new ExternalEmployeeEmail(new EmailAddress("jordan.blake@acme.example"), IsPrimary: true)],
+        };
+        var command = new BulkUpsertEmployeesCommand([record], EmployeeMatchProperty.EmployeeNumber);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var employee = (await GetEmployees()).Single();
+        employee.Emails.Select(e => e.Email.Value).Should().BeEquivalentTo(["jordan.blake@acme.example"]);
+    }
+
+    [Fact]
+    public async Task Handle_EmailChanged_MovesPrimaryAndRetainsTheFormerAddress()
+    {
+        // Arrange — the tenant-migration shape, which is what makes the old address recoverable.
+        var existing = CreateExistingEmployee("E-5003", "sam.ortiz@acme-legacy.example");
+        Seed(existing);
+
+        var record = FakeExternalEmployee("E-5003", "sam.ortiz@acme.example", isActive: true) with
+        {
+            Emails =
+            [
+                new ExternalEmployeeEmail(new EmailAddress("sam.ortiz@acme.example"), IsPrimary: true),
+                new ExternalEmployeeEmail(new EmailAddress("sam.ortiz@acme-legacy.example"), IsPrimary: false),
+            ],
+        };
+        var command = new BulkUpsertEmployeesCommand([record], EmployeeMatchProperty.EmployeeNumber);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var employee = (await GetEmployees()).Single();
+        employee.Email.Value.Should().Be("sam.ortiz@acme.example");
+        employee.Emails.Single(e => e.IsPrimary).Email.Value.Should().Be("sam.ortiz@acme.example");
+        employee.Emails.Select(e => e.Email.Value).Should().Contain("sam.ortiz@acme-legacy.example");
+    }
+
+    [Fact]
+    public async Task Handle_SourceReportsNoEmails_StillRecordsTheCanonicalAddress()
+    {
+        // Arrange — connectors that expose a single address leave Emails empty.
+        var record = FakeExternalEmployee("E-5004", "solo@acme.example", isActive: true);
+        var command = new BulkUpsertEmployeesCommand([record], EmployeeMatchProperty.EmployeeNumber);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var employee = (await GetEmployees()).Single();
+        employee.Emails.Should().ContainSingle();
+        employee.Emails.Single().Email.Value.Should().Be("solo@acme.example");
+        employee.Emails.Single().IsPrimary.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_AllRecordsValid_ReportsThemAsUpsertedWithNoSkips()
+    {
+        // Arrange
+        var payload = new IExternalEmployee[]
+        {
+            FakeExternalEmployee("E-6001", "one@acme.example", isActive: true),
+            FakeExternalEmployee("E-6002", "two@acme.example", isActive: true),
+        };
+        var command = new BulkUpsertEmployeesCommand(payload, EmployeeMatchProperty.EmployeeNumber);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value.Upserted.Should().Be(2);
+        result.Value.Skipped.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_OverLongField_ReportsTheRecordAsSkippedRatherThanUpserted()
+    {
+        // Arrange — the run still succeeds, so without the reported count an admin would see this
+        // as a clean sync.
+        var payload = new IExternalEmployee[]
+        {
+            FakeExternalEmployee("E-6003", "fine@acme.example", isActive: true),
+            FakeExternalEmployee("E-6004", "fine2@acme.example", isActive: true) with
+            {
+                JobTitle = new string('x', 257),
+            },
+        };
+        var command = new BulkUpsertEmployeesCommand(payload, EmployeeMatchProperty.EmployeeNumber);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Upserted.Should().Be(1);
+        result.Value.Skipped.Should().ContainKey("E-6004");
+    }
+
+    [Fact]
+    public async Task Handle_AmbiguousMatch_ReportsTheRecordAsSkipped()
+    {
+        // Arrange — EmployeeNumber resolves to one row, email to a different one.
+        Seed(
+            CreateExistingEmployee("E-6005", "byNumber@acme.example"),
+            CreateExistingEmployee("E-6006", "byEmail@acme.example"));
+
+        var record = FakeExternalEmployee("E-6005", "byEmail@acme.example", isActive: true);
+        var command = new BulkUpsertEmployeesCommand([record], EmployeeMatchProperty.EmployeeNumber);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Upserted.Should().Be(0);
+        result.Value.Skipped.Should().ContainKey("E-6005");
+        result.Value.Skipped["E-6005"].Should().Contain("Ambiguous match");
+    }
+
+    [Fact]
+    public async Task Handle_OverLongAdditionalEmail_ReportsTheRecordAsSkipped()
+    {
+        // Arrange — EmployeeEmails.Email has the same 256 limit, and an over-long entry would
+        // truncate-and-roll-back the whole batch rather than just this record.
+        var longAddress = new string('x', 250) + "@acme.example";
+        var record = FakeExternalEmployee("E-6007", "ok@acme.example", isActive: true) with
+        {
+            Emails =
+            [
+                new ExternalEmployeeEmail(new EmailAddress("ok@acme.example"), IsPrimary: true),
+                new ExternalEmployeeEmail(new EmailAddress(longAddress), IsPrimary: false),
+            ],
+        };
+        var command = new BulkUpsertEmployeesCommand([record], EmployeeMatchProperty.EmployeeNumber);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value.Skipped.Should().ContainKey("E-6007");
+        (await GetEmployees()).Should().BeEmpty();
+    }
+
     private void Seed(params Employee[] employees)
     {
         foreach (var employee in employees)
@@ -344,5 +530,6 @@ public class BulkUpsertEmployeesCommandHandlerTests
         public required string? ManagerEmployeeNumber { get; init; }
         public required bool IsActive { get; init; }
         public required string? EmployeeType { get; init; }
+        public IReadOnlyList<ExternalEmployeeEmail> Emails { get; init; } = [];
     }
 }

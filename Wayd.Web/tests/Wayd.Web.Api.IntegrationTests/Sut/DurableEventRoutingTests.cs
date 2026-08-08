@@ -22,6 +22,8 @@ using Wolverine.Persistence.Durability.DeadLetterManagement;
 using Wolverine.Runtime;
 using Wolverine.Runtime.Routing;
 
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+
 namespace Wayd.Web.Api.IntegrationTests.Sut;
 
 /// <summary>
@@ -249,7 +251,7 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
             name: $"Portfolio {Guid.NewGuid():N}"[..16],
             description: "Durable routing test portfolio");
         // A project can only be created in an active (or on-hold) portfolio.
-        var activatePortfolio = portfolio.Activate(new LocalDate(2026, 1, 1));
+        var activatePortfolio = portfolio.Activate(PpmActor.System, new LocalDate(2026, 1, 1));
         Assert.True(activatePortfolio.IsSuccess, activatePortfolio.IsFailure ? activatePortfolio.Error : null);
 
         ppm.ExpenditureCategories.Add(expenditureCategory);

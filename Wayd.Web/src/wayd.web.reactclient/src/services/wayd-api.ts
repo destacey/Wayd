@@ -35922,12 +35922,19 @@ export interface EmployeeDetailsDto {
     employeeNumber: string;
     hireDate?: Date | undefined;
     email: string;
+    emails: EmployeeEmailDto[];
     jobTitle?: string | undefined;
     department?: string | undefined;
     officeLocation?: string | undefined;
     manager?: EmployeeNavigationDto | undefined;
     isActive: boolean;
     employeeType?: string | undefined;
+}
+
+export interface EmployeeEmailDto {
+    id: string;
+    email: string;
+    isPrimary: boolean;
 }
 
 export interface CreateEmployeeRequest {

@@ -222,7 +222,15 @@ public sealed class PeopleSyncRunner(
                 await SaveRun(run, details, cancellationToken);
                 return Result.Failure(upsertResult.Error);
             }
-            details.EmployeesUpserted = employees.Count;
+            // The upsert skips individual records (over-long fields, ambiguous identity matches)
+            // without failing the run, so the payload count would overstate what was written.
+            details.EmployeesUpserted = upsertResult.Value.Upserted;
+            details.EmployeesSkipped = upsertResult.Value.Skipped.Count;
+            foreach (var (employeeNumber, reason) in upsertResult.Value.Skipped)
+            {
+                details.Errors.Add($"Employee {employeeNumber}: {reason}");
+                run.RecordError();
+            }
 
             stageTimer.Restart();
             var userLinkResult = await _userService.UpdateMissingEmployeeIds(cancellationToken);
@@ -338,6 +346,13 @@ public sealed class PeopleSyncRunner(
     {
         public int EmployeesFetched { get; set; }
         public int EmployeesUpserted { get; set; }
+
+        /// <summary>
+        /// Records the upsert rejected individually — an over-long field or an identity conflict
+        /// the sync refuses to guess at. Distinct from <see cref="EmployeesExcluded"/>: these
+        /// reached the upsert and failed there, so the reason is in <see cref="Errors"/>.
+        /// </summary>
+        public int EmployeesSkipped { get; set; }
 
         /// <summary>
         /// Total records dropped by source-side exclusion rules, summed across all rules.

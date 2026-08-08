@@ -111,6 +111,27 @@ The current caller is split into two abstractions: `ICurrentUser` is pure identi
 
 Only real user ids are propagated across execution boundaries (job parameters, message envelope headers); a scope with neither an HTTP context nor a propagated user id resolves to System by definition — the "nobody = system" rule lives in `CurrentUser.Kind` and nowhere else. This rests on one assumption worth knowing: **background work never originates from anonymous callers.** Anonymity doesn't survive a detach — once execution leaves the HTTP context with no user id, an anonymous origin is indistinguishable from a platform origin, so work enqueued by an anonymous endpoint would run as System (grant-all). Today no anonymous endpoint enqueues work; if one ever must, propagate an explicit anonymous marker so `Kind` can resolve it correctly across the boundary.
 
+### Permission-based vs membership-based authorization
+
+Most of the application authorizes on the permission claim alone: a `[MustHavePermission]` attribute on the controller decides whether the caller may reach the endpoint, and the handler does the work.
+
+**PPM is the exception.** Changing a project, program, or portfolio additionally requires that the caller *leads* the record — Owner or Manager on it or on an ancestor. That question can only be answered against the record itself, so it is enforced **in the domain**, not at the controller:
+
+- The command record implements `IRequireLinkedEmployee` — a managed PPM action is always attributable to an employee.
+- The handler resolves a `PpmActor` from `ICurrentPrincipal` (via `ResolvePpmActor`), which pairs the employee id with whether they hold the domain-wide administrator grant.
+- The handler's query **must load the ancestor roles** — `Portfolio.Roles`, and `Program.Roles` when assigned — and pass them in as `ProjectAncestryRoles`.
+- The aggregate method checks `CanManageProject` / `CanManageProgram` / `CanManagePortfolio` before any state change.
+
+Every mutating method on those three aggregates takes a `PpmActor`; there is no ungated public overload, so the compiler will not let a new handler forget. Paths with no human actor (importers, creation) pass `PpmActor.System` — grep for it to audit every membership bypass in the codebase.
+
+:::warning Forgetting an `.Include` fails silently
+`AncestryRoles()` reads `project.Portfolio?.Roles ?? []`. If the handler's query omits the ancestor includes, the navigation is null, ancestry comes back empty, and a legitimately authorized portfolio Owner is **denied** — with no error to trace. Unit tests using in-memory fakes cannot catch this, because `.Include` is a no-op there and the test populates the navigation directly.
+:::
+
+The read side mirrors the same rule as `canManageProject` / `canManageProgram` / `canManagePortfolio` DTO fields so the UI can hide actions the server would reject. Those projections and the aggregate predicates must agree — if they drift, the UI either hides valid actions or offers ones that fail on submit.
+
+See [Permissions](../user-guide/settings/permissions.mdx) for the user-facing rule.
+
 ### No Repository Pattern
 
 Application handlers use EF Core `DbContext` directly for data access. There is no repository abstraction layer.

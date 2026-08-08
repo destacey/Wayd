@@ -1,0 +1,109 @@
+---
+title: Permissions
+description: How Wayd decides what a user may do — permission claims, and the delivery-leadership membership rule that governs PPM.
+sidebar_position: 3
+audience: [user, agent]
+---
+
+# Permissions
+
+Wayd answers "may this user do this?" with **two independent checks**. Most of the application uses only the first; Project Portfolio Management uses both.
+
+1. **Permission claims** — granted through [roles](./index.mdx#roles). These decide whether a user can reach a feature at all.
+2. **Delivery leadership** — in PPM only, whether the user actually leads the record being changed. A permission claim alone is not enough to change a project, program, or portfolio.
+
+Both must pass. Holding `Permissions.Projects.Update` lets you reach the project edit endpoints; being a project Owner decides *which* projects you may change.
+
+## Permission claims
+
+Permissions are named `Permissions.{Resource}.{Action}` and follow a consistent pattern:
+
+| Action | Meaning |
+|---|---|
+| `View` | Read entities |
+| `Create` | Create new entities |
+| `Update` | Modify existing entities |
+| `Delete` | Remove entities |
+| `Import` | Bulk-load entities from a file |
+| `Administer` | Domain-wide administrative standing (see [PPM Administrator](#ppm-administrator)) |
+
+Some resources add specific actions — for example `Permissions.Projects.ManageProjectWorkItems`.
+
+Permissions travel as claims inside the Wayd JWT. A permission change takes effect on the user's next token refresh.
+
+## Delivery leadership in PPM
+
+Viewing PPM records needs only the `View` permission. **Changing** one additionally requires that you lead it.
+
+You lead a record if you hold the **Owner** or **Manager** role on it, or on anything above it:
+
+| Record | You may manage it if you are Owner or Manager of… |
+|---|---|
+| Project | the project, **or** its program, **or** its portfolio |
+| Program | the program, **or** its portfolio |
+| Portfolio | the portfolio |
+
+Leadership inherits **downward**: a portfolio Owner leads every program and project inside it, without needing a role on each one.
+
+:::note Sponsors are deliberately excluded
+Sponsors fund and oversee work; they don't run delivery. A Sponsor — at any level — cannot change status, edit details, or assign roles. Neither can a project **Member**, who contributes to the work without leading it.
+:::
+
+### What the rule covers
+
+Every operation that changes a project, program, or portfolio:
+
+- **Status transitions** — Approve, Activate, Complete, Cancel, Close, Archive
+- **Editing details** — name, description, business case, expected benefits, expenditure category
+- **Editing the timeline** — start and end dates
+- **Assigning roles** — adding, removing, or replacing role assignments
+- **Project structure** — changing a project's key, program, or lifecycle
+- **Delivery signals** — recording health checks and priority scores
+- **[Ranking](../ppm/portfolios-programs.mdx#portfolio-project-ranking)** — reordering a portfolio's projects
+
+Role assignment is included for a reason: it is the path by which leadership itself is granted. If it were not gated, anyone holding the `Update` permission could make themselves an Owner and then do everything else.
+
+### What it does not cover
+
+- **Viewing** anything — the `View` permission alone is sufficient.
+- **Creating** portfolios, programs, and projects — governed by the `Create` permission. A newly created record has no leadership yet.
+- **Deleting** — governed by the `Delete` permission.
+- **[Bulk imports](../ppm/bulk-import.mdx)** — governed by the relevant `Import` permission. Import is an administrative bulk operation, and the records it creates have no leadership at the moment it runs.
+
+## PPM Administrator
+
+`Permissions.ProjectPortfolioManagement.Administer` grants **domain-wide delivery-leadership standing across PPM**. A holder is treated as leading every project, program, and portfolio.
+
+It substitutes for *membership only*. It does **not** substitute for the permission claim — a PPM administrator still needs `Permissions.Projects.Update` to change a project. The two checks stay independent.
+
+Grant it to people who administer delivery without sitting in the hierarchy: PMO staff, platform administrators, and anyone who needs to set up or repair portfolios they don't personally lead.
+
+:::tip It is required to seed a new portfolio
+A portfolio has nothing above it to inherit leadership from, so a brand-new portfolio has no one who can assign its first Owner. A PPM administrator is the only one who can — after which normal leadership takes over.
+:::
+
+The seeded **Admin** role includes this permission.
+
+## Why an action might be unavailable
+
+When a PPM action is missing from a menu or rejected on submit, it is one of:
+
+| Cause | What to do |
+|---|---|
+| Missing the permission claim | Ask an administrator to grant it via **Settings → Roles** |
+| Not leading the record | Ask an Owner or Manager of the record — or of its program or portfolio — to assign you a role, or to perform the action |
+| No linked employee record | PPM changes are attributed to an employee. Ask an administrator to link your user account to one. |
+| A domain rule blocks it | The action may be invalid for the record's current state — for example, a portfolio cannot close while it still contains open projects |
+
+## Upgrading to this version
+
+**PPM changes are membership-gated after upgrading.** Before this version, any user holding a PPM `Update` permission could change any project, program, or portfolio — including assigning roles on it.
+
+After upgrading, users who hold the permission but lead nothing will find PPM edit and status actions unavailable. This is deliberate.
+
+To restore access for someone who needs it, either:
+
+- Assign them an **Owner** or **Manager** role on the relevant records — or on a portfolio or program above them, which covers everything beneath; or
+- Grant them **`Permissions.ProjectPortfolioManagement.Administer`** if they legitimately administer delivery across the domain.
+
+Members of the seeded **Admin** role are unaffected — it includes the administrator permission.

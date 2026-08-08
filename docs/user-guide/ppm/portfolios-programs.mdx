@@ -26,15 +26,13 @@ Portfolios contain:
 
 ### Portfolio Roles
 
-| Role | Description |
-|------|-------------|
-| Sponsor | Executive sponsor of the portfolio |
-| Owner | Person responsible for portfolio outcomes |
-| Manager | Manages portfolio execution |
-| Portfolio Manager | Oversees portfolio governance |
-| Stakeholder Manager | Manages stakeholder relationships |
-| Governance Reviewer | Reviews portfolio governance |
-| Capacity Planner | Plans resource capacity |
+| Role | Description | May manage the portfolio? |
+|------|-------------|---------------------------|
+| Sponsor | Executive sponsor of the portfolio | No — sponsors fund and oversee, but don't run delivery |
+| Owner | Person responsible for portfolio outcomes | Yes |
+| Manager | Manages portfolio execution | Yes |
+
+Owners and Managers may change the portfolio's status, edit its details, assign its roles, rank its projects, and manage every program and project inside it. See [Permissions](../settings/permissions.mdx#delivery-leadership-in-ppm) for the full rule.
 
 ### Portfolio Status Lifecycle
 
@@ -80,7 +78,7 @@ Use the **Ranking** tab on the portfolio detail page to review and adjust the or
 - Criterion ratings and output values from each project's current score, but only when that score was recorded with the portfolio's current scoring model
 - A score badge on the primary output column, which project managers can use to score or re-score a project
 
-Portfolio Owners and Managers can drag one or more projects to reorder them. Dragging is available only when the board is in its natural rank order; clear sorting, filters, and search to enable ranking. Completed and Cancelled projects are not shown on the Ranking tab, but they keep their underlying rank so historical order remains stable.
+Portfolio Owners and Managers — and [PPM administrators](../settings/permissions.mdx#ppm-administrator) — can drag one or more projects to reorder them. Dragging is available only when the board is in its natural rank order; clear sorting, filters, and search to enable ranking. Completed and Cancelled projects are not shown on the Ranking tab, but they keep their underlying rank so historical order remains stable.
 
 Wayd stores ranks as fractional sort keys so drag-and-drop can insert projects between existing rows without renumbering the whole portfolio every time. The **Portfolio Rank Rebalance** background job periodically re-spaces dense ranks back to clean whole-number gaps.
 
@@ -94,7 +92,7 @@ The portfolio detail page has five tabs:
 
 **Projects Tab** — Grid of [projects](./projects.mdx) with Key, Name, Status, Portfolio, Program, Start/End dates, Managers, Owners, Sponsors, Strategic Themes, Lifecycle, and Rank. Supports **Card**, **List**, and **Timeline** views. Card view can sort by name or rank. Filtered to show Approved and Active projects by default. The Timeline view groups projects by program.
 
-**Ranking Tab** — Rank-ordered board for Proposed, Approved, and Active projects. Supports drag-to-rank for portfolio Owners/Managers and includes score breakdown columns when a scoring model is assigned.
+**Ranking Tab** — Rank-ordered board for Proposed, Approved, and Active projects. Supports drag-to-rank for portfolio Owners/Managers (and [PPM administrators](../settings/permissions.mdx#ppm-administrator)) and includes score breakdown columns when a scoring model is assigned.
 
 **Strategic Initiatives Tab** — Grid of [strategic initiatives](./strategic-initiatives.mdx) with Key, Name, Status, Start/End dates, Managers, Owners, Sponsors, and Strategic Themes. Supports List and Timeline views. Filtered to show Approved and Active by default.
 
@@ -108,6 +106,16 @@ Every program has:
 - **Date Range** — Start and optional end date
 - **Roles** — Sponsor, Owner, Manager
 - **Strategic Theme Tags** — Links to [strategic themes](../strategic-management/index.mdx#strategic-themes) for alignment
+
+### Program Roles
+
+| Role | Description | May manage the program? |
+|------|-------------|-------------------------|
+| Sponsor | Executive sponsor of the program | No — sponsors fund and oversee, but don't run delivery |
+| Owner | Person responsible for program outcomes | Yes |
+| Manager | Manages program execution | Yes |
+
+Owners and Managers of the **parent portfolio** may also manage the program, and may manage every project inside it. See [Permissions](../settings/permissions.mdx#delivery-leadership-in-ppm).
 
 **Business rules:**
 - Only active programs accept new [projects](./projects.mdx)

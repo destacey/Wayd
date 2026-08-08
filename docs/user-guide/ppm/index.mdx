@@ -68,13 +68,14 @@ graph LR
 
 | Rule | Description |
 |------|-------------|
+| Delivery leadership | Changing a portfolio, program, or project requires the relevant `Update` permission **and** Owner/Manager standing on the record or something above it. Sponsors and project Members are excluded. See [Permissions](../settings/permissions.mdx#delivery-leadership-in-ppm) |
 | Portfolio close | All [programs](./portfolios-programs.mdx#programs)/[projects](./projects.mdx) must be closed first |
 | Program close | All [projects](./projects.mdx) must be completed/cancelled first |
 | Project approval | [Lifecycle](./projects.mdx#project-lifecycles) must be assigned before approval |
 | Project activation | Date range required before activation |
 | Project deletion | Only Proposed projects can be deleted |
 | Portfolio scoring | Only Active scoring models can be assigned; project score history is retained when assignments change |
-| Portfolio ranking | Every project is ranked within its portfolio from creation; portfolio Owners/Managers can reorder non-closed projects on the Ranking tab |
+| Portfolio ranking | Every project is ranked within its portfolio from creation; portfolio Owners/Managers (and [PPM administrators](../settings/permissions.mdx#ppm-administrator)) can reorder non-closed projects on the Ranking tab |
 | Task hierarchy | Milestones cannot have children |
 | Task deletion | Cannot delete tasks with children or active dependencies |
 | Dependencies | Cannot create circular task dependencies |

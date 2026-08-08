@@ -61,6 +61,24 @@ Wayd/
 | Frontend API calls | NSwag-generated typed client. Never use `authenticatedFetch()` directly. |
 | Frontend styling | Ant Design theme tokens via CSS variables. Never hardcode colors. |
 | Async naming | Do NOT add `Async` suffix to new async methods |
+| Authorization | Permission claims via `[MustHavePermission]` on controllers. **PPM additionally gates on membership in the domain** — see below. |
+
+## PPM Authorization
+
+Project Portfolio Management is the one domain where a permission claim is **not** sufficient to change a record. Mutating a project, program, or portfolio also requires **delivery leadership**: Owner or Manager on the record or on an ancestor (project ← program ← portfolio, inheriting downward). Sponsors and project Members are excluded.
+
+When adding or editing a PPM handler that mutates one of these aggregates:
+
+1. Mark the command `IRequireLinkedEmployee`.
+2. Inject `ICurrentPrincipal` and call `ResolvePpmActor(cancellationToken)`.
+3. **Load the ancestor roles in the query** — `.Include(p => p.Portfolio).ThenInclude(p => p!.Roles)` and, for projects, `.Include(p => p.Program).ThenInclude(p => p!.Roles)`.
+4. Pass `actor` and `project.AncestryRoles()` into the aggregate method.
+
+Every mutating method on these aggregates requires a `PpmActor` — there is no ungated overload, so the compiler catches a missed actor. It does **not** catch a missed `.Include`: that silently empties the ancestry and denies a legitimately authorized user, and in-memory test fakes cannot detect it because `.Include` is a no-op there.
+
+`PpmActor.System` bypasses membership for importers and creation paths; grep for it to audit every bypass. `Permissions.ProjectPortfolioManagement.Administer` grants domain-wide leadership without substituting for the permission claim.
+
+Full detail: [docs/contributing/architecture.mdx](docs/contributing/architecture.mdx) and [docs/user-guide/settings/permissions.mdx](docs/user-guide/settings/permissions.mdx).
 
 ## Domain Services Overview
 

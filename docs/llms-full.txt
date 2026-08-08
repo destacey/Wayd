@@ -281,6 +281,8 @@ Audit trail: Revision number, who, when, field-level changes (old/new values).
 
 ## Project Portfolio Management Domain
 
+Permissions: two independent checks, both required for any mutation. (1) The permission claim `Permissions.{Projects|Programs|ProjectPortfolios|StrategicInitiatives}.{View|Create|Update|Delete|Import}` gates reaching the endpoint. (2) Delivery leadership gates which records may be changed: the actor must hold Owner or Manager on the record itself or on any ancestor — project ← program ← portfolio, inheriting downward. Sponsors and project Members are deliberately excluded. `Permissions.ProjectPortfolioManagement.Administer` is a domain-wide grant that substitutes for leadership everywhere in PPM but never for the permission claim; it is the only way to seed the first Owner on a new portfolio, since a portfolio has no ancestor. Leadership gates status transitions, detail and timeline edits, role assignment, project key/program/lifecycle changes, health checks, scores, and ranking. It does NOT gate viewing, creation (Create permission), deletion (Delete permission), or bulk import (Import permission — imported records have no leadership at the moment they are created). Every managed action requires a linked employee record.
+
 ### Portfolios
 
 Top-level container. Properties:
@@ -290,13 +292,13 @@ Top-level container. Properties:
 
 Status lifecycle: Proposed → Active (start date) → OnHold ↔ Active → Closed (all children closed, end date) → Archived (read-only).
 
-Roles: Sponsor, Owner, Manager, Portfolio Manager, Stakeholder Manager, Governance Reviewer, Capacity Planner.
+Roles: Sponsor, Owner, Manager. Owner/Manager confers delivery leadership over the portfolio and everything beneath it; Sponsor does not.
 
 Contains: Programs, Projects, Strategic Initiatives.
 
 Portfolio scoring rules: only Active scoring models can be assigned. Clearing or changing the assignment disables/changes future scoring only; existing project score snapshots remain intact.
 
-Portfolio ranking rules: projects are ranked from creation and new projects are placed at the bottom. Portfolio Owners/Managers can reorder Proposed, Approved, and Active projects from the portfolio Ranking tab. Ranking is human-managed and independent of computed priority score. Dragging is disabled while the board is sorted, filtered, or searched because drops must be expressed against the natural rank order. Completed/Cancelled projects are hidden from the ranking board but keep ranks. Ranks use fractional values for cheap inserts; the PortfolioRankRebalance Hangfire maintenance job re-spaces dense ranks to clean whole-number gaps.
+Portfolio ranking rules: projects are ranked from creation and new projects are placed at the bottom. Portfolio Owners/Managers (or a PPM administrator) can reorder Proposed, Approved, and Active projects from the portfolio Ranking tab; ranking uses the same leadership rule as every other portfolio management action. Ranking is human-managed and independent of computed priority score. Dragging is disabled while the board is sorted, filtered, or searched because drops must be expressed against the natural rank order. Completed/Cancelled projects are hidden from the ranking board but keep ranks. Ranks use fractional values for cheap inserts; the PortfolioRankRebalance Hangfire maintenance job re-spaces dense ranks to clean whole-number gaps.
 
 ### Programs
 
@@ -315,9 +317,9 @@ Most feature-rich entity. Properties:
 - CurrentScore summary: latest project priority score value, scorer, timestamp, and scoring model name
 - Rank: required fractional sort key within the portfolio; Position is the derived 1-based display rank in project lists
 
-Status lifecycle: Proposed → Approved (requires lifecycle) → Active (requires dates) → Completed/Cancelled.
+Status lifecycle: Proposed → Approved (requires lifecycle) → Active (requires dates) → Completed/Cancelled. Transitions are forward-only — there is no path back from Completed or Cancelled. Every transition requires delivery leadership (see the domain Permissions note above).
 
-Key can be changed (cascades to all task keys). Only Proposed deletable. At most one program.
+Key can be changed (cascades to all task keys), as can the assigned program and lifecycle — all three require delivery leadership. Only Proposed deletable. At most one program.
 
 Project priority scoring: if the parent portfolio has an assigned scoring model, project Owner/Manager, portfolio Owner/Manager, or program Owner/Manager can record scores. Each score is an immutable ProjectScore snapshot with per-project Sequence ordering, frozen criterion ratings, calculated outputs, scorer, timestamp, and model id/key/name. Re-scoring creates a new history entry and updates CurrentScore.
 

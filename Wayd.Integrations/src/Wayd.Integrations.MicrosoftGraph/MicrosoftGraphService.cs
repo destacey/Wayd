@@ -11,7 +11,10 @@ namespace Wayd.Integrations.MicrosoftGraph;
 
 public sealed class MicrosoftGraphService(ILogger<MicrosoftGraphService> logger) : IEntraEmployeeSource
 {
-    private static readonly string[] _selectOptions = ["id", "userPrincipalName", "userType", "accountEnabled", "givenName", "surname", "jobTitle", "department", "officeLocation", "mail", "manager", "employeeHireDate", "employeeId", "employeeType"];
+    // proxyAddresses carries every SMTP address on the mailbox, including ones the worker used
+    // before a domain or tenant move — Exchange demotes the old primary to a secondary rather than
+    // dropping it. otherMails is deliberately absent: that field holds personal recovery addresses.
+    private static readonly string[] _selectOptions = ["id", "userPrincipalName", "userType", "accountEnabled", "givenName", "surname", "jobTitle", "department", "officeLocation", "mail", "manager", "employeeHireDate", "employeeId", "employeeType", "proxyAddresses"];
     private const int MaxPageSize = 100; // graph api max page size is 999
 
     private readonly ILogger<MicrosoftGraphService> _logger = logger;

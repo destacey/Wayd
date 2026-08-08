@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
@@ -14,6 +14,8 @@ using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.Tests.Shared;
+
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.StrategicInitiatives.Commands;
 
@@ -41,7 +43,7 @@ public class ImportStrategicInitiativesCommandHandlerTests : IDisposable
 
         // Initiatives can only be created inside an active portfolio.
         _portfolio = ProjectPortfolio.Create(PortfolioName, "Growth portfolio");
-        _portfolio.Activate(_start);
+        _portfolio.Activate(PpmActor.System, _start);
         _dbContext.AddPortfolio(_portfolio);
     }
 

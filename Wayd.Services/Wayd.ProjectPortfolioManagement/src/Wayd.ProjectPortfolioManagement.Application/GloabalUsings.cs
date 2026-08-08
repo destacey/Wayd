@@ -7,4 +7,5 @@ global using Wayd.Common.Application.Interfaces;
 global using Wayd.Common.Application.Persistence;
 global using Wayd.Common.Application.Validation;
 global using Wayd.Common.Models;
+global using Wayd.ProjectPortfolioManagement.Application.Common;
 global using NodaTime;

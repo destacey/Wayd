@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using Wayd.Common.Application.Models;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
@@ -33,7 +33,10 @@ public sealed class GetStrategicInitiativeProjectsQueryHandler(IProjectPortfolio
         }
 
         var now = _dateTimeProvider.Now;
-        var config = ProjectListDto.CreateTypeAdapterConfig(now, await _currentPrincipal.GetEmployeeId(cancellationToken));
+        var isPpmAdministrator = await _currentPrincipal.HasPermission(
+            PpmAuthorizationExtensions.PpmAdministratorPermission, cancellationToken);
+        var config = ProjectListDto.CreateTypeAdapterConfig(
+            now, await _currentPrincipal.GetEmployeeId(cancellationToken), isPpmAdministrator);
         return await query
             .SelectMany(i => i.StrategicInitiativeProjects.Select(ip => ip.Project))
             .ProjectToType<ProjectListDto>(config)

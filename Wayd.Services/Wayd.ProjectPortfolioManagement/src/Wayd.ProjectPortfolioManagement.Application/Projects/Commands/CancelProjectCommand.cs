@@ -1,6 +1,8 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
-public sealed record CancelProjectCommand(Guid Id) : ICommand;
+namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
+
+public sealed record CancelProjectCommand(Guid Id) : ICommand, IRequireLinkedEmployee;
 
 public sealed class CancelProjectCommandValidator : AbstractValidator<CancelProjectCommand>
 {
@@ -11,18 +13,28 @@ public sealed class CancelProjectCommandValidator : AbstractValidator<CancelProj
     }
 }
 
-public sealed class CancelProjectCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<CancelProjectCommandHandler> logger) : ICommandHandler<CancelProjectCommand>
+public sealed class CancelProjectCommandHandler(
+    IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
+    ICurrentPrincipal currentPrincipal,
+    ILogger<CancelProjectCommandHandler> logger) : ICommandHandler<CancelProjectCommand>
 {
     private const string AppRequestName = nameof(CancelProjectCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<CancelProjectCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(CancelProjectCommand request, CancellationToken cancellationToken)
     {
         try
         {
+            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+
             var project = await _projectPortfolioManagementDbContext.Projects
+                .AsSplitQuery()
+                .Include(p => p.Roles)
+                .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
+                .Include(p => p.Program).ThenInclude(p => p!.Roles)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
             if (project is null)
             {
@@ -30,7 +42,7 @@ public sealed class CancelProjectCommandHandler(IProjectPortfolioManagementDbCon
                 return Result.Failure("Project not found.");
             }
 
-            var cancelResult = project.Cancel();
+            var cancelResult = project.Cancel(actor, project.AncestryRoles());
             if (cancelResult.IsFailure)
             {
                 // Reset the entity

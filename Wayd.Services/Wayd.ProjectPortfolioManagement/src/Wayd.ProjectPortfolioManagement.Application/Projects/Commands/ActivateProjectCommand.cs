@@ -1,6 +1,8 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
-public sealed record ActivateProjectCommand(Guid Id) : ICommand;
+namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
+
+public sealed record ActivateProjectCommand(Guid Id) : ICommand, IRequireLinkedEmployee;
 
 public sealed class ActivateProjectCommandValidator : AbstractValidator<ActivateProjectCommand>
 {
@@ -11,18 +13,28 @@ public sealed class ActivateProjectCommandValidator : AbstractValidator<Activate
     }
 }
 
-public sealed class ActivateProjectCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<ActivateProjectCommandHandler> logger) : ICommandHandler<ActivateProjectCommand>
+public sealed class ActivateProjectCommandHandler(
+    IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
+    ICurrentPrincipal currentPrincipal,
+    ILogger<ActivateProjectCommandHandler> logger) : ICommandHandler<ActivateProjectCommand>
 {
     private const string AppRequestName = nameof(ActivateProjectCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<ActivateProjectCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ActivateProjectCommand request, CancellationToken cancellationToken)
     {
         try
         {
+            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+
             var project = await _projectPortfolioManagementDbContext.Projects
+                .AsSplitQuery()
+                .Include(p => p.Roles)
+                .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
+                .Include(p => p.Program).ThenInclude(p => p!.Roles)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
             if (project is null)
             {
@@ -30,7 +42,7 @@ public sealed class ActivateProjectCommandHandler(IProjectPortfolioManagementDbC
                 return Result.Failure("Project not found.");
             }
 
-            var activateResult = project.Activate();
+            var activateResult = project.Activate(actor, project.AncestryRoles());
             if (activateResult.IsFailure)
             {
                 // Reset the entity

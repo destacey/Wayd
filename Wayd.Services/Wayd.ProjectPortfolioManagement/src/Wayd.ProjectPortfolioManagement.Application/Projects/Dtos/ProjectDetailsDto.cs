@@ -148,7 +148,14 @@ public sealed record ProjectDetailsDto
     /// </para>
     /// Pass <paramref name="employeeId"/> as null when no user is authenticated.
     /// </summary>
-    public static TypeAdapterConfig CreateTypeAdapterConfig(Instant now, Guid? employeeId)
+    /// <param name="now">The current time, used to filter expired health checks.</param>
+    /// <param name="employeeId">The current user's linked employee, or null when unauthenticated.</param>
+    /// <param name="isPpmAdministrator">
+    /// Whether the current user holds the domain-wide PPM administrator grant, which substitutes for role
+    /// membership. When true the hint is satisfied outright and the query handler's ancestor second pass
+    /// is skipped.
+    /// </param>
+    public static TypeAdapterConfig CreateTypeAdapterConfig(Instant now, Guid? employeeId, bool isPpmAdministrator = false)
     {
         var cfg = new TypeAdapterConfig();
         ProjectPhaseListDto.RegisterMapping(cfg);
@@ -181,9 +188,11 @@ public sealed record ProjectDetailsDto
                     Note = h.Note
                 })
                 .FirstOrDefault())
-            .Map(dest => dest.CanManageProject, src => employeeId.HasValue &&
+            // Project-level roles only; the parent portfolio/program check is a second pass in
+            // GetProjectQuery. The administrator grant satisfies it here so that pass can be skipped.
+            .Map(dest => dest.CanManageProject, src => isPpmAdministrator || (employeeId.HasValue &&
                 src.Roles.Any(r => r.EmployeeId == employeeId.Value &&
-                    (r.Role == ProjectRole.Owner || r.Role == ProjectRole.Manager)))
+                    (r.Role == ProjectRole.Owner || r.Role == ProjectRole.Manager))))
             .Map(dest => dest.PortfolioScoringModel, src => src.Portfolio!.ScoringModel == null
                 ? null
                 : NavigationDto.Create(src.Portfolio.ScoringModel.Id, src.Portfolio.ScoringModel.Key, src.Portfolio.ScoringModel.Name))

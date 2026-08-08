@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
@@ -15,6 +15,8 @@ using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
 using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
+
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.ProjectTasks.Commands;
 
@@ -43,7 +45,7 @@ public class ImportProjectTasksCommandHandlerTests : IDisposable
 
         // Tasks need a project with an assigned lifecycle, since phases come from it.
         var portfolio = ProjectPortfolio.Create("Growth", "Growth portfolio");
-        portfolio.Activate(_start);
+        portfolio.Activate(PpmActor.System, _start);
 
         _project = portfolio.CreateProject(
             "Project Apollo",

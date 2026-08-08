@@ -1,4 +1,4 @@
-﻿using Wayd.Common.Application.Models;
+using Wayd.Common.Application.Models;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 
@@ -91,7 +91,10 @@ public sealed class GetProjectsQueryHandler(IProjectPortfolioManagementDbContext
         }
 
         var now = _dateTimeProvider.Now;
-        var config = ProjectListDto.CreateTypeAdapterConfig(now, await _currentPrincipal.GetEmployeeId(cancellationToken));
+        var isPpmAdministrator = await _currentPrincipal.HasPermission(
+            PpmAuthorizationExtensions.PpmAdministratorPermission, cancellationToken);
+        var config = ProjectListDto.CreateTypeAdapterConfig(
+            now, await _currentPrincipal.GetEmployeeId(cancellationToken), isPpmAdministrator);
         var projects = await query.ProjectToType<ProjectListDto>(config).ToListAsync(cancellationToken);
 
         var ordered = projects

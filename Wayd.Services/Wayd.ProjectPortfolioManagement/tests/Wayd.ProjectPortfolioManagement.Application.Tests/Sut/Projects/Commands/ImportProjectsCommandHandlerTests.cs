@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
@@ -14,6 +14,8 @@ using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
+
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Projects.Commands;
 
@@ -42,7 +44,7 @@ public class ImportProjectsCommandHandlerTests : IDisposable
 
         // A project can only be created inside an active portfolio, so every case starts from one.
         _portfolio = ProjectPortfolio.Create(PortfolioName, "Growth portfolio");
-        _portfolio.Activate(_start);
+        _portfolio.Activate(PpmActor.System, _start);
         _dbContext.AddPortfolio(_portfolio);
 
         _dbContext.AddExpenditureCategory(new ExpenditureCategoryFaker().WithName(CategoryName).Generate());
@@ -128,7 +130,7 @@ public class ImportProjectsCommandHandlerTests : IDisposable
     {
         // Arrange
         var program = _portfolio.CreateProgram("Platform", "Platform program", new LocalDateRange(_start, _end), null, null, _dateTimeProvider.Now).Value;
-        program.Activate();
+        program.Activate(PpmActor.System, ProgramAncestryRoles.None);
 
         var row = Row("APOLLO", ProjectStatus.Proposed, start: null) with { ProgramName = "Platform" };
 

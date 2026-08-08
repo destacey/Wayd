@@ -32,7 +32,12 @@ public sealed class GetProjectQueryHandler(
         var now = _dateTimeProvider.Now;
         var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
 
-        var cfg = ProjectDetailsDto.CreateTypeAdapterConfig(now, employeeId);
+        // The domain-wide administrator grant substitutes for membership, so it satisfies the hint outright
+        // and lets both the projection clause and the ancestor lookup below short-circuit.
+        var isPpmAdministrator = await _currentPrincipal.HasPermission(
+            PpmAuthorizationExtensions.PpmAdministratorPermission, cancellationToken);
+
+        var cfg = ProjectDetailsDto.CreateTypeAdapterConfig(now, employeeId, isPpmAdministrator);
 
         var dto = await _ppmDbContext.Projects
             .Where(request.IdOrKeyFilter)

@@ -1,6 +1,8 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
-public sealed record CompleteProgramCommand(Guid Id) : ICommand;
+namespace Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
+
+public sealed record CompleteProgramCommand(Guid Id) : ICommand, IRequireLinkedEmployee;
 
 public sealed class CompleteProgramCommandValidator : AbstractValidator<CompleteProgramCommand>
 {
@@ -11,18 +13,27 @@ public sealed class CompleteProgramCommandValidator : AbstractValidator<Complete
     }
 }
 
-public sealed class CompleteProgramCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<CompleteProgramCommandHandler> logger) : ICommandHandler<CompleteProgramCommand>
+public sealed class CompleteProgramCommandHandler(
+    IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
+    ICurrentPrincipal currentPrincipal,
+    ILogger<CompleteProgramCommandHandler> logger) : ICommandHandler<CompleteProgramCommand>
 {
     private const string AppRequestName = nameof(CompleteProgramCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<CompleteProgramCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(CompleteProgramCommand request, CancellationToken cancellationToken)
     {
         try
         {
+            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+
             var program = await _projectPortfolioManagementDbContext.Programs
+                .AsSplitQuery()
+                .Include(p => p.Roles)
+                .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
             if (program is null)
             {
@@ -30,7 +41,7 @@ public sealed class CompleteProgramCommandHandler(IProjectPortfolioManagementDbC
                 return Result.Failure("Program not found.");
             }
 
-            var completeResult = program.Complete();
+            var completeResult = program.Complete(actor, program.AncestryRoles());
             if (completeResult.IsFailure)
             {
                 // Reset the entity

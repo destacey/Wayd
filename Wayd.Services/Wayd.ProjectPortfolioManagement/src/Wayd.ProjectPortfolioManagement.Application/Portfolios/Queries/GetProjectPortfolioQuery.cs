@@ -15,16 +15,27 @@ public sealed record GetProjectPortfolioQuery : IQuery<ProjectPortfolioDetailsDt
     public Expression<Func<ProjectPortfolio, bool>> IdOrKeyFilter { get; }
 }
 
-public sealed class GetProjectPortfolioQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
+public sealed class GetProjectPortfolioQueryHandler(
+    IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
+    ICurrentPrincipal currentPrincipal)
     : IQueryHandler<GetProjectPortfolioQuery, ProjectPortfolioDetailsDto?>
 {
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
 
     public async Task<ProjectPortfolioDetailsDto?> Handle(GetProjectPortfolioQuery request, CancellationToken cancellationToken)
     {
+        // A per-request config is needed so CanManagePortfolio reflects the caller; the global mapping has
+        // no actor and would always report false.
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        var isPpmAdministrator = await _currentPrincipal.HasPermission(
+            PpmAuthorizationExtensions.PpmAdministratorPermission, cancellationToken);
+
+        var config = ProjectPortfolioDetailsDto.CreateTypeAdapterConfig(employeeId, isPpmAdministrator);
+
         return await _projectPortfolioManagementDbContext.Portfolios
             .Where(request.IdOrKeyFilter)
-            .ProjectToType<ProjectPortfolioDetailsDto>()
+            .ProjectToType<ProjectPortfolioDetailsDto>(config)
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

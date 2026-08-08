@@ -141,6 +141,27 @@ Key files: `Wayd.Infrastructure/Auth/Local/TokenService.cs`, `Wayd.Infrastructur
 
 User → login-provider linkage lives in a `UserIdentity` table — one active row per user, keyed by `(Provider, ProviderTenantId, ProviderSubject)`. Every authentication path resolves through the same lookup. Admins can stage tenant migrations per user; the rebind happens transactionally on the user's next sign-in from the new tenant. See [docs/contributing/configuration.mdx](docs/contributing/configuration.mdx) (Identity model + Tenant migration sections) for schema, invariants, and admin workflow.
 
+### Authorization
+
+Most of the app authorizes on the permission claim alone — `[MustHavePermission(action, resource)]` on the controller, producing `Permissions.{Resource}.{Action}`.
+
+**PPM is the exception: a permission claim alone cannot change a record.** Mutating a project, program, or portfolio also requires **delivery leadership** — Owner or Manager on the record or on an ancestor (project ← program ← portfolio, inheriting downward). Sponsors and project Members are excluded. This is enforced in the domain, since only the record can answer it.
+
+When writing or editing a PPM handler that mutates one of those aggregates:
+
+1. Mark the command `IRequireLinkedEmployee`.
+2. Inject `ICurrentPrincipal`; call `ResolvePpmActor(cancellationToken)`.
+3. **Load ancestor roles in the query** — `.Include(p => p.Portfolio).ThenInclude(p => p!.Roles)`, plus `.Include(p => p.Program).ThenInclude(p => p!.Roles)` for projects.
+4. Pass `actor` and `project.AncestryRoles()` into the aggregate method.
+
+Every mutating method on these aggregates requires a `PpmActor`, so the compiler catches a missing actor. **It does not catch a missing `.Include`** — that silently empties the ancestry and denies a legitimately authorized user, and in-memory test fakes can't detect it because `.Include` is a no-op there.
+
+`PpmActor.System` is the deliberate bypass for importers and creation paths (`grep PpmActor.System` audits every one). `Permissions.ProjectPortfolioManagement.Administer` grants domain-wide leadership but never substitutes for the permission claim.
+
+The read side mirrors the rule as `canManageProject` / `canManageProgram` / `canManagePortfolio` DTO fields; the UI gates on permission **and** flag. Those projections and the aggregate predicates must stay in agreement.
+
+See [docs/contributing/architecture.mdx](docs/contributing/architecture.mdx#permission-based-vs-membership-based-authorization) and [docs/user-guide/settings/permissions.mdx](docs/user-guide/settings/permissions.mdx).
+
 ### Feature Flags
 
 Microsoft.FeatureManagement — defined in code, stored in database, managed via Settings UI.

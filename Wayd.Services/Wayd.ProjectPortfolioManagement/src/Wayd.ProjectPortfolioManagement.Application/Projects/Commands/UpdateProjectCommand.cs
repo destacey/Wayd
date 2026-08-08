@@ -1,10 +1,10 @@
-﻿using Wayd.Common.Application.Models;
+using Wayd.Common.Application.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 
-public sealed record UpdateProjectCommand(Guid Id, string Name, string Description, string? BusinessCase, string? ExpectedBenefits, int ExpenditureCategoryId, LocalDateRange? DateRange, List<Guid>? SponsorIds, List<Guid>? OwnerIds, List<Guid>? ManagerIds, List<Guid>? MemberIds, List<Guid>? StrategicThemeIds) : ICommand;
+public sealed record UpdateProjectCommand(Guid Id, string Name, string Description, string? BusinessCase, string? ExpectedBenefits, int ExpenditureCategoryId, LocalDateRange? DateRange, List<Guid>? SponsorIds, List<Guid>? OwnerIds, List<Guid>? ManagerIds, List<Guid>? MemberIds, List<Guid>? StrategicThemeIds) : ICommand, IRequireLinkedEmployee;
 
 public sealed class UpdateProjectCommandValidator : AbstractValidator<UpdateProjectCommand>
 {
@@ -54,6 +54,7 @@ public sealed class UpdateProjectCommandValidator : AbstractValidator<UpdateProj
 
 public sealed class UpdateProjectCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
+    ICurrentPrincipal currentPrincipal,
     ILogger<UpdateProjectCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UpdateProjectCommand>
@@ -61,6 +62,7 @@ public sealed class UpdateProjectCommandHandler(
     private const string AppRequestName = nameof(UpdateProjectCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<UpdateProjectCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -68,9 +70,16 @@ public sealed class UpdateProjectCommandHandler(
     {
         try
         {
+            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+
+            // Portfolio and program roles are loaded because delivery leadership inherits downward — an
+            // Owner/Manager on either may manage this project even without a role on the project itself.
             var project = await _projectPortfolioManagementDbContext.Projects
+                .AsSplitQuery()
                 .Include(p => p.Roles)
                 .Include(p => p.StrategicThemeTags)
+                .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
+                .Include(p => p.Program).ThenInclude(p => p!.Roles)
                 .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
             if (project is null)
             {
@@ -78,7 +87,11 @@ public sealed class UpdateProjectCommandHandler(
                 return Result.Failure<ObjectIdAndKey>("Project not found.");
             }
 
+            var ancestry = project.AncestryRoles();
+
             var updateResult = project.UpdateDetails(
+                actor,
+                ancestry,
                 request.Name,
                 request.Description,
                 request.BusinessCase,
@@ -91,14 +104,14 @@ public sealed class UpdateProjectCommandHandler(
                 return await HandleDomainFailure(project, updateResult, cancellationToken);
             }
 
-            var updateTimelineResult = project.UpdateTimeline(request.DateRange);
+            var updateTimelineResult = project.UpdateTimeline(actor, ancestry, request.DateRange);
             if (updateTimelineResult.IsFailure)
             {
                 return await HandleDomainFailure(project, updateTimelineResult, cancellationToken);
             }
 
             var roles = GetRoles(request);
-            var updateRolesResult = project.UpdateRoles(roles);
+            var updateRolesResult = project.UpdateRoles(actor, ancestry, roles);
             if (updateRolesResult.IsFailure)
             {
                 return await HandleDomainFailure(project, updateRolesResult, cancellationToken);

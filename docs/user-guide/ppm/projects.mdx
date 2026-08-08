@@ -16,11 +16,22 @@ Every project has:
 - **Date Range** — Start and optional end date
 - **[Expenditure Category](../settings/index.mdx#expenditure-categories)** — Budget classification
 - **[Lifecycle](#project-lifecycles)** — Defines the phases the project goes through
-- **Roles** — Sponsor, Owner, Manager, Member
+- **Roles** — Sponsor, Owner, Manager, Member (see [Project Roles](#project-roles))
 - **Health Check** — Optional point-in-time project health signal (Healthy, At Risk, Unhealthy) with expiration
 - **Priority Score** — Optional score recorded with the project's portfolio [scoring model](./portfolios-programs.mdx#portfolio-project-scoring)
 - **Portfolio Rank** — Human-managed position within the project's portfolio, shown as **Rank** in project lists and available as a card-view sort mode
 - **[Strategic Theme Tags](../strategic-management/index.mdx#strategic-themes)** — Links to strategic themes
+
+## Project Roles
+
+| Role | Description | May manage the project? |
+|------|-------------|-------------------------|
+| Sponsor | Executive sponsor of the project | No — sponsors fund and oversee, but don't run delivery |
+| Owner | Person accountable for the project's outcomes | Yes |
+| Manager | Responsible for planning and delivery | Yes |
+| Member | Contributes to the project's work | No |
+
+Owners and Managers of the project's **program** or **portfolio** may also manage it — leadership inherits downward. See [Permissions](../settings/permissions.mdx#delivery-leadership-in-ppm) for the full rule.
 
 ## Project Status Lifecycle
 
@@ -88,7 +99,7 @@ Common keyboard shortcuts in Plan:
 
 ## Project Actions Menu
 
-The page-level **Actions** menu changes based on project status and your permissions.
+The page-level **Actions** menu changes based on project status, your permissions, and whether you lead the project.
 
 Typical actions include:
 - **Edit**
@@ -100,6 +111,14 @@ Typical actions include:
 - Status transitions such as **Approve**, **Activate**, **Complete**, and **Cancel**
 - **Create Health Check**
 - **Health Report**
+
+### Who can perform these actions
+
+Every action above except **Delete** and **Health Report** requires **both** the `Permissions.Projects.Update` permission **and** delivery leadership on the project — you must be an Owner or Manager of the project, its program, or its portfolio. Sponsors and Members are not sufficient.
+
+**Delete** requires `Permissions.Projects.Delete`. **Health Report** requires only view access.
+
+If an action is missing from the menu, see [why an action might be unavailable](../settings/permissions.mdx#why-an-action-might-be-unavailable).
 
 ## Project Priority Scores
 
@@ -132,7 +151,7 @@ Scores are immutable snapshots. If the portfolio changes scoring models later, e
 
 ### Permissions
 
-Users need project update rights and management access to record scores. Project Owner/Manager, portfolio Owner/Manager, or program Owner/Manager access is sufficient. Users with project view access can view current scores and score history.
+Users need project update rights and management access to record scores. Project Owner/Manager, portfolio Owner/Manager, or program Owner/Manager access is sufficient — this is the same [delivery-leadership rule](../settings/permissions.mdx#delivery-leadership-in-ppm) that governs every other project change. Users with project view access can view current scores and score history.
 
 ## Health Report Tab Behavior
 
@@ -172,7 +191,7 @@ Use this view to review trends and reporting history for the project.
 
 ### Permissions
 
-To create, edit, or delete project health checks, users need project update rights and management access on the project context (for example, project owner/manager or equivalent portfolio/program management access). Users with project view access can still view health checks and health reports.
+To create, edit, or delete project health checks, users need project update rights and management access on the project context (for example, project owner/manager or equivalent portfolio/program management access) — the same [delivery-leadership rule](../settings/permissions.mdx#delivery-leadership-in-ppm) that governs every other project change. Users with project view access can still view health checks and health reports.
 
 ## Project Lifecycles
 

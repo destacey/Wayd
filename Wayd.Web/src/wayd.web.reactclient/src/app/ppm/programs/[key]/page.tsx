@@ -79,6 +79,11 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   useDocumentTitle(`${programData?.name ?? programKey} - Program Details`)
 
+  // Managing a program needs the Update permission AND delivery leadership on it — program or parent
+  // portfolio Owner/Manager, or the PPM administrator grant. The server computes the membership half
+  // (canManageProgram) so the UI cannot drift from the rule the aggregate enforces.
+  const canManageProgram = canUpdateProgram && !!programData?.canManageProgram
+
   useEffect(() => {
     if (!programData) return
 
@@ -118,7 +123,7 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           : []
 
     const items: ItemType[] = []
-    if (canUpdateProgram && availableActions.includes(ProgramAction.Edit)) {
+    if (canManageProgram && availableActions.includes(ProgramAction.Edit)) {
       items.push({
         key: 'edit',
         label: ProgramAction.Edit,
@@ -134,7 +139,7 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     }
 
     if (
-      canUpdateProgram &&
+      canManageProgram &&
       (availableActions.includes(ProgramAction.Activate) ||
         availableActions.includes(ProgramAction.Complete) ||
         availableActions.includes(ProgramAction.Cancel))
@@ -145,7 +150,7 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       })
     }
 
-    if (canUpdateProgram && availableActions.includes(ProgramAction.Activate)) {
+    if (canManageProgram && availableActions.includes(ProgramAction.Activate)) {
       items.push({
         key: 'activate',
         label: ProgramAction.Activate,
@@ -153,7 +158,7 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       })
     }
 
-    if (canUpdateProgram && availableActions.includes(ProgramAction.Complete)) {
+    if (canManageProgram && availableActions.includes(ProgramAction.Complete)) {
       items.push({
         key: 'complete',
         label: ProgramAction.Complete,
@@ -161,7 +166,7 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       })
     }
 
-    if (canUpdateProgram && availableActions.includes(ProgramAction.Cancel)) {
+    if (canManageProgram && availableActions.includes(ProgramAction.Cancel)) {
       items.push({
         key: 'cancel',
         label: ProgramAction.Cancel,

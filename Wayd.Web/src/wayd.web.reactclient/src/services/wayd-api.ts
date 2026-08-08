@@ -33471,6 +33471,7 @@ export interface ProjectPortfolioDetailsDto {
     portfolioSponsors: EmployeeNavigationDto[];
     portfolioOwners: EmployeeNavigationDto[];
     portfolioManagers: EmployeeNavigationDto[];
+    canManagePortfolio: boolean;
 }
 
 export interface CreatePortfolioRequest {
@@ -33687,6 +33688,7 @@ export interface ProgramDetailsDto {
     programOwners: EmployeeNavigationDto[];
     programManagers: EmployeeNavigationDto[];
     strategicThemes: NavigationDto[];
+    canManageProgram: boolean;
 }
 
 export interface CreateProgramRequest {

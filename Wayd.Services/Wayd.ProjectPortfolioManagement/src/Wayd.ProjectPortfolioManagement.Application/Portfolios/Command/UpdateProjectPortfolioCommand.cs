@@ -1,9 +1,9 @@
-﻿using Wayd.ProjectPortfolioManagement.Domain.Enums;
+using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
 
-public sealed record UpdateProjectPortfolioCommand(Guid Id, string Name, string Description, List<Guid>? SponsorIds, List<Guid>? OwnerIds, List<Guid>? ManagerIds) : ICommand;
+public sealed record UpdateProjectPortfolioCommand(Guid Id, string Name, string Description, List<Guid>? SponsorIds, List<Guid>? OwnerIds, List<Guid>? ManagerIds) : ICommand, IRequireLinkedEmployee;
 
 public sealed class UpdateProjectPortfolioCommandValidator : AbstractValidator<UpdateProjectPortfolioCommand>
 {
@@ -35,18 +35,23 @@ public sealed class UpdateProjectPortfolioCommandValidator : AbstractValidator<U
 
 public sealed class UpdateProjectPortfolioCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
+    ICurrentPrincipal currentPrincipal,
     ILogger<UpdateProjectPortfolioCommandHandler> logger)
     : ICommandHandler<UpdateProjectPortfolioCommand>
 {
     private const string AppRequestName = nameof(UpdateProjectPortfolioCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<UpdateProjectPortfolioCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateProjectPortfolioCommand request, CancellationToken cancellationToken)
     {
         try
         {
+            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+
+            // A portfolio has no ancestor, so its own roles are the whole membership picture.
             var portfolio = await _projectPortfolioManagementDbContext.Portfolios
                 .Include(p => p.Roles)
                 .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
@@ -57,6 +62,7 @@ public sealed class UpdateProjectPortfolioCommandHandler(
             }
 
             var updateResult = portfolio.UpdateDetails(
+                actor,
                 request.Name,
                 request.Description
                 );
@@ -66,7 +72,7 @@ public sealed class UpdateProjectPortfolioCommandHandler(
             }
 
             var roles = GetRoles(request);
-            var updateRolesResult = portfolio.UpdateRoles(roles);
+            var updateRolesResult = portfolio.UpdateRoles(actor, roles);
             if (updateRolesResult.IsFailure)
             {
                 return await HandleDomainFailure(portfolio, updateRolesResult, cancellationToken);

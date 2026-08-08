@@ -1,6 +1,8 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
-public sealed record CloseProjectPortfolioCommand(Guid Id) : ICommand;
+namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
+
+public sealed record CloseProjectPortfolioCommand(Guid Id) : ICommand, IRequireLinkedEmployee;
 
 public sealed class CloseProjectPortfolioCommandValidator : AbstractValidator<CloseProjectPortfolioCommand>
 {
@@ -11,11 +13,16 @@ public sealed class CloseProjectPortfolioCommandValidator : AbstractValidator<Cl
     }
 }
 
-public sealed class CloseProjectPortfolioCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<CloseProjectPortfolioCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<CloseProjectPortfolioCommand>
+public sealed class CloseProjectPortfolioCommandHandler(
+    IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
+    ICurrentPrincipal currentPrincipal,
+    ILogger<CloseProjectPortfolioCommandHandler> logger,
+    IDateTimeProvider dateTimeProvider) : ICommandHandler<CloseProjectPortfolioCommand>
 {
     private const string AppRequestName = nameof(CloseProjectPortfolioCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<CloseProjectPortfolioCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -23,7 +30,10 @@ public sealed class CloseProjectPortfolioCommandHandler(IProjectPortfolioManagem
     {
         try
         {
+            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+
             var portfolio = await _projectPortfolioManagementDbContext.Portfolios
+                .Include(p => p.Roles)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
             if (portfolio is null)
             {
@@ -31,7 +41,7 @@ public sealed class CloseProjectPortfolioCommandHandler(IProjectPortfolioManagem
                 return Result.Failure("Project Portfolio not found.");
             }
 
-            var closeResult = portfolio.Close(_dateTimeProvider.Today);
+            var closeResult = portfolio.Close(actor, _dateTimeProvider.Today);
             if (closeResult.IsFailure)
             {
                 // Reset the entity

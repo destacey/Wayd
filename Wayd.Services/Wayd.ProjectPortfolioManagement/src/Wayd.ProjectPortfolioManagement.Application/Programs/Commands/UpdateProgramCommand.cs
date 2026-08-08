@@ -1,9 +1,9 @@
-﻿using Wayd.ProjectPortfolioManagement.Domain.Enums;
+using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
 
-public sealed record UpdateProgramCommand(Guid Id, string Name, string Description, LocalDateRange? DateRange, List<Guid>? SponsorIds, List<Guid>? OwnerIds, List<Guid>? ManagerIds, List<Guid>? StrategicThemeIds) : ICommand;
+public sealed record UpdateProgramCommand(Guid Id, string Name, string Description, LocalDateRange? DateRange, List<Guid>? SponsorIds, List<Guid>? OwnerIds, List<Guid>? ManagerIds, List<Guid>? StrategicThemeIds) : ICommand, IRequireLinkedEmployee;
 
 public sealed class UpdateProgramCommandValidator : AbstractValidator<UpdateProgramCommand>
 {
@@ -40,6 +40,7 @@ public sealed class UpdateProgramCommandValidator : AbstractValidator<UpdateProg
 
 public sealed class UpdateProgramCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
+    ICurrentPrincipal currentPrincipal,
     ILogger<UpdateProgramCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UpdateProgramCommand>
@@ -47,6 +48,7 @@ public sealed class UpdateProgramCommandHandler(
     private const string AppRequestName = nameof(UpdateProgramCommand);
 
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<UpdateProgramCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -54,9 +56,15 @@ public sealed class UpdateProgramCommandHandler(
     {
         try
         {
+            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+
+            // Portfolio roles are loaded because delivery leadership inherits downward — an Owner/Manager
+            // on the parent portfolio may manage this program even without a role on the program itself.
             var program = await _ppmDbContext.Programs
+                .AsSplitQuery()
                 .Include(p => p.Roles)
                 .Include(p => p.StrategicThemeTags)
+                .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
                 .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
             if (program == null)
             {
@@ -64,7 +72,11 @@ public sealed class UpdateProgramCommandHandler(
                 return Result.Failure("Program not found.");
             }
 
+            var ancestry = program.AncestryRoles();
+
             var updateResult = program.UpdateDetails(
+                actor,
+                ancestry,
                 request.Name,
                 request.Description,
                 _dateTimeProvider.Now);
@@ -73,14 +85,14 @@ public sealed class UpdateProgramCommandHandler(
                 return await HandleDomainFailure(program, updateResult, cancellationToken);
             }
 
-            var updateTimelineResult = program.UpdateTimeline(request.DateRange);
+            var updateTimelineResult = program.UpdateTimeline(actor, ancestry, request.DateRange);
             if (updateTimelineResult.IsFailure)
             {
                 return await HandleDomainFailure(program, updateTimelineResult, cancellationToken);
             }
 
             var roles = GetRoles(request);
-            var updateRolesResult = program.UpdateRoles(roles);
+            var updateRolesResult = program.UpdateRoles(actor, ancestry, roles);
             if (updateRolesResult.IsFailure)
             {
                 return await HandleDomainFailure(program, updateRolesResult, cancellationToken);

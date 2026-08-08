@@ -30537,7 +30537,8 @@
           "portfolioOwners",
           "portfolioManagers",
           "id",
-          "key"
+          "key",
+          "canManagePortfolio"
         ],
         "properties": {
           "id": {
@@ -30584,6 +30585,9 @@
             "items": {
               "$ref": "#/components/schemas/EmployeeNavigationDto"
             }
+          },
+          "canManagePortfolio": {
+            "type": "boolean"
           }
         }
       },
@@ -31496,7 +31500,8 @@
           "programManagers",
           "strategicThemes",
           "id",
-          "key"
+          "key",
+          "canManageProgram"
         ],
         "properties": {
           "id": {
@@ -31554,6 +31559,9 @@
             "items": {
               "$ref": "#/components/schemas/NavigationDto"
             }
+          },
+          "canManageProgram": {
+            "type": "boolean"
           }
         }
       },

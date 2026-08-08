@@ -133,7 +133,11 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     refetch: refetchProject,
   } = useGetProjectQuery(projectKey)
 
-  const canManageProject = !!projectData?.canManageProject
+  // Managing a project needs the Update permission AND delivery leadership on it — project, program, or
+  // portfolio Owner/Manager, or the PPM administrator grant. The server computes the membership half
+  // (canManageProject) so the UI cannot drift from the rule the aggregate enforces.
+  const canManageProject =
+    canUpdateProject && !!projectData?.canManageProject
 
   useDocumentTitle(`${projectData?.name ?? projectKey} - Project Details`)
 
@@ -281,14 +285,14 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     // TODO: Implement On Hold status
 
     const items: ItemType[] = []
-    if (canUpdateProject && availableActions.includes(ProjectAction.Edit)) {
+    if (canManageProject && availableActions.includes(ProjectAction.Edit)) {
       items.push({
         key: 'edit',
         label: ProjectAction.Edit,
         onClick: () => setOpenEditProjectForm(true),
       })
     }
-    if (canUpdateProject) {
+    if (canManageProject) {
       items.push({
         key: 'change-program',
         label: ProjectAction.ChangeProgram,
@@ -326,7 +330,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     }
 
     if (
-      canUpdateProject &&
+      canManageProject &&
       (availableActions.includes(ProjectAction.Approve) ||
         availableActions.includes(ProjectAction.Activate) ||
         availableActions.includes(ProjectAction.Complete) ||
@@ -335,7 +339,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       items.push({ key: 'manage-divider', type: 'divider' })
     }
 
-    if (canUpdateProject && availableActions.includes(ProjectAction.Approve)) {
+    if (canManageProject && availableActions.includes(ProjectAction.Approve)) {
       items.push({
         key: 'approve',
         label: ProjectAction.Approve,
@@ -343,7 +347,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       })
     }
 
-    if (canUpdateProject && availableActions.includes(ProjectAction.Activate)) {
+    if (canManageProject && availableActions.includes(ProjectAction.Activate)) {
       items.push({
         key: 'activate',
         label: ProjectAction.Activate,
@@ -351,7 +355,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       })
     }
 
-    if (canUpdateProject && availableActions.includes(ProjectAction.Complete)) {
+    if (canManageProject && availableActions.includes(ProjectAction.Complete)) {
       items.push({
         key: 'complete',
         label: ProjectAction.Complete,
@@ -359,7 +363,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       })
     }
 
-    if (canUpdateProject && availableActions.includes(ProjectAction.Cancel)) {
+    if (canManageProject && availableActions.includes(ProjectAction.Cancel)) {
       items.push({
         key: 'cancel',
         label: ProjectAction.Cancel,

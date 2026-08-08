@@ -1,8 +1,10 @@
-﻿using Wayd.Common.Domain.Enums.StrategicManagement;
+using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Models;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Validators;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
+
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 
@@ -168,7 +170,9 @@ public sealed class CreateProjectCommandHandler(
                     return Result.Failure<ProjectIdAndKey>("Project Lifecycle not found.");
                 }
 
-                var assignResult = project.AssignLifecycle(lifecycle);
+                // PpmActor.System: this runs as part of creating the project, so nobody holds a role on it
+                // yet. Authorization for creation is the caller's Permissions.Projects.Create claim.
+                var assignResult = project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
                 if (assignResult.IsFailure)
                 {
                     _logger.LogWarning("Unable to assign lifecycle to project {ProjectId}. Error: {Error}", project.Id, assignResult.Error);

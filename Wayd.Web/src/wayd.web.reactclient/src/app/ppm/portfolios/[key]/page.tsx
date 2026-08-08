@@ -137,16 +137,15 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     refetch: refetchPortfolio,
   } = useGetPortfolioQuery(portfolioKey)
 
-  // Ranking is restricted to portfolio Owners and Managers who also hold the
-  // Update permission (per the PPM docs — drag-to-rank is Owners/Managers only).
-  const currentEmployeeId = user?.employeeId
-  const isPortfolioOwnerOrManager =
-    !!currentEmployeeId &&
-    [
-      ...(portfolioData?.portfolioOwners ?? []),
-      ...(portfolioData?.portfolioManagers ?? []),
-    ].some((e) => e.id === currentEmployeeId)
-  const canManageRanking = canUpdatePortfolio && isPortfolioOwnerOrManager
+  // Managing a portfolio needs the Update permission AND delivery leadership on it — portfolio
+  // Owner/Manager, or the PPM administrator grant. The server computes the membership half
+  // (canManagePortfolio) so the UI cannot drift from the rule the aggregate enforces; the permission
+  // half stays a claim check because it gates reaching the endpoint at all.
+  const canManagePortfolio =
+    canUpdatePortfolio && !!portfolioData?.canManagePortfolio
+
+  // Ranking is restricted to the same set (per the PPM docs — drag-to-rank is Owners/Managers only).
+  const canManageRanking = canManagePortfolio
 
   const {
     data: programData,
@@ -327,7 +326,7 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     // TODO: Implement On Hold status
 
     const items: ItemType[] = []
-    if (canUpdatePortfolio && currentStatus !== 'Archived') {
+    if (canManagePortfolio && currentStatus !== 'Archived') {
       items.push({
         key: 'edit',
         label: MenuActions.Edit,
@@ -343,11 +342,11 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     }
 
     const canSetScoringModel =
-      canUpdatePortfolio && currentStatus !== 'Archived'
+      canManagePortfolio && currentStatus !== 'Archived'
 
     const hasManageActions =
       canSetScoringModel ||
-      (canUpdatePortfolio &&
+      (canManagePortfolio &&
         (availableActions.includes(MenuActions.Activate) ||
           availableActions.includes(MenuActions.Close) ||
           availableActions.includes(MenuActions.Archive)))
@@ -367,7 +366,7 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       })
     }
 
-    if (canUpdatePortfolio && availableActions.includes(MenuActions.Activate)) {
+    if (canManagePortfolio && availableActions.includes(MenuActions.Activate)) {
       items.push({
         key: 'activate',
         label: MenuActions.Activate,
@@ -375,7 +374,7 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       })
     }
 
-    if (canUpdatePortfolio && availableActions.includes(MenuActions.Close)) {
+    if (canManagePortfolio && availableActions.includes(MenuActions.Close)) {
       items.push({
         key: 'close',
         label: MenuActions.Close,
@@ -383,7 +382,7 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       })
     }
 
-    if (canUpdatePortfolio && availableActions.includes(MenuActions.Archive)) {
+    if (canManagePortfolio && availableActions.includes(MenuActions.Archive)) {
       items.push({
         key: 'archive',
         label: MenuActions.Archive,

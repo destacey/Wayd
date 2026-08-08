@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
@@ -12,6 +12,8 @@ using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.Tests.Shared;
+
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Finalization.Commands;
 
@@ -38,7 +40,7 @@ public class ImportPpmFinalizationsCommandHandlerTests : IDisposable
         _handler = new ImportPpmFinalizationsCommandHandler(_dbContext, _mockLogger.Object);
 
         _portfolio = ProjectPortfolio.Create(PortfolioName, "Growth portfolio");
-        _portfolio.Activate(_start);
+        _portfolio.Activate(PpmActor.System, _start);
         _dbContext.AddPortfolio(_portfolio);
     }
 
@@ -188,7 +190,7 @@ public class ImportPpmFinalizationsCommandHandlerTests : IDisposable
     private Program CreateActiveProgram(string name)
     {
         var program = _portfolio.CreateProgram(name, $"{name} program", new LocalDateRange(_start, _end), null, null, _dateTimeProvider.Now).Value;
-        program.Activate();
+        program.Activate(PpmActor.System, ProgramAncestryRoles.None);
 
         return program;
     }
@@ -211,14 +213,14 @@ public class ImportPpmFinalizationsCommandHandlerTests : IDisposable
         switch (status)
         {
             case ProjectStatus.Completed:
-                project.Activate();
-                project.Complete();
+                project.Activate(PpmActor.System, ProjectAncestryRoles.None);
+                project.Complete(PpmActor.System, ProjectAncestryRoles.None);
                 break;
             case ProjectStatus.Cancelled:
-                project.Cancel();
+                project.Cancel(PpmActor.System, ProjectAncestryRoles.None);
                 break;
             case ProjectStatus.Active:
-                project.Activate();
+                project.Activate(PpmActor.System, ProjectAncestryRoles.None);
                 break;
         }
     }

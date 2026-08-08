@@ -1,7 +1,8 @@
-﻿using Wayd.Common.Domain.Enums.StrategicManagement;
+using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 
@@ -136,7 +137,12 @@ public sealed class ImportProjectsCommandHandler(
 
                 if (row.ProjectLifecycleName is not null)
                 {
-                    var assignResult = project.AssignLifecycle(lifecyclesByName[Normalize(row.ProjectLifecycleName)]);
+                    // PpmActor.System for the same reason as ApplyStatus below: import is authorized by the
+                    // Import claim, and the project was created by this batch so nobody holds a role on it.
+                    var assignResult = project.AssignLifecycle(
+                        PpmActor.System,
+                        ProjectAncestryRoles.None,
+                        lifecyclesByName[Normalize(row.ProjectLifecycleName)]);
                     if (assignResult.IsFailure)
                         return Fail($"Could not assign lifecycle '{row.ProjectLifecycleName}' to project '{row.Key.Value}': {assignResult.Error}");
                 }
@@ -164,26 +170,34 @@ public sealed class ImportProjectsCommandHandler(
     /// Walks a freshly created (Proposed) project to its target status through the real transitions, so
     /// every guard the domain enforces is honoured — approval requires a lifecycle, activation a date
     /// range. A cancelled project is cancelled straight from Proposed, which the domain permits.
+    ///
+    /// Runs as <see cref="PpmActor.System"/>: import is a bulk administrative operation authorized by the
+    /// caller's Permissions.Projects.Import claim, not by delivery-leadership membership. Membership
+    /// gating cannot apply here in any case — the project is created by this same batch, so nobody holds
+    /// a role on it yet.
     /// </summary>
     private static Result ApplyStatus(Project project, ProjectStatus status)
     {
+        var actor = PpmActor.System;
+        var ancestry = ProjectAncestryRoles.None;
+
         switch (status)
         {
             case ProjectStatus.Proposed:
                 return Result.Success();
 
             case ProjectStatus.Cancelled:
-                return project.Cancel();
+                return project.Cancel(actor, ancestry);
 
             case ProjectStatus.Approved:
-                return project.Approve();
+                return project.Approve(actor, ancestry);
 
             case ProjectStatus.Active:
-                return project.Activate();
+                return project.Activate(actor, ancestry);
 
             case ProjectStatus.Completed:
-                var activate = project.Activate();
-                return activate.IsFailure ? activate : project.Complete();
+                var activate = project.Activate(actor, ancestry);
+                return activate.IsFailure ? activate : project.Complete(actor, ancestry);
 
             default:
                 return Result.Failure($"Unsupported project status '{status}'.");

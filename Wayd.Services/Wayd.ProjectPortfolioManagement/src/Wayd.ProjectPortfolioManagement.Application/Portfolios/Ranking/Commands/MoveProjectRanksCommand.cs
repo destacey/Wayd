@@ -48,9 +48,7 @@ public sealed class MoveProjectRanksCommandHandler(
 
     public async Task<Result> Handle(MoveProjectRanksCommand request, CancellationToken cancellationToken)
     {
-        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-        if (employeeId is null)
-            LinkedEmployeeRequired.Throw();
+        var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
 
         var portfolio = await _ppmDbContext.Portfolios
             .AsSplitQuery()
@@ -65,7 +63,7 @@ public sealed class MoveProjectRanksCommandHandler(
         }
 
         var moveResult = portfolio.MoveProjectRanks(
-            employeeId.Value,
+            actor,
             request.ProjectIds,
             request.AfterProjectId,
             request.BeforeProjectId);

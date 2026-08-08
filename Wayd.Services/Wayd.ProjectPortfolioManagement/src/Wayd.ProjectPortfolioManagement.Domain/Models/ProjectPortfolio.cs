@@ -5,6 +5,7 @@ using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.Scoring.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 using NodaTime;
 
@@ -15,6 +16,8 @@ namespace Wayd.ProjectPortfolioManagement.Domain.Models;
 /// </summary>
 public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
 {
+    private const string UnauthorizedManageActorError =
+        "You are not authorized to manage this portfolio. Portfolio Owners and Managers may.";
     private const string ReadOnlyErrorMessage = "Project Portfolio is readonly and cannot be updated.";
 
     private readonly HashSet<RoleAssignment<ProjectPortfolioRole>> _roles = [];
@@ -129,10 +132,37 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     public bool CanBeDeleted() => Status is ProjectPortfolioStatus.Proposed;
 
     /// <summary>
-    /// Updates the portfolio details, including the date range.
+    /// Read-side authorization predicate: returns true if the given actor may manage this portfolio.
+    /// A portfolio has no parent, so only Owner/Manager on the portfolio itself qualifies — or the
+    /// domain-wide PPM administrator grant. Sponsors are intentionally excluded — they fund and
+    /// oversee but don't run delivery, matching <see cref="Project.CanManageProject(PpmActor, ProjectAncestryRoles)"/>.
+    ///
+    /// Because a newly created portfolio has no ancestor to inherit leadership from, the administrator
+    /// grant is the only way to seed its first Owner.
     /// </summary>
-    public Result UpdateDetails(string name, string description)
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <returns>True if the actor may manage the portfolio; otherwise, false.</returns>
+    public bool CanManagePortfolio(PpmActor actor)
     {
+        Guard.Against.Null(actor, nameof(actor));
+
+        return actor.IsPpmAdministrator
+            || _roles.Any(r => r.EmployeeId == actor.EmployeeId && r.Role is ProjectPortfolioRole.Owner or ProjectPortfolioRole.Manager);
+    }
+
+    /// <summary>
+    /// Updates the portfolio details on behalf of an actor who must be authorized to manage it.
+    /// </summary>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="name">The new name.</param>
+    /// <param name="description">The new description.</param>
+    public Result UpdateDetails(PpmActor actor, string name, string description)
+    {
+        if (!CanManagePortfolio(actor))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         if (IsReadOnly)
         {
             return Result.Failure(ReadOnlyErrorMessage);
@@ -145,10 +175,20 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Assigns an employee to a specific role within the portfolio, allowing multiple employees per role.
+    /// Assigns an employee to a role on behalf of an actor who must be authorized to manage the portfolio.
+    /// Role assignment is gated because it is the path by which membership itself is granted — leaving it
+    /// open would let any holder of the Update permission make themselves an Owner.
     /// </summary>
-    public Result AssignRole(ProjectPortfolioRole role, Guid employeeId)
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="role">The role to assign.</param>
+    /// <param name="employeeId">The employee receiving the role.</param>
+    public Result AssignRole(PpmActor actor, ProjectPortfolioRole role, Guid employeeId)
     {
+        if (!CanManagePortfolio(actor))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         if (IsReadOnly)
         {
             return Result.Failure(ReadOnlyErrorMessage);
@@ -158,10 +198,18 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Removes an employee from a specific role.
+    /// Removes an employee from a role on behalf of an actor who must be authorized to manage the portfolio.
     /// </summary>
-    public Result RemoveRole(ProjectPortfolioRole role, Guid employeeId)
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="role">The role to remove.</param>
+    /// <param name="employeeId">The employee losing the role.</param>
+    public Result RemoveRole(PpmActor actor, ProjectPortfolioRole role, Guid employeeId)
     {
+        if (!CanManagePortfolio(actor))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         if (IsReadOnly)
         {
             return Result.Failure(ReadOnlyErrorMessage);
@@ -171,12 +219,17 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Updates the roles for the portfolio.
+    /// Replaces the portfolio's role assignments on behalf of an actor who must be authorized to manage it.
     /// </summary>
-    /// <param name="updatedRoles"></param>
-    /// <returns></returns>
-    public Result UpdateRoles(Dictionary<ProjectPortfolioRole, HashSet<Guid>> updatedRoles)
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="updatedRoles">The replacement role assignments.</param>
+    public Result UpdateRoles(PpmActor actor, Dictionary<ProjectPortfolioRole, HashSet<Guid>> updatedRoles)
     {
+        if (!CanManagePortfolio(actor))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         if (IsReadOnly)
         {
             return Result.Failure(ReadOnlyErrorMessage);
@@ -238,13 +291,13 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     private const double RankStep = 1000d;
 
     /// <summary>
-    /// Whether the employee may rank this portfolio's projects — portfolio Owner or Manager.
-    /// Mirrors the portfolio-role clause of <see cref="Project.CanManageProject"/>. Surfaced so the
-    /// API can hint action availability; enforced inside the ranking methods so no path bypasses it.
+    /// Whether the actor may rank this portfolio's projects. Identical to
+    /// <see cref="CanManagePortfolio"/> — portfolio Owner or Manager, or the domain-wide PPM administrator
+    /// grant — because ranking is one of the portfolio's management actions. Surfaced so the API can hint
+    /// action availability; enforced inside the ranking methods so no path bypasses it.
     /// </summary>
-    public bool CanManageRanking(Guid employeeId) =>
-        _roles.Any(r => r.EmployeeId == employeeId
-            && r.Role is ProjectPortfolioRole.Owner or ProjectPortfolioRole.Manager);
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    public bool CanManageRanking(PpmActor actor) => CanManagePortfolio(actor);
 
     /// <summary>
     /// Places the ordered <paramref name="orderedProjectIds"/> between two ranked anchors, assigning
@@ -255,7 +308,7 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// order; this method owns the values.
     /// </summary>
     public Result MoveProjectRanks(
-        Guid employeeId,
+        PpmActor actor,
         IReadOnlyList<Guid> orderedProjectIds,
         Guid? afterProjectId,
         Guid? beforeProjectId)
@@ -265,7 +318,7 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure(ReadOnlyErrorMessage);
         }
 
-        if (!CanManageRanking(employeeId))
+        if (!CanManageRanking(actor))
         {
             return Result.Failure("You are not authorized to rank this portfolio's projects.");
         }
@@ -356,20 +409,19 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// continue the sequence. This bootstraps ranking when nothing is ranked yet and is also run
     /// periodically to remove fractional drift and gaps left by closed projects.
     /// </summary>
-    /// <param name="employeeId">The acting employee. Ignored when <paramref name="bypassManageCheck"/> is true.</param>
-    /// <param name="bypassManageCheck">
-    /// When true, skips the per-actor Owner/Manager check. Reserved for system-initiated maintenance
-    /// (e.g. a scheduled rebalance), where there is no human actor. The application layer is
-    /// responsible for only setting this for a trusted system context — never for a normal user.
+    /// <param name="actor">
+    /// The acting employee and their administrator standing. Pass <see cref="PpmActor.System"/> for
+    /// system-initiated maintenance (e.g. a scheduled rebalance), where there is no human actor — the
+    /// application layer is responsible for only using it in a trusted system context.
     /// </param>
-    public Result RebalanceRanks(Guid employeeId, bool bypassManageCheck = false)
+    public Result RebalanceRanks(PpmActor actor)
     {
         if (IsReadOnly)
         {
             return Result.Failure(ReadOnlyErrorMessage);
         }
 
-        if (!bypassManageCheck && !CanManageRanking(employeeId))
+        if (!CanManageRanking(actor))
         {
             return Result.Failure("You are not authorized to rank this portfolio's projects.");
         }
@@ -431,12 +483,17 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     #region Lifecycle
 
     /// <summary>
-    /// Activates the portfolio on the specified start date.
+    /// Activates the portfolio on behalf of an actor who must be authorized to manage it.
     /// </summary>
-    /// <param name="startDate"></param>
-    /// <returns></returns>
-    public Result Activate(LocalDate startDate)
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="startDate">The date the portfolio becomes active.</param>
+    public Result Activate(PpmActor actor, LocalDate startDate)
     {
+        if (!CanManagePortfolio(actor))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         Guard.Against.Null(startDate, nameof(startDate));
 
         if (Status != ProjectPortfolioStatus.Proposed)
@@ -481,11 +538,17 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Marks the portfolio as closed.
-    /// Ensures all projects or programs are resolved before transitioning to this status.
+    /// Closes the portfolio on behalf of an actor who must be authorized to manage it.
     /// </summary>
-    public Result Close(LocalDate endDate)
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="endDate">The date the portfolio closes.</param>
+    public Result Close(PpmActor actor, LocalDate endDate)
     {
+        if (!CanManagePortfolio(actor))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         Guard.Against.Null(endDate, nameof(endDate));
 
         if (Status is not (ProjectPortfolioStatus.Active or ProjectPortfolioStatus.OnHold))
@@ -520,10 +583,16 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Archives a closed portfolio.
+    /// Archives the portfolio on behalf of an actor who must be authorized to manage it.
     /// </summary>
-    public Result Archive()
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    public Result Archive(PpmActor actor)
     {
+        if (!CanManagePortfolio(actor))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
         if (Status != ProjectPortfolioStatus.Closed)
         {
             return Result.Failure("Only closed portfolios can be archived.");
@@ -626,12 +695,34 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
         return Result.Success(project);
     }
 
-    public Result ChangeProjectProgram(Guid projectId, Guid? programId)
+    /// <summary>
+    /// Reassigns a project to a different program on behalf of an actor who must be authorized to manage
+    /// that project. The rule is the project's, not the portfolio's — reassignment is a change to the
+    /// project, so a program-level Owner/Manager qualifies just as they would for any other project edit.
+    /// </summary>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="projectId">The project to reassign.</param>
+    /// <param name="programId">The new program, or null to remove the project from its program.</param>
+    public Result ChangeProjectProgram(PpmActor actor, Guid projectId, Guid? programId)
     {
         var project = _projects.SingleOrDefault(p => p.Id == projectId);
         if (project is null)
         {
             return Result.Failure("The specified project does not belong to this portfolio.");
+        }
+
+        // The portfolio owns both collections, so the project's ancestry is assembled here rather than
+        // passed in.
+        var ancestry = new ProjectAncestryRoles(
+            _roles,
+            project.ProgramId.HasValue
+                ? _programs.SingleOrDefault(p => p.Id == project.ProgramId.Value)?.Roles
+                : null);
+
+        if (!project.CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(
+                "You are not authorized to manage this project. Project, program, or portfolio Owners and Managers may.");
         }
 
         if (project.ProgramId == programId)

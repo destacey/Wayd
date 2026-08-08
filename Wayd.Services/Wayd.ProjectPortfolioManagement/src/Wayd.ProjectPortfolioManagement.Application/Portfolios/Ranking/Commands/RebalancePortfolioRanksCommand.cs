@@ -1,4 +1,6 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+
+namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
 
 public sealed record RebalancePortfolioRanksCommand(Guid PortfolioId) : ICommand, IRequireLinkedEmployee;
 
@@ -27,13 +29,11 @@ public sealed class RebalancePortfolioRanksCommandHandler(
     public async Task<Result> Handle(RebalancePortfolioRanksCommand request, CancellationToken cancellationToken)
     {
         // A rebalance is either a deliberate human maintenance action (authorized as a portfolio
-        // Owner/Manager) or system-initiated housekeeping with no human actor (a scheduled job, which
-        // runs as ActorKind.System and carries no employee claim). For the system path we bypass the
-        // per-actor check; a normal user still needs an employee id + Owner/Manager.
-        var isSystem = _currentUser.Kind == ActorKind.System;
-        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-        if (!isSystem && employeeId is null)
-            LinkedEmployeeRequired.Throw();
+        // Owner/Manager, or via the PPM administrator grant) or system-initiated housekeeping with no
+        // human actor (a scheduled job, which runs as ActorKind.System and carries no employee claim).
+        var actor = _currentUser.Kind == ActorKind.System
+            ? PpmActor.System
+            : await _currentPrincipal.ResolvePpmActor(cancellationToken);
 
         var portfolio = await _ppmDbContext.Portfolios
             .AsSplitQuery()
@@ -47,7 +47,7 @@ public sealed class RebalancePortfolioRanksCommandHandler(
             return Result.Failure("Project Portfolio not found.");
         }
 
-        var rebalanceResult = portfolio.RebalanceRanks(employeeId ?? Guid.Empty, bypassManageCheck: isSystem);
+        var rebalanceResult = portfolio.RebalanceRanks(actor);
         if (rebalanceResult.IsFailure)
         {
             _logger.LogInformation("Unable to rebalance ranks in portfolio {PortfolioId}. Error: {Error}", request.PortfolioId, rebalanceResult.Error);

@@ -1,6 +1,7 @@
-﻿using Wayd.ProjectPortfolioManagement.Application.Portfolios.Dtos;
+using Wayd.ProjectPortfolioManagement.Application.Portfolios.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
 
@@ -123,13 +124,17 @@ public sealed class ImportProjectPortfoliosCommandHandler(
     /// A portfolio only accepts programs and projects while active, but can only be closed once all of them
     /// are closed — so a portfolio destined to finish is imported active here and closed afterwards by the
     /// finalize import, once its contents have landed.
+    ///
+    /// Runs as <see cref="PpmActor.System"/>: import is authorized by the caller's
+    /// Permissions.ProjectPortfolios.Import claim, not by delivery-leadership membership — and the
+    /// portfolio is created by this same batch, so nobody holds a role on it yet.
     /// </summary>
     private static Result ApplyStatus(ProjectPortfolio portfolio, ImportProjectPortfolioDto row)
     {
         if (row.Status is ProjectPortfolioStatus.Proposed)
             return Result.Success();
 
-        var activate = portfolio.Activate(row.Start!.Value);
+        var activate = portfolio.Activate(PpmActor.System, row.Start!.Value);
         if (activate.IsFailure)
             return activate;
 

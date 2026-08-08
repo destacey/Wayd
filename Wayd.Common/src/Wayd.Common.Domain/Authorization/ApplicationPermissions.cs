@@ -11,6 +11,15 @@ public static class ApplicationAction
     public const string Update = nameof(Update);
     public const string Delete = nameof(Delete);
     public const string Manage = nameof(Manage);
+
+    /// <summary>
+    /// Domain-wide administrative standing. Distinct from <see cref="Manage"/>, which is CRUD shorthand
+    /// on a single resource: Administer waives per-record membership requirements across a whole domain.
+    /// It never substitutes for the resource permission itself — a holder still needs e.g.
+    /// Permissions.Projects.Update to reach a project endpoint.
+    /// </summary>
+    public const string Administer = nameof(Administer);
+
     public const string Import = nameof(Import);
     public const string Export = nameof(Export);
     public const string Generate = nameof(Generate);
@@ -54,6 +63,7 @@ public static class ApplicationResource
     public const string EstimationScales = nameof(EstimationScales);
     public const string StoryMaps = nameof(StoryMaps);
 
+    public const string ProjectPortfolioManagement = nameof(ProjectPortfolioManagement);
     public const string ExpenditureCategories = nameof(ExpenditureCategories);
     public const string ProjectPortfolios = nameof(ProjectPortfolios);
     public const string Projects = nameof(Projects);
@@ -240,6 +250,11 @@ public static class ApplicationPermissions
     private const string PpmCategory = "Project Portfolio Management";
     private static readonly ApplicationPermission[] _projectPortfolioManagement =
     [
+        // Domain-wide delivery-leadership authority. Substitutes for role membership (project, program, or
+        // portfolio Owner/Manager) anywhere in PPM — it does NOT substitute for the resource permission
+        // itself, so a holder still needs e.g. Permissions.Projects.Update to reach a project endpoint.
+        new ("Administer Project Portfolio Management", ApplicationAction.Administer, ApplicationResource.ProjectPortfolioManagement, PpmCategory),
+
         new ("View Expenditure Categories", ApplicationAction.View, ApplicationResource.ExpenditureCategories, PpmCategory),
         new ("Create Expenditure Categories", ApplicationAction.Create, ApplicationResource.ExpenditureCategories, PpmCategory),
         new ("Update Expenditure Categories", ApplicationAction.Update, ApplicationResource.ExpenditureCategories, PpmCategory),

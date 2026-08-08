@@ -1,7 +1,8 @@
-﻿using Wayd.Common.Domain.Enums.StrategicManagement;
+using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
 
@@ -140,11 +141,15 @@ public sealed class ImportProgramsCommandHandler(
     /// exist. A program only accepts projects while Active, but can only be completed or cancelled once all
     /// of them are closed — so a program destined to finish still has to be imported Active and closed
     /// afterwards by the finalize import, once the projects have landed.
+    ///
+    /// Runs as <see cref="PpmActor.System"/>: import is authorized by the caller's
+    /// Permissions.Programs.Import claim, not by delivery-leadership membership — and the program is
+    /// created by this same batch, so nobody holds a role on it yet.
     /// </summary>
     private static Result ApplyStatus(Program program, ProgramStatus status) =>
         status is ProgramStatus.Proposed
             ? Result.Success()
-            : program.Activate();
+            : program.Activate(PpmActor.System, ProgramAncestryRoles.None);
 
     /// <summary>
     /// Loads every referenced portfolio with its programs so the aggregate can accept new ones. Portfolio

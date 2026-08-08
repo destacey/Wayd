@@ -1,5 +1,6 @@
 ﻿using System.Data.Common;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,10 @@ internal static class ConfigureServices
 {
     public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
+        // Same switch that gates EF's sensitive-data logging: parameter values are personal data, and a
+        // bulk insert carries thousands of them. Off unless a deployment opts in.
+        var captureParameters = builder.Configuration.GetValue<bool>("DatabaseSettings:EnableSensitiveDataLogging");
+
         builder.Logging.AddOpenTelemetry(logging =>
         {
             logging.IncludeFormattedMessage = true;
@@ -61,14 +66,22 @@ internal static class ConfigureServices
                                     activity.SetTag("db.name", dbName);
                                 }
 
-                                // Capture parameters (be careful with sensitive info)
+                                // Parameter values are the row data itself — names, email addresses — so
+                                // they only go on the span when a deployment has explicitly opted in.
+                                // The parameter count is safe and is usually the diagnostic that matters:
+                                // it tells you the batch size behind a failing command.
                                 if (command.Parameters != null)
                                 {
-                                    foreach (DbParameter param in command.Parameters)
+                                    activity.SetTag("db.parameter_count", command.Parameters.Count);
+
+                                    if (captureParameters)
                                     {
-                                        if (param?.ParameterName != null)
+                                        foreach (DbParameter param in command.Parameters)
                                         {
-                                            activity.SetTag($"db.param.{param.ParameterName}", param.Value?.ToString());
+                                            if (param?.ParameterName != null)
+                                            {
+                                                activity.SetTag($"db.param.{param.ParameterName}", param.Value?.ToString());
+                                            }
                                         }
                                     }
                                 }

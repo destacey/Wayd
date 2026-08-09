@@ -30,7 +30,7 @@ const statusActionToPastTense = (
     case StrategicInitiativeStatusAction.Complete:
       return 'completed'
     case StrategicInitiativeStatusAction.Cancel:
-      return 'cancelled'
+      return 'canceled'
     default:
       return statusAction
   }

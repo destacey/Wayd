@@ -98,21 +98,21 @@ describe('LifecycleStatusTag', () => {
   })
 
   describe('Canceled category', () => {
-    it('should render tag with Cancelled status and error color', () => {
+    it('should render tag with Canceled status and error color', () => {
       const status: LifecycleNavigationDto = {
         id: 4,
-        name: 'Cancelled',
+        name: 'Canceled',
         lifecycleCategory: 'Canceled',
       }
       render(<LifecycleStatusTag status={status} />)
-      const tag = screen.getByText('Cancelled')
+      const tag = screen.getByText('Canceled')
       expect(tag).toBeInTheDocument()
     })
 
     it('should apply correct color class for Canceled category', () => {
       const status: LifecycleNavigationDto = {
         id: 4,
-        name: 'Cancelled',
+        name: 'Canceled',
         lifecycleCategory: 'Canceled',
       }
       const { container } = render(<LifecycleStatusTag status={status} />)

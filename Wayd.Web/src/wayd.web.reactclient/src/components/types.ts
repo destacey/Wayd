@@ -53,7 +53,7 @@ export enum ProjectStatus {
   Proposed = 1,
   Active = 2,
   Completed = 3,
-  Cancelled = 4,
+  Canceled = 4,
 }
 
 // Unordered categories: the numeric values are stable identifiers.

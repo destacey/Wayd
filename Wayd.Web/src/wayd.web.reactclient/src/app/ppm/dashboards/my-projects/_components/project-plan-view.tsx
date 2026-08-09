@@ -30,7 +30,7 @@ function getPhaseTagColor(statusName: string): string {
       return 'success'
     case 'In Progress':
       return 'processing'
-    case 'Cancelled':
+    case 'Canceled':
       return 'error'
     default:
       return 'default'
@@ -44,7 +44,7 @@ type TaskStatusLabel = 'Complete' | 'Overdue' | 'Due Today' | 'Upcoming' | null
 function getTaskStatusLabel(node: ProjectPlanNodeDto): TaskStatusLabel {
   const statusName = node.status?.name
   if (statusName === 'Completed') return 'Complete'
-  if (statusName === 'Cancelled') return null
+  if (statusName === 'Canceled') return null
 
   const endDate = node.end ?? node.plannedDate
   if (!endDate) return null
@@ -127,7 +127,7 @@ function getTaskIcon(statusName: string | undefined) {
       return <CheckCircleFilled style={{ color: 'var(--ant-color-success)', fontSize: 14 }} />
     case 'In Progress':
       return <SyncOutlined style={{ color: 'var(--ant-color-primary)', fontSize: 14 }} />
-    case 'Cancelled':
+    case 'Canceled':
       return <MinusCircleOutlined style={{ color: 'var(--ant-color-text-quaternary)', fontSize: 14 }} />
     default:
       return <ClockCircleOutlined style={{ color: 'var(--ant-color-text-quaternary)', fontSize: 14 }} />

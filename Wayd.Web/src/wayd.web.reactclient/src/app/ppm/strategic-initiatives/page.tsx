@@ -21,7 +21,7 @@ const SI_STATUS = {
   Active: 3,
   OnHold: 4,
   Completed: 5,
-  Cancelled: 6,
+  Canceled: 6,
 } as const
 
 const DEFAULT_STATUSES = [SI_STATUS.Approved, SI_STATUS.Active, SI_STATUS.OnHold]

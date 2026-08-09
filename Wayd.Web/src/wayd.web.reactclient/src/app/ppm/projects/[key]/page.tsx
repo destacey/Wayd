@@ -303,7 +303,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         label: ProjectAction.ChangeKey,
         onClick: () => setOpenChangeKeyForm(true),
       })
-      if (currentStatus !== 'Cancelled') {
+      if (currentStatus !== 'Canceled') {
         if (!projectData?.projectLifecycle) {
           items.push({
             key: 'assign-lifecycle',

@@ -8,7 +8,7 @@ import dayjs from 'dayjs'
 import { FC, useEffect, useRef, useState } from 'react'
 import styles from './phase-timeline.module.css'
 
-type PhaseStatus = 'completed' | 'in-progress' | 'not-started' | 'cancelled'
+type PhaseStatus = 'completed' | 'in-progress' | 'not-started' | 'canceled'
 
 function mapPhaseStatus(statusName: string): PhaseStatus {
   switch (statusName) {
@@ -16,8 +16,8 @@ function mapPhaseStatus(statusName: string): PhaseStatus {
       return 'completed'
     case 'In Progress':
       return 'in-progress'
-    case 'Cancelled':
-      return 'cancelled'
+    case 'Canceled':
+      return 'canceled'
     default:
       return 'not-started'
   }
@@ -31,7 +31,7 @@ function mapStepStatus(
       return 'finish'
     case 'in-progress':
       return 'process'
-    case 'cancelled':
+    case 'canceled':
       return 'error'
     default:
       return 'wait'
@@ -52,10 +52,10 @@ function getIcon(status: PhaseStatus, tooltipContent: React.ReactNode) {
           <span className={styles.dotInProgress} />
         </WaydTooltip>
       )
-    case 'cancelled':
+    case 'canceled':
       return (
         <WaydTooltip title={tooltipContent}>
-          <CloseCircleFilled className={styles.iconCancelled} />
+          <CloseCircleFilled className={styles.iconCanceled} />
         </WaydTooltip>
       )
     default:

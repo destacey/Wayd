@@ -6,7 +6,7 @@ import { theme } from 'antd'
 import { StrategicInitiativeListDto } from '@/src/services/wayd-api'
 import { WaydTimeline } from '@/src/components/common/timeline'
 import type { TimelineItem } from '@/src/components/common/timeline'
-import { getLifecyclePhaseColorFromStatus } from '@/src/utils'
+import { getLifecycleCategoryColorFromStatus } from '@/src/utils'
 import { StrategicInitiativeDrawer } from '.'
 
 const ms = (d: dayjs.ConfigType) => dayjs(d).valueOf()
@@ -48,7 +48,7 @@ function mapStrategicInitiatives(
         id: String(i.id),
         kind: 'range',
         label: i.name ?? '',
-        color: getLifecyclePhaseColorFromStatus(i.status, token),
+        color: getLifecycleCategoryColorFromStatus(i.status, token),
         start,
         end,
         order: idx,

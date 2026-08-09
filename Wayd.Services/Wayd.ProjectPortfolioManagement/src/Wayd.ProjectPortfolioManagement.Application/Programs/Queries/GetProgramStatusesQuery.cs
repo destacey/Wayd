@@ -16,7 +16,7 @@ public sealed class GetProgramStatusesQueryHandler : IQueryHandler<GetProgramSta
             Name = c.GetDisplayName(),
             Description = c.GetDisplayDescription(),
             Order = c.GetDisplayOrder(),
-            LifecyclePhase = c.GetDisplayGroupName() ?? "Unknown"
+            LifecycleCategory = c.GetDisplayGroupName() ?? "Unknown"
         })];
 
         return Task.FromResult(values);

@@ -66,7 +66,7 @@ function createProjectDetails(overrides?: any) {
     key: 'PROJ1',
     name: 'Test Project',
     description: '',
-    status: { name: 'Active', lifecyclePhase: 'Active' },
+    status: { name: 'Active', lifecycleCategory: 'Active' },
     expenditureCategory: { id: 1, name: 'Capital' },
     portfolio: { id: 'port-1', key: 1, name: 'Portfolio' },
     projectSponsors: [],

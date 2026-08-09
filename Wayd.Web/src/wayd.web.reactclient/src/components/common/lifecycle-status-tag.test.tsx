@@ -3,23 +3,23 @@ import LifecycleStatusTag from './lifecycle-status-tag'
 import { LifecycleNavigationDto } from '@/src/services/wayd-api'
 
 describe('LifecycleStatusTag', () => {
-  describe('NotStarted phase', () => {
+  describe('NotStarted category', () => {
     it('should render tag with NotStarted status and default color', () => {
       const status: LifecycleNavigationDto = {
         id: 1,
         name: 'Proposed',
-        lifecyclePhase: 'NotStarted',
+        lifecycleCategory: 'NotStarted',
       }
       render(<LifecycleStatusTag status={status} />)
       const tag = screen.getByText('Proposed')
       expect(tag).toBeInTheDocument()
     })
 
-    it('should apply correct color class for NotStarted phase', () => {
+    it('should apply correct color class for NotStarted category', () => {
       const status: LifecycleNavigationDto = {
         id: 1,
         name: 'Proposed',
-        lifecyclePhase: 'NotStarted',
+        lifecycleCategory: 'NotStarted',
       }
       const { container } = render(<LifecycleStatusTag status={status} />)
       const tag = container.querySelector('.ant-tag-default')
@@ -27,34 +27,34 @@ describe('LifecycleStatusTag', () => {
     })
   })
 
-  describe('Active phase', () => {
+  describe('Active category', () => {
     it('should render tag with Active status and processing color', () => {
       const status: LifecycleNavigationDto = {
         id: 2,
         name: 'In Progress',
-        lifecyclePhase: 'Active',
+        lifecycleCategory: 'Active',
       }
       render(<LifecycleStatusTag status={status} />)
       const tag = screen.getByText('In Progress')
       expect(tag).toBeInTheDocument()
     })
 
-    it('should apply correct color class for Active phase', () => {
+    it('should apply correct color class for Active category', () => {
       const status: LifecycleNavigationDto = {
         id: 2,
         name: 'Active',
-        lifecyclePhase: 'Active',
+        lifecycleCategory: 'Active',
       }
       const { container } = render(<LifecycleStatusTag status={status} />)
       const tag = container.querySelector('.ant-tag-processing')
       expect(tag).toBeInTheDocument()
     })
 
-    it('should render tag with custom status text for Active phase', () => {
+    it('should render tag with custom status text for Active category', () => {
       const status: LifecycleNavigationDto = {
         id: 2,
         name: 'In Development',
-        lifecyclePhase: 'Active',
+        lifecycleCategory: 'Active',
       }
       render(<LifecycleStatusTag status={status} />)
       const tag = screen.getByText('In Development')
@@ -62,37 +62,61 @@ describe('LifecycleStatusTag', () => {
     })
   })
 
-  describe('Done phase', () => {
-    it('should render tag with Done status and success color', () => {
+  describe('Completed category', () => {
+    it('should render tag with Completed status and success color', () => {
       const status: LifecycleNavigationDto = {
         id: 3,
         name: 'Completed',
-        lifecyclePhase: 'Done',
+        lifecycleCategory: 'Completed',
       }
       render(<LifecycleStatusTag status={status} />)
       const tag = screen.getByText('Completed')
       expect(tag).toBeInTheDocument()
     })
 
-    it('should apply correct color class for Done phase', () => {
+    it('should apply correct color class for Completed category', () => {
       const status: LifecycleNavigationDto = {
         id: 3,
         name: 'Completed',
-        lifecyclePhase: 'Done',
+        lifecycleCategory: 'Completed',
       }
       const { container } = render(<LifecycleStatusTag status={status} />)
       const tag = container.querySelector('.ant-tag-success')
       expect(tag).toBeInTheDocument()
     })
 
-    it('should render tag with custom status text for Done phase', () => {
+    it('should render tag with custom status text for Completed category', () => {
       const status: LifecycleNavigationDto = {
         id: 3,
         name: 'Finished',
-        lifecyclePhase: 'Done',
+        lifecycleCategory: 'Completed',
       }
       render(<LifecycleStatusTag status={status} />)
       const tag = screen.getByText('Finished')
+      expect(tag).toBeInTheDocument()
+    })
+  })
+
+  describe('Canceled category', () => {
+    it('should render tag with Cancelled status and error color', () => {
+      const status: LifecycleNavigationDto = {
+        id: 4,
+        name: 'Cancelled',
+        lifecycleCategory: 'Canceled',
+      }
+      render(<LifecycleStatusTag status={status} />)
+      const tag = screen.getByText('Cancelled')
+      expect(tag).toBeInTheDocument()
+    })
+
+    it('should apply correct color class for Canceled category', () => {
+      const status: LifecycleNavigationDto = {
+        id: 4,
+        name: 'Cancelled',
+        lifecycleCategory: 'Canceled',
+      }
+      const { container } = render(<LifecycleStatusTag status={status} />)
+      const tag = container.querySelector('.ant-tag-error')
       expect(tag).toBeInTheDocument()
     })
   })
@@ -102,7 +126,7 @@ describe('LifecycleStatusTag', () => {
       const status: LifecycleNavigationDto = {
         id: 1,
         name: '',
-        lifecyclePhase: 'Active',
+        lifecycleCategory: 'Active',
       }
       const { container } = render(<LifecycleStatusTag status={status} />)
       const tag = container.querySelector('.ant-tag')
@@ -114,7 +138,7 @@ describe('LifecycleStatusTag', () => {
       const status: LifecycleNavigationDto = {
         id: 2,
         name: 'Status & More',
-        lifecyclePhase: 'Active',
+        lifecycleCategory: 'Active',
       }
       render(<LifecycleStatusTag status={status} />)
       const tag = screen.getByText('Status & More')
@@ -126,18 +150,18 @@ describe('LifecycleStatusTag', () => {
       const status: LifecycleNavigationDto = {
         id: 3,
         name: longName,
-        lifecyclePhase: 'Done',
+        lifecycleCategory: 'Completed',
       }
       render(<LifecycleStatusTag status={status} />)
       const tag = screen.getByText(longName)
       expect(tag).toBeInTheDocument()
     })
 
-    it('should handle invalid lifecyclePhase', () => {
+    it('should handle invalid lifecycleCategory', () => {
       const status: LifecycleNavigationDto = {
         id: 4,
         name: 'Unknown',
-        lifecyclePhase: 'InvalidPhase' as any,
+        lifecycleCategory: 'InvalidCategory' as any,
       }
       const { container } = render(<LifecycleStatusTag status={status} />)
       const tag = container.querySelector('.ant-tag-default')
@@ -150,7 +174,7 @@ describe('LifecycleStatusTag', () => {
       const status: LifecycleNavigationDto = {
         id: 1,
         name: 'Active',
-        lifecyclePhase: 'Active',
+        lifecycleCategory: 'Active',
       }
       const { rerender } = render(<LifecycleStatusTag status={status} />)
       expect(screen.getByText('Active')).toBeInTheDocument()

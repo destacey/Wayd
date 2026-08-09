@@ -11,24 +11,24 @@ public enum TaskStatus
     /// <summary>
     /// The task has not been started.
     /// </summary>
-    [Display(Name = "Not Started", Description = "The task has not been started.", Order = 1, GroupName = nameof(LifecyclePhase.NotStarted))]
+    [Display(Name = "Not Started", Description = "The task has not been started.", Order = 1, GroupName = nameof(LifecycleCategory.NotStarted))]
     NotStarted = 1,
 
     /// <summary>
     /// The task is currently in progress.
     /// </summary>
-    [Display(Name = "In Progress", Description = "The task is currently being worked on.", Order = 2, GroupName = nameof(LifecyclePhase.Active))]
+    [Display(Name = "In Progress", Description = "The task is currently being worked on.", Order = 2, GroupName = nameof(LifecycleCategory.Active))]
     InProgress = 2,
 
     /// <summary>
     /// The task has been completed.
     /// </summary>
-    [Display(Name = "Completed", Description = "The task has been completed.", Order = 3, GroupName = nameof(LifecyclePhase.NotStarted))]
+    [Display(Name = "Completed", Description = "The task has been completed.", Order = 3, GroupName = nameof(LifecycleCategory.Completed))]
     Completed = 3,
 
     /// <summary>
     /// The task has been cancelled and will not be completed.
     /// </summary>
-    [Display(Name = "Cancelled", Description = "The task has been cancelled.", Order = 4, GroupName = nameof(LifecyclePhase.NotStarted))]
+    [Display(Name = "Cancelled", Description = "The task has been cancelled.", Order = 4, GroupName = nameof(LifecycleCategory.Canceled))]
     Cancelled = 4
 }

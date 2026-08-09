@@ -29,7 +29,7 @@ function createProject(
     id: 'proj-1',
     key: 'PROJ1',
     name: 'Test Project',
-    status: { name: 'Active', lifecyclePhase: 'Active' } as any,
+    status: { name: 'Active', lifecycleCategory: 'Active' } as any,
     portfolio: { id: 'port-1', key: 1, name: 'Portfolio' } as any,
     projectSponsors: [],
     projectOwners: [],

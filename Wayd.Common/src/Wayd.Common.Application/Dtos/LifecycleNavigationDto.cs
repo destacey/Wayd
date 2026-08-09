@@ -10,7 +10,7 @@ public record LifecycleNavigationDto
     public required string Name { get; set; }
 
     [Required]
-    public required string LifecyclePhase { get; set; }
+    public required string LifecycleCategory { get; set; }
 
     public static LifecycleNavigationDto FromEnum<T>(T value) where T : struct, Enum
     {
@@ -18,7 +18,7 @@ public record LifecycleNavigationDto
         {
             Id = (int)(object)value,
             Name = value.GetDisplayName(),
-            LifecyclePhase = value.GetDisplayGroupName() ?? "Unknown"
+            LifecycleCategory = value.GetDisplayGroupName() ?? "Unknown"
         };
     }
 
@@ -28,7 +28,7 @@ public record LifecycleNavigationDto
         {
             Id = value,
             Name = ((T)(object)value).GetDisplayName(),
-            LifecyclePhase = ((T)(object)value).GetDisplayGroupName() ?? "Unknown"
+            LifecycleCategory = ((T)(object)value).GetDisplayGroupName() ?? "Unknown"
         };
     }
 }

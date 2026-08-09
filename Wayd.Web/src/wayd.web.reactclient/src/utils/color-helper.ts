@@ -10,7 +10,7 @@ import {
   red,
   volcano,
 } from '@ant-design/colors'
-import { LifecyclePhase } from '../components/types'
+import { LifecycleCategory } from '../components/types'
 import { LifecycleNavigationDto } from '../services/wayd-api'
 
 /**
@@ -87,28 +87,30 @@ export const getLuminanceTheme = (hexColor: string): string => {
   return getLuminance(hexColor) >= 0.5 ? 'light' : 'dark'
 }
 
-export const getLifecyclePhaseColor = (
-  phase: LifecyclePhase,
+export const getLifecycleCategoryColor = (
+  category: LifecycleCategory,
   token: GlobalToken, // GlobalToken from antd theme
 ): string | undefined => {
-  switch (phase) {
-    case LifecyclePhase.Active:
+  switch (category) {
+    case LifecycleCategory.Active:
       return token.colorPrimary // or token.colorPrimary
-    case LifecyclePhase.Done:
+    case LifecycleCategory.Completed:
       return token.colorSuccess
+    case LifecycleCategory.Canceled:
+      return token.colorError
     default:
       return undefined
   }
 }
 
-export const getLifecyclePhaseColorFromStatus = (
+export const getLifecycleCategoryColorFromStatus = (
   status: LifecycleNavigationDto,
   token: any,
 ): string | undefined => {
   // Map string to enum
-  const phase =
-    LifecyclePhase[status.lifecyclePhase as keyof typeof LifecyclePhase]
-  return getLifecyclePhaseColor(phase, token)
+  const category =
+    LifecycleCategory[status.lifecycleCategory as keyof typeof LifecycleCategory]
+  return getLifecycleCategoryColor(category, token)
 }
 
 const avatarColors = [
@@ -164,14 +166,16 @@ export const nextUnusedPersonaColor = (usedColors: Iterable<string>): string => 
   return free ?? personaColorPalette[taken.size % personaColorPalette.length]
 }
 
-export const getLifecyclePhaseTagColor = (
-  phase: LifecyclePhase,
+export const getLifecycleCategoryTagColor = (
+  category: LifecycleCategory,
 ): string | undefined => {
-  switch (phase) {
-    case LifecyclePhase.Active:
+  switch (category) {
+    case LifecycleCategory.Active:
       return 'processing'
-    case LifecyclePhase.Done:
+    case LifecycleCategory.Completed:
       return 'success'
+    case LifecycleCategory.Canceled:
+      return 'error'
     default:
       return 'default'
   }

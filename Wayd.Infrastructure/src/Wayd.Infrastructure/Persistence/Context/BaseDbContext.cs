@@ -398,6 +398,21 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
             && e.NewValues.Count == 0
             && e.OldValues.Count == 0);
 
+        // Normalise the trail type for surviving modified entries. TrailType is assigned in the
+        // scalar property loop, but the complex-property and owned-entity blocks contribute changes
+        // without touching it — so an update whose only delta is an owned entity or complex property
+        // reaches here still TrailType.None and would be persisted as Type="None" despite being a
+        // genuine update. SoftDelete and Restore are already classified and keep their type.
+        foreach (var entry in trailEntries)
+        {
+            if (entry.Entry.State == EntityState.Modified
+                && entry.TrailType == TrailType.None
+                && (entry.ChangedColumns.Count > 0 || entry.NewValues.Count > 0 || entry.OldValues.Count > 0))
+            {
+                entry.TrailType = TrailType.Update;
+            }
+        }
+
         foreach (var auditEntry in trailEntries.Where(e => !e.HasTemporaryProperties))
         {
             AuditTrails.Add(auditEntry.ToAuditTrail());

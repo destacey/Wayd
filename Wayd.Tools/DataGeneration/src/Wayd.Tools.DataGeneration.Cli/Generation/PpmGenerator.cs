@@ -438,7 +438,7 @@ public sealed class PpmGenerator
 
     /// <summary>
     /// Records a phase-status row derived from the tasks emitted for that phase: Completed when every task is
-    /// closed (Completed/Cancelled) and at least one finished, Not Started when none has begun, and In
+    /// closed (Completed/Canceled) and at least one finished, Not Started when none has begun, and In
     /// Progress for anything in between.
     /// </summary>
     private void EmitPhaseStatus(string projectKey, string phaseName)
@@ -464,7 +464,7 @@ public sealed class PpmGenerator
         if (taskStatuses.Count == 0)
             return "NotStarted";
 
-        bool IsClosed(string s) => s is "Completed" or "Cancelled";
+        bool IsClosed(string s) => s is "Completed" or "Canceled";
 
         if (taskStatuses.All(IsClosed) && taskStatuses.Any(s => s == "Completed"))
             return "Completed";
@@ -630,12 +630,12 @@ public sealed class PpmGenerator
     /// <summary>
     /// The status an item should hold given where its window sits relative to today: finished if it ended in
     /// the past, in flight if it spans today, and not yet started if it lies in the future. A minority of
-    /// past work is cancelled rather than completed.
+    /// past work is canceled rather than completed.
     /// </summary>
     private string StatusForWindow(DateTime start, DateTime end, bool forInitiative = false)
     {
         if (end < Today)
-            return _faker.Random.Double() < 0.15 ? "Cancelled" : "Completed";
+            return _faker.Random.Double() < 0.15 ? "Canceled" : "Completed";
 
         if (start > Today)
             return forInitiative ? "Approved" : PickFutureStatus();
@@ -647,7 +647,7 @@ public sealed class PpmGenerator
 
     private static bool IsClosedStatus(string status) =>
         string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(status, "Cancelled", StringComparison.OrdinalIgnoreCase);
+        || string.Equals(status, "Canceled", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsProposedStatus(string status) =>
         string.Equals(status, "Proposed", StringComparison.OrdinalIgnoreCase)

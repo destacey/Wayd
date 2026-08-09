@@ -148,12 +148,12 @@ describe('PhaseTimeline', () => {
     ).toBeInTheDocument()
   })
 
-  it('renders cancelled phases with error status', () => {
+  it('renders canceled phases with error status', () => {
     const phases = [
       createPhase({
-        name: 'Cancelled Phase',
+        name: 'Canceled Phase',
         order: 1,
-        status: { id: 4, name: 'Cancelled' },
+        status: { id: 4, name: 'Canceled' },
       }),
     ]
 

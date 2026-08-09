@@ -14,7 +14,7 @@ public enum FinalizePpmItemStatus
     Completed = 1,
 
     /// <summary>Cancels a program. Not valid for a portfolio.</summary>
-    Cancelled = 2,
+    Canceled = 2,
 
     /// <summary>Closes a portfolio. Not valid for a program.</summary>
     Closed = 3,
@@ -63,9 +63,9 @@ public sealed class FinalizePpmItemDtoValidator : CustomValidator<FinalizePpmIte
                 .WithMessage("A program row must name the portfolio it belongs to.");
 
         RuleFor(i => i.Status)
-            .Must(s => s is FinalizePpmItemStatus.Completed or FinalizePpmItemStatus.Cancelled)
+            .Must(s => s is FinalizePpmItemStatus.Completed or FinalizePpmItemStatus.Canceled)
             .When(i => i.Type is FinalizePpmItemType.Program)
-                .WithMessage("A program can only be finalized as 'Completed' or 'Cancelled'.");
+                .WithMessage("A program can only be finalized as 'Completed' or 'Canceled'.");
 
         RuleFor(i => i.Status)
             .Must(s => s is FinalizePpmItemStatus.Closed or FinalizePpmItemStatus.Archived)

@@ -22,6 +22,6 @@ public enum ProjectStatus
     [Display(Name = "Completed", Description = "The project has been successfully completed and closed.", Order = 4, GroupName = nameof(LifecycleCategory.Completed))]
     Completed = 3,
 
-    [Display(Name = "Cancelled", Description = "The project has been terminated before completion.", Order = 5, GroupName = nameof(LifecycleCategory.Canceled))]
-    Cancelled = 4
+    [Display(Name = "Canceled", Description = "The project has been terminated before completion.", Order = 5, GroupName = nameof(LifecycleCategory.Canceled))]
+    Canceled = 4
 }

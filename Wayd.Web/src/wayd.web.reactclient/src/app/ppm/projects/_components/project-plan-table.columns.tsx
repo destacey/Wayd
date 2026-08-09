@@ -434,7 +434,7 @@ export const getProjectPlanTableColumns = ({
           'Not Started': 'default',
           'In Progress': 'processing',
           Completed: 'success',
-          Cancelled: 'error',
+          Canceled: 'error',
         }
 
         if (!isSelected || !handleUpdateTask) {

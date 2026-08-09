@@ -16,7 +16,7 @@ const PROGRAM_STATUS = {
   Proposed: 1,
   Active: 2,
   Completed: 3,
-  Cancelled: 4,
+  Canceled: 4,
 } as const
 
 const DEFAULT_STATUSES = [PROGRAM_STATUS.Active]

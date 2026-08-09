@@ -172,7 +172,7 @@ public sealed class ImportStrategicInitiativesCommandHandler(
         if (status is StrategicInitiativeStatus.Proposed)
             return Result.Success();
 
-        if (status is StrategicInitiativeStatus.Cancelled)
+        if (status is StrategicInitiativeStatus.Canceled)
             return initiative.Cancel();
 
         var approve = initiative.Approve();

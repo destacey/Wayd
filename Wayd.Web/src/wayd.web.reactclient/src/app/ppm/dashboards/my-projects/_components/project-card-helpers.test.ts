@@ -131,8 +131,8 @@ describe('sortProjects', () => {
   it('handles all five statuses in correct order', () => {
     const projects = [
       createProject({
-        name: 'Cancelled',
-        status: { name: 'Cancelled' } as any,
+        name: 'Canceled',
+        status: { name: 'Canceled' } as any,
       }),
       createProject({
         name: 'Completed',
@@ -156,7 +156,7 @@ describe('sortProjects', () => {
       'Approved',
       'Proposed',
       'Completed',
-      'Cancelled',
+      'Canceled',
     ])
   })
 })

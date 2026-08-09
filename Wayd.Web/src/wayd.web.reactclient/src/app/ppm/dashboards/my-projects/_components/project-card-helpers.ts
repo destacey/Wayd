@@ -19,7 +19,7 @@ const STATUS_SORT_ORDER: Record<string, number> = {
   Approved: 2,
   Proposed: 3,
   Completed: 4,
-  Cancelled: 5,
+  Canceled: 5,
 }
 
 function getStatusSortOrder(project: ProjectListDto): number {

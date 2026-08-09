@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.Testing;
@@ -453,7 +453,7 @@ public class ProjectTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        project.Status.Should().Be(ProjectStatus.Cancelled);
+        project.Status.Should().Be(ProjectStatus.Canceled);
     }
 
     [Fact]
@@ -496,14 +496,14 @@ public class ProjectTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        project.Status.Should().Be(ProjectStatus.Cancelled);
+        project.Status.Should().Be(ProjectStatus.Canceled);
     }
 
     [Fact]
-    public void Cancel_ShouldFail_WhenProjectIsAlreadyCompletedOrCancelled()
+    public void Cancel_ShouldFail_WhenProjectIsAlreadyCompletedOrCanceled()
     {
         // Arrange
-        var project = _projectFaker.AsCancelled(_dateTimeProvider, Guid.NewGuid());
+        var project = _projectFaker.AsCanceled(_dateTimeProvider, Guid.NewGuid());
         var endDate = _dateTimeProvider.Today.PlusDays(10);
 
         // Act
@@ -511,7 +511,7 @@ public class ProjectTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("The project is already completed or cancelled.");
+        result.Error.Should().Be("The project is already completed or canceled.");
     }
 
     #endregion Lifecycle Tests
@@ -538,7 +538,7 @@ public class ProjectTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        project.Status.Should().Be(ProjectStatus.Cancelled);
+        project.Status.Should().Be(ProjectStatus.Canceled);
     }
 
     [Fact]
@@ -606,7 +606,7 @@ public class ProjectTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        project.Status.Should().Be(ProjectStatus.Cancelled);
+        project.Status.Should().Be(ProjectStatus.Canceled);
     }
 
     [Fact]
@@ -654,7 +654,7 @@ public class ProjectTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        project.Status.Should().Be(ProjectStatus.Cancelled);
+        project.Status.Should().Be(ProjectStatus.Canceled);
     }
 
     [Fact]

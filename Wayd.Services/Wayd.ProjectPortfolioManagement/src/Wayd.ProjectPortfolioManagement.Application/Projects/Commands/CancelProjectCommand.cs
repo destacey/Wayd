@@ -55,7 +55,7 @@ public sealed class CancelProjectCommandHandler(
 
             await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Project {ProjectId} cancelled.", request.Id);
+            _logger.LogInformation("Project {ProjectId} canceled.", request.Id);
 
             return Result.Success();
         }

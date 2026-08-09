@@ -120,7 +120,7 @@ describe('getLifecycleCategoryColorFromStatus', () => {
   test('should return colorError for Canceled lifecycleCategory', () => {
     const status: LifecycleNavigationDto = {
       id: 5,
-      name: 'Cancelled',
+      name: 'Canceled',
       lifecycleCategory: 'Canceled',
     }
     expect(getLifecycleCategoryColorFromStatus(status, mockToken)).toBe(

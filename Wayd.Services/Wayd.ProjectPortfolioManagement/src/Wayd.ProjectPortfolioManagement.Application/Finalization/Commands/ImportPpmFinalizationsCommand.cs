@@ -128,7 +128,7 @@ public sealed class ImportPpmFinalizationsCommandHandler(
 
         // Runs as PpmActor.System: finalization is a bulk administrative operation authorized by the
         // caller's Permissions.ProjectPortfolios.Import claim, not by delivery-leadership membership.
-        var result = row.Status is FinalizePpmItemStatus.Cancelled
+        var result = row.Status is FinalizePpmItemStatus.Canceled
             ? program.Cancel(PpmActor.System, ProgramAncestryRoles.None)
             : program.Complete(PpmActor.System, ProgramAncestryRoles.None);
 

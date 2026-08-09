@@ -133,7 +133,7 @@ portfolio, so the portfolio must exist (and be active) first.
 | `Name` | Yes | Unique within the file and against existing programs. Max 128 chars. |
 | `Description` | Yes | Max 2048 chars. |
 | `PortfolioName` | Yes | The owning portfolio, by name. |
-| `Status` | No | `Proposed`, `Active`, `Completed`, or `Cancelled`. Defaults to `Active`. |
+| `Status` | No | `Proposed`, `Active`, `Completed`, or `Canceled`. Defaults to `Active`. |
 | `Start` | Conditional | Start and End must both be empty or both set. Required for active/completed programs. |
 | `End` | Conditional | Must be on or after `Start`. |
 | `StrategicThemes` | No | Semicolon-separated theme **names** (must be active). |
@@ -141,8 +141,8 @@ portfolio, so the portfolio must exist (and be active) first.
 | `Owners` | No | Semicolon-separated employee numbers. |
 | `Managers` | No | Semicolon-separated employee numbers. |
 
-:::note Completed and cancelled programs
-Like portfolios, a program that should end up `Completed` or `Cancelled` is imported **active** and closed by
+:::note Completed and canceled programs
+Like portfolios, a program that should end up `Completed` or `Canceled` is imported **active** and closed by
 the [finalize import](#finalize-import), since a program can only be closed once all its projects are closed.
 :::
 
@@ -161,7 +161,7 @@ referenced by name.
 | `Key` | Yes | 2–20 uppercase letters/numbers. Unique across all projects. |
 | `PortfolioName` | Yes | The owning portfolio, by name. |
 | `ExpenditureCategoryName` | Yes | An [expenditure category](../settings/index.mdx#expenditure-categories), by name. Create in Settings first. |
-| `Status` | No | `Proposed`, `Approved`, `Active`, `Completed`, or `Cancelled`. Defaults to `Active`. |
+| `Status` | No | `Proposed`, `Approved`, `Active`, `Completed`, or `Canceled`. Defaults to `Active`. |
 | `ProgramName` | No | A program **in the same portfolio**, by name. Empty means portfolio-direct. |
 | `ProjectLifecycleName` | Conditional | A [lifecycle](./projects.mdx#project-lifecycles), by name. Required for `Approved` projects and for any project that will have tasks. |
 | `BusinessCase` | No | Max 4096 chars. |
@@ -188,7 +188,7 @@ cycle is rejected.
 | `PhaseName` | Yes | A phase of the project's assigned lifecycle, by name. |
 | `ParentTaskName` | No | The parent task, by name. Empty makes this a root task of its phase. |
 | `Type` | No | `Task` or `Milestone`. Defaults to `Task`. |
-| `Status` | No | `NotStarted`, `InProgress`, `Completed`, or `Cancelled`. Defaults to `NotStarted`. |
+| `Status` | No | `NotStarted`, `InProgress`, `Completed`, or `Canceled`. Defaults to `NotStarted`. |
 | `Priority` | No | `Low`, `Medium`, `High`, or `Critical`. Defaults to `Medium`. |
 | `Progress` | Conditional | Percent complete (0–100). Required for **tasks**; not allowed for **milestones**. |
 | `PlannedStart` · `PlannedEnd` | Conditional | For **tasks**: both empty or both set; `PlannedEnd` on or after `PlannedStart`. Not used for milestones. |
@@ -207,7 +207,7 @@ and start as *Not Started*; this import sets each one's status.
 |---|---|---|
 | `ProjectKey` | Yes | The project, by key. |
 | `PhaseName` | Yes | A phase of the project's lifecycle, by name. |
-| `Status` | Yes | `NotStarted`, `InProgress`, `Completed`, or `Cancelled`. |
+| `Status` | Yes | `NotStarted`, `InProgress`, `Completed`, or `Canceled`. |
 
 :::note Applied exactly as given
 This import sets phase status to **exactly** the value supplied — it does **not** derive a phase's status
@@ -232,7 +232,7 @@ accepts neither new projects nor new KPIs).
 | `Name` | Yes | Unique within the file and against existing initiatives. Max 128 chars. |
 | `Description` | Yes | Max 2048 chars. |
 | `PortfolioName` | Yes | The owning portfolio, by name. |
-| `Status` | No | `Proposed`, `Approved`, `Active`, `Completed`, or `Cancelled`. Defaults to `Active`. (`OnHold` is not supported by import.) |
+| `Status` | No | `Proposed`, `Approved`, `Active`, `Completed`, or `Canceled`. Defaults to `Active`. (`OnHold` is not supported by import.) |
 | `Start` | Yes | Initiative start date. |
 | `End` | Yes | On or after `Start`. |
 | `ProjectKeys` | No | Semicolon-separated project **keys** the initiative delivers through. |
@@ -266,7 +266,7 @@ one of its programs is still open.
 | `Type` | Yes | `Program` or `Portfolio`. |
 | `Name` | Yes | The program or portfolio, by name. |
 | `PortfolioName` | Conditional | Required for **program** rows (a program's name is only unique within its portfolio); ignored for portfolio rows. |
-| `Status` | Yes | Programs: `Completed` or `Cancelled`. Portfolios: `Closed` or `Archived`. |
+| `Status` | Yes | Programs: `Completed` or `Canceled`. Portfolios: `Closed` or `Archived`. |
 | `EndDate` | Conditional | Required for **portfolio** rows (becomes the portfolio's end date); ignored for program rows. |
 
 ## Related

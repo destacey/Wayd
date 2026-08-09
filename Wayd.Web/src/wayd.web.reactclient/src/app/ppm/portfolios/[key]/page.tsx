@@ -49,7 +49,7 @@ enum PortfolioTabs {
 }
 
 // Non-closed project statuses for the ranking board: Proposed(1), Approved(5), Active(2)
-// (excludes Completed(3) and Cancelled(4)).
+// (excludes Completed(3) and Canceled(4)).
 const RANKING_STATUSES = [1, 5, 2]
 
 const tabs = [

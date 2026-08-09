@@ -24,7 +24,7 @@ const statusActionToPastTense = (statusAction: ProgramStatusAction) => {
     case ProgramStatusAction.Complete:
       return 'completed'
     case ProgramStatusAction.Cancel:
-      return 'cancelled'
+      return 'canceled'
     default:
       return statusAction
   }

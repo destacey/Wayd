@@ -298,12 +298,12 @@ Contains: Programs, Projects, Strategic Initiatives.
 
 Portfolio scoring rules: only Active scoring models can be assigned. Clearing or changing the assignment disables/changes future scoring only; existing project score snapshots remain intact.
 
-Portfolio ranking rules: projects are ranked from creation and new projects are placed at the bottom. Portfolio Owners/Managers (or a PPM administrator) can reorder Proposed, Approved, and Active projects from the portfolio Ranking tab; ranking uses the same leadership rule as every other portfolio management action. Ranking is human-managed and independent of computed priority score. Dragging is disabled while the board is sorted, filtered, or searched because drops must be expressed against the natural rank order. Completed/Cancelled projects are hidden from the ranking board but keep ranks. Ranks use fractional values for cheap inserts; the PortfolioRankRebalance Hangfire maintenance job re-spaces dense ranks to clean whole-number gaps.
+Portfolio ranking rules: projects are ranked from creation and new projects are placed at the bottom. Portfolio Owners/Managers (or a PPM administrator) can reorder Proposed, Approved, and Active projects from the portfolio Ranking tab; ranking uses the same leadership rule as every other portfolio management action. Ranking is human-managed and independent of computed priority score. Dragging is disabled while the board is sorted, filtered, or searched because drops must be expressed against the natural rank order. Completed/Canceled projects are hidden from the ranking board but keep ranks. Ranks use fractional values for cheap inserts; the PortfolioRankRebalance Hangfire maintenance job re-spaces dense ranks to clean whole-number gaps.
 
 ### Programs
 
 Groups related projects. Properties:
-- Name, Description, Status (Proposed/Active/Completed/Cancelled), Date Range, Roles (Sponsor/Owner/Manager)
+- Name, Description, Status (Proposed/Active/Completed/Canceled), Date Range, Roles (Sponsor/Owner/Manager)
 - Strategic Theme Tags
 
 Rules: Only active programs accept projects. All projects must close before completing. Active requires date range. Only Proposed deletable.
@@ -317,7 +317,7 @@ Most feature-rich entity. Properties:
 - CurrentScore summary: latest project priority score value, scorer, timestamp, and scoring model name
 - Rank: required fractional sort key within the portfolio; Position is the derived 1-based display rank in project lists
 
-Status lifecycle: Proposed → Approved (requires lifecycle) → Active (requires dates) → Completed/Cancelled. Transitions are forward-only — there is no path back from Completed or Cancelled. Every transition requires delivery leadership (see the domain Permissions note above).
+Status lifecycle: Proposed → Approved (requires lifecycle) → Active (requires dates) → Completed/Canceled. Transitions are forward-only — there is no path back from Completed or Canceled. Every transition requires delivery leadership (see the domain Permissions note above).
 
 Key can be changed (cascades to all task keys), as can the assigned program and lifecycle — all three require delivery leadership. Only Proposed deletable. At most one program.
 
@@ -341,7 +341,7 @@ Must have min 1 phase to activate. Only Proposed deletable/editable.
 ### Project Phases
 
 Concrete instances from lifecycle template. Properties:
-- Name (from template, not editable), Description (editable), Status (NotStarted/InProgress/Completed/Cancelled)
+- Name (from template, not editable), Description (editable), Status (NotStarted/InProgress/Completed/Canceled)
 - Date Range, Progress (0-100%), Roles (Assignee)
 Rules: Date range is optional unless root tasks have dates, in which case it automatically rolls up to cover the child range span. A phase range cannot be manually shrunk behind its children's dates, nor can its dates be cleared while root tasks have dates.
 
@@ -349,7 +349,7 @@ Rules: Date range is optional unless root tasks have dates, in which case it aut
 
 Hierarchical work items within phases (WBS). Properties:
 - Key: {ProjectKey}-{Number}. Name, Description, Type (Task/Milestone)
-- Status (NotStarted/InProgress/Completed/Cancelled), Priority (Low/Medium/High/Critical)
+- Status (NotStarted/InProgress/Completed/Canceled), Priority (Low/Medium/High/Critical)
 - Progress (0-100 for tasks, 0 or 100 for milestones), Order, Dates, Effort (hours)
 - Dependencies (Finish-to-Start, soft-deleted), Roles (Assignee)
 
@@ -358,10 +358,10 @@ Rules: Milestones cannot have children or be InProgress. Cannot delete tasks wit
 ### Strategic Initiatives
 
 High-level strategic efforts within portfolios. Properties:
-- Name, Description, Status (Proposed/Approved/Active/OnHold/Completed/Cancelled)
+- Name, Description, Status (Proposed/Approved/Active/OnHold/Completed/Canceled)
 - Date Range, Roles (Sponsor/Owner), KPIs, Projects
 
-Rules: Only created in Active/OnHold portfolios. Deletable in Proposed/Approved. Completed/Cancelled = read-only.
+Rules: Only created in Active/OnHold portfolios. Deletable in Proposed/Approved. Completed/Canceled = read-only.
 
 ### KPIs
 

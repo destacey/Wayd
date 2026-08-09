@@ -169,7 +169,7 @@ public sealed class ImportProjectsCommandHandler(
     /// <summary>
     /// Walks a freshly created (Proposed) project to its target status through the real transitions, so
     /// every guard the domain enforces is honoured — approval requires a lifecycle, activation a date
-    /// range. A cancelled project is cancelled straight from Proposed, which the domain permits.
+    /// range. A canceled project is canceled straight from Proposed, which the domain permits.
     ///
     /// Runs as <see cref="PpmActor.System"/>: import is a bulk administrative operation authorized by the
     /// caller's Permissions.Projects.Import claim, not by delivery-leadership membership. Membership
@@ -186,7 +186,7 @@ public sealed class ImportProjectsCommandHandler(
             case ProjectStatus.Proposed:
                 return Result.Success();
 
-            case ProjectStatus.Cancelled:
+            case ProjectStatus.Canceled:
                 return project.Cancel(actor, ancestry);
 
             case ProjectStatus.Approved:

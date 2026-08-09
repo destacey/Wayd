@@ -118,7 +118,7 @@ const StrategicInitiativeDetailsPage = (props: {
   // Derive isReadOnly from strategic initiative status
   const isReadOnly = !strategicInitiativeData ? false : (() => {
     const status = strategicInitiativeData.status.name
-    return status === 'Completed' || status === 'Cancelled'
+    return status === 'Completed' || status === 'Canceled'
   })()
 
   // Update breadcrumb route - side effect only

@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
@@ -80,7 +80,7 @@ public class ImportProgramsCommandHandlerTests : IDisposable
 
     [Theory]
     [InlineData(ProgramStatus.Completed)]
-    [InlineData(ProgramStatus.Cancelled)]
+    [InlineData(ProgramStatus.Canceled)]
     public async Task Handle_LeavesProgramActive_WhenStatusIsTerminal(ProgramStatus status)
     {
         // Arrange

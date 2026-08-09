@@ -16,7 +16,7 @@ public sealed class ImportPpmFinalizationRequest
     /// <summary>The portfolio the program belongs to. Required for program rows, ignored for portfolio rows.</summary>
     public string? PortfolioName { get; set; }
 
-    /// <summary>Programs: 'Completed' or 'Cancelled'. Portfolios: 'Closed' or 'Archived'.</summary>
+    /// <summary>Programs: 'Completed' or 'Canceled'. Portfolios: 'Closed' or 'Archived'.</summary>
     public string Status { get; set; } = default!;
 
     /// <summary>The portfolio's end date. Required for portfolio rows, ignored for program rows.</summary>
@@ -53,6 +53,6 @@ public sealed class ImportPpmFinalizationRequestValidator : CustomValidator<Impo
         RuleFor(i => i.Status)
             .NotEmpty()
             .Must(s => Enum.TryParse<FinalizePpmItemStatus>(s.Trim(), ignoreCase: true, out _))
-                .WithMessage("Status must be one of 'Completed', 'Cancelled', 'Closed' or 'Archived'.");
+                .WithMessage("Status must be one of 'Completed', 'Canceled', 'Closed' or 'Archived'.");
     }
 }

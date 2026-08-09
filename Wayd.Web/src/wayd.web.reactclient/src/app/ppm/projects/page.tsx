@@ -17,7 +17,7 @@ const PROJECT_STATUS = {
   Approved: 5,
   Active: 2,
   Completed: 3,
-  Cancelled: 4,
+  Canceled: 4,
 } as const
 
 const DEFAULT_STATUSES = [PROJECT_STATUS.Approved, PROJECT_STATUS.Active]

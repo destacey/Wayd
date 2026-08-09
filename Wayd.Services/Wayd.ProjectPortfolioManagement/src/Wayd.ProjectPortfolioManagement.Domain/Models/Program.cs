@@ -106,7 +106,7 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     /// <summary>
     /// Indicates if the project is in a closed state.
     /// </summary>
-    public bool IsClosed => Status is ProgramStatus.Completed or ProgramStatus.Cancelled;
+    public bool IsClosed => Status is ProgramStatus.Completed or ProgramStatus.Canceled;
 
     /// <summary>
     /// The strategic themes associated with this program.
@@ -352,21 +352,21 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
             return Result.Failure(UnauthorizedManageActorError);
         }
 
-        if (Status is ProgramStatus.Completed or ProgramStatus.Cancelled)
+        if (Status is ProgramStatus.Completed or ProgramStatus.Canceled)
         {
-            return Result.Failure("The program is already completed or cancelled.");
+            return Result.Failure("The program is already completed or canceled.");
         }
 
         if (Status is ProgramStatus.Active)
         {
             if (_projects.Any(p => !p.IsClosed))
             {
-                return Result.Failure("All projects must be completed or canceled before the program can be cancelled.");
+                return Result.Failure("All projects must be completed or canceled before the program can be canceled.");
             }
         }
 
-        // Directly allow Proposed → Cancelled without setting DateRange
-        Status = ProgramStatus.Cancelled;
+        // Directly allow Proposed → Canceled without setting DateRange
+        Status = ProgramStatus.Canceled;
 
         return Result.Success();
     }

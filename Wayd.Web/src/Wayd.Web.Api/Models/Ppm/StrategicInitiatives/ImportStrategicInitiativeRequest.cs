@@ -66,7 +66,7 @@ public sealed class ImportStrategicInitiativeRequestValidator : CustomValidator<
         RuleFor(i => i.Status)
             .NotEmpty()
             .Must(s => Enum.TryParse<StrategicInitiativeStatus>(s.Trim(), ignoreCase: true, out _))
-                .WithMessage("Status must be one of 'Proposed', 'Approved', 'Active', 'Completed' or 'Cancelled'.");
+                .WithMessage("Status must be one of 'Proposed', 'Approved', 'Active', 'Completed' or 'Canceled'.");
 
         RuleFor(i => i.Start)
             .NotEmpty();

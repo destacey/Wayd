@@ -10,7 +10,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
 /// Additively imports a batch of programs, each created through its owning portfolio (the only path the
 /// domain allows) and then walked toward its target status by replaying the real lifecycle transitions.
 /// <para>
-/// Programs destined to be completed or cancelled are imported active and finished later by the finalize
+/// Programs destined to be completed or canceled are imported active and finished later by the finalize
 /// import: a program only accepts projects while active, and can only be completed once all of them are
 /// closed, so its final status cannot be set until its projects exist.
 /// </para>
@@ -138,7 +138,7 @@ public sealed class ImportProgramsCommandHandler(
 
     /// <summary>
     /// Walks a freshly created (Proposed) program to the furthest status it can hold before its projects
-    /// exist. A program only accepts projects while Active, but can only be completed or cancelled once all
+    /// exist. A program only accepts projects while Active, but can only be completed or canceled once all
     /// of them are closed — so a program destined to finish still has to be imported Active and closed
     /// afterwards by the finalize import, once the projects have landed.
     ///

@@ -11,7 +11,7 @@ audience: [user, agent]
 
 Each initiative has:
 - **Name** and **Description**
-- **Status** — Proposed, Approved, Active, On Hold, Completed, or Cancelled
+- **Status** — Proposed, Approved, Active, On Hold, Completed, or Canceled
 - **Date Range** — Timeline for the initiative
 - **Roles** — Sponsor and Owner
 - **[KPIs](#kpis)** — Measurable indicators with targets, checkpoints, and measurements
@@ -25,15 +25,15 @@ stateDiagram-v2
     Active --> OnHold
     OnHold --> Active
     Active --> Completed
-    Proposed --> Cancelled
-    Approved --> Cancelled
-    Active --> Cancelled
+    Proposed --> Canceled
+    Approved --> Canceled
+    Active --> Canceled
 ```
 
 **Business rules:**
 - Can only be created in Active or On Hold [portfolios](./portfolios-programs.mdx#portfolios)
 - Can be deleted only in Proposed or Approved states
-- Completed and Cancelled initiatives are read-only
+- Completed and Canceled initiatives are read-only
 
 ## Strategic Initiative Detail Page
 

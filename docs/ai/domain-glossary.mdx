@@ -98,12 +98,12 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | Term | Definition |
 |------|-----------|
 | **Portfolio** | Top-level container for programs, projects, and strategic initiatives. Status lifecycle: Proposed → Active → OnHold ↔ Active → Closed → Archived. May assign one active scoring model to enable project priority scoring. Owns the project ranking for all projects in the portfolio. |
-| **Program** | Groups related projects within a portfolio. Status: Proposed → Active → Completed/Cancelled. Only active programs accept new projects. |
-| **Project** | A timed endeavor with scope, timeline, and deliverables. Key is 2-20 uppercase alphanumeric. Status: Proposed → Approved (requires lifecycle) → Active (requires dates) → Completed/Cancelled. |
+| **Program** | Groups related projects within a portfolio. Status: Proposed → Active → Completed/Canceled. Only active programs accept new projects. |
+| **Project** | A timed endeavor with scope, timeline, and deliverables. Key is 2-20 uppercase alphanumeric. Status: Proposed → Approved (requires lifecycle) → Active (requires dates) → Completed/Canceled. |
 | **Project Key** | A unique 2-20 character uppercase alphanumeric code identifying a project (e.g., `APOLLO`). Can be changed (cascades to task keys). |
 | **Project Lifecycle** | A template of phases that projects go through. States: Proposed (editable) → Active (locked) → Archived. Must have min 1 phase to activate. |
 | **Project Lifecycle Phase** | A template phase within a lifecycle (e.g., Initiation, Planning, Execution, Closing). Ordered. Immutable after lifecycle activation. |
-| **Project Phase** | A concrete instance of a lifecycle phase on a project. Has Status (NotStarted/InProgress/Completed/Cancelled), Date Range, Progress (0-100%), and Assignee roles. Date range is optional unless root tasks have dates, in which case it automatically rolls up to encompass the minimum start and maximum end dates of all tasks under the phase. |
+| **Project Phase** | A concrete instance of a lifecycle phase on a project. Has Status (NotStarted/InProgress/Completed/Canceled), Date Range, Progress (0-100%), and Assignee roles. Date range is optional unless root tasks have dates, in which case it automatically rolls up to encompass the minimum start and maximum end dates of all tasks under the phase. |
 | **Project Task** | An actionable work item within a project phase. Key: ProjectKey-Number. Type: Task (date range, 0-100% progress) or Milestone (single date, 0 or 100% only). Supports hierarchy (WBS) and Finish-to-Start dependencies. Parent task date ranges automatically roll up from child dates. A parent task cannot be manually shrunk behind its children's dates, nor can its dates be cleared while children have dates. Shifting a parent task shifts its dated descendants. |
 | **Project Rank** | Opaque fractional sort key used to order projects within a portfolio. Every project receives a rank on creation. Users see the derived 1-based display position, not the raw rank value. |
 | **Portfolio Ranking Board** | Portfolio detail tab that shows Proposed, Approved, and Active projects in rank order. Portfolio Owners/Managers — and PPM Administrators — can drag projects to reorder them; score columns come from the current portfolio scoring model when assigned. |
@@ -113,7 +113,7 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Project Score Snapshot** | An immutable score history entry for a project. Stores the scoring model id/key/name, criterion ratings, computed outputs, scorer, timestamp, and per-project sequence so prior scores remain meaningful after model or portfolio assignment changes. |
 | **Task Priority** | Low, Medium, High, or Critical. Shown as color indicators in the UI. |
 | **Task Dependency** | Finish-to-Start relationship between project tasks. Soft-deleted (marked as removed, not permanently deleted). |
-| **Strategic Initiative** | A high-level strategic effort within a portfolio, tracked with KPIs. Status: Proposed → Approved → Active → OnHold ↔ Active → Completed/Cancelled. |
+| **Strategic Initiative** | A high-level strategic effort within a portfolio, tracked with KPIs. Status: Proposed → Approved → Active → OnHold ↔ Active → Completed/Canceled. |
 | **KPI** | Key Performance Indicator on a strategic initiative. Has StartingValue, TargetValue, ActualValue (from latest measurement), Direction (Increase/Decrease), Checkpoints, and Measurements. |
 | **KPI Checkpoint** | A planned target value at a specific date within a KPI. Has TargetValue and optional AtRiskValue threshold. |
 | **KPI Measurement** | An actual recorded value at a specific date. Most recent becomes the KPI's ActualValue. |

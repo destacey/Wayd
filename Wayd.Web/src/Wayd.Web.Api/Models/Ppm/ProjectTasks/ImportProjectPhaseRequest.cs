@@ -14,7 +14,7 @@ public sealed class ImportProjectPhaseRequest
     public string ProjectKey { get; set; } = default!;
     public string PhaseName { get; set; } = default!;
 
-    /// <summary>The phase status (case-insensitive): 'NotStarted', 'InProgress', 'Completed' or 'Cancelled'.</summary>
+    /// <summary>The phase status (case-insensitive): 'NotStarted', 'InProgress', 'Completed' or 'Canceled'.</summary>
     public string Status { get; set; } = default!;
 
     public ImportProjectPhaseDto ToImportProjectPhaseDto()
@@ -42,6 +42,6 @@ public sealed class ImportProjectPhaseRequestValidator : CustomValidator<ImportP
         RuleFor(p => p.Status)
             .NotEmpty()
             .Must(s => Enum.TryParse<TaskStatus>(s.Trim(), ignoreCase: true, out _))
-                .WithMessage("Status must be one of 'NotStarted', 'InProgress', 'Completed' or 'Cancelled'.");
+                .WithMessage("Status must be one of 'NotStarted', 'InProgress', 'Completed' or 'Canceled'.");
     }
 }

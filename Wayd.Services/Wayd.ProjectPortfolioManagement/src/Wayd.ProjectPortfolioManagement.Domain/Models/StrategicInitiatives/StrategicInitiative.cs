@@ -93,7 +93,7 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Indicates if the strategic initiative is in a closed state.
     /// </summary>
-    public bool IsClosed => Status is StrategicInitiativeStatus.Completed or StrategicInitiativeStatus.Cancelled;
+    public bool IsClosed => Status is StrategicInitiativeStatus.Completed or StrategicInitiativeStatus.Canceled;
 
     /// Indicates whether the strategic initiative can be deleted.
     /// </summary>
@@ -194,12 +194,12 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
     /// </summary>
     public Result Cancel()
     {
-        if (Status is StrategicInitiativeStatus.Completed or StrategicInitiativeStatus.Cancelled)
+        if (Status is StrategicInitiativeStatus.Completed or StrategicInitiativeStatus.Canceled)
         {
-            return Result.Failure("The strategic initiative is already completed or cancelled.");
+            return Result.Failure("The strategic initiative is already completed or canceled.");
         }
 
-        Status = StrategicInitiativeStatus.Cancelled;
+        Status = StrategicInitiativeStatus.Canceled;
 
         return Result.Success();
     }

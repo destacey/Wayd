@@ -25,6 +25,6 @@ public enum StrategicInitiativeStatus
     [Display(Name = "Completed", Description = "The strategic initiative has achieved its goals and is considered finished.", Order = 5, GroupName = nameof(LifecycleCategory.Completed))]
     Completed = 5,
 
-    [Display(Name = "Cancelled", Description = "The strategic initiative was terminated before achieving its goals.", Order = 6, GroupName = nameof(LifecycleCategory.Completed))]
+    [Display(Name = "Cancelled", Description = "The strategic initiative was terminated before achieving its goals.", Order = 6, GroupName = nameof(LifecycleCategory.Canceled))]
     Cancelled = 6
 }

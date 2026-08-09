@@ -96,6 +96,8 @@ export const getLifecycleCategoryColor = (
       return token.colorPrimary // or token.colorPrimary
     case LifecycleCategory.Completed:
       return token.colorSuccess
+    case LifecycleCategory.Canceled:
+      return token.colorError
     default:
       return undefined
   }
@@ -172,6 +174,8 @@ export const getLifecycleCategoryTagColor = (
       return 'processing'
     case LifecycleCategory.Completed:
       return 'success'
+    case LifecycleCategory.Canceled:
+      return 'error'
     default:
       return 'default'
   }

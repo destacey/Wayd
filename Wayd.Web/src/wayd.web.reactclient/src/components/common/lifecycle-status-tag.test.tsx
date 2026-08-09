@@ -97,6 +97,30 @@ describe('LifecycleStatusTag', () => {
     })
   })
 
+  describe('Canceled category', () => {
+    it('should render tag with Cancelled status and error color', () => {
+      const status: LifecycleNavigationDto = {
+        id: 4,
+        name: 'Cancelled',
+        lifecycleCategory: 'Canceled',
+      }
+      render(<LifecycleStatusTag status={status} />)
+      const tag = screen.getByText('Cancelled')
+      expect(tag).toBeInTheDocument()
+    })
+
+    it('should apply correct color class for Canceled category', () => {
+      const status: LifecycleNavigationDto = {
+        id: 4,
+        name: 'Cancelled',
+        lifecycleCategory: 'Canceled',
+      }
+      const { container } = render(<LifecycleStatusTag status={status} />)
+      const tag = container.querySelector('.ant-tag-error')
+      expect(tag).toBeInTheDocument()
+    })
+  })
+
   describe('Edge cases', () => {
     it('should handle empty status name', () => {
       const status: LifecycleNavigationDto = {

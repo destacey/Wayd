@@ -52,6 +52,7 @@ describe('getLifecycleCategoryColor', () => {
   const mockToken = {
     colorPrimary: '#1677ff',
     colorSuccess: '#52c41a',
+    colorError: '#ff4d4f',
     colorTextTertiary: '#00000073',
   }
 
@@ -64,6 +65,12 @@ describe('getLifecycleCategoryColor', () => {
   test('should return colorSuccess for Completed category', () => {
     expect(getLifecycleCategoryColor(LifecycleCategory.Completed, mockToken as any)).toBe(
       mockToken.colorSuccess,
+    )
+  })
+
+  test('should return colorError for Canceled category', () => {
+    expect(getLifecycleCategoryColor(LifecycleCategory.Canceled, mockToken as any)).toBe(
+      mockToken.colorError,
     )
   })
 
@@ -84,6 +91,7 @@ describe('getLifecycleCategoryColorFromStatus', () => {
   const mockToken = {
     colorPrimary: '#1677ff',
     colorSuccess: '#52c41a',
+    colorError: '#ff4d4f',
     colorTextTertiary: '#00000073',
   }
 
@@ -106,6 +114,17 @@ describe('getLifecycleCategoryColorFromStatus', () => {
     }
     expect(getLifecycleCategoryColorFromStatus(status, mockToken)).toBe(
       mockToken.colorSuccess,
+    )
+  })
+
+  test('should return colorError for Canceled lifecycleCategory', () => {
+    const status: LifecycleNavigationDto = {
+      id: 5,
+      name: 'Cancelled',
+      lifecycleCategory: 'Canceled',
+    }
+    expect(getLifecycleCategoryColorFromStatus(status, mockToken)).toBe(
+      mockToken.colorError,
     )
   })
 
@@ -135,6 +154,10 @@ describe('getLifecycleCategoryTagColor', () => {
 
   test('should return "success" for Completed category', () => {
     expect(getLifecycleCategoryTagColor(LifecycleCategory.Completed)).toBe('success')
+  })
+
+  test('should return "error" for Canceled category', () => {
+    expect(getLifecycleCategoryTagColor(LifecycleCategory.Canceled)).toBe('error')
   })
 
   test('should return "default" for NotStarted category', () => {

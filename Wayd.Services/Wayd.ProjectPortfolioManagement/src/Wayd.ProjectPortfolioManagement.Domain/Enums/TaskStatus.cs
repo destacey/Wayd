@@ -29,6 +29,6 @@ public enum TaskStatus
     /// <summary>
     /// The task has been cancelled and will not be completed.
     /// </summary>
-    [Display(Name = "Cancelled", Description = "The task has been cancelled.", Order = 4, GroupName = nameof(LifecycleCategory.Completed))]
+    [Display(Name = "Cancelled", Description = "The task has been cancelled.", Order = 4, GroupName = nameof(LifecycleCategory.Canceled))]
     Cancelled = 4
 }

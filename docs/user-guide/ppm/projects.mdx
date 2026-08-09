@@ -12,7 +12,7 @@ A **Project** represents a timed endeavor with defined scope, timeline, and deli
 Every project has:
 - **Key** — Unique identifier (2-20 uppercase alphanumeric characters, e.g., `APOLLO`)
 - **Name**, **Description**, **Business Case**, **Expected Benefits**
-- **Status** — Proposed, Approved, Active, Completed, or Cancelled
+- **Status** — Proposed, Approved, Active, Completed, or Canceled
 - **Date Range** — Start and optional end date
 - **[Expenditure Category](../settings/index.mdx#expenditure-categories)** — Budget classification
 - **[Lifecycle](#project-lifecycles)** — Defines the phases the project goes through
@@ -41,9 +41,9 @@ stateDiagram-v2
     Proposed --> Approved : Lifecycle assigned
     Approved --> Active : Date range set
     Active --> Completed
-    Active --> Cancelled
-    Proposed --> Cancelled
-    Approved --> Cancelled
+    Active --> Canceled
+    Proposed --> Canceled
+    Approved --> Canceled
 ```
 
 **Business rules:**
@@ -68,7 +68,7 @@ The project detail page adapts based on the project's status:
 
 The page header also shows a **Health tag** when the project has an active health check. Hovering the tag shows details (status, reported by, reported on, expiration, and note).
 
-The **Phase Timeline** is a step-based visualization showing each phase's status (completed, in progress, not started, cancelled), date range, and progress percentage. It automatically adjusts between horizontal and vertical layout based on available space.
+The **Phase Timeline** is a step-based visualization showing each phase's status (completed, in progress, not started, canceled), date range, and progress percentage. It automatically adjusts between horizontal and vertical layout based on available space.
 
 Warning alerts appear when requirements are missing:
 - *"Project Dates are required before activating"*
@@ -218,7 +218,7 @@ When a lifecycle is assigned to a project, its template phases become **Project 
 Each phase has:
 - **Name** — Copied from the lifecycle template (not editable)
 - **Description** — Editable per project
-- **Status** — Not Started, In Progress, Completed, or Cancelled
+- **Status** — Not Started, In Progress, Completed, or Canceled
 - **Date Range** — Planned start and end dates
 - **Progress** — 0-100% completion
 - **Roles** — People assigned to work on this phase (Assignee)
@@ -237,7 +237,7 @@ Each phase has:
 - **Key** — Auto-generated as `\{ProjectKey\}-\{Number\}` (e.g., `APOLLO-42`)
 - **Name** and optional **Description**
 - **Type** — Task or Milestone
-- **Status** — Not Started, In Progress, Completed, or Cancelled
+- **Status** — Not Started, In Progress, Completed, or Canceled
 - **Priority** — Low, Medium, High, or Critical (shown as color indicators)
 - **Progress** — 0-100% for tasks; 0 or 100 for milestones
 - **Order** — Position within parent for WBS structure

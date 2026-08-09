@@ -223,6 +223,14 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
                     continue;
                 }
 
+                // Skip the system audit bookkeeping columns. The trail row already records who and
+                // when in its own UserId and DateTime, so copying them into the payload duplicates
+                // the row's own metadata on every entity.
+                if (IsSystemAuditProperty(property.Metadata))
+                {
+                    continue;
+                }
+
                 switch (entry.State)
                 {
                     case EntityState.Added:
@@ -340,6 +348,69 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
             {
                 trailEntry.TrailType = TrailType.SoftDelete;
             }
+
+            // An un-delete is the mirror image: IsDeleted going true -> false. No code path does this
+            // today (nothing assigns TrailType.Restore, and nothing sets IsDeleted = false), but
+            // classifying it here means a future restore feature is audited automatically instead of
+            // being silently dropped as an empty update by the filter below.
+            if (entry.State == EntityState.Modified && entry.Entity is ISoftDelete restoredEntity && !restoredEntity.IsDeleted
+                    && trailEntry.OldValues.TryGetValue("IsDeleted", out var priorIsDeletedValue) && priorIsDeletedValue is not null && (bool)priorIsDeletedValue == true)
+            {
+                trailEntry.TrailType = TrailType.Restore;
+            }
+
+            // Drop the soft-delete bookkeeping now that the trail type has been decided. TrailType
+            // SoftDelete plus the row's own UserId and DateTime already say who deleted this and
+            // when, so IsDeleted/Deleted/DeletedBy in the payload only repeat it.
+            //
+            // This runs AFTER the classification above, which reads OldValues["IsDeleted"] to tell a
+            // soft delete from an ordinary update — filtering these inside the property loop would
+            // leave every soft delete misclassified as an Update.
+            //
+            // These are interface properties on ISoftDelete, not shadow properties, so the shadow
+            // check used for the audit columns does not apply and they are matched by name here.
+            foreach (var name in _softDeletePropertyNames)
+            {
+                trailEntry.OldValues.Remove(name);
+                trailEntry.NewValues.Remove(name);
+                trailEntry.ChangedColumns.Remove(name);
+            }
+        }
+
+        // An update whose only delta was a system audit column carries no user-meaningful change:
+        // every property it would have reported is now filtered out, leaving nothing changed. The
+        // trail row's own UserId and DateTime already say the entity was touched, so writing an
+        // empty row would only repeat that.
+        //
+        // Matching on Modified state rather than TrailType is deliberate. TrailType is assigned
+        // inside the per-property loop, so an entry whose every changed property was filtered out
+        // never reaches that assignment and is still TrailType.None — a TrailType.Update test would
+        // miss exactly the rows this is meant to drop.
+        //
+        // Creates and hard deletes are never dropped: they are events in their own right regardless
+        // of which columns they name. Soft deletes are also kept — their payload is now empty, but
+        // TrailType.SoftDelete is itself the record of what happened, so they are excluded here by
+        // trail type rather than by having a surviving column.
+        trailEntries.RemoveAll(e =>
+            e.Entry.State == EntityState.Modified
+            && e.TrailType is not (TrailType.SoftDelete or TrailType.Restore)
+            && e.ChangedColumns.Count == 0
+            && e.NewValues.Count == 0
+            && e.OldValues.Count == 0);
+
+        // Normalise the trail type for surviving modified entries. TrailType is assigned in the
+        // scalar property loop, but the complex-property and owned-entity blocks contribute changes
+        // without touching it — so an update whose only delta is an owned entity or complex property
+        // reaches here still TrailType.None and would be persisted as Type="None" despite being a
+        // genuine update. SoftDelete and Restore are already classified and keep their type.
+        foreach (var entry in trailEntries)
+        {
+            if (entry.Entry.State == EntityState.Modified
+                && entry.TrailType == TrailType.None
+                && (entry.ChangedColumns.Count > 0 || entry.NewValues.Count > 0 || entry.OldValues.Count > 0))
+            {
+                entry.TrailType = TrailType.Update;
+            }
         }
 
         foreach (var auditEntry in trailEntries.Where(e => !e.HasTemporaryProperties))
@@ -349,6 +420,32 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
 
         return trailEntries.Where(e => e.HasTemporaryProperties).ToList();
     }
+
+    // The audit bookkeeping columns, which the trail row itself already records via UserId/DateTime.
+    // These are the shadow properties declared for every ISystemAuditable entity in OnModelCreating.
+    //
+    // The earlier generation of these was named Created/CreatedBy/LastModified/LastModifiedBy, before
+    // the System prefix was adopted. Those names are absent here deliberately: no entity declares
+    // them as shadow properties any more, so they cannot be written by this path, and the historical
+    // rows carrying them are removed by the audit cleanup migration. Listing them would be dead
+    // weight — and actively risky, since WorkItem declares real Created/CreatedBy/LastModified/
+    // LastModifiedBy fields of its own, synced from Azure DevOps.
+    //
+    // The IsShadowProperty() test below is what keeps that distinction safe if the names ever return.
+    private static readonly HashSet<string> _systemAuditPropertyNames =
+    [
+        "SystemCreated", "SystemCreatedBy", "SystemLastModified", "SystemLastModifiedBy"
+    ];
+
+    // ISoftDelete's bookkeeping. Removed from the payload after the trail type is decided — see the
+    // comment at the removal site for why the ordering matters.
+    private static readonly string[] _softDeletePropertyNames =
+    [
+        nameof(ISoftDelete.IsDeleted), nameof(ISoftDelete.Deleted), nameof(ISoftDelete.DeletedBy)
+    ];
+
+    private static bool IsSystemAuditProperty(Microsoft.EntityFrameworkCore.Metadata.IProperty property) =>
+        property.IsShadowProperty() && _systemAuditPropertyNames.Contains(property.Name);
 
     private static Dictionary<string, object?> GetOwnedEntityValues(EntityEntry ownedEntry, bool isCurrentValue)
     {

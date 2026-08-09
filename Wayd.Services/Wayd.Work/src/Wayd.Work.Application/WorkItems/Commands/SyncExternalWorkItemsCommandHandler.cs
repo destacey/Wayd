@@ -23,7 +23,11 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
             return Result.Success();
         }
 
+        // Read-only: work items are attached by foreign key, not through workspace.WorkItems (see
+        // WorkItem.CreateExternal). Tracking it made EF flag the OwnershipInfo complex property as
+        // modified, writing the workspace on every per-chunk SaveChanges below.
         var workspace = await _workDbContext.Workspaces
+            .AsNoTracking()
             .FirstOrDefaultAsync(w => w.Id == request.WorkspaceId && w.OwnershipInfo.Ownership == Ownership.Managed, cancellationToken);
         if (workspace is null)
         {
@@ -300,10 +304,7 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
         }
         catch (Exception ex)
         {
-            // Reset the entity
-            await _workDbContext.Entry(workspace).ReloadAsync(cancellationToken);
-            workspace.ClearDomainEvents();
-
+            // No reset needed: the workspace is untracked and never mutated here.
             _logger.LogError(ex, "An error occurred while syncing workspace {WorkspaceId} work items.", workspace.Id);
             return Result.Failure($"An error occurred while syncing workspace {workspace.Id} work items.");
         }

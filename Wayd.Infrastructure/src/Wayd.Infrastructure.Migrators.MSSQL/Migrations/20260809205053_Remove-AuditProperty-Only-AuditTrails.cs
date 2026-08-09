@@ -117,72 +117,27 @@ public partial class RemoveAuditPropertyOnlyAuditTrails : Migration
             END
         ");
 
-        // Soft deletes: strip the bookkeeping, keep the row.
+        // Soft deletes: clear the payload, keep the row.
         //
-        // A soft-delete payload records only IsDeleted/Deleted/DeletedBy, and every one of those is
-        // already stated by the row itself — IsDeleted restates Type='SoftDelete', while Deleted and
-        // DeletedBy restate DateTime and UserId. Verified against the data: of 66 soft-delete rows,
-        // 26 carry a DeletedBy that matches UserId exactly and 40 carry null, with no mismatches;
-        // 19 carry a Deleted timestamp within two seconds of DateTime and 47 carry null. Nothing is
-        // lost by removing them, and the writer no longer records them.
+        // The payload can only ever hold audit bookkeeping. A soft delete originates from
+        // EntityState.Deleted, which BaseDbContext rewrites to Modified with IsDeleted = true — so
+        // the only properties that change are ISoftDelete's IsDeleted/Deleted/DeletedBy plus the
+        // System* shadow columns. All of those restate what the row already carries: IsDeleted
+        // restates Type='SoftDelete', and Deleted/DeletedBy restate DateTime/UserId.
         //
-        // The row itself is kept: the deletion is an event, and Type + DateTime + UserId are the
-        // record of it. Only the redundant payload goes.
+        // Nulling all three columns therefore loses nothing, and matches what the fixed writer now
+        // produces: ToAuditTrail serializes an empty collection as NULL rather than '{}' or '[]', so
+        // a soft delete recorded before this migration is indistinguishable from one recorded after.
         //
-        // JSON_MODIFY(doc, path, NULL) removes a key outright rather than setting it to JSON null,
-        // which is what makes this a strip and not a rewrite. Applied to both the current System*
-        // shadow names and the legacy ones that preceded them, since soft-delete rows span both
-        // eras. WorkItem is exempt from the legacy names for the same reason as above — they are
-        // real synced fields there.
-        // The result must match what the fixed writer now produces for the same event, so that a
-        // soft delete recorded before this migration is indistinguishable from one recorded after.
-        // AuditTrail.ToAuditTrail() serializes an empty collection as NULL, not as '{}' or '[]':
-        //
-        //     OldValues = OldValues.Count == 0 ? null : SerializeForAudit(OldValues)
-        //
-        // so a soft delete whose payload was nothing but bookkeeping ends up with all three columns
-        // NULL, and the row carries its meaning entirely in Type + DateTime + UserId. NULLIF below
-        // collapses the emptied JSON to NULL for exactly that reason.
-        //
-        // The System* names are stripped here too: the writer excludes them from every entity, so
-        // leaving them on these rows would produce the same inconsistency in the other direction.
-        // A column that was already NULL stays NULL.
+        // Setting the columns outright also covers payload shapes that key-level stripping would
+        // miss, such as the ReferenceHandler.Preserve envelope described above.
         migrationBuilder.Sql(@"
             UPDATE [Auditing].[AuditTrails]
-            SET [OldValues] = CASE WHEN ISJSON([OldValues]) = 1
-                                   THEN NULLIF(JSON_MODIFY(JSON_MODIFY(JSON_MODIFY(JSON_MODIFY(JSON_MODIFY(JSON_MODIFY(JSON_MODIFY([OldValues],
-                                            '$.IsDeleted', NULL), '$.Deleted', NULL), '$.DeletedBy', NULL),
-                                            '$.SystemCreated', NULL), '$.SystemCreatedBy', NULL),
-                                            '$.SystemLastModified', NULL), '$.SystemLastModifiedBy', NULL), '{}')
-                                   ELSE [OldValues] END,
-                [NewValues] = CASE WHEN ISJSON([NewValues]) = 1
-                                   THEN NULLIF(JSON_MODIFY(JSON_MODIFY(JSON_MODIFY(JSON_MODIFY(JSON_MODIFY(JSON_MODIFY(JSON_MODIFY([NewValues],
-                                            '$.IsDeleted', NULL), '$.Deleted', NULL), '$.DeletedBy', NULL),
-                                            '$.SystemCreated', NULL), '$.SystemCreatedBy', NULL),
-                                            '$.SystemLastModified', NULL), '$.SystemLastModifiedBy', NULL), '{}')
-                                   ELSE [NewValues] END,
-                [AffectedColumns] = CASE
-                        WHEN ISJSON([AffectedColumns]) = 1 THEN NULLIF((
-                            SELECT ISNULL(
-                                '[' + STRING_AGG('""' + STRING_ESCAPE(cols.[value], 'json') + '""', ',')
-                                    WITHIN GROUP (ORDER BY cols.[key]) + ']',
-                                '[]')
-                            FROM (
-                                SELECT c.[key], c.[value]
-                                FROM OPENJSON([AffectedColumns]) c
-                                WHERE LEFT(LTRIM([AffectedColumns]), 1) = '['
-                                UNION ALL
-                                SELECT c.[key], c.[value]
-                                FROM OPENJSON([AffectedColumns], '$.""$values""') c
-                                WHERE LEFT(LTRIM([AffectedColumns]), 1) = '{'
-                            ) cols
-                            WHERE cols.[value] NOT IN ('IsDeleted', 'Deleted', 'DeletedBy',
-                                                       'SystemCreated', 'SystemCreatedBy',
-                                                       'SystemLastModified', 'SystemLastModifiedBy')
-                        ), '[]')
-                        ELSE [AffectedColumns] END
+            SET [OldValues] = NULL,
+                [NewValues] = NULL,
+                [AffectedColumns] = NULL
             WHERE [Type] = 'SoftDelete'
-              AND (ISJSON([OldValues]) = 1 OR ISJSON([NewValues]) = 1 OR ISJSON([AffectedColumns]) = 1);
+              AND ([OldValues] IS NOT NULL OR [NewValues] IS NOT NULL OR [AffectedColumns] IS NOT NULL);
         ");
     }
 

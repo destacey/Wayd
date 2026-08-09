@@ -23,12 +23,12 @@ public enum TaskStatus
     /// <summary>
     /// The task has been completed.
     /// </summary>
-    [Display(Name = "Completed", Description = "The task has been completed.", Order = 3, GroupName = nameof(LifecycleCategory.NotStarted))]
+    [Display(Name = "Completed", Description = "The task has been completed.", Order = 3, GroupName = nameof(LifecycleCategory.Completed))]
     Completed = 3,
 
     /// <summary>
     /// The task has been cancelled and will not be completed.
     /// </summary>
-    [Display(Name = "Cancelled", Description = "The task has been cancelled.", Order = 4, GroupName = nameof(LifecycleCategory.NotStarted))]
+    [Display(Name = "Cancelled", Description = "The task has been cancelled.", Order = 4, GroupName = nameof(LifecycleCategory.Completed))]
     Cancelled = 4
 }

@@ -94,7 +94,7 @@ export const getLifecycleCategoryColor = (
   switch (category) {
     case LifecycleCategory.Active:
       return token.colorPrimary // or token.colorPrimary
-    case LifecycleCategory.Done:
+    case LifecycleCategory.Completed:
       return token.colorSuccess
     default:
       return undefined
@@ -170,7 +170,7 @@ export const getLifecycleCategoryTagColor = (
   switch (category) {
     case LifecycleCategory.Active:
       return 'processing'
-    case LifecycleCategory.Done:
+    case LifecycleCategory.Completed:
       return 'success'
     default:
       return 'default'

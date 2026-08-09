@@ -59,5 +59,5 @@ export enum ProjectStatus {
 export enum LifecycleCategory {
   NotStarted = 0,
   Active = 1,
-  Done = 2,
+  Completed = 2,
 }

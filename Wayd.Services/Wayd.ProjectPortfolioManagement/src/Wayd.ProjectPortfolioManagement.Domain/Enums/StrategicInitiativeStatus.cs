@@ -22,9 +22,9 @@ public enum StrategicInitiativeStatus
     [Display(Name = "On Hold", Description = "Work on the strategic initiative has been temporarily paused due to resource constraints, shifting priorities, or unforeseen challenges.", Order = 4, GroupName = nameof(LifecycleCategory.Active))]
     OnHold = 4,
 
-    [Display(Name = "Completed", Description = "The strategic initiative has achieved its goals and is considered finished.", Order = 5, GroupName = nameof(LifecycleCategory.Done))]
+    [Display(Name = "Completed", Description = "The strategic initiative has achieved its goals and is considered finished.", Order = 5, GroupName = nameof(LifecycleCategory.Completed))]
     Completed = 5,
 
-    [Display(Name = "Cancelled", Description = "The strategic initiative was terminated before achieving its goals.", Order = 6, GroupName = nameof(LifecycleCategory.Done))]
+    [Display(Name = "Cancelled", Description = "The strategic initiative was terminated before achieving its goals.", Order = 6, GroupName = nameof(LifecycleCategory.Completed))]
     Cancelled = 6
 }

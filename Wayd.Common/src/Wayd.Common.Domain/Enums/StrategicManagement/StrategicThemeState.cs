@@ -12,6 +12,6 @@ public enum StrategicThemeState
     [Display(Name = "Active", Description = "The theme is currently guiding related initiatives.", Order = 2, GroupName = nameof(LifecycleCategory.Active))]
     Active = 2,
 
-    [Display(Name = "Archived", Description = "The theme is no longer active but retained for historical purposes.", Order = 3, GroupName = nameof(LifecycleCategory.Done))]
+    [Display(Name = "Archived", Description = "The theme is no longer active but retained for historical purposes.", Order = 3, GroupName = nameof(LifecycleCategory.Completed))]
     Archived = 3
 }

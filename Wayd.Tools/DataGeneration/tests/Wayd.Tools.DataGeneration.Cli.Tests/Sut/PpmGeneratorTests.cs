@@ -316,7 +316,7 @@ public class PpmGeneratorTests
         static string RollUp(IReadOnlyCollection<string> statuses)
         {
             if (statuses.Count == 0) return "NotStarted";
-            bool Closed(string s) => s is "Completed" or "Cancelled";
+            bool Closed(string s) => s is "Completed" or "Canceled";
             if (statuses.All(Closed) && statuses.Any(s => s == "Completed")) return "Completed";
             if (statuses.All(s => s == "NotStarted")) return "NotStarted";
             return "InProgress";

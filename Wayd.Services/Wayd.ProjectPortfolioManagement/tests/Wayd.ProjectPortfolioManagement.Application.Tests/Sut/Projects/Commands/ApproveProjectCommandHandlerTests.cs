@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Interfaces;
 using Wayd.ProjectPortfolioManagement.Application.Common;
@@ -240,10 +240,10 @@ public class ApproveProjectCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_ShouldFail_WhenProjectIsCancelled()
+    public async Task Handle_ShouldFail_WhenProjectIsCanceled()
     {
         // Arrange
-        var project = _projectFaker.AsCancelled(_dateTimeProvider, Guid.NewGuid());
+        var project = _projectFaker.AsCanceled(_dateTimeProvider, Guid.NewGuid());
         _dbContext.AddProject(project);
 
         var command = new ApproveProjectCommand(project.Id);

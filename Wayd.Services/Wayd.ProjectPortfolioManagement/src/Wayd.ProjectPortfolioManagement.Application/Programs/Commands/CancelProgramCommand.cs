@@ -56,7 +56,7 @@ public sealed class CancelProgramCommandHandler(
 
             await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Program {ProgramId} cancelled.", request.Id);
+            _logger.LogInformation("Program {ProgramId} canceled.", request.Id);
 
             return Result.Success();
         }

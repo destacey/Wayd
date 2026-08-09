@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
@@ -71,7 +71,7 @@ public class ImportProjectsCommandHandlerTests : IDisposable
     [Theory]
     [InlineData(ProjectStatus.Active)]
     [InlineData(ProjectStatus.Completed)]
-    [InlineData(ProjectStatus.Cancelled)]
+    [InlineData(ProjectStatus.Canceled)]
     public async Task Handle_DrivesProjectToItsTargetStatus(ProjectStatus status)
     {
         // Arrange

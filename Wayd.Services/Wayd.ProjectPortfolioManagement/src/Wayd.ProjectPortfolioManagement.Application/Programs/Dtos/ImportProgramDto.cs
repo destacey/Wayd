@@ -52,7 +52,7 @@ public sealed class ImportProgramDtoValidator : CustomValidator<ImportProgramDto
                 .WithMessage("End date must be on or after the start date.");
 
         // Activating and completing both require a date range, so the row must carry one for any status
-        // past Proposed. Cancelled is exempt: the domain allows Proposed -> Cancelled without dates.
+        // past Proposed. Canceled is exempt: the domain allows Proposed -> Canceled without dates.
         RuleFor(p => p.Start)
             .NotNull()
             .When(p => p.Status is ProgramStatus.Active or ProgramStatus.Completed)

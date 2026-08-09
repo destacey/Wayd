@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
@@ -141,20 +141,20 @@ public class ImportPpmFinalizationsCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_CancelsProgram_WhenStatusIsCancelled()
+    public async Task Handle_CancelsProgram_WhenStatusIsCanceled()
     {
         // Arrange
         var program = CreateActiveProgram("Platform");
-        CreateProject("APOLLO", program.Id, ProjectStatus.Cancelled);
+        CreateProject("APOLLO", program.Id, ProjectStatus.Canceled);
 
-        var command = new ImportPpmFinalizationsCommand([ProgramRow("Platform", FinalizePpmItemStatus.Cancelled)]);
+        var command = new ImportPpmFinalizationsCommand([ProgramRow("Platform", FinalizePpmItemStatus.Canceled)]);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        program.Status.Should().Be(ProgramStatus.Cancelled);
+        program.Status.Should().Be(ProgramStatus.Canceled);
     }
 
     [Fact]
@@ -216,7 +216,7 @@ public class ImportPpmFinalizationsCommandHandlerTests : IDisposable
                 project.Activate(PpmActor.System, ProjectAncestryRoles.None);
                 project.Complete(PpmActor.System, ProjectAncestryRoles.None);
                 break;
-            case ProjectStatus.Cancelled:
+            case ProjectStatus.Canceled:
                 project.Cancel(PpmActor.System, ProjectAncestryRoles.None);
                 break;
             case ProjectStatus.Active:

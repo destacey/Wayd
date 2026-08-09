@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
@@ -68,7 +68,7 @@ public class ImportStrategicInitiativesCommandHandlerTests : IDisposable
     [InlineData(StrategicInitiativeStatus.Approved)]
     [InlineData(StrategicInitiativeStatus.Active)]
     [InlineData(StrategicInitiativeStatus.Completed)]
-    [InlineData(StrategicInitiativeStatus.Cancelled)]
+    [InlineData(StrategicInitiativeStatus.Canceled)]
     public async Task Handle_DrivesInitiativeToItsTargetStatus(StrategicInitiativeStatus status)
     {
         // Arrange

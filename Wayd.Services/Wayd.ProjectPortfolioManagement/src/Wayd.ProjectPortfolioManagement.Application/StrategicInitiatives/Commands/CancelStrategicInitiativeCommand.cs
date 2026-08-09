@@ -45,7 +45,7 @@ public sealed class CancelStrategicInitiativeCommandHandler(IProjectPortfolioMan
 
             await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Strategic Initiative {StrategicInitiativeId} cancelled.", request.Id);
+            _logger.LogInformation("Strategic Initiative {StrategicInitiativeId} canceled.", request.Id);
 
             return Result.Success();
         }

@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+﻿using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
@@ -133,16 +133,16 @@ public static class ProgramFakerExtensions
     }
 
     /// <summary>
-    /// Generates a cancelled program with a start date 15 days ago and an end date 5 days ago.
+    /// Generates a canceled program with a start date 15 days ago and an end date 5 days ago.
     /// </summary>
-    public static Program AsCancelled(this ProgramFaker faker, TestingDateTimeProvider dateTimeProvider, Guid? portfolioId = null)
+    public static Program AsCanceled(this ProgramFaker faker, TestingDateTimeProvider dateTimeProvider, Guid? portfolioId = null)
     {
         var now = dateTimeProvider.Today;
         var startDate = now.PlusDays(-15);
         var endDate = startDate.PlusDays(5);
 
         return faker
-            .WithStatus(ProgramStatus.Cancelled)
+            .WithStatus(ProgramStatus.Canceled)
             .WithDateRange(new LocalDateRange(startDate, endDate))
             .WithOptionalPortfolioId(portfolioId)
             .Generate();

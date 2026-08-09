@@ -17,6 +17,6 @@ public enum ProgramStatus
     [Display(Name = "Completed", Description = "The program has achieved its goals and is considered finished.", Order = 3, GroupName = nameof(LifecycleCategory.Completed))]
     Completed = 3,
 
-    [Display(Name = "Cancelled", Description = "The program was terminated before achieving its goals.", Order = 4, GroupName = nameof(LifecycleCategory.Canceled))]
-    Cancelled = 4
+    [Display(Name = "Canceled", Description = "The program was terminated before achieving its goals.", Order = 4, GroupName = nameof(LifecycleCategory.Canceled))]
+    Canceled = 4
 }

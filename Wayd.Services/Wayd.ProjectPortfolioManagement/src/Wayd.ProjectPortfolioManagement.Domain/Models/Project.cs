@@ -110,7 +110,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// <summary>
     /// Indicates if the project is in a closed state.
     /// </summary>
-    public bool IsClosed => Status is ProjectStatus.Completed or ProjectStatus.Cancelled;
+    public bool IsClosed => Status is ProjectStatus.Completed or ProjectStatus.Canceled;
 
     /// <summary>
     /// The roles associated with the project.
@@ -683,12 +683,12 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return Result.Failure(UnauthorizedManageActorError);
         }
 
-        if (Status is ProjectStatus.Completed or ProjectStatus.Cancelled)
+        if (Status is ProjectStatus.Completed or ProjectStatus.Canceled)
         {
-            return Result.Failure("The project is already completed or cancelled.");
+            return Result.Failure("The project is already completed or canceled.");
         }
 
-        Status = ProjectStatus.Cancelled;
+        Status = ProjectStatus.Canceled;
 
         return Result.Success();
     }

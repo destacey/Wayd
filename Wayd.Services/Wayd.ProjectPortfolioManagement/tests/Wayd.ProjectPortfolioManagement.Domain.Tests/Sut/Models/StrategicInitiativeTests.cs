@@ -48,7 +48,7 @@ public sealed class StrategicInitiativeTests
     [InlineData(StrategicInitiativeStatus.Approved, true)]
     [InlineData(StrategicInitiativeStatus.Active, false)]
     [InlineData(StrategicInitiativeStatus.Completed, false)]
-    [InlineData(StrategicInitiativeStatus.Cancelled, false)]
+    [InlineData(StrategicInitiativeStatus.Canceled, false)]
     public void CanBeDeleted_ShouldReturnExpectedBasedOnStatus(StrategicInitiativeStatus status, bool expected)
     {
         // Arrange
@@ -60,7 +60,7 @@ public sealed class StrategicInitiativeTests
 
     [Theory]
     [InlineData(StrategicInitiativeStatus.Completed, true)]
-    [InlineData(StrategicInitiativeStatus.Cancelled, true)]
+    [InlineData(StrategicInitiativeStatus.Canceled, true)]
     [InlineData(StrategicInitiativeStatus.Proposed, false)]
     [InlineData(StrategicInitiativeStatus.Approved, false)]
     [InlineData(StrategicInitiativeStatus.Active, false)]
@@ -338,21 +338,21 @@ public sealed class StrategicInitiativeTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        initiative.Status.Should().Be(StrategicInitiativeStatus.Cancelled);
+        initiative.Status.Should().Be(StrategicInitiativeStatus.Canceled);
     }
 
     [Fact]
-    public void Cancel_ShouldFail_WhenStrategicInitiativeIsAlreadyCompletedOrCancelled()
+    public void Cancel_ShouldFail_WhenStrategicInitiativeIsAlreadyCompletedOrCanceled()
     {
         // Arrange
-        var initiative = _strategicInitiativeFaker.AsCancelled(_dateTimeProvider);
+        var initiative = _strategicInitiativeFaker.AsCanceled(_dateTimeProvider);
 
         // Act
         var result = initiative.Cancel();
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("The strategic initiative is already completed or cancelled.");
+        result.Error.Should().Be("The strategic initiative is already completed or canceled.");
     }
 
     #endregion Lifecycle Tests
@@ -399,10 +399,10 @@ public sealed class StrategicInitiativeTests
     }
 
     [Fact]
-    public void CreateKpi_ShouldFail_WhenInCancelledStatus()
+    public void CreateKpi_ShouldFail_WhenInCanceledStatus()
     {
         // Arrange
-        var initiative = _strategicInitiativeFaker.AsCancelled(_dateTimeProvider);
+        var initiative = _strategicInitiativeFaker.AsCanceled(_dateTimeProvider);
         var expectedKpiParameters = _kpiFaker.Generate().ToUpsertParameters();
 
         // Act
@@ -446,10 +446,10 @@ public sealed class StrategicInitiativeTests
     }
 
     [Fact]
-    public void DeleteKpi_ShouldFail_WhenInCancelledStatus()
+    public void DeleteKpi_ShouldFail_WhenInCanceledStatus()
     {
         // Arrange
-        var initiative = _strategicInitiativeFaker.AsCancelled(_dateTimeProvider).AddKpis(1);
+        var initiative = _strategicInitiativeFaker.AsCanceled(_dateTimeProvider).AddKpis(1);
         var kpi = initiative.Kpis.First();
 
         // Act

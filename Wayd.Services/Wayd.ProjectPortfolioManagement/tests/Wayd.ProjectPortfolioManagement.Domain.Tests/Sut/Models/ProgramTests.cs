@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NodaTime.Extensions;
 using NodaTime.Testing;
 using Wayd.Common.Models;
@@ -399,7 +399,7 @@ public class ProgramTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        program.Status.Should().Be(ProgramStatus.Cancelled);
+        program.Status.Should().Be(ProgramStatus.Canceled);
     }
 
     [Fact]
@@ -415,21 +415,21 @@ public class ProgramTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("All projects must be completed or canceled before the program can be cancelled.");
+        result.Error.Should().Be("All projects must be completed or canceled before the program can be canceled.");
     }
 
     [Fact]
-    public void Cancel_ShouldFail_WhenProgramIsAlreadyCancelled()
+    public void Cancel_ShouldFail_WhenProgramIsAlreadyCanceled()
     {
         // Arrange
-        var program = _programFaker.AsCancelled(_dateTimeProvider);
+        var program = _programFaker.AsCanceled(_dateTimeProvider);
 
         // Act
         var result = program.Cancel(AnAuthorizedActor(), NoProgramAncestry());
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("The program is already completed or cancelled.");
+        result.Error.Should().Be("The program is already completed or canceled.");
     }
 
     #endregion Lifecycle Tests
@@ -451,7 +451,7 @@ public class ProgramTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        program.Status.Should().Be(ProgramStatus.Cancelled);
+        program.Status.Should().Be(ProgramStatus.Canceled);
     }
 
     [Fact]
@@ -483,7 +483,7 @@ public class ProgramTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        program.Status.Should().Be(ProgramStatus.Cancelled);
+        program.Status.Should().Be(ProgramStatus.Canceled);
     }
 
     [Fact]

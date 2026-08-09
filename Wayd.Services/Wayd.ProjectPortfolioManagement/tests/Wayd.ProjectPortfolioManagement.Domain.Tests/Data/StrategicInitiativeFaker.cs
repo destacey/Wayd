@@ -1,4 +1,4 @@
-using NodaTime;
+﻿using NodaTime;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
@@ -191,13 +191,13 @@ public static class StrategicInitiativeFakerExtensions
     }
 
     /// <summary>
-    /// Creates a strategic initiative with the status of Cancelled.
+    /// Creates a strategic initiative with the status of Canceled.
     /// </summary>
     /// <param name="faker"></param>
     /// <param name="dateTimeProvider"></param>
     /// <param name="portfolioId"></param>
     /// <returns></returns>
-    public static StrategicInitiative AsCancelled(
+    public static StrategicInitiative AsCanceled(
         this StrategicInitiativeFaker faker,
         TestingDateTimeProvider dateTimeProvider,
         Guid? portfolioId = null)
@@ -206,7 +206,7 @@ public static class StrategicInitiativeFakerExtensions
         var end = start.PlusDays(100);
 
         return faker
-            .WithStatus(StrategicInitiativeStatus.Cancelled)
+            .WithStatus(StrategicInitiativeStatus.Canceled)
             .WithDateRange(new LocalDateRange(start, end))
             .WithOptionalPortfolioId(portfolioId)
             .Generate();

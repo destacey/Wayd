@@ -86,14 +86,13 @@ public sealed class OwnershipInfo : ValueObject
     /// Gets the equality components.
     /// </summary>
     /// <returns></returns>
-    protected override IEnumerable<IComparable> GetEqualityComponents()
+    protected override IEnumerable<IComparable?> GetEqualityComponents()
     {
+        // Yield every component unconditionally: a conditional yield shifts the ones after it into
+        // the wrong slot, so values that differ can compare equal.
         yield return Ownership;
-
-        if (SystemId is not null)
-            yield return SystemId;
-
-        if (ExternalId is not null)
-            yield return ExternalId;
+        yield return Connector;
+        yield return SystemId;
+        yield return ExternalId;
     }
 }

@@ -26,19 +26,14 @@ public class PersonName : ValueObject
     public string FullName
         => StringHelpers.Concat(Title, FirstName, MiddleName, LastName, Suffix);
 
-    protected override IEnumerable<IComparable> GetEqualityComponents()
+    protected override IEnumerable<IComparable?> GetEqualityComponents()
     {
+        // Yield every component unconditionally: a conditional yield shifts the ones after it into
+        // the wrong slot, so values that differ can compare equal.
         yield return FirstName;
-
-        if (MiddleName is not null)
-            yield return MiddleName;
-
+        yield return MiddleName;
         yield return LastName;
-
-        if (Suffix is not null)
-            yield return Suffix;
-
-        if (Title is not null)
-            yield return Title;
+        yield return Suffix;
+        yield return Title;
     }
 }

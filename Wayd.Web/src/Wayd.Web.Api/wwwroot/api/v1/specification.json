@@ -30497,7 +30497,7 @@
         "additionalProperties": false,
         "required": [
           "name",
-          "lifecyclePhase",
+          "lifecycleCategory",
           "id"
         ],
         "properties": {
@@ -30509,7 +30509,7 @@
             "type": "string",
             "minLength": 1
           },
-          "lifecyclePhase": {
+          "lifecycleCategory": {
             "type": "string",
             "minLength": 1
           }
@@ -31441,7 +31441,7 @@
         "additionalProperties": false,
         "required": [
           "name",
-          "lifecyclePhase",
+          "lifecycleCategory",
           "id",
           "order"
         ],
@@ -31462,7 +31462,7 @@
             "type": "integer",
             "format": "int32"
           },
-          "lifecyclePhase": {
+          "lifecycleCategory": {
             "type": "string",
             "minLength": 1
           }
@@ -31748,7 +31748,7 @@
         "additionalProperties": false,
         "required": [
           "name",
-          "lifecyclePhase",
+          "lifecycleCategory",
           "id",
           "order"
         ],
@@ -31769,7 +31769,7 @@
             "type": "integer",
             "format": "int32"
           },
-          "lifecyclePhase": {
+          "lifecycleCategory": {
             "type": "string",
             "minLength": 1
           }
@@ -32712,7 +32712,7 @@
         "additionalProperties": false,
         "required": [
           "name",
-          "lifecyclePhase",
+          "lifecycleCategory",
           "id",
           "order"
         ],
@@ -32733,7 +32733,7 @@
             "type": "integer",
             "format": "int32"
           },
-          "lifecyclePhase": {
+          "lifecycleCategory": {
             "type": "string",
             "minLength": 1
           }
@@ -34403,7 +34403,7 @@
         "additionalProperties": false,
         "required": [
           "name",
-          "lifecyclePhase",
+          "lifecycleCategory",
           "id",
           "order"
         ],
@@ -34424,7 +34424,7 @@
             "type": "integer",
             "format": "int32"
           },
-          "lifecyclePhase": {
+          "lifecycleCategory": {
             "type": "string",
             "minLength": 1
           }

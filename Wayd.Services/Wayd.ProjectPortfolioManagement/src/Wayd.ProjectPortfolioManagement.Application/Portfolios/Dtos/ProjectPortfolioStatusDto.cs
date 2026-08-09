@@ -14,5 +14,5 @@ public sealed record ProjectPortfolioStatusDto
     public int Order { get; set; }
 
     [Required]
-    public required string LifecyclePhase { get; set; }
+    public required string LifecycleCategory { get; set; }
 }

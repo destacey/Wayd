@@ -1,13 +1,13 @@
 import {
   getLuminance,
   getLuminanceTheme,
-  getLifecyclePhaseColor,
-  getLifecyclePhaseColorFromStatus,
-  getLifecyclePhaseTagColor,
+  getLifecycleCategoryColor,
+  getLifecycleCategoryColorFromStatus,
+  getLifecycleCategoryTagColor,
   getSemanticChartColor,
   softenChartColor,
 } from './color-helper'
-import { LifecyclePhase } from '../components/types'
+import { LifecycleCategory } from '../components/types'
 import { LifecycleNavigationDto } from '../services/wayd-api'
 
 describe('getLuminance', () => {
@@ -48,7 +48,7 @@ describe('getLuminanceTheme', () => {
   })
 })
 
-describe('getLifecyclePhaseColor', () => {
+describe('getLifecycleCategoryColor', () => {
   const mockToken = {
     colorPrimary: '#1677ff',
     colorSuccess: '#52c41a',
@@ -56,93 +56,93 @@ describe('getLifecyclePhaseColor', () => {
   }
 
   test('should return colorPrimary for Active phase', () => {
-    expect(getLifecyclePhaseColor(LifecyclePhase.Active, mockToken as any)).toBe(
+    expect(getLifecycleCategoryColor(LifecycleCategory.Active, mockToken as any)).toBe(
       mockToken.colorPrimary,
     )
   })
 
   test('should return colorSuccess for Done phase', () => {
-    expect(getLifecyclePhaseColor(LifecyclePhase.Done, mockToken as any)).toBe(
+    expect(getLifecycleCategoryColor(LifecycleCategory.Done, mockToken as any)).toBe(
       mockToken.colorSuccess,
     )
   })
 
   test('should return undefined for NotStarted phase', () => {
-    expect(getLifecyclePhaseColor(LifecyclePhase.NotStarted, mockToken as any)).toBe(
+    expect(getLifecycleCategoryColor(LifecycleCategory.NotStarted, mockToken as any)).toBe(
       undefined,
     )
   })
 
   test('should return undefined for invalid phase', () => {
-    expect(getLifecyclePhaseColor(999 as LifecyclePhase, mockToken as any)).toBe(
+    expect(getLifecycleCategoryColor(999 as LifecycleCategory, mockToken as any)).toBe(
       undefined,
     )
   })
 })
 
-describe('getLifecyclePhaseColorFromStatus', () => {
+describe('getLifecycleCategoryColorFromStatus', () => {
   const mockToken = {
     colorPrimary: '#1677ff',
     colorSuccess: '#52c41a',
     colorTextTertiary: '#00000073',
   }
 
-  test('should return colorPrimary for Active lifecyclePhase', () => {
+  test('should return colorPrimary for Active lifecycleCategory', () => {
     const status: LifecycleNavigationDto = {
       id: 1,
       name: 'In Progress',
-      lifecyclePhase: 'Active',
+      lifecycleCategory: 'Active',
     }
-    expect(getLifecyclePhaseColorFromStatus(status, mockToken)).toBe(
+    expect(getLifecycleCategoryColorFromStatus(status, mockToken)).toBe(
       mockToken.colorPrimary,
     )
   })
 
-  test('should return colorSuccess for Done lifecyclePhase', () => {
+  test('should return colorSuccess for Done lifecycleCategory', () => {
     const status: LifecycleNavigationDto = {
       id: 2,
       name: 'Completed',
-      lifecyclePhase: 'Done',
+      lifecycleCategory: 'Done',
     }
-    expect(getLifecyclePhaseColorFromStatus(status, mockToken)).toBe(
+    expect(getLifecycleCategoryColorFromStatus(status, mockToken)).toBe(
       mockToken.colorSuccess,
     )
   })
 
-  test('should return undefined for NotStarted lifecyclePhase', () => {
+  test('should return undefined for NotStarted lifecycleCategory', () => {
     const status: LifecycleNavigationDto = {
       id: 3,
       name: 'Proposed',
-      lifecyclePhase: 'NotStarted',
+      lifecycleCategory: 'NotStarted',
     }
-    expect(getLifecyclePhaseColorFromStatus(status, mockToken)).toBe(undefined)
+    expect(getLifecycleCategoryColorFromStatus(status, mockToken)).toBe(undefined)
   })
 
-  test('should handle invalid lifecyclePhase string', () => {
+  test('should handle invalid lifecycleCategory string', () => {
     const status: LifecycleNavigationDto = {
       id: 4,
       name: 'Unknown',
-      lifecyclePhase: 'InvalidPhase' as any,
+      lifecycleCategory: 'InvalidPhase' as any,
     }
-    expect(getLifecyclePhaseColorFromStatus(status, mockToken)).toBe(undefined)
+    expect(getLifecycleCategoryColorFromStatus(status, mockToken)).toBe(undefined)
   })
 })
 
-describe('getLifecyclePhaseTagColor', () => {
+describe('getLifecycleCategoryTagColor', () => {
   test('should return "processing" for Active phase', () => {
-    expect(getLifecyclePhaseTagColor(LifecyclePhase.Active)).toBe('processing')
+    expect(getLifecycleCategoryTagColor(LifecycleCategory.Active)).toBe('processing')
   })
 
   test('should return "success" for Done phase', () => {
-    expect(getLifecyclePhaseTagColor(LifecyclePhase.Done)).toBe('success')
+    expect(getLifecycleCategoryTagColor(LifecycleCategory.Done)).toBe('success')
   })
 
   test('should return "default" for NotStarted phase', () => {
-    expect(getLifecyclePhaseTagColor(LifecyclePhase.NotStarted)).toBe('default')
+    expect(getLifecycleCategoryTagColor(LifecycleCategory.NotStarted)).toBe('default')
   })
 
   test('should return "default" for invalid phase', () => {
-    expect(getLifecyclePhaseTagColor(999 as LifecyclePhase)).toBe('default')
+    expect(getLifecycleCategoryTagColor(999 as LifecycleCategory)).toBe('default')
   })
 })
 

@@ -18,7 +18,7 @@ function createProject(
     description: '',
     status: {
       name: 'Active',
-      lifecyclePhase: 'Active',
+      lifecycleCategory: 'Active',
     } as any,
     expenditureCategory: { id: 1, name: 'Capital' } as any,
     portfolio: { id: 'port-1', key: 1, name: 'Portfolio' } as any,

@@ -60966,9 +60966,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public string Name { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("lifecyclePhase")]
+        [System.Text.Json.Serialization.JsonPropertyName("lifecycleCategory")]
         [System.ComponentModel.DataAnnotations.Required]
-        public string LifecyclePhase { get; set; } = default!;
+        public string LifecycleCategory { get; set; } = default!;
 
     }
 
@@ -61621,9 +61621,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("lifecyclePhase")]
+        [System.Text.Json.Serialization.JsonPropertyName("lifecycleCategory")]
         [System.ComponentModel.DataAnnotations.Required]
-        public string LifecyclePhase { get; set; } = default!;
+        public string LifecycleCategory { get; set; } = default!;
 
     }
 
@@ -61848,9 +61848,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("lifecyclePhase")]
+        [System.Text.Json.Serialization.JsonPropertyName("lifecycleCategory")]
         [System.ComponentModel.DataAnnotations.Required]
-        public string LifecyclePhase { get; set; } = default!;
+        public string LifecycleCategory { get; set; } = default!;
 
     }
 
@@ -62586,9 +62586,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("lifecyclePhase")]
+        [System.Text.Json.Serialization.JsonPropertyName("lifecycleCategory")]
         [System.ComponentModel.DataAnnotations.Required]
-        public string LifecyclePhase { get; set; } = default!;
+        public string LifecycleCategory { get; set; } = default!;
 
     }
 
@@ -63784,9 +63784,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("lifecyclePhase")]
+        [System.Text.Json.Serialization.JsonPropertyName("lifecycleCategory")]
         [System.ComponentModel.DataAnnotations.Required]
-        public string LifecyclePhase { get; set; } = default!;
+        public string LifecycleCategory { get; set; } = default!;
 
     }
 

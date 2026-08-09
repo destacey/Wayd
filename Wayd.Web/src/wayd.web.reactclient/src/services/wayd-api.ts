@@ -33455,7 +33455,7 @@ export interface ProjectPortfolioListDto {
 export interface LifecycleNavigationDto {
     id: number;
     name: string;
-    lifecyclePhase: string;
+    lifecycleCategory: string;
 }
 
 export interface EmployeeNavigationDto extends NavigationDto {
@@ -33667,7 +33667,7 @@ export interface ProjectPortfolioStatusDto {
     name: string;
     description?: string | undefined;
     order: number;
-    lifecyclePhase: string;
+    lifecycleCategory: string;
 }
 
 export interface ProjectPortfolioOptionDto {
@@ -33738,7 +33738,7 @@ export interface ProgramStatusDto {
     name: string;
     description?: string | undefined;
     order: number;
-    lifecyclePhase: string;
+    lifecycleCategory: string;
 }
 
 export interface ProjectHealthCheckDetailsDto {
@@ -33982,7 +33982,7 @@ export interface ProjectStatusDto {
     name: string;
     description?: string | undefined;
     order: number;
-    lifecyclePhase: string;
+    lifecycleCategory: string;
 }
 
 export interface ProjectTeamMemberDto {
@@ -34374,7 +34374,7 @@ export interface StrategicInitiativeStatusDto {
     name: string;
     description?: string | undefined;
     order: number;
-    lifecyclePhase: string;
+    lifecycleCategory: string;
 }
 
 export interface StrategicInitiativeKpiListDto {

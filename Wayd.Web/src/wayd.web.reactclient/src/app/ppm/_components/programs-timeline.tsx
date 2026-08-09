@@ -6,7 +6,7 @@ import { theme } from 'antd'
 import { ProgramListDto } from '@/src/services/wayd-api'
 import { WaydTimeline } from '@/src/components/common/timeline'
 import type { TimelineItem } from '@/src/components/common/timeline'
-import { getLifecyclePhaseColorFromStatus } from '@/src/utils'
+import { getLifecycleCategoryColorFromStatus } from '@/src/utils'
 import { ProgramDrawer } from '.'
 
 const ms = (d: dayjs.ConfigType) => dayjs(d).valueOf()
@@ -47,7 +47,7 @@ function mapPrograms(
       id: String(p.id),
       kind: 'range',
       label: p.name ?? '',
-      color: getLifecyclePhaseColorFromStatus(p.status, token),
+      color: getLifecycleCategoryColorFromStatus(p.status, token),
       start,
       end,
       order: idx,

@@ -6,7 +6,7 @@ import { theme } from 'antd'
 import { ProjectListDto } from '@/src/services/wayd-api'
 import { WaydTimeline } from '@/src/components/common/timeline'
 import type { TimelineItem, TimelineGroup } from '@/src/components/common/timeline'
-import { getLifecyclePhaseColorFromStatus } from '@/src/utils'
+import { getLifecycleCategoryColorFromStatus } from '@/src/utils'
 import { ProjectDrawer } from '.'
 
 const ms = (d: dayjs.ConfigType) => dayjs(d).valueOf()
@@ -50,7 +50,7 @@ function mapProjects(
       id: String(p.id),
       kind: 'range',
       label: p.name ?? '',
-      color: getLifecyclePhaseColorFromStatus(p.status, token),
+      color: getLifecycleCategoryColorFromStatus(p.status, token),
       start,
       end,
       groupId: groupByProgram ? (p.program?.name ?? 'No Program') : undefined,

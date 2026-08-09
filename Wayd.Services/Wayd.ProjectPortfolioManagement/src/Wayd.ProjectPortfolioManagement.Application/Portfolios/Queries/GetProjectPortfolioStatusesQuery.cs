@@ -16,7 +16,7 @@ public sealed class GetProjectPortfolioStatusesQueryHandler : IQueryHandler<GetP
             Name = c.GetDisplayName(),
             Description = c.GetDisplayDescription(),
             Order = c.GetDisplayOrder(),
-            LifecyclePhase = c.GetDisplayGroupName() ?? "Unknown"
+            LifecycleCategory = c.GetDisplayGroupName() ?? "Unknown"
         })];
 
         return Task.FromResult(values);

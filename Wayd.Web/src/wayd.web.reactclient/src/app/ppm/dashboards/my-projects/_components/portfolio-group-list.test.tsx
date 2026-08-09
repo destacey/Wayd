@@ -44,7 +44,7 @@ function createProject(
     id: `id-${key}`,
     key,
     name,
-    status: { name: statusName, lifecyclePhase: 'Active' } as any,
+    status: { name: statusName, lifecycleCategory: 'Active' } as any,
     portfolio: { id: portfolioId, key: 1, name: portfolioName } as any,
     projectSponsors: [],
     projectOwners: [],

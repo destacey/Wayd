@@ -23,7 +23,7 @@ function createProject(
   return {
     id: 'proj-1',
     key: 'P1',
-    status: { name: 'Active', lifecyclePhase: 'Active' } as any,
+    status: { name: 'Active', lifecycleCategory: 'Active' } as any,
     portfolio: { id: 'port-1', key: 1, name: 'Portfolio' },
     projectSponsors: [],
     projectOwners: [],

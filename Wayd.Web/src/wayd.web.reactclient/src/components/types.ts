@@ -56,7 +56,7 @@ export enum ProjectStatus {
   Cancelled = 4,
 }
 
-export enum LifecyclePhase {
+export enum LifecycleCategory {
   NotStarted = 0,
   Active = 1,
   Done = 2,

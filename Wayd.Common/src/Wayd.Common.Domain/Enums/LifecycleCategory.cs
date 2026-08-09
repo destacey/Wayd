@@ -4,10 +4,12 @@
 /// Represents the high-level position of an item in its lifecycle.
 /// This is descriptive metadata only and does not imply success, failure,
 /// or the reason the work ended.
+/// Members are ordered NotStarted -> Active -> Done; the relative order is
+/// significant and must not be changed.
 /// </summary>
-public enum LifecyclePhase
+public enum LifecycleCategory
 {
-    NotStarted,
-    Active,
-    Done
+    NotStarted = 0,
+    Active = 1,
+    Done = 2
 }

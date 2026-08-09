@@ -3,15 +3,18 @@ using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Wayd.Common.Domain.DataProtection;
 using Wayd.Infrastructure.DataProtection;
+using Wayd.Infrastructure.Tests.Infrastructure;
 
 namespace Wayd.Infrastructure.Tests.Sut.DataProtection;
 
+[Collection(SecretProtectorCollection.Name)]
 public class EncryptingJsonValueConverterTests
 {
     public EncryptingJsonValueConverterTests()
     {
         // The converter resolves the protector via the process-wide accessor.
-        // Initialize it once per test class with a fresh key.
+        // Initialize it once per test class with a fresh key. The collection above keeps this class
+        // from running alongside others that swap the same accessor mid-test.
         var type = typeof(ISecretProtector).Assembly
             .GetType("Wayd.Infrastructure.DataProtection.AesGcmSecretProtector", throwOnError: true)!;
         var key = RandomNumberGenerator.GetBytes(32);

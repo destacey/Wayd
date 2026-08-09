@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Wayd.Infrastructure.DataProtection;
 using Wayd.Infrastructure.Persistence.Extensions;
+using Wayd.Infrastructure.Tests.Infrastructure;
 
 namespace Wayd.Infrastructure.Tests.Sut.Persistence.Extensions;
 
@@ -17,12 +18,14 @@ namespace Wayd.Infrastructure.Tests.Sut.Persistence.Extensions;
 /// HasEncryptedJsonConversion must attach a ValueComparer that compares
 /// by serialized JSON so structural mutations actually persist.
 /// </summary>
+[Collection(SecretProtectorCollection.Name)]
 public sealed class PropertyBuilderExtensionsTests
 {
     public PropertyBuilderExtensionsTests()
     {
         // HasEncryptedJsonConversion's converter resolves the protector via the
-        // process-wide accessor. Initialize it once per test class with a fresh key.
+        // process-wide accessor. Initialize it once per test class with a fresh key. The collection
+        // above keeps this class from running alongside others that swap the same accessor mid-test.
         var type = typeof(ISecretProtector).Assembly
             .GetType("Wayd.Infrastructure.DataProtection.AesGcmSecretProtector", throwOnError: true)!;
         var key = RandomNumberGenerator.GetBytes(32);

@@ -64,6 +64,13 @@ public partial class MakeProjectRankRequired : Migration
                 '{{""Rank"":' + CASE WHEN b.OldRank IS NULL THEN 'null' ELSE CONVERT(varchar(32), b.OldRank) END + '}}',
                 '{{""Rank"":' + CONVERT(varchar(32), b.NewRank) + '}}',
                 '[""Rank""]',
+                -- WRONG FORMAT — left as-is on purpose; do not copy this line.
+                -- PrimaryKey must be the serialized key dictionary, '{{""Id"":""<lowercase-guid>""}}',
+                -- which is what the application writes (AuditTrail.ToAuditTrail serializes KeyValues;
+                -- the CamelCase naming policy does not apply to dictionary keys, so it stays ""Id"").
+                -- A bare GUID matches no lookup by primary key, so these rows were invisible in the
+                -- audit history. Rewritten by 20260809132517_Fix-Project-Rank-Backfill-AuditPrimaryKey;
+                -- correcting it here would change nothing, because EF never re-runs an applied migration.
                 CONVERT(varchar(450), b.[Id]),
                 '{CorrelationId}'
             FROM #ProjectRankBackfill b
@@ -123,7 +130,15 @@ public partial class MakeProjectRankRequired : Migration
                 SET p.[Rank] = NULL
                 FROM [Ppm].[Projects] p
                 INNER JOIN [Auditing].[AuditTrails] a
-                    ON a.[PrimaryKey] = CONVERT(varchar(450), p.[Id])
+                    -- Matches both shapes of PrimaryKey this correlation id can carry: the bare GUID
+                    -- originally written here, and the '{{""Id"":""<guid>""}}' form that
+                    -- 20260809132517_Fix-Project-Rank-Backfill-AuditPrimaryKey rewrites it to (which is
+                    -- what the application itself writes). Matching only the bare form would make this
+                    -- rollback a silent no-op once that fix has been applied.
+                    ON a.[PrimaryKey] IN (
+                        CONVERT(varchar(450), p.[Id]),
+                        '{{""Id"":""' + LOWER(CONVERT(varchar(36), p.[Id])) + '""}}'
+                    )
                 WHERE a.[CorrelationId] = '{CorrelationId}'
                   AND a.[SchemaName] = 'Ppm'
                   AND a.[TableName] = 'Project'

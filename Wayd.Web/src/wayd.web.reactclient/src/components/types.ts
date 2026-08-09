@@ -56,6 +56,8 @@ export enum ProjectStatus {
   Cancelled = 4,
 }
 
+// Unordered categories: the numeric values are stable identifiers.
+// Do not infer lifecycle direction by comparing them.
 export enum LifecycleCategory {
   NotStarted = 0,
   Active = 1,

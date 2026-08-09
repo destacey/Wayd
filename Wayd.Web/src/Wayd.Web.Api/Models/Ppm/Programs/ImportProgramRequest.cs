@@ -65,7 +65,7 @@ public sealed class ImportProgramRequestValidator : CustomValidator<ImportProgra
         RuleFor(p => p.Status)
             .NotEmpty()
             .Must(s => Enum.TryParse<ProgramStatus>(s.Trim(), ignoreCase: true, out _))
-                .WithMessage("Status must be one of 'Proposed', 'Active', 'Completed' or 'Cancelled'.");
+                .WithMessage("Status must be one of 'Proposed', 'Active', 'Completed' or 'Canceled'.");
 
         RuleFor(p => p)
             .Must(p => (p.Start is null && p.End is null) || (p.Start is not null && p.End is not null))

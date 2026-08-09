@@ -95,7 +95,7 @@ public sealed class ImportProjectRequestValidator : CustomValidator<ImportProjec
         RuleFor(p => p.Status)
             .NotEmpty()
             .Must(s => Enum.TryParse<ProjectStatus>(s.Trim(), ignoreCase: true, out _))
-                .WithMessage("Status must be one of 'Proposed', 'Approved', 'Active', 'Completed' or 'Cancelled'.");
+                .WithMessage("Status must be one of 'Proposed', 'Approved', 'Active', 'Completed' or 'Canceled'.");
 
         RuleFor(p => p.BusinessCase)
             .MaximumLength(4096);

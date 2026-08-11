@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Domain.Enums;
+﻿using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
@@ -36,6 +36,7 @@ public sealed class UpdateProjectPortfolioCommandValidator : AbstractValidator<U
 public sealed class UpdateProjectPortfolioCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser,
     ILogger<UpdateProjectPortfolioCommandHandler> logger)
     : ICommandHandler<UpdateProjectPortfolioCommand>
 {
@@ -43,13 +44,14 @@ public sealed class UpdateProjectPortfolioCommandHandler(
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<UpdateProjectPortfolioCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateProjectPortfolioCommand request, CancellationToken cancellationToken)
     {
         try
         {
-            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+            var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
             // A portfolio has no ancestor, so its own roles are the whole membership picture.
             var portfolio = await _projectPortfolioManagementDbContext.Portfolios

@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+﻿using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 
@@ -25,6 +25,7 @@ public sealed class ChangeProjectLifecycleCommandValidator : CustomValidator<Cha
 public sealed class ChangeProjectLifecycleCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser,
     ILogger<ChangeProjectLifecycleCommandHandler> logger)
     : ICommandHandler<ChangeProjectLifecycleCommand>
 {
@@ -32,13 +33,14 @@ public sealed class ChangeProjectLifecycleCommandHandler(
 
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<ChangeProjectLifecycleCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ChangeProjectLifecycleCommand request, CancellationToken cancellationToken)
     {
         try
         {
-            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+            var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
             var project = await _ppmDbContext.Projects
                 .AsSplitQuery()

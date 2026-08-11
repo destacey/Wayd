@@ -71,7 +71,8 @@ public sealed class CreateProjectCommandValidator : AbstractValidator<CreateProj
 public sealed class CreateProjectCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<CreateProjectCommandHandler> logger,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser)
     : ICommandHandler<CreateProjectCommand, ProjectIdAndKey>
 {
     private const string AppRequestName = nameof(CreateProjectCommand);
@@ -79,6 +80,7 @@ public sealed class CreateProjectCommandHandler(
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<CreateProjectCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
 
     public async Task<Result<ProjectIdAndKey>> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
     {
@@ -146,6 +148,7 @@ public sealed class CreateProjectCommandHandler(
                 roles,
                 [.. strategicThemes.Select(st => st.Id)],
                 _dateTimeProvider.Now,
+                _currentUser.AttributionOnlyActor(),
                 currentMaxRank
                 );
             if (createResult.IsFailure)

@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+﻿using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
 
@@ -16,19 +16,21 @@ public sealed class CancelProgramCommandValidator : AbstractValidator<CancelProg
 public sealed class CancelProgramCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser,
     ILogger<CancelProgramCommandHandler> logger) : ICommandHandler<CancelProgramCommand>
 {
     private const string AppRequestName = nameof(CancelProgramCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<CancelProgramCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(CancelProgramCommand request, CancellationToken cancellationToken)
     {
         try
         {
-            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+            var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
             var program = await _projectPortfolioManagementDbContext.Programs
                 .AsSplitQuery()

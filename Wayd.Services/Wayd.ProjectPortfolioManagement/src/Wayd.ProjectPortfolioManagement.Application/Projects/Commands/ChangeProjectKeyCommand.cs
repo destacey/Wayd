@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+﻿using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Validators;
 
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
@@ -28,6 +28,7 @@ public sealed class ChangeProjectKeyCommandValidator : AbstractValidator<ChangeP
 public sealed class ChangeProjectKeyCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser,
     ILogger<ChangeProjectKeyCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<ChangeProjectKeyCommand>
@@ -36,6 +37,7 @@ public sealed class ChangeProjectKeyCommandHandler(
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<ChangeProjectKeyCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -43,7 +45,7 @@ public sealed class ChangeProjectKeyCommandHandler(
     {
         try
         {
-            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+            var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
             var project = await _projectPortfolioManagementDbContext.Projects
                 .AsSplitQuery()

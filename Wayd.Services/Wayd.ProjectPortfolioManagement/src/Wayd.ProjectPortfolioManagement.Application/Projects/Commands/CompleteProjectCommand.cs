@@ -16,19 +16,23 @@ public sealed class CompleteProjectCommandValidator : AbstractValidator<Complete
 public sealed class CompleteProjectCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<CompleteProjectCommandHandler> logger) : ICommandHandler<CompleteProjectCommand>
 {
     private const string AppRequestName = nameof(CompleteProjectCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<CompleteProjectCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(CompleteProjectCommand request, CancellationToken cancellationToken)
     {
         try
         {
-            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+            var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
             var project = await _projectPortfolioManagementDbContext.Projects
                 .AsSplitQuery()
@@ -42,7 +46,7 @@ public sealed class CompleteProjectCommandHandler(
                 return Result.Failure("Project not found.");
             }
 
-            var completeResult = project.Complete(actor, project.AncestryRoles());
+            var completeResult = project.Complete(actor, project.AncestryRoles(), _dateTimeProvider.Now);
             if (completeResult.IsFailure)
             {
                 // Reset the entity

@@ -642,6 +642,7 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// <param name="roles">The roles associated with the project (optional).</param>
     /// <param name="strategicThemes">The strategic themes associated with the project (optional).</param>
     /// <param name="timestamp"></param>
+    /// <param name="actor">The actor to attribute the project's initial status history row to.</param>
     /// <param name="currentMaxRank">
     /// The highest existing project rank in this portfolio (supplied by the handler via a cheap scalar
     /// query so the aggregate need not load every project). The new project is ranked at the bottom:
@@ -649,7 +650,7 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// project. Ranking on create keeps every project ranked, so the board never has null neighbours.
     /// </param>
     /// <returns>A result containing the created project or an error.</returns>
-    public Result<Project> CreateProject(string name, string description, ProjectKey key, int expenditureCategory, LocalDateRange? dateRange, Guid? programId, string? businessCase, string? expectedBenefits, Dictionary<ProjectRole, HashSet<Guid>>? roles, HashSet<Guid>? strategicThemes, Instant timestamp, double? currentMaxRank = null)
+    public Result<Project> CreateProject(string name, string description, ProjectKey key, int expenditureCategory, LocalDateRange? dateRange, Guid? programId, string? businessCase, string? expectedBenefits, Dictionary<ProjectRole, HashSet<Guid>>? roles, HashSet<Guid>? strategicThemes, Instant timestamp, PpmActor actor, double? currentMaxRank = null)
     {
         if (!IsActive)
         {
@@ -677,7 +678,7 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
         var rank = currentMaxRank is null ? RankStart : currentMaxRank.Value + RankStep;
 
         // Create the project (ranked from construction)
-        var project = Project.Create(name, description, key, expenditureCategory, dateRange, Id, rank, programId, businessCase, expectedBenefits, roles, strategicThemes, timestamp);
+        var project = Project.Create(name, description, key, expenditureCategory, dateRange, Id, rank, programId, businessCase, expectedBenefits, roles, strategicThemes, timestamp, actor);
 
         // Add the project to the portfolio's project list
         _projects.Add(project);

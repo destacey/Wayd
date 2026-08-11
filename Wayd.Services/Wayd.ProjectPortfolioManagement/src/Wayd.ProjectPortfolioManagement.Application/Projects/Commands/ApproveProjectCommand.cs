@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+﻿using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 
@@ -16,19 +16,23 @@ public sealed class ApproveProjectCommandValidator : AbstractValidator<ApprovePr
 public sealed class ApproveProjectCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<ApproveProjectCommandHandler> logger) : ICommandHandler<ApproveProjectCommand>
 {
     private const string AppRequestName = nameof(ApproveProjectCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<ApproveProjectCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ApproveProjectCommand request, CancellationToken cancellationToken)
     {
         try
         {
-            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+            var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
             var project = await _projectPortfolioManagementDbContext.Projects
                 .AsSplitQuery()
@@ -42,7 +46,7 @@ public sealed class ApproveProjectCommandHandler(
                 return Result.Failure("Project not found.");
             }
 
-            var approveResult = project.Approve(actor, project.AncestryRoles());
+            var approveResult = project.Approve(actor, project.AncestryRoles(), _dateTimeProvider.Now);
             if (approveResult.IsFailure)
             {
                 // Reset the entity

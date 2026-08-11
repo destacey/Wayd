@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+﻿using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 
@@ -23,19 +23,21 @@ public sealed class ChangeProjectProgramCommandValidator : AbstractValidator<Cha
 }
 
 public sealed class ChangeProjectProgramCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
-    ICurrentPrincipal currentPrincipal, ILogger<ChangeProjectProgramCommandHandler> logger) : ICommandHandler<ChangeProjectProgramCommand>
+    ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser, ILogger<ChangeProjectProgramCommandHandler> logger) : ICommandHandler<ChangeProjectProgramCommand>
 {
     private const string AppRequestName = nameof(ChangeProjectProgramCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<ChangeProjectProgramCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ChangeProjectProgramCommand request, CancellationToken cancellationToken)
     {
         try
         {
-            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+            var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
             // The portfolio assembles the project's ancestry itself, so its own roles and its programs'
             // roles both have to be loaded alongside the projects it owns.

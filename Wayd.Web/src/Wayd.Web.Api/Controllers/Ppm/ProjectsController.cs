@@ -89,6 +89,17 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
             : NotFound();
     }
 
+    [HttpGet("{id}/status-history")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
+    [OpenApiOperation("Get the project's status change history.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<ProjectStatusHistoryDto>>> GetStatusHistory(Guid id, CancellationToken cancellationToken)
+    {
+        var history = await _dispatcher.Send(new GetProjectStatusHistoryQuery(id), cancellationToken);
+
+        return Ok(history);
+    }
+
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Projects)]
     [OpenApiOperation("Create a project.", "")]

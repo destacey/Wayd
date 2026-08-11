@@ -253,7 +253,7 @@ public class ImportStrategicInitiativesCommandHandlerTests : IDisposable
             null,
             null,
             null,
-            _dateTimeProvider.Now).Value;
+            _dateTimeProvider.Now, PpmActor.System).Value;
 
         _dbContext.AddProject(project);
 

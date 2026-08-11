@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Wayd.Common.Application.Interfaces;
@@ -17,6 +17,7 @@ public class UpdateProjectPortfolioCommandHandlerTests : IDisposable
     private readonly UpdateProjectPortfolioCommandHandler _handler;
     private readonly Mock<ILogger<UpdateProjectPortfolioCommandHandler>> _mockLogger = new();
     private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal = new();
+    private readonly Mock<ICurrentUser> _mockCurrentUser = new();
     private readonly Guid _actorEmployeeId = Guid.NewGuid();
 
     private readonly ProjectPortfolioFaker _portfolioFaker = new();
@@ -32,8 +33,12 @@ public class UpdateProjectPortfolioCommandHandlerTests : IDisposable
             .Setup(p => p.HasPermission(PpmAuthorizationExtensions.PpmAdministratorPermission, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
+        _mockCurrentUser.Setup(u => u.GetUserId()).Returns(Guid.NewGuid().ToString());
+
+
         _handler = new UpdateProjectPortfolioCommandHandler(
-            _dbContext, _mockCurrentPrincipal.Object, _mockLogger.Object);
+            _dbContext, _mockCurrentPrincipal.Object,
+            _mockCurrentUser.Object, _mockLogger.Object);
     }
 
     private ProjectPortfolio PortfolioWith(ProjectPortfolioRole? actorRole = null)

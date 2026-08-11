@@ -22,8 +22,10 @@ public class ApproveProjectCommandHandlerTests : IDisposable
     private readonly ApproveProjectCommandHandler _handler;
     private readonly Mock<ILogger<ApproveProjectCommandHandler>> _mockLogger;
     private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal;
+    private readonly Mock<ICurrentUser> _mockCurrentUser = new();
     private readonly TestingDateTimeProvider _dateTimeProvider;
     private readonly Guid _actorEmployeeId = Guid.NewGuid();
+    private readonly string _actorUserId = Guid.NewGuid().ToString();
 
     private readonly ProjectFaker _projectFaker;
 
@@ -43,7 +45,10 @@ public class ApproveProjectCommandHandlerTests : IDisposable
             .Setup(p => p.HasPermission(PpmAuthorizationExtensions.PpmAdministratorPermission, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        _handler = new ApproveProjectCommandHandler(_dbContext, _mockCurrentPrincipal.Object, _mockLogger.Object);
+        _mockCurrentUser.Setup(u => u.GetUserId()).Returns(_actorUserId);
+
+        _handler = new ApproveProjectCommandHandler(_dbContext, _mockCurrentPrincipal.Object,
+            _mockCurrentUser.Object, _dateTimeProvider, _mockLogger.Object);
 
         _projectFaker = new ProjectFaker();
     }

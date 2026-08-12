@@ -55,6 +55,41 @@ public class GetProjectStatusHistoryQueryHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_OrdersTransitionsThatShareATimestamp_ByInsertionOrder()
+    {
+        // Arrange
+        // An import walks a project through the real transitions to reach its target status, stamping
+        // every row with the same instant.
+        var projectId = Guid.NewGuid();
+        var stamp = Instant.FromUtc(2026, 2, 1, 0, 0);
+        // Ids are assigned in insertion order, as Guid.CreateVersion7 does at runtime.
+        var created = _historyFaker
+            .WithId(Guid.CreateVersion7()).WithProjectId(projectId)
+            .WithFromStatus(null).WithToStatus(ProjectStatus.Proposed)
+            .WithChangedOn(stamp).Generate();
+        var activated = _historyFaker
+            .WithId(Guid.CreateVersion7()).WithProjectId(projectId)
+            .WithFromStatus(ProjectStatus.Proposed).WithToStatus(ProjectStatus.Active)
+            .WithChangedOn(stamp).Generate();
+        var completed = _historyFaker
+            .WithId(Guid.CreateVersion7()).WithProjectId(projectId)
+            .WithFromStatus(ProjectStatus.Active).WithToStatus(ProjectStatus.Completed)
+            .WithChangedOn(stamp).Generate();
+        _dbContext.AddProjectStatusHistory([created, activated, completed]);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetProjectStatusHistoryQuery(projectId),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Select(h => h.ToStatus.Name).Should().Equal(
+            nameof(ProjectStatus.Completed),
+            nameof(ProjectStatus.Active),
+            nameof(ProjectStatus.Proposed));
+    }
+
+    [Fact]
     public async Task Handle_ExcludesOtherProjectsHistory()
     {
         // Arrange

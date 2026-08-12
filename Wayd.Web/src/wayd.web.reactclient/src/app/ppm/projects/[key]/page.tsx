@@ -12,7 +12,7 @@ import {
   useGetProjectQuery,
   useGetProjectWorkItemsQuery,
 } from '@/src/store/features/ppm/projects-api'
-import { Alert, Flex, MenuProps, Spin, Tabs } from 'antd'
+import { Alert, Flex, MenuProps, Spin, Tabs, Tooltip } from 'antd'
 import { CloseOutlined } from '@ant-design/icons'
 import { notFound, usePathname, useRouter } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
@@ -27,6 +27,7 @@ import {
   EditProjectForm,
   ProjectDetailsTab,
   ProjectHealthCheckTag,
+  ProjectStatusHistoryModal,
 } from '../_components'
 import AssignProjectLifecycleForm from '../_components/assign-project-lifecycle-form'
 import ChangeProjectLifecycleForm from '../_components/change-project-lifecycle-form'
@@ -118,6 +119,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     useState<boolean>(false)
   const [openCreateHealthCheckForm, setOpenCreateHealthCheckForm] =
     useState<boolean>(false)
+  const [openStatusHistory, setOpenStatusHistory] = useState<boolean>(false)
 
   const pathname = usePathname()
   const dispatch = useAppDispatch()
@@ -387,6 +389,12 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       onClick: openHealthReport,
     })
 
+    items.push({
+      key: 'status-history',
+      label: 'Status History',
+      onClick: () => setOpenStatusHistory(true),
+    })
+
     return items
   })()
 
@@ -466,7 +474,22 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         subtitle="Project Details"
         tags={
           <Flex gap="small" wrap>
-            <LifecycleStatusTag status={projectData.status} />
+            <Tooltip title="View status history">
+              <span
+                role="button"
+                tabIndex={0}
+                style={{ cursor: 'pointer' }}
+                onClick={() => setOpenStatusHistory(true)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setOpenStatusHistory(true)
+                  }
+                }}
+              >
+                <LifecycleStatusTag status={projectData.status} />
+              </span>
+            </Tooltip>
             <ProjectHealthCheckTag
               healthCheck={projectData.healthCheck}
               projectId={projectData.id}
@@ -586,6 +609,11 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           onFormCancel={() => onCreateHealthCheckFormClosed(false)}
         />
       )}
+      <ProjectStatusHistoryModal
+        projectId={projectData.id}
+        isOpen={openStatusHistory}
+        onClose={() => setOpenStatusHistory(false)}
+      />
     </>
   )
 }

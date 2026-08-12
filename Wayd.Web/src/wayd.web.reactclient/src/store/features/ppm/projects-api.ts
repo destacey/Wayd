@@ -16,6 +16,7 @@ import {
   ProjectTeamMemberDto,
   MyProjectsSummaryDto,
   MyProjectsTaskMetricsDto,
+  ProjectStatusHistoryDto,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 import { BaseOptionType } from 'antd/es/select'
@@ -168,10 +169,11 @@ export const projectsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => {
+      invalidatesTags: (result, error, { id, cacheKey }) => {
         return [
           { type: QueryTags.Project, id: 'LIST' },
           { type: QueryTags.Project, id: cacheKey },
+          { type: QueryTags.Project, id: `STATUS-HISTORY-${id}` },
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
         ]
@@ -188,10 +190,11 @@ export const projectsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => {
+      invalidatesTags: (result, error, { id, cacheKey }) => {
         return [
           { type: QueryTags.Project, id: 'LIST' },
           { type: QueryTags.Project, id: cacheKey },
+          { type: QueryTags.Project, id: `STATUS-HISTORY-${id}` },
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
         ]
@@ -208,10 +211,11 @@ export const projectsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => {
+      invalidatesTags: (result, error, { id, cacheKey }) => {
         return [
           { type: QueryTags.Project, id: 'LIST' },
           { type: QueryTags.Project, id: cacheKey },
+          { type: QueryTags.Project, id: `STATUS-HISTORY-${id}` },
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
         ]
@@ -228,10 +232,11 @@ export const projectsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, { cacheKey }) => {
+      invalidatesTags: (result, error, { id, cacheKey }) => {
         return [
           { type: QueryTags.Project, id: 'LIST' },
           { type: QueryTags.Project, id: cacheKey },
+          { type: QueryTags.Project, id: `STATUS-HISTORY-${id}` },
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
         ]
@@ -551,6 +556,21 @@ export const projectsApi = apiSlice.injectEndpoints({
         { type: QueryTags.Project, id: `TEAM-${idOrKey}` },
       ],
     }),
+
+    getProjectStatusHistory: builder.query<ProjectStatusHistoryDto[], string>({
+      queryFn: async (id) => {
+        try {
+          const data = await getProjectsClient().getStatusHistory(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (_result, _error, id) => [
+        { type: QueryTags.Project, id: `STATUS-HISTORY-${id}` },
+      ],
+    }),
   }),
 })
 
@@ -579,4 +599,5 @@ export const {
   useGetMyProjectsSummaryQuery,
   useGetMyProjectsTaskMetricsQuery,
   useGetProjectTeamQuery,
+  useGetProjectStatusHistoryQuery,
 } = projectsApi

@@ -4,18 +4,19 @@ using Microsoft.Extensions.Logging;
 
 namespace Wayd.Infrastructure.Persistence.Initialization;
 
-internal class DatabaseInitializer : IDatabaseInitializer
+internal class DatabaseInitializer(WaydDbContext context, IServiceProvider serviceProvider, ILogger<DatabaseInitializer> logger) : IDatabaseInitializer
 {
-    private readonly WaydDbContext _context;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<DatabaseInitializer> _logger;
+    /// <summary>
+    /// How long a single migration command may run. Data migrations that reconstruct history from the
+    /// audit trail read every row of a table that grows without bound, which comfortably outlives the
+    /// 30-second ADO.NET default. Applied only while migrations run, then restored, so no runtime query
+    /// inherits it — a slow query at runtime should still fail fast.
+    /// </summary>
+    private const int MigrationCommandTimeoutSeconds = 180;
 
-    public DatabaseInitializer(WaydDbContext context, IServiceProvider serviceProvider, ILogger<DatabaseInitializer> logger)
-    {
-        _context = context;
-        _serviceProvider = serviceProvider;
-        _logger = logger;
-    }
+    private readonly WaydDbContext _context = context;
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
+    private readonly ILogger<DatabaseInitializer> _logger = logger;
 
     public async Task InitializeDatabase(CancellationToken cancellationToken)
     {
@@ -38,7 +39,18 @@ internal class DatabaseInitializer : IDatabaseInitializer
         if (_context.Database.GetPendingMigrations().Any())
         {
             _logger.LogInformation("Applying Root Migrations.");
-            await _context.Database.MigrateAsync(cancellationToken);
+
+            var originalTimeout = _context.Database.GetCommandTimeout();
+            _context.Database.SetCommandTimeout(MigrationCommandTimeoutSeconds);
+
+            try
+            {
+                await _context.Database.MigrateAsync(cancellationToken);
+            }
+            finally
+            {
+                _context.Database.SetCommandTimeout(originalTimeout);
+            }
         }
     }
 }

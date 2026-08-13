@@ -32465,6 +32465,7 @@
           "source",
           "id",
           "projectId",
+          "changedBySystem",
           "changedOn"
         ],
         "properties": {
@@ -32498,6 +32499,9 @@
                 "$ref": "#/components/schemas/NavigationDto"
               }
             ]
+          },
+          "changedBySystem": {
+            "type": "boolean"
           },
           "changedOn": {
             "type": "string",

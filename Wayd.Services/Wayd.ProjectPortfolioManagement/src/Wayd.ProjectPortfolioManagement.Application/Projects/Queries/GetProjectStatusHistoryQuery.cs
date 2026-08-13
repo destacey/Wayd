@@ -12,13 +12,19 @@ public sealed class GetProjectStatusHistoryQueryHandler(IProjectPortfolioManagem
 
     public async Task<IReadOnlyList<ProjectStatusHistoryDto>> Handle(GetProjectStatusHistoryQuery request, CancellationToken cancellationToken)
     {
-        // Id breaks ties on ChangedOn. Several transitions can share one timestamp — an import walks a
-        // project through the real transitions to reach its target status, stamping each with the same
-        // instant — and ordering by the timestamp alone would leave those rows in an undefined order.
-        // Id is a v7 GUID, so it sorts in insertion order.
+        // Several transitions can share one timestamp — an import walks a project through the real
+        // transitions to reach its target status, stamping each with the same instant — so ChangedOn
+        // alone leaves those rows in an undefined order.
+        //
+        // The origin row (no FromStatus) is pinned last in this descending order, since a project can
+        // only enter its initial state once. Id then separates the rest: it is a v7 GUID for rows the
+        // application wrote, so it sorts in insertion order. Seeded rows carry no ordering in their key,
+        // but they are reconstructed one-per-audit-entry and those timestamps are distinct, so the
+        // tie-break is not load-bearing for them.
         return await _ppmDbContext.ProjectStatusHistory
             .Where(h => h.ProjectId == request.ProjectId)
             .OrderByDescending(h => h.ChangedOn)
+            .ThenBy(h => h.FromStatus == null)
             .ThenByDescending(h => h.Id)
             .ProjectToType<ProjectStatusHistoryDto>()
             .ToListAsync(cancellationToken);

@@ -33957,6 +33957,7 @@ export interface ProjectStatusHistoryDto {
     fromStatus?: LifecycleNavigationDto | undefined;
     toStatus: LifecycleNavigationDto;
     changedBy?: NavigationDto | undefined;
+    changedBySystem: boolean;
     changedOn: Date;
     source: SimpleNavigationDto;
     reason?: string | undefined;

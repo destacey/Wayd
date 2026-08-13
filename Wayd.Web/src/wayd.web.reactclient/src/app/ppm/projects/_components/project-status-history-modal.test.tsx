@@ -71,6 +71,7 @@ const entry = (overrides: Record<string, unknown> = {}) => ({
   },
   toStatus: { id: 2, name: 'Active', lifecycleCategory: 'Active' },
   changedBy: { id: 'emp-1', key: 1, name: 'Dakota Reyes' },
+  changedBySystem: false,
   changedOn: new Date('2026-03-01T14:30:00Z'),
   source: { id: 1, name: 'Recorded' },
   reason: undefined,
@@ -185,9 +186,9 @@ describe('ProjectStatusHistoryModal', () => {
     expect(screen.queryByText('→')).not.toBeInTheDocument()
   })
 
-  it('attributes a recorded change with no employee to the system', () => {
+  it('attributes a change made by the system to the system', () => {
     mockUseQuery.mockReturnValue({
-      data: [entry({ changedBy: undefined })],
+      data: [entry({ changedBy: undefined, changedBySystem: true })],
       isLoading: false,
     })
 
@@ -200,6 +201,24 @@ describe('ProjectStatusHistoryModal', () => {
     )
 
     expect(screen.getByText(/System/)).toBeInTheDocument()
+  })
+
+  it('does not claim the system made a change when a real user simply had no linked employee', () => {
+    mockUseQuery.mockReturnValue({
+      data: [entry({ changedBy: undefined, changedBySystem: false })],
+      isLoading: false,
+    })
+
+    render(
+      <ProjectStatusHistoryModal
+        projectId="project-1"
+        isOpen={true}
+        onClose={jest.fn()}
+      />,
+    )
+
+    expect(screen.getByText(/Unknown/)).toBeInTheDocument()
+    expect(screen.queryByText(/System/)).not.toBeInTheDocument()
   })
 
   it('attributes a reconstructed row with no employee to an unknown actor', () => {

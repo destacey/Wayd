@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -145,6 +145,9 @@ public partial class SeedProjectStatusHistory : Migration
                 INSERT INTO [Ppm].[ProjectStatusHistory]
                     ([Id], [ProjectId], [FromStatus], [ToStatus], [ChangedByUserId], [ChangedByEmployeeId], [ChangedOn], [Source], [Reason])
                 SELECT
+                    -- NEWID() is safe here, unlike the reconstruction above: there is no originating
+                    -- trail row to borrow an Id from, and a synthesized project gets exactly one row,
+                    -- so it can never tie with a sibling on ChangedOn.
                     NEWID(),
                     p.[Id],
                     NULL,

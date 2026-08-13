@@ -62436,6 +62436,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("changedBy")]
         public NavigationDto? ChangedBy { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("changedBySystem")]
+        public bool ChangedBySystem { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("changedOn")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset ChangedOn { get; set; } = default!;

@@ -18,7 +18,9 @@ export interface ProjectStatusHistoryModalProps {
 
 const changedByLabel = (entry: ProjectStatusHistoryDto) => {
   if (entry.changedBy) return entry.changedBy.name
-  return entry.source.name === 'Recorded' ? 'System' : 'Unknown'
+  // Only the recorded user account can say the system made a change. A signed-in user with no
+  // employee link also leaves changedBy empty, and must not be reported as the system.
+  return entry.changedBySystem ? 'System' : 'Unknown'
 }
 
 const ProjectStatusHistoryModal = ({

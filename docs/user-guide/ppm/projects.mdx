@@ -54,6 +54,23 @@ stateDiagram-v2
 - The project key can be changed (cascades to all [task](#project-tasks) keys)
 - A project is ranked within its portfolio from creation; rank is changed from the portfolio [Ranking tab](./portfolios-programs.mdx#portfolio-project-ranking)
 
+## Project Status History
+
+Every status change is recorded, so a project's route through the lifecycle stays visible after the fact — when it was approved, how long it sat in Approved before activating, who moved it.
+
+Open the history from the project detail page, either by clicking the **status tag** in the page header or by choosing **Status History** from the Actions menu. Both open the same timeline, newest change first. Each entry shows:
+
+- The statuses moved **from** and **to** (the first entry has no "from" — it records the project entering its initial state)
+- **When** the change happened
+- **Who** made it
+
+Viewing history needs only view access to the project — you do not need to lead it.
+
+Two things worth knowing about older projects:
+
+- History for projects that predate this feature was reconstructed from the audit trail. It is accurate as to what changed and when, but a change made by someone whose account is no longer linked to an employee shows as **Unknown**.
+- A project with no recorded status changes at all gets a single entry marking its current status, stamped at its creation date.
+
 ## Project Detail Page
 
 The project detail page adapts based on the project's status:
@@ -111,12 +128,13 @@ Typical actions include:
 - Status transitions such as **Approve**, **Activate**, **Complete**, and **Cancel**
 - **Create Health Check**
 - **Health Report**
+- **Status History**
 
 ### Who can perform these actions
 
-Every action above except **Delete** and **Health Report** requires **both** the `Permissions.Projects.Update` permission **and** delivery leadership on the project — you must be an Owner or Manager of the project, its program, or its portfolio. Sponsors and Members are not sufficient.
+Every action above except **Delete**, **Health Report**, and **Status History** requires **both** the `Permissions.Projects.Update` permission **and** delivery leadership on the project — you must be an Owner or Manager of the project, its program, or its portfolio. Sponsors and Members are not sufficient.
 
-**Delete** requires `Permissions.Projects.Delete`. **Health Report** requires only view access.
+**Delete** requires `Permissions.Projects.Delete`. **Health Report** and **Status History** require only view access.
 
 If an action is missing from the menu, see [why an action might be unavailable](../settings/permissions.mdx#why-an-action-might-be-unavailable).
 

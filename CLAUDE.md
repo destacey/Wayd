@@ -150,7 +150,7 @@ Most of the app authorizes on the permission claim alone — `[MustHavePermissio
 When writing or editing a PPM handler that mutates one of those aggregates:
 
 1. Mark the command `IRequireLinkedEmployee`.
-2. Inject `ICurrentPrincipal`; call `ResolvePpmActor(cancellationToken)`.
+2. Inject `ICurrentPrincipal` and `ICurrentUser`; call `ResolvePpmActor(currentUser, cancellationToken)`. Both are needed: the actor carries the user id alongside the employee id, because records that freeze attribution (project status history) need the account as well as the employee.
 3. **Load ancestor roles in the query** — `.Include(p => p.Portfolio).ThenInclude(p => p!.Roles)`, plus `.Include(p => p.Program).ThenInclude(p => p!.Roles)` for projects.
 4. Pass `actor` and `project.AncestryRoles()` into the aggregate method.
 

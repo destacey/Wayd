@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Domain.Enums;
+﻿using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
@@ -41,6 +41,7 @@ public sealed class UpdateProgramCommandValidator : AbstractValidator<UpdateProg
 public sealed class UpdateProgramCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser,
     ILogger<UpdateProgramCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UpdateProgramCommand>
@@ -49,6 +50,7 @@ public sealed class UpdateProgramCommandHandler(
 
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<UpdateProgramCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -56,7 +58,7 @@ public sealed class UpdateProgramCommandHandler(
     {
         try
         {
-            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+            var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
             // Portfolio roles are loaded because delivery leadership inherits downward — an Owner/Manager
             // on the parent portfolio may manage this program even without a role on the program itself.

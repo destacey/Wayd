@@ -1,3 +1,5 @@
+using Wayd.Common.Domain.Identity;
+
 namespace Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 /// <summary>
@@ -13,12 +15,24 @@ namespace Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 /// </summary>
 /// <param name="EmployeeId">The acting employee. Every managed action requires a linked employee.</param>
 /// <param name="IsPpmAdministrator">True when the actor holds the domain-wide PPM administrator grant.</param>
-public sealed record PpmActor(Guid EmployeeId, bool IsPpmAdministrator)
+/// <param name="UserId">
+/// The acting user account. Carried alongside <paramref name="EmployeeId"/> because the two are
+/// separately mutable: a user can be unlinked from or relinked to an employee after the fact, so an
+/// action attributed only by employee cannot be traced back to the account that performed it. Records
+/// that freeze attribution at write time (such as project status history) store both.
+/// </param>
+public sealed record PpmActor(Guid EmployeeId, bool IsPpmAdministrator, string UserId)
 {
     /// <summary>
     /// A system actor — background jobs, importers, and replication paths that run without a
     /// signed-in user. Bypasses membership for the same reason the administrator grant does, but is
     /// deliberately a distinct construction so an accidental default can never look like a real user.
+    /// Attributed to <see cref="SystemUser.Id"/> and to no employee.
     /// </summary>
-    public static PpmActor System { get; } = new(Guid.Empty, IsPpmAdministrator: true);
+    public static PpmActor System { get; } = new(Guid.Empty, IsPpmAdministrator: true, SystemUser.Id);
+
+    /// <summary>
+    /// The acting employee, or null when this is the <see cref="System"/> actor, which has no employee.
+    /// </summary>
+    public Guid? EmployeeIdOrNull => EmployeeId == Guid.Empty ? null : EmployeeId;
 }

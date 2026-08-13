@@ -118,7 +118,7 @@ Most of the application authorizes on the permission claim alone: a `[MustHavePe
 **PPM is the exception.** Changing a project, program, or portfolio additionally requires that the caller *leads* the record — Owner or Manager on it or on an ancestor. That question can only be answered against the record itself, so it is enforced **in the domain**, not at the controller:
 
 - The command record implements `IRequireLinkedEmployee` — a managed PPM action is always attributable to an employee.
-- The handler resolves a `PpmActor` from `ICurrentPrincipal` (via `ResolvePpmActor`), which pairs the employee id with whether they hold the domain-wide administrator grant.
+- The handler resolves a `PpmActor` via `ResolvePpmActor(ICurrentUser, CancellationToken)` on `ICurrentPrincipal`, pairing the employee id with whether they hold the domain-wide administrator grant, plus the acting user id. It takes `ICurrentUser` alongside the principal rather than reading the user id from it, because the two interfaces are a deliberate identity/authorization split — `ICurrentPrincipal` answers only what the caller may do. The user id is carried because records that freeze attribution at write time (such as project status history) need both: the user-to-employee link is mutable, so an action attributed only by employee cannot later be traced to the account that performed it.
 - The handler's query **must load the ancestor roles** — `Portfolio.Roles`, and `Program.Roles` when assigned — and pass them in as `ProjectAncestryRoles`.
 - The aggregate method checks `CanManageProject` / `CanManageProgram` / `CanManagePortfolio` before any state change.
 

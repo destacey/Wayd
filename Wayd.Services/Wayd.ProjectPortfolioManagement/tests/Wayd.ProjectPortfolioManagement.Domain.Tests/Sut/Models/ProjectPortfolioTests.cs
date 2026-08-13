@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NodaTime.Extensions;
 using NodaTime.Testing;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
@@ -337,7 +337,7 @@ public class ProjectPortfolioTests
         // Arrange
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
         var project = _projectFaker.AsActive(_dateTimeProvider, portfolio.Id);
-        portfolio.CreateProject(project.Name, project.Description, project.Key, 1, null, null, null, null, null, null, _dateTimeProvider.Now);
+        portfolio.CreateProject(project.Name, project.Description, project.Key, 1, null, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor());
 
         var endDate = _dateTimeProvider.Today.PlusDays(10);
 
@@ -357,14 +357,14 @@ public class ProjectPortfolioTests
 
         var fakeProject = _projectFaker.AsProposed(_dateTimeProvider, portfolio.Id);
         var projectDateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3));
-        var createProjectReult = portfolio.CreateProject(fakeProject.Name, fakeProject.Description, fakeProject.Key, 1, projectDateRange, null, null, null, null, null, _dateTimeProvider.Now);
+        var createProjectReult = portfolio.CreateProject(fakeProject.Name, fakeProject.Description, fakeProject.Key, 1, projectDateRange, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor());
         var project = createProjectReult.Value;
 
         var endDate = _dateTimeProvider.Today.PlusDays(10);
 
-        var activateProjectResult = project.Activate(AnAuthorizedActor(), NoProjectAncestry());
+        var activateProjectResult = project.Activate(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
         activateProjectResult.IsSuccess.Should().BeTrue();
-        var completeProjectResult = project.Complete(AnAuthorizedActor(), NoProjectAncestry());
+        var completeProjectResult = project.Complete(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
         completeProjectResult.IsSuccess.Should().BeTrue();
 
         // Act
@@ -584,7 +584,7 @@ public class ProjectPortfolioTests
         program.Activate(AnAuthorizedActor(), NoProgramAncestry()).IsSuccess.Should().BeTrue();
         var seed = _projectFaker.AsProposed(_dateTimeProvider, portfolio.Id);
         var project = portfolio.CreateProject(
-            seed.Name, seed.Description, seed.Key, 1, null, null, null, null, null, null, _dateTimeProvider.Now).Value;
+            seed.Name, seed.Description, seed.Key, 1, null, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor()).Value;
 
         // Act
         var result = portfolio.ChangeProjectProgram(AnUnauthorizedActor(), project.Id, program.Id);
@@ -612,7 +612,7 @@ public class ProjectPortfolioTests
         program.Activate(AnAuthorizedActor(), NoProgramAncestry()).IsSuccess.Should().BeTrue();
         var seed = _projectFaker.AsProposed(_dateTimeProvider, portfolio.Id);
         var project = portfolio.CreateProject(
-            seed.Name, seed.Description, seed.Key, 1, null, null, null, null, null, null, _dateTimeProvider.Now).Value;
+            seed.Name, seed.Description, seed.Key, 1, null, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor()).Value;
 
         // Act
         var result = portfolio.ChangeProjectProgram(employeeId.AsActor(), project.Id, program.Id);
@@ -646,7 +646,7 @@ public class ProjectPortfolioTests
             null,
             new Dictionary<ProjectRole, HashSet<Guid>> { [ProjectRole.Owner] = [employeeId] },
             null,
-            _dateTimeProvider.Now).Value;
+            _dateTimeProvider.Now, AnAuthorizedActor()).Value;
 
         // Act
         var result = portfolio.ChangeProjectProgram(employeeId.AsActor(), project.Id, program.Id);
@@ -668,7 +668,7 @@ public class ProjectPortfolioTests
         program.Activate(AnAuthorizedActor(), NoProgramAncestry()).IsSuccess.Should().BeTrue();
         var seed = _projectFaker.AsProposed(_dateTimeProvider, portfolio.Id);
         var project = portfolio.CreateProject(
-            seed.Name, seed.Description, seed.Key, 1, null, null, null, null, null, null, _dateTimeProvider.Now).Value;
+            seed.Name, seed.Description, seed.Key, 1, null, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor()).Value;
 
         // Act
         var result = portfolio.ChangeProjectProgram(
@@ -787,7 +787,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider).AddPrograms(1, _dateTimeProvider);
         var program = portfolio.Programs.First();
 
-        var projectCreate = portfolio.CreateProject("Test Project", "Description", new ProjectKey("TEST"), 1, null, program.Id, null, null, null, null, _dateTimeProvider.Now);
+        var projectCreate = portfolio.CreateProject("Test Project", "Description", new ProjectKey("TEST"), 1, null, program.Id, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor());
         projectCreate.IsSuccess.Should().BeTrue();
 
         // Act
@@ -824,7 +824,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
 
         // Act
-        var result = portfolio.CreateProject("Test Project", "Test Description", new ProjectKey("TEST"), 1, null, null, null, null, null, null, _dateTimeProvider.Now);
+        var result = portfolio.CreateProject("Test Project", "Test Description", new ProjectKey("TEST"), 1, null, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor());
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -839,7 +839,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
 
         // Act — no current max rank supplied (first project).
-        var result = portfolio.CreateProject("Test Project", "Test Description", new ProjectKey("TEST"), 1, null, null, null, null, null, null, _dateTimeProvider.Now);
+        var result = portfolio.CreateProject("Test Project", "Test Description", new ProjectKey("TEST"), 1, null, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor());
 
         // Assert — first project seeds at the base rank so the board is never all-null.
         result.IsSuccess.Should().BeTrue();
@@ -853,7 +853,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
 
         // Act — a current max rank of 3000 is supplied (two prior projects); new one goes below.
-        var result = portfolio.CreateProject("Test Project", "Test Description", new ProjectKey("TEST"), 1, null, null, null, null, null, null, _dateTimeProvider.Now, currentMaxRank: 3000d);
+        var result = portfolio.CreateProject("Test Project", "Test Description", new ProjectKey("TEST"), 1, null, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor(), currentMaxRank: 3000d);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -868,7 +868,7 @@ public class ProjectPortfolioTests
         var program = _programFaker.Generate();
 
         // Act
-        var result = portfolio.CreateProject("Test Project", "Test Description", new ProjectKey("TEST"), 1, null, program.Id, null, null, null, null, _dateTimeProvider.Now);
+        var result = portfolio.CreateProject("Test Project", "Test Description", new ProjectKey("TEST"), 1, null, program.Id, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor());
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -887,7 +887,7 @@ public class ProjectPortfolioTests
         var program = createProgramResult.Value;
 
         // Act
-        var result = portfolio.CreateProject("Test Project", "Test Description", new ProjectKey("TEST"), 1, null, program.Id, null, null, null, null, _dateTimeProvider.Now);
+        var result = portfolio.CreateProject("Test Project", "Test Description", new ProjectKey("TEST"), 1, null, program.Id, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor());
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -903,7 +903,7 @@ public class ProjectPortfolioTests
         var program1 = portfolio.Programs.First();
         var program2 = portfolio.Programs.Last();
 
-        var project = portfolio.CreateProject("Test Project", "Description", new ProjectKey("TEST"), 1, null, program1.Id, null, null, null, null, _dateTimeProvider.Now);
+        var project = portfolio.CreateProject("Test Project", "Description", new ProjectKey("TEST"), 1, null, program1.Id, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor());
         project.IsSuccess.Should().BeTrue();
 
         // Act
@@ -924,7 +924,7 @@ public class ProjectPortfolioTests
 
         var program = portfolio.Programs.First();
 
-        var project = portfolio.CreateProject("Test Project", "Description", new ProjectKey("TEST"), 1, null, program.Id, null, null, null, null, _dateTimeProvider.Now);
+        var project = portfolio.CreateProject("Test Project", "Description", new ProjectKey("TEST"), 1, null, program.Id, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor());
         project.IsSuccess.Should().BeTrue();
 
         // Act
@@ -944,7 +944,7 @@ public class ProjectPortfolioTests
 
         var program = portfolio.Programs.First();
 
-        var project = portfolio.CreateProject("Test Project", "Description", new ProjectKey("TEST"), 1, null, program.Id, null, null, null, null, _dateTimeProvider.Now);
+        var project = portfolio.CreateProject("Test Project", "Description", new ProjectKey("TEST"), 1, null, program.Id, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor());
         project.IsSuccess.Should().BeTrue();
 
         // Act
@@ -965,7 +965,7 @@ public class ProjectPortfolioTests
 
         var program2 = _programFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
 
-        var projectResult = portfolio1.CreateProject("Test Project", "Description", new ProjectKey("TEST"), 1, null, program1.Id, null, null, null, null, _dateTimeProvider.Now);
+        var projectResult = portfolio1.CreateProject("Test Project", "Description", new ProjectKey("TEST"), 1, null, program1.Id, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor());
         projectResult.IsSuccess.Should().BeTrue();
 
         // Act
@@ -981,7 +981,7 @@ public class ProjectPortfolioTests
     {
         // Arrange
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
-        var project = portfolio.CreateProject("Test Project", "Description", new ProjectKey("TEST"), 1, null, null, null, null, null, null, _dateTimeProvider.Now).Value;
+        var project = portfolio.CreateProject("Test Project", "Description", new ProjectKey("TEST"), 1, null, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor()).Value;
 
         // Act
         var result = portfolio.ChangeProjectProgram(AnAuthorizedActor(), project.Id, null);

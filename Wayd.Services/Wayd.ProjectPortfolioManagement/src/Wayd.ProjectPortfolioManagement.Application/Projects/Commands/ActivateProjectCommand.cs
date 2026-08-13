@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+﻿using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 
@@ -16,19 +16,23 @@ public sealed class ActivateProjectCommandValidator : AbstractValidator<Activate
 public sealed class ActivateProjectCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider,
     ILogger<ActivateProjectCommandHandler> logger) : ICommandHandler<ActivateProjectCommand>
 {
     private const string AppRequestName = nameof(ActivateProjectCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<ActivateProjectCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ActivateProjectCommand request, CancellationToken cancellationToken)
     {
         try
         {
-            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+            var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
             var project = await _projectPortfolioManagementDbContext.Projects
                 .AsSplitQuery()
@@ -42,7 +46,7 @@ public sealed class ActivateProjectCommandHandler(
                 return Result.Failure("Project not found.");
             }
 
-            var activateResult = project.Activate(actor, project.AncestryRoles());
+            var activateResult = project.Activate(actor, project.AncestryRoles(), _dateTimeProvider.Now);
             if (activateResult.IsFailure)
             {
                 // Reset the entity

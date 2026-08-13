@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
@@ -58,7 +58,7 @@ public class ImportProjectTasksCommandHandlerTests : IDisposable
             null,
             null,
             null,
-            _dateTimeProvider.Now).Value;
+            _dateTimeProvider.Now, PpmActor.System).Value;
 
         var lifecycle = new ProjectLifecycleFaker().WithName("Standard").AsActiveWithPhases((PhaseName, "Delivery"), ("Close", "Closure"));
         _project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);

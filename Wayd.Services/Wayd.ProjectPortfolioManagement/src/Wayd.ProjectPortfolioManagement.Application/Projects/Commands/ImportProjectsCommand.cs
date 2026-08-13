@@ -128,6 +128,7 @@ public sealed class ImportProjectsCommandHandler(
                     BuildRoles(row, employeeIdsByNumber),
                     themeIds,
                     timestamp,
+                    PpmActor.System,
                     currentMaxRank);
                 if (createResult.IsFailure)
                     return Fail($"Could not create project '{row.Key.Value}' in portfolio '{row.PortfolioName}': {createResult.Error}");
@@ -147,7 +148,7 @@ public sealed class ImportProjectsCommandHandler(
                         return Fail($"Could not assign lifecycle '{row.ProjectLifecycleName}' to project '{row.Key.Value}': {assignResult.Error}");
                 }
 
-                var transition = ApplyStatus(project, row.Status);
+                var transition = ApplyStatus(project, row.Status, timestamp);
                 if (transition.IsFailure)
                     return Fail($"Could not set project '{row.Key.Value}' to {row.Status}: {transition.Error}");
             }
@@ -176,7 +177,7 @@ public sealed class ImportProjectsCommandHandler(
     /// gating cannot apply here in any case — the project is created by this same batch, so nobody holds
     /// a role on it yet.
     /// </summary>
-    private static Result ApplyStatus(Project project, ProjectStatus status)
+    private static Result ApplyStatus(Project project, ProjectStatus status, Instant timestamp)
     {
         var actor = PpmActor.System;
         var ancestry = ProjectAncestryRoles.None;
@@ -187,17 +188,17 @@ public sealed class ImportProjectsCommandHandler(
                 return Result.Success();
 
             case ProjectStatus.Canceled:
-                return project.Cancel(actor, ancestry);
+                return project.Cancel(actor, ancestry, timestamp);
 
             case ProjectStatus.Approved:
-                return project.Approve(actor, ancestry);
+                return project.Approve(actor, ancestry, timestamp);
 
             case ProjectStatus.Active:
-                return project.Activate(actor, ancestry);
+                return project.Activate(actor, ancestry, timestamp);
 
             case ProjectStatus.Completed:
-                var activate = project.Activate(actor, ancestry);
-                return activate.IsFailure ? activate : project.Complete(actor, ancestry);
+                var activate = project.Activate(actor, ancestry, timestamp);
+                return activate.IsFailure ? activate : project.Complete(actor, ancestry, timestamp);
 
             default:
                 return Result.Failure($"Unsupported project status '{status}'.");

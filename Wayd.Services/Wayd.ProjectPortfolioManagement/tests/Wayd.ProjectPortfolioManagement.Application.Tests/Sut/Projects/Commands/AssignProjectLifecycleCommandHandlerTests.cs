@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Interfaces;
 using Wayd.ProjectPortfolioManagement.Application.Common;
@@ -20,6 +20,7 @@ public class AssignProjectLifecycleCommandHandlerTests : IDisposable
     private readonly AssignProjectLifecycleCommandHandler _handler;
     private readonly Mock<ILogger<AssignProjectLifecycleCommandHandler>> _mockLogger;
     private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal;
+    private readonly Mock<ICurrentUser> _mockCurrentUser = new();
     private readonly TestingDateTimeProvider _dateTimeProvider;
 
     private readonly ProjectFaker _projectFaker;
@@ -40,7 +41,11 @@ public class AssignProjectLifecycleCommandHandlerTests : IDisposable
             .Setup(p => p.HasPermission(PpmAuthorizationExtensions.PpmAdministratorPermission, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        _handler = new AssignProjectLifecycleCommandHandler(_dbContext, _mockCurrentPrincipal.Object, _mockLogger.Object);
+        _mockCurrentUser.Setup(u => u.GetUserId()).Returns(Guid.NewGuid().ToString());
+
+
+        _handler = new AssignProjectLifecycleCommandHandler(_dbContext, _mockCurrentPrincipal.Object,
+            _mockCurrentUser.Object, _mockLogger.Object);
 
         _projectFaker = new ProjectFaker();
         _lifecycleFaker = new ProjectLifecycleFaker();

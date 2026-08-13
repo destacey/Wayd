@@ -1,4 +1,4 @@
-using Wayd.Common.Application.Models;
+﻿using Wayd.Common.Application.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
@@ -55,6 +55,7 @@ public sealed class UpdateProjectCommandValidator : AbstractValidator<UpdateProj
 public sealed class UpdateProjectCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser,
     ILogger<UpdateProjectCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UpdateProjectCommand>
@@ -63,6 +64,7 @@ public sealed class UpdateProjectCommandHandler(
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<UpdateProjectCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -70,7 +72,7 @@ public sealed class UpdateProjectCommandHandler(
     {
         try
         {
-            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+            var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
             // Portfolio and program roles are loaded because delivery leadership inherits downward — an
             // Owner/Manager on either may manage this project even without a role on the project itself.

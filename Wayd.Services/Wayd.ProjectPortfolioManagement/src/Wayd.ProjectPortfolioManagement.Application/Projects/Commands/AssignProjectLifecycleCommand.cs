@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+﻿using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 
@@ -19,6 +19,7 @@ public sealed class AssignProjectLifecycleCommandValidator : CustomValidator<Ass
 public sealed class AssignProjectLifecycleCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser,
     ILogger<AssignProjectLifecycleCommandHandler> logger)
     : ICommandHandler<AssignProjectLifecycleCommand>
 {
@@ -26,13 +27,14 @@ public sealed class AssignProjectLifecycleCommandHandler(
 
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<AssignProjectLifecycleCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(AssignProjectLifecycleCommand request, CancellationToken cancellationToken)
     {
         try
         {
-            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+            var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
             var project = await _ppmDbContext.Projects
                 .AsSplitQuery()

@@ -57,7 +57,7 @@ public class ProjectTests
         var expenditureCategoryId = 1;
 
         // Act
-        var project = Project.Create(name, description, key, expenditureCategoryId, null, portfolioId, 1000d, null, null, null, null, null, _dateTimeProvider.Now);
+        var project = Project.Create(name, description, key, expenditureCategoryId, null, portfolioId, 1000d, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor());
 
         // Assert
         project.Should().NotBeNull();
@@ -361,7 +361,7 @@ public class ProjectTests
         var project = _projectFaker.WithDateRange(dateRange).Generate();
 
         // Act
-        var result = project.Activate(AnAuthorizedActor(), NoProjectAncestry());
+        var result = project.Activate(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -377,7 +377,7 @@ public class ProjectTests
         var project = _projectFaker.AsApproved(_dateTimeProvider, Guid.NewGuid());
 
         // Act
-        var result = project.Activate(AnAuthorizedActor(), NoProjectAncestry());
+        var result = project.Activate(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -391,7 +391,7 @@ public class ProjectTests
         var project = _projectFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
 
         // Act
-        var result = project.Activate(AnAuthorizedActor(), NoProjectAncestry());
+        var result = project.Activate(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -407,7 +407,7 @@ public class ProjectTests
         project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
 
         // Act
-        var result = project.Approve(AnAuthorizedActor(), NoProjectAncestry());
+        var result = project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -421,7 +421,7 @@ public class ProjectTests
         var project = _projectFaker.Generate();
 
         // Act
-        var result = project.Approve(AnAuthorizedActor(), NoProjectAncestry());
+        var result = project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -435,7 +435,7 @@ public class ProjectTests
         var project = _projectFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
 
         // Act
-        var result = project.Approve(AnAuthorizedActor(), NoProjectAncestry());
+        var result = project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -449,7 +449,7 @@ public class ProjectTests
         var project = _projectFaker.AsApproved(_dateTimeProvider, Guid.NewGuid());
 
         // Act
-        var result = project.Cancel(AnAuthorizedActor(), NoProjectAncestry());
+        var result = project.Cancel(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -463,7 +463,7 @@ public class ProjectTests
         var project = _projectFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
 
         // Act
-        var result = project.Complete(AnAuthorizedActor(), NoProjectAncestry());
+        var result = project.Complete(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -478,7 +478,7 @@ public class ProjectTests
         var endDate = _dateTimeProvider.Today.PlusDays(10);
 
         // Act
-        var result = project.Complete(AnAuthorizedActor(), NoProjectAncestry());
+        var result = project.Complete(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -492,7 +492,7 @@ public class ProjectTests
         var project = _projectFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
 
         // Act
-        var result = project.Cancel(AnAuthorizedActor(), NoProjectAncestry());
+        var result = project.Cancel(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -507,7 +507,7 @@ public class ProjectTests
         var endDate = _dateTimeProvider.Today.PlusDays(10);
 
         // Act
-        var result = project.Cancel(AnAuthorizedActor(), NoProjectAncestry());
+        var result = project.Cancel(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -515,6 +515,197 @@ public class ProjectTests
     }
 
     #endregion Lifecycle Tests
+
+    #region Status History Tests
+
+    [Fact]
+    public void Create_ShouldRecordInitialStatusHistoryRow()
+    {
+        // Arrange
+        var actor = Guid.NewGuid().AsActorForUser("user-1");
+
+        // Act
+        var project = Project.Create("Apollo", "Apollo description", new ProjectKey("APOLLO"), 1, null, Guid.NewGuid(), 1000d, null, null, null, null, null, _dateTimeProvider.Now, actor);
+
+        // Assert
+        var entry = project.StatusHistory.Should().ContainSingle().Subject;
+        entry.FromStatus.Should().BeNull();
+        entry.ToStatus.Should().Be(ProjectStatus.Proposed);
+        entry.ChangedByUserId.Should().Be("user-1");
+        entry.ChangedByEmployeeId.Should().Be(actor.EmployeeId);
+        entry.ChangedOn.Should().Be(_dateTimeProvider.Now);
+        entry.Source.Should().Be(ProjectStatusHistorySource.Recorded);
+    }
+
+    [Fact]
+    public void Approve_ShouldRecordStatusHistoryRow()
+    {
+        // Arrange
+        var project = _projectFaker.Generate();
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase"));
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
+        var actor = Guid.NewGuid().AsPpmAdministrator();
+
+        // Act
+        var result = project.Approve(actor, NoProjectAncestry(), _dateTimeProvider.Now, "Funding secured");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var entry = project.StatusHistory.Should().ContainSingle().Subject;
+        entry.FromStatus.Should().Be(ProjectStatus.Proposed);
+        entry.ToStatus.Should().Be(ProjectStatus.Approved);
+        entry.ChangedByUserId.Should().Be(actor.UserId);
+        entry.ChangedByEmployeeId.Should().Be(actor.EmployeeId);
+        entry.Reason.Should().Be("Funding secured");
+        entry.Source.Should().Be(ProjectStatusHistorySource.Recorded);
+    }
+
+    [Fact]
+    public void Activate_ShouldRecordStatusHistoryRow()
+    {
+        // Arrange
+        var project = _projectFaker.AsApproved(_dateTimeProvider, Guid.NewGuid());
+
+        // Act
+        var result = project.Activate(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var entry = project.StatusHistory.Should().ContainSingle().Subject;
+        entry.FromStatus.Should().Be(ProjectStatus.Approved);
+        entry.ToStatus.Should().Be(ProjectStatus.Active);
+        entry.Reason.Should().BeNull();
+    }
+
+    [Fact]
+    public void Complete_ShouldRecordStatusHistoryRow()
+    {
+        // Arrange
+        var project = _projectFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
+
+        // Act
+        var result = project.Complete(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var entry = project.StatusHistory.Should().ContainSingle().Subject;
+        entry.FromStatus.Should().Be(ProjectStatus.Active);
+        entry.ToStatus.Should().Be(ProjectStatus.Completed);
+    }
+
+    [Fact]
+    public void Cancel_ShouldRecordStatusHistoryRow()
+    {
+        // Arrange
+        var project = _projectFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
+
+        // Act
+        var result = project.Cancel(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var entry = project.StatusHistory.Should().ContainSingle().Subject;
+        entry.FromStatus.Should().Be(ProjectStatus.Active);
+        entry.ToStatus.Should().Be(ProjectStatus.Canceled);
+    }
+
+    [Fact]
+    public void StatusHistory_ShouldRecordEveryTransition_InOrder()
+    {
+        // Arrange
+        var project = _projectFaker.WithDateRange(new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3))).Generate();
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase"));
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
+
+        // Act
+        project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
+        project.Activate(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
+        project.Complete(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
+
+        // Assert
+        project.StatusHistory.Select(h => (h.FromStatus, h.ToStatus)).Should().Equal(
+            (ProjectStatus.Proposed, ProjectStatus.Approved),
+            (ProjectStatus.Approved, ProjectStatus.Active),
+            (ProjectStatus.Active, ProjectStatus.Completed));
+        project.Status.Should().Be(project.StatusHistory.Last().ToStatus);
+    }
+
+    [Fact]
+    public void StatusHistory_ShouldNotRecord_WhenTransitionIsRejectedByAGuard()
+    {
+        // Arrange
+        var project = _projectFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
+
+        // Act
+        var result = project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        project.StatusHistory.Should().BeEmpty();
+        project.Status.Should().Be(ProjectStatus.Active);
+    }
+
+    [Fact]
+    public void StatusHistory_ShouldNotRecord_WhenActorIsNotAuthorized()
+    {
+        // Arrange
+        var project = _projectFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
+
+        // Act
+        var result = project.Cancel(AnUnauthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        project.StatusHistory.Should().BeEmpty();
+        project.Status.Should().Be(ProjectStatus.Active);
+    }
+
+    [Theory]
+    [InlineData(ProjectStatus.Approved)]
+    [InlineData(ProjectStatus.Active)]
+    [InlineData(ProjectStatus.Completed)]
+    [InlineData(ProjectStatus.Canceled)]
+    public void StatusHistory_ShouldNotRecordANoOpTransition_WhenTheProjectIsAlreadyInTheTargetStatus(
+        ProjectStatus status)
+    {
+        // Arrange
+        var project = _projectFaker
+            .WithStatus(status)
+            .WithDateRange(new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3)))
+            .Generate();
+
+        // Act
+        var result = status switch
+        {
+            ProjectStatus.Approved => project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now),
+            ProjectStatus.Active => project.Activate(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now),
+            ProjectStatus.Completed => project.Complete(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now),
+            _ => project.Cancel(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now),
+        };
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        project.StatusHistory.Should().BeEmpty();
+        project.Status.Should().Be(status);
+    }
+
+    [Fact]
+    public void StatusHistory_ShouldRecordNoEmployee_ForTheSystemActor()
+    {
+        // Arrange
+        var project = _projectFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
+
+        // Act
+        var result = project.Cancel(PpmActor.System, ProjectAncestryRoles.None, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var entry = project.StatusHistory.Should().ContainSingle().Subject;
+        entry.ChangedByEmployeeId.Should().BeNull();
+        entry.ChangedByUserId.Should().Be(PpmActor.System.UserId);
+    }
+
+    #endregion Status History Tests
 
     #region Authorization Tests
 
@@ -534,7 +725,7 @@ public class ProjectTests
             .Generate();
 
         // Act
-        var result = project.Cancel(employeeId.AsActor(), NoProjectAncestry());
+        var result = project.Cancel(employeeId.AsActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -552,7 +743,7 @@ public class ProjectTests
             .Generate();
 
         // Act
-        var result = project.Cancel(employeeId.AsActor(), NoProjectAncestry());
+        var result = project.Cancel(employeeId.AsActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -565,7 +756,7 @@ public class ProjectTests
         var project = _projectFaker.WithStatus(ProjectStatus.Active).Generate();
 
         // Act
-        var result = project.Cancel(AnUnauthorizedActor(), NoProjectAncestry());
+        var result = project.Cancel(AnUnauthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -584,7 +775,7 @@ public class ProjectTests
             .Generate();
 
         // Act
-        var result = project.Cancel(employeeId.AsActor(), NoProjectAncestry());
+        var result = project.Cancel(employeeId.AsActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -602,7 +793,7 @@ public class ProjectTests
         var ancestry = PpmActorDataExtensions.WithPortfolioRole(portfolioId, employeeId, ProjectPortfolioRole.Owner);
 
         // Act
-        var result = project.Cancel(employeeId.AsActor(), ancestry);
+        var result = project.Cancel(employeeId.AsActor(), ancestry, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -619,7 +810,7 @@ public class ProjectTests
         var ancestry = PpmActorDataExtensions.WithProgramRole(programId, employeeId, ProgramRole.Manager);
 
         // Act
-        var result = project.Cancel(employeeId.AsActor(), ancestry);
+        var result = project.Cancel(employeeId.AsActor(), ancestry, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -635,7 +826,7 @@ public class ProjectTests
         var ancestry = PpmActorDataExtensions.WithPortfolioRole(portfolioId, employeeId, ProjectPortfolioRole.Sponsor);
 
         // Act
-        var result = project.Cancel(employeeId.AsActor(), ancestry);
+        var result = project.Cancel(employeeId.AsActor(), ancestry, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -650,7 +841,7 @@ public class ProjectTests
         var project = _projectFaker.WithStatus(ProjectStatus.Active).Generate();
 
         // Act
-        var result = project.Cancel(employeeId.AsPpmAdministrator(), NoProjectAncestry());
+        var result = project.Cancel(employeeId.AsPpmAdministrator(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -665,7 +856,7 @@ public class ProjectTests
         project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase")));
 
         // Act
-        var result = project.Approve(AnUnauthorizedActor(), NoProjectAncestry());
+        var result = project.Approve(AnUnauthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -681,7 +872,7 @@ public class ProjectTests
         var project = _projectFaker.WithDateRange(dateRange).Generate();
 
         // Act
-        var result = project.Activate(AnUnauthorizedActor(), NoProjectAncestry());
+        var result = project.Activate(AnUnauthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -696,7 +887,7 @@ public class ProjectTests
         var project = _projectFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
 
         // Act
-        var result = project.Complete(AnUnauthorizedActor(), NoProjectAncestry());
+        var result = project.Complete(AnUnauthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();

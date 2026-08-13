@@ -29,6 +29,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     private readonly List<ProjectTask> _tasks = [];
     private readonly List<ProjectHealthCheck> _healthChecks = [];
     private readonly List<ProjectScore> _scores = [];
+    private readonly List<ProjectStatusHistory> _statusHistory = [];
 
     private Project() { }
 
@@ -217,6 +218,13 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// denormalised <see cref="CurrentScore"/> summary.
     /// </summary>
     public ProjectScore? LatestScore => _scores.OrderByDescending(s => s.Sequence).FirstOrDefault();
+
+    /// <summary>
+    /// The full history of status transitions for this project, in the order EF loaded them. The head
+    /// of this history and <see cref="Status"/> always agree — every transition goes through
+    /// <see cref="ChangeStatus"/>, which writes both.
+    /// </summary>
+    public IReadOnlyCollection<ProjectStatusHistory> StatusHistory => _statusHistory.AsReadOnly();
 
     /// <summary>
     /// Indicates whether the project can be deleted.
@@ -595,7 +603,9 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// </summary>
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
-    public Result Approve(PpmActor actor, ProjectAncestryRoles ancestry)
+    /// <param name="timestamp">The timestamp indicating when the transition occurred.</param>
+    /// <param name="reason">An optional explanation for the transition.</param>
+    public Result Approve(PpmActor actor, ProjectAncestryRoles ancestry, Instant timestamp, string? reason = null)
     {
         if (!CanManageProject(actor, ancestry))
         {
@@ -612,7 +622,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return Result.Failure("A project lifecycle must be assigned before the project can be approved.");
         }
 
-        Status = ProjectStatus.Approved;
+        ChangeStatus(ProjectStatus.Approved, actor, timestamp, reason);
 
         return Result.Success();
     }
@@ -622,7 +632,9 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// </summary>
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
-    public Result Activate(PpmActor actor, ProjectAncestryRoles ancestry)
+    /// <param name="timestamp">The timestamp indicating when the transition occurred.</param>
+    /// <param name="reason">An optional explanation for the transition.</param>
+    public Result Activate(PpmActor actor, ProjectAncestryRoles ancestry, Instant timestamp, string? reason = null)
     {
         if (!CanManageProject(actor, ancestry))
         {
@@ -639,7 +651,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return Result.Failure("The project must have a start and end date before it can be activated.");
         }
 
-        Status = ProjectStatus.Active;
+        ChangeStatus(ProjectStatus.Active, actor, timestamp, reason);
 
         return Result.Success();
     }
@@ -649,7 +661,9 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// </summary>
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
-    public Result Complete(PpmActor actor, ProjectAncestryRoles ancestry)
+    /// <param name="timestamp">The timestamp indicating when the transition occurred.</param>
+    /// <param name="reason">An optional explanation for the transition.</param>
+    public Result Complete(PpmActor actor, ProjectAncestryRoles ancestry, Instant timestamp, string? reason = null)
     {
         if (!CanManageProject(actor, ancestry))
         {
@@ -666,7 +680,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return Result.Failure("The project must have a start and end date before it can be completed.");
         }
 
-        Status = ProjectStatus.Completed;
+        ChangeStatus(ProjectStatus.Completed, actor, timestamp, reason);
 
         return Result.Success();
     }
@@ -676,7 +690,9 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// </summary>
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
-    public Result Cancel(PpmActor actor, ProjectAncestryRoles ancestry)
+    /// <param name="timestamp">The timestamp indicating when the transition occurred.</param>
+    /// <param name="reason">An optional explanation for the transition.</param>
+    public Result Cancel(PpmActor actor, ProjectAncestryRoles ancestry, Instant timestamp, string? reason = null)
     {
         if (!CanManageProject(actor, ancestry))
         {
@@ -688,9 +704,35 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return Result.Failure("The project is already completed or canceled.");
         }
 
-        Status = ProjectStatus.Canceled;
+        ChangeStatus(ProjectStatus.Canceled, actor, timestamp, reason);
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Moves the project to a new status and appends the matching history row. Every status transition
+    /// goes through here so that a change cannot be made without being recorded.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown by <see cref="ProjectStatusHistory"/> when the project is already in
+    /// <paramref name="toStatus"/>. Each calling method rejects its own target status, so reaching that
+    /// point is a defect in the caller rather than a rule a user can break.
+    /// </exception>
+    private void ChangeStatus(ProjectStatus toStatus, PpmActor actor, Instant timestamp, string? reason = null)
+    {
+        var entry = new ProjectStatusHistory(
+            Id,
+            Status,
+            toStatus,
+            actor.UserId,
+            actor.EmployeeIdOrNull,
+            timestamp,
+            ProjectStatusHistorySource.Recorded,
+            reason);
+
+        Status = toStatus;
+
+        _statusHistory.Add(entry);
     }
 
     #endregion Lifecycle
@@ -1594,9 +1636,19 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// <param name="strategicThemes"></param>
     /// <param name="timestamp"></param>
     /// <returns></returns>
-    internal static Project Create(string name, string description, ProjectKey key, int expenditureCategoryId, LocalDateRange? dateRange, Guid portfolioId, double rank, Guid? programId, string? businessCase, string? expectedBenefits, Dictionary<ProjectRole, HashSet<Guid>>? roles, HashSet<Guid>? strategicThemes, Instant timestamp)
+    internal static Project Create(string name, string description, ProjectKey key, int expenditureCategoryId, LocalDateRange? dateRange, Guid portfolioId, double rank, Guid? programId, string? businessCase, string? expectedBenefits, Dictionary<ProjectRole, HashSet<Guid>>? roles, HashSet<Guid>? strategicThemes, Instant timestamp, PpmActor actor)
     {
         var project = new Project(name, description, key, ProjectStatus.Proposed, expenditureCategoryId, dateRange, portfolioId, rank, programId, businessCase, expectedBenefits, roles, strategicThemes);
+
+        project._statusHistory.Add(new ProjectStatusHistory(
+            project.Id,
+            fromStatus: null,
+            ProjectStatus.Proposed,
+            actor.UserId,
+            actor.EmployeeIdOrNull,
+            timestamp,
+            ProjectStatusHistorySource.Recorded,
+            reason: null));
 
         project.AddPostPersistenceAction(() => project.AddDomainEvent(
             new ProjectCreatedEvent

@@ -7381,6 +7381,49 @@
         ]
       }
     },
+    "/api/ppm/projects/{id}/status-history": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get the project's status change history.",
+        "operationId": "Projects_GetStatusHistory",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectStatusHistoryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/ppm/projects/import": {
       "post": {
         "tags": [
@@ -32409,6 +32452,65 @@
             "format": "date-time"
           },
           "note": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ProjectStatusHistoryDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "toStatus",
+          "source",
+          "id",
+          "projectId",
+          "changedBySystem",
+          "changedOn"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "fromStatus": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LifecycleNavigationDto"
+              }
+            ]
+          },
+          "toStatus": {
+            "$ref": "#/components/schemas/LifecycleNavigationDto"
+          },
+          "changedBy": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "changedBySystem": {
+            "type": "boolean"
+          },
+          "changedOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SimpleNavigationDto"
+          },
+          "reason": {
             "type": "string",
             "nullable": true
           }

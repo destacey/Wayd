@@ -17,6 +17,7 @@ public class ChangeProjectKeyCommandHandlerTests : IDisposable
     private readonly ChangeProjectKeyCommandHandler _handler;
     private readonly Mock<ILogger<ChangeProjectKeyCommandHandler>> _mockLogger;
     private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal;
+    private readonly Mock<ICurrentUser> _mockCurrentUser = new();
     private readonly IDateTimeProvider _dateTimeProvider;
 
     private readonly ProjectFaker _projectFaker;
@@ -36,8 +37,12 @@ public class ChangeProjectKeyCommandHandlerTests : IDisposable
             .Setup(p => p.HasPermission(PpmAuthorizationExtensions.PpmAdministratorPermission, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
+        _mockCurrentUser.Setup(u => u.GetUserId()).Returns(Guid.NewGuid().ToString());
+
+
         _handler = new ChangeProjectKeyCommandHandler(
-            _dbContext, _mockCurrentPrincipal.Object, _mockLogger.Object, _dateTimeProvider);
+            _dbContext, _mockCurrentPrincipal.Object,
+            _mockCurrentUser.Object, _mockLogger.Object, _dateTimeProvider);
 
         _projectFaker = new ProjectFaker();
     }

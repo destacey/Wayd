@@ -1,4 +1,4 @@
-using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+﻿using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
 
@@ -16,6 +16,7 @@ public sealed class CloseProjectPortfolioCommandValidator : AbstractValidator<Cl
 public sealed class CloseProjectPortfolioCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser,
     ILogger<CloseProjectPortfolioCommandHandler> logger,
     IDateTimeProvider dateTimeProvider) : ICommandHandler<CloseProjectPortfolioCommand>
 {
@@ -23,6 +24,7 @@ public sealed class CloseProjectPortfolioCommandHandler(
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<CloseProjectPortfolioCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -30,7 +32,7 @@ public sealed class CloseProjectPortfolioCommandHandler(
     {
         try
         {
-            var actor = await _currentPrincipal.ResolvePpmActor(cancellationToken);
+            var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
             var portfolio = await _projectPortfolioManagementDbContext.Portfolios
                 .Include(p => p.Roles)

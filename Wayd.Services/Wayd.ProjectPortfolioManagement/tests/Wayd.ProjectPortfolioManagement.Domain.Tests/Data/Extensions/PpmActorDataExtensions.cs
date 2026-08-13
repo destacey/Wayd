@@ -18,23 +18,30 @@ public static class PpmActorDataExtensions
     /// An actor who passes every membership check by virtue of the PPM administrator grant. Use in tests
     /// whose subject is not authorization — it keeps arrangement to one argument.
     /// </summary>
-    public static PpmActor AnAuthorizedActor() => new(Guid.NewGuid(), IsPpmAdministrator: true);
+    public static PpmActor AnAuthorizedActor() => new(Guid.NewGuid(), IsPpmAdministrator: true, Guid.NewGuid().ToString());
 
     /// <summary>
     /// An actor holding no roles and no administrator grant — denied by every membership check.
     /// </summary>
-    public static PpmActor AnUnauthorizedActor() => new(Guid.NewGuid(), IsPpmAdministrator: false);
+    public static PpmActor AnUnauthorizedActor() => new(Guid.NewGuid(), IsPpmAdministrator: false, Guid.NewGuid().ToString());
 
     /// <summary>
     /// An ordinary (non-administrator) actor for the given employee. Whether they are authorized depends
     /// entirely on the roles assigned to them on the aggregate or its ancestors.
     /// </summary>
-    public static PpmActor AsActor(this Guid employeeId) => new(employeeId, IsPpmAdministrator: false);
+    public static PpmActor AsActor(this Guid employeeId) => new(employeeId, IsPpmAdministrator: false, Guid.NewGuid().ToString());
 
     /// <summary>
     /// A PPM administrator for the given employee.
     /// </summary>
-    public static PpmActor AsPpmAdministrator(this Guid employeeId) => new(employeeId, IsPpmAdministrator: true);
+    public static PpmActor AsPpmAdministrator(this Guid employeeId) => new(employeeId, IsPpmAdministrator: true, Guid.NewGuid().ToString());
+
+    /// <summary>
+    /// An ordinary actor for the given employee, attributed to a specific user account. Use where the
+    /// test asserts on the recorded user rather than on the authorization outcome.
+    /// </summary>
+    public static PpmActor AsActorForUser(this Guid employeeId, string userId) =>
+        new(employeeId, IsPpmAdministrator: false, userId);
 
     /// <summary>
     /// Ancestry conferring no inherited leadership — the common case when a test assigns roles directly

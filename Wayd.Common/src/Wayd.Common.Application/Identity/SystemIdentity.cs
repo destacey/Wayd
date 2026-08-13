@@ -1,4 +1,6 @@
-﻿namespace Wayd.Common.Application.Identity;
+﻿using Wayd.Common.Domain.Identity;
+
+namespace Wayd.Common.Application.Identity;
 
 /// <summary>
 /// The well-known identity used for system-initiated work that has no human actor — most notably
@@ -12,8 +14,9 @@ public static class SystemIdentity
     /// The well-known system user id stamped onto background jobs, audit columns, and message
     /// envelopes. <c>CurrentUser</c> reports it for every <c>ActorKind.System</c> scope (no HTTP
     /// request, no acting user), and <c>HangfireService.EnqueueSystem</c> stamps it explicitly.
+    /// Defined in <see cref="SystemUser.Id"/> so the domain can attribute system writes too.
     /// </summary>
-    public const string UserId = "11111111-1111-1111-1111-111111111111";
+    public const string UserId = SystemUser.Id;
 
     /// <summary>Display name for the system actor.</summary>
     public const string Name = "System";

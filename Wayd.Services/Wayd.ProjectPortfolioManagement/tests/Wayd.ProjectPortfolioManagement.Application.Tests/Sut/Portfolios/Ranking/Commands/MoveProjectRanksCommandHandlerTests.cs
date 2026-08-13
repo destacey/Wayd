@@ -17,6 +17,7 @@ public class MoveProjectRanksCommandHandlerTests : IDisposable
     private readonly MoveProjectRanksCommandHandler _handler;
     private readonly Mock<ILogger<MoveProjectRanksCommandHandler>> _mockLogger = new();
     private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal = new();
+    private readonly Mock<ICurrentUser> _mockCurrentUser = new();
     private readonly Guid _employeeId = Guid.NewGuid();
     private readonly ProjectPortfolioFaker _portfolioFaker = new();
     private readonly ProjectFaker _projectFaker = new();
@@ -25,7 +26,10 @@ public class MoveProjectRanksCommandHandlerTests : IDisposable
     {
         _dbContext = new FakeProjectPortfolioManagementDbContext();
         _mockCurrentPrincipal.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_employeeId);
-        _handler = new MoveProjectRanksCommandHandler(_dbContext, _mockCurrentPrincipal.Object, _mockLogger.Object);
+        _mockCurrentUser.Setup(u => u.GetUserId()).Returns(Guid.NewGuid().ToString());
+
+        _handler = new MoveProjectRanksCommandHandler(_dbContext, _mockCurrentPrincipal.Object,
+            _mockCurrentUser.Object, _mockLogger.Object);
     }
 
     private Project Project(string name, double rank) =>

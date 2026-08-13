@@ -208,19 +208,19 @@ public class ImportPpmFinalizationsCommandHandlerTests : IDisposable
             null,
             null,
             null,
-            _dateTimeProvider.Now).Value;
+            _dateTimeProvider.Now, PpmActor.System).Value;
 
         switch (status)
         {
             case ProjectStatus.Completed:
-                project.Activate(PpmActor.System, ProjectAncestryRoles.None);
-                project.Complete(PpmActor.System, ProjectAncestryRoles.None);
+                project.Activate(PpmActor.System, ProjectAncestryRoles.None, _dateTimeProvider.Now);
+                project.Complete(PpmActor.System, ProjectAncestryRoles.None, _dateTimeProvider.Now);
                 break;
             case ProjectStatus.Canceled:
-                project.Cancel(PpmActor.System, ProjectAncestryRoles.None);
+                project.Cancel(PpmActor.System, ProjectAncestryRoles.None, _dateTimeProvider.Now);
                 break;
             case ProjectStatus.Active:
-                project.Activate(PpmActor.System, ProjectAncestryRoles.None);
+                project.Activate(PpmActor.System, ProjectAncestryRoles.None, _dateTimeProvider.Now);
                 break;
         }
     }

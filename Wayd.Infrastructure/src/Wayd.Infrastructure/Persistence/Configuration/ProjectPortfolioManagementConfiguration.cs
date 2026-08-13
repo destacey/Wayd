@@ -269,6 +269,52 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
             .WithOne()
             .HasForeignKey(s => s.ProjectId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(p => p.StatusHistory)
+            .WithOne()
+            .HasForeignKey(h => h.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class ProjectStatusHistoryConfiguration : IEntityTypeConfiguration<ProjectStatusHistory>
+{
+    public void Configure(EntityTypeBuilder<ProjectStatusHistory> builder)
+    {
+        builder.ToTable("ProjectStatusHistory", SchemaNames.ProjectPortfolioManagement);
+
+        builder.HasKey(h => h.Id);
+
+        builder.HasIndex(h => new { h.ProjectId, h.ChangedOn });
+
+        builder.Property(h => h.Id).ValueGeneratedNever();
+        builder.Property(h => h.ProjectId).IsRequired();
+
+        builder.Property(h => h.FromStatus)
+            .HasConversion<EnumConverter<ProjectStatus>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+
+        builder.Property(h => h.ToStatus).IsRequired()
+            .HasConversion<EnumConverter<ProjectStatus>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+
+        builder.Property(h => h.ChangedByUserId).IsRequired().HasMaxLength(450);
+        builder.Property(h => h.ChangedByEmployeeId);
+        builder.Property(h => h.ChangedOn).IsRequired();
+
+        builder.Property(h => h.Source).IsRequired()
+            .HasConversion<EnumConverter<ProjectStatusHistorySource>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+
+        builder.Property(h => h.Reason).HasMaxLength(1024);
+
+        builder.HasOne(h => h.ChangedByEmployee)
+            .WithMany()
+            .HasForeignKey(h => h.ChangedByEmployeeId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }
 

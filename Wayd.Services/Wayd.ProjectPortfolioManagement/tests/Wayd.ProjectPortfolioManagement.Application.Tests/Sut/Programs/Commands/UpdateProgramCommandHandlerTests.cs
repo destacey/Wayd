@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime.Extensions;
@@ -21,6 +21,7 @@ public class UpdateProgramCommandHandlerTests : IDisposable
     private readonly UpdateProgramCommandHandler _handler;
     private readonly Mock<ILogger<UpdateProgramCommandHandler>> _mockLogger = new();
     private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal = new();
+    private readonly Mock<ICurrentUser> _mockCurrentUser = new();
     private readonly TestingDateTimeProvider _dateTimeProvider;
     private readonly Guid _actorEmployeeId = Guid.NewGuid();
 
@@ -39,8 +40,12 @@ public class UpdateProgramCommandHandlerTests : IDisposable
             .Setup(p => p.HasPermission(PpmAuthorizationExtensions.PpmAdministratorPermission, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
+        _mockCurrentUser.Setup(u => u.GetUserId()).Returns(Guid.NewGuid().ToString());
+
+
         _handler = new UpdateProgramCommandHandler(
-            _dbContext, _mockCurrentPrincipal.Object, _mockLogger.Object, _dateTimeProvider);
+            _dbContext, _mockCurrentPrincipal.Object,
+            _mockCurrentUser.Object, _mockLogger.Object, _dateTimeProvider);
     }
 
     /// <summary>

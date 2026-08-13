@@ -24,6 +24,7 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
     private readonly List<Project> _projects = [];
     private readonly List<ProjectHealthCheck> _projectHealthChecks = [];
     private readonly List<ProjectScore> _projectScores = [];
+    private readonly List<ProjectStatusHistory> _projectStatusHistory = [];
     private readonly List<ProjectTask> _projectTasks = [];
     private readonly List<ProjectTaskDependency> _projectTaskDependencies = [];
     private readonly List<PpmTeam> _ppmTeams = [];
@@ -47,6 +48,7 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
     public DbSet<Project> Projects => _projects.AsDbSet();
     public DbSet<ProjectHealthCheck> ProjectHealthChecks => _projectHealthChecks.AsDbSet();
     public DbSet<ProjectScore> ProjectScores => _projectScores.AsDbSet();
+    public DbSet<ProjectStatusHistory> ProjectStatusHistory => _projectStatusHistory.AsDbSet();
     public DbSet<ProjectTask> ProjectTasks => _projectTasks.AsDbSet();
     public DbSet<ProjectTaskDependency> ProjectTaskDependencies => _projectTaskDependencies.AsDbSet();
     public DbSet<PpmTeam> PpmTeams => _ppmTeams.AsDbSet();
@@ -120,6 +122,10 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
     public void AddProjectScore(ProjectScore score) => _projectScores.Add(score);
     public void AddProjectScores(IEnumerable<ProjectScore> scores) => _projectScores.AddRange(scores);
 
+    // ProjectStatusHistory
+    public void AddProjectStatusHistory(ProjectStatusHistory history) => _projectStatusHistory.Add(history);
+    public void AddProjectStatusHistory(IEnumerable<ProjectStatusHistory> history) => _projectStatusHistory.AddRange(history);
+
     // ProjectTask
     public void AddProjectTask(ProjectTask task) => _projectTasks.Add(task);
     public void AddProjectTasks(IEnumerable<ProjectTask> tasks) => _projectTasks.AddRange(tasks);
@@ -168,6 +174,7 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
         _projects.Clear();
         _projectHealthChecks.Clear();
         _projectScores.Clear();
+        _projectStatusHistory.Clear();
         _projectTasks.Clear();
         _projectTaskDependencies.Clear();
         _ppmTeams.Clear();

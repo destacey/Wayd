@@ -33,7 +33,7 @@ public sealed class RebalancePortfolioRanksCommandHandler(
         // human actor (a scheduled job, which runs as ActorKind.System and carries no employee claim).
         var actor = _currentUser.Kind == ActorKind.System
             ? PpmActor.System
-            : await _currentPrincipal.ResolvePpmActor(cancellationToken);
+            : await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
         var portfolio = await _ppmDbContext.Portfolios
             .AsSplitQuery()

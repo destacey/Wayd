@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
@@ -17,6 +18,9 @@ public class CreateProjectCommandHandlerTests : IDisposable
     private readonly CreateProjectCommandHandler _handler;
     private readonly Mock<ILogger<CreateProjectCommandHandler>> _mockLogger;
     private readonly TestingDateTimeProvider _dateTimeProvider;
+    private readonly Mock<ICurrentUser> _mockCurrentUser;
+    private readonly string _actorUserId = Guid.NewGuid().ToString();
+    private readonly Guid _actorEmployeeId = Guid.NewGuid();
 
     public CreateProjectCommandHandlerTests()
     {
@@ -24,7 +28,11 @@ public class CreateProjectCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<CreateProjectCommandHandler>>();
         _dateTimeProvider = new TestingDateTimeProvider(new FakeClock(DateTime.UtcNow.ToInstant()));
 
-        _handler = new CreateProjectCommandHandler(_dbContext, _mockLogger.Object, _dateTimeProvider);
+        _mockCurrentUser = new Mock<ICurrentUser>();
+        _mockCurrentUser.Setup(u => u.GetUserId()).Returns(_actorUserId);
+        _mockCurrentUser.Setup(u => u.GetEmployeeId()).Returns(_actorEmployeeId);
+
+        _handler = new CreateProjectCommandHandler(_dbContext, _mockLogger.Object, _dateTimeProvider, _mockCurrentUser.Object);
     }
 
     [Fact]

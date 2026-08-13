@@ -12,6 +12,7 @@ public interface IProjectPortfolioManagementDbContext : IWaydDbContext
     DbSet<Project> Projects { get; }
     DbSet<ProjectHealthCheck> ProjectHealthChecks { get; }
     DbSet<ProjectScore> ProjectScores { get; }
+    DbSet<ProjectStatusHistory> ProjectStatusHistory { get; }
     DbSet<ProjectTask> ProjectTasks { get; }
     DbSet<ProjectTaskDependency> ProjectTaskDependencies { get; }
     DbSet<PpmTeam> PpmTeams { get; }

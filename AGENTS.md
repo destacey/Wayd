@@ -70,7 +70,7 @@ Project Portfolio Management is the one domain where a permission claim is **not
 When adding or editing a PPM handler that mutates one of these aggregates:
 
 1. Mark the command `IRequireLinkedEmployee`.
-2. Inject `ICurrentPrincipal` and call `ResolvePpmActor(cancellationToken)`.
+2. Inject `ICurrentPrincipal` and `ICurrentUser`, then call `ResolvePpmActor(currentUser, cancellationToken)`. Both are needed: the actor carries the user id alongside the employee id, because records that freeze attribution (project status history) need the account as well as the employee.
 3. **Load the ancestor roles in the query** — `.Include(p => p.Portfolio).ThenInclude(p => p!.Roles)` and, for projects, `.Include(p => p.Program).ThenInclude(p => p!.Roles)`.
 4. Pass `actor` and `project.AncestryRoles()` into the aggregate method.
 

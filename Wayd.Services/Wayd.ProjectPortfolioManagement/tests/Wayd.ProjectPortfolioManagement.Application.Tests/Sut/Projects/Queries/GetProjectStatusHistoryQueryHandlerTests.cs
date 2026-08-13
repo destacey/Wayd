@@ -62,20 +62,20 @@ public class GetProjectStatusHistoryQueryHandlerTests : IDisposable
         // every row with the same instant.
         var projectId = Guid.NewGuid();
         var stamp = Instant.FromUtc(2026, 2, 1, 0, 0);
-        // Ids are assigned in insertion order, as Guid.CreateVersion7 does at runtime.
         var created = _historyFaker
-            .WithId(Guid.CreateVersion7()).WithProjectId(projectId)
+            .WithProjectId(projectId)
             .WithFromStatus(null).WithToStatus(ProjectStatus.Proposed)
             .WithChangedOn(stamp).Generate();
         var activated = _historyFaker
-            .WithId(Guid.CreateVersion7()).WithProjectId(projectId)
+            .WithProjectId(projectId)
             .WithFromStatus(ProjectStatus.Proposed).WithToStatus(ProjectStatus.Active)
             .WithChangedOn(stamp).Generate();
         var completed = _historyFaker
-            .WithId(Guid.CreateVersion7()).WithProjectId(projectId)
+            .WithProjectId(projectId)
             .WithFromStatus(ProjectStatus.Active).WithToStatus(ProjectStatus.Completed)
             .WithChangedOn(stamp).Generate();
-        _dbContext.AddProjectStatusHistory([created, activated, completed]);
+        // Deliberately inserted out of order: the sequence must come from the chain, not insertion.
+        _dbContext.AddProjectStatusHistory([completed, created, activated]);
 
         // Act
         var result = await _handler.Handle(

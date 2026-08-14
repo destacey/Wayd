@@ -87,6 +87,7 @@
   <Folder Name="/Wayd.Services/Wayd.ProjectPortfolioManagement/tests/">
     <Project Path="Wayd.Services/Wayd.ProjectPortfolioManagement/tests/Wayd.ProjectPortfolioManagement.Application.Tests/Wayd.ProjectPortfolioManagement.Application.Tests.csproj" />
     <Project Path="Wayd.Services/Wayd.ProjectPortfolioManagement/tests/Wayd.ProjectPortfolioManagement.Domain.Tests/Wayd.ProjectPortfolioManagement.Domain.Tests.csproj" />
+    <Project Path="Wayd.Services/Wayd.ProjectPortfolioManagement/tests/Wayd.ProjectPortfolioManagement.IntegrationTests/Wayd.ProjectPortfolioManagement.IntegrationTests.csproj" />
   </Folder>
   <Folder Name="/Wayd.Services/Wayd.StrategicManagement/" />
   <Folder Name="/Wayd.Services/Wayd.StrategicManagement/src/">

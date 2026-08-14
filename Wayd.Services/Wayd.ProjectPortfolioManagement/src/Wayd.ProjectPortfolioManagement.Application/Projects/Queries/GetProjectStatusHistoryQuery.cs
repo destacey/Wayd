@@ -13,8 +13,13 @@ public sealed class GetProjectStatusHistoryQueryHandler(IProjectPortfolioManagem
 
     public async Task<IReadOnlyList<ProjectStatusHistoryDto>> Handle(GetProjectStatusHistoryQuery request, CancellationToken cancellationToken)
     {
+        // The rows are materialised rather than projected, because the sequencing below has to inspect
+        // each transition's endpoints. That means the acting employee has to be loaded explicitly: a
+        // projection would have pulled it in through the mapping, but an entity read will not, and the
+        // DTO reads the navigation.
         var history = await _ppmDbContext.ProjectStatusHistory
             .AsNoTracking()
+            .Include(h => h.ChangedByEmployee)
             .Where(h => h.ProjectId == request.ProjectId)
             .OrderBy(h => h.ChangedOn)
             .ToListAsync(cancellationToken);

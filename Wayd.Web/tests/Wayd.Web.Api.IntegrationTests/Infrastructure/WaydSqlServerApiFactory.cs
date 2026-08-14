@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Hosting;
+﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.SqlClient;
 using Testcontainers.MsSql;
@@ -16,7 +16,7 @@ namespace Wayd.Web.Api.IntegrationTests.Infrastructure;
 public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     // Pinned CU, matching the existing Organization integration fixture, so schema builds identically everywhere.
-    private const string SqlServerImage = "mcr.microsoft.com/mssql/server:2022-CU25-GDR2-ubuntu-22.04";
+    private const string SqlServerImage = "mcr.microsoft.com/mssql/server:2025-CU8-ubuntu-24.04";
 
     private readonly MsSqlContainer _container = new MsSqlBuilder(SqlServerImage).Build();
 

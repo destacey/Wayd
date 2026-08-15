@@ -1,0 +1,13 @@
+{
+  // Tests import from ../build (the published artifact), which sits outside the
+  // main config's rootDir. They are type-checked separately and never emitted.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "types": ["node"]
+  },
+  // The base config excludes build/ and *.test.ts; both are inputs here.
+  "exclude": ["../node_modules"],
+  "include": ["**/*.ts", "../build/**/*.d.ts"]
+}

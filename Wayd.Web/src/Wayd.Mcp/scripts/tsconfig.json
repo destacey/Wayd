@@ -1,7 +1,10 @@
 {
+    // Build-time scripts live outside the package's rootDir and are never
+    // emitted — they run through tsx. Type-checked separately from src/.
     "extends": "../tsconfig.json",
     "compilerOptions": {
-        "noEmit": true
+        "noEmit": true,
+        "rootDir": ".."
     },
     "include": ["./**/*"]
 }

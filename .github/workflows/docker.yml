@@ -102,13 +102,18 @@ jobs:
 
             - uses: actions/setup-node@v4
               with:
-                  node-version: 22
+                  node-version: 24
 
             - name: npm ci
               run: npm ci
 
             - name: npm run lint
               run: npm run lint
+
+            # Runs before build so a type error fails fast with a direct tsc message rather than
+            # surfacing later inside the slower Next build.
+            - name: npm run typecheck
+              run: npm run typecheck
 
             - name: npm run build
               run: npm run build

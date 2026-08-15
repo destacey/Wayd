@@ -35,22 +35,25 @@ interface MarkdownLinkProps
 export const useMarkdownComponents = (): Components => {
   const { token } = useTheme()
 
+  // Every mapping below strips react-markdown's `node` (a hast object) before
+  // spreading, so it is never forwarded onto a DOM element — antd's Typography
+  // and the local markdown components pass unknown props straight through.
   return ({
-    h1: (props) => <Title level={1} {...props} />,
-    h2: (props) => <Title level={2} {...props} />,
-    h3: (props) => <Title level={3} {...props} />,
-    h4: (props) => <Title level={4} {...props} />,
-    h5: (props) => <Title level={5} {...props} />,
-    p: (props) => <Paragraph {...props} />,
-    strong: (props) => <Text strong {...props} />,
-    em: (props) => <Text italic {...props} />,
-    u: (props) => <Text underline {...props} />, // TODO: add to toolbar
-    del: (props) => <Text delete {...props} />,
-    code: (props) => <Text code {...props} />,
-    pre: ({ ...props }: MarkdownCodeBlockProps) => (
+    h1: ({ node: _node, ...props }) => <Title level={1} {...props} />,
+    h2: ({ node: _node, ...props }) => <Title level={2} {...props} />,
+    h3: ({ node: _node, ...props }) => <Title level={3} {...props} />,
+    h4: ({ node: _node, ...props }) => <Title level={4} {...props} />,
+    h5: ({ node: _node, ...props }) => <Title level={5} {...props} />,
+    p: ({ node: _node, ...props }) => <Paragraph {...props} />,
+    strong: ({ node: _node, ...props }) => <Text strong {...props} />,
+    em: ({ node: _node, ...props }) => <Text italic {...props} />,
+    u: ({ node: _node, ...props }) => <Text underline {...props} />, // TODO: add to toolbar
+    del: ({ node: _node, ...props }) => <Text delete {...props} />,
+    code: ({ node: _node, ...props }) => <Text code {...props} />,
+    pre: ({ node: _node, ...props }: MarkdownCodeBlockProps) => (
       <MarkdownCodeBlock {...props} token={token} />
     ), // TODO: needs styling and syntax improvements
-    blockquote: (props: MarkdownBlockquoteProps) => (
+    blockquote: ({ node: _node, ...props }: MarkdownBlockquoteProps) => (
       <MarkdownBlockquote {...props} token={token} />
     ),
     a: ({ node, children, ...props }: MarkdownLinkProps) => (
@@ -58,7 +61,9 @@ export const useMarkdownComponents = (): Components => {
         {children}
       </AntDLink>
     ),
-    hr: (props) => <Divider {...props} />,
+    // `ref` is dropped as well because antd 6.6 types Divider's ref as DividerRef,
+    // which is incompatible with the HTMLHRElement ref react-markdown passes for <hr>.
+    hr: ({ ref: _ref, node: _node, ...props }) => <Divider {...props} />,
     img: ({ node: _node, src: rawSrc, alt, ...rest }) => {
       const src = typeof rawSrc === 'string' ? rawSrc : undefined
       return (
@@ -70,7 +75,7 @@ export const useMarkdownComponents = (): Components => {
         />
       )
     }, // TODO: needs improvement, especially for background
-    table: (props) => <MarkdownTable {...props} />,
+    table: ({ node: _node, ...props }) => <MarkdownTable {...props} />,
   }) as Components
 }
 

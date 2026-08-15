@@ -11,32 +11,36 @@ export interface MarkdownBlockquoteProps
   token: GlobalToken
 }
 
-const MarkdownBlockquote = (props: MarkdownBlockquoteProps) => {
+// `token` is destructured out rather than spread, so the theme object is not
+// forwarded onto the DOM element Paragraph renders.
+const MarkdownBlockquote = ({
+  token,
+  children,
+  style,
+  ...rest
+}: MarkdownBlockquoteProps) => {
   const blockquoteStyles = {
     paddingTop: '14px',
     paddingBottom: '2px',
-    paddingLeft: props.token.padding,
-    paddingRight: props.token.padding,
-    borderLeft: `${props.token.lineWidthBold}px solid ${props.token.colorPrimary}`,
-    background: props.token.colorFillTertiary, // TODO: get this closer to the actual code block color <Text code {...props} />,
+    paddingLeft: token.padding,
+    paddingRight: token.padding,
+    borderLeft: `${token.lineWidthBold}px solid ${token.colorPrimary}`,
+    background: token.colorFillTertiary, // TODO: get this closer to the actual code block color <Text code {...props} />,
   }
 
-  if (
-    !props.children ||
-    (typeof props.children === 'string' && props.children.trim() === '')
-  ) {
+  if (!children || (typeof children === 'string' && children.trim() === '')) {
     return null
   }
 
   return (
     <Paragraph
-      {...props}
+      {...rest}
       style={{
-        ...props.style,
+        ...style,
         ...blockquoteStyles,
       }}
     >
-      {props.children}
+      {children}
     </Paragraph>
   )
 }

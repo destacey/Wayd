@@ -48,7 +48,7 @@ When delivery spans multiple teams, projects, and systems, visibility breaks dow
 Before you begin, ensure you have installed:
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- [Node.js 20+](https://nodejs.org/) and npm
+- [Node.js 24+](https://nodejs.org/) and npm
 - [SQL Server](https://www.microsoft.com/sql-server) (local or remote)
 - [Git](https://git-scm.com/)
 

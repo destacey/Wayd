@@ -5,7 +5,7 @@
   "scripts": {
     "predev": "node -e \"require('fs').rmSync('.next', { recursive: true, force: true })\" && node scripts/build-search-index.mjs",
     "dev": "next dev --turbopack",
-    "prebuild": "node scripts/build-search-index.mjs",
+    "prebuild": "node scripts/build-search-index.mjs && npm run typecheck",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -26,6 +26,7 @@
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "@types/react-redux": "7.1.34",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "babel-plugin-react-compiler": "^1.0.0",
     "baseline-browser-mapping": "^2.11.1",
     "esbuild": "^0.28.1",
@@ -38,7 +39,7 @@
     "jest-environment-jsdom": "30.4.1",
     "prettier": "3.9.6",
     "serwist": "^9.5.12",
-    "typescript": "^6.0.3"
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
   },
   "dependencies": {
     "@ant-design/charts": "2.6.7",

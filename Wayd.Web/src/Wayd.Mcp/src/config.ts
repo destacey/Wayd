@@ -1,5 +1,7 @@
 import dotenv from 'dotenv';
-dotenv.config();
+// quiet: dotenv >=17 logs a startup banner to stdout, which corrupts the
+// stdio transport's JSON-RPC stream. stdout belongs to the protocol only.
+dotenv.config({ quiet: true });
 
 import { createRequire } from 'module';
 import { parseArgs } from 'util';

@@ -27,12 +27,13 @@ export async function executeApiTool(
     // Validate arguments against the input schema
     let validatedArgs: JsonObject;
     try {
-      const zodSchema = zodSchemas.get(toolName) ?? z.object({}).passthrough();
+      const zodSchema = zodSchemas.get(toolName) ?? z.looseObject({});
       const argsToParse = (typeof toolArgs === 'object' && toolArgs !== null) ? toolArgs : {};
-      validatedArgs = zodSchema.parse(argsToParse);
+      // zod 4 types parse() as `unknown`; tool arguments are JSON objects by contract.
+      validatedArgs = zodSchema.parse(argsToParse) as JsonObject;
     } catch (error: unknown) {
       if (error instanceof ZodError) {
-        const msg = `Invalid arguments for tool '${toolName}': ${error.errors.map(e => `${e.path.join('.')} (${e.code}): ${e.message}`).join(', ')}`;
+        const msg = `Invalid arguments for tool '${toolName}': ${error.issues.map(e => `${e.path.join('.')} (${e.code}): ${e.message}`).join(', ')}`;
         return { content: [{ type: 'text', text: msg }], isError: true };
       }
       const msg = error instanceof Error ? error.message : String(error);
@@ -109,7 +110,8 @@ export async function executeApiTool(
 
     // Format the response
     let responseText = '';
-    const contentType = response.headers['content-type']?.toLowerCase() || '';
+    const rawContentType = response.headers['content-type'];
+    const contentType = typeof rawContentType === 'string' ? rawContentType.toLowerCase() : '';
 
     if (contentType.includes('application/json') && typeof response.data === 'object' && response.data !== null) {
       try { responseText = JSON.stringify(response.data, null, 2); } catch { responseText = '[Stringify Error]'; }

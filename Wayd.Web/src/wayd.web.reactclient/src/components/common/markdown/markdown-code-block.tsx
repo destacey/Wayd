@@ -8,6 +8,7 @@ export interface MarkdownCodeBlockProps
     React.HTMLAttributes<HTMLPreElement>,
     HTMLPreElement
   > {
+  node?: any
   token: GlobalToken
 }
 

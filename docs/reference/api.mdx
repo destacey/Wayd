@@ -49,17 +49,17 @@ Authorization: Bearer {token}
 
 ### Microsoft Entra ID (token exchange)
 
-For users authenticating via Microsoft Entra ID, the frontend obtains an access token from MSAL for the API scope and exchanges it for a Wayd JWT:
+For users authenticating via Microsoft Entra ID, the frontend obtains an access token from the OIDC provider (via `oidc-client-ts`) for the API scope and exchanges it for a Wayd JWT:
 
 ```
 POST /api/auth/exchange
 {
   "provider": "MicrosoftEntraId",
-  "subjectToken": "<entra-access-token-from-MSAL>"
+  "subjectToken": "<entra-access-token-from-oidc-client>"
 }
 ```
 
-The response shape is identical to `/login`. The MSAL token is only used during the exchange — all subsequent API calls use the Wayd JWT.
+The response shape is identical to `/login`. The provider token is only used during the exchange — all subsequent API calls use the Wayd JWT.
 
 Deployments can disable Entra exchange (e.g., local-only customers); the endpoint returns HTTP 503 when disabled. Use `GET /api/auth/providers` (anonymous) to discover which providers are enabled.
 

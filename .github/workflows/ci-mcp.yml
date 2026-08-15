@@ -37,6 +37,11 @@ jobs:
             - name: Build
               run: npm run build
 
+            # test:only skips the rebuild — the Build step above already
+            # produced the artifact the tests import from.
+            - name: Test
+              run: npm run test:only
+
     release-pr:
         needs: [build]
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

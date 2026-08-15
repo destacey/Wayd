@@ -7,8 +7,10 @@
     "resolveJsonModule": true,
     "moduleDetection": "force",
     "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
+    // Index access returns `T | undefined`. This proxy reads a lot of
+    // runtime-shaped data (response headers, validated tool arguments) by
+    // dynamic key, where a missing key is a real possibility, not a type error.
+    "noUncheckedIndexedAccess": true,
     "module": "Node16",
     "moduleResolution": "Node16",
     "noEmit": false,

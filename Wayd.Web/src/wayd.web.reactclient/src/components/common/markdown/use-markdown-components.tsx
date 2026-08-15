@@ -58,7 +58,9 @@ export const useMarkdownComponents = (): Components => {
         {children}
       </AntDLink>
     ),
-    hr: (props) => <Divider {...props} />,
+    // antd 6.6 types Divider's ref as DividerRef, not the HTMLHRElement ref
+    // react-markdown hands down for <hr>; it is unused here, so drop it.
+    hr: ({ ref: _ref, ...props }) => <Divider {...props} />,
     img: ({ node: _node, src: rawSrc, alt, ...rest }) => {
       const src = typeof rawSrc === 'string' ? rawSrc : undefined
       return (

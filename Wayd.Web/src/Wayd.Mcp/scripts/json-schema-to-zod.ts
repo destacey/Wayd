@@ -7,8 +7,8 @@
  *
  * This covers exactly the JSON Schema subset that NSwag produces for the Wayd
  * API — verified against all tool definitions: `type`, `properties`, `required`,
- * `items`, `enum`, `format`, `maxLength`, `pattern`, `description`, and union
- * types expressed as `type: [...]`. There is deliberately no support for `$ref`,
+ * `items`, `enum`, `format`, `maxLength`, `minLength`, `pattern`, `description`,
+ * and union types expressed as `type: [...]`. There is deliberately no support for `$ref`,
  * `allOf`/`anyOf`/`oneOf`, conditionals, or `additionalProperties`: none appear
  * in the input, and `assertSupported` fails the build if any ever do rather
  * than silently emitting a schema that validates the wrong thing.

@@ -4,7 +4,7 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server for the
 
 ## Requirements
 
-- Node.js >= 20
+- Node.js >= 22
 - A running Wayd instance with API access
 - A Wayd Personal Access Token (PAT)
 

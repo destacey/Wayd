@@ -18,7 +18,7 @@ description: Guides agents working with Wayd Portfolio, Program, Project, and Ta
 - Exploring strategic initiatives, their KPIs, and recording KPI measurements
 - Changing the status of a portfolio, program, project, or strategic initiative (approve, activate, complete, cancel, close, archive)
 
-> **Note on what can be changed via MCP.** Records themselves (portfolios, programs, projects, initiatives, lifecycles, phases) **cannot be created or edited** — no create, no update, no delete. What *can* be changed: **status transitions** for portfolios, programs, projects, and initiatives (confirm with the user first — see below); **tasks**, which support full CRUD; **project health checks**, read and create; and **KPI measurements**, add and remove. Scoring and ranking are read-only — scores cannot be recorded and ranks cannot be reordered.
+> **Note on what can be changed via MCP.** Portfolios, programs, and projects can be **created and updated**, and their **status changed** (confirm with the user first — see below). **Tasks** support full CRUD. **Project health checks** support create, update, and delete. **KPI measurements** can be added and removed. Read-only: scoring and ranking (scores cannot be recorded, ranks cannot be reordered), project **lifecycles and phases**, and strategic **initiative records** and their **KPI definitions** — initiative status can still be changed and measurements still recorded. Nothing here deletes a portfolio, program, or project.
 
 ---
 
@@ -181,6 +181,43 @@ Required fields: `name`, `typeId`, `statusId`, `priorityId`
 
 - **Add** (finish-to-start): `Tasks_AddTaskDependency` with `{ predecessorId, successorId }` — both UUIDs. Also pass the predecessor task's `id` as the path parameter.
 - **Remove**: `Tasks_RemoveTaskDependency` with path params `id` (predecessor UUID) and `successorId`.
+
+### Creating and updating records
+
+| Goal | Tool |
+|---|---|
+| Create a portfolio / program / project | `Portfolios_Create`, `Programs_Create`, `Projects_Create` |
+| Update a portfolio / program / project | `Portfolios_Update`, `Programs_Update`, `Projects_Update` |
+| Move a project to another program (or detach it) | `Projects_ChangeProgram` |
+| Change a project's key | `Projects_ChangeKey` |
+
+New records start in **Proposed** — creating one does not activate it. Use the status tools for that.
+
+> **Updates are overwrites, not patches.** Every update endpoint writes the whole record from the request body. A field you omit is not left alone; it is cleared. **Always read the record first and echo back every value that should stay the same.**
+
+#### The role-list trap
+
+`sponsorIds`, `ownerIds`, `managerIds`, and `memberIds` **replace** the assignments for that role. Critically, a list that is **omitted or empty removes everyone currently in that role** — there is no way to say "leave this role alone".
+
+So this apparently harmless call:
+
+```
+Projects_Update { id, name: "Renamed", description, expenditureCategoryId }
+```
+
+…silently strips every sponsor, owner, manager, and member from the project. Because Owners and Managers are exactly who is authorised to manage PPM records, this can leave a project that nobody can edit.
+
+**Before any update: read the record, collect the current role membership, and pass it back in full alongside your changes.** The same applies to `strategicThemeIds`.
+
+#### Fields that are not part of an update
+
+- A project's **key** changes only via `Projects_ChangeKey`. The key is the human-facing identifier used in task keys and saved links, so a rekey invalidates existing references — only do it when explicitly asked.
+- A project's **program** changes only via `Projects_ChangeProgram` (pass `null` to detach). The target program must be in the same portfolio.
+- A project's **lifecycle** is not set by `Projects_Update`.
+- A program's **portfolio** cannot be changed at all.
+- **Status is never set by an update** — use the transition tools below.
+
+Creating a project needs an `expenditureCategoryId`; resolve it with `ExpenditureCategories_GetOptions`.
 
 ### Changing status (portfolios, programs, projects, initiatives)
 

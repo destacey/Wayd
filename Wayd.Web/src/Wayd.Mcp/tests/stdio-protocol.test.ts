@@ -53,6 +53,16 @@ const INIT_REQUEST = {
 };
 
 /**
+ * Splits accumulated stdout into complete, newline-terminated lines, discarding any
+ * trailing partial line still being written.
+ */
+function completeLines(buffer: string): string[] {
+  const lastNewline = buffer.lastIndexOf('\n');
+  if (lastNewline === -1) return [];
+  return buffer.slice(0, lastNewline).split('\n').filter(Boolean);
+}
+
+/**
  * Spawns the server, performs the MCP handshake, sends `requests`, and
  * collects everything written to stdout/stderr.
  */
@@ -80,7 +90,11 @@ async function runServer(
     const timer = setTimeout(done, 10_000);
     timer.unref?.();
     child.stdout.on('data', () => {
-      if (stdout.trim().split('\n').filter(Boolean).length >= expectedResponses) {
+      // Count only newline-TERMINATED lines. A large response (tools/list is tens of
+      // kilobytes) arrives across several chunks, and a chunk that ends mid-line would
+      // otherwise be counted as complete — resolving early and killing the child
+      // partway through writing, which surfaces as "non-JSON line on stdout".
+      if (completeLines(stdout).length >= expectedResponses) {
         clearTimeout(timer);
         done();
       }
@@ -98,7 +112,7 @@ async function runServer(
   await settled;
   child.kill();
 
-  const stdoutLines = stdout.trim().split('\n').filter(Boolean);
+  const stdoutLines = completeLines(stdout.endsWith('\n') ? stdout : `${stdout}\n`);
   const responses = new Map<number, JsonRpcResponse>();
   for (const line of stdoutLines) {
     try {

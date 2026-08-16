@@ -1,13 +1,16 @@
 {
+  // X-Content-Type-Options, X-Frame-Options and the Content-Security-Policy are intentionally absent:
+  // they are invariants, hardcoded in SecurityHeaderDefaults so they cannot be misconfigured. The keys
+  // below are optional — omitting one falls back to the same secure default, it does not drop the
+  // header.
   "SecurityHeaderSettings": {
     "Enable": true,
-    "Headers": {
-      "XFrameOptions": "SAMEORIGIN",
-      "XContentTypeOptions": "nosniff",
-      "ReferrerPolicy": "same-origin",
-      "PermissionsPolicy": "geolocation=(), camera=()",
-      "SameSite": "",
-      "XXSS-Protection": "1; mode=block"
-    }
+    "ReferrerPolicy": "strict-origin-when-cross-origin",
+    "PermissionsPolicy": "geolocation=(), camera=(), microphone=()",
+    // TLS terminates upstream (Azure Container Apps), so the edge is the correct place to emit HSTS.
+    // Enabling this without a fully HTTPS-ready host locks clients out for the max-age duration.
+    "EnableHsts": false,
+    "HstsMaxAgeSeconds": 63072000,
+    "HstsIncludeSubDomains": true
   }
 }

@@ -275,7 +275,7 @@ A **strategic initiative** is a portfolio-level outcome the organisation is tryi
 
 **Read tools accept an ID or a key** for both the initiative and the KPI. **The two measurement write tools take UUIDs only** — resolve a key to a UUID with a read tool first.
 
-Everything else is read-only via MCP: initiatives cannot be created, updated, or transitioned, and KPIs cannot be added, edited, reordered, or deleted.
+Initiative **status** can be changed — see the status tools above. Everything else is read-only via MCP: initiatives cannot be created, updated, or deleted, and KPIs cannot be added, edited, reordered, or deleted.
 
 #### KPI semantics
 

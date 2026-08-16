@@ -8,7 +8,7 @@ Strategic initiatives are the portfolio-level outcomes the organisation is pursu
 
 Reads: `StrategicInitiatives_GetStrategicInitiatives`, `_GetStrategicInitiative`, `_GetStatuses`, `_GetProjects`, `_GetKpis`, `_GetKpi`, `_GetKpiCheckpoints`, `_GetKpiCheckpointPlan`, `_GetKpiMeasurements`, plus `Portfolios_GetPortfolioStrategicInitiatives` for the portfolio-scoped list.
 
-Writes: `StrategicInitiatives_AddKpiMeasurement` and `_RemoveKpiMeasurement`. Recording a KPI measurement is periodic, low-blast-radius reporting work, so it follows the precedent set by project health checks. Everything else stays read-only — initiatives cannot be created, updated, or transitioned, and KPIs cannot be added, edited, reordered, or deleted.
+Writes: `StrategicInitiatives_AddKpiMeasurement` and `_RemoveKpiMeasurement`. Recording a KPI measurement is periodic, low-blast-radius reporting work, so it follows the precedent set by project health checks. Everything else stays read-only — initiatives cannot be created, updated, or deleted, and KPIs cannot be added, edited, reordered, or deleted. (Initiative *status* transitions land separately in this same release.)
 
 Note the ID asymmetry: the read tools accept an ID **or** a key for both the initiative and the KPI, while the two measurement write tools take UUIDs only and cross-check the body against the path.
 

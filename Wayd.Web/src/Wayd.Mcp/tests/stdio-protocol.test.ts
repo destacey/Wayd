@@ -242,9 +242,18 @@ describe('stdio transport', () => {
       );
     }
 
-    // A GET must never be advertised as anything but read-only.
-    const mislabelledReads = tools.filter(t => t.annotations?.destructiveHint && t.name.startsWith('Get'));
-    assert.equal(mislabelledReads.length, 0, 'a read tool is marked destructive');
+    // A read must never be advertised as destructive. Tool names are prefixed by area
+    // (`Portfolios_GetPortfolios`), so the verb sits after the underscore — matching on a
+    // leading "Get" would silently pass without inspecting anything.
+    const reads = tools.filter(t => /_(Get|List)/.test(t.name));
+    assert.ok(reads.length > 0, 'no read tools matched — did the naming convention change?');
+
+    const mislabelledReads = reads.filter(t => t.annotations?.destructiveHint);
+    assert.deepEqual(
+      mislabelledReads.map(t => t.name),
+      [],
+      'these read tools are marked destructive, so clients would confirm before a harmless read'
+    );
   });
 
   test('reports unknown tools as errors instead of crashing', async () => {

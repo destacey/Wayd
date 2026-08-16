@@ -92,7 +92,11 @@ public class HangfireService : IJobService
     private static JobPageDto EnqueuedPage(IMonitoringApi monitoring, int from, int pageSize)
     {
         var queues = monitoring.Queues();
-        var total = queues.Sum(q => q.Length);
+
+        // EnqueuedCount, not QueueWithTopEnqueuedJobsDto.Length: Length counts fetched (in-flight)
+        // rows too, so it reports jobs that EnqueuedJobs below will not return — the total and the
+        // list would disagree.
+        var total = queues.Sum(q => monitoring.EnqueuedCount(q.Name));
 
         var items = queues
             .SelectMany(queue => monitoring
@@ -151,18 +155,32 @@ public class HangfireService : IJobService
 
     public JobStatisticsDto GetStatistics()
     {
-        var statistics = JobStorage.Current.GetMonitoringApi().GetStatistics();
+        var monitoring = JobStorage.Current.GetMonitoringApi();
+        var statistics = monitoring.GetStatistics();
 
         return new JobStatisticsDto
         {
-            Enqueued = statistics.Enqueued,
-            Scheduled = statistics.Scheduled,
-            Processing = statistics.Processing,
-            Succeeded = statistics.Succeeded,
-            Failed = statistics.Failed,
-            Deleted = statistics.Deleted,
-            Recurring = statistics.Recurring,
-            Servers = statistics.Servers,
+            Current = new CurrentJobCountsDto
+            {
+                Enqueued = statistics.Enqueued,
+                Scheduled = statistics.Scheduled,
+                Processing = statistics.Processing,
+                Failed = statistics.Failed,
+                // *ListCount, not StatisticsDto.Succeeded/Deleted: those are counter-table running
+                // totals that keep climbing after the job records are purged. These are the retained
+                // counts, so they agree with what SucceededJobs/DeletedJobs actually return.
+                Succeeded = monitoring.SucceededListCount(),
+                Deleted = monitoring.DeletedListCount(),
+                Retries = statistics.Retries,
+                Awaiting = statistics.Awaiting,
+                Recurring = statistics.Recurring,
+                Servers = statistics.Servers,
+            },
+            AllTime = new AllTimeJobCountsDto
+            {
+                Succeeded = statistics.Succeeded,
+                Deleted = statistics.Deleted,
+            },
         };
     }
 

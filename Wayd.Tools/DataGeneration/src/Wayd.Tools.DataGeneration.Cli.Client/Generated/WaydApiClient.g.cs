@@ -72054,10 +72054,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// Counts per lifecycle bucket, for the dashboard tiles.
+    /// Job counts, split by what the number measures. Current values agree with the
+    /// <br/>matching job list; AllTime values are running totals that outlive the job records.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class JobStatisticsResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("current")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public CurrentJobCountsResponse Current { get; set; } = new CurrentJobCountsResponse();
+
+        [System.Text.Json.Serialization.JsonPropertyName("allTime")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public AllTimeJobCountsResponse AllTime { get; set; } = new AllTimeJobCountsResponse();
+
+    }
+
+    /// <summary>
+    /// Counts of jobs that exist now. Each agrees with the matching job list.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CurrentJobCountsResponse
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("enqueued")]
@@ -72069,20 +72087,47 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("processing")]
         public long Processing { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("succeeded")]
-        public long Succeeded { get; set; } = default!;
-
         [System.Text.Json.Serialization.JsonPropertyName("failed")]
         public long Failed { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("succeeded")]
+        public long Succeeded { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("deleted")]
         public long Deleted { get; set; } = default!;
+
+        /// <summary>
+        /// Null when the storage provider does not compute it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("retries")]
+        public long? Retries { get; set; } = default!;
+
+        /// <summary>
+        /// Null when the storage provider does not compute it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("awaiting")]
+        public long? Awaiting { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("recurring")]
         public long Recurring { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("servers")]
         public long Servers { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Running totals since the job store was created.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AllTimeJobCountsResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("succeeded")]
+        public long Succeeded { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("deleted")]
+        public long Deleted { get; set; } = default!;
 
     }
 

@@ -37348,16 +37348,32 @@ export interface JobStateHistoryResponse {
     changedAt?: Date | undefined;
 }
 
-/** Counts per lifecycle bucket, for the dashboard tiles. */
+/** Job counts, split by what the number measures. Current values agree with the matching job list; AllTime values are running totals that outlive the job records. */
 export interface JobStatisticsResponse {
+    current: CurrentJobCountsResponse;
+    allTime: AllTimeJobCountsResponse;
+}
+
+/** Counts of jobs that exist now. Each agrees with the matching job list. */
+export interface CurrentJobCountsResponse {
     enqueued: number;
     scheduled: number;
     processing: number;
-    succeeded: number;
     failed: number;
+    succeeded: number;
     deleted: number;
+    /** Null when the storage provider does not compute it. */
+    retries?: number | undefined;
+    /** Null when the storage provider does not compute it. */
+    awaiting?: number | undefined;
     recurring: number;
     servers: number;
+}
+
+/** Running totals since the job store was created. */
+export interface AllTimeJobCountsResponse {
+    succeeded: number;
+    deleted: number;
 }
 
 /** A worker process polling for jobs. A stale heartbeat indicates a wedged or stopped worker. */

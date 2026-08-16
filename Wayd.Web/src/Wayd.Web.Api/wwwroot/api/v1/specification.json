@@ -44674,14 +44674,31 @@
       },
       "JobStatisticsResponse": {
         "type": "object",
-        "description": "Counts per lifecycle bucket, for the dashboard tiles.",
+        "description": "Job counts, split by what the number measures. Current values agree with the\nmatching job list; AllTime values are running totals that outlive the job records.",
+        "additionalProperties": false,
+        "required": [
+          "current",
+          "allTime"
+        ],
+        "properties": {
+          "current": {
+            "$ref": "#/components/schemas/CurrentJobCountsResponse"
+          },
+          "allTime": {
+            "$ref": "#/components/schemas/AllTimeJobCountsResponse"
+          }
+        }
+      },
+      "CurrentJobCountsResponse": {
+        "type": "object",
+        "description": "Counts of jobs that exist now. Each agrees with the matching job list.",
         "additionalProperties": false,
         "required": [
           "enqueued",
           "scheduled",
           "processing",
-          "succeeded",
           "failed",
+          "succeeded",
           "deleted",
           "recurring",
           "servers"
@@ -44699,11 +44716,11 @@
             "type": "integer",
             "format": "int64"
           },
-          "succeeded": {
+          "failed": {
             "type": "integer",
             "format": "int64"
           },
-          "failed": {
+          "succeeded": {
             "type": "integer",
             "format": "int64"
           },
@@ -44711,11 +44728,42 @@
             "type": "integer",
             "format": "int64"
           },
+          "retries": {
+            "type": "integer",
+            "description": "Null when the storage provider does not compute it.",
+            "format": "int64",
+            "nullable": true
+          },
+          "awaiting": {
+            "type": "integer",
+            "description": "Null when the storage provider does not compute it.",
+            "format": "int64",
+            "nullable": true
+          },
           "recurring": {
             "type": "integer",
             "format": "int64"
           },
           "servers": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "AllTimeJobCountsResponse": {
+        "type": "object",
+        "description": "Running totals since the job store was created.",
+        "additionalProperties": false,
+        "required": [
+          "succeeded",
+          "deleted"
+        ],
+        "properties": {
+          "succeeded": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "deleted": {
             "type": "integer",
             "format": "int64"
           }

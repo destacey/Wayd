@@ -59,15 +59,15 @@ const BackgroundJobsListPage = () => {
   }
 
   const actionsMenuItems: MenuProps['items'] = (() => {
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
     const items: ItemType[] = []
 
-    if (canViewHangfire) {
+    // Guarded on the base URL as well as the permission: without it the link would
+    // resolve to "undefined/jobs" (same treatment as the Swagger link in profile-menu).
+    if (canViewHangfire && apiBaseUrl) {
       items.push({
         label: (
-          <Link
-            href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/jobs`}
-            target="_blank"
-          >
+          <Link href={`${apiBaseUrl}/jobs`} target="_blank">
             Hangfire Dashboard
           </Link>
         ),

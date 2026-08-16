@@ -39,7 +39,11 @@ public class HangfireService : IJobService
     public JobPageDto GetJobs(JobStateFilter state, int pageNumber, int pageSize)
     {
         var monitoring = JobStorage.Current.GetMonitoringApi();
-        var from = pageNumber * pageSize;
+
+        // Clamped here as well as in the caller so the service is safe called directly.
+        pageNumber = Math.Max(pageNumber, 0);
+        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+        var from = PageOffset(pageNumber, pageSize);
 
         return state switch
         {
@@ -134,7 +138,7 @@ public class HangfireService : IJobService
         }).ToList() ?? [];
 
         // Exception detail lives on the failed state's data bag, not on JobDetailsDto.
-        var failure = details.History?.FirstOrDefault(h => h.StateName == FailedStateName);
+        var failure = CurrentFailure(details.History);
 
         return new JobDetailDto
         {
@@ -238,6 +242,21 @@ public class HangfireService : IJobService
 
     private const string FailedStateName = "Failed";
     private const string UnknownValue = "Unknown";
+    internal const int MaxPageSize = 500;
+
+    /// <summary>
+    /// The zero-based row offset for a page, saturating rather than overflowing. The monitoring API
+    /// takes int offsets, so a large page number would otherwise wrap to a negative offset.
+    /// </summary>
+    internal static int PageOffset(int pageNumber, int pageSize) =>
+        (int)Math.Min((long)Math.Max(pageNumber, 0) * pageSize, int.MaxValue - pageSize);
+
+    /// <summary>
+    /// The failure that left the job in its current state. History is oldest-first and a retried job
+    /// records one entry per attempt, so the last failure — not the first — is the current one.
+    /// </summary>
+    internal static StateHistoryDto? CurrentFailure(IEnumerable<StateHistoryDto>? history) =>
+        history?.LastOrDefault(h => h.StateName == FailedStateName);
 
     private static JobSummaryDto Summary(string id, Job? job, string state, Instant? timestamp, string timestampLabel) => new()
     {

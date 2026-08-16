@@ -53,6 +53,67 @@ public class ScoringFormulaEvaluatorTests
     }
 
     [Fact]
+    public void Validate_ShouldFail_WhenFormulaNestsBeyondMaxDepth()
+    {
+        // Arrange
+        // Deep enough to overflow NCalc's recursive-descent parser, but well inside MaxFormulaLength — the
+        // length bound alone does not stop it, and the resulting StackOverflowException would be uncatchable.
+        const int depth = 200;
+        var formula = new string('(', depth) + "BV" + new string(')', depth);
+
+        // Act
+        var result = ScoringFormulaEvaluator.Validate(formula, DefaultTokens);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain(ScoringFormulaEvaluator.MaxNestingDepth.ToString());
+        formula.Length.Should().BeLessThan(ScoringFormulaEvaluator.MaxFormulaLength);
+    }
+
+    [Fact]
+    public void Validate_ShouldFail_WhenUnbalancedOpeningParenthesesNestBeyondMaxDepth()
+    {
+        // Arrange
+        // The unbalanced form crashes the parser too, so the guard must not depend on well-formed input.
+        var formula = new string('(', 200) + "BV";
+
+        // Act
+        var result = ScoringFormulaEvaluator.Validate(formula, DefaultTokens);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain(ScoringFormulaEvaluator.MaxNestingDepth.ToString());
+    }
+
+    [Fact]
+    public void Validate_ShouldSucceed_WhenNestingIsWithinMaxDepth()
+    {
+        // Arrange
+        var depth = ScoringFormulaEvaluator.MaxNestingDepth;
+        var formula = new string('(', depth) + "BV" + new string(')', depth);
+
+        // Act
+        var result = ScoringFormulaEvaluator.Validate(formula, DefaultTokens);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validate_ShouldSucceed_ForManySequentialGroupsWithinMaxDepth()
+    {
+        // Arrange
+        // Sequential groups reopen at depth 1 repeatedly; only true nesting may count toward the bound.
+        var formula = string.Join(" + ", Enumerable.Repeat("(BV)", 100));
+
+        // Act
+        var result = ScoringFormulaEvaluator.Validate(formula, DefaultTokens);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
     public void Validate_ShouldFail_WhenFormulaIsNotParseable()
     {
         // Arrange
@@ -112,6 +173,52 @@ public class ScoringFormulaEvaluatorTests
 
     #endregion
 
+    #region IsWithinMaxNestingDepth
+
+    [Fact]
+    public void IsWithinMaxNestingDepth_ShouldBeFalse_WhenNestingExceedsMaxDepth()
+    {
+        // Arrange
+        var formula = new string('(', 200) + "BV" + new string(')', 200);
+
+        // Act
+        var result = ScoringFormulaEvaluator.IsWithinMaxNestingDepth(formula);
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsWithinMaxNestingDepth_ShouldBeTrue_AtExactlyMaxDepth()
+    {
+        // Arrange
+        var depth = ScoringFormulaEvaluator.MaxNestingDepth;
+        var formula = new string('(', depth) + "BV" + new string(')', depth);
+
+        // Act
+        var result = ScoringFormulaEvaluator.IsWithinMaxNestingDepth(formula);
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void IsWithinMaxNestingDepth_ShouldBeTrue_WhenFormulaIsAbsent(string? formula)
+    {
+        // Arrange
+        // Emptiness is NotEmpty()'s job in the validators; this rule must not also fail it and double-report.
+
+        // Act
+        var result = ScoringFormulaEvaluator.IsWithinMaxNestingDepth(formula!);
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    #endregion
+
     #region GetReferencedTokens
 
     [Fact]
@@ -140,6 +247,20 @@ public class ScoringFormulaEvaluatorTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("empty");
+    }
+
+    [Fact]
+    public void GetReferencedTokens_ShouldFail_WhenFormulaNestsBeyondMaxDepth()
+    {
+        // Arrange
+        var formula = new string('(', 200) + "BV" + new string(')', 200);
+
+        // Act
+        var result = ScoringFormulaEvaluator.GetReferencedTokens(formula);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain(ScoringFormulaEvaluator.MaxNestingDepth.ToString());
     }
 
     [Fact]
@@ -236,6 +357,23 @@ public class ScoringFormulaEvaluatorTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("could not be evaluated");
+    }
+
+    [Fact]
+    public void Evaluate_ShouldFail_WhenFormulaNestsBeyondMaxDepth()
+    {
+        // Arrange
+        // Evaluate re-parses stored formulas, so it must reject depth independently of the write path — anything
+        // persisted before the bound existed would otherwise still crash the process.
+        var formula = new string('(', 200) + "BV" + new string(')', 200);
+        var values = new Dictionary<string, decimal> { ["BV"] = 8m };
+
+        // Act
+        var result = ScoringFormulaEvaluator.Evaluate(formula, values);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain(ScoringFormulaEvaluator.MaxNestingDepth.ToString());
     }
 
     [Fact]

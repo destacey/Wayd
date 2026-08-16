@@ -68,4 +68,15 @@ export const definitions: [string, McpToolDefinition][] = [
     securityRequirements: [{"ApiKey":[]}],
   }],
 
+  ['Portfolios_GetPortfolioStrategicInitiatives', {
+    name: 'Portfolios_GetPortfolioStrategicInitiatives',
+    description: `Get a list of strategic initiatives for a portfolio. Optionally filter by status.`,
+    inputSchema: {"type":"object","properties":{"idOrKey":{"type":"string"},"status":{"type":["array","null"],"items":{"type":"number","format":"int32"}}},"required":["idOrKey"]},
+    method: 'get',
+    pathTemplate: '/api/ppm/portfolios/{idOrKey}/strategic-initiatives',
+    executionParameters: [{"name":"idOrKey","in":"path"},{"name":"status","in":"query"}],
+    requestBodyContentType: undefined,
+    securityRequirements: [{"ApiKey":[]}],
+  }],
+
 ];

@@ -137,7 +137,7 @@ Six self-contained skills are available:
 
 | Skill | Trigger |
 | --- | --- |
-| `wayd-ppm` | Portfolios, programs, projects — lookup, create, update, lifecycle |
+| `wayd-ppm` | Portfolios, programs, projects — lookup, plans, health checks, task management |
 | `wayd-pi` | Planning intervals, iterations, objectives, health reports, risks |
 | `wayd-roadmaps` | Roadmap exploration — activities, timeboxes, milestones |
 | `wayd-story-maps` | Story maps — analyze, create, and manage goals, steps, tasks, swim lanes, personas |
@@ -154,16 +154,33 @@ npx skills add destacey/Wayd
 
 Once installed, activate a skill in Claude Code with `/wayd-ppm`, `/wayd-pi`, `/wayd-roadmaps`, `/wayd-story-maps`, `/wayd-teams`, or `/wayd-users`.
 
+## Confirmation before status changes
+
+Tools that change a record's published status — activating, completing, cancelling, closing, or archiving a portfolio, program, project, or strategic initiative — are advertised to clients with the MCP `destructiveHint` annotation, as are the tools that permanently delete something. Clients that honour the annotation prompt for confirmation before running them.
+
+Two caveats worth knowing:
+
+- The hint is **advisory**. It tells a client to ask; it cannot force one to. Authorization is still enforced server-side, and PPM mutations additionally require delivery leadership (Owner or Manager on the record or an ancestor) regardless of what any client does.
+- A tool with no annotation is treated as read-only **only** when its underlying request is a GET. Any new write tool must opt in explicitly, so it can never be silently advertised as safe.
+
+### Updates overwrite the whole record
+
+Every update tool maps to a `PUT` that rewrites the record from the request body — these are not patches. A field left out of the body is cleared, not preserved, so callers must read the record first and pass back everything that should stay the same.
+
+This matters most for role assignments. `sponsorIds`, `ownerIds`, `managerIds`, and `memberIds` replace the membership of that role, and a list that is **omitted or empty removes everyone currently holding it** — updating only a project's name will strip its entire team unless the existing membership is passed back. The tool descriptions and the `wayd-ppm` skill both spell this out.
+
 ## Available Tools
 
 ### Project Portfolio Management
 
 | Category | Operations |
 | --- | --- |
-| **Portfolios** | List, get details, get programs, get projects |
-| **Programs** | List, get details, get projects |
+| **Portfolios** | List, get details, get programs, get projects, get strategic initiatives, get ranking scoreboard. Create, update. Status: activate, close, archive |
+| **Strategic Initiatives** | List, get details, get statuses, get linked projects. KPIs: list, get details, get checkpoints, get checkpoint plan, list measurements, add measurement, remove measurement. Status: approve, activate, complete, cancel |
+| **Programs** | List, get details, get projects. Create, update. Status: activate, complete, cancel |
 | **Project Lifecycles** | List (with state filter), get details |
-| **Projects** | List (with role filter), get details, get team, get phases, get phase details, get plan tree, get plan summary, list health checks, get health check, create health check |
+| **Expenditure Categories** | Get options (for project create/update) |
+| **Projects** | List (with role filter), get details, get status history, get my involvement summary, get my task metrics, get team, get phases, get phase details, get plan tree, get plan summary (single and batch), list health checks, get health check, create health check, get scoring context, list scores, get score, update/delete health check. Create, update, change program, change key. Status: approve, activate, complete, cancel |
 | **Tasks** | List, get details, get critical path, get types/statuses/priorities, create, update, delete, add/remove dependencies |
 
 ### Planning

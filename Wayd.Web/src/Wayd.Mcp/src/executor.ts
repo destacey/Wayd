@@ -101,6 +101,10 @@ export async function executeApiTool(
       method: definition.method.toUpperCase(),
       url: requestUrl,
       params: queryParams,
+      // ASP.NET binds array query parameters from repeated bare keys (`status=1&status=2`).
+      // Axios defaults to bracket syntax (`status[]=1`), which the model binder ignores —
+      // silently dropping every array filter. This matches the generated NSwag client.
+      paramsSerializer: { indexes: null },
       headers,
       ...(requestBodyData !== undefined && { data: requestBodyData }),
     };

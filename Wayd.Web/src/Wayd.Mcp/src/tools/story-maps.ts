@@ -81,6 +81,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"id","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
   // -------------------------------------------------------------------------------------------
@@ -129,6 +130,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"goalId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
   ['StoryMaps_SetGoalPersonas', {
@@ -199,6 +201,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"stepId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
   ['StoryMaps_SetStepPersonas', {
@@ -258,6 +261,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"taskId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
   ['StoryMaps_SetTaskPersonas', {
@@ -317,6 +321,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"taskId","in":"path"},{"name":"itemId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
   ['StoryMaps_PromoteChecklistItem', {
@@ -354,6 +359,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"taskId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
   // -------------------------------------------------------------------------------------------
@@ -413,6 +419,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"swimLaneId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
   // -------------------------------------------------------------------------------------------
@@ -461,6 +468,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"storyMapId","in":"path"},{"name":"personaId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
 ];

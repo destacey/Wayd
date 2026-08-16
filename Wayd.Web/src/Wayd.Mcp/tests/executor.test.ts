@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import type { AxiosError } from 'axios';
+import axios, { type AxiosError } from 'axios';
 
 import { formatApiError, executeApiTool, securitySchemes } from '../build/executor.js';
 import { zodSchemas } from '../build/generated/zod-schemas.js';
@@ -238,5 +238,38 @@ describe('executeApiTool', () => {
     const [firstBlock] = result.content;
     assert.ok(firstBlock, 'expected an error message in the result content');
     assert.equal(firstBlock.type, 'text');
+  });
+
+  test('serialises array query parameters as repeated bare keys', async () => {
+    // Arrange
+    // ASP.NET's model binder reads `status=1&status=2`; axios defaults to
+    // `status[]=1`, which binds to nothing and silently drops the filter. A
+    // captured adapter pins the wire format without making a network call.
+    const definition = toolDefinitionMap.get('Projects_GetProjects');
+    assert.ok(definition, 'expected the Projects_GetProjects definition');
+
+    let capturedUrl = '';
+    const previousAdapter = axios.defaults.adapter;
+    axios.defaults.adapter = async (config) => {
+      capturedUrl = axios.getUri(config);
+      return { data: [], status: 200, statusText: 'OK', headers: {}, config };
+    };
+
+    // Act
+    try {
+      await executeApiTool(
+        'Projects_GetProjects',
+        definition,
+        { status: [1, 2] },
+        securitySchemes
+      );
+    } finally {
+      axios.defaults.adapter = previousAdapter;
+    }
+
+    // Assert
+    const decoded = decodeURIComponent(capturedUrl);
+    assert.match(decoded, /status=1&status=2/, 'array params must repeat the bare key');
+    assert.doesNotMatch(decoded, /status\[\]/, 'bracket syntax does not bind server-side');
   });
 });

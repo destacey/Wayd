@@ -36,6 +36,8 @@ Wayd/
   Wayd.Web/
     Wayd.Web.Api/                 # ASP.NET Core Web API
     wayd.web.reactclient/         # Next.js 16 / React 19 frontend
+    Wayd.Mcp/                     # MCP server (@wayd/mcp) exposing the API as agent tools
+  skills/                         # Agent skills published alongside the MCP server
   docs/                           # Documentation (MDX, shared by Docusaurus and Next.js)
   docs-site/                      # Docusaurus config for GitHub Pages
 ```

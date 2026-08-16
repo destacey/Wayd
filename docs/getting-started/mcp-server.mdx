@@ -13,11 +13,12 @@ Wayd provides an [MCP (Model Context Protocol)](https://modelcontextprotocol.io)
 
 ## What Can It Do?
 
-The MCP server exposes 80+ tools across Wayd's core modules:
+The MCP server exposes 150+ tools across Wayd's core modules:
 
 | Module | Capabilities |
 |--------|-------------|
-| **[PPM](../user-guide/ppm/index.mdx)** | List/view portfolios, programs, projects, phases, tasks. Create and update tasks. View project plan tree and summary metrics. Get critical path. Manage task dependencies. Review and log project health checks. |
+| **[PPM](../user-guide/ppm/index.mdx)** | List/view portfolios, programs, projects, phases, tasks. Create and update portfolios, programs, projects, and tasks. Change status (approve, activate, complete, cancel, close, archive). View project plan tree, summary metrics, and status history. Get critical path. Manage task dependencies. Review and log project health checks. Review project scores and portfolio ranking. |
+| **[Strategic Initiatives](../user-guide/ppm/strategic-initiatives.mdx)** | List/view initiatives, their statuses, and the projects delivering them. Review KPIs, checkpoints, and the checkpoint plan with health and trend. Record and remove KPI measurements. Change initiative status. |
 | **[Planning](../user-guide/planning/index.mdx)** | List/view planning intervals, iterations, objectives, risks. Get PI predictability and health reports. Review and log objective health checks. View calendars. |
 | **[Roadmaps](../user-guide/planning/roadmaps.mdx)** | List/view roadmaps and their items (activities, milestones, timeboxes). |
 | **[Story Maps](../user-guide/planning/story-maps.mdx)** | List story maps and read a full map — goals, steps, tasks (with checklists, personas, and work item links), swim lanes, and personas. Create and manage maps: build out goals/steps/tasks, reorder and move cards, manage swim lanes, personas, checklists, and work item links. |
@@ -127,7 +128,7 @@ CLI arguments take precedence over environment variables.
 
 For Claude Code users, six pre-built skills provide guided workflows:
 
-- **`/wayd-ppm`** — Portfolio, program, and project operations
+- **`/wayd-ppm`** — Portfolio, program, project, and strategic initiative operations, including scoring, health checks, status changes, and tasks
 - **`/wayd-pi`** — Planning intervals, iterations, objectives, and risks
 - **`/wayd-roadmaps`** — Roadmap exploration with activities and milestones
 - **`/wayd-story-maps`** — Story map analysis and management with goals, steps, tasks, swim lanes, and personas
@@ -159,10 +160,41 @@ npx skills add destacey/wayd
 | `Projects_GetProjectPhases` | Get all project phases |
 | `Projects_GetProjectPlanTree` | Get full plan as a hierarchical tree (WBS) |
 | `Projects_GetProjectPlanSummary` | Get plan metrics (overdue, due this week, totals) |
+| `Projects_GetStatusHistory` | Get a project's status change history |
+| `Projects_GetMyProjectsSummary` | Your own project involvement, counted by role |
+| `Projects_GetMyProjectsTaskMetrics` | Your open task counts (overdue, due this week, upcoming) |
+| `Projects_GetProjectsPlanSummaries` | Plan metrics for many projects in one call |
 | `Projects_GetProjectHealthChecks` | Get the health check history for a project |
 | `Projects_GetProjectHealthCheck` | Get a specific project health check by ID |
 | `Projects_CreateProjectHealthCheck` | Log a new health check (Healthy / AtRisk / Unhealthy) on a project |
+| `Projects_UpdateProjectHealthCheck` / `Projects_DeleteProjectHealthCheck` | Correct or remove a recorded health check |
+| `Projects_GetScoringContext` / `Projects_GetScores` / `Projects_GetScore` | Review a project's scoring model and score history |
+| `Portfolios_GetRankingScoreboard` | Score breakdown behind a portfolio's ranking board |
+| `Portfolios_Create` / `Portfolios_Update` | Create and update portfolios |
+| `Programs_Create` / `Programs_Update` | Create and update programs |
+| `Projects_Create` / `Projects_Update` | Create and update projects |
+| `Projects_ChangeProgram` / `Projects_ChangeKey` | Move a project between programs, or change its key |
+| `Portfolios_Activate` / `Portfolios_Close` / `Portfolios_Archive` | Change portfolio status |
+| `Programs_Activate` / `Programs_Complete` / `Programs_Cancel` | Change program status |
+| `Projects_Approve` / `Projects_Activate` / `Projects_Complete` / `Projects_Cancel` | Change project status |
 | `ProjectLifecycles_GetProjectLifecycles` | List lifecycles with state filter |
+| `ExpenditureCategories_GetOptions` | Resolve the expenditure category needed to create a project |
+
+### Strategic Initiatives
+
+| Tool | Description |
+|------|-------------|
+| `StrategicInitiatives_GetStrategicInitiatives` | List initiatives with status/portfolio filters |
+| `StrategicInitiatives_GetStrategicInitiative` | Get initiative details |
+| `StrategicInitiatives_GetStatuses` | Resolve initiative status values |
+| `StrategicInitiatives_GetProjects` | Projects delivering an initiative |
+| `Portfolios_GetPortfolioStrategicInitiatives` | Initiatives in a portfolio |
+| `StrategicInitiatives_GetKpis` / `StrategicInitiatives_GetKpi` | Review an initiative's KPIs |
+| `StrategicInitiatives_GetKpiCheckpoints` | A KPI's dated targets |
+| `StrategicInitiatives_GetKpiCheckpointPlan` | Checkpoints with measurements, health, and trend |
+| `StrategicInitiatives_GetKpiMeasurements` | A KPI's measurement history |
+| `StrategicInitiatives_AddKpiMeasurement` / `StrategicInitiatives_RemoveKpiMeasurement` | Record or remove a KPI measurement |
+| `StrategicInitiatives_Approve` / `_Activate` / `_Complete` / `_Cancel` | Change initiative status |
 
 ### Tasks
 
@@ -230,6 +262,19 @@ npx skills add destacey/wayd
 | `Users_GetUsers` | List all users |
 | `Users_GetUser` | Get user details |
 
+## Changes That Ask First
+
+Most tools only read data. The ones that change something a colleague relies on — changing a record's status, updating a portfolio, program, or project, or deleting anything — are flagged so your AI assistant asks for confirmation before running them.
+
+Whether you actually see a prompt depends on the assistant you're using: the flag is a signal, and clients decide how to honour it. Your permissions are always enforced by Wayd itself regardless of what any client does.
+
+Two behaviours worth knowing before you approve one:
+
+- **Updates replace the whole record.** Anything not included in an update is cleared rather than left alone. This matters most for people: sponsors, owners, managers, and members are replaced as a set, so an update must carry the full team to keep it. Your assistant is instructed to read a record before updating it and pass back everything that should stay the same.
+- **Activating a portfolio sets its start date to today, and closing it sets its end date to today.** Neither can be backdated, so avoid using them to tidy up a portfolio that really started or ended earlier.
+
+Deleting a portfolio, program, project, or strategic initiative isn't available through the MCP server at all.
+
 ## Security
 
 The MCP server authenticates using your [Personal Access Token](./your-profile.mdx#personal-access-tokens). The token inherits your permissions — the MCP server can only access what you can access.
@@ -237,3 +282,5 @@ The MCP server authenticates using your [Personal Access Token](./your-profile.m
 - Store your API key securely — don't commit it to version control
 - Use environment variables rather than hardcoding in config files
 - Revoke tokens from your [profile page](./your-profile.mdx#personal-access-tokens) if compromised
+
+Changing a portfolio, program, or project additionally requires **delivery leadership** — being an Owner or Manager on the record or on one above it. Having permission to view or edit is not enough on its own, and sponsors and project members are excluded. If a change is refused even though your token has the right permission, this is usually why. See [Permissions](../user-guide/settings/permissions.mdx) for details.

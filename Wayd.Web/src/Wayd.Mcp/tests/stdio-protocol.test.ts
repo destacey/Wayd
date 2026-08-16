@@ -53,6 +53,16 @@ const INIT_REQUEST = {
 };
 
 /**
+ * Splits accumulated stdout into complete, newline-terminated lines, discarding any
+ * trailing partial line still being written.
+ */
+function completeLines(buffer: string): string[] {
+  const lastNewline = buffer.lastIndexOf('\n');
+  if (lastNewline === -1) return [];
+  return buffer.slice(0, lastNewline).split('\n').filter(Boolean);
+}
+
+/**
  * Spawns the server, performs the MCP handshake, sends `requests`, and
  * collects everything written to stdout/stderr.
  */
@@ -80,7 +90,11 @@ async function runServer(
     const timer = setTimeout(done, 10_000);
     timer.unref?.();
     child.stdout.on('data', () => {
-      if (stdout.trim().split('\n').filter(Boolean).length >= expectedResponses) {
+      // Count only newline-TERMINATED lines. A large response (tools/list is tens of
+      // kilobytes) arrives across several chunks, and a chunk that ends mid-line would
+      // otherwise be counted as complete — resolving early and killing the child
+      // partway through writing, which surfaces as "non-JSON line on stdout".
+      if (completeLines(stdout).length >= expectedResponses) {
         clearTimeout(timer);
         done();
       }
@@ -98,7 +112,7 @@ async function runServer(
   await settled;
   child.kill();
 
-  const stdoutLines = stdout.trim().split('\n').filter(Boolean);
+  const stdoutLines = completeLines(stdout.endsWith('\n') ? stdout : `${stdout}\n`);
   const responses = new Map<number, JsonRpcResponse>();
   for (const line of stdoutLines) {
     try {
@@ -196,6 +210,50 @@ describe('stdio transport', () => {
 
     const names = tools.map(t => t.name);
     assert.equal(new Set(names).size, names.length, 'duplicate tool names would shadow each other');
+  });
+
+  test('advertises every status transition as destructive so clients confirm first', async () => {
+    // Arrange
+    // Status changes are published state other people act on, so a client must be
+    // able to prompt before one runs. The hint travels in the tools/list payload,
+    // so this asserts the wire contract rather than the local definitions.
+    const listRequest = { jsonrpc: '2.0', id: 2, method: 'tools/list' };
+
+    // Act
+    const { responses } = await runServer([listRequest]);
+
+    // Assert
+    const list = responses.get(2);
+    assert.ok(list, 'no response to tools/list');
+    const { tools } = list.result as {
+      tools: { name: string; annotations?: { readOnlyHint?: boolean; destructiveHint?: boolean } }[];
+    };
+
+    const transitions = tools.filter(t =>
+      /_(Approve|Activate|Complete|Cancel|Close|Archive)$/.test(t.name)
+    );
+    assert.ok(transitions.length > 0, 'no status transition tools found — did they get renamed?');
+
+    for (const tool of transitions) {
+      assert.equal(
+        tool.annotations?.destructiveHint,
+        true,
+        `${tool.name} changes a published status but is not marked destructive, so a client would run it without confirming`
+      );
+    }
+
+    // A read must never be advertised as destructive. Tool names are prefixed by area
+    // (`Portfolios_GetPortfolios`), so the verb sits after the underscore — matching on a
+    // leading "Get" would silently pass without inspecting anything.
+    const reads = tools.filter(t => /_(Get|List)/.test(t.name));
+    assert.ok(reads.length > 0, 'no read tools matched — did the naming convention change?');
+
+    const mislabelledReads = reads.filter(t => t.annotations?.destructiveHint);
+    assert.deepEqual(
+      mislabelledReads.map(t => t.name),
+      [],
+      'these read tools are marked destructive, so clients would confirm before a harmless read'
+    );
   });
 
   test('reports unknown tools as errors instead of crashing', async () => {

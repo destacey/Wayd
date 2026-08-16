@@ -1648,6 +1648,347 @@ public class UserServiceTests
 
     #endregion
 
+    #region GetOrCreateFromPrincipalAsync — unstaged link denial (F3)
+
+    // Arranges the Entra sign-in path so that identity resolution finds nothing —
+    // no active (tid, oid) row, no NULL-tenant backfill — leaving the token to fall
+    // through to the link-or-create decision. `existing` is the account already in
+    // the database that the token's display name / UPN will match.
+    private void ArrangeUnstagedSignIn(ApplicationUser existing, OidcProvider? provider = null)
+    {
+        _mockOidcProviderRegistry
+            .Setup(r => r.GetByName(LoginProviders.MicrosoftEntraId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(provider ?? CreateEntraProviderWithPolicy(requireEmployeeRecord: false));
+
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { existing }.AsQueryable().BuildMockDbSet().Object);
+
+        _mockUserIdentityStore.Setup(s => s.FindActive(LoginProviders.MicrosoftEntraId, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserIdentity?)null);
+        _mockUserIdentityStore.Setup(s => s.FindActiveByNullTenant(LoginProviders.MicrosoftEntraId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<UserIdentity>());
+
+        // The token's display name and UPN both resolve to the existing account —
+        // this is exactly the mutable-attribute match F3 exploited.
+        _mockUserManager.Setup(x => x.FindByNameAsync(It.IsAny<string>())).ReturnsAsync(existing);
+        _mockUserManager.Setup(x => x.FindByEmailAsync(It.IsAny<string>())).ReturnsAsync(existing);
+    }
+
+    // Asserts the deny left the matched account exactly as it was: their active
+    // identity was never deactivated and their password hash was never removed.
+    // Both matter — the first is the takeover damage, the second is what lets them
+    // keep using local login until an admin stages a migration.
+    private void VerifyDenyWasInert(ApplicationUser matched, string? originalPasswordHash)
+    {
+        _mockUserIdentityStore.Verify(s => s.DeactivateAllActive(
+            It.IsAny<string>(), It.IsAny<NodaTime.Instant>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _mockUserIdentityStore.Verify(s => s.DeactivateAllActive(
+            It.IsAny<string>(), It.IsAny<NodaTime.Instant>(), It.IsAny<string>()),
+            Times.Never);
+        _mockUserIdentityStore.Verify(s => s.Add(It.IsAny<UserIdentity>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockUserIdentityStore.Verify(s => s.Add(It.IsAny<UserIdentity>()), Times.Never);
+        _mockUserManager.Verify(x => x.RemovePasswordAsync(It.IsAny<ApplicationUser>()), Times.Never);
+        _mockUserManager.Verify(x => x.CreateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+        matched.PasswordHash.Should().Be(originalPasswordHash);
+        matched.LoginProvider.Should().Be(LoginProviders.Wayd);
+    }
+
+    [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldDenyInertly_WhenTokenMatchesLocalAccountWithNoStagedMigration()
+    {
+        // Arrange — a Wayd-local account whose email an Entra directory object now
+        // presents. Nothing authorizes adopting it, and denying must not degrade the
+        // account: they keep signing in locally until an admin stages the migration.
+        const string upn = "dana.reyes@acme.example";
+        var local = CreateUser(id: "user-local-admin", userName: upn, loginProvider: LoginProviders.Wayd);
+        local.NormalizedUserName = upn.ToUpperInvariant();
+        local.NormalizedEmail = upn.ToUpperInvariant();
+        local.PasswordHash = "AQAAAAIAAYagAAAAEPLACEHOLDERHASHVALUE==";
+        var originalHash = local.PasswordHash;
+
+        ArrangeUnstagedSignIn(local);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.GetOrCreateFromPrincipalAsync(CreateNewUserPrincipal(
+            "11111111-1111-1111-1111-111111111111",
+            "22222222-2222-2222-2222-222222222222",
+            upn,
+            displayName: upn));
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>()
+            .WithMessage("*not linked to this identity provider*");
+        VerifyDenyWasInert(local, originalHash);
+    }
+
+    [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldDenyInertly_WhenUserIsStagedForADifferentTenant()
+    {
+        // Arrange — a migration exists but targets another tenant, so it does not
+        // authorize this token. The staged flag must survive the denial so the real
+        // migration can still complete when the user signs in from the right tenant.
+        const string upn = "sam.okafor@acme.example";
+        const string stagedTenant = "33333333-3333-3333-3333-333333333333";
+        const string tokenTenant = "44444444-4444-4444-4444-444444444444";
+
+        var staged = CreateUser(id: "user-staged-elsewhere", userName: upn, loginProvider: LoginProviders.Wayd);
+        staged.NormalizedUserName = upn.ToUpperInvariant();
+        staged.NormalizedEmail = upn.ToUpperInvariant();
+        staged.PasswordHash = "AQAAAAIAAYagAAAAEPLACEHOLDERHASHVALUE==";
+        staged.PendingMigrationTenantId = stagedTenant;
+        var originalHash = staged.PasswordHash;
+
+        ArrangeUnstagedSignIn(staged);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.GetOrCreateFromPrincipalAsync(CreateNewUserPrincipal(
+            "55555555-5555-5555-5555-555555555555", tokenTenant, upn, displayName: upn));
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>()
+            .WithMessage("*not linked to this identity provider*");
+        VerifyDenyWasInert(staged, originalHash);
+        staged.PendingMigrationTenantId.Should().Be(stagedTenant);
+    }
+
+    [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldDenyInertly_WhenAutoRegistrationIsDisabledAndAccountMatches()
+    {
+        // Arrange — the policy gates now apply to the matched-account branch too, but
+        // the deny fires first either way. Previously this path linked regardless of
+        // the provider's registration policy.
+        const string upn = "priya.venkat@acme.example";
+        var local = CreateUser(id: "user-policy-off", userName: upn, loginProvider: LoginProviders.Wayd);
+        local.NormalizedUserName = upn.ToUpperInvariant();
+        local.NormalizedEmail = upn.ToUpperInvariant();
+        local.PasswordHash = "AQAAAAIAAYagAAAAEPLACEHOLDERHASHVALUE==";
+        var originalHash = local.PasswordHash;
+
+        ArrangeUnstagedSignIn(local, CreateEntraProviderWithPolicy(allowAutoRegistration: false));
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.GetOrCreateFromPrincipalAsync(CreateNewUserPrincipal(
+            "66666666-6666-6666-6666-666666666666",
+            "22222222-2222-2222-2222-222222222222",
+            upn,
+            displayName: upn));
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>();
+        VerifyDenyWasInert(local, originalHash);
+    }
+
+    [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldDenyInertly_WhenEmailIsExplicitlyUnverified()
+    {
+        // Arrange — an unverified address is not evidence of who the presenter is, so
+        // it must not even be used to look up an account, let alone bind one.
+        const string upn = "unverified@acme.example";
+        var local = CreateUser(id: "user-unverified-target", userName: upn, loginProvider: LoginProviders.Wayd);
+        local.NormalizedUserName = upn.ToUpperInvariant();
+        local.NormalizedEmail = upn.ToUpperInvariant();
+        local.PasswordHash = "AQAAAAIAAYagAAAAEPLACEHOLDERHASHVALUE==";
+        var originalHash = local.PasswordHash;
+
+        ArrangeUnstagedSignIn(local);
+
+        var principal = CreateNewUserPrincipal(
+            "77777777-7777-7777-7777-777777777777",
+            "22222222-2222-2222-2222-222222222222",
+            upn,
+            displayName: upn);
+        ((ClaimsIdentity)principal.Identity!).AddClaim(new Claim("email_verified", "false"));
+
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.GetOrCreateFromPrincipalAsync(principal);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>()
+            .WithMessage("*has not verified your email address*");
+        VerifyDenyWasInert(local, originalHash);
+    }
+
+    [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldRebindStagedMigration_WhenTenantMatches()
+    {
+        // Arrange — the legitimate flow must keep working: an admin staged this user
+        // for this token's tenant, so the rebind proceeds even though the same token
+        // would have been denied without the staging.
+        const string upn = "lin.zhao@acme.example";
+        const string tenantId = "88888888-8888-8888-8888-888888888888";
+        const string objectId = "99999999-9999-9999-9999-999999999999";
+
+        var user = CreateUser(id: "user-staged-correctly", userName: upn, loginProvider: LoginProviders.MicrosoftEntraId);
+        user.NormalizedUserName = upn.ToUpperInvariant();
+        user.NormalizedEmail = upn.ToUpperInvariant();
+        user.PendingMigrationTenantId = tenantId;
+        user.PendingMigrationStagedAt = _dateTimeProvider.Now;
+
+        _mockOidcProviderRegistry
+            .Setup(r => r.GetByName(LoginProviders.MicrosoftEntraId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateEntraProviderWithPolicy(requireEmployeeRecord: false));
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+        _mockUserManager.Setup(x => x.GetRolesAsync(user)).ReturnsAsync(["Basic"]);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+        _mockUserIdentityStore.Setup(s => s.FindActive(LoginProviders.MicrosoftEntraId, tenantId, objectId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserIdentity?)null);
+        _mockUserIdentityStore.Setup(s => s.FindActiveByNullTenant(LoginProviders.MicrosoftEntraId, objectId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<UserIdentity>());
+
+        var sut = CreateSut();
+
+        // Act
+        var (resolvedId, _) = await sut.GetOrCreateFromPrincipalAsync(
+            CreateNewUserPrincipal(objectId, tenantId, upn, displayName: upn));
+
+        // Assert
+        resolvedId.Should().Be(user.Id);
+        user.PendingMigrationTenantId.Should().BeNull();
+        _mockUserIdentityStore.Verify(s => s.Add(
+            It.Is<UserIdentity>(ui =>
+                ui.UserId == user.Id &&
+                ui.ProviderTenantId == tenantId &&
+                ui.ProviderSubject == objectId &&
+                ui.IsActive),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task TryApplyPendingProviderMigration_ShouldSetProviderAndClearPassword_WhenStagedUserMigrates()
+    {
+        // Arrange — the supported staged-migration route. It must leave no split state:
+        // the account that had to be repaired by hand carried LoginProvider = Wayd next
+        // to a live SSO identity and a still-present password hash. The hash is cleared
+        // whenever one is present, whatever the previous provider was.
+        const string targetProvider = "Acme-Okta";
+        const string email = "jordan.blake@acme.example";
+
+        var user = CreateUser(id: "user-migrating", loginProvider: LoginProviders.MicrosoftEntraId);
+        user.NormalizedEmail = email.ToUpperInvariant();
+        user.PendingMigrationProviderId = targetProvider;
+        user.PasswordHash = "AQAAAAIAAYagAAAAEPLACEHOLDERHASHVALUE==";
+
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+        _mockUserManager.Setup(x => x.RemovePasswordAsync(user)).ReturnsAsync(IdentityResult.Success);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.TryApplyPendingProviderMigration(targetProvider, null, "okta-sub-placeholder", email);
+
+        // Assert
+        result.Should().NotBeNull();
+        user.LoginProvider.Should().Be(targetProvider);
+        user.PendingMigrationProviderId.Should().BeNull();
+        _mockUserManager.Verify(x => x.RemovePasswordAsync(user), Times.Once);
+    }
+
+    [Fact]
+    public async Task TryApplyPendingProviderMigration_ShouldNotRebind_WhenStagedUserIsLocal()
+    {
+        // Pins current behavior, which does NOT match the feature's intent: the
+        // candidate query excludes LoginProvider == Wayd, so a local account an admin
+        // staged for SSO never rebinds on sign-in. StageProviderMigration accepts local
+        // users and the docs advertise Wayd→OIDC, so the exclusion is a live bug in the
+        // staged path — tracked separately, not part of the F3 fix. It fails safe (the
+        // user keeps their local login), which is why it is pinned rather than changed.
+        const string targetProvider = "Acme-Okta";
+        const string email = "jordan.blake@acme.example";
+
+        var user = CreateUser(id: "user-local-staged", loginProvider: LoginProviders.Wayd);
+        user.NormalizedEmail = email.ToUpperInvariant();
+        user.PendingMigrationProviderId = targetProvider;
+        user.PasswordHash = "AQAAAAIAAYagAAAAEPLACEHOLDERHASHVALUE==";
+
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.TryApplyPendingProviderMigration(targetProvider, null, "okta-sub-placeholder", email);
+
+        // Assert
+        result.Should().BeNull();
+        user.LoginProvider.Should().Be(LoginProviders.Wayd);
+        user.PasswordHash.Should().NotBeNull();
+        _mockUserManager.Verify(x => x.RemovePasswordAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ConvertToLocalAccount_ShouldKeepPassword_WhenMigratingTowardLocal()
+    {
+        // Arrange — the reverse direction. Relinking toward a local account sets a
+        // credential; the password-clearing step belongs to local→external only and
+        // must not run here, or the converted user would have no way to sign in.
+        var user = CreateUser(id: "user-converting", loginProvider: LoginProviders.MicrosoftEntraId);
+
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+        _mockUserManager.Setup(x => x.GeneratePasswordResetTokenAsync(user)).ReturnsAsync("reset-token");
+        _mockUserManager.Setup(x => x.ResetPasswordAsync(user, "reset-token", "NewPass123!"))
+            .ReturnsAsync(IdentityResult.Success);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ConvertToLocalAccount(
+            new ConvertToLocalAccountCommand(user.Id, "NewPass123!"),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        user.LoginProvider.Should().Be(LoginProviders.Wayd);
+        _mockUserManager.Verify(x => x.RemovePasswordAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldCreateFirstUser_WhenDatabaseIsEmpty()
+    {
+        // Arrange — bootstrap must still work with no users present. There is no
+        // account to match, so the deny cannot fire, and the policy gates are bypassed
+        // by design so a fresh install can always create its admin.
+        var provider = CreateEntraProviderWithPolicy(allowAutoRegistration: false);
+        _mockOidcProviderRegistry
+            .Setup(r => r.GetByName(LoginProviders.MicrosoftEntraId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(provider);
+
+        _mockUserManager.Setup(x => x.Users).Returns(Array.Empty<ApplicationUser>().AsQueryable().BuildMockDbSet().Object);
+        _mockUserManager.Setup(x => x.FindByNameAsync(It.IsAny<string>())).ReturnsAsync((ApplicationUser?)null);
+        _mockUserManager.Setup(x => x.FindByEmailAsync(It.IsAny<string>())).ReturnsAsync((ApplicationUser?)null);
+        _mockUserManager.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>())).ReturnsAsync(IdentityResult.Success);
+        _mockUserManager.Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>())).ReturnsAsync(IdentityResult.Success);
+        _mockUserIdentityStore.Setup(s => s.FindActive(LoginProviders.MicrosoftEntraId, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserIdentity?)null);
+        _mockUserIdentityStore.Setup(s => s.FindActiveByNullTenant(LoginProviders.MicrosoftEntraId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<UserIdentity>());
+        _mockUserIdentityStore.Setup(s => s.ExistsActive(It.IsAny<string>(), LoginProviders.MicrosoftEntraId))
+            .ReturnsAsync(false);
+        _mockDispatcher.Setup(s => s.Send(It.IsAny<Wayd.Common.Application.Employees.Queries.GetEmployeeByEmailQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid?)null);
+
+        var sut = CreateSut();
+
+        // Act
+        var (resolvedId, _) = await sut.GetOrCreateFromPrincipalAsync(CreateNewUserPrincipal(
+            "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+            "founder@acme.example"));
+
+        // Assert
+        resolvedId.Should().NotBeNullOrWhiteSpace();
+        _mockUserManager.Verify(x => x.CreateAsync(It.Is<ApplicationUser>(
+            u => u.LoginProvider == LoginProviders.MicrosoftEntraId)), Times.Once);
+        _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), ApplicationRoles.Admin), Times.Once);
+    }
+
+    #endregion
+
     #region StageProviderMigration
 
     [Fact]

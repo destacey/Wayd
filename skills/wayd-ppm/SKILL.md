@@ -1,6 +1,6 @@
 ---
 name: wayd-ppm
-description: Guides agents working with Wayd Portfolio, Program, Project, and Task management via the Wayd MCP server. Use when looking up portfolios, programs, or projects, exploring project lifecycles and phases, viewing the project plan or team, or creating, updating, or managing tasks within a project.
+description: Guides agents working with Wayd Portfolio, Program, Project, and Task management via the Wayd MCP server. Use when looking up portfolios, programs, or projects, exploring project lifecycles and phases, viewing the project plan or team, reviewing project scores or a portfolio's ranking board, or creating, updating, or managing tasks within a project.
 ---
 
 # Wayd PPM (Portfolio / Program / Project / Task Management)
@@ -14,8 +14,9 @@ description: Guides agents working with Wayd Portfolio, Program, Project, and Ta
 - Listing, creating, updating, or deleting tasks within a project
 - Managing task hierarchies, dependencies, or the critical path
 - Reviewing or logging project health checks (Healthy / AtRisk / Unhealthy)
+- Reviewing project scores and a portfolio's ranking board
 
-> **Note:** Portfolios, programs, lifecycles, and phases are **read-only** via MCP — only GET and LIST operations are exposed. Tasks support full CRUD (create, update, delete). Project **health checks** are read+create (no update or delete from MCP); the rest of the project surface remains read-only.
+> **Note:** Portfolios, programs, lifecycles, and phases are **read-only** via MCP — only GET and LIST operations are exposed. Tasks support full CRUD (create, update, delete). Project **health checks** are read+create (no update or delete from MCP). **Scoring and ranking are read-only** — scores cannot be recorded and ranks cannot be reordered from MCP. The rest of the project surface remains read-only.
 
 ---
 
@@ -104,10 +105,26 @@ Portfolio
 | Projects in a program | `Programs_GetProgramProjects` | |
 | All projects (cross-portfolio) | `Projects_GetProjects` | Optional `role` filter: `1=Sponsor, 2=Owner, 3=Manager, 4=Member` |
 | Project details | `Projects_GetProject` | |
+| Project status change history | `Projects_GetStatusHistory` | Takes project `id` (**UUID only** — unlike most project endpoints, it does not accept a key) |
 | All project lifecycles | `ProjectLifecycles_GetProjectLifecycles` | Optional `state` filter: `1=Proposed, 2=Active, 3=Archived` |
 | Project lifecycle details (with phases) | `ProjectLifecycles_GetProjectLifecycle` | `idOrKey` accepts UUID or integer key |
 
 Before filtering by status, call `Projects_GetStatuses` (or `Programs_GetProgramStatuses` / `Portfolios_GetPortfolioStatuses`) to resolve the integer enum values.
+
+### "What am I working on?"
+
+Two tools are scoped to the **caller's own** PAT — neither takes a user parameter, and neither can report on anyone else. Prefer them over listing and filtering every project.
+
+| Goal | Tool | Notes |
+|---|---|---|
+| My project involvement, by role | `Projects_GetMyProjectsSummary` | Counts only: total, sponsor, owner, manager, member, assignee. Optional `status` filter. |
+| My open task counts | `Projects_GetMyProjectsTaskMetrics` | Overdue, due this week (through Saturday), upcoming (next Sunday–Saturday). Optional `status` and `role` filters. |
+
+Both return aggregate counts, not the projects or tasks themselves — follow up with `Projects_GetProjects` (with a `role` filter) when the user wants the actual list.
+
+### Plan metrics across many projects
+
+`Projects_GetProjectsPlanSummaries` returns plan summaries for a set of projects in one call, keyed by project ID. Pass `projectId` as an array of **UUIDs** (keys are not accepted). Use it instead of calling `Projects_GetProjectPlanSummary` once per project — surveying a portfolio otherwise costs one round trip per project.
 
 ### Exploring a project's plan and team
 
@@ -157,6 +174,29 @@ Required fields: `name`, `typeId`, `statusId`, `priorityId`
 
 - **Add** (finish-to-start): `Tasks_AddTaskDependency` with `{ predecessorId, successorId }` — both UUIDs. Also pass the predecessor task's `id` as the path parameter.
 - **Remove**: `Tasks_RemoveTaskDependency` with path params `id` (predecessor UUID) and `successorId`.
+
+### Project scoring and portfolio ranking
+
+Scoring is **read-only via MCP** — there is no tool to record a score.
+
+A **scoring model** is assigned to a *portfolio*, and every project in it is scored against that model's criteria. A **score** is a frozen snapshot: the criterion ratings and computed outputs as they were at scoring time. Re-scoring a project adds a new entry to its history rather than editing the old one, so an old score reflects the model as it was then, not as it is now.
+
+| Goal | Tool | Notes |
+|---|---|---|
+| A project's model, current score, and whether it can be scored | `Projects_GetScoringContext` | `scoringModel` is null when the portfolio has no model assigned — that project cannot be scored. |
+| A project's full scoring history | `Projects_GetScores` | Headline values only, no per-criterion breakdown. |
+| One score in full | `Projects_GetScore` | Every criterion rating and output value in the frozen snapshot. |
+| Score breakdown across a portfolio | `Portfolios_GetRankingScoreboard` | The model definition plus per-project ratings and outputs. |
+
+All four take **UUIDs only** — not project or portfolio keys.
+
+Notes:
+
+- A project's latest score is already embedded as `currentScore` on `Projects_GetProject` and `Projects_GetProjects`. Prefer those when you only need the headline number; use the scoring tools for history or per-criterion detail.
+- In the ranking scoreboard, a project with empty `ratings` and `outputs` is either unscored **or** was last scored under a different or older model than the portfolio's current one. Do not read empty as "scored zero".
+- The scoreboard returns score breakdowns keyed by project ID only — no names, no positions. Join it against `Portfolios_GetPortfolioProjects` to label rows.
+- On project DTOs, `rank` is an **opaque fractional sort key**, not a displayed position — never show it to a user. The 1-based display position is `position`, which is only populated when results are scoped to a single portfolio (a cross-portfolio position would be meaningless).
+- `canManageProject` on the project DTO indicates whether the caller could record a score, but recording one is not available through MCP.
 
 ### Project health checks
 

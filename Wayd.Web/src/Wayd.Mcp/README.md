@@ -137,7 +137,7 @@ Six self-contained skills are available:
 
 | Skill | Trigger |
 | --- | --- |
-| `wayd-ppm` | Portfolios, programs, projects — lookup, create, update, lifecycle |
+| `wayd-ppm` | Portfolios, programs, projects — lookup, plans, health checks, task management |
 | `wayd-pi` | Planning intervals, iterations, objectives, health reports, risks |
 | `wayd-roadmaps` | Roadmap exploration — activities, timeboxes, milestones |
 | `wayd-story-maps` | Story maps — analyze, create, and manage goals, steps, tasks, swim lanes, personas |
@@ -160,10 +160,10 @@ Once installed, activate a skill in Claude Code with `/wayd-ppm`, `/wayd-pi`, `/
 
 | Category | Operations |
 | --- | --- |
-| **Portfolios** | List, get details, get programs, get projects |
+| **Portfolios** | List, get details, get programs, get projects, get ranking scoreboard |
 | **Programs** | List, get details, get projects |
 | **Project Lifecycles** | List (with state filter), get details |
-| **Projects** | List (with role filter), get details, get team, get phases, get phase details, get plan tree, get plan summary, list health checks, get health check, create health check |
+| **Projects** | List (with role filter), get details, get status history, get my involvement summary, get my task metrics, get team, get phases, get phase details, get plan tree, get plan summary (single and batch), list health checks, get health check, create health check, get scoring context, list scores, get score |
 | **Tasks** | List, get details, get critical path, get types/statuses/priorities, create, update, delete, add/remove dependencies |
 
 ### Planning

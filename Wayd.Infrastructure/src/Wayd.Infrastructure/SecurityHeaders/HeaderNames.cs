@@ -1,12 +1,12 @@
 ﻿namespace Wayd.Infrastructure.SecurityHeaders;
 
-internal class HeaderNames
+/// <summary>
+/// Header names with no constant in <see cref="Microsoft.Net.Http.Headers.HeaderNames"/>. Use the
+/// framework's constants for everything else — a hand-typed name is not validated anywhere, and a
+/// typo makes the header silently useless rather than failing the build.
+/// </summary>
+internal static class HeaderNames
 {
-    public const string XFRAMEOPTIONS = "X-FrameOptions";
-    public const string XCONTENTTYPEOPTIONS = "X-Content-Type-Options";
-    public const string REFERRERPOLICY = "Referrer-Policy";
-    public const string PERMISSIONSPOLICY = "Permissions-Policy";
-    public const string SAMESITE = "SameSite";
-    public const string XXSSPROTECTION = "X-XSS-Protection";
-    public const string CONTENTPOLICY = "ContentPolicy";
+    internal const string ReferrerPolicy = "Referrer-Policy";
+    internal const string PermissionsPolicy = "Permissions-Policy";
 }

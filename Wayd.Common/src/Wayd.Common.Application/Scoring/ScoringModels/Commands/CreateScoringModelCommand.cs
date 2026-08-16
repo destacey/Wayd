@@ -73,7 +73,9 @@ public sealed class CreateScoringModelCommandValidator : AbstractValidator<Creat
 
             output.RuleFor(o => o.Formula)
                 .NotEmpty()
-                .MaximumLength(ScoringFormulaEvaluator.MaxFormulaLength);
+                .MaximumLength(ScoringFormulaEvaluator.MaxFormulaLength)
+                .Must(ScoringFormulaEvaluator.IsWithinMaxNestingDepth)
+                .WithMessage($"Formula must not nest parentheses more than {ScoringFormulaEvaluator.MaxNestingDepth} levels deep.");
         });
     }
 }

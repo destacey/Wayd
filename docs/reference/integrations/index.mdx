@@ -62,7 +62,7 @@ Every sync run — manual or scheduled, per-connection or global — produces a 
 
 **Individual records can be skipped without failing the run.** People sync reconciles data from a system we don't control, so a record that can't be applied — an ambiguous identity match, a value longer than its column allows — is skipped and reported rather than aborting the whole reconciliation. The rest of the payload still syncs. Check the run's `errors[]` for the per-record reason; each names the offending employee so it can be corrected at the source.
 
-**People sync does not automatically retry.** Its failures are overwhelmingly deterministic — constraint violations, malformed source data, revoked credentials — so a retry would rebuild the identical change set and fail identically while consuming upstream API quota. A failed People sync goes straight to Hangfire's Failed state, where it stays visible; fix the cause and trigger the sync again.
+**People sync does not automatically retry.** Its failures are overwhelmingly deterministic — constraint violations, malformed source data, revoked credentials — so a retry would rebuild the identical change set and fail identically while consuming upstream API quota. A failed People sync goes straight to the Failed state, where it stays visible under **Settings → Background Jobs**; fix the cause and trigger the sync again.
 
 Work sync *does* still retry (3 attempts, backing off 30s/60s/120s), because Azure DevOps REST produces genuinely transient failures where a later attempt succeeds. Transient *transport* faults are handled lower down in both cases, by the per-connector HTTP resilience pipeline, and never reach the job layer.
 

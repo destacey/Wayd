@@ -106,6 +106,7 @@ PATs inherit the permissions of the user who created them. See [Your Profile](..
 | Settings | `/api/settings/` | Configuration, feature flags |
 | Auth | `/api/auth/` | Login, refresh, exchange, providers |
 | User Management | `/api/user-management/` | Profile, roles, permissions, PATs |
+| Admin | `/api/admin/` | Background jobs, messaging, feature flags, scoring models |
 
 ## OpenAPI Specification
 
@@ -123,3 +124,25 @@ Portfolio project ranking is exposed under `/api/ppm/portfolios`:
 - `PUT /api/ppm/portfolios/{id}/project-ranks` — Reposition an ordered batch of projects within a portfolio's ranking.
 - `PUT /api/ppm/portfolios/{id}/project-ranks/rebalance` — Re-space a portfolio's ranks to clean whole-number gaps.
 - `GET /api/ppm/portfolios/{id}/ranking-scoreboard` — Get the current scoring-model breakdown used by the portfolio Ranking tab.
+
+## Background Job Endpoints
+
+Background jobs are exposed under `/api/admin/background-jobs`. See [Background Jobs](../user-guide/settings/index.mdx#background-jobs) for what the corresponding UI does.
+
+Reading — all require `Permissions.BackgroundJobs.View`:
+
+- `GET /api/admin/background-jobs/jobs?state=&pageNumber=&pageSize=` — A page of jobs in one lifecycle state. `pageNumber` is 0-based; `pageSize` is clamped to 1–500.
+- `GET /api/admin/background-jobs/jobs/{jobId}` — Full detail for one job: arguments, state history, and the exception with its stack trace when the job failed.
+- `GET /api/admin/background-jobs/statistics` — Counts split into current and all-time groups.
+- `GET /api/admin/background-jobs/servers` — Worker processes and their heartbeats.
+- `GET /api/admin/background-jobs/recurring` — Registered recurring schedules.
+- `GET /api/admin/background-jobs/job-types` — The job types available to run.
+- `GET /api/admin/background-jobs/running` — Currently processing jobs.
+
+Acting — `Run` triggers work, `Delete` removes it:
+
+- `POST /api/admin/background-jobs/run?jobTypeId=` — Queue a job to run now. Requires `Permissions.BackgroundJobs.Run`.
+- `POST /api/admin/background-jobs` — Register a recurring job. Requires `Permissions.BackgroundJobs.Run`. Job types that cannot be scheduled are rejected with a 400.
+- `POST /api/admin/background-jobs/jobs/{jobId}/requeue` — Queue a job for another attempt. Requires `Permissions.BackgroundJobs.Run`.
+- `DELETE /api/admin/background-jobs/jobs/{jobId}` — Delete a job. Requires `Permissions.BackgroundJobs.Delete`.
+- `DELETE /api/admin/background-jobs/recurring/{recurringJobId}` — Remove a recurring schedule. Requires `Permissions.BackgroundJobs.Delete`.

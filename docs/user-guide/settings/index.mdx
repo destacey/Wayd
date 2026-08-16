@@ -9,6 +9,23 @@ audience: [user, agent]
 
 The Administration area provides tools for configuring Wayd, managing users, controlling feature visibility, and connecting to external systems.
 
+## Deployment configuration
+
+Everything below this section is managed from the Wayd UI. A few things are set **outside** the app — in configuration files or environment variables — and are the responsibility of whoever runs the deployment:
+
+| Topic | What it covers |
+| --- | --- |
+| [First-Run Setup](../../contributing/first-run-setup.mdx) | Creating the first administrator account on a fresh deployment via the one-time bootstrap token, and verifying security headers afterward. |
+| [Security Headers](../../contributing/configuration.mdx#security-headers) | Clickjacking and content-type protections, sent on every response. On by default — you only need this if Wayd must be embedded in an iframe, or your edge already sets these headers. |
+| [Identity Providers](../../contributing/configuration.mdx#identity-providers-db-managed) | Connection details for Entra ID and other OIDC providers. Created in the UI (see [below](#identity-providers)), but the app registration and redirect URIs are configured on the provider's side. |
+| [Local Authentication](../../contributing/configuration.mdx#local-authentication) | The JWT signing secret, required for password-based login. Must be set per deployment. |
+| [Data Protection key](../../contributing/configuration.mdx#data-protection-at-rest-secret-encryption) | Encrypts connector credentials at rest. **Losing this key makes every stored PAT and API key unrecoverable** — back it up outside the deployment system. |
+| [Database](../../contributing/configuration.mdx#database) | Connection string and provider settings. |
+
+:::note These pages live in the developer documentation
+They are shared with contributors, so they include implementation detail alongside the operational guidance. Each section above links to the part you need.
+:::
+
 ## User Management
 
 ### Users

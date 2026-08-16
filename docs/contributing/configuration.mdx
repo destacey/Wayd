@@ -1,8 +1,8 @@
 ---
 title: Configuration
-description: Database, authentication, and environment configuration for Wayd.
+description: Database, authentication, security headers, and environment configuration for Wayd.
 sidebar_position: 6
-audience: [developer]
+audience: [developer, operator]
 ---
 
 # Configuration
@@ -335,6 +335,77 @@ The operation runs entirely inside one transaction:
 4. Update `LoginProvider` to `"Wayd"` and set `MustChangePassword = true`.
 
 Password policy is validated before the transaction opens — a bad password returns a clean failure without touching the database.
+
+## Security Headers
+
+**Operators:** these are on by default and need no setup. You only need this section if Wayd must be embedded in an iframe, or your edge already sets these headers — see [when to change them](#when-you-need-to-change-these). After deploying, verify they survive your ingress with the check in [First-Run Setup → Step 4](./first-run-setup.mdx#step-4--verify-security-headers-deployed-environments).
+
+Every API response carries a fixed set of security headers, applied by middleware early in the pipeline (`UseSecurityHeaders`, before routing so it covers Swagger, ReDoc and the Hangfire dashboard as well as controllers).
+
+**Most of these are not configurable, deliberately.** `X-Content-Type-Options`, `X-Frame-Options` and the CSP each have exactly one correct value for this application, so they are constants in `Wayd.Infrastructure/SecurityHeaders/SecurityHeaderDefaults.cs`. A setting for them would only be a way to get them wrong.
+
+| Header                     | Value                                                                     | Configurable |
+| -------------------------- | ------------------------------------------------------------------------- | ------------ |
+| `X-Content-Type-Options`   | `nosniff`                                                                   | No           |
+| `X-Frame-Options`          | `DENY`                                                                      | No           |
+| `Content-Security-Policy`  | `frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'` | No      |
+| `Referrer-Policy`          | `strict-origin-when-cross-origin`                                           | Yes          |
+| `Permissions-Policy`       | `geolocation=(), camera=(), microphone=()`                                  | Yes          |
+| `Strict-Transport-Security`| not sent by default — see below                                             | Yes          |
+
+Configure the rest in `Wayd.Web/src/Wayd.Web.Api/Configurations/securityheaders.json`:
+
+```json
+{
+    "SecurityHeaderSettings": {
+        "Enable": true,
+        "ReferrerPolicy": "strict-origin-when-cross-origin",
+        "PermissionsPolicy": "geolocation=(), camera=(), microphone=()",
+        "EnableHsts": false,
+        "HstsMaxAgeSeconds": 63072000,
+        "HstsIncludeSubDomains": true
+    }
+}
+```
+
+`Enable: false` switches the middleware off entirely — for a deployment whose edge (Front Door, App Gateway) owns these headers instead. Omitting `ReferrerPolicy` or `PermissionsPolicy`, or setting either to an empty string, falls back to the value in the table above; it does **not** drop the header.
+
+Every key can also be set as an environment variable using the `SecurityHeaderSettings__` prefix (for example `SecurityHeaderSettings__EnableHsts=true`), which is the usual route for a container deployment.
+
+### When you need to change these
+
+| Situation | What to do |
+| --- | --- |
+| Wayd must be embedded in an iframe | The CSP and `X-Frame-Options` are hardcoded to block framing. Relaxing this needs a code change to `SecurityHeaderDefaults` — prefer naming the specific parent origin (`frame-ancestors https://portal.example.com`) over allowing all. |
+| Your edge already sets these headers | Set `Enable: false` rather than sending them twice — a duplicated `X-Frame-Options` is ignored by some browsers. |
+| You need HSTS | See [HSTS is off by default](#hsts-is-off-by-default). Not a simple flag flip in the current Azure setup. |
+| A header is missing in production | Your ingress is stripping it. Fix it at the edge; the app has already sent it. |
+
+Framing is blocked deliberately: Wayd exposes destructive controls behind a permission claim, and without these headers an attacker can overlay an invisible iframe so a logged-in user's click lands on one.
+
+### The CSP deliberately omits `default-src` and `script-src`
+
+The API host also serves Swagger UI, ReDoc and the Hangfire dashboard, all of which rely on inline scripts. A `script-src 'self'` breaks all three, and relaxing it with `'unsafe-inline'` would defeat the point. The four directives above are script-agnostic and safe for every response the API emits.
+
+This means the CSP mitigates clickjacking and injected-form/base-tag attacks, but is **not** a script-injection defence. That job belongs to output sanitization — see `sanitize-schema.ts` on the client, which strips raw HTML out of user-supplied markdown.
+
+### HSTS is off by default
+
+`Strict-Transport-Security` is a browser-side latch: once sent, browsers refuse plain HTTP to that host for the full `max-age` (two years at the default), and it cannot be recalled from the server. Enabling it against a host that is not fully HTTPS-ready locks clients out for that duration.
+
+The middleware also gates it on `context.Request.IsHttps`, so it is never emitted over a plain-HTTP hop. In the current Azure deployment TLS terminates at Container Apps ingress and the container listens on plain HTTP (`ASPNETCORE_URLS=http://+:8080`), so `EnableHsts: true` alone is a **no-op** — `UseForwardedHeaders` must be added first so `IsHttps` reflects `X-Forwarded-Proto`.
+
+:::note No component currently sends HSTS
+Container Apps ingress terminates TLS and redirects HTTP→HTTPS, but does not add the header, and there is no Front Door or Application Gateway in `.iac/`. If HSTS is needed, ramp `max-age` (300 → 86400 → 63072000) rather than starting at two years, and only add `preload` if you mean it — that list is effectively permanent.
+:::
+
+### Deprecated headers
+
+`X-XSS-Protection` is intentionally **not** sent. It is deprecated and non-standard, the filter it enables was removed from Chrome and Edge, and [OWASP recommends against setting it](https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html) because it can introduce cross-site leaks in otherwise safe pages. The CSP replaces it. Don't re-add it.
+
+### Tests
+
+`Wayd.Web/tests/Wayd.Web.Api.IntegrationTests/Sut/SecurityHeadersTests.cs` asserts these headers on a **real response** from the booted host, against literal header-name strings rather than the production constants. This is deliberate: the middleware previously shipped reading a settings shape the config file did not have, so every value bound null and no header was sent while the config still looked complete. A test asserting on the bound settings object, or reusing the same constants the middleware uses, would have passed the entire time. Keep both properties if you extend the suite.
 
 ## Environment Variables
 

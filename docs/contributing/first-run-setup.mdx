@@ -78,3 +78,32 @@ curl -X POST <api-url>/api/auth/setup \
 
 A successful response returns a Wayd JWT + refresh token identical to a normal login response.
 :::
+
+## Step 4 — Verify security headers (deployed environments)
+
+Security headers ship on by default and need no configuration. For anything beyond local development, confirm they survive your ingress — a proxy, CDN or WAF in front of Wayd can strip or overwrite response headers:
+
+```bash
+curl -sI https://<api-url>/alive | grep -iE 'x-frame|x-content|referrer|permissions|content-security'
+```
+
+You should see all five:
+
+```
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: geolocation=(), camera=(), microphone=()
+```
+
+If any are missing, your edge is stripping them — fix it there rather than working around it in the app.
+
+Two things you may need to change, both covered in [Configuration → Security Headers](./configuration.mdx#security-headers):
+
+- **Wayd must be embedded in an iframe** (an intranet portal, another app). `X-Frame-Options: DENY` and `frame-ancestors 'none'` block this by design. This is a deliberate clickjacking defence — the app has destructive controls behind a permission claim, so only relax it if you genuinely need framing, and prefer naming the specific parent origin over allowing all.
+- **Your edge already sets these headers.** Set `Enable: false` rather than emitting them twice; duplicated `X-Frame-Options` is ignored by some browsers.
+
+:::note HSTS is not enabled
+Wayd does not send `Strict-Transport-Security` by default, and Azure Container Apps ingress does not add it either. If you terminate TLS at a Front Door or Application Gateway, enable it there. See [Configuration → HSTS is off by default](./configuration.mdx#hsts-is-off-by-default) before turning it on anywhere — it is a browser-side latch that cannot be recalled.
+:::

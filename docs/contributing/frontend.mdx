@@ -176,6 +176,29 @@ Rule of thumb: *is this link surrounded by other links? `EntityLink`. Surrounded
 
 In grids, keep the entity **key column** as a standard blue link (the row's anchor) and use quiet styling for name/title columns. Reserve the chain icon for "copy link" affordances and the external-link icon for navigation that leaves Wayd — icons are not link indicators.
 
+## Rendering user markdown
+
+User-supplied markdown (project/portfolio descriptions, business cases, risk descriptions, health-check notes) renders through `MarkdownRenderer` (`src/components/common/markdown/`). It enables `rehypeRaw`, so raw HTML embedded in that text is parsed — which means it **must** be sanitized before it reaches the DOM.
+
+The plugin order matters and is load-bearing:
+
+```tsx
+rehypePlugins={[
+  rehypeRaw,                      // parses raw HTML
+  [rehypeSanitize, sanitizeSchema] // must come AFTER rehypeRaw
+]}
+```
+
+Sanitizing before `rehypeRaw` leaves the raw HTML unparsed at that point, so it passes through untouched — the ordering is the control, not the presence of the plugin.
+
+`sanitizeSchema` (`sanitize-schema.ts`) is the default `rehype-sanitize` schema plus `<u>`, which the renderer maps to antd's underline `Text`. The default schema keeps GFM tables, task lists and `language-*` code fences intact while dropping `<iframe>`, `<form>`, `<base>`, `<meta>`, `<style>`, event-handler attributes and the `style` attribute.
+
+:::warning Check additions against the overlay case
+Anything added to `tagNames` or `attributes` must be checked against clickjacking. An attacker who can set `style` on any element can cover the page with a full-viewport overlay — that is same-origin, so no CSP prevents it. `sanitize-schema.test.ts` covers this case explicitly; keep it passing.
+:::
+
+The docs viewer is a **separate** pipeline (`next-mdx-remote` / `MDXRemote`) rendering repo-authored content, and does not go through `MarkdownRenderer`.
+
 ## Key Libraries
 
 | Library | Purpose |
@@ -184,5 +207,6 @@ In grids, keep the entity **key column** as a standard blue link (the row's anch
 | TanStack Table | Data grids (via the `WaydGrid` house component) |
 | Redux Toolkit | State management |
 | react-markdown | Markdown rendering |
+| rehype-sanitize | Sanitizes raw HTML in user-supplied markdown (see above) |
 | dayjs | Date formatting |
 | oidc-client-ts | OIDC authentication (Entra ID and generic providers) |

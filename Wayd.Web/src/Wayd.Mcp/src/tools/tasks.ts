@@ -99,6 +99,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"projectIdOrKey","in":"path"},{"name":"id","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
   ['Tasks_AddTaskDependency', {
@@ -121,6 +122,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"projectIdOrKey","in":"path"},{"name":"id","in":"path"},{"name":"successorId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
 ];

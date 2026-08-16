@@ -23,6 +23,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     name: def.name,
     description: def.description,
     inputSchema: def.inputSchema,
+    // A tool without explicit annotations is derived from its HTTP method: GET
+    // only ever reads. Anything that writes must opt in deliberately, so a new
+    // write tool is never silently advertised as safe.
+    annotations: def.annotations ?? (def.method.toLowerCase() === 'get' ? { readOnlyHint: true } : undefined),
   }));
   return { tools: toolsForClient };
 });

@@ -1,6 +1,6 @@
 ---
 name: wayd-ppm
-description: Guides agents working with Wayd Portfolio, Program, Project, and Task management via the Wayd MCP server. Use when looking up portfolios, programs, or projects, exploring project lifecycles and phases, viewing the project plan or team, reviewing project scores or a portfolio's ranking board, exploring strategic initiatives and their KPIs or recording KPI measurements, or creating, updating, or managing tasks within a project.
+description: Guides agents working with Wayd Portfolio, Program, Project, and Task management via the Wayd MCP server. Use when looking up portfolios, programs, or projects, exploring project lifecycles and phases, viewing the project plan or team, reviewing project scores or a portfolio's ranking board, exploring strategic initiatives and their KPIs or recording KPI measurements, approving, activating, completing, cancelling, closing, or archiving any of those records, or creating, updating, or managing tasks within a project.
 ---
 
 # Wayd PPM (Portfolio / Program / Project / Task Management)
@@ -16,8 +16,9 @@ description: Guides agents working with Wayd Portfolio, Program, Project, and Ta
 - Reviewing or logging project health checks (Healthy / AtRisk / Unhealthy)
 - Reviewing project scores and a portfolio's ranking board
 - Exploring strategic initiatives, their KPIs, and recording KPI measurements
+- Changing the status of a portfolio, program, project, or strategic initiative (approve, activate, complete, cancel, close, archive)
 
-> **Note:** Portfolios, programs, lifecycles, and phases are **read-only** via MCP — only GET and LIST operations are exposed. Tasks support full CRUD (create, update, delete). Project **health checks** are read+create (no update or delete from MCP). **Scoring and ranking are read-only** — scores cannot be recorded and ranks cannot be reordered from MCP. **Strategic initiatives** are read-only except for KPI **measurements**, which can be added and removed. The rest of the project surface remains read-only.
+> **Note on what can be changed via MCP.** Records themselves (portfolios, programs, projects, initiatives, lifecycles, phases) **cannot be created or edited** — no create, no update, no delete. What *can* be changed: **status transitions** for portfolios, programs, projects, and initiatives (confirm with the user first — see below); **tasks**, which support full CRUD; **project health checks**, read and create; and **KPI measurements**, add and remove. Scoring and ranking are read-only — scores cannot be recorded and ranks cannot be reordered.
 
 ---
 
@@ -180,6 +181,41 @@ Required fields: `name`, `typeId`, `statusId`, `priorityId`
 
 - **Add** (finish-to-start): `Tasks_AddTaskDependency` with `{ predecessorId, successorId }` — both UUIDs. Also pass the predecessor task's `id` as the path parameter.
 - **Remove**: `Tasks_RemoveTaskDependency` with path params `id` (predecessor UUID) and `successorId`.
+
+### Changing status (portfolios, programs, projects, initiatives)
+
+Status is changed through **dedicated action tools**, never by writing a status field.
+
+> **Always confirm with the user before calling any of these.** They change a published status other people rely on, and several are irreversible. The tools are marked `destructiveHint` so compliant clients prompt, but do not rely on the client — ask first, state which record and which transition, and wait for a clear yes.
+
+| Record | Tools | Allowed from |
+|---|---|---|
+| Portfolio | `Portfolios_Activate`, `Portfolios_Close`, `Portfolios_Archive` | Activate: Proposed. Close: Active or OnHold. Archive: Closed. |
+| Program | `Programs_Activate`, `Programs_Complete`, `Programs_Cancel` | Activate: Proposed. Complete: Active. Cancel: anything not already closed. |
+| Project | `Projects_Approve`, `Projects_Activate`, `Projects_Complete`, `Projects_Cancel` | Approve: Proposed. Activate: Proposed or Approved. Complete: Active. Cancel: anything not already closed. |
+| Strategic initiative | `StrategicInitiatives_Approve`, `_Activate`, `_Complete`, `_Cancel` | Approve: Proposed. Activate: Approved. Complete: Active or OnHold. Cancel: anything not already closed. |
+
+All take a **UUID only**, not a key.
+
+#### Prerequisites that cause rejections
+
+Check these before calling, so a transition fails in conversation rather than at the API:
+
+- **Project approve** — a lifecycle must already be assigned (`Projects_GetProject` → check the lifecycle; assign with the UI if missing).
+- **Project / program activate and complete** — the record must already have a start **and** end date.
+- **Program complete or cancel (from Active)** — **every project in the program must already be completed or canceled.** Check with `Programs_GetProgramProjects` first; a program with one open project cannot be closed.
+- **Portfolio archive** — the portfolio must already be Closed.
+
+#### Side effects beyond the status
+
+- **`Portfolios_Activate` sets the portfolio's start date to today**, and **`Portfolios_Close` sets its end date to today.** Neither can be backdated through these tools. Never use them to tidy up a portfolio that really started or ended on a different date — the recorded date will be wrong and this call cannot fix it.
+- **Completing or cancelling a strategic initiative closes it**, after which its KPIs and linked projects can no longer be added, edited, reordered, or removed. KPI *measurements* can still be recorded.
+
+#### Authorization
+
+Portfolio, program, and project transitions require **delivery leadership** — the caller must be an Owner or Manager of the record or of an ancestor (project ← program ← portfolio). A permission claim alone is not enough, and Sponsors and Members are excluded. Strategic initiative transitions check the permission claim only. If a call is rejected as unauthorized, the caller is likely a Sponsor or Member rather than an Owner or Manager.
+
+Note that none of these transitions records a reason — the status history will show who changed it and when, but the *why* has to live elsewhere.
 
 ### Strategic initiatives and KPIs
 

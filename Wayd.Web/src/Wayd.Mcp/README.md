@@ -154,17 +154,26 @@ npx skills add destacey/Wayd
 
 Once installed, activate a skill in Claude Code with `/wayd-ppm`, `/wayd-pi`, `/wayd-roadmaps`, `/wayd-story-maps`, `/wayd-teams`, or `/wayd-users`.
 
+## Confirmation before status changes
+
+Tools that change a record's published status — activating, completing, cancelling, closing, or archiving a portfolio, program, project, or strategic initiative — are advertised to clients with the MCP `destructiveHint` annotation, as are the tools that permanently delete something. Clients that honour the annotation prompt for confirmation before running them.
+
+Two caveats worth knowing:
+
+- The hint is **advisory**. It tells a client to ask; it cannot force one to. Authorization is still enforced server-side, and PPM mutations additionally require delivery leadership (Owner or Manager on the record or an ancestor) regardless of what any client does.
+- A tool with no annotation is treated as read-only **only** when its underlying request is a GET. Any new write tool must opt in explicitly, so it can never be silently advertised as safe.
+
 ## Available Tools
 
 ### Project Portfolio Management
 
 | Category | Operations |
 | --- | --- |
-| **Portfolios** | List, get details, get programs, get projects, get strategic initiatives, get ranking scoreboard |
-| **Strategic Initiatives** | List, get details, get statuses, get linked projects. KPIs: list, get details, get checkpoints, get checkpoint plan, list measurements, add measurement, remove measurement |
-| **Programs** | List, get details, get projects |
+| **Portfolios** | List, get details, get programs, get projects, get strategic initiatives, get ranking scoreboard. Status: activate, close, archive |
+| **Strategic Initiatives** | List, get details, get statuses, get linked projects. KPIs: list, get details, get checkpoints, get checkpoint plan, list measurements, add measurement, remove measurement. Status: approve, activate, complete, cancel |
+| **Programs** | List, get details, get projects. Status: activate, complete, cancel |
 | **Project Lifecycles** | List (with state filter), get details |
-| **Projects** | List (with role filter), get details, get status history, get my involvement summary, get my task metrics, get team, get phases, get phase details, get plan tree, get plan summary (single and batch), list health checks, get health check, create health check, get scoring context, list scores, get score |
+| **Projects** | List (with role filter), get details, get status history, get my involvement summary, get my task metrics, get team, get phases, get phase details, get plan tree, get plan summary (single and batch), list health checks, get health check, create health check, get scoring context, list scores, get score. Status: approve, activate, complete, cancel |
 | **Tasks** | List, get details, get critical path, get types/statuses/priorities, create, update, delete, add/remove dependencies |
 
 ### Planning

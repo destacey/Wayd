@@ -121,6 +121,7 @@ export const definitions: [string, McpToolDefinition][] = [
     executionParameters: [{"name":"id","in":"path"},{"name":"kpiId","in":"path"},{"name":"measurementId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
+    annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true },
   }],
 
 ];

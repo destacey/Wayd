@@ -198,6 +198,41 @@ describe('stdio transport', () => {
     assert.equal(new Set(names).size, names.length, 'duplicate tool names would shadow each other');
   });
 
+  test('advertises every status transition as destructive so clients confirm first', async () => {
+    // Arrange
+    // Status changes are published state other people act on, so a client must be
+    // able to prompt before one runs. The hint travels in the tools/list payload,
+    // so this asserts the wire contract rather than the local definitions.
+    const listRequest = { jsonrpc: '2.0', id: 2, method: 'tools/list' };
+
+    // Act
+    const { responses } = await runServer([listRequest]);
+
+    // Assert
+    const list = responses.get(2);
+    assert.ok(list, 'no response to tools/list');
+    const { tools } = list.result as {
+      tools: { name: string; annotations?: { readOnlyHint?: boolean; destructiveHint?: boolean } }[];
+    };
+
+    const transitions = tools.filter(t =>
+      /_(Approve|Activate|Complete|Cancel|Close|Archive)$/.test(t.name)
+    );
+    assert.ok(transitions.length > 0, 'no status transition tools found — did they get renamed?');
+
+    for (const tool of transitions) {
+      assert.equal(
+        tool.annotations?.destructiveHint,
+        true,
+        `${tool.name} changes a published status but is not marked destructive, so a client would run it without confirming`
+      );
+    }
+
+    // A GET must never be advertised as anything but read-only.
+    const mislabelledReads = tools.filter(t => t.annotations?.destructiveHint && t.name.startsWith('Get'));
+    assert.equal(mislabelledReads.length, 0, 'a read tool is marked destructive');
+  });
+
   test('reports unknown tools as errors instead of crashing', async () => {
     // Arrange
     const callRequest = {

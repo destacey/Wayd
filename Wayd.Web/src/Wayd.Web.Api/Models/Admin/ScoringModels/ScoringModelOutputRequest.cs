@@ -52,6 +52,8 @@ public sealed class ScoringModelOutputRequestValidator : AbstractValidator<Scori
 
         RuleFor(x => x.Formula)
             .NotEmpty()
-            .MaximumLength(ScoringFormulaEvaluator.MaxFormulaLength);
+            .MaximumLength(ScoringFormulaEvaluator.MaxFormulaLength)
+            .Must(ScoringFormulaEvaluator.IsWithinMaxNestingDepth)
+            .WithMessage($"Formula must not nest parentheses more than {ScoringFormulaEvaluator.MaxNestingDepth} levels deep.");
     }
 }

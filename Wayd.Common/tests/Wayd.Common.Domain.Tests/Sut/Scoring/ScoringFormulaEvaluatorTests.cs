@@ -211,7 +211,7 @@ public class ScoringFormulaEvaluatorTests
         // Emptiness is NotEmpty()'s job in the validators; this rule must not also fail it and double-report.
 
         // Act
-        var result = ScoringFormulaEvaluator.IsWithinMaxNestingDepth(formula!);
+        var result = ScoringFormulaEvaluator.IsWithinMaxNestingDepth(formula);
 
         // Assert
         result.Should().BeTrue();
@@ -247,6 +247,20 @@ public class ScoringFormulaEvaluatorTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("empty");
+    }
+
+    [Fact]
+    public void GetReferencedTokens_ShouldFail_WhenFormulaExceedsMaxLength()
+    {
+        // Arrange
+        var formula = "BV" + new string('+', ScoringFormulaEvaluator.MaxFormulaLength);
+
+        // Act
+        var result = ScoringFormulaEvaluator.GetReferencedTokens(formula);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain(ScoringFormulaEvaluator.MaxFormulaLength.ToString());
     }
 
     [Fact]
@@ -357,6 +371,44 @@ public class ScoringFormulaEvaluatorTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("could not be evaluated");
+    }
+
+    [Fact]
+    public void Evaluate_ShouldFail_WhenFormulaExceedsMaxLength()
+    {
+        // Arrange
+        // A flat chain nests only one level deep, so the depth bound does not apply — but it parses into a
+        // left-deep tree that the evaluation visitor walks recursively, overflowing the stack at roughly 5,000
+        // terms. Length is the bound that keeps that unreachable, and Evaluate sees already-persisted formulas.
+        var formula = string.Join(" + ", Enumerable.Repeat("BV", 5_000));
+        var values = new Dictionary<string, decimal> { ["BV"] = 2m };
+
+        // Act
+        var result = ScoringFormulaEvaluator.Evaluate(formula, values);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain(ScoringFormulaEvaluator.MaxFormulaLength.ToString());
+        ScoringFormulaEvaluator.IsWithinMaxNestingDepth(formula).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Evaluate_ShouldSucceed_ForLongestFlatFormulaWithinMaxLength()
+    {
+        // Arrange
+        // The most terms that fit inside MaxFormulaLength must still evaluate, confirming the length bound sits
+        // safely below the recursion limit rather than merely near it.
+        var terms = ScoringFormulaEvaluator.MaxFormulaLength / 5;
+        var formula = string.Join(" + ", Enumerable.Repeat("BV", terms));
+        var values = new Dictionary<string, decimal> { ["BV"] = 2m };
+
+        // Act
+        var result = ScoringFormulaEvaluator.Evaluate(formula, values);
+
+        // Assert
+        formula.Length.Should().BeLessThanOrEqualTo(ScoringFormulaEvaluator.MaxFormulaLength);
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Be(terms * 2m);
     }
 
     [Fact]

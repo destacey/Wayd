@@ -15,10 +15,11 @@ namespace Wayd.Common.Domain.Scoring;
 /// so this is safe for admin-authored (semi-trusted) input. Formulas are validated at definition time and
 /// evaluated at scoring time; both surface failures as <see cref="Result"/> rather than throwing.
 /// <para>
-/// Every entry point re-applies the <see cref="MaxNestingDepth"/> bound rather than trusting that validation
-/// ran earlier. Depth is the one input that can defeat the <see cref="Result"/> contract entirely — it kills
-/// the process instead of returning a failure — so it is checked wherever a formula string enters, including
-/// the paths that only ever see already-persisted formulas.
+/// Every entry point re-applies both the <see cref="MaxFormulaLength"/> and <see cref="MaxNestingDepth"/>
+/// bounds rather than trusting that validation ran earlier. Both guard recursion that would defeat the
+/// <see cref="Result"/> contract entirely — an overflowed stack kills the process instead of returning a
+/// failure — so they are checked wherever a formula string enters, including the paths that only ever see
+/// already-persisted formulas.
 /// </para>
 /// </remarks>
 public static class ScoringFormulaEvaluator
@@ -26,6 +27,12 @@ public static class ScoringFormulaEvaluator
     /// <summary>
     /// Upper bound on formula length, as a guard against pathological parse input.
     /// </summary>
+    /// <remarks>
+    /// Length bounds recursion that <see cref="MaxNestingDepth"/> does not. A flat formula (<c>BV + BV + ...</c>)
+    /// nests only one level deep, but parses into a left-deep tree that the evaluation visitor walks recursively,
+    /// so around 5,000 terms overflows the stack during <see cref="Evaluate"/>. That needs roughly 25,000
+    /// characters — far beyond this bound — so enforcing length on every entry point keeps it unreachable.
+    /// </remarks>
     public const int MaxFormulaLength = 1000;
 
     /// <summary>
@@ -48,7 +55,7 @@ public static class ScoringFormulaEvaluator
     /// rules. This is a convenience for error reporting, not the enforcement point — the evaluator applies the
     /// same bound itself, because a formula can also reach it from a path no validator guards.
     /// </remarks>
-    public static bool IsWithinMaxNestingDepth(string formula) =>
+    public static bool IsWithinMaxNestingDepth(string? formula) =>
         string.IsNullOrEmpty(formula) || !ExceedsMaxNestingDepth(formula);
 
     /// <summary>
@@ -124,6 +131,12 @@ public static class ScoringFormulaEvaluator
             return Result.Failure<IReadOnlyCollection<string>>("Formula must not be empty.");
         }
 
+        if (formula.Length > MaxFormulaLength)
+        {
+            return Result.Failure<IReadOnlyCollection<string>>(
+                $"Formula must not exceed {MaxFormulaLength} characters.");
+        }
+
         if (ExceedsMaxNestingDepth(formula))
         {
             return Result.Failure<IReadOnlyCollection<string>>(
@@ -159,7 +172,12 @@ public static class ScoringFormulaEvaluator
         }
 
         // Re-checked here, not just on the write path: this evaluates formulas already persisted, including any
-        // stored before the depth bound existed.
+        // stored before these bounds existed.
+        if (formula.Length > MaxFormulaLength)
+        {
+            return Result.Failure<decimal>($"Formula must not exceed {MaxFormulaLength} characters.");
+        }
+
         if (ExceedsMaxNestingDepth(formula))
         {
             return Result.Failure<decimal>($"Formula must not nest parentheses more than {MaxNestingDepth} levels deep.");

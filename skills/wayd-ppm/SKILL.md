@@ -1,6 +1,6 @@
 ---
 name: wayd-ppm
-description: Guides agents working with Wayd Portfolio, Program, Project, and Task management via the Wayd MCP server. Use when looking up portfolios, programs, or projects, exploring project lifecycles and phases, viewing the project plan or team, reviewing project scores or a portfolio's ranking board, or creating, updating, or managing tasks within a project.
+description: Guides agents working with Wayd Portfolio, Program, Project, and Task management via the Wayd MCP server. Use when looking up portfolios, programs, or projects, exploring project lifecycles and phases, viewing the project plan or team, reviewing project scores or a portfolio's ranking board, exploring strategic initiatives and their KPIs or recording KPI measurements, or creating, updating, or managing tasks within a project.
 ---
 
 # Wayd PPM (Portfolio / Program / Project / Task Management)
@@ -15,8 +15,9 @@ description: Guides agents working with Wayd Portfolio, Program, Project, and Ta
 - Managing task hierarchies, dependencies, or the critical path
 - Reviewing or logging project health checks (Healthy / AtRisk / Unhealthy)
 - Reviewing project scores and a portfolio's ranking board
+- Exploring strategic initiatives, their KPIs, and recording KPI measurements
 
-> **Note:** Portfolios, programs, lifecycles, and phases are **read-only** via MCP — only GET and LIST operations are exposed. Tasks support full CRUD (create, update, delete). Project **health checks** are read+create (no update or delete from MCP). **Scoring and ranking are read-only** — scores cannot be recorded and ranks cannot be reordered from MCP. The rest of the project surface remains read-only.
+> **Note:** Portfolios, programs, lifecycles, and phases are **read-only** via MCP — only GET and LIST operations are exposed. Tasks support full CRUD (create, update, delete). Project **health checks** are read+create (no update or delete from MCP). **Scoring and ranking are read-only** — scores cannot be recorded and ranks cannot be reordered from MCP. **Strategic initiatives** are read-only except for KPI **measurements**, which can be added and removed. The rest of the project surface remains read-only.
 
 ---
 
@@ -26,6 +27,11 @@ description: Guides agents working with Wayd Portfolio, Program, Project, and Ta
 
 ```
 Portfolio
+├── Strategic Initiative (the outcome being pursued)
+│   ├── KPIs (how success is measured)
+│   │   ├── Checkpoints (dated targets — the plan)
+│   │   └── Measurements (observed values — the actuals)
+│   └── Projects (the delivery work, linked many-to-many)
 └── Program (optional grouping)
     └── Project
         ├── Lifecycle (optional — defines the phases a project moves through)
@@ -174,6 +180,47 @@ Required fields: `name`, `typeId`, `statusId`, `priorityId`
 
 - **Add** (finish-to-start): `Tasks_AddTaskDependency` with `{ predecessorId, successorId }` — both UUIDs. Also pass the predecessor task's `id` as the path parameter.
 - **Remove**: `Tasks_RemoveTaskDependency` with path params `id` (predecessor UUID) and `successorId`.
+
+### Strategic initiatives and KPIs
+
+A **strategic initiative** is a portfolio-level outcome the organisation is trying to achieve — the *why* behind the work. Projects are the delivery vehicles linked to it, and **KPIs** are how success is measured. An initiative belongs to exactly one portfolio and has sponsors and owners.
+
+| Goal | Tool | Notes |
+|---|---|---|
+| All initiatives (optionally by status / portfolio) | `StrategicInitiatives_GetStrategicInitiatives` | |
+| Initiatives in a portfolio | `Portfolios_GetPortfolioStrategicInitiatives` | |
+| Initiative details | `StrategicInitiatives_GetStrategicInitiative` | |
+| Resolve status enum values | `StrategicInitiatives_GetStatuses` | Call before filtering by status. |
+| Projects delivering an initiative | `StrategicInitiatives_GetProjects` | |
+| KPIs for an initiative | `StrategicInitiatives_GetKpis` | |
+| One KPI | `StrategicInitiatives_GetKpi` | |
+| A KPI's checkpoints | `StrategicInitiatives_GetKpiCheckpoints` | Definitions only, no measurements. |
+| A KPI's checkpoints **with** measurements, health, and trend | `StrategicInitiatives_GetKpiCheckpointPlan` | Best single call for "is this KPI on track?" |
+| A KPI's measurement history | `StrategicInitiatives_GetKpiMeasurements` | |
+| Record a measurement | `StrategicInitiatives_AddKpiMeasurement` | |
+| Remove a measurement | `StrategicInitiatives_RemoveKpiMeasurement` | |
+
+**Read tools accept an ID or a key** for both the initiative and the KPI. **The two measurement write tools take UUIDs only** — resolve a key to a UUID with a read tool first.
+
+Everything else is read-only via MCP: initiatives cannot be created, updated, or transitioned, and KPIs cannot be added, edited, reordered, or deleted.
+
+#### KPI semantics
+
+- `targetDirection` is `1=Increase` or `2=Decrease`. For a **Decrease** KPI (cost, defect count, cycle time) a *falling* value is improvement. Never assume lower is worse or higher is better — check the direction before characterising a trend.
+- `startingValue` is the baseline, `targetValue` is success, and `progress` is computed from those plus `actualValue` and the direction. Prefer the supplied `progress` over recomputing it.
+- `actualValue` is the measurement with the **latest measurement date**, not the most recently entered one. Back-dating a measurement earlier than the current latest will not change it.
+- `prefix` and `suffix` (e.g. `$`, `%`, `M`) are display affordances — include them when reporting a value to a user.
+- **Checkpoints are the plan; measurements are the actuals.** A checkpoint is a dated target with an optional at-risk threshold. In the checkpoint plan, a checkpoint with no measurement yet has null `measurement`, `health`, and `trend` — that means "not measured", not "failing".
+
+#### Recording a measurement
+
+1. Resolve the initiative and KPI to **UUIDs** (`StrategicInitiatives_GetKpis` returns both).
+2. Call `StrategicInitiatives_AddKpiMeasurement` with `strategicInitiativeId` and `kpiId` in the body **matching the path parameters** — a mismatch is rejected.
+3. `actualValue` must be non-zero, and `measurementDate` is an ISO 8601 UTC datetime. `note` is optional, max 1024 characters.
+
+**Measurement dates must be unique within a KPI** — re-submitting the same date is rejected rather than treated as an update. To revise a value at an already-measured date, remove the existing measurement first.
+
+Measurements accumulate as history rather than overwriting, and the KPI's headline `actualValue` and `progress` derive from them. To record a *new* observation, always add — never delete the previous one. Deletion is only for correcting a genuinely wrong entry at a date that must keep its value, since it rewrites the record of what was known when.
 
 ### Project scoring and portfolio ranking
 

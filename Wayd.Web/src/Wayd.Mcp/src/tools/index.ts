@@ -5,6 +5,7 @@ import { definitions as projectLifecycles } from './project-lifecycles.js';
 import { definitions as projects } from './projects.js';
 import { definitions as projectHealthChecks } from './project-health-checks.js';
 import { definitions as projectScores } from './project-scores.js';
+import { definitions as strategicInitiatives } from './strategic-initiatives.js';
 import { definitions as roadmaps } from './roadmaps.js';
 import { definitions as planningIntervals } from './planning-intervals.js';
 import { definitions as objectiveHealthChecks } from './objective-health-checks.js';
@@ -20,6 +21,7 @@ export const toolDefinitionMap: Map<string, McpToolDefinition> = new Map([
   ...projects,
   ...projectHealthChecks,
   ...projectScores,
+  ...strategicInitiatives,
   ...roadmaps,
   ...planningIntervals,
   ...objectiveHealthChecks,

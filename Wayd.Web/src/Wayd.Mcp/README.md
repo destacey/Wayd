@@ -160,7 +160,8 @@ Once installed, activate a skill in Claude Code with `/wayd-ppm`, `/wayd-pi`, `/
 
 | Category | Operations |
 | --- | --- |
-| **Portfolios** | List, get details, get programs, get projects, get ranking scoreboard |
+| **Portfolios** | List, get details, get programs, get projects, get strategic initiatives, get ranking scoreboard |
+| **Strategic Initiatives** | List, get details, get statuses, get linked projects. KPIs: list, get details, get checkpoints, get checkpoint plan, list measurements, add measurement, remove measurement |
 | **Programs** | List, get details, get projects |
 | **Project Lifecycles** | List (with state filter), get details |
 | **Projects** | List (with role filter), get details, get status history, get my involvement summary, get my task metrics, get team, get phases, get phase details, get plan tree, get plan summary (single and batch), list health checks, get health check, create health check, get scoring context, list scores, get score |

@@ -55,6 +55,18 @@ npm run lint    # Run linter
 npm test        # Run tests
 ```
 
+### MCP Server
+
+From the `Wayd.Web/src/Wayd.Mcp` directory:
+
+```bash
+npm install       # Install dependencies
+npm run build     # Regenerate Zod schemas, then compile
+npm run typecheck # Type-check src, scripts, and tests
+npm run lint      # Run linter
+npm test          # Build, then run the test suite
+```
+
 ### .NET Aspire (Recommended for Local Development)
 
 ```bash
@@ -175,6 +187,16 @@ Microsoft.FeatureManagement — defined in code, stored in database, managed via
 ### OpenAPI Client Generation
 
 NSwag generates TypeScript client from API's OpenAPI spec on Debug build. Config in `nswag.json`. Generated client in `wayd.web.reactclient/src/services/wayd-api.ts`.
+
+### MCP Server (`Wayd.Web/src/Wayd.Mcp`)
+
+Publishes `@wayd/mcp`, exposing the API as agent tools. Tool definitions live one file per area under `src/tools/`, registered in the `src/tools/index.ts` barrel. Agent-facing usage guidance lives in `skills/` at the repo root (`skills/wayd-ppm/SKILL.md` is the largest).
+
+- **Adding a tool**: add the definition, register it in the barrel, then run `npm run build` — `scripts/generate-zod-schemas.ts` emits a Zod schema per `inputSchema`, and validation silently falls back to a permissive schema if you skip it. Update both `README.md` (capability tables) and the matching `skills/*/SKILL.md`.
+- **Tool annotations gate confirmation**: `destructiveHint` tells clients to confirm before running. Every status transition, update, and delete carries it. In `src/index.ts`, a tool with no explicit annotations is advertised read-only **only when its method is GET** — so a new write tool must opt in deliberately and can never be silently advertised as safe. A test in `tests/stdio-protocol.test.ts` asserts this over the wire.
+- **Array query parameters** need `paramsSerializer: { indexes: null }` (set in `src/executor.ts`). Axios defaults to `status[]=1`, which ASP.NET's model binder ignores, so array filters silently become no-ops rather than erroring.
+- **Updates are whole-record overwrites**, matching the API's `PUT` semantics — an omitted field is cleared. Role lists (`sponsorIds`/`ownerIds`/`managerIds`/`memberIds`) replace that role's membership, and an omitted **or empty** list removes everyone in it. Tool descriptions must say so; the skill explains why it matters (wiping Owners/Managers can leave a record nobody is authorized to manage).
+- Tests use Node's built-in runner against `build/`, so `npm test` builds first. Nothing hits the network.
 
 ### Wolverine Handler Codegen (generated, not committed)
 

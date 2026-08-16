@@ -116,7 +116,8 @@ public static class ApplicationPermissions
         new("View Hangfire", ApplicationAction.View, ApplicationResource.Hangfire, BackgroundJobsCategory),
         new("View Background Jobs", ApplicationAction.View, ApplicationResource.BackgroundJobs, BackgroundJobsCategory),
         new("Create Background Jobs", ApplicationAction.Create, ApplicationResource.BackgroundJobs, BackgroundJobsCategory),
-        new("Run Background Jobs", ApplicationAction.Run, ApplicationResource.BackgroundJobs, BackgroundJobsCategory)
+        new("Run Background Jobs", ApplicationAction.Run, ApplicationResource.BackgroundJobs, BackgroundJobsCategory),
+        new("Delete Background Jobs. This includes deleting jobs and removing recurring registrations.", ApplicationAction.Delete, ApplicationResource.BackgroundJobs, BackgroundJobsCategory)
     ];
 
     private const string MessagingCategory = "Messaging";

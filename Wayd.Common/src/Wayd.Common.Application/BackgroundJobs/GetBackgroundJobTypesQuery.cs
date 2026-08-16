@@ -12,7 +12,8 @@ public sealed class GetBackgroundJobTypesQueryHandler : IQueryHandler<GetBackgro
             Name = c.GetDisplayName(),
             Description = c.GetDisplayDescription(),
             Order = c.GetDisplayOrder(),
-            GroupName = c.GetDisplayGroupName() ?? "Other"
+            GroupName = c.GetDisplayGroupName() ?? "Other",
+            IsSchedulable = SchedulableBackgroundJobTypes.Contains(c)
         }).ToList();
 
         return Task.FromResult(values);

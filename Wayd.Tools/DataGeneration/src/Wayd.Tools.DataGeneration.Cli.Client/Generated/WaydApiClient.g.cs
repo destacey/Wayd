@@ -55508,6 +55508,62 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task CreateAsync(CreateRecurringJobRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get a page of jobs in the given lifecycle state.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<JobsResponse> GetJobsAsync(JobStateFilter? state = null, int? pageNumber = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the full detail of a job, including its arguments, state history, and failure stack trace.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<JobDetailResponse> GetJobDetailAsync(string jobId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Delete a job, moving it to the deleted state.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task DeleteJobAsync(string jobId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get job counts by lifecycle state.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<JobStatisticsResponse> GetStatisticsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the job servers currently polling for work.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<JobServerResponse>> GetServersAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get all registered recurring jobs.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RecurringJobResponse>> GetRecurringJobsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Remove a recurring job registration.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task RemoveRecurringJobAsync(string recurringJobId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Requeue a job for another attempt.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task RequeueJobAsync(string jobId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -55864,6 +55920,644 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         }
                         else
                         if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get a page of jobs in the given lifecycle state.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<JobsResponse> GetJobsAsync(JobStateFilter? state = null, int? pageNumber = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/admin/background-jobs/jobs"
+                    urlBuilder_.Append("api/admin/background-jobs/jobs");
+                    urlBuilder_.Append('?');
+                    if (state != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("state")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(state, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (pageNumber != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("pageNumber")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageNumber, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (pageSize != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("pageSize")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageSize, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<JobsResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the full detail of a job, including its arguments, state history, and failure stack trace.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<JobDetailResponse> GetJobDetailAsync(string jobId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (jobId == null)
+                throw new System.ArgumentNullException("jobId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/admin/background-jobs/jobs/{jobId}"
+                    urlBuilder_.Append("api/admin/background-jobs/jobs/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(jobId, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<JobDetailResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Delete a job, moving it to the deleted state.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task DeleteJobAsync(string jobId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (jobId == null)
+                throw new System.ArgumentNullException("jobId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("DELETE");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/admin/background-jobs/jobs/{jobId}"
+                    urlBuilder_.Append("api/admin/background-jobs/jobs/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(jobId, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get job counts by lifecycle state.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<JobStatisticsResponse> GetStatisticsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/admin/background-jobs/statistics"
+                    urlBuilder_.Append("api/admin/background-jobs/statistics");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<JobStatisticsResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the job servers currently polling for work.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<JobServerResponse>> GetServersAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/admin/background-jobs/servers"
+                    urlBuilder_.Append("api/admin/background-jobs/servers");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<JobServerResponse>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get all registered recurring jobs.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RecurringJobResponse>> GetRecurringJobsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/admin/background-jobs/recurring"
+                    urlBuilder_.Append("api/admin/background-jobs/recurring");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<RecurringJobResponse>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Remove a recurring job registration.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task RemoveRecurringJobAsync(string recurringJobId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (recurringJobId == null)
+                throw new System.ArgumentNullException("recurringJobId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("DELETE");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/admin/background-jobs/recurring/{recurringJobId}"
+                    urlBuilder_.Append("api/admin/background-jobs/recurring/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(recurringJobId, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Requeue a job for another attempt.
+        /// </summary>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task RequeueJobAsync(string jobId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (jobId == null)
+                throw new System.ArgumentNullException("jobId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/admin/background-jobs/jobs/{jobId}/requeue"
+                    urlBuilder_.Append("api/admin/background-jobs/jobs/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(jobId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/requeue");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 202)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 404)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -71143,6 +71837,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string GroupName { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("isSchedulable")]
+        public bool IsSchedulable { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -71191,6 +71888,270 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("cronExpression")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string CronExpression { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A page of jobs in one lifecycle state. PageNumber is 0-based.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class JobsResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("totalCount")]
+        public long TotalCount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("pageNumber")]
+        public int PageNumber { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("pageSize")]
+        public int PageSize { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<JobSummaryResponse> Items { get; set; } = new System.Collections.ObjectModel.Collection<JobSummaryResponse>();
+
+    }
+
+    /// <summary>
+    /// A job as it appears in a list.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class JobSummaryResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("state")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string State { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Type { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("namespace")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Namespace { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Action { get; set; } = default!;
+
+        /// <summary>
+        /// The timestamp that matters for the requested state; TimestampLabel names it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("timestamp")]
+        public System.DateTimeOffset? Timestamp { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("timestampLabel")]
+        public string? TimestampLabel { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("exceptionType")]
+        public string? ExceptionType { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("exceptionMessage")]
+        public string? ExceptionMessage { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum JobStateFilter
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Processing")]
+        Processing = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Scheduled")]
+        Scheduled = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Enqueued")]
+        Enqueued = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Failed")]
+        Failed = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Succeeded")]
+        Succeeded = 4,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Deleted")]
+        Deleted = 5,
+
+    }
+
+    /// <summary>
+    /// Full detail for one job, including the failure stack trace that was previously only visible in
+    /// <br/>the Hangfire dashboard.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class JobDetailResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("state")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string State { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Type { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("namespace")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Namespace { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Action { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("createdAt")]
+        public System.DateTimeOffset? CreatedAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("expiresAt")]
+        public System.DateTimeOffset? ExpiresAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("arguments")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> Arguments { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("exceptionType")]
+        public string? ExceptionType { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("exceptionMessage")]
+        public string? ExceptionMessage { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("exceptionDetails")]
+        public string? ExceptionDetails { get; set; } = default!;
+
+        /// <summary>
+        /// State transitions, most recent first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("history")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<JobStateHistoryResponse> History { get; set; } = new System.Collections.ObjectModel.Collection<JobStateHistoryResponse>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class JobStateHistoryResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("state")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string State { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("reason")]
+        public string? Reason { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("changedAt")]
+        public System.DateTimeOffset? ChangedAt { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Counts per lifecycle bucket, for the dashboard tiles.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class JobStatisticsResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("enqueued")]
+        public long Enqueued { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("scheduled")]
+        public long Scheduled { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("processing")]
+        public long Processing { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("succeeded")]
+        public long Succeeded { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("failed")]
+        public long Failed { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("deleted")]
+        public long Deleted { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("recurring")]
+        public long Recurring { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("servers")]
+        public long Servers { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A worker process polling for jobs. A stale heartbeat indicates a wedged or stopped worker.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class JobServerResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("workerCount")]
+        public int WorkerCount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("queues")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> Queues { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("startedAt")]
+        public System.DateTimeOffset? StartedAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("heartbeat")]
+        public System.DateTimeOffset? Heartbeat { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A registered recurring job.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class RecurringJobResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("cron")]
+        public string? Cron { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("queue")]
+        public string? Queue { get; set; } = default!;
+
+        /// <summary>
+        /// Null when the stored invocation data no longer resolves to a loadable method; Error carries the reason.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string? Type { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public string? Action { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("lastExecution")]
+        public System.DateTimeOffset? LastExecution { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("nextExecution")]
+        public System.DateTimeOffset? NextExecution { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("lastJobId")]
+        public string? LastJobId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("lastJobState")]
+        public string? LastJobState { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("error")]
+        public string? Error { get; set; } = default!;
 
     }
 

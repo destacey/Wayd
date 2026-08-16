@@ -26279,6 +26279,316 @@
         ]
       }
     },
+    "/api/admin/background-jobs/jobs": {
+      "get": {
+        "tags": [
+          "BackgroundJobs"
+        ],
+        "summary": "Get a page of jobs in the given lifecycle state.",
+        "operationId": "BackgroundJobs_GetJobs",
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "default": "Processing",
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/JobStateFilter"
+                }
+              ]
+            },
+            "x-position": 1
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            },
+            "x-position": 2
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/admin/background-jobs/jobs/{jobId}": {
+      "get": {
+        "tags": [
+          "BackgroundJobs"
+        ],
+        "summary": "Get the full detail of a job, including its arguments, state history, and failure stack trace.",
+        "operationId": "BackgroundJobs_GetJobDetail",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobDetailResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "BackgroundJobs"
+        ],
+        "summary": "Delete a job, moving it to the deleted state.",
+        "operationId": "BackgroundJobs_DeleteJob",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/admin/background-jobs/statistics": {
+      "get": {
+        "tags": [
+          "BackgroundJobs"
+        ],
+        "summary": "Get job counts by lifecycle state.",
+        "operationId": "BackgroundJobs_GetStatistics",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStatisticsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/admin/background-jobs/servers": {
+      "get": {
+        "tags": [
+          "BackgroundJobs"
+        ],
+        "summary": "Get the job servers currently polling for work.",
+        "operationId": "BackgroundJobs_GetServers",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobServerResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/admin/background-jobs/recurring": {
+      "get": {
+        "tags": [
+          "BackgroundJobs"
+        ],
+        "summary": "Get all registered recurring jobs.",
+        "operationId": "BackgroundJobs_GetRecurringJobs",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RecurringJobResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/admin/background-jobs/recurring/{recurringJobId}": {
+      "delete": {
+        "tags": [
+          "BackgroundJobs"
+        ],
+        "summary": "Remove a recurring job registration.",
+        "operationId": "BackgroundJobs_RemoveRecurringJob",
+        "parameters": [
+          {
+            "name": "recurringJobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/admin/background-jobs/jobs/{jobId}/requeue": {
+      "post": {
+        "tags": [
+          "BackgroundJobs"
+        ],
+        "summary": "Requeue a job for another attempt.",
+        "operationId": "BackgroundJobs_RequeueJob",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": ""
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/admin/feature-flags": {
       "get": {
         "tags": [
@@ -44092,7 +44402,8 @@
           "name",
           "groupName",
           "id",
-          "order"
+          "order",
+          "isSchedulable"
         ],
         "properties": {
           "id": {
@@ -44112,6 +44423,9 @@
           },
           "groupName": {
             "type": "string"
+          },
+          "isSchedulable": {
+            "type": "boolean"
           }
         }
       },
@@ -44170,6 +44484,327 @@
           },
           "cronExpression": {
             "type": "string"
+          }
+        }
+      },
+      "JobsResponse": {
+        "type": "object",
+        "description": "A page of jobs in one lifecycle state. PageNumber is 0-based.",
+        "additionalProperties": false,
+        "required": [
+          "totalCount",
+          "pageNumber",
+          "pageSize",
+          "items"
+        ],
+        "properties": {
+          "totalCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobSummaryResponse"
+            }
+          }
+        }
+      },
+      "JobSummaryResponse": {
+        "type": "object",
+        "description": "A job as it appears in a list.",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "state",
+          "type",
+          "namespace",
+          "action"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "The timestamp that matters for the requested state; TimestampLabel names it.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "timestampLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "exceptionType": {
+            "type": "string",
+            "nullable": true
+          },
+          "exceptionMessage": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "JobStateFilter": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Processing",
+          "Scheduled",
+          "Enqueued",
+          "Failed",
+          "Succeeded",
+          "Deleted"
+        ],
+        "enum": [
+          "Processing",
+          "Scheduled",
+          "Enqueued",
+          "Failed",
+          "Succeeded",
+          "Deleted"
+        ]
+      },
+      "JobDetailResponse": {
+        "type": "object",
+        "description": "Full detail for one job, including the failure stack trace that was previously only visible in\nthe Hangfire dashboard.",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "state",
+          "type",
+          "namespace",
+          "action",
+          "arguments",
+          "history"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "arguments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "exceptionType": {
+            "type": "string",
+            "nullable": true
+          },
+          "exceptionMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "exceptionDetails": {
+            "type": "string",
+            "nullable": true
+          },
+          "history": {
+            "type": "array",
+            "description": "State transitions, most recent first.",
+            "items": {
+              "$ref": "#/components/schemas/JobStateHistoryResponse"
+            }
+          }
+        }
+      },
+      "JobStateHistoryResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "state"
+        ],
+        "properties": {
+          "state": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "JobStatisticsResponse": {
+        "type": "object",
+        "description": "Counts per lifecycle bucket, for the dashboard tiles.",
+        "additionalProperties": false,
+        "required": [
+          "enqueued",
+          "scheduled",
+          "processing",
+          "succeeded",
+          "failed",
+          "deleted",
+          "recurring",
+          "servers"
+        ],
+        "properties": {
+          "enqueued": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "scheduled": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "processing": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "succeeded": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "deleted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "recurring": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "servers": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "JobServerResponse": {
+        "type": "object",
+        "description": "A worker process polling for jobs. A stale heartbeat indicates a wedged or stopped worker.",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "workerCount",
+          "queues"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "workerCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "queues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "heartbeat": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "RecurringJobResponse": {
+        "type": "object",
+        "description": "A registered recurring job.",
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cron": {
+            "type": "string",
+            "nullable": true
+          },
+          "queue": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "description": "Null when the stored invocation data no longer resolves to a loadable method; Error carries the reason.",
+            "nullable": true
+          },
+          "action": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastExecution": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "nextExecution": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastJobId": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastJobState": {
+            "type": "string",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
           }
         }
       },

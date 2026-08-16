@@ -31017,6 +31017,457 @@ export class BackgroundJobsClient {
         }
         return Promise.resolve<void>(null as any);
     }
+
+    /**
+     * Get a page of jobs in the given lifecycle state.
+     * @param state (optional) 
+     * @param pageNumber (optional) 
+     * @param pageSize (optional) 
+     */
+    getJobs(state?: JobStateFilter | undefined, pageNumber?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<JobsResponse> {
+        let url_ = this.baseUrl + "/api/admin/background-jobs/jobs?";
+        if (state === null)
+            throw new globalThis.Error("The parameter 'state' cannot be null.");
+        else if (state !== undefined)
+            url_ += "state=" + encodeURIComponent("" + state) + "&";
+        if (pageNumber === null)
+            throw new globalThis.Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetJobs(_response);
+        });
+    }
+
+    protected processGetJobs(response: AxiosResponse): Promise<JobsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<JobsResponse>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<JobsResponse>(null as any);
+    }
+
+    /**
+     * Get the full detail of a job, including its arguments, state history, and failure stack trace.
+     */
+    getJobDetail(jobId: string, cancelToken?: CancelToken): Promise<JobDetailResponse> {
+        let url_ = this.baseUrl + "/api/admin/background-jobs/jobs/{jobId}";
+        if (jobId === undefined || jobId === null)
+            throw new globalThis.Error("The parameter 'jobId' must be defined.");
+        url_ = url_.replace("{jobId}", encodeURIComponent("" + jobId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetJobDetail(_response);
+        });
+    }
+
+    protected processGetJobDetail(response: AxiosResponse): Promise<JobDetailResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<JobDetailResponse>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<JobDetailResponse>(null as any);
+    }
+
+    /**
+     * Delete a job, moving it to the deleted state.
+     */
+    deleteJob(jobId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/admin/background-jobs/jobs/{jobId}";
+        if (jobId === undefined || jobId === null)
+            throw new globalThis.Error("The parameter 'jobId' must be defined.");
+        url_ = url_.replace("{jobId}", encodeURIComponent("" + jobId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteJob(_response);
+        });
+    }
+
+    protected processDeleteJob(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get job counts by lifecycle state.
+     */
+    getStatistics( cancelToken?: CancelToken): Promise<JobStatisticsResponse> {
+        let url_ = this.baseUrl + "/api/admin/background-jobs/statistics";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetStatistics(_response);
+        });
+    }
+
+    protected processGetStatistics(response: AxiosResponse): Promise<JobStatisticsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<JobStatisticsResponse>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<JobStatisticsResponse>(null as any);
+    }
+
+    /**
+     * Get the job servers currently polling for work.
+     */
+    getServers( cancelToken?: CancelToken): Promise<JobServerResponse[]> {
+        let url_ = this.baseUrl + "/api/admin/background-jobs/servers";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetServers(_response);
+        });
+    }
+
+    protected processGetServers(response: AxiosResponse): Promise<JobServerResponse[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<JobServerResponse[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<JobServerResponse[]>(null as any);
+    }
+
+    /**
+     * Get all registered recurring jobs.
+     */
+    getRecurringJobs( cancelToken?: CancelToken): Promise<RecurringJobResponse[]> {
+        let url_ = this.baseUrl + "/api/admin/background-jobs/recurring";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetRecurringJobs(_response);
+        });
+    }
+
+    protected processGetRecurringJobs(response: AxiosResponse): Promise<RecurringJobResponse[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<RecurringJobResponse[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<RecurringJobResponse[]>(null as any);
+    }
+
+    /**
+     * Remove a recurring job registration.
+     */
+    removeRecurringJob(recurringJobId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/admin/background-jobs/recurring/{recurringJobId}";
+        if (recurringJobId === undefined || recurringJobId === null)
+            throw new globalThis.Error("The parameter 'recurringJobId' must be defined.");
+        url_ = url_.replace("{recurringJobId}", encodeURIComponent("" + recurringJobId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRemoveRecurringJob(_response);
+        });
+    }
+
+    protected processRemoveRecurringJob(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Requeue a job for another attempt.
+     */
+    requeueJob(jobId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/admin/background-jobs/jobs/{jobId}/requeue";
+        if (jobId === undefined || jobId === null)
+            throw new globalThis.Error("The parameter 'jobId' must be defined.");
+        url_ = url_.replace("{jobId}", encodeURIComponent("" + jobId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRequeueJob(_response);
+        });
+    }
+
+    protected processRequeueJob(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 202) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
 }
 
 export class MessagingClient {
@@ -36824,6 +37275,7 @@ export interface BackgroundJobTypeDto {
     description?: string | undefined;
     order: number;
     groupName: string;
+    isSchedulable: boolean;
 }
 
 export interface BackgroundJobDto {
@@ -36840,6 +37292,96 @@ export interface CreateRecurringJobRequest {
     jobId: string;
     jobTypeId: number;
     cronExpression: string;
+}
+
+/** A page of jobs in one lifecycle state. PageNumber is 0-based. */
+export interface JobsResponse {
+    totalCount: number;
+    pageNumber: number;
+    pageSize: number;
+    items: JobSummaryResponse[];
+}
+
+/** A job as it appears in a list. */
+export interface JobSummaryResponse {
+    id: string;
+    state: string;
+    type: string;
+    namespace: string;
+    action: string;
+    /** The timestamp that matters for the requested state; TimestampLabel names it. */
+    timestamp?: Date | undefined;
+    timestampLabel?: string | undefined;
+    exceptionType?: string | undefined;
+    exceptionMessage?: string | undefined;
+}
+
+export enum JobStateFilter {
+    Processing = "Processing",
+    Scheduled = "Scheduled",
+    Enqueued = "Enqueued",
+    Failed = "Failed",
+    Succeeded = "Succeeded",
+    Deleted = "Deleted",
+}
+
+/** Full detail for one job, including the failure stack trace that was previously only visible in the Hangfire dashboard. */
+export interface JobDetailResponse {
+    id: string;
+    state: string;
+    type: string;
+    namespace: string;
+    action: string;
+    createdAt?: Date | undefined;
+    expiresAt?: Date | undefined;
+    arguments: string[];
+    exceptionType?: string | undefined;
+    exceptionMessage?: string | undefined;
+    exceptionDetails?: string | undefined;
+    /** State transitions, most recent first. */
+    history: JobStateHistoryResponse[];
+}
+
+export interface JobStateHistoryResponse {
+    state: string;
+    reason?: string | undefined;
+    changedAt?: Date | undefined;
+}
+
+/** Counts per lifecycle bucket, for the dashboard tiles. */
+export interface JobStatisticsResponse {
+    enqueued: number;
+    scheduled: number;
+    processing: number;
+    succeeded: number;
+    failed: number;
+    deleted: number;
+    recurring: number;
+    servers: number;
+}
+
+/** A worker process polling for jobs. A stale heartbeat indicates a wedged or stopped worker. */
+export interface JobServerResponse {
+    name: string;
+    workerCount: number;
+    queues: string[];
+    startedAt?: Date | undefined;
+    heartbeat?: Date | undefined;
+}
+
+/** A registered recurring job. */
+export interface RecurringJobResponse {
+    id: string;
+    cron?: string | undefined;
+    queue?: string | undefined;
+    /** Null when the stored invocation data no longer resolves to a loadable method; Error carries the reason. */
+    type?: string | undefined;
+    action?: string | undefined;
+    lastExecution?: Date | undefined;
+    nextExecution?: Date | undefined;
+    lastJobId?: string | undefined;
+    lastJobState?: string | undefined;
+    error?: string | undefined;
 }
 
 export interface FeatureFlagListDto {

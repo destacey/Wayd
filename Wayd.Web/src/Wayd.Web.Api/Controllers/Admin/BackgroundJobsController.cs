@@ -5,6 +5,7 @@ using Wayd.Common.Application.Enums;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Interfaces;
 using Wayd.Web.Api.Models.Admin;
+using Wayd.Web.Api.Models.Admin.BackgroundJobs;
 
 namespace Wayd.Web.Api.Controllers.Admin;
 
@@ -99,7 +100,17 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public IActionResult Create([FromBody] CreateRecurringJobRequest request, [FromServices] IJobManager jobManager, CancellationToken cancellationToken)
     {
-        _jobService.AddOrUpdate(request.JobId, GetMethodCall((BackgroundJobType)request.JobTypeId), () => request.CronExpression);
+        var jobType = (BackgroundJobType)request.JobTypeId;
+
+        // Not every job type can run on a schedule (the data-replication syncs are triggered by the
+        // flows that change the data). The UI filters its picker on the same set, so reaching here
+        // means a direct API call — answer with a 400 rather than letting the switch below throw.
+        if (!SchedulableBackgroundJobTypes.Contains(jobType))
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest($"Job type {jobType} cannot be scheduled.", HttpContext));
+        }
+
+        _jobService.AddOrUpdate(request.JobId, GetMethodCall(jobType), () => request.CronExpression);
 
         return Accepted();
 
@@ -115,8 +126,84 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
                 BackgroundJobType.WorkDiffSync => () => jobManager.RunWorkSync(SyncType.Differential, SyncTriggerSource.Scheduled, null, cancellationToken),
                 BackgroundJobType.TeamGraphSync => () => jobManager.RunSyncTeamsWithGraphTables(cancellationToken),
                 BackgroundJobType.PortfolioRankRebalance => () => jobManager.RunPortfolioRankRebalance(cancellationToken),
-                _ => throw new ArgumentOutOfRangeException(nameof(jobType), jobType, "Unknown job type requested")
+                // Unreachable: SchedulableBackgroundJobTypes gates entry, and this switch must cover
+                // every member of it. A miss here means the two have drifted.
+                _ => throw new ArgumentOutOfRangeException(nameof(jobType), jobType, "Job type is marked schedulable but has no recurring invocation mapped.")
             };
         }
     }
+
+    [HttpGet("jobs")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.BackgroundJobs)]
+    [OpenApiOperation("Get a page of jobs in the given lifecycle state.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public ActionResult<JobsResponse> GetJobs(
+        [FromQuery] JobStateFilter state = JobStateFilter.Processing,
+        [FromQuery] int pageNumber = 0,
+        [FromQuery] int pageSize = 50)
+    {
+        var page = _jobService.GetJobs(state, Math.Max(pageNumber, 0), Math.Clamp(pageSize, 1, 500));
+        return Ok(JobsResponse.From(page));
+    }
+
+    [HttpGet("jobs/{jobId}")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.BackgroundJobs)]
+    [OpenApiOperation("Get the full detail of a job, including its arguments, state history, and failure stack trace.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public ActionResult<JobDetailResponse> GetJobDetail(string jobId)
+    {
+        var detail = _jobService.GetJobDetail(jobId);
+        if (detail is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(JobDetailResponse.From(detail));
+    }
+
+    [HttpGet("statistics")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.BackgroundJobs)]
+    [OpenApiOperation("Get job counts by lifecycle state.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public ActionResult<JobStatisticsResponse> GetStatistics() =>
+        Ok(JobStatisticsResponse.From(_jobService.GetStatistics()));
+
+    [HttpGet("servers")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.BackgroundJobs)]
+    [OpenApiOperation("Get the job servers currently polling for work.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public ActionResult<IReadOnlyList<JobServerResponse>> GetServers() =>
+        Ok(_jobService.GetServers().Select(JobServerResponse.From));
+
+    [HttpGet("recurring")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.BackgroundJobs)]
+    [OpenApiOperation("Get all registered recurring jobs.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public ActionResult<IReadOnlyList<RecurringJobResponse>> GetRecurringJobs() =>
+        Ok(_jobService.GetRecurringJobs().Select(RecurringJobResponse.From));
+
+    [HttpDelete("recurring/{recurringJobId}")]
+    [MustHavePermission(ApplicationAction.Delete, ApplicationResource.BackgroundJobs)]
+    [OpenApiOperation("Remove a recurring job registration.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public IActionResult RemoveRecurringJob(string recurringJobId) =>
+        _jobService.RemoveRecurringJob(recurringJobId) ? NoContent() : NotFound();
+
+    [HttpPost("jobs/{jobId}/requeue")]
+    [MustHavePermission(ApplicationAction.Run, ApplicationResource.BackgroundJobs)]
+    [OpenApiOperation("Requeue a job for another attempt.", "")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public IActionResult RequeueJob(string jobId) =>
+        _jobService.Requeue(jobId) ? Accepted() : NotFound();
+
+    [HttpDelete("jobs/{jobId}")]
+    [MustHavePermission(ApplicationAction.Delete, ApplicationResource.BackgroundJobs)]
+    [OpenApiOperation("Delete a job, moving it to the deleted state.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public IActionResult DeleteJob(string jobId) =>
+        _jobService.Delete(jobId) ? NoContent() : NotFound();
 }

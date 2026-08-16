@@ -2,6 +2,9 @@ export enum QueryTags {
   // ADMIN
   BackgroundJob = 'Admin.BackgroundJob',
   BackgroundJobType = 'Admin.BackgroundJobType',
+  BackgroundJobStatistics = 'Admin.BackgroundJobStatistics',
+  BackgroundJobServer = 'Admin.BackgroundJobServer',
+  RecurringJob = 'Admin.RecurringJob',
   FeatureFlag = 'Admin.FeatureFlag',
   MessagingCounts = 'Admin.MessagingCounts',
   DeadLetterMessage = 'Admin.DeadLetterMessage',

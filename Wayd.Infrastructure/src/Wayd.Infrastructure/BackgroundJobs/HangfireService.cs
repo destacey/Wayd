@@ -1,9 +1,14 @@
 ﻿using System.Linq.Expressions;
 using Hangfire;
 using Hangfire.Common;
+using Hangfire.Storage;
+using Hangfire.Storage.Monitoring;
 using NodaTime;
 using Wayd.Common.Application.BackgroundJobs;
 using Wayd.Common.Application.Identity;
+
+// Hangfire.Storage has its own RecurringJobDto; alias Wayd's so the mapping below names both sides.
+using WaydRecurringJobDto = Wayd.Common.Application.BackgroundJobs.RecurringJobDto;
 
 namespace Wayd.Infrastructure.BackgroundJobs;
 
@@ -30,6 +35,245 @@ public class HangfireService : IJobService
         }
         return backgroundJobs;
     }
+
+    public JobPageDto GetJobs(JobStateFilter state, int pageNumber, int pageSize)
+    {
+        var monitoring = JobStorage.Current.GetMonitoringApi();
+
+        // Clamped here as well as in the caller so the service is safe called directly.
+        pageNumber = Math.Max(pageNumber, 0);
+        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+        var from = PageOffset(pageNumber, pageSize);
+
+        return state switch
+        {
+            JobStateFilter.Processing => Page(
+                monitoring.ProcessingCount(),
+                monitoring.ProcessingJobs(from, pageSize),
+                (id, job) => Summary(id, job.Job, "Processing", ToInstant(job.StartedAt), "Started")),
+
+            JobStateFilter.Scheduled => Page(
+                monitoring.ScheduledCount(),
+                monitoring.ScheduledJobs(from, pageSize),
+                (id, job) => Summary(id, job.Job, "Scheduled", ToInstant(job.EnqueueAt), "Runs At")),
+
+            JobStateFilter.Failed => Page(
+                monitoring.FailedCount(),
+                monitoring.FailedJobs(from, pageSize),
+                (id, job) => Summary(id, job.Job, "Failed", ToInstant(job.FailedAt), "Failed") with
+                {
+                    ExceptionType = job.ExceptionType,
+                    ExceptionMessage = job.ExceptionMessage,
+                }),
+
+            JobStateFilter.Succeeded => Page(
+                monitoring.SucceededListCount(),
+                monitoring.SucceededJobs(from, pageSize),
+                (id, job) => Summary(id, job.Job, "Succeeded", ToInstant(job.SucceededAt), "Succeeded")),
+
+            JobStateFilter.Deleted => Page(
+                monitoring.DeletedListCount(),
+                monitoring.DeletedJobs(from, pageSize),
+                (id, job) => Summary(id, job.Job, "Deleted", ToInstant(job.DeletedAt), "Deleted")),
+
+            // Enqueued is per-queue in Hangfire, with no all-queues overload. Walking the queues and
+            // concatenating keeps one API shape for the UI; the page window is applied across the
+            // flattened result rather than per queue.
+            JobStateFilter.Enqueued => EnqueuedPage(monitoring, from, pageSize),
+
+            _ => new JobPageDto { PageNumber = pageNumber, PageSize = pageSize },
+        };
+
+        JobPageDto Page<T>(long total, JobList<T> jobs, Func<string, T, JobSummaryDto> map) => new()
+        {
+            TotalCount = total,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            Items = [.. jobs.Select(j => map(j.Key, j.Value))],
+        };
+    }
+
+    private static JobPageDto EnqueuedPage(IMonitoringApi monitoring, int from, int pageSize)
+    {
+        var queues = monitoring.Queues();
+
+        // EnqueuedCount, not QueueWithTopEnqueuedJobsDto.Length: Length counts fetched (in-flight)
+        // rows too, so it reports jobs that EnqueuedJobs below will not return — the total and the
+        // list would disagree.
+        var total = queues.Sum(q => monitoring.EnqueuedCount(q.Name));
+
+        var items = queues
+            .SelectMany(queue => monitoring
+                .EnqueuedJobs(queue.Name, 0, from + pageSize)
+                .Select(j => Summary(j.Key, j.Value.Job, "Enqueued", ToInstant(j.Value.EnqueuedAt), "Enqueued")))
+            .Skip(from)
+            .Take(pageSize)
+            .ToList();
+
+        return new JobPageDto
+        {
+            TotalCount = total,
+            PageNumber = from / Math.Max(pageSize, 1),
+            PageSize = pageSize,
+            Items = items,
+        };
+    }
+
+    public JobDetailDto? GetJobDetail(string jobId)
+    {
+        var monitoring = JobStorage.Current.GetMonitoringApi();
+
+        var details = monitoring.JobDetails(jobId);
+        if (details is null)
+        {
+            return null;
+        }
+
+        // Hangfire records history newest-last; the UI reads it as a timeline, most recent first.
+        var history = details.History?.Reverse().Select(h => new JobStateHistoryDto
+        {
+            State = h.StateName,
+            Reason = h.Reason,
+            ChangedAt = ToInstant(h.CreatedAt),
+        }).ToList() ?? [];
+
+        // Exception detail lives on the failed state's data bag, not on JobDetailsDto.
+        var failure = CurrentFailure(details.History);
+
+        return new JobDetailDto
+        {
+            Id = jobId,
+            State = history.FirstOrDefault()?.State ?? "Unknown",
+            Type = details.Job?.Type.Name ?? UnknownValue,
+            Namespace = details.Job?.Type.Namespace ?? UnknownValue,
+            Action = details.Job?.Method.Name ?? UnknownValue,
+            CreatedAt = ToInstant(details.CreatedAt),
+            ExpiresAt = ToInstant(details.ExpireAt),
+            Arguments = [.. details.Job?.Args?.Select(a => a?.ToString() ?? "null") ?? []],
+            ExceptionType = ReadStateData(failure, "ExceptionType"),
+            ExceptionMessage = ReadStateData(failure, "ExceptionMessage"),
+            ExceptionDetails = ReadStateData(failure, "ExceptionDetails"),
+            History = history,
+        };
+    }
+
+    public JobStatisticsDto GetStatistics()
+    {
+        var monitoring = JobStorage.Current.GetMonitoringApi();
+        var statistics = monitoring.GetStatistics();
+
+        return new JobStatisticsDto
+        {
+            Current = new CurrentJobCountsDto
+            {
+                Enqueued = statistics.Enqueued,
+                Scheduled = statistics.Scheduled,
+                Processing = statistics.Processing,
+                Failed = statistics.Failed,
+                // *ListCount, not StatisticsDto.Succeeded/Deleted: those are counter-table running
+                // totals that keep climbing after the job records are purged. These are the retained
+                // counts, so they agree with what SucceededJobs/DeletedJobs actually return.
+                Succeeded = monitoring.SucceededListCount(),
+                Deleted = monitoring.DeletedListCount(),
+                Retries = statistics.Retries,
+                Awaiting = statistics.Awaiting,
+                Recurring = statistics.Recurring,
+                Servers = statistics.Servers,
+            },
+            AllTime = new AllTimeJobCountsDto
+            {
+                Succeeded = statistics.Succeeded,
+                Deleted = statistics.Deleted,
+            },
+        };
+    }
+
+    public IReadOnlyList<JobServerDto> GetServers() =>
+    [
+        .. JobStorage.Current.GetMonitoringApi().Servers().Select(server => new JobServerDto
+        {
+            Name = server.Name,
+            WorkerCount = server.WorkersCount,
+            Queues = [.. server.Queues ?? []],
+            StartedAt = ToInstant(server.StartedAt),
+            Heartbeat = ToInstant(server.Heartbeat),
+        })
+    ];
+
+    public IReadOnlyList<WaydRecurringJobDto> GetRecurringJobs()
+    {
+        using var connection = JobStorage.Current.GetConnection();
+
+        return
+        [
+            .. connection.GetRecurringJobs().Select(recurring => new WaydRecurringJobDto
+            {
+                Id = recurring.Id,
+                Cron = recurring.Cron,
+                Queue = recurring.Queue,
+                // Job is null when the stored invocation data no longer resolves to a loadable
+                // method (renamed or removed); Error carries the reason.
+                Type = recurring.Job?.Type.Name,
+                Action = recurring.Job?.Method.Name,
+                LastExecution = ToInstant(recurring.LastExecution),
+                NextExecution = ToInstant(recurring.NextExecution),
+                LastJobId = recurring.LastJobId,
+                LastJobState = recurring.LastJobState,
+                Error = recurring.Error,
+            })
+        ];
+    }
+
+    public bool RemoveRecurringJob(string recurringJobId)
+    {
+        using var connection = JobStorage.Current.GetConnection();
+
+        // RemoveIfExists returns void, so existence is checked first to tell "removed" from
+        // "no such job" — the API turns the latter into a 404 rather than a silent success.
+        var exists = connection.GetRecurringJobs().Any(j => j.Id == recurringJobId);
+        if (!exists)
+        {
+            return false;
+        }
+
+        RecurringJob.RemoveIfExists(recurringJobId);
+        return true;
+    }
+
+    private const string FailedStateName = "Failed";
+    private const string UnknownValue = "Unknown";
+    internal const int MaxPageSize = 500;
+
+    /// <summary>
+    /// The zero-based row offset for a page, saturating rather than overflowing. The monitoring API
+    /// takes int offsets, so a large page number would otherwise wrap to a negative offset.
+    /// </summary>
+    internal static int PageOffset(int pageNumber, int pageSize) =>
+        (int)Math.Min((long)Math.Max(pageNumber, 0) * pageSize, int.MaxValue - pageSize);
+
+    /// <summary>
+    /// The failure that left the job in its current state. History is oldest-first and a retried job
+    /// records one entry per attempt, so the last failure — not the first — is the current one.
+    /// </summary>
+    internal static StateHistoryDto? CurrentFailure(IEnumerable<StateHistoryDto>? history) =>
+        history?.LastOrDefault(h => h.StateName == FailedStateName);
+
+    private static JobSummaryDto Summary(string id, Job? job, string state, Instant? timestamp, string timestampLabel) => new()
+    {
+        Id = id,
+        State = state,
+        Type = job?.Type.Name ?? UnknownValue,
+        Namespace = job?.Type.Namespace ?? UnknownValue,
+        Action = job?.Method.Name ?? UnknownValue,
+        Timestamp = timestamp,
+        TimestampLabel = timestampLabel,
+    };
+
+    private static string? ReadStateData(StateHistoryDto? state, string key) =>
+        state?.Data is not null && state.Data.TryGetValue(key, out var value) ? value : null;
+
+    private static Instant? ToInstant(DateTime? value) =>
+        value is null ? null : Instant.FromDateTimeUtc(DateTime.SpecifyKind(value.Value, DateTimeKind.Utc));
 
     public bool Delete(string jobId) =>
         BackgroundJob.Delete(jobId);

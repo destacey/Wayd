@@ -6,6 +6,21 @@ public interface IJobService : IScopedService
 {
     IEnumerable<BackgroundJobDto> GetRunningJobs();
 
+    /// <summary>A page of jobs in one lifecycle state. <paramref name="pageNumber"/> is 0-based.</summary>
+    JobPageDto GetJobs(JobStateFilter state, int pageNumber, int pageSize);
+
+    /// <summary>Full detail for one job, or null when the id is unknown or its record has expired.</summary>
+    JobDetailDto? GetJobDetail(string jobId);
+
+    JobStatisticsDto GetStatistics();
+
+    IReadOnlyList<JobServerDto> GetServers();
+
+    IReadOnlyList<RecurringJobDto> GetRecurringJobs();
+
+    /// <summary>Removes a recurring registration. Returns false when no job with that id exists.</summary>
+    bool RemoveRecurringJob(string recurringJobId);
+
     string Enqueue(Expression<Action> methodCall);
 
     string Enqueue(Expression<Func<Task>> methodCall);

@@ -24,6 +24,16 @@ interface CreateRecurringJobFormValues {
   cronExpression: string
 }
 
+/**
+ * Only schedulable types may be offered: the rest run on demand only, and the
+ * API rejects them with a 400. The flag comes from the same server-side set the
+ * recurring endpoint gates on, so the two cannot disagree.
+ */
+export const toSchedulableOptions = (jobTypes: BackgroundJobTypeDto[]) =>
+  jobTypes
+    .filter((jobType) => jobType.isSchedulable)
+    .map((jobType) => ({ value: jobType.id, label: jobType.name }))
+
 const mapToRequestValues = (values: CreateRecurringJobRequest) => {
   const request = {
     jobId: values.jobId,
@@ -110,10 +120,7 @@ const CreateRecurringJobForm = ({
                 .toLowerCase()
                 .localeCompare((optionB?.label ?? '').toLowerCase())
             }
-            options={jobTypes.map((jobType) => ({
-              value: jobType.id,
-              label: jobType.name,
-            }))}
+            options={toSchedulableOptions(jobTypes)}
           />
         </Item>
         <Item

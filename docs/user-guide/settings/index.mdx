@@ -309,16 +309,52 @@ AI provider connectors (Azure OpenAI, OpenAI) are outbound LLM clients. They don
 
 ## Background Jobs
 
-Wayd uses **Hangfire** for background job processing. The background jobs dashboard is available at **Settings > Background Jobs** and provides:
-- List of recurring jobs and their schedules
-- Job execution history
-- Manual job triggering
+Wayd runs recurring and on-demand work — syncs, replication, maintenance — as background jobs. **Settings → Background Jobs** is where you watch and control them.
 
-Background jobs are primarily used for:
+### What the page shows
+
+Counts are split into two rows, because they answer different questions:
+
+- **Current** — jobs that exist right now. Each tile agrees with the matching tab: Processing, Enqueued, Scheduled, Failed, Succeeded, plus Recurring schedules and Servers.
+- **All time** — running totals of everything that has ever succeeded or been deleted. These keep climbing after the job records themselves are purged, so they are normally far higher than the Current figures.
+
+:::note Succeeded appears in both rows, with different meanings
+Succeeded jobs are retained only briefly before being purged. **Current → Succeeded** counts the ones still on record — often a handful, or none. **All time → Succeeded** counts every job that has ever completed. A large gap between them is expected, not a fault.
+:::
+
+Three tabs sit below the tiles:
+
+| Tab | What it is for |
+|---|---|
+| **Jobs** | Browse jobs by state — Processing, Scheduled, Enqueued, Failed, Succeeded, Deleted. Select a job to open its detail panel. |
+| **Recurring** | Every registered schedule, with its cron expression, next and last run, and the outcome of the last run. Remove a schedule here. |
+| **Servers** | The worker processes polling for jobs, with their heartbeat. No servers means nothing will run. |
+
+### Diagnosing a failure
+
+Open the **Failed** state on the Jobs tab and select the job. The detail panel carries the exception type and message, the **full stack trace**, the arguments the job ran with, and its state history — every transition and why.
+
+From there you can **Requeue** the job to try again, or **Delete** it.
+
+### Running and scheduling jobs
+
+**Actions** offers every job type for an immediate run. The job types are:
+
 - **Work Sync** — Synchronizes work data from all active Work Sync connectors (Azure DevOps today). Differential and Full variants are available.
 - **People Sync** — Synchronizes people data from all active People Sync connectors (Entra today).
+- **Team Graph Sync** — Refreshes the team graph tables.
+- **Projects, Teams, Iterations, and Strategic Themes Sync** — Replicate their respective records across domains.
 - **Portfolio Rank Rebalance** — Maintenance job that re-spaces dense project ranks within portfolios after repeated drag-to-rank operations.
-- Other periodic maintenance tasks
+
+**Create Recurring Job** schedules a job with a cron expression. It offers only the job types that can run on a schedule — the cross-domain replication syncs (Projects, Teams, Iterations, Strategic Themes) are driven by the changes that trigger them, so they are available to run on demand but not to schedule.
+
+### Permissions
+
+| To do this | You need |
+|---|---|
+| Open the page and browse jobs | `Permissions.BackgroundJobs.View` |
+| Run a job, create a schedule, requeue a job | `Permissions.BackgroundJobs.Run` |
+| Delete a job or remove a recurring schedule | `Permissions.BackgroundJobs.Delete` |
 
 ## Estimation Scales
 

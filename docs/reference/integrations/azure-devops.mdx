@@ -52,7 +52,7 @@ If the PAT is later rotated or revoked in AzDO, sync runs will fail with `401 Un
 | Organization | — | Required. AzDO organization slug. |
 | Personal Access Token | — | Required. Encrypted at rest. |
 
-There are no admin toggles for filtering, projection, or sync cadence beyond the standard Hangfire job schedule.
+There are no admin toggles for filtering or projection. Sync cadence is set by the job's recurring schedule, managed under [Settings → Background Jobs](../../user-guide/settings/index.mdx#background-jobs).
 
 ## How it works
 

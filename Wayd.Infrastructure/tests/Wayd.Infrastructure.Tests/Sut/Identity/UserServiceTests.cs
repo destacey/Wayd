@@ -1921,6 +1921,41 @@ public class UserServiceTests
     }
 
     [Fact]
+    public async Task TryApplyPendingProviderMigration_ShouldStillSucceed_WhenClearingLocalPasswordFails()
+    {
+        // Arrange — password removal runs after the rebind transaction has committed,
+        // so a failure there has nothing to roll back and no retry path (the next
+        // sign-in resolves on the triple and never re-enters this method). It must not
+        // fail a migration that actually succeeded; the leftover hash is unreachable at
+        // login because the Wayd identity is deactivated.
+        const string targetProvider = "Acme-Okta";
+        const string email = "rowan.pike@acme.example";
+
+        var user = CreateUser(id: "user-hash-stuck", loginProvider: LoginProviders.MicrosoftEntraId);
+        user.NormalizedEmail = email.ToUpperInvariant();
+        user.PendingMigrationProviderId = targetProvider;
+        user.PasswordHash = "AQAAAAIAAYagAAAAEPLACEHOLDERHASHVALUE==";
+
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+        _mockUserManager.Setup(x => x.RemovePasswordAsync(user))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Concurrency failure." }));
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.TryApplyPendingProviderMigration(targetProvider, null, "okta-sub-placeholder", email);
+
+        // Assert — the rebind stands and is reported as such.
+        result.Should().NotBeNull();
+        user.LoginProvider.Should().Be(targetProvider);
+        user.PendingMigrationProviderId.Should().BeNull();
+        _mockUserIdentityStore.Verify(s => s.Add(
+            It.Is<UserIdentity>(ui => ui.Provider == targetProvider && ui.IsActive),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task ConvertToLocalAccount_ShouldKeepPassword_WhenMigratingTowardLocal()
     {
         // Arrange — the reverse direction. Relinking toward a local account sets a

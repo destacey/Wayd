@@ -447,11 +447,12 @@ internal partial class UserService
             }
         });
 
-        await ClearLocalPasswordAfterRelink(candidate);
+        var localPasswordCleared = await ClearLocalPasswordAfterRelink(candidate);
 
         _logger.LogInformation(
-            "Provider migration completed for user {UserId}: rebound to provider {Provider} (subject {Subject}).",
-            candidate.Id, providerName, subject);
+            "Provider migration completed for user {UserId}: rebound to provider {Provider} (subject {Subject}). " +
+            "LocalPasswordCleared={LocalPasswordCleared}.",
+            candidate.Id, providerName, subject, localPasswordCleared);
 
         await _events.PublishAsync(new ApplicationUserUpdatedEvent(candidate.Id, _dateTimeProvider.Now));
 
@@ -476,7 +477,12 @@ internal partial class UserService
     /// state — <c>LoginProvider = Wayd</c> alongside a live external identity row —
     /// which has had to be repaired by hand before.
     /// </remarks>
-    private async Task ClearLocalPasswordAfterRelink(ApplicationUser user)
+    /// <returns>
+    /// <c>true</c> when no local credential remains. <c>false</c> means the removal
+    /// failed and was logged; the caller has already committed its rebind and must not
+    /// treat this as a reason to fail, only as a reason not to claim a clean migration.
+    /// </returns>
+    private async Task<bool> ClearLocalPasswordAfterRelink(ApplicationUser user)
     {
         if (user.LoginProvider == LoginProviders.Wayd)
         {
@@ -486,10 +492,29 @@ internal partial class UserService
                 "after LoginProvider has been set to the destination provider.");
         }
 
-        if (user.PasswordHash is not null)
+        if (user.PasswordHash is null)
         {
-            await _userManager.RemovePasswordAsync(user);
+            return true;
         }
+
+        var result = await _userManager.RemovePasswordAsync(user);
+        if (!result.Succeeded)
+        {
+            // Deliberately not thrown. This runs after the rebind transaction has
+            // committed, so there is nothing left to roll back and no retry path —
+            // the next sign-in resolves on the triple and never re-enters the
+            // migration. Throwing would report a migration that did succeed as failed.
+            // The leftover hash is unreachable at login (EnsureActiveIdentityAsync
+            // requires an active Wayd identity, which the rebind deactivated), so this
+            // is a cleanup gap for an admin to close, not an open credential.
+            _logger.LogError(
+                "Provider migration for user {UserId} completed, but clearing their local password failed: {Errors}. " +
+                "The hash is unreachable at login but should be cleared manually.",
+                user.Id, string.Join(", ", result.Errors.Select(e => e.Description)));
+            return false;
+        }
+
+        return true;
     }
 
     private async Task<ApplicationUser> CreateOrUpdateFromPrincipalAsync(ClaimsPrincipal principal, bool isFirstUser, RegistrationPolicy policy)

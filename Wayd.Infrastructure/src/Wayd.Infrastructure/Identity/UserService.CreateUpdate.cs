@@ -25,7 +25,10 @@ internal partial class UserService
     /// If still no match and a user has a staged tenant migration whose target matches
     /// the token's tenant, that user's active identity is rebound to (tid, oid) inside
     /// a transaction (see <see cref="TryApplyPendingTenantMigration"/>).
-    /// If still no match, the user is created and a new UserIdentity row is inserted.
+    /// If still no match, the user is created and a new UserIdentity row is inserted —
+    /// unless an existing account matches on display name or UPN/email, which is denied
+    /// rather than linked. Those are mutable directory attributes and are not proof of
+    /// account ownership; adopting an existing account requires an admin-staged migration.
     /// </summary>
     public async Task<(string Id, string? EmployeeId)> GetOrCreateFromPrincipalAsync(ClaimsPrincipal principal)
     {
@@ -444,22 +447,74 @@ internal partial class UserService
             }
         });
 
-        // If the user was previously a local account, clear the password hash now
-        // that the Wayd identity is deactivated. The hash is unreachable at login
-        // (TokenService gates on an active Wayd identity), but removing it makes
-        // the intent explicit and prevents a future bug if that gate ever moves.
-        if (candidate.PasswordHash is not null)
-        {
-            await _userManager.RemovePasswordAsync(candidate);
-        }
+        var localPasswordCleared = await ClearLocalPasswordAfterRelink(candidate);
 
         _logger.LogInformation(
-            "Provider migration completed for user {UserId}: rebound to provider {Provider} (subject {Subject}).",
-            candidate.Id, providerName, subject);
+            "Provider migration completed for user {UserId}: rebound to provider {Provider} (subject {Subject}). " +
+            "LocalPasswordCleared={LocalPasswordCleared}.",
+            candidate.Id, providerName, subject, localPasswordCleared);
 
         await _events.PublishAsync(new ApplicationUserUpdatedEvent(candidate.Id, _dateTimeProvider.Now));
 
         return candidate;
+    }
+
+    /// <summary>
+    /// Clears the password hash of a user who has just been rebound <i>onto</i> an
+    /// external provider. The hash is unreachable at login (TokenService gates on an
+    /// active Wayd identity, which the rebind deactivated), but removing it makes the
+    /// intent explicit and prevents a future bug if that gate ever moves.
+    /// </summary>
+    /// <remarks>
+    /// Direction-sensitive, and callable only in the local→external direction. Call it
+    /// <b>after</b> <c>LoginProvider</c> has been set to the destination provider — it
+    /// reads that field to confirm the direction, and a user landing on
+    /// <see cref="LoginProviders.Wayd"/> needs their password kept (or newly set, as in
+    /// <c>ConvertToLocalAccount</c>), never removed.
+    ///
+    /// Every path that relinks a user onto an external provider must set
+    /// <c>LoginProvider</c> and call this. Skipping either leaves the account in a split
+    /// state — <c>LoginProvider = Wayd</c> alongside a live external identity row —
+    /// which has had to be repaired by hand before.
+    /// </remarks>
+    /// <returns>
+    /// <c>true</c> when no local credential remains. <c>false</c> means the removal
+    /// failed and was logged; the caller has already committed its rebind and must not
+    /// treat this as a reason to fail, only as a reason not to claim a clean migration.
+    /// </returns>
+    private async Task<bool> ClearLocalPasswordAfterRelink(ApplicationUser user)
+    {
+        if (user.LoginProvider == LoginProviders.Wayd)
+        {
+            throw new InvalidOperationException(
+                $"ClearLocalPasswordAfterRelink called for user {user.Id} whose LoginProvider is still " +
+                "Wayd. It clears the credential for the local→external direction only, and must run " +
+                "after LoginProvider has been set to the destination provider.");
+        }
+
+        if (user.PasswordHash is null)
+        {
+            return true;
+        }
+
+        var result = await _userManager.RemovePasswordAsync(user);
+        if (!result.Succeeded)
+        {
+            // Deliberately not thrown. This runs after the rebind transaction has
+            // committed, so there is nothing left to roll back and no retry path —
+            // the next sign-in resolves on the triple and never re-enters the
+            // migration. Throwing would report a migration that did succeed as failed.
+            // The leftover hash is unreachable at login (EnsureActiveIdentityAsync
+            // requires an active Wayd identity, which the rebind deactivated), so this
+            // is a cleanup gap for an admin to close, not an open credential.
+            _logger.LogError(
+                "Provider migration for user {UserId} completed, but clearing their local password failed: {Errors}. " +
+                "The hash is unreachable at login but should be cleared manually.",
+                user.Id, string.Join(", ", result.Errors.Select(e => e.Description)));
+            return false;
+        }
+
+        return true;
     }
 
     private async Task<ApplicationUser> CreateOrUpdateFromPrincipalAsync(ClaimsPrincipal principal, bool isFirstUser, RegistrationPolicy policy)
@@ -505,90 +560,102 @@ internal partial class UserService
                 principalObjectId, isFirstUser);
         }
 
-        var user = await _userManager.FindByNameAsync(username);
-        if (user is not null && await _userIdentityStore.ExistsActive(user.Id, LoginProviders.MicrosoftEntraId))
+        // Reject an explicitly unverified email before it is used to match any
+        // existing account, mirroring the GenericOidc provider-migration path. A
+        // token-supplied address the directory has not confirmed is not evidence of
+        // who the presenter is.
+        var emailVerifiedClaim = principal.FindFirstValue("email_verified");
+        var emailIsUnverified = emailVerifiedClaim is not null
+            && emailVerifiedClaim.Equals("false", StringComparison.OrdinalIgnoreCase);
+
+        // A match here is on display name or UPN/email — both mutable Entra directory
+        // attributes, neither of which proves ownership of the Wayd account. It scopes
+        // the *denial*, never a link: adopting an existing account requires an
+        // admin-staged migration, which ResolveUserByEntraIdentityAsync already tried.
+        var existing = emailIsUnverified
+            ? null
+            : await _userManager.FindByNameAsync(username) ?? await _userManager.FindByEmailAsync(email);
+
+        if (existing is not null)
         {
-            _logger.LogError("Username or Email {Username} not valid", username);
-            throw new InternalServerException($"Username {username} is already taken.");
+            // Nothing has been mutated at this point, and nothing must be: the user
+            // keeps their active UserIdentity (and, for a local account, their password),
+            // so they can carry on signing in with their current provider until an admin
+            // stages the migration. Falling through to create would instead give someone
+            // who already has an account a second, duplicate one.
+            _logger.LogWarning(
+                "Entra sign-in denied for ObjectId {ObjectId} on tenant {TenantId}: an existing account matched by " +
+                "display name or UPN/email, but no admin-staged migration authorizes linking it. " +
+                "MatchedUserProvider={MatchedUserProvider}.",
+                principalObjectId, principal.GetTenantId(), existing.LoginProvider);
+
+            throw new ForbiddenException(
+                "An account already exists for this identity but is not linked to this identity provider. " +
+                "Contact an administrator to have it migrated.");
         }
 
-        if (user is null)
+        if (emailIsUnverified)
         {
-            user = await _userManager.FindByEmailAsync(email);
-            if (user is not null && await _userIdentityStore.ExistsActive(user.Id, LoginProviders.MicrosoftEntraId))
-            {
-                _logger.LogError("Email {email} is already taken.", email);
-                throw new InternalServerException($"Email {email} is already taken.");
-            }
+            _logger.LogWarning(
+                "Entra sign-in denied for ObjectId {ObjectId}: email_verified=false on token.",
+                principalObjectId);
+
+            throw new ForbiddenException(
+                "This identity provider has not verified your email address. Contact an administrator.");
         }
 
         string principalTenantId = principal.GetTenantId() ?? throw new InternalServerException("Principal TenantId is missing or null.");
 
-        IdentityResult? result;
-        if (user is not null)
+        // The first-ever user bootstraps the system and bypasses all policy
+        // gates — a fresh install must always be able to create its admin even
+        // with auto-registration disabled or no employee records seeded yet.
+        if (!isFirstUser && !policy.AllowAutoRegistration)
         {
-            // Existing user — linking them to Entra. The UserIdentity row is inserted
-            // downstream by EnsureEntraIdentityRowAsync, which also deactivates any
-            // prior active identity (e.g., a Wayd local identity being migrated to SSO).
-            result = await _userManager.UpdateAsync(user);
-
-            await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, _dateTimeProvider.Now));
+            _logger.LogWarning("Registration denied for user {Username} (Email: {Email}). Auto-registration is disabled for this provider.",
+                username, email);
+            throw new ForbiddenException("Registration is disabled for this identity provider. Contact an administrator.");
         }
-        else
+
+        var employeeId = await GetEmployeeIdByEmail(email);
+
+        // RequireEmployeeRecord is null only on a disabled policy, which the
+        // gate above already rejected for non-first users — so `== true` here
+        // safely means "auto-reg on and the employee gate is set".
+        if (!employeeId.HasValue && !isFirstUser && policy.RequireEmployeeRecord == true)
         {
-            // The first-ever user bootstraps the system and bypasses all policy
-            // gates — a fresh install must always be able to create its admin even
-            // with auto-registration disabled or no employee records seeded yet.
-            if (!isFirstUser && !policy.AllowAutoRegistration)
-            {
-                _logger.LogWarning("Registration denied for user {Username} (Email: {Email}). Auto-registration is disabled for this provider.",
-                    username, email);
-                throw new ForbiddenException("Registration is disabled for this identity provider. Contact an administrator.");
-            }
-
-            var employeeId = await GetEmployeeIdByEmail(email);
-
-            // RequireEmployeeRecord is null only on a disabled policy, which the
-            // gate above already rejected for non-first users — so `== true` here
-            // safely means "auto-reg on and the employee gate is set".
-            if (!employeeId.HasValue && !isFirstUser && policy.RequireEmployeeRecord == true)
-            {
-                _logger.LogWarning("Registration denied for user {Username} (Email: {Email}). No matching employee record found.",
-                    username, email);
-                throw new ForbiddenException("Registration is restricted to users with an employee record in Wayd.");
-            }
-
-            // Guest/B2B tokens (e.g. from a tenant a user was migrated into) frequently
-            // omit given_name/family_name. Guard.Against would throw an opaque
-            // ArgumentException; log the missing claim explicitly first so this failure
-            // mode is distinguishable from the email/UPN one above.
-            var firstName = principal.FindFirstValue(ClaimTypes.GivenName);
-            var lastName = principal.FindFirstValue(ClaimTypes.Surname);
-            if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
-            {
-                _logger.LogError(
-                    "Cannot create Entra user {Username} ({Email}): missing name claims. GivenNamePresent={GivenNamePresent}, SurnamePresent={SurnamePresent}.",
-                    username, email, !string.IsNullOrWhiteSpace(firstName), !string.IsNullOrWhiteSpace(lastName));
-            }
-
-            user = new ApplicationUser
-            {
-                FirstName = Guard.Against.NullOrWhiteSpace(firstName, nameof(ClaimTypes.GivenName)),
-                LastName = Guard.Against.NullOrWhiteSpace(lastName, nameof(ClaimTypes.Surname)),
-                Email = email,
-                NormalizedEmail = email.ToUpperInvariant(),
-                UserName = username,
-                NormalizedUserName = username.ToUpperInvariant(),
-                EmailConfirmed = true,
-                PhoneNumberConfirmed = true,
-                IsActive = true,
-                EmployeeId = employeeId,
-                LoginProvider = LoginProviders.MicrosoftEntraId,
-            };
-            result = await _userManager.CreateAsync(user);
-
-            await _events.PublishAsync(new ApplicationUserCreatedEvent(user.Id, _dateTimeProvider.Now));
+            _logger.LogWarning("Registration denied for user {Username} (Email: {Email}). No matching employee record found.",
+                username, email);
+            throw new ForbiddenException("Registration is restricted to users with an employee record in Wayd.");
         }
+
+        // Guest/B2B tokens (e.g. from a tenant a user was migrated into) frequently
+        // omit given_name/family_name. Guard.Against would throw an opaque
+        // ArgumentException; log the missing claim explicitly first so this failure
+        // mode is distinguishable from the email/UPN one above.
+        var firstName = principal.FindFirstValue(ClaimTypes.GivenName);
+        var lastName = principal.FindFirstValue(ClaimTypes.Surname);
+        if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+        {
+            _logger.LogError(
+                "Cannot create Entra user {Username} ({Email}): missing name claims. GivenNamePresent={GivenNamePresent}, SurnamePresent={SurnamePresent}.",
+                username, email, !string.IsNullOrWhiteSpace(firstName), !string.IsNullOrWhiteSpace(lastName));
+        }
+
+        var user = new ApplicationUser
+        {
+            FirstName = Guard.Against.NullOrWhiteSpace(firstName, nameof(ClaimTypes.GivenName)),
+            LastName = Guard.Against.NullOrWhiteSpace(lastName, nameof(ClaimTypes.Surname)),
+            Email = email,
+            NormalizedEmail = email.ToUpperInvariant(),
+            UserName = username,
+            NormalizedUserName = username.ToUpperInvariant(),
+            EmailConfirmed = true,
+            PhoneNumberConfirmed = true,
+            IsActive = true,
+            EmployeeId = employeeId,
+            LoginProvider = LoginProviders.MicrosoftEntraId,
+        };
+        var result = await _userManager.CreateAsync(user);
 
         if (!result.Succeeded)
         {
@@ -596,29 +663,44 @@ internal partial class UserService
             throw new InternalServerException("Validation Errors Occurred.");
         }
 
-        await EnsureEntraIdentityRowAsync(user.Id, principalTenantId, principalObjectId);
+        await _events.PublishAsync(new ApplicationUserCreatedEvent(user.Id, _dateTimeProvider.Now));
+
+        await EnsureEntraIdentityRowAsync(user, principalTenantId, principalObjectId);
 
         return user;
     }
 
-    private async Task EnsureEntraIdentityRowAsync(string userId, string tenantId, string objectId)
+    private async Task EnsureEntraIdentityRowAsync(ApplicationUser user, string tenantId, string objectId)
     {
         // Idempotent for the new-user case, and enforces the "exactly one active
-        // identity per user" invariant when an existing user is being linked to
-        // Entra (e.g., a Wayd-local user moving to SSO). Any prior active row —
-        // including a Wayd identity — is marked inactive with reason ProviderRelinked.
-        var exists = await _userIdentityStore.ExistsActive(userId, LoginProviders.MicrosoftEntraId);
+        // identity per user" invariant. Any prior active row is marked inactive with
+        // reason ProviderRelinked.
+        var exists = await _userIdentityStore.ExistsActive(user.Id, LoginProviders.MicrosoftEntraId);
         if (exists)
         {
             return;
         }
 
-        await _userIdentityStore.DeactivateAllActive(userId, _dateTimeProvider.Now, UserIdentityUnlinkReasons.ProviderRelinked);
+        // Second layer behind the deny in CreateOrUpdateFromPrincipalAsync, and the
+        // last one before the destructive step: DeactivateAllActive below would revoke
+        // a local user's Wayd identity and hand their account to whoever presented this
+        // token. A local account moves to SSO only through an admin-staged migration
+        // (TryApplyPendingProviderMigration), never through a sign-in.
+        if (user.LoginProvider == LoginProviders.Wayd)
+        {
+            _logger.LogError(
+                "Refused to bind an Entra identity to local user {UserId}: local accounts migrate to SSO only via an admin-staged migration.",
+                user.Id);
+            throw new ForbiddenException(
+                "This account is a local Wayd account and cannot be linked to single sign-on. Contact an administrator.");
+        }
+
+        await _userIdentityStore.DeactivateAllActive(user.Id, _dateTimeProvider.Now, UserIdentityUnlinkReasons.ProviderRelinked);
 
         await _userIdentityStore.Add(new UserIdentity
         {
             Id = Guid.NewGuid(),
-            UserId = userId,
+            UserId = user.Id,
             Provider = LoginProviders.MicrosoftEntraId,
             ProviderTenantId = tenantId,
             ProviderSubject = objectId,

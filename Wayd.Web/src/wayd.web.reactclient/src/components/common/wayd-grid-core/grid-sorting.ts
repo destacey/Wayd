@@ -1,10 +1,10 @@
+import type { RowData } from '@tanstack/react-table'
 import type { LegacyFeatures, LegacyRow as Row } from '@tanstack/react-table/legacy'
 import type { SortFn } from '@tanstack/table-core'
+import dayjs from 'dayjs'
 
 /** v8's `SortingFn<TData>` under the legacy feature set (v9 puts TFeatures first). */
 type SortingFn<TData extends RowData> = SortFn<LegacyFeatures, TData>
-import dayjs from 'dayjs'
-import type { RowData } from '@tanstack/react-table'
 
 const compareNumbers = (a: number, b: number): number => {
   return a === b ? 0 : a > b ? 1 : -1
@@ -88,8 +88,8 @@ const compareNonEmpty = (a: unknown, b: unknown): number => {
  *
  * TanStack's own `sortUndefined` only catches strict `undefined`, so API data
  * that uses `null` for empties slips through — this default covers both. Wired
- * as `defaultColumn.sortingFn`; a column can still override with its own
- * `sortingFn` when it needs bespoke ordering.
+ * as `defaultColumn.sortFn`; a column can still override with its own
+ * `sortFn` when it needs bespoke ordering.
  */
 export const sortEmptyLast: SortingFn<any> = (
   rowA: Row<any>,
@@ -104,7 +104,7 @@ export const sortEmptyLast: SortingFn<any> = (
   if (aEmpty || bEmpty) {
     if (aEmpty && bEmpty) return 0
     // Treat empty as the largest value → it lands last in ascending. TanStack
-    // negates a sortingFn's result on `desc`, so this same +1 flips to place
+    // negates a sortFn's result on `desc`, so this same +1 flips to place
     // empties first when descending — i.e. "last in asc, first in desc".
     return aEmpty ? 1 : -1
   }
@@ -116,7 +116,7 @@ export const sortEmptyLast: SortingFn<any> = (
  * Sorts work-item keys of the form `PREFIX-NUMBER` (e.g. `WEB-42`) by prefix
  * first (alphabetically) then by the numeric suffix — so `WEB-9` sorts before
  * `WEB-10`, unlike a plain string sort. Empty keys sort to the end (ascending).
- * A TanStack `sortingFn` mirroring the old AG Grid `workItemKeyComparator`.
+ * A TanStack `sortFn` mirroring the old AG Grid `workItemKeyComparator`.
  */
 export const workItemKeySort: SortingFn<any> = (
   rowA: Row<any>,
@@ -152,7 +152,7 @@ const WORK_STATUS_CATEGORY_ORDER = ['Proposed', 'Active', 'Done', 'Removed']
 /**
  * Sorts a work status category column by its position in the workflow
  * (Proposed → Active → Done → Removed) rather than alphabetically. A TanStack
- * `sortingFn` mirroring the old AG Grid `workStatusCategoryComparator`.
+ * `sortFn` mirroring the old AG Grid `workStatusCategoryComparator`.
  */
 export const workStatusCategorySort: SortingFn<any> = (
   rowA: Row<any>,

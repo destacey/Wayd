@@ -225,7 +225,6 @@ const PlanningIntervalObjectivesGrid = ({
         header: 'Order',
         size: 100,
         meta: { filterType: 'number' },
-        // Empties sort last (asc) via the grid's default sortEmptyLast sortingFn.
       },
     ]
   }, [

@@ -1363,9 +1363,6 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
     tableOptions: {
       getFacetedRowModel: getFacetedRowModel(),
       getFacetedUniqueValues: getFacetedUniqueValues(),
-      // All per-column filters go through the descriptor engine, and all
-      // columns sort empties (null/undefined/'') last-ascending, unless a
-      // column overrides its own filterFn / sortingFn.
       defaultColumn: {
         filterFn: waydColumnFilter,
         sortFn: sortEmptyLast,

@@ -13,7 +13,7 @@ import {
   useGetStrategicInitiativeProjectsQuery,
   useManageStrategicInitiativeProjectsMutation,
 } from '@/src/store/features/ppm/strategic-initiatives-api'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import { Checkbox, Flex, Modal } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { isApiError, type ApiError } from '@/src/utils'

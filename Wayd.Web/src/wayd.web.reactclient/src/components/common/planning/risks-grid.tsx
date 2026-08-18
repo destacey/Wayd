@@ -8,7 +8,7 @@ import useAuth from '../../contexts/auth'
 import { useLinkedEmployee } from '@/src/hooks'
 import CreateRiskForm from './create-risk-form'
 import EditRiskForm from './edit-risk-form'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../wayd-grid-core'
 import { ControlItemsMenu, ControlItemSwitch } from '../control-items-menu'
 
 export interface RisksGridProps {

@@ -14,7 +14,7 @@ import { useSearchWorkItemsQuery } from '@/src/store/features/work-management/wo
 import { LoadingOutlined, SearchOutlined } from '@ant-design/icons'
 import { Flex, Input, Modal, Typography } from 'antd'
 import { ChangeEvent, useState } from 'react'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import { createCsvColumn } from '@/src/components/common/wayd-grid'
 import WaydGridTransfer from '@/src/components/common/wayd-grid-transfer'
 import { useMessage } from '@/src/components/contexts/messaging'

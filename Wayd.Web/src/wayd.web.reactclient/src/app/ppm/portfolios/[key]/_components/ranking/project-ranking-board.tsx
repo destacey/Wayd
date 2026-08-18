@@ -26,7 +26,7 @@ import {
   LoadingOutlined,
   MoreOutlined,
 } from '@ant-design/icons'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../../../components/common/wayd-grid-core'
 import { Button, Dropdown, Flex, Tag, theme } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'

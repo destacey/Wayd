@@ -17,7 +17,7 @@ import useAuth from '@/src/components/contexts/auth'
 import { useDocumentTitle } from '@/src/hooks'
 import { useGetUsersQuery } from '@/src/store/features/user-management/users-api'
 import { UserDetailsDto } from '@/src/services/wayd-api'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import dayjs from 'dayjs'
 import {
   CreateUserForm,

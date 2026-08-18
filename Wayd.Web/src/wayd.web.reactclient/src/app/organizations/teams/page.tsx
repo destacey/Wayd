@@ -8,7 +8,7 @@ import {
 import { useMemo, useState } from 'react'
 import { ItemType } from 'antd/es/menu/interface'
 import { Button } from 'antd'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../components/common/wayd-grid-core'
 import { useDocumentTitle } from '../../../hooks/use-document-title'
 import useAuth from '../../../components/contexts/auth'
 import { useAppSelector, useAppDispatch } from '../../../hooks'

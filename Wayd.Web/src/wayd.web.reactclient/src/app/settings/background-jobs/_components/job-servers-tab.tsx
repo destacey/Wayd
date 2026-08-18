@@ -2,7 +2,7 @@
 
 import { WaydGrid } from '@/src/components/common/wayd-grid'
 import { useMemo } from 'react'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import { JobServerResponse } from '@/src/services/wayd-api'
 import {
   JOB_SERVER_POLLING_MS,

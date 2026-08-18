@@ -7,7 +7,7 @@ import {
 } from '@/src/components/common/wayd-grid'
 import { useAppDispatch, useAppSelector, useDocumentTitle } from '@/src/hooks'
 import { WorkTypeDto } from '@/src/services/wayd-api'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import { useEffect, useMemo, useState } from 'react'
 import { setIncludeInactive } from '../../../../store/features/work-management/work-type-slice'
 import { authorizePage } from '@/src/components/hoc'

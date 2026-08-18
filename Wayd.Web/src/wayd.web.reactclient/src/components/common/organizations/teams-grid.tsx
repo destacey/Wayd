@@ -1,8 +1,7 @@
 import { FC, useMemo } from 'react'
 import { WaydGrid, renderTeamLink } from '../wayd-grid'
 import { PlanningIntervalTeamResponse } from '@/src/services/wayd-api'
-import type { ColumnDef } from '@tanstack/react-table'
-
+import type { ColumnDef } from '../wayd-grid-core'
 export interface TeamsGridProps {
   teams: PlanningIntervalTeamResponse[]
   isLoading: boolean

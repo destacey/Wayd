@@ -9,7 +9,7 @@ import {
   renderTeamLink,
   renderPlanningIntervalLink,
 } from '@/src/components/common/wayd-grid'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import { Progress } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import useAuth from '../../../../components/contexts/auth'

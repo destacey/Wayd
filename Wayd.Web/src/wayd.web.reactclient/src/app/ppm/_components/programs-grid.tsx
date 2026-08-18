@@ -9,7 +9,7 @@ import {
 import LifecycleStatusTag from '@/src/components/common/lifecycle-status-tag'
 import { ProgramListDto } from '@/src/services/wayd-api'
 import { getSortedNameList } from '@/src/utils'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../components/common/wayd-grid-core'
 import { FC } from 'react'
 
 export interface ProgramsGridProps {

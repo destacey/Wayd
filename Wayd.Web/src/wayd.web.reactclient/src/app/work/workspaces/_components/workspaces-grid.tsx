@@ -2,7 +2,7 @@
 
 import { WaydGrid, renderWorkspaceLink } from '@/src/components/common/wayd-grid'
 import { WorkspaceListDto } from '@/src/services/wayd-api'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import { ReactElement, useMemo } from 'react'
 
 export interface WorkspacesGridProps {

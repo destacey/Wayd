@@ -10,7 +10,7 @@ import CreateConnectionForm from './_components/create-connection-form'
 import Link from 'next/link'
 import { ConnectionListDto } from '@/src/services/wayd-api'
 import { getCapabilityNames } from '@/src/types/connectors'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../components/common/wayd-grid-core'
 import { ItemType } from 'antd/es/menu/interface'
 import { useGetConnectionsQuery } from '@/src/store/features/app-integration/connections-api'
 import {

@@ -7,7 +7,7 @@ import {
 } from '@/src/components/common/wayd-grid'
 import { useMemo, useState } from 'react'
 import { Button } from 'antd'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import { authorizePage } from '../../../../components/hoc'
 import useAuth from '../../../../components/contexts/auth'
 import type { ItemType } from 'antd/es/menu/interface'

@@ -9,7 +9,7 @@ import {
 } from '@/src/services/clients'
 import { Modal, Spin } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import WaydGridTransfer from '@/src/components/common/wayd-grid-transfer'
 import {
   ManagePlanningIntervalTeamsRequest,

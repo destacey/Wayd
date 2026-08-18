@@ -7,7 +7,7 @@ import {
 } from '@/src/components/common/wayd-grid'
 import { UserDetailsDto } from '@/src/services/wayd-api'
 import { useGetRoleUsersQuery } from '@/src/store/features/user-management/roles-api'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../../components/common/wayd-grid-core'
 import { FC, useMemo } from 'react'
 
 export interface RoleUsersGridProps {

@@ -13,8 +13,7 @@ import {
   workStatusCategorySort,
 } from '@/src/components/common/wayd-grid'
 import { SprintBacklogItemDto } from '@/src/services/wayd-api'
-import type { ColumnDef } from '@tanstack/react-table'
-
+import type { ColumnDef } from '../wayd-grid-core'
 export interface SprintBacklogGridProps {
   workItems: SprintBacklogItemDto[]
   isLoading: boolean
@@ -47,7 +46,7 @@ const SprintBacklogGrid = (props: SprintBacklogGridProps) => {
       id: 'key',
       accessorKey: 'key',
       header: 'Key',
-      sortingFn: workItemKeySort,
+      sortFn: workItemKeySort,
       cell: ({ row }) =>
         renderWorkItemLink({
           key: row.original.key,
@@ -82,7 +81,7 @@ const SprintBacklogGrid = (props: SprintBacklogGridProps) => {
       accessorKey: 'statusCategory.name',
       header: 'Status Category',
       size: 120,
-      sortingFn: workStatusCategorySort,
+      sortFn: workStatusCategorySort,
       meta: { filterType: 'set' },
     },
     // Context-redundant columns are excluded from the defs (not meta.hide):
@@ -115,7 +114,7 @@ const SprintBacklogGrid = (props: SprintBacklogGridProps) => {
       id: 'parentKey',
       accessorKey: 'parent.key',
       header: 'Parent Key',
-      sortingFn: workItemKeySort,
+      sortFn: workItemKeySort,
       meta: { filterType: 'set' },
       cell: ({ row }) =>
         renderWorkItemLink(

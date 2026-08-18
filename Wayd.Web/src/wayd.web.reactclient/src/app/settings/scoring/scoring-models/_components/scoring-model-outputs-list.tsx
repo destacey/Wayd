@@ -15,7 +15,7 @@ import {
 } from '@/src/store/features/scoring/scoring-models-api'
 import { App, Button, Space, Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../../components/common/wayd-grid-core'
 import { useMemo, useState } from 'react'
 import AddScoringModelOutputForm from './add-scoring-model-output-form'
 import EditScoringModelOutputForm from './edit-scoring-model-output-form'

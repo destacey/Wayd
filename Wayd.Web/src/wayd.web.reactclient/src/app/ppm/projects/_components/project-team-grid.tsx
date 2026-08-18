@@ -3,7 +3,7 @@
 import { WaydGrid, createCsvColumn } from '@/src/components/common/wayd-grid'
 import { ProjectTeamMemberDto } from '@/src/services/wayd-api'
 import { useGetProjectTeamQuery } from '@/src/store/features/ppm/projects-api'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import Link from 'next/link'
 import { FC } from 'react'
 

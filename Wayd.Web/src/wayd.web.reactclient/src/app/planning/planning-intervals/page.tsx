@@ -14,8 +14,7 @@ import { Button } from 'antd'
 import { authorizePage } from '../../../components/hoc'
 import { useGetPlanningIntervalsQuery } from '@/src/store/features/planning/planning-interval-api'
 import { PlanningIntervalListDto } from '@/src/services/wayd-api'
-import type { ColumnDef } from '@tanstack/react-table'
-
+import type { ColumnDef } from '../../../components/common/wayd-grid-core'
 const stateOrder = ['Active', 'Future', 'Completed']
 
 const PlanningIntervalListPage = () => {

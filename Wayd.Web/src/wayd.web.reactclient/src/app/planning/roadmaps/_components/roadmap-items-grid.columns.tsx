@@ -11,7 +11,7 @@ import {
 } from '@ant-design/icons'
 import { Button, DatePicker, Dropdown, Flex, Form, Input, Select } from 'antd'
 import dayjs from 'dayjs'
-import { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import { WaydColorPicker } from '@/src/components/common'
 import { useRef } from 'react'
 import styles from '@/src/components/common/wayd-grid/wayd-grid.module.css'
@@ -301,7 +301,7 @@ export const getRoadmapItemsGridColumns = ({
       header: 'Name',
       size: 300,
       enableColumnFilter: true,
-      sortingFn: 'alphanumeric',
+      sortFn: 'alphanumeric',
       cell: ({ row }: { row: any }) => {
         const item = row.original as RoadmapItemTreeNode
         const depth = row.depth
@@ -408,7 +408,7 @@ export const getRoadmapItemsGridColumns = ({
       size: 110,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      sortingFn: 'text',
+      sortFn: 'text',
       meta: {
         filterType: 'select',
         filterOptions: typeFilterOptions,
@@ -449,7 +449,7 @@ export const getRoadmapItemsGridColumns = ({
       size: 120,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      sortingFn: dateSortBy((row: any) => {
+      sortFn: dateSortBy((row: any) => {
         const item = row.original as RoadmapItemTreeNode
         return item.type === 'Milestone' ? item.date : item.start
       }),
@@ -508,7 +508,7 @@ export const getRoadmapItemsGridColumns = ({
       size: 120,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      sortingFn: dateSortBy((row: any) => row.original.end),
+      sortFn: dateSortBy((row: any) => row.original.end),
       meta: {
         exportFormatter: (value) => formatDate(value as string | null),
       } satisfies WaydGridColumnMeta,

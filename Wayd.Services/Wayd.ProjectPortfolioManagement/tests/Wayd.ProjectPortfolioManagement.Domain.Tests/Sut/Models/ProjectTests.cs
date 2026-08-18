@@ -687,6 +687,60 @@ public class ProjectTests
         result.IsFailure.Should().BeTrue();
         project.StatusHistory.Should().BeEmpty();
         project.Status.Should().Be(status);
+        project.StatusTransitionCount.Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(ProjectStatus.Proposed)]
+    [InlineData(ProjectStatus.Approved)]
+    [InlineData(ProjectStatus.Active)]
+    [InlineData(ProjectStatus.Completed)]
+    [InlineData(ProjectStatus.Canceled)]
+    public void StatusTransitionCount_ShouldNotAdvance_WhenRecordingTheTransitionThrows(ProjectStatus status)
+    {
+        // Arrange
+        var project = _projectFaker
+            .WithStatus(status)
+            .WithDateRange(ADeliveredDateRange())
+            .WithProjectLifecycleId(Guid.NewGuid())
+            .Generate();
+
+        var countBefore = project.StatusTransitionCount;
+
+        // Act
+        var result = project.RevertStatus(
+            AnAuthorizedActor(), NoProjectAncestry(), status, ARevertReason, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        project.StatusTransitionCount.Should().Be(countBefore);
+        project.StatusTransitionCount.Should().Be(project.StatusHistory.Count);
+    }
+
+    [Fact]
+    public void StatusTransitionCount_ShouldAlwaysEqualTheHistoryCount_AfterAMixOfAcceptedAndRejectedTransitions()
+    {
+        // Arrange
+        var project = _projectFaker
+            .WithStatus(ProjectStatus.Proposed)
+            .WithDateRange(ADeliveredDateRange())
+            .WithProjectLifecycleId(Guid.NewGuid())
+            .Generate();
+
+        // Act
+        project.Complete(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);   // rejected
+        project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);    // accepted
+        project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);    // rejected
+        project.Activate(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);   // accepted
+        project.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), ProjectStatus.Active,
+            ARevertReason, _dateTimeProvider.Now);                                           // rejected
+        project.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), ProjectStatus.Approved,
+            ARevertReason, _dateTimeProvider.Now);                                           // accepted
+
+        // Assert
+        project.StatusHistory.Should().HaveCount(3);
+        project.StatusTransitionCount.Should().Be(project.StatusHistory.Count);
+        project.StatusHistory.Select(h => h.Sequence).Should().Equal(1, 2, 3);
     }
 
     [Fact]

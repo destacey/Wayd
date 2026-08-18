@@ -844,8 +844,8 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// </exception>
     private void ChangeStatus(ProjectStatus toStatus, PpmActor actor, Instant timestamp, string? reason = null)
     {
-        StatusTransitionCount++;
-
+        // Constructed before anything is mutated: ProjectStatusHistory throws on a transition that records
+        // no movement, and the count must never advance without a row.
         var entry = new ProjectStatusHistory(
             Id,
             Status,
@@ -855,8 +855,9 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             timestamp,
             ProjectStatusHistorySource.Recorded,
             reason,
-            StatusTransitionCount);
+            StatusTransitionCount + 1);
 
+        StatusTransitionCount++;
         Status = toStatus;
 
         _statusHistory.Add(entry);

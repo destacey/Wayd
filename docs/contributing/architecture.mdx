@@ -130,6 +130,12 @@ Every mutating method on those three aggregates takes a `PpmActor`; there is no 
 
 The read side mirrors the same rule as `canManageProject` / `canManageProgram` / `canManagePortfolio` DTO fields so the UI can hide actions the server would reject. Those projections and the aggregate predicates must agree — if they drift, the UI either hides valid actions or offers ones that fail on submit.
 
+`ProjectDetailsDto.BackwardStatusTargets` follows the same principle for [reverting a project's status](../user-guide/ppm/projects.mdx#reverting-a-project-status): rather than the UI re-deriving which earlier statuses are reachable, the server answers from `ProjectStatusLifecycle` — the same table and entry requirements `Project.RevertStatus` enforces. Adding a status requirement in one place without the other is what makes the dropdown offer a transition that then fails.
+
+:::warning Not every derived field can be computed in the projection
+`GetProjectQuery` builds its DTO with `ProjectToType`, so every mapping clause must translate to SQL. `BackwardStatusTargets` cannot — building it calls a static factory inside a `Select` over a collection — so the mapping `.Ignore`s it and `ResolveBackwardStatusTargets()` fills it after materialisation. A clause that fails to translate throws only under a real provider; in-memory fakes run the projection as LINQ-to-Objects and evaluate anything, so changes to this mapping need a test in `Wayd.ProjectPortfolioManagement.IntegrationTests`.
+:::
+
 See [Permissions](../user-guide/settings/permissions.mdx) for the user-facing rule.
 
 ### No Repository Pattern

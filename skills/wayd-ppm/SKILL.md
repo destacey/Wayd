@@ -223,16 +223,37 @@ Creating a project needs an `expenditureCategoryId`; resolve it with `Expenditur
 
 Status is changed through **dedicated action tools**, never by writing a status field.
 
-> **Always confirm with the user before calling any of these.** They change a published status other people rely on, and several are irreversible. The tools are marked `destructiveHint` so compliant clients prompt, but do not rely on the client — ask first, state which record and which transition, and wait for a clear yes.
+> **Always confirm with the user before calling any of these.** They change a published status other people rely on. Portfolio, program, and strategic initiative transitions are irreversible; project transitions can be undone with `Projects_RevertStatus`, but only by someone with delivery leadership and only with a recorded reason — so treat them as consequential too. The tools are marked `destructiveHint` so compliant clients prompt, but do not rely on the client — ask first, state which record and which transition, and wait for a clear yes.
 
 | Record | Tools | Allowed from |
 |---|---|---|
 | Portfolio | `Portfolios_Activate`, `Portfolios_Close`, `Portfolios_Archive` | Activate: Proposed. Close: Active or OnHold. Archive: Closed. |
 | Program | `Programs_Activate`, `Programs_Complete`, `Programs_Cancel` | Activate: Proposed. Complete: Active. Cancel: anything not already closed. |
-| Project | `Projects_Approve`, `Projects_Activate`, `Projects_Complete`, `Projects_Cancel` | Approve: Proposed. Activate: Proposed or Approved. Complete: Active. Cancel: anything not already closed. |
+| Project | `Projects_Approve`, `Projects_Activate`, `Projects_Complete`, `Projects_Cancel`, `Projects_RevertStatus` | Approve: Proposed. Activate: Proposed or Approved. Complete: Active. Cancel: anything not already closed. Revert: see below. |
 | Strategic initiative | `StrategicInitiatives_Approve`, `_Activate`, `_Complete`, `_Cancel` | Approve: Proposed. Activate: Approved. Complete: Active or OnHold. Cancel: anything not already closed. |
 
 All take a **UUID only**, not a key.
+
+#### Moving a project backwards
+
+`Projects_RevertStatus` is the only tool that moves a record to an **earlier** status — reopening a completed or canceled project, or returning an active one to approved.
+
+It differs from the forward tools in two ways:
+
+- **A reason is required.** Forward transitions take an id alone; this one takes `toStatus` and `reason`. The reason is stored in the project's status history as the record of why a decision was reversed, so write something a reader will understand later — not "revert" or "fix".
+- **Read `backwardStatusTargets` off `Projects_GetProject` and offer only what it contains.** Do not derive the targets yourself. Legal targets narrow by more than the current status: a status carries the same entry requirements whichever direction it is reached from, so reverting to Approved needs a lifecycle assigned and reverting to Active needs a start and end date. A project cancelled straight from Proposed has neither, and can only return to Proposed.
+
+For reference, the widest each status ever allows — before those requirements narrow it:
+
+| Current status | Can revert to |
+|---|---|
+| Completed | Proposed, Approved, Active |
+| Canceled | Proposed, Approved, Active |
+| Active | Proposed, Approved |
+| Approved | Proposed |
+| Proposed | nothing — already at the start |
+
+The call is also rejected outright if the project's program or portfolio is closed — reopen the parent first. Programs and portfolios have no equivalent tool; only projects can be reverted.
 
 #### Prerequisites that cause rejections
 

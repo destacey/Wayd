@@ -46,13 +46,46 @@ stateDiagram-v2
     Approved --> Canceled
 ```
 
+Projects move forward through these transitions, and can also be moved **backwards** — see [Reverting a project status](#reverting-a-project-status).
+
 **Business rules:**
 - A [lifecycle](#project-lifecycles) must be assigned before a project can be approved
 - Active/Completed projects require a date range
-- Only Proposed projects can be deleted
+- Only projects that have never left Proposed can be deleted — a project that ran and was later reverted keeps its history and cannot be deleted
 - A project can belong to at most one [program](./portfolios-programs.mdx#programs) (or none)
 - The project key can be changed (cascades to all [task](#project-tasks) keys)
 - A project is ranked within its portfolio from creation; rank is changed from the portfolio [Ranking tab](./portfolios-programs.mdx#portfolio-project-ranking)
+
+## Reverting a Project Status
+
+Projects get closed early, cancelled work gets refunded, and approvals sometimes turn out to be premature. **Revert Status** moves a project back to an earlier point in its lifecycle instead of leaving it stuck in a state that no longer reflects reality.
+
+Choose **Revert Status** from the Actions menu, pick the status to return to, and give a reason. Where a project can go back to depends on where it is now, subject to the requirements below:
+
+| Current status | Can revert to |
+|---|---|
+| Completed | Proposed, Approved, Active |
+| Canceled | Proposed, Approved, Active |
+| Active | Proposed, Approved |
+| Approved | Proposed |
+| Proposed | — already at the start of its lifecycle |
+
+**A status has the same entry requirements however it is reached.** Reverting is not a way around the gates that apply going forward, so the same prerequisites hold:
+
+- Returning to **Approved** requires a [lifecycle](#project-lifecycles) to be assigned.
+- Returning to **Active** requires a start and end date.
+
+This matters most for cancelled projects. A project can be cancelled straight from Proposed, before it ever had a lifecycle or dates — such a project can only be reverted to **Proposed** until those are filled in. The dropdown only ever offers statuses the project actually qualifies for, so if a target you expect is missing, check the warnings at the top of the project page for what it still needs.
+
+**A reason is required.** Forward transitions do not ask for one, because the move explains itself. Reverting undoes a decision that had already been taken and that other people may have acted on, so the explanation is kept in the project's [status history](#project-status-history) alongside who did it and when.
+
+A few more rules apply:
+
+- Reverting is available to the same people who can move a project forward — an Owner or Manager of the project, its program, or its portfolio.
+- A project inside a **closed program or portfolio cannot be reverted.** Closing a parent asserts that none of its children are still open, so reopen the parent first.
+- Nothing else about the project is changed or cleared. Its dates, tasks, health checks, and scores are all preserved exactly as they were.
+
+Programs and portfolios cannot be reverted — only projects.
 
 ## Project Status History
 
@@ -63,6 +96,9 @@ Open the history from the project detail page, either by clicking the **status t
 - The statuses moved **from** and **to** (the first entry has no "from" — it records the project entering its initial state)
 - **When** the change happened
 - **Who** made it
+- The **reason**, on entries that carry one — [reverting a project](#reverting-a-project-status) requires an explanation, so every backwards move records why
+
+The history is append-only. Reverting a project adds a new entry showing the move back; it never edits or removes the transition it supersedes, so a project that was completed, reopened, and completed again shows all three.
 
 Viewing history needs only view access to the project — you do not need to lead it.
 
@@ -126,6 +162,7 @@ Typical actions include:
 - **Change Lifecycle** (when a lifecycle is already assigned)
 - **Delete** (available for Proposed projects)
 - Status transitions such as **Approve**, **Activate**, **Complete**, and **Cancel**
+- **Revert Status** (when the project has an earlier status it can return to — see [Reverting a project status](#reverting-a-project-status))
 - **Create Health Check**
 - **Health Report**
 - **Status History**

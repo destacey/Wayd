@@ -366,6 +366,21 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPost("{id}/revert-status")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
+    [OpenApiOperation("Revert a project to an earlier status.", "Moves the project back to an earlier status in its lifecycle, recording the required reason in its status history. The caller must be an Owner or Manager of the project, its program, or its portfolio.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> RevertStatus(Guid id, [FromBody] RevertProjectStatusRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToRevertProjectStatusCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Projects)]
     [OpenApiOperation("Delete a project.", "")]

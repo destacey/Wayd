@@ -136,7 +136,12 @@ const ChangeProjectStatusForm = ({
         <div>
           {project?.key} - {project?.name}
         </div>
-        <Alert title="This action cannot be undone." type="warning" showIcon />
+        <Alert
+          title="This change is recorded in the project's status history."
+          description="It can be reverted by an Owner or Manager of the project, its program, or its portfolio."
+          type="warning"
+          showIcon
+        />
       </Space>
     </Modal>
   )

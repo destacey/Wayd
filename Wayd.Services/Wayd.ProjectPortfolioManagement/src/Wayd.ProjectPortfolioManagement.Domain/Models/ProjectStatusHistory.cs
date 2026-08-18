@@ -25,7 +25,8 @@ public sealed class ProjectStatusHistory : BaseEntity
         Guid? changedByEmployeeId,
         Instant changedOn,
         ProjectStatusHistorySource source,
-        string? reason)
+        string? reason,
+        int sequence)
     {
         Guard.Against.Default(projectId, nameof(projectId));
         Guard.Against.NullOrWhiteSpace(changedByUserId, nameof(changedByUserId));
@@ -44,6 +45,7 @@ public sealed class ProjectStatusHistory : BaseEntity
         ChangedOn = changedOn;
         Source = source;
         Reason = reason?.Trim();
+        Sequence = sequence;
     }
 
     /// <summary>
@@ -94,7 +96,26 @@ public sealed class ProjectStatusHistory : BaseEntity
     public ProjectStatusHistorySource Source { get; private init; }
 
     /// <summary>
-    /// An optional explanation for the transition.
+    /// An explanation for the transition. Required for a backward transition, where it records the
+    /// justification for reversing a decision that had already been taken; null for the forward
+    /// transitions, which are explained by the move itself.
     /// </summary>
     public string? Reason { get; private init; }
+
+    /// <summary>
+    /// A monotonic per-project sequence number, ordering the history as it actually happened.
+    /// </summary>
+    /// <remarks>
+    /// This is the only reliable ordering for the history. <see cref="ChangedOn"/> does not separate rows
+    /// written in one <c>SaveChanges</c> (an import walks a project through several transitions at one
+    /// instant), and a v7 GUID only orders to millisecond precision. Nor can the rows order themselves by
+    /// chaining <see cref="FromStatus"/> to the previous <see cref="ToStatus"/>: a reverted project enters
+    /// the same status more than once, so several rows share a <see cref="FromStatus"/>.
+    ///
+    /// Assigned from <see cref="Project.StatusTransitionCount"/>, so appending a row does not require the
+    /// history to be loaded. A unique index on (ProjectId, Sequence) makes a duplicate impossible: two
+    /// concurrent transitions that read the same count collide at insert, so one commits and the other
+    /// fails and can retry.
+    /// </remarks>
+    public int Sequence { get; private init; }
 }

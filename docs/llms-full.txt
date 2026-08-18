@@ -317,9 +317,13 @@ Most feature-rich entity. Properties:
 - CurrentScore summary: latest project priority score value, scorer, timestamp, and scoring model name
 - Rank: required fractional sort key within the portfolio; Position is the derived 1-based display rank in project lists
 
-Status lifecycle: Proposed → Approved (requires lifecycle) → Active (requires dates) → Completed/Canceled. Transitions are forward-only — there is no path back from Completed or Canceled. Every transition requires delivery leadership (see the domain Permissions note above).
+Status lifecycle: Proposed → Approved (requires lifecycle) → Active (requires dates) → Completed/Canceled. Every transition requires delivery leadership (see the domain Permissions note above).
 
-Key can be changed (cascades to all task keys), as can the assigned program and lifecycle — all three require delivery leadership. Only Proposed deletable. At most one program.
+Projects can also move backwards, which programs and portfolios cannot. Legal reverts: Completed/Canceled → Proposed, Approved, or Active; Active → Proposed or Approved; Approved → Proposed. Entry requirements apply whichever direction a status is reached from, so returning to Approved still needs a lifecycle and returning to Active still needs dates — a project cancelled straight from Proposed may therefore only return to Proposed. A revert additionally requires a written reason, recorded in the status history, and is rejected while the parent program or portfolio is closed.
+
+Status history is append-only, ordered by a per-project monotonic Sequence rather than by timestamp (imports write several transitions at one instant). A revert appends a row rather than editing the one it supersedes, so a project can enter the same status more than once.
+
+Key can be changed (cascades to all task keys), as can the assigned program and lifecycle — all three require delivery leadership. Deletable only while the project has never left Proposed — reverting to Proposed does not restore deletability, because deleting would destroy the status history. At most one program.
 
 Project priority scoring: if the parent portfolio has an assigned scoring model, project Owner/Manager, portfolio Owner/Manager, or program Owner/Manager can record scores. Each score is an immutable ProjectScore snapshot with per-project Sequence ordering, frozen criterion ratings, calculated outputs, scorer, timestamp, and model id/key/name. Re-scoring creates a new history entry and updates CurrentScore.
 

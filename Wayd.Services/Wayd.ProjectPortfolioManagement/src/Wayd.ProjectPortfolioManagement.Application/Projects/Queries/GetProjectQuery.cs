@@ -47,6 +47,9 @@ public sealed class GetProjectQueryHandler(
         if (dto is null)
             return null;
 
+        // Derived after the projection: the target list cannot be built in SQL.
+        dto.ResolveBackwardStatusTargets();
+
         // Project owner/manager check is handled in the projection.
         // Only do the more expensive portfolio/program lookup if that came back false.
         // Use dto.Id (already resolved) to avoid a second key-to-ID lookup.

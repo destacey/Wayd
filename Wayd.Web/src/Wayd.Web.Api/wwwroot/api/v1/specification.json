@@ -8096,6 +8096,72 @@
         ]
       }
     },
+    "/api/ppm/projects/{id}/revert-status": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Revert a project to an earlier status.",
+        "description": "Moves the project back to an earlier status in its lifecycle, recording the required reason in its status history. The caller must be an Owner or Manager of the project, its program, or its portfolio.",
+        "operationId": "Projects_RevertStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevertProjectStatusRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/ppm/projects/statuses": {
       "get": {
         "tags": [
@@ -32553,6 +32619,7 @@
           "id",
           "phases",
           "canManageProject",
+          "backwardStatusTargets",
           "rank"
         ],
         "properties": {
@@ -32666,6 +32733,12 @@
           },
           "canManageProject": {
             "type": "boolean"
+          },
+          "backwardStatusTargets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LifecycleNavigationDto"
+            }
           },
           "portfolioScoringModel": {
             "nullable": true,
@@ -33118,6 +33191,49 @@
             "nullable": false
           }
         }
+      },
+      "RevertProjectStatusRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "toStatus",
+          "reason"
+        ],
+        "properties": {
+          "toStatus": {
+            "description": "The earlier status to return the Project to. Must be one of the Project's current backward status\ntargets.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProjectStatus"
+              }
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the Project is being reverted. Required — a reversal undoes a decision that had already been\ntaken, and the explanation is kept in the Project's status history.",
+            "maxLength": 1024,
+            "minLength": 1,
+            "nullable": false
+          }
+        }
+      },
+      "ProjectStatus": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Proposed",
+          "Active",
+          "Completed",
+          "Canceled",
+          "Approved"
+        ],
+        "enum": [
+          "Proposed",
+          "Active",
+          "Completed",
+          "Canceled",
+          "Approved"
+        ]
       },
       "ProjectStatusDto": {
         "type": "object",

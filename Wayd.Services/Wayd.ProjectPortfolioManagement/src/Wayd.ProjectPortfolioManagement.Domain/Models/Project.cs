@@ -227,10 +227,34 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     public IReadOnlyCollection<ProjectStatusHistory> StatusHistory => _statusHistory.AsReadOnly();
 
     /// <summary>
-    /// Indicates whether the project can be deleted.
+    /// How many status transitions this project has recorded, and therefore the sequence number the next
+    /// one takes.
     /// </summary>
-    /// <returns></returns>
-    public bool CanBeDeleted() => Status is ProjectStatus.Proposed;
+    /// <remarks>
+    /// Denormalised so that appending a transition does not require the history to be loaded. Deriving
+    /// the next sequence from the collection instead would mean every transition handler had to
+    /// <c>.Include</c> the whole history, and one that forgot would restart the numbering and collide
+    /// with the rows already stored — a mistake the compiler cannot catch.
+    ///
+    /// Maintained only by <see cref="ChangeStatus"/>, which is the sole path that appends a row, so the
+    /// count and the history cannot drift apart.
+    /// </remarks>
+    public int StatusTransitionCount { get; private set; }
+
+    /// <summary>
+    /// Indicates whether the project can be deleted — only while it has never left its initial status.
+    /// </summary>
+    /// <remarks>
+    /// Being Proposed is not sufficient, because a project can be reverted back to Proposed after having
+    /// run. Deleting takes the status history with it, so a project that advanced and was then reverted
+    /// stays undeletable: the record of what happened to it outlives the decision to reverse it.
+    ///
+    /// Requires <see cref="StatusHistory"/> to be loaded — an unloaded history reads as a project that
+    /// never advanced, and this returns true when it should not.
+    /// </remarks>
+    public bool CanBeDeleted() =>
+        Status is ProjectStatus.Proposed
+        && !_statusHistory.Any(h => h.FromStatus == ProjectStatus.Proposed);
 
     /// <summary>
     /// Updates the core details of the project on behalf of an actor who must be authorized to manage it.
@@ -710,6 +734,106 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     }
 
     /// <summary>
+    /// Moves the project back to an earlier status on behalf of an actor who must be authorized to manage
+    /// it. Fails unless <paramref name="toStatus"/> is one of <see cref="RevertableStatuses"/>, a
+    /// <paramref name="reason"/> is supplied, and the parent program and portfolio are both open.
+    /// </summary>
+    /// <remarks>
+    /// The reason is required here, not only in the command validator, so that no caller — importer, MCP
+    /// tool, or future handler — can record a reversal without one.
+    /// </remarks>
+    /// <param name="actor">The acting employee and their administrator standing.</param>
+    /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
+    /// <param name="toStatus">The earlier status to return to. Must be a legal backward target.</param>
+    /// <param name="reason">Why the project is being reverted. Required.</param>
+    /// <param name="timestamp">The timestamp indicating when the transition occurred.</param>
+    public Result RevertStatus(
+        PpmActor actor,
+        ProjectAncestryRoles ancestry,
+        ProjectStatus toStatus,
+        string reason,
+        Instant timestamp)
+    {
+        if (!CanManageProject(actor, ancestry))
+        {
+            return Result.Failure(UnauthorizedManageActorError);
+        }
+
+        if (!ProjectStatusLifecycle.IsBackwardTransition(Status, toStatus))
+        {
+            var targets = ProjectStatusLifecycle.BackwardTargetsFor(Status);
+
+            return Result.Failure(targets.Count == 0
+                ? $"A {Status} project cannot be reverted; it is already at the start of its lifecycle."
+                : $"A {Status} project cannot be reverted to {toStatus}. It can be reverted to: {string.Join(", ", targets)}.");
+        }
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return Result.Failure("A reason is required to revert a project's status.");
+        }
+
+        // A closed parent asserted on closing that none of its children were still open, and never
+        // re-checks. Reopening underneath one would leave that assertion false. Portfolios have no
+        // IsClosed — Closed and Archived are their equivalents.
+        if (Program?.IsClosed == true)
+        {
+            return Result.Failure(
+                "This project belongs to a closed program. Reopen the program first.");
+        }
+
+        if (Portfolio?.Status is ProjectPortfolioStatus.Closed or ProjectPortfolioStatus.Archived)
+        {
+            return Result.Failure(
+                "This project belongs to a closed portfolio. Reopen the portfolio first.");
+        }
+
+        var entryResult = CanEnterStatus(toStatus);
+        if (entryResult.IsFailure)
+        {
+            return entryResult;
+        }
+
+        ChangeStatus(toStatus, actor, timestamp, reason);
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Whether the project currently satisfies the requirements for being in <paramref name="status"/>,
+    /// independent of where it is coming from. Mirrors the preconditions on <see cref="Approve"/> and
+    /// <see cref="Activate"/>.
+    /// </summary>
+    private Result CanEnterStatus(ProjectStatus status)
+    {
+        if (ProjectStatusLifecycle.CanEnter(status, ProjectLifecycleId.HasValue, DateRange is not null))
+        {
+            return Result.Success();
+        }
+
+        // CanEnter returns only a yes or no, so the message naming the missing requirement is built here.
+        return status switch
+        {
+            ProjectStatus.Approved =>
+                Result.Failure("A project lifecycle must be assigned before the project can be approved."),
+            ProjectStatus.Active =>
+                Result.Failure("The project must have a start and end date before it can be activated."),
+            _ => Result.Failure($"The project does not meet the requirements to be {status}.")
+        };
+    }
+
+    /// <summary>
+    /// The earlier statuses this project can actually be reverted to right now — the lifecycle's backward
+    /// targets, minus any whose entry requirements the project does not currently meet.
+    /// </summary>
+    /// <remarks>
+    /// A project cancelled straight from Proposed, for instance, can only return to Proposed until a
+    /// lifecycle and dates are assigned.
+    /// </remarks>
+    public IReadOnlyList<ProjectStatus> RevertableStatuses() =>
+        ProjectStatusLifecycle.RevertableStatuses(Status, ProjectLifecycleId.HasValue, DateRange is not null);
+
+    /// <summary>
     /// Moves the project to a new status and appends the matching history row. Every status transition
     /// goes through here so that a change cannot be made without being recorded.
     /// </summary>
@@ -720,6 +844,8 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// </exception>
     private void ChangeStatus(ProjectStatus toStatus, PpmActor actor, Instant timestamp, string? reason = null)
     {
+        // Constructed before anything is mutated: ProjectStatusHistory throws on a transition that records
+        // no movement, and the count must never advance without a row.
         var entry = new ProjectStatusHistory(
             Id,
             Status,
@@ -728,8 +854,10 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             actor.EmployeeIdOrNull,
             timestamp,
             ProjectStatusHistorySource.Recorded,
-            reason);
+            reason,
+            StatusTransitionCount + 1);
 
+        StatusTransitionCount++;
         Status = toStatus;
 
         _statusHistory.Add(entry);
@@ -1648,7 +1776,12 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             actor.EmployeeIdOrNull,
             timestamp,
             ProjectStatusHistorySource.Recorded,
-            reason: null));
+            reason: null,
+            sequence: 1));
+
+        // The origin row is written here rather than through ChangeStatus, so the count is set to match
+        // it explicitly.
+        project.StatusTransitionCount = 1;
 
         project.AddPostPersistenceAction(() => project.AddDomainEvent(
             new ProjectCreatedEvent

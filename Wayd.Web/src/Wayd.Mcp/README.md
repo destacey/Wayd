@@ -156,7 +156,7 @@ Once installed, activate a skill in Claude Code with `/wayd-ppm`, `/wayd-pi`, `/
 
 ## Confirmation before status changes
 
-Tools that change a record's published status — activating, completing, cancelling, closing, or archiving a portfolio, program, project, or strategic initiative — are advertised to clients with the MCP `destructiveHint` annotation, as are the tools that permanently delete something. Clients that honour the annotation prompt for confirmation before running them.
+Tools that change a record's published status — activating, completing, cancelling, closing, or archiving a portfolio, program, project, or strategic initiative, or reverting a project to an earlier status — are advertised to clients with the MCP `destructiveHint` annotation, as are the tools that permanently delete something. Clients that honour the annotation prompt for confirmation before running them.
 
 Two caveats worth knowing:
 
@@ -180,7 +180,7 @@ This matters most for role assignments. `sponsorIds`, `ownerIds`, `managerIds`, 
 | **Programs** | List, get details, get projects. Create, update. Status: activate, complete, cancel |
 | **Project Lifecycles** | List (with state filter), get details |
 | **Expenditure Categories** | Get options (for project create/update) |
-| **Projects** | List (with role filter), get details, get status history, get my involvement summary, get my task metrics, get team, get phases, get phase details, get plan tree, get plan summary (single and batch), list health checks, get health check, create health check, get scoring context, list scores, get score, update/delete health check. Create, update, change program, change key. Status: approve, activate, complete, cancel |
+| **Projects** | List (with role filter), get details, get status history, get my involvement summary, get my task metrics, get team, get phases, get phase details, get plan tree, get plan summary (single and batch), list health checks, get health check, create health check, get scoring context, list scores, get score, update/delete health check. Create, update, change program, change key. Status: approve, activate, complete, cancel, revert to an earlier status |
 | **Tasks** | List, get details, get critical path, get types/statuses/priorities, create, update, delete, add/remove dependencies |
 
 ### Planning

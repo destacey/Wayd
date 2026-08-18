@@ -10372,6 +10372,74 @@ export class ProjectsClient {
     }
 
     /**
+     * Revert a project to an earlier status.
+     */
+    revertStatus(id: string, request: RevertProjectStatusRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/revert-status";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRevertStatus(_response);
+        });
+    }
+
+    protected processRevertStatus(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get a list of all project statuses.
      */
     getProjectStatuses( cancelToken?: CancelToken): Promise<ProjectStatusDto[]> {
@@ -34378,6 +34446,7 @@ export interface ProjectDetailsDto {
     phases: ProjectPhaseListDto[];
     healthCheck?: ProjectHealthCheckDto | undefined;
     canManageProject: boolean;
+    backwardStatusTargets: LifecycleNavigationDto[];
     portfolioScoringModel?: NavigationDto | undefined;
     currentScore?: ScoreSummaryDto | undefined;
     rank: number;
@@ -34492,6 +34561,23 @@ export interface ChangeProjectProgramRequest {
 export interface ChangeProjectKeyRequest {
     /** The new key to assign to the Project (2-20 uppercase alphanumeric characters). */
     key: string;
+}
+
+export interface RevertProjectStatusRequest {
+    /** The earlier status to return the Project to. Must be one of the Project's current backward status
+targets. */
+    toStatus: ProjectStatus;
+    /** Why the Project is being reverted. Required — a reversal undoes a decision that had already been
+taken, and the explanation is kept in the Project's status history. */
+    reason: string;
+}
+
+export enum ProjectStatus {
+    Proposed = "Proposed",
+    Active = "Active",
+    Completed = "Completed",
+    Canceled = "Canceled",
+    Approved = "Approved",
 }
 
 export interface ProjectStatusDto {

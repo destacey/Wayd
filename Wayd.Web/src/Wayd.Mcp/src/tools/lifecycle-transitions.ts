@@ -38,6 +38,42 @@ function transition(
   }];
 }
 
+/** Transition that carries a request body alongside `{id}`; the path-only `transition` cannot. */
+function transitionWithBody(
+  name: string,
+  pathTemplate: string,
+  title: string,
+  description: string,
+  idParamDescription: string,
+  bodyProperties: Record<string, unknown>,
+  requiredBodyProperties: string[]
+): [string, McpToolDefinition] {
+  return [name, {
+    name,
+    description,
+    // The body must nest under `requestBody` — the executor reads that one argument to build the
+    // payload, so properties flattened alongside `id` are never sent.
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', format: 'uuid', description: idParamDescription },
+        requestBody: {
+          type: 'object',
+          properties: bodyProperties,
+          required: requiredBodyProperties,
+        },
+      },
+      required: ['id', 'requestBody'],
+    },
+    method: 'post',
+    pathTemplate,
+    executionParameters: [{ name: 'id', in: 'path' }],
+    requestBodyContentType: 'application/json',
+    securityRequirements: [{ ApiKey: [] }],
+    annotations: { title, ...requiresConfirmation },
+  }];
+}
+
 const CONFIRM = 'Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.';
 const LEADERSHIP = 'Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough.';
 
@@ -127,6 +163,27 @@ export const definitions: [string, McpToolDefinition][] = [
     'Cancel project',
     `Cancel a project that is not already completed or canceled. ${LEADERSHIP} ${CONFIRM}`,
     'Project ID.'
+  ),
+
+  transitionWithBody(
+    'Projects_RevertStatus',
+    '/api/ppm/projects/{id}/revert-status',
+    'Revert project status',
+    `Move a project **backwards** to an earlier status — for example reopening a completed or canceled project, or returning an active one to approved. **Read \`backwardStatusTargets\` on Projects_GetProject and offer only what it contains** rather than assuming: a status carries the same entry requirements whichever direction it is reached from, so reverting to approved needs a lifecycle assigned and reverting to active needs a start and end date. A project cancelled straight from proposed may therefore only allow proposed. **A reason is required** and is kept in the project's status history. The call is rejected if the project's program or portfolio is closed — reopen the parent first. ${LEADERSHIP} ${CONFIRM}`,
+    'Project ID.',
+    {
+      toStatus: {
+        type: 'string',
+        enum: ['Proposed', 'Approved', 'Active'],
+        description: 'The earlier status to return the project to. Must be one of the project\'s current backwardStatusTargets.',
+      },
+      reason: {
+        type: 'string',
+        maxLength: 1024,
+        description: 'Why the project is being reverted. Required — this is the record of why a decision that had already been taken was reversed.',
+      },
+    },
+    ['toStatus', 'reason']
   ),
 
   // ------------------------------------------------------- Strategic initiatives

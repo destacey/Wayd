@@ -687,6 +687,60 @@ public class ProjectTests
         result.IsFailure.Should().BeTrue();
         project.StatusHistory.Should().BeEmpty();
         project.Status.Should().Be(status);
+        project.StatusTransitionCount.Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(ProjectStatus.Proposed)]
+    [InlineData(ProjectStatus.Approved)]
+    [InlineData(ProjectStatus.Active)]
+    [InlineData(ProjectStatus.Completed)]
+    [InlineData(ProjectStatus.Canceled)]
+    public void StatusTransitionCount_ShouldNotAdvance_WhenRecordingTheTransitionThrows(ProjectStatus status)
+    {
+        // Arrange
+        var project = _projectFaker
+            .WithStatus(status)
+            .WithDateRange(ADeliveredDateRange())
+            .WithProjectLifecycleId(Guid.NewGuid())
+            .Generate();
+
+        var countBefore = project.StatusTransitionCount;
+
+        // Act
+        var result = project.RevertStatus(
+            AnAuthorizedActor(), NoProjectAncestry(), status, ARevertReason, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        project.StatusTransitionCount.Should().Be(countBefore);
+        project.StatusTransitionCount.Should().Be(project.StatusHistory.Count);
+    }
+
+    [Fact]
+    public void StatusTransitionCount_ShouldAlwaysEqualTheHistoryCount_AfterAMixOfAcceptedAndRejectedTransitions()
+    {
+        // Arrange
+        var project = _projectFaker
+            .WithStatus(ProjectStatus.Proposed)
+            .WithDateRange(ADeliveredDateRange())
+            .WithProjectLifecycleId(Guid.NewGuid())
+            .Generate();
+
+        // Act
+        project.Complete(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);   // rejected
+        project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);    // accepted
+        project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);    // rejected
+        project.Activate(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);   // accepted
+        project.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), ProjectStatus.Active,
+            ARevertReason, _dateTimeProvider.Now);                                           // rejected
+        project.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), ProjectStatus.Approved,
+            ARevertReason, _dateTimeProvider.Now);                                           // accepted
+
+        // Assert
+        project.StatusHistory.Should().HaveCount(3);
+        project.StatusTransitionCount.Should().Be(project.StatusHistory.Count);
+        project.StatusHistory.Select(h => h.Sequence).Should().Equal(1, 2, 3);
     }
 
     [Fact]
@@ -706,6 +760,459 @@ public class ProjectTests
     }
 
     #endregion Status History Tests
+
+    #region Revert Status Tests
+
+    private const string ARevertReason = "Closed in error; the remaining scope is being finished.";
+
+    /// <summary>
+    /// A date range for projects that have already run. Anything that reached Active or Completed has one
+    /// in real data — the domain refuses those transitions without it — but the faker defaults it to null,
+    /// so reverting back to Active needs it set explicitly.
+    /// </summary>
+    private LocalDateRange ADeliveredDateRange()
+    {
+        var start = _dateTimeProvider.Today.PlusDays(-20);
+
+        return new LocalDateRange(start, start.PlusMonths(2));
+    }
+
+    [Theory]
+    [InlineData(ProjectStatus.Completed, ProjectStatus.Proposed)]
+    [InlineData(ProjectStatus.Completed, ProjectStatus.Approved)]
+    [InlineData(ProjectStatus.Completed, ProjectStatus.Active)]
+    [InlineData(ProjectStatus.Canceled, ProjectStatus.Proposed)]
+    [InlineData(ProjectStatus.Canceled, ProjectStatus.Approved)]
+    [InlineData(ProjectStatus.Canceled, ProjectStatus.Active)]
+    [InlineData(ProjectStatus.Active, ProjectStatus.Proposed)]
+    [InlineData(ProjectStatus.Active, ProjectStatus.Approved)]
+    [InlineData(ProjectStatus.Approved, ProjectStatus.Proposed)]
+    public void RevertStatus_ShouldSucceed_ForEveryBackwardTransition(ProjectStatus from, ProjectStatus to)
+    {
+        // Arrange — a fully specified project, so every target's entry requirements are met and the test
+        // exercises the transition table rather than the gates. The gates have their own tests.
+        var project = _projectFaker
+            .WithStatus(from)
+            .WithDateRange(ADeliveredDateRange())
+            .WithProjectLifecycleId(Guid.NewGuid())
+            .Generate();
+
+        // Act
+        var result = project.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), to, ARevertReason, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.Status.Should().Be(to);
+    }
+
+    [Theory]
+    [InlineData(ProjectStatus.Proposed, ProjectStatus.Approved)]
+    [InlineData(ProjectStatus.Proposed, ProjectStatus.Active)]
+    [InlineData(ProjectStatus.Approved, ProjectStatus.Active)]
+    [InlineData(ProjectStatus.Active, ProjectStatus.Completed)]
+    [InlineData(ProjectStatus.Active, ProjectStatus.Canceled)]
+    [InlineData(ProjectStatus.Completed, ProjectStatus.Canceled)]
+    public void RevertStatus_ShouldFail_WhenTheTransitionIsNotBackward(ProjectStatus from, ProjectStatus to)
+    {
+        // Arrange
+        var project = _projectFaker.WithStatus(from).Generate();
+
+        // Act
+        var result = project.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), to, ARevertReason, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        project.Status.Should().Be(from);
+    }
+
+    [Theory]
+    [InlineData(ProjectStatus.Proposed)]
+    [InlineData(ProjectStatus.Approved)]
+    [InlineData(ProjectStatus.Active)]
+    [InlineData(ProjectStatus.Completed)]
+    [InlineData(ProjectStatus.Canceled)]
+    public void RevertStatus_ShouldFail_WhenTheTargetIsTheCurrentStatus(ProjectStatus status)
+    {
+        // Arrange
+        var project = _projectFaker.WithStatus(status).Generate();
+
+        // Act
+        var result = project.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), status, ARevertReason, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        project.StatusHistory.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RevertStatus_ShouldFail_WhenTheProjectIsProposed()
+    {
+        // Arrange
+        var project = _projectFaker.WithStatus(ProjectStatus.Proposed).Generate();
+
+        // Act
+        var result = project.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), ProjectStatus.Approved, ARevertReason, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("already at the start of its lifecycle");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void RevertStatus_ShouldFail_WhenNoReasonIsGiven(string? reason)
+    {
+        // Arrange
+        var project = _projectFaker.WithStatus(ProjectStatus.Completed).Generate();
+
+        // Act
+        var result = project.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), ProjectStatus.Active, reason!, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A reason is required to revert a project's status.");
+        project.Status.Should().Be(ProjectStatus.Completed);
+    }
+
+    [Fact]
+    public void RevertStatus_ShouldRecordTheReason_OnTheStatusHistory()
+    {
+        // Arrange
+        var project = _projectFaker
+            .WithStatus(ProjectStatus.Completed)
+            .WithDateRange(ADeliveredDateRange())
+            .Generate();
+
+        // Act
+        var result = project.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), ProjectStatus.Active, "  Funding restored  ", _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var entry = project.StatusHistory.Should().ContainSingle().Subject;
+        entry.FromStatus.Should().Be(ProjectStatus.Completed);
+        entry.ToStatus.Should().Be(ProjectStatus.Active);
+        entry.Reason.Should().Be("Funding restored");
+        entry.Source.Should().Be(ProjectStatusHistorySource.Recorded);
+    }
+
+    [Fact]
+    public void RevertStatus_ShouldFail_WhenTheParentProgramIsClosed()
+    {
+        // Arrange
+        var program = new ProgramFaker().WithStatus(ProgramStatus.Completed).Generate();
+        var project = _projectFaker
+            .WithStatus(ProjectStatus.Completed)
+            .WithProgram(program)
+            .Generate();
+
+        // Act
+        var result = project.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), ProjectStatus.Active, ARevertReason, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("closed program");
+        project.Status.Should().Be(ProjectStatus.Completed);
+    }
+
+    [Theory]
+    [InlineData(ProjectPortfolioStatus.Closed)]
+    [InlineData(ProjectPortfolioStatus.Archived)]
+    public void RevertStatus_ShouldFail_WhenTheParentPortfolioIsClosed(ProjectPortfolioStatus portfolioStatus)
+    {
+        // Arrange
+        var portfolio = new ProjectPortfolioFaker().WithStatus(portfolioStatus).Generate();
+        var project = _projectFaker
+            .WithStatus(ProjectStatus.Completed)
+            .WithPortfolio(portfolio)
+            .Generate();
+
+        // Act
+        var result = project.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), ProjectStatus.Active, ARevertReason, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("closed portfolio");
+        project.Status.Should().Be(ProjectStatus.Completed);
+    }
+
+    // A status has the same entry requirements however it is reached. Cancelling straight from Proposed is
+    // legal, so a canceled project may never have had a lifecycle or a timeline — and reverting it must not
+    // become a way around the gates Approve and Activate enforce.
+
+    [Fact]
+    public void RevertStatus_ShouldFail_WhenRevertingToActiveWithoutDates()
+    {
+        // Arrange
+        var project = _projectFaker
+            .WithStatus(ProjectStatus.Canceled)
+            .WithDateRange(null)
+            .Generate();
+
+        // Act
+        var result = project.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), ProjectStatus.Active, ARevertReason, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("start and end date");
+        project.Status.Should().Be(ProjectStatus.Canceled);
+    }
+
+    [Fact]
+    public void RevertStatus_ShouldFail_WhenRevertingToApprovedWithoutALifecycle()
+    {
+        // Arrange — the faker assigns no lifecycle, matching a project cancelled straight from Proposed.
+        var project = _projectFaker
+            .WithStatus(ProjectStatus.Canceled)
+            .WithDateRange(ADeliveredDateRange())
+            .Generate();
+
+        // Act
+        var result = project.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), ProjectStatus.Approved, ARevertReason, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("lifecycle");
+        project.Status.Should().Be(ProjectStatus.Canceled);
+    }
+
+    [Fact]
+    public void RevertStatus_ShouldSucceed_WhenRevertingToProposedWithNeitherLifecycleNorDates()
+    {
+        // Arrange — Proposed has no entry requirements, so it stays available to a bare canceled project.
+        var project = _projectFaker
+            .WithStatus(ProjectStatus.Canceled)
+            .WithDateRange(null)
+            .Generate();
+
+        // Act
+        var result = project.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), ProjectStatus.Proposed, ARevertReason, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.Status.Should().Be(ProjectStatus.Proposed);
+    }
+
+    [Fact]
+    public void RevertableStatuses_ShouldOfferOnlyProposed_ForAProjectCancelledFromProposed()
+    {
+        // Arrange
+        var project = _projectFaker
+            .WithStatus(ProjectStatus.Canceled)
+            .WithDateRange(null)
+            .Generate();
+
+        // Act
+        var targets = project.RevertableStatuses();
+
+        // Assert — the UI offers this list, so it must not include a target the aggregate would reject.
+        targets.Should().Equal(ProjectStatus.Proposed);
+    }
+
+    [Fact]
+    public void RevertableStatuses_ShouldOfferEveryTargetTheProjectQualifiesFor()
+    {
+        // Arrange
+        var project = _projectFaker
+            .WithStatus(ProjectStatus.Completed)
+            .WithDateRange(ADeliveredDateRange())
+            .WithProjectLifecycleId(Guid.NewGuid())
+            .Generate();
+
+        // Act
+        var targets = project.RevertableStatuses();
+
+        // Assert
+        targets.Should().Equal(ProjectStatus.Proposed, ProjectStatus.Approved, ProjectStatus.Active);
+    }
+
+    [Fact]
+    public void RevertableStatuses_ShouldOnlyOfferTargetsThatActuallySucceed()
+    {
+        // Arrange — a canceled project with a timeline but no lifecycle: Active qualifies, Approved does not.
+        var project = _projectFaker
+            .WithStatus(ProjectStatus.Canceled)
+            .WithDateRange(ADeliveredDateRange())
+            .Generate();
+
+        var offered = project.RevertableStatuses();
+
+        // Act / Assert — every offered target must be accepted, and the excluded one must be rejected.
+        offered.Should().Equal(ProjectStatus.Proposed, ProjectStatus.Active);
+
+        foreach (var target in offered)
+        {
+            var candidate = _projectFaker
+                .WithStatus(ProjectStatus.Canceled)
+                .WithDateRange(ADeliveredDateRange())
+                .Generate();
+
+            candidate.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), target, ARevertReason, _dateTimeProvider.Now)
+                .IsSuccess.Should().BeTrue($"{target} was offered as revertable");
+        }
+
+        var notOffered = _projectFaker
+            .WithStatus(ProjectStatus.Canceled)
+            .WithDateRange(ADeliveredDateRange())
+            .Generate();
+
+        notOffered.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), ProjectStatus.Approved, ARevertReason, _dateTimeProvider.Now)
+            .IsFailure.Should().BeTrue("Approved was not offered, so it must be rejected");
+    }
+
+    [Fact]
+    public void RevertStatus_ShouldContinueTheStatusHistorySequence()
+    {
+        // Arrange
+        var project = _projectFaker
+            .WithStatus(ProjectStatus.Proposed)
+            .WithDateRange(ADeliveredDateRange())
+            .Generate();
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Delivery", "Delivery phase"));
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
+        project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
+        project.Activate(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
+        project.Complete(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
+
+        // Act
+        var result = project.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), ProjectStatus.Active, ARevertReason, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.StatusHistory.Select(h => h.Sequence).Should().Equal(1, 2, 3, 4);
+        // A revisited status must not restart or reuse a sequence — that is what lets the history be
+        // ordered once a project can enter the same status twice.
+        project.StatusHistory.Select(h => h.Sequence).Should().OnlyHaveUniqueItems();
+        // The counter is what supplies the next sequence, so it has to keep pace with the rows.
+        project.StatusTransitionCount.Should().Be(project.StatusHistory.Count);
+    }
+
+    [Fact]
+    public void StatusTransitionCount_ShouldMatchTheHistory_AcrossEveryTransitionPath()
+    {
+        // Arrange — Create writes the origin row outside ChangeStatus, so it is included here to pin that
+        // both paths maintain the count.
+        var project = Project.Create(
+            "Counted", "Keeps its transition count in step", new ProjectKey("COUNT"), 1,
+            new LocalDateRange(_dateTimeProvider.Today.PlusDays(-20), _dateTimeProvider.Today.PlusMonths(2)),
+            Guid.NewGuid(), rank: 1, programId: null, businessCase: null, expectedBenefits: null,
+            roles: null, strategicThemes: null, timestamp: _dateTimeProvider.Now, actor: PpmActor.System);
+
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Delivery", "Delivery phase"));
+        project.AssignLifecycle(PpmActor.System, NoProjectAncestry(), lifecycle);
+
+        project.StatusTransitionCount.Should().Be(project.StatusHistory.Count);
+
+        // Act — walk forward through every transition, then back, then forward again.
+        project.Approve(PpmActor.System, NoProjectAncestry(), _dateTimeProvider.Now);
+        project.Activate(PpmActor.System, NoProjectAncestry(), _dateTimeProvider.Now);
+        project.Complete(PpmActor.System, NoProjectAncestry(), _dateTimeProvider.Now);
+        project.RevertStatus(PpmActor.System, NoProjectAncestry(), ProjectStatus.Active, ARevertReason, _dateTimeProvider.Now);
+        project.Cancel(PpmActor.System, NoProjectAncestry(), _dateTimeProvider.Now);
+
+        // Assert — the count is what the next sequence is taken from, so a path that appended a row
+        // without incrementing it would hand out a sequence already in use.
+        project.StatusTransitionCount.Should().Be(project.StatusHistory.Count);
+        project.StatusHistory.Select(h => h.Sequence).Should().Equal(1, 2, 3, 4, 5, 6);
+    }
+
+    [Fact]
+    public void CanBeDeleted_ShouldBeFalse_WhenTheProjectWasRevertedToProposed()
+    {
+        // Arrange
+        var project = _projectFaker
+            .WithStatus(ProjectStatus.Proposed)
+            .WithDateRange(ADeliveredDateRange())
+            .Generate();
+        project.CanBeDeleted().Should().BeTrue();
+
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Delivery", "Delivery phase"));
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
+        project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
+        project.Activate(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
+
+        // Act
+        var result = project.RevertStatus(AnAuthorizedActor(), NoProjectAncestry(), ProjectStatus.Proposed, ARevertReason, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.Status.Should().Be(ProjectStatus.Proposed);
+        // Deleting would take the status history with it, so a project that has run stays undeletable.
+        project.CanBeDeleted().Should().BeFalse();
+    }
+
+    [Fact]
+    public void RevertStatus_ShouldSucceed_WhenActorIsProjectOwner()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var project = _projectFaker
+            .WithStatus(ProjectStatus.Completed)
+            .WithDateRange(ADeliveredDateRange())
+            .WithOwner(employeeId)
+            .Generate();
+
+        // Act
+        var result = project.RevertStatus(employeeId.AsActor(), NoProjectAncestry(), ProjectStatus.Active, ARevertReason, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.Status.Should().Be(ProjectStatus.Active);
+    }
+
+    [Fact]
+    public void RevertStatus_ShouldSucceed_WhenActorIsProjectManager()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var project = _projectFaker
+            .WithStatus(ProjectStatus.Completed)
+            .WithDateRange(ADeliveredDateRange())
+            .WithRoles(new Dictionary<ProjectRole, HashSet<Guid>> { [ProjectRole.Manager] = [employeeId] })
+            .Generate();
+
+        // Act
+        var result = project.RevertStatus(employeeId.AsActor(), NoProjectAncestry(), ProjectStatus.Active, ARevertReason, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.Status.Should().Be(ProjectStatus.Active);
+    }
+
+    [Fact]
+    public void RevertStatus_ShouldFail_WhenActorHoldsNoRole()
+    {
+        // Arrange
+        var project = _projectFaker.WithStatus(ProjectStatus.Completed).Generate();
+
+        // Act
+        var result = project.RevertStatus(AnUnauthorizedActor(), NoProjectAncestry(), ProjectStatus.Active, ARevertReason, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        project.Status.Should().Be(ProjectStatus.Completed);
+    }
+
+    [Fact]
+    public void RevertStatus_ShouldFail_WhenActorIsOnlyASponsor()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var project = _projectFaker
+            .WithStatus(ProjectStatus.Completed)
+            .WithRoles(new Dictionary<ProjectRole, HashSet<Guid>> { [ProjectRole.Sponsor] = [employeeId] })
+            .Generate();
+
+        // Act
+        var result = project.RevertStatus(employeeId.AsActor(), NoProjectAncestry(), ProjectStatus.Active, ARevertReason, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        project.Status.Should().Be(ProjectStatus.Completed);
+    }
+
+    #endregion Revert Status Tests
 
     #region Authorization Tests
 

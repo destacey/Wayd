@@ -200,6 +200,10 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
 
         builder.Property(p => p.Rank).IsRequired();
 
+        // Supplies the sequence for the next status transition, so appending one never has to load the
+        // history.
+        builder.Property(p => p.StatusTransitionCount).IsRequired();
+
         // Value Objects
         builder.OwnsOne(r => r.DateRange, options =>
         {
@@ -287,8 +291,14 @@ public class ProjectStatusHistoryConfiguration : IEntityTypeConfiguration<Projec
 
         builder.HasIndex(h => new { h.ProjectId, h.ChangedOn });
 
+        // Unique so the per-project monotonic Sequence is enforced at the database level: concurrent
+        // transitions on the same project that compute the same next sequence collide here (one wins, the
+        // other fails and can retry) rather than silently producing an ambiguous history order.
+        builder.HasIndex(h => new { h.ProjectId, h.Sequence }).IsUnique();
+
         builder.Property(h => h.Id).ValueGeneratedNever();
         builder.Property(h => h.ProjectId).IsRequired();
+        builder.Property(h => h.Sequence).IsRequired();
 
         builder.Property(h => h.FromStatus)
             .HasConversion<EnumConverter<ProjectStatus>>()

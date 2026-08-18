@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NodaTime;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
@@ -25,7 +25,8 @@ public class ProjectStatusHistoryTests
             employeeId,
             Now,
             ProjectStatusHistorySource.Recorded,
-            "Kickoff approved");
+            "Kickoff approved",
+            sequence: 2);
 
         // Assert
         entry.ProjectId.Should().Be(projectId);
@@ -36,6 +37,7 @@ public class ProjectStatusHistoryTests
         entry.ChangedOn.Should().Be(Now);
         entry.Source.Should().Be(ProjectStatusHistorySource.Recorded);
         entry.Reason.Should().Be("Kickoff approved");
+        entry.Sequence.Should().Be(2);
     }
 
     [Fact]
@@ -50,7 +52,8 @@ public class ProjectStatusHistoryTests
             null,
             Now,
             ProjectStatusHistorySource.Recorded,
-            null);
+            null,
+            sequence: 1);
 
         // Assert
         entry.FromStatus.Should().BeNull();
@@ -75,7 +78,8 @@ public class ProjectStatusHistoryTests
             Guid.NewGuid(),
             Now,
             ProjectStatusHistorySource.Recorded,
-            null);
+            null,
+            sequence: 1);
 
         // Assert
         action.Should().Throw<InvalidOperationException>()
@@ -94,7 +98,8 @@ public class ProjectStatusHistoryTests
             null,
             Now,
             ProjectStatusHistorySource.Recorded,
-            null);
+            null,
+            sequence: 1);
 
         // Assert
         action.Should().Throw<ArgumentException>();
@@ -114,7 +119,8 @@ public class ProjectStatusHistoryTests
             null,
             Now,
             ProjectStatusHistorySource.Recorded,
-            null);
+            null,
+            sequence: 1);
 
         // Assert
         action.Should().Throw<ArgumentException>();
@@ -132,7 +138,8 @@ public class ProjectStatusHistoryTests
             null,
             Now,
             ProjectStatusHistorySource.Recorded,
-            "  Kickoff approved  ");
+            "  Kickoff approved  ",
+            sequence: 2);
 
         // Assert
         entry.Reason.Should().Be("Kickoff approved");

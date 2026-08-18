@@ -20,6 +20,7 @@ import ProjectDetailsLoading from './loading'
 import dynamic from 'next/dynamic'
 import {
   ChangeProjectStatusForm,
+  RevertProjectStatusForm,
   ChangeProjectProgramForm,
   ChangeProjectKeyForm,
   CreateProjectHealthCheckForm,
@@ -74,6 +75,7 @@ enum ProjectAction {
   Activate = 'Activate',
   Complete = 'Complete',
   Cancel = 'Cancel',
+  RevertStatus = 'Revert Status',
 }
 
 const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
@@ -120,6 +122,8 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [openCreateHealthCheckForm, setOpenCreateHealthCheckForm] =
     useState<boolean>(false)
   const [openStatusHistory, setOpenStatusHistory] = useState<boolean>(false)
+  const [openRevertStatusForm, setOpenRevertStatusForm] =
+    useState<boolean>(false)
 
   const pathname = usePathname()
   const dispatch = useAppDispatch()
@@ -331,12 +335,17 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       })
     }
 
+    // Server-decided, so this cannot offer a transition the aggregate would reject.
+    const canRevertStatus =
+      canManageProject && (projectData?.backwardStatusTargets?.length ?? 0) > 0
+
     if (
       canManageProject &&
       (availableActions.includes(ProjectAction.Approve) ||
         availableActions.includes(ProjectAction.Activate) ||
         availableActions.includes(ProjectAction.Complete) ||
-        availableActions.includes(ProjectAction.Cancel))
+        availableActions.includes(ProjectAction.Cancel) ||
+        canRevertStatus)
     ) {
       items.push({ key: 'manage-divider', type: 'divider' })
     }
@@ -370,6 +379,14 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         key: 'cancel',
         label: ProjectAction.Cancel,
         onClick: () => setOpenCancelProjectForm(true),
+      })
+    }
+
+    if (canRevertStatus) {
+      items.push({
+        key: 'revert-status',
+        label: ProjectAction.RevertStatus,
+        onClick: () => setOpenRevertStatusForm(true),
       })
     }
 
@@ -449,6 +466,11 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     if (wasSaved) refetchProject()
   }
 
+  const onRevertStatusFormClosed = (wasSaved: boolean) => {
+    setOpenRevertStatusForm(false)
+    if (wasSaved) refetchProject()
+  }
+
   const onDeleteProjectFormClosed = (wasDeleted: boolean) => {
     setOpenDeleteProjectForm(false)
     if (wasDeleted) router.push('/ppm/projects')
@@ -499,8 +521,13 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         actions={<PageActions actionItems={actionsMenuItems} />}
       />
 
+      {/* Closed statuses are included because revert targets depend on the lifecycle and dates too — a
+          project cancelled from Proposed has neither, and without this the Revert Status action is absent
+          with nothing explaining why. */}
       {(projectData.status.name === 'Proposed' ||
-        projectData.status.name === 'Approved') && (
+        projectData.status.name === 'Approved' ||
+        projectData.status.name === 'Completed' ||
+        projectData.status.name === 'Canceled') && (
         <>
           {missingDates && (
             <Alert
@@ -579,6 +606,13 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           statusAction={ProjectStatusAction.Cancel}
           onFormComplete={() => onCancelProjectFormClosed(true)}
           onFormCancel={() => onCancelProjectFormClosed(false)}
+        />
+      )}
+      {openRevertStatusForm && (
+        <RevertProjectStatusForm
+          project={projectData}
+          onFormComplete={() => onRevertStatusFormClosed(true)}
+          onFormCancel={() => onRevertStatusFormClosed(false)}
         />
       )}
       {openDeleteProjectForm && (

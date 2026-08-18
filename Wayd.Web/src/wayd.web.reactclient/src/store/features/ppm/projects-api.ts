@@ -17,6 +17,7 @@ import {
   MyProjectsSummaryDto,
   MyProjectsTaskMetricsDto,
   ProjectStatusHistoryDto,
+  ProjectStatus,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 import { BaseOptionType } from 'antd/es/select'
@@ -226,6 +227,33 @@ export const projectsApi = apiSlice.injectEndpoints({
       queryFn: async ({ id }) => {
         try {
           const data = await getProjectsClient().cancel(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, { id, cacheKey }) => {
+        return [
+          { type: QueryTags.Project, id: 'LIST' },
+          { type: QueryTags.Project, id: cacheKey },
+          { type: QueryTags.Project, id: `STATUS-HISTORY-${id}` },
+          { type: QueryTags.PortfolioProjects, id: 'LIST' },
+          { type: QueryTags.ProgramProjects, id: 'LIST' },
+        ]
+      },
+    }),
+
+    revertProjectStatus: builder.mutation<
+      void,
+      { id: string; cacheKey: string; toStatus: ProjectStatus; reason: string }
+    >({
+      queryFn: async ({ id, toStatus, reason }) => {
+        try {
+          const data = await getProjectsClient().revertStatus(id, {
+            toStatus,
+            reason,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -585,6 +613,7 @@ export const {
   useActivateProjectMutation,
   useCompleteProjectMutation,
   useCancelProjectMutation,
+  useRevertProjectStatusMutation,
   useDeleteProjectMutation,
   useGetProjectWorkItemsQuery,
   useGetProjectOptionsQuery,

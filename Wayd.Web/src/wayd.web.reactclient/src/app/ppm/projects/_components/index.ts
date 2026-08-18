@@ -1,4 +1,5 @@
 export { default as ChangeProjectStatusForm } from './change-project-status-form'
+export { default as RevertProjectStatusForm } from './revert-project-status-form'
 export { default as ChangeProjectProgramForm } from './change-project-program-form'
 export { default as ChangeProjectKeyForm } from './change-project-key-form'
 export { default as CreateProjectForm } from './create-project-form'

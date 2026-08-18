@@ -1,6 +1,7 @@
 'use client'
 
-import { type Cell, type Row, flexRender } from '@tanstack/react-table'
+import type { LegacyCell as Cell, LegacyRow as Row } from '@tanstack/react-table/legacy'
+import { flexRender } from '@tanstack/react-table'
 import { GridSortableRow } from './dnd/grid-dnd'
 import {
   getPinnedOffsets,
@@ -8,6 +9,7 @@ import {
   pinnedCellStyle,
   type PinnedCellClasses,
 } from './column-pinning'
+import type { RowData } from '@tanstack/react-table'
 
 /**
  * CSS-module class names the owning grid supplies for body rows, so the shared
@@ -27,7 +29,7 @@ export interface GridRowClasses {
 
 /** The pinned class suffix (starting with a space) + inline style for a body
  *  cell, or empties when the column is unpinned / pinning classes not given. */
-const pinnedTdProps = <T,>(
+const pinnedTdProps = <T extends RowData,>(
   cell: Cell<T, unknown>,
   classes: GridRowClasses,
 ): { className: string; style?: React.CSSProperties } => {
@@ -42,7 +44,7 @@ const pinnedTdProps = <T,>(
 
 /** The numeric-alignment class suffix (starting with a space) for a body
  *  cell, or '' when the column isn't numeric / no class was supplied. */
-const numericTdClass = <T,>(
+const numericTdClass = <T extends RowData,>(
   cell: Cell<T, unknown>,
   classes: GridRowClasses,
   numericColumnIds: ReadonlySet<string> | undefined,
@@ -51,7 +53,7 @@ const numericTdClass = <T,>(
     ? ` ${classes.tdNumeric}`
     : ''
 
-export interface FlatGridRowProps<T> {
+export interface FlatGridRowProps<T extends RowData> {
   row: Row<T>
   /** Display index within the rendered row list (drives zebra striping). */
   index: number
@@ -73,7 +75,7 @@ export interface FlatGridRowProps<T> {
  * (the grids do); a directive here alone could not force a memoized parent to
  * re-create the element.
  */
-export function FlatGridRow<T>({
+export function FlatGridRow<T extends RowData>({
   row,
   index,
   classes,
@@ -104,7 +106,7 @@ export function FlatGridRow<T>({
   )
 }
 
-export interface SortableFlatGridRowProps<T> extends FlatGridRowProps<T> {
+export interface SortableFlatGridRowProps<T extends RowData> extends FlatGridRowProps<T> {
   /** The row's data id (not TanStack's row.id) — the dnd-kit sortable id. */
   nodeId: string
   /** Whether this row is currently being dragged. */
@@ -122,7 +124,7 @@ export interface SortableFlatGridRowProps<T> extends FlatGridRowProps<T> {
  * Same memoization caveat as {@link FlatGridRow}: consumers must carry
  * `'use no memo'`.
  */
-export function SortableFlatGridRow<T>({
+export function SortableFlatGridRow<T extends RowData>({
   row,
   index,
   classes,
@@ -166,7 +168,7 @@ export interface TreeGridRowClasses extends GridRowClasses {
   editableCell: string
 }
 
-export interface TreeGridRowProps<T> {
+export interface TreeGridRowProps<T extends RowData> {
   row: Row<T>
   /** Display index within the rendered row list (drives zebra striping). */
   index: number
@@ -199,7 +201,7 @@ export interface TreeGridRowProps<T> {
  * Same memoization caveat as {@link FlatGridRow}: consumers must carry
  * `'use no memo'`.
  */
-export function TreeGridRow<T>({
+export function TreeGridRow<T extends RowData>({
   row,
   index,
   classes,

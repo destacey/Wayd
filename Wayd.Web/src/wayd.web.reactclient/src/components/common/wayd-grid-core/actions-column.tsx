@@ -3,12 +3,12 @@
 import { Button, Dropdown } from 'antd'
 import { MoreOutlined } from '@ant-design/icons'
 import type { ItemType } from 'antd/es/menu/interface'
-import type { ColumnDef, Row } from '@tanstack/react-table'
-
+import type { LegacyColumnDef as ColumnDef, LegacyRow as Row } from '@tanstack/react-table/legacy'
+import type { RowData } from '@tanstack/react-table'
 /** Default width of the actions column — just wide enough for the ⋯ button. */
 export const ACTIONS_COLUMN_SIZE = 50
 
-export interface ActionsColumnOptions<T> {
+export interface ActionsColumnOptions<T extends RowData> {
   /**
    * Builds the dropdown menu items for a single row. This is the only piece
    * that varies between grids: it runs per row and typically gates each item on
@@ -39,7 +39,7 @@ const hasActionableItem = (items: ItemType[]): boolean =>
  * dropdown of the row's items. Renders nothing when the row has no actionable
  * items, so rows the user can't act on stay clean.
  */
-const ActionsCell = <T,>({
+const ActionsCell = <T extends RowData,>({
   row,
   getItems,
   ariaLabel,
@@ -78,7 +78,7 @@ const ActionsCell = <T,>({
  *   ].filter(Boolean) as ItemType[],
  * })
  */
-export const createActionsColumn = <T,>({
+export const createActionsColumn = <T extends RowData,>({
   getItems,
   hide,
   id = 'actions',

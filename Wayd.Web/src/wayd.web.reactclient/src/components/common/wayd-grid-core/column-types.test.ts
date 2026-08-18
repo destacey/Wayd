@@ -2,8 +2,7 @@
 // below need the real library (same opt-in as the filter suites).
 jest.mock('dayjs', () => jest.requireActual('dayjs'))
 
-import type { ColumnDef } from '@tanstack/react-table'
-
+import type { LegacyColumnDef as ColumnDef } from '@tanstack/react-table/legacy'
 import {
   applyColumnType,
   formatDateOnly,

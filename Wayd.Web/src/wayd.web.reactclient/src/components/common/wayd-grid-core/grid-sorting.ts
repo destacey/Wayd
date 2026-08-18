@@ -1,5 +1,10 @@
-import type { Row, SortingFn } from '@tanstack/react-table'
+import type { LegacyFeatures, LegacyRow as Row } from '@tanstack/react-table/legacy'
+import type { SortFn } from '@tanstack/table-core'
+
+/** v8's `SortingFn<TData>` under the legacy feature set (v9 puts TFeatures first). */
+type SortingFn<TData extends RowData> = SortFn<LegacyFeatures, TData>
 import dayjs from 'dayjs'
+import type { RowData } from '@tanstack/react-table'
 
 const compareNumbers = (a: number, b: number): number => {
   return a === b ? 0 : a > b ? 1 : -1

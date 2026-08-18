@@ -15,7 +15,8 @@ import {
   ColumnWidthOutlined,
   ControlOutlined,
 } from '@ant-design/icons'
-import type { ColumnPinningPosition, Header, Table } from '@tanstack/react-table'
+import type { LegacyHeader as Header, LegacyReactTable as Table } from '@tanstack/react-table/legacy'
+import type { ColumnPinningPosition } from '@tanstack/react-table'
 import {
   DndContext,
   type DragEndEvent,
@@ -34,6 +35,7 @@ import { CSS } from '@dnd-kit/utilities'
 
 import { getOrderedAllLeafColumns } from './column-order'
 import styles from './column-menu.module.css'
+import type { RowData } from '@tanstack/react-table'
 
 /** A leaf column offered in the Choose Columns panel. */
 export interface ColumnChooserOption {
@@ -60,7 +62,7 @@ const resolveChooserLabel = (columnDef: {
  * reactive to the consumer's flag), columns with hiding disabled, and
  * structural columns with no displayable label (e.g. the row-actions column).
  */
-export function getColumnChooserOptions<T>(
+export function getColumnChooserOptions<T extends RowData>(
   table: Table<T>,
 ): ColumnChooserOption[] {
   const options: ColumnChooserOption[] = []
@@ -152,12 +154,12 @@ export function buildColumnMenuItems(
           {
             key: COLUMN_MENU_KEYS.pinLeft,
             label: 'Pin Left',
-            icon: pinCheck('left'),
+            icon: pinCheck('start'),
           },
           {
             key: COLUMN_MENU_KEYS.pinRight,
             label: 'Pin Right',
-            icon: pinCheck('right'),
+            icon: pinCheck('end'),
           },
           {
             key: COLUMN_MENU_KEYS.pinNone,
@@ -199,7 +201,7 @@ export function buildColumnMenuItems(
   return items
 }
 
-export interface ColumnMenuTriggerProps<T> {
+export interface ColumnMenuTriggerProps<T extends RowData> {
   header: Header<T, unknown>
   table: Table<T>
   /** Controlled open state — the grid owns one open-menu column id (same
@@ -226,7 +228,7 @@ export interface ColumnMenuTriggerProps<T> {
  * Reads TanStack column state (sort/pin/visibility) from a mutable instance —
  * the same staleness hazard as the grid — hence `'use no memo'`.
  */
-export function ColumnMenuTrigger<T>({
+export function ColumnMenuTrigger<T extends RowData>({
   header,
   table,
   open,
@@ -266,10 +268,10 @@ export function ColumnMenuTrigger<T>({
         table.setSorting((prev) => prev.filter((s) => s.id !== column.id))
         break
       case COLUMN_MENU_KEYS.pinLeft:
-        column.pin('left')
+        column.pin('start')
         break
       case COLUMN_MENU_KEYS.pinRight:
-        column.pin('right')
+        column.pin('end')
         break
       case COLUMN_MENU_KEYS.pinNone:
         column.pin(false)
@@ -326,7 +328,7 @@ export function ColumnMenuTrigger<T>({
   )
 }
 
-export interface ColumnChooserModalProps<T> {
+export interface ColumnChooserModalProps<T extends RowData> {
   table: Table<T>
   open: boolean
   onClose: () => void
@@ -395,7 +397,7 @@ function ChooserRow({
  * Reads live column visibility from the mutable TanStack instance — hence
  * `'use no memo'`.
  */
-export function ColumnChooserModal<T>({
+export function ColumnChooserModal<T extends RowData>({
   table,
   open,
   onClose,

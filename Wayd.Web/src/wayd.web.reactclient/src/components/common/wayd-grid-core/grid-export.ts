@@ -1,13 +1,14 @@
-import type { Column, Table } from '@tanstack/react-table'
+import type { LegacyColumn as Column, LegacyReactTable as Table } from '@tanstack/react-table/legacy'
 import {
   escapeCsv,
   generateCsv,
   downloadCsvWithTimestamp,
 } from '@/src/utils/csv-utils'
 import { getOrderedVisibleLeafColumns } from './column-order'
+import type { RowData } from '@tanstack/react-table'
 
 /** Header text for a column: meta.exportHeader → string header → column id. */
-const resolveExportHeader = <T>(column: Column<T, unknown>): string => {
+const resolveExportHeader = <T extends RowData>(column: Column<T, unknown>): string => {
   const { meta, header } = column.columnDef
   if (meta?.exportHeader) return meta.exportHeader
   if (typeof header === 'string') return header
@@ -16,7 +17,7 @@ const resolveExportHeader = <T>(column: Column<T, unknown>): string => {
 
 /** The column's ancestor group at the given band depth (0 = outermost), or
  *  undefined when the column isn't nested that deep. */
-const ancestorAtDepth = <T>(
+const ancestorAtDepth = <T extends RowData>(
   column: Column<T, unknown>,
   depth: number,
 ): Column<T, unknown> | undefined => {
@@ -46,7 +47,7 @@ const ancestorAtDepth = <T>(
  * Column meta hooks: `enableExport: false` excludes a column, `exportHeader`
  * overrides the header text, and `exportFormatter` maps each value.
  */
-export function exportGridToCsv<T>(table: Table<T>, csvFileName: string): void {
+export function exportGridToCsv<T extends RowData>(table: Table<T>, csvFileName: string): void {
   const exportableColumns = getOrderedVisibleLeafColumns(table).filter(
     (column) => {
       const meta = column.columnDef.meta

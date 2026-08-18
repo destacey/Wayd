@@ -91,7 +91,7 @@ describe('use-grid-persistence', () => {
       // Assert — pristine grids leave no localStorage residue
       expect(result.current.columnSizing).toEqual({})
       expect(result.current.userColumnVisibility).toEqual({})
-      expect(result.current.columnPinning).toEqual({ left: [], right: [] })
+      expect(result.current.columnPinning).toEqual({ start: [], end: [] })
       expect(setItemSpy).not.toHaveBeenCalled()
     })
 
@@ -102,7 +102,7 @@ describe('use-grid-persistence', () => {
         JSON.stringify({
           columnSizing: { name: 240 },
           userColumnVisibility: { team: false },
-          columnPinning: { left: ['key'], right: [] },
+          columnPinning: { start: ['key'], end: [] },
           columnOrder: ['team', 'name', 'key'],
         }),
       )
@@ -114,10 +114,94 @@ describe('use-grid-persistence', () => {
       expect(result.current.columnSizing).toEqual({ name: 240 })
       expect(result.current.userColumnVisibility).toEqual({ team: false })
       expect(result.current.columnPinning).toEqual({
-        left: ['key'],
-        right: [],
+        start: ['key'],
+        end: [],
       })
       expect(result.current.columnOrder).toEqual(['team', 'name', 'key'])
+    })
+
+    it("migrates a v1 entry's left/right pinning to v2 start/end", () => {
+      // Arrange - a layout saved by TanStack v8, under the v1 key
+      window.localStorage.setItem(
+        'wayd-grid:test-grid:v1',
+        JSON.stringify({
+          columnSizing: { name: 240 },
+          userColumnVisibility: { team: false },
+          columnPinning: { left: ['key'], right: ['actions'] },
+          columnOrder: ['team', 'name', 'key'],
+        }),
+      )
+
+      // Act
+      const { result } = renderHook(() => useHarness('test-grid'))
+
+      // Assert - the pinned columns survive the upgrade under the new names
+      expect(result.current.columnPinning).toEqual({
+        start: ['key'],
+        end: ['actions'],
+      })
+      expect(result.current.columnSizing).toEqual({ name: 240 })
+      expect(result.current.userColumnVisibility).toEqual({ team: false })
+      expect(result.current.columnOrder).toEqual(['team', 'name', 'key'])
+    })
+
+    it('rewrites a migrated v1 entry under the current key so it survives a reload', () => {
+      // Arrange - a v8-era layout; removeStaleVersions drops the v1 key on
+      // load, so the migrated payload has to be written back under v2 or the
+      // layout is lost on the next mount.
+      window.localStorage.setItem(
+        'wayd-grid:test-grid:v1',
+        JSON.stringify({
+          columnSizing: { name: 240 },
+          userColumnVisibility: {},
+          columnPinning: { left: ['key'], right: [] },
+        }),
+      )
+
+      // Act - first mount migrates, debounce flushes the write, remount reads
+      const first = renderHook(() => useHarness('test-grid'))
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+      first.unmount()
+      const second = renderHook(() => useHarness('test-grid'))
+
+      // Assert
+      expect(window.localStorage.getItem('wayd-grid:test-grid:v1')).toBeNull()
+      expect(second.result.current.columnPinning).toEqual({
+        start: ['key'],
+        end: [],
+      })
+      expect(second.result.current.columnSizing).toEqual({ name: 240 })
+    })
+
+    it('prefers an existing v2 entry over a stale v1 entry', () => {
+      // Arrange - both keys present (upgraded, then a later save)
+      window.localStorage.setItem(
+        'wayd-grid:test-grid:v1',
+        JSON.stringify({
+          columnSizing: {},
+          userColumnVisibility: {},
+          columnPinning: { left: ['stale'], right: [] },
+        }),
+      )
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          columnSizing: {},
+          userColumnVisibility: {},
+          columnPinning: { start: ['current'], end: [] },
+        }),
+      )
+
+      // Act
+      const { result } = renderHook(() => useHarness('test-grid'))
+
+      // Assert
+      expect(result.current.columnPinning).toEqual({
+        start: ['current'],
+        end: [],
+      })
     })
 
     it('loads a pre-ordering v1 entry (no columnOrder key) as an empty order', () => {
@@ -127,7 +211,7 @@ describe('use-grid-persistence', () => {
         JSON.stringify({
           columnSizing: { name: 240 },
           userColumnVisibility: {},
-          columnPinning: { left: [], right: [] },
+          columnPinning: { start: [], end: [] },
         }),
       )
       const setItemSpy = jest.spyOn(window.localStorage, 'setItem')
@@ -160,7 +244,7 @@ describe('use-grid-persistence', () => {
       expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!)).toEqual({
         columnSizing: {},
         userColumnVisibility: {},
-        columnPinning: { left: [], right: [] },
+        columnPinning: { start: [], end: [] },
         columnOrder: ['team', 'name'],
       })
     })
@@ -194,7 +278,7 @@ describe('use-grid-persistence', () => {
         JSON.stringify({
           columnSizing: { name: 240 },
           userColumnVisibility: {},
-          columnPinning: { left: [], right: [] },
+          columnPinning: { start: [], end: [] },
         }),
       )
       const setItemSpy = jest.spyOn(window.localStorage, 'setItem')
@@ -223,7 +307,7 @@ describe('use-grid-persistence', () => {
       })
       act(() => {
         result.current.setColumnSizing({ name: 250 })
-        result.current.setColumnPinning({ left: ['key'], right: [] })
+        result.current.setColumnPinning({ start: ['key'], end: [] })
       })
       act(() => {
         jest.advanceTimersByTime(1000)
@@ -234,7 +318,7 @@ describe('use-grid-persistence', () => {
       expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!)).toEqual({
         columnSizing: { name: 250 },
         userColumnVisibility: {},
-        columnPinning: { left: ['key'], right: [] },
+        columnPinning: { start: ['key'], end: [] },
       })
     })
 
@@ -257,7 +341,7 @@ describe('use-grid-persistence', () => {
       expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!)).toEqual({
         columnSizing: {},
         userColumnVisibility: { isActive: false },
-        columnPinning: { left: [], right: [] },
+        columnPinning: { start: [], end: [] },
       })
     })
 
@@ -268,7 +352,7 @@ describe('use-grid-persistence', () => {
         JSON.stringify({
           columnSizing: { name: 240 },
           userColumnVisibility: { team: false },
-          columnPinning: { left: ['key'], right: [] },
+          columnPinning: { start: ['key'], end: [] },
           columnOrder: ['team', 'name'],
         }),
       )
@@ -295,7 +379,7 @@ describe('use-grid-persistence', () => {
         JSON.stringify({
           columnSizing: { name: 240 },
           userColumnVisibility: {},
-          columnPinning: { left: [], right: [] },
+          columnPinning: { start: [], end: [] },
         }),
       )
       window.localStorage.setItem('wayd-grid:other-grid:v1', '{}')
@@ -320,7 +404,7 @@ describe('use-grid-persistence', () => {
         JSON.stringify({
           columnSizing: { name: 'wide' },
           userColumnVisibility: {},
-          columnPinning: { left: [], right: [] },
+          columnPinning: { start: [], end: [] },
         }),
       ],
     ])('discards a stored entry with %s', (_label, raw) => {
@@ -334,7 +418,7 @@ describe('use-grid-persistence', () => {
       // removed so it isn't re-reported on every mount
       expect(result.current.columnSizing).toEqual({})
       expect(result.current.userColumnVisibility).toEqual({})
-      expect(result.current.columnPinning).toEqual({ left: [], right: [] })
+      expect(result.current.columnPinning).toEqual({ start: [], end: [] })
       expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
     })
 
@@ -352,7 +436,7 @@ describe('use-grid-persistence', () => {
       expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!)).toEqual({
         columnSizing: { name: 300 },
         userColumnVisibility: {},
-        columnPinning: { left: [], right: [] },
+        columnPinning: { start: [], end: [] },
       })
     })
 
@@ -362,7 +446,7 @@ describe('use-grid-persistence', () => {
       const storedJson = JSON.stringify({
         columnSizing: { name: 240 },
         userColumnVisibility: {},
-        columnPinning: { left: [], right: [] },
+        columnPinning: { start: [], end: [] },
       })
       window.localStorage.setItem(STORAGE_KEY, storedJson)
 

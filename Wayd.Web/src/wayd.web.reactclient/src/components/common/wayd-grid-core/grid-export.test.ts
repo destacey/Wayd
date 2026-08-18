@@ -7,12 +7,10 @@ jest.mock('@/src/utils/csv-utils', () => {
   }
 })
 
-import {
-  createTable,
-  getCoreRowModel,
-  type ColumnDef,
-  type TableState,
-} from '@tanstack/react-table'
+import type { LegacyColumnDef as ColumnDef } from '@tanstack/react-table/legacy'
+import type { TableState } from './index'
+
+import { buildHeadlessTable } from './test-table'
 import { downloadCsvWithTimestamp } from '@/src/utils/csv-utils'
 import { exportGridToCsv } from './grid-export'
 
@@ -34,14 +32,7 @@ const exportCsv = (
   columns: ColumnDef<Item, any>[],
   state: Partial<TableState> = {},
 ): string => {
-  const table = createTable<Item>({
-    data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    state: state as TableState,
-    onStateChange: () => {},
-    renderFallbackValue: null,
-  })
+  const table = buildHeadlessTable<Item>(data, columns, state)
   exportGridToCsv(table, 'test-export')
   const csv = mockDownloadCsv.mock.calls.at(-1)?.[0] as string
   return csv

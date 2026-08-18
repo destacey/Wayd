@@ -1,4 +1,4 @@
-import type { ColumnDef, Row, SortingState } from '@tanstack/react-table'
+import type { ColumnDef, Row, SortingState } from '../wayd-grid-core'
 import type { FormInstance } from 'antd'
 import type { DraftItem } from '../wayd-grid-core/draft-utils'
 import type { MoveValidator } from '../wayd-grid-core/dnd/tree-projection'
@@ -11,6 +11,7 @@ export type {
   WaydColumnType,
   WaydGridColumnMeta,
 } from '../wayd-grid-core/types'
+import type { RowData } from '@tanstack/react-table'
 
 /**
  * Context passed to the `columns` and `leftSlot` function props.
@@ -44,7 +45,7 @@ export interface GridColumnContext {
  * The grid fills in `data`, `tableWrapperClassName`, `fieldErrors`,
  * `setFieldErrors`, and `onCancelDraft` internally.
  */
-export interface GridInlineEditingConfig<T> {
+export interface GridInlineEditingConfig<T extends RowData> {
   canEdit: boolean
   form: FormInstance
   editableColumnIds: string[] | ((selectedRowId: string | null) => string[])
@@ -72,7 +73,7 @@ export interface GridInlineEditingConfig<T> {
  * for that row — enabling a Gantt "chart mode" on any grid (list stays the
  * spine; the chart is the collapsible companion). Omit for a plain grid.
  */
-export interface WaydGridRightPane<T> {
+export interface WaydGridRightPane<T extends RowData> {
   /** Pane header, aligned to the grid header height (e.g. the date axis). It
    *  should manage its own horizontal scroll in sync with the body track. */
   header?: React.ReactNode
@@ -111,7 +112,7 @@ export interface WaydGridRightPane<T> {
  * filterFromLeafRows, and — when configured — reparenting DnD, inline
  * editing, and draft rows).
  */
-export interface WaydGridProps<T> {
+export interface WaydGridProps<T extends RowData> {
   /**
    * Row data. In tree mode, the root nodes (children come from getSubRows).
    * May be undefined while loading (e.g. straight from a query hook) — treated
@@ -251,7 +252,7 @@ export interface WaydGridProps<T> {
 }
 
 /** Payload for {@link WaydGridProps.onRowReorder}. */
-export interface RowReorderEvent<T> {
+export interface RowReorderEvent<T extends RowData> {
   /** All displayed rows in their post-drop order. */
   orderedData: T[]
   /** The dragged row's id. */

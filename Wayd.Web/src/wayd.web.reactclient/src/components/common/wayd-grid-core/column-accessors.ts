@@ -1,5 +1,5 @@
-import type { ColumnDef } from '@tanstack/react-table'
-
+import type { LegacyColumnDef as ColumnDef } from '@tanstack/react-table/legacy'
+import type { RowData } from '@tanstack/react-table'
 /**
  * Replaces a dotted `accessorKey` (e.g. `'team.name'`) with an equivalent
  * null-tolerant `accessorFn`. TanStack's own deep accessor `console.warn`s in
@@ -9,7 +9,7 @@ import type { ColumnDef } from '@tanstack/react-table'
  * derived (dots → underscores) so sorting/filter state and `data-column-id`
  * hooks are unaffected. Recurses into grouped-header defs.
  */
-export const applySafeAccessor = <T>(
+export const applySafeAccessor = <T extends RowData>(
   col: ColumnDef<T, unknown>,
 ): ColumnDef<T, unknown> => {
   const children = (col as { columns?: ColumnDef<T, unknown>[] }).columns

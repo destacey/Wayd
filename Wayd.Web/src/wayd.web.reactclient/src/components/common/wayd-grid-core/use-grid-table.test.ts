@@ -47,7 +47,7 @@ describe('use-grid-table', () => {
       act(() => {
         result.current.setColumnSizing({ name: 240 })
         result.current.setUserColumnVisibility({ team: false })
-        result.current.setColumnPinning({ left: ['name'], right: [] })
+        result.current.setColumnPinning({ start: ['name'], end: [] })
         result.current.setColumnOrder(['team', 'name'])
         result.current.setSorting([{ id: 'name', desc: false }])
         result.current.setColumnFilters([{ id: 'name', value: 'x' }])
@@ -62,7 +62,7 @@ describe('use-grid-table', () => {
       // (that's the toolbar Clear button's job)
       expect(result.current.columnSizing).toEqual({})
       expect(result.current.userColumnVisibility).toEqual({})
-      expect(result.current.columnPinning).toEqual({ left: [], right: [] })
+      expect(result.current.columnPinning).toEqual({ start: [], end: [] })
       expect(result.current.columnOrder).toEqual([])
       expect(result.current.sorting).toEqual([{ id: 'name', desc: false }])
       expect(result.current.columnFilters).toEqual([

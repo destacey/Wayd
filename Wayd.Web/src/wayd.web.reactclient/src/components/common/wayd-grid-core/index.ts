@@ -1,5 +1,69 @@
 // Shared grid engine powering the unified WaydGrid (components/common/wayd-grid).
 
+import type { LegacyFeatures as LegacyFeaturesType } from '@tanstack/react-table/legacy'
+import type {
+  CellContext as CellContextCore,
+  FilterFn as FilterFnCore,
+  HeaderContext as HeaderContextCore,
+  RowData as RowDataCore,
+  SortFn as SortFnCore,
+  TableState as TableStateCore,
+} from '@tanstack/table-core'
+
+// TanStack table types, re-exported under their v8 names.
+//
+// v9 puts a TFeatures generic first on every public type (ColumnDef<TFeatures,
+// TData, TValue>), so importing these straight from '@tanstack/react-table'
+// silently binds the row type to the FEATURES slot and fails to compile. The
+// grid runs on the v9 `/legacy` shim, whose Legacy* aliases keep the v8 arity
+// (TData, TValue). Import table types from this barrel, never from
+// '@tanstack/react-table' directly, so the whole app moves off legacy in one
+// place when the core migrates to native v9 features.
+export type {
+  LegacyCell as Cell,
+  LegacyColumn as Column,
+  LegacyColumnDef as ColumnDef,
+  LegacyHeader as Header,
+  LegacyHeaderGroup as HeaderGroup,
+  LegacyRow as Row,
+  LegacyReactTable as Table,
+  LegacyTableOptions as TableOptions,
+} from '@tanstack/react-table/legacy'
+export type { LegacyFeatures } from '@tanstack/react-table/legacy'
+export type {
+  ColumnFiltersState,
+  ColumnOrderState,
+  ColumnPinningState,
+  ColumnSizingState,
+  ColumnPinningPosition,
+  RowData,
+  SortingState,
+} from '@tanstack/react-table'
+
+// These v9 types take TFeatures first; bind it to the legacy feature set so
+// call sites keep the v8 arity.
+export type TableState = TableStateCore<LegacyFeaturesType>
+export type FilterFn<TData extends RowDataCore> = FilterFnCore<
+  LegacyFeaturesType,
+  TData
+>
+export type SortingFn<TData extends RowDataCore> = SortFnCore<
+  LegacyFeaturesType,
+  TData
+>
+export type CellContext<TData extends RowDataCore, TValue> = CellContextCore<
+  LegacyFeaturesType,
+  TData,
+  TValue
+>
+export type HeaderContext<TData extends RowDataCore, TValue> = HeaderContextCore<
+  LegacyFeaturesType,
+  TData,
+  TValue
+>
+export type { ColumnVisibilityState as VisibilityState } from '@tanstack/react-table'
+export { flexRender } from '@tanstack/react-table'
+
 // Shared column meta types (+ TanStack ColumnMeta module augmentation)
 export type {
   FilterOption,

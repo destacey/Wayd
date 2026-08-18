@@ -1,9 +1,7 @@
-import {
-  createTable,
-  getCoreRowModel,
-  type ColumnDef,
-  type TableState,
-} from '@tanstack/react-table'
+import type { LegacyColumnDef as ColumnDef } from '@tanstack/react-table/legacy'
+import type { TableState } from './index'
+
+import { buildHeadlessTable } from './test-table'
 
 import { reconcileColumnOrder, reorderIds } from './column-order'
 
@@ -125,27 +123,18 @@ describe('column-order', () => {
     ]
 
     const buildTable = (state: Partial<TableState>) =>
-      createTable<Item>({
-        data,
-        columns,
-        getCoreRowModel: getCoreRowModel(),
-        state: {
-          columnSizing: {},
-          columnVisibility: {},
-          columnPinning: { left: [], right: [] },
-          columnOrder: [],
-          ...state,
-        } as TableState,
-        onStateChange: () => {},
-        renderFallbackValue: null,
+      buildHeadlessTable<Item>(data, columns, {
+        columnPinning: { start: [], end: [] },
+        columnOrder: [],
+        ...state,
       })
 
     /** Rendered leaf order the grid's colgroup uses. */
     const renderedOrder = (table: ReturnType<typeof buildTable>) =>
       [
-        ...table.getLeftVisibleLeafColumns(),
+        ...table.getStartVisibleLeafColumns(),
         ...table.getCenterVisibleLeafColumns(),
-        ...table.getRightVisibleLeafColumns(),
+        ...table.getEndVisibleLeafColumns(),
       ].map((col) => col.id)
 
     it('reorders the center section by columnOrder', () => {
@@ -159,7 +148,7 @@ describe('column-order', () => {
     it('orders pinned sections by the pin array, not columnOrder', () => {
       // Arrange — pin d then a left; columnOrder tries the opposite order
       const table = buildTable({
-        columnPinning: { left: ['d', 'a'], right: [] },
+        columnPinning: { start: ['d', 'a'], end: [] },
         columnOrder: ['a', 'b', 'c', 'd'],
       })
 
@@ -171,7 +160,7 @@ describe('column-order', () => {
     it('applies columnOrder only within the center when some columns are pinned', () => {
       // Arrange — b pinned right; center order reversed
       const table = buildTable({
-        columnPinning: { left: [], right: ['b'] },
+        columnPinning: { start: [], end: ['b'] },
         columnOrder: ['d', 'c', 'a', 'b'],
       })
 

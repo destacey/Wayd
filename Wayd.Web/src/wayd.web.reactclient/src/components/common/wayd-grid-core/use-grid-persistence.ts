@@ -1,11 +1,5 @@
 import { useEffect, useRef, type MutableRefObject } from 'react'
-import type {
-  ColumnOrderState,
-  ColumnPinningState,
-  ColumnSizingState,
-  VisibilityState,
-} from '@tanstack/react-table'
-
+import type { ColumnOrderState, ColumnPinningState, ColumnSizingState, ColumnVisibilityState as VisibilityState } from '@tanstack/react-table'
 import type { GridState } from './use-grid-table'
 
 /**
@@ -43,7 +37,7 @@ import type { GridState } from './use-grid-table'
 export const GRID_STATE_KEY_PREFIX = 'wayd-grid:'
 
 /** Bump when the persisted payload shape changes — stale versions are removed on load. */
-export const GRID_STATE_VERSION = 1
+export const GRID_STATE_VERSION = 2
 
 /**
  * Device-wide kill switch (Account → Preferences). Absent = enabled. Stored
@@ -119,6 +113,27 @@ const isStringArrayOrAbsent = (value: unknown): boolean =>
   value === undefined ||
   (Array.isArray(value) && value.every((id) => typeof id === 'string'))
 
+/**
+ * Upcasts a v1 payload's pinning state to v2.
+ *
+ * TanStack v9 renamed columnPinning's sides from left/right to start/end.
+ * Without this, a v1 entry fails the v2 shape guard and the user silently
+ * loses every pinned column; the v1 key is read directly because
+ * removeStaleVersions deletes it right after.
+ */
+function upcastV1Pinning(value: unknown): unknown {
+  if (!isPlainObject(value)) return value
+  const pinning = value.columnPinning
+  if (!isPlainObject(pinning)) return value
+  if (pinning.start !== undefined || pinning.end !== undefined) return value
+  const { left, right, ...rest } = pinning
+  if (left === undefined && right === undefined) return value
+  return {
+    ...value,
+    columnPinning: { ...rest, start: left ?? [], end: right ?? [] },
+  }
+}
+
 /** Shape guard for a parsed payload — malformed entries are ignored on load. */
 export function isPersistedColumnState(
   value: unknown,
@@ -130,8 +145,8 @@ export function isPersistedColumnState(
     isRecordOf(columnSizing, 'number') &&
     isRecordOf(userColumnVisibility, 'boolean') &&
     isPlainObject(columnPinning) &&
-    isStringArrayOrAbsent(columnPinning.left) &&
-    isStringArrayOrAbsent(columnPinning.right) &&
+    isStringArrayOrAbsent(columnPinning.start) &&
+    isStringArrayOrAbsent(columnPinning.end) &&
     isStringArrayOrAbsent(columnOrder)
   )
 }
@@ -150,8 +165,8 @@ function buildPayloadJson(
   const isDefault =
     Object.keys(columnSizing).length === 0 &&
     Object.keys(userColumnVisibility).length === 0 &&
-    !columnPinning.left?.length &&
-    !columnPinning.right?.length &&
+    !columnPinning.start?.length &&
+    !columnPinning.end?.length &&
     columnOrder.length === 0
   if (isDefault) return null
   const payload: PersistedColumnState = {
@@ -269,23 +284,36 @@ export function useGridColumnStatePersistence(
     if (!persistStateKey || !storageKey) return
     if (!isGridPersistenceEnabled()) return
     try {
+      // Read any v1 entry BEFORE removeStaleVersions deletes it, so a layout
+      // saved under the old pinning vocabulary survives the upgrade.
+      const v1Raw = window.localStorage.getItem(
+        `${GRID_STATE_KEY_PREFIX}${persistStateKey}:v1`,
+      )
       removeStaleVersions(persistStateKey, storageKey)
-      const raw = window.localStorage.getItem(storageKey)
+      const currentRaw = window.localStorage.getItem(storageKey)
+      // A v1-sourced load has nothing stored under the current key yet, so the
+      // save pass below must be allowed to write the migrated payload.
+      const migratedFromV1 = currentRaw === null && v1Raw !== null
+      const raw = currentRaw ?? v1Raw
       if (raw) {
-        const parsed = tryParseJson(raw)
+        const parsed = upcastV1Pinning(tryParseJson(raw))
         if (isPersistedColumnState(parsed)) {
           const loadedOrder = parsed.columnOrder ?? []
           setColumnSizing(parsed.columnSizing)
           setUserColumnVisibility(parsed.userColumnVisibility)
           setColumnPinning(parsed.columnPinning)
           setColumnOrder(loadedOrder)
-          // Normalized so the post-apply save pass short-circuits.
-          lastWrittenRef.current = buildPayloadJson(
-            parsed.columnSizing,
-            parsed.userColumnVisibility,
-            parsed.columnPinning,
-            loadedOrder,
-          )
+          // Normalized so the post-apply save pass short-circuits — except
+          // after a v1 migration, where the entry still has to be rewritten
+          // under the current key (removeStaleVersions dropped the v1 one).
+          lastWrittenRef.current = migratedFromV1
+            ? null
+            : buildPayloadJson(
+                parsed.columnSizing,
+                parsed.userColumnVisibility,
+                parsed.columnPinning,
+                loadedOrder,
+              )
         } else {
           // Unusable entry (malformed JSON or wrong shape): discard it so the
           // grid self-heals instead of re-reporting it on every mount.

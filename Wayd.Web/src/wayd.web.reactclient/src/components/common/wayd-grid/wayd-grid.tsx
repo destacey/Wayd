@@ -16,16 +16,19 @@ import {
 import { Popover, Spin } from 'antd'
 import type { FormInstance } from 'antd'
 import { FilterFilled, FilterOutlined } from '@ant-design/icons'
+import type { RowData } from '@tanstack/react-table'
 import {
-  type Column,
-  type ColumnDef,
-  type Header,
-  type Row,
-  type VisibilityState,
   getExpandedRowModel,
   getFacetedRowModel,
   getFacetedUniqueValues,
-} from '@tanstack/react-table'
+} from '@tanstack/react-table/legacy'
+import type {
+  Column,
+  ColumnDef,
+  Header,
+  Row,
+  VisibilityState,
+} from '../wayd-grid-core'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import {
   DndContext,
@@ -271,7 +274,7 @@ const treeRowClasses: TreeGridRowClasses = {
  * Empty/mixed data falls back to 'text'. Drives both the per-column filter UI
  * and numeric cell alignment, so the two never disagree.
  */
-const resolveColumnFilterType = <T,>(
+const resolveColumnFilterType = <T extends RowData,>(
   column: Column<T, unknown>,
 ): FilterType => {
   const meta = column.columnDef.meta
@@ -294,7 +297,7 @@ const resolveColumnFilterType = <T,>(
   return 'text'
 }
 
-interface GridBodyProps<T> {
+interface GridBodyProps<T extends RowData> {
   rows: Row<T>[]
   /** The grid's single scroll viewport ref — the table wrapper (both axes). Its
    *  scrollLeft mirrors into the header; its scrollTop drives the bar track. */
@@ -344,7 +347,7 @@ interface GridBodyProps<T> {
  * visible as scroll stutter. Confined here, a shift re-renders only the
  * ~viewport of body rows; the header, toolbar, and filters stay untouched.
  */
-function GridBody<T>({
+function GridBody<T extends RowData>({
   rows,
   bodyViewportRef,
   onBodyScroll,
@@ -665,7 +668,7 @@ function GridBody<T>({
   )
 }
 
-function WaydGridInner<T>(props: WaydGridProps<T>, ref: Ref<WaydGridHandle>) {
+function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<WaydGridHandle>) {
   // TanStack Table's instance mutates internally behind a stable identity, so
   // React Compiler memoization goes stale (sort icons, column sizes). Before
   // the table config moved into useGridTable, the direct useReactTable call
@@ -1002,7 +1005,7 @@ function WaydGridInner<T>(props: WaydGridProps<T>, ref: Ref<WaydGridHandle>) {
           getFormValues: () => ({}),
           computeChanges: () => null,
           cellIdColumnMatchOrder: [],
-        }) as GridEditingConfig<T & { id: string }>,
+        }) as unknown as GridEditingConfig<T & { id: string }>,
   )
 
   const {
@@ -1365,7 +1368,7 @@ function WaydGridInner<T>(props: WaydGridProps<T>, ref: Ref<WaydGridHandle>) {
       // column overrides its own filterFn / sortingFn.
       defaultColumn: {
         filterFn: waydColumnFilter,
-        sortingFn: sortEmptyLast,
+        sortFn: sortEmptyLast,
       },
       ...(getRowId ? { getRowId: (row: T) => getRowId(row) } : {}),
       // Tree mode: rows expand, and a filter match keeps the ancestor chain
@@ -2197,7 +2200,7 @@ function WaydGridInner<T>(props: WaydGridProps<T>, ref: Ref<WaydGridHandle>) {
  * ({@link TreeGridRow}). Body rows are always virtualized (ag-grid style) —
  * only the visible window plus overscan is mounted.
  */
-const WaydGrid = forwardRef(WaydGridInner) as <T>(
+const WaydGrid = forwardRef(WaydGridInner) as <T extends RowData>(
   props: WaydGridProps<T> & { ref?: Ref<WaydGridHandle> },
 ) => ReactElement | null
 

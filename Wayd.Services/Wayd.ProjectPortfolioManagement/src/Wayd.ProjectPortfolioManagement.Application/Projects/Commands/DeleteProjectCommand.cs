@@ -34,6 +34,9 @@ public sealed class DeleteProjectCommandHandler(IProjectPortfolioManagementDbCon
 
             var portfolioQuery = _projectPortfolioManagementDbContext.Portfolios
                     .Include(p => p.Projects.Where(p => p.Id == request.Id))
+                        // CanBeDeleted reads the status history. Without this it reads as empty and a
+                        // reverted project looks like one that never ran.
+                        .ThenInclude(p => p.StatusHistory)
                     // The rest of the project relationships are already include from the initial project query
                     .AsQueryable();
             if (project.ProgramId.HasValue)

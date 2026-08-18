@@ -23,6 +23,9 @@ public sealed class ProjectFaker : PrivateConstructorFaker<Project>
         RuleFor(x => x.PortfolioId, f => f.Random.Guid()); // Set by portfolio in real scenarios.
         RuleFor(x => x.ProgramId, f => null);
         RuleFor(x => x.Rank, f => f.Random.Double(1, 100000));
+        // The faker bypasses Project.Create, so a generated project has no status history and the count
+        // that supplies the next sequence starts at zero to match.
+        RuleFor(x => x.StatusTransitionCount, f => 0);
     }
 }
 
@@ -77,6 +80,18 @@ public static class ProjectFakerExtensions
         return faker;
     }
 
+    /// <summary>
+    /// Sets the assigned lifecycle id without building the phases. Use this to arrange a project that
+    /// already had a lifecycle when it reached its current status — <c>AssignLifecycle</c> refuses closed
+    /// projects, so it cannot be called after setting the status to Completed or Canceled.
+    /// </summary>
+    public static ProjectFaker WithProjectLifecycleId(this ProjectFaker faker, Guid? projectLifecycleId)
+    {
+        faker.RuleFor(x => x.ProjectLifecycleId, projectLifecycleId);
+
+        return faker;
+    }
+
     public static ProjectFaker WithPortfolioId(this ProjectFaker faker, Guid portfolioId)
     {
         faker.RuleFor(x => x.PortfolioId, portfolioId);
@@ -87,6 +102,29 @@ public static class ProjectFakerExtensions
     public static ProjectFaker WithProgramId(this ProjectFaker faker, Guid? programId)
     {
         faker.RuleFor(x => x.ProgramId, programId);
+
+        return faker;
+    }
+
+    /// <summary>
+    /// Attaches the parent portfolio itself, not just its id. Rules that read the parent's own state —
+    /// such as whether a project may be reverted underneath a closed one — need the navigation loaded.
+    /// </summary>
+    public static ProjectFaker WithPortfolio(this ProjectFaker faker, ProjectPortfolio portfolio)
+    {
+        faker.RuleFor(x => x.PortfolioId, portfolio.Id);
+        faker.RuleFor(x => x.Portfolio, portfolio);
+
+        return faker;
+    }
+
+    /// <summary>
+    /// Attaches the parent program itself, not just its id. See <see cref="WithPortfolio"/>.
+    /// </summary>
+    public static ProjectFaker WithProgram(this ProjectFaker faker, Program program)
+    {
+        faker.RuleFor(x => x.ProgramId, program.Id);
+        faker.RuleFor(x => x.Program, program);
 
         return faker;
     }

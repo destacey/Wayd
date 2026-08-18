@@ -19,6 +19,7 @@ public sealed class ProjectStatusHistoryFaker : PrivateConstructorFaker<ProjectS
         RuleFor(x => x.ChangedOn, f => Instant.FromUtc(2026, 5, 1, 0, 0));
         RuleFor(x => x.Source, f => ProjectStatusHistorySource.Recorded);
         RuleFor(x => x.Reason, f => null);
+        RuleFor(x => x.Sequence, f => 1);
     }
 }
 
@@ -91,6 +92,13 @@ public static class ProjectStatusHistoryFakerExtensions
     public static ProjectStatusHistoryFaker WithReason(this ProjectStatusHistoryFaker faker, string? reason)
     {
         faker.RuleFor(x => x.Reason, reason);
+
+        return faker;
+    }
+
+    public static ProjectStatusHistoryFaker WithSequence(this ProjectStatusHistoryFaker faker, int sequence)
+    {
+        faker.RuleFor(x => x.Sequence, sequence);
 
         return faker;
     }

@@ -121,6 +121,40 @@ public sealed record ProjectDetailsDto
     public bool CanManageProject { get; set; }
 
     /// <summary>
+    /// The earlier statuses this project can be reverted to right now, in lifecycle order; empty when it is
+    /// already at the start of its lifecycle or meets no target's requirements. Computed server-side by the
+    /// aggregate itself, so the actions offered cannot drift from the transitions that will actually be
+    /// accepted — a project cancelled from Proposed with no lifecycle or dates offers nothing.
+    /// </summary>
+    /// <remarks>
+    /// Populated by <see cref="ResolveBackwardStatusTargets"/>, not by the mapping — it is empty on a DTO
+    /// straight out of the projection.
+    ///
+    /// Reverting additionally requires <see cref="CanManageProject"/> and an unclosed parent program and
+    /// portfolio, neither of which this reflects.
+    /// </remarks>
+    public List<LifecycleNavigationDto> BackwardStatusTargets { get; set; } = [];
+
+    /// <summary>
+    /// Fills <see cref="BackwardStatusTargets"/>. Call this on any <see cref="ProjectDetailsDto"/> returned
+    /// to a caller that offers status actions.
+    /// </summary>
+    /// <remarks>
+    /// Reads only already-projected fields, so it needs no extra query. The rule lives in
+    /// <see cref="ProjectStatusLifecycle"/>, shared with the aggregate, so the offered list cannot disagree
+    /// with what a revert will accept.
+    /// </remarks>
+    public void ResolveBackwardStatusTargets()
+    {
+        BackwardStatusTargets = [.. ProjectStatusLifecycle
+            .RevertableStatuses(
+                (ProjectStatus)Status.Id,
+                hasLifecycle: ProjectLifecycle is not null,
+                hasDateRange: Start.HasValue && End.HasValue)
+            .Select(LifecycleNavigationDto.FromEnum)];
+    }
+
+    /// <summary>
     /// The scoring model assigned to the project's portfolio, or null if scoring is not enabled.
     /// </summary>
     public NavigationDto? PortfolioScoringModel { get; set; }
@@ -163,6 +197,11 @@ public sealed record ProjectDetailsDto
         cfg.NewConfig<Project, ProjectDetailsDto>()
             .Map(dest => dest.Key, src => src.Key.Value)
             .Map(dest => dest.Status, src => LifecycleNavigationDto.FromEnum(src.Status))
+            // Do not map BackwardStatusTargets here. This config is used with ProjectToType, so every
+            // clause must translate to SQL, and building the list calls FromEnum inside a Select over a
+            // collection — which EF cannot translate and throws on at runtime. ResolveBackwardStatusTargets
+            // fills it after materialisation.
+            .Ignore(dest => dest.BackwardStatusTargets)
             .Map(dest => dest.ExpenditureCategory, src => SimpleNavigationDto.Create(src.ExpenditureCategory!.Id, src.ExpenditureCategory.Name))
             .Map(dest => dest.Start, src => src.DateRange != null ? src.DateRange.Start : (LocalDate?)null)
             .Map(dest => dest.End, src => src.DateRange != null ? src.DateRange.End : (LocalDate?)null)

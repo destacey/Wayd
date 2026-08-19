@@ -57,7 +57,7 @@
     "@opentelemetry/sdk-node": "^0.221.0",
     "@reduxjs/toolkit": "2.12.0",
     "@tanstack/react-table": "^9.1.2",
-    "@tanstack/react-virtual": "^3.14.8",
+    "@tanstack/react-virtual": "^3.14.10",
     "@uiw/react-md-editor": "^4.1.1",
     "antd": "6.6.0",
     "antd-style": "^4.1.0",

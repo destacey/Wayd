@@ -201,11 +201,16 @@ export interface WaydGridProps<T extends RowData> {
 
   /**
    * Controlled TanStack row-selection state (a map of row id -> selected).
-   * Supplying it turns on the grid's selection APIs -- `table.getIsSelected()`,
-   * `getToggleAllRowsSelectedHandler()`, etc. -- so consumers render their own
-   * checkbox column against the table instead of tracking selection
-   * themselves. Select-all is scoped to the FILTERED rows; selections of rows
-   * that later filter out are retained, matching TanStack.
+   * Supplying it turns on the grid's selection APIs -- `row.getIsSelected()`
+   * and `row.toggleSelected()` per row, `table.getIsAllRowsSelected()`,
+   * `table.getIsSomeRowsSelected()`, and
+   * `table.getToggleAllRowsSelectedHandler()` for a header checkbox -- so
+   * consumers render their own checkbox column against the table instead of
+   * tracking selection themselves. Select-all is scoped to the FILTERED rows;
+   * selections of rows that later filter out are retained, matching TanStack.
+   *
+   * Note `getIsSomeRowsSelected()` means "at least one", so an indeterminate
+   * header checkbox needs `!getIsAllRowsSelected() && getIsSomeRowsSelected()`.
    */
   rowSelection?: RowSelectionState
   /** Change handler for {@link rowSelection}. Required to make it editable. */

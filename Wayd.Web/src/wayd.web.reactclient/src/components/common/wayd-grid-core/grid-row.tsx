@@ -70,10 +70,10 @@ export interface FlatGridRowProps<T extends RowData> {
  * indent/caret + editable-cell attributes) behind the same seam — do not
  * thread `if (isTree)` through this one.
  *
- * The TanStack `row` prop keeps a stable identity while its state mutates
- * underneath, so every component that renders this must carry `'use no memo'`
- * (the grids do); a directive here alone could not force a memoized parent to
- * re-create the element.
+ * Safe to memoize: v9 hands back a new `table` reference on every state
+ * change (and new row objects for rows that actually changed), so compiler
+ * memoization invalidates correctly. Under v8 these were long-lived mutating
+ * objects, which is why this tree used to be opted out with `'use no memo'`.
  */
 export function FlatGridRow<T extends RowData>({
   row,
@@ -81,8 +81,6 @@ export function FlatGridRow<T extends RowData>({
   classes,
   numericColumnIds,
 }: FlatGridRowProps<T>) {
-  // eslint-disable-next-line react-compiler/react-compiler -- false-positive "unused directive"; see GridHeaderCell
-  'use no memo'
   return (
     <tr
       className={`${classes.tr}${index % 2 === 1 ? ` ${classes.trAlt}` : ''}`}
@@ -121,8 +119,6 @@ export interface SortableFlatGridRowProps<T extends RowData> extends FlatGridRow
  * every row whenever the grid has `onRowReorder`, so drag-handle cells can
  * always reach the `useGridDragHandle` context.
  *
- * Same memoization caveat as {@link FlatGridRow}: consumers must carry
- * `'use no memo'`.
  */
 export function SortableFlatGridRow<T extends RowData>({
   row,
@@ -133,8 +129,6 @@ export function SortableFlatGridRow<T extends RowData>({
   isDragging,
   isDragEnabled,
 }: SortableFlatGridRowProps<T>) {
-  // eslint-disable-next-line react-compiler/react-compiler -- false-positive "unused directive"; see GridHeaderCell
-  'use no memo'
   return (
     <GridSortableRow
       nodeId={nodeId}
@@ -198,8 +192,6 @@ export interface TreeGridRowProps<T extends RowData> {
  * Indentation and the expand caret are rendered by the caller's columns
  * (via `row.depth` / `row.getCanExpand()`), not here.
  *
- * Same memoization caveat as {@link FlatGridRow}: consumers must carry
- * `'use no memo'`.
  */
 export function TreeGridRow<T extends RowData>({
   row,
@@ -215,8 +207,6 @@ export function TreeGridRow<T extends RowData>({
   onRowClick,
   onCellClick,
 }: TreeGridRowProps<T>) {
-  // eslint-disable-next-line react-compiler/react-compiler -- false-positive "unused directive"; see GridHeaderCell
-  'use no memo'
   return (
     <GridSortableRow
       nodeId={nodeId}

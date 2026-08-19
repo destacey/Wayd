@@ -15,7 +15,7 @@ import {
   ColumnWidthOutlined,
   ControlOutlined,
 } from '@ant-design/icons'
-import type { LegacyHeader as Header, LegacyReactTable as Table } from '@tanstack/react-table/legacy'
+import type { Header, Table } from './index'
 import type { ColumnPinningPosition } from '@tanstack/react-table'
 import {
   DndContext,
@@ -225,8 +225,8 @@ export interface ColumnMenuTriggerProps<T extends RowData> {
  * and while open. Sort items SET the sort (single column) — multi-sort stays
  * ctrl/meta-click on the header.
  *
- * Reads TanStack column state (sort/pin/visibility) from a mutable instance —
- * the same staleness hazard as the grid — hence `'use no memo'`.
+ * Reads TanStack column state (sort/pin/visibility) off the table, which v9
+ * re-creates on every state change — so compiler memoization stays correct.
  */
 export function ColumnMenuTrigger<T extends RowData>({
   header,
@@ -239,8 +239,6 @@ export function ColumnMenuTrigger<T extends RowData>({
   onAutosizeAllColumns,
   onResetColumns,
 }: ColumnMenuTriggerProps<T>) {
-  // eslint-disable-next-line react-compiler/react-compiler -- false-positive "unused directive"; see GridHeaderCell
-  'use no memo'
   const column = header.column
 
   const items = buildColumnMenuItems({
@@ -394,8 +392,8 @@ function ChooserRow({
  * immediately — the modal stays open so multiple columns can be shown/hidden
  * in one visit; Done just closes it.
  *
- * Reads live column visibility from the mutable TanStack instance — hence
- * `'use no memo'`.
+ * Reads live column visibility off the table, which v9 re-creates on every
+ * state change — so compiler memoization stays correct.
  */
 export function ColumnChooserModal<T extends RowData>({
   table,
@@ -405,8 +403,6 @@ export function ColumnChooserModal<T extends RowData>({
   reorderEnabled = false,
   onReorderColumn,
 }: ColumnChooserModalProps<T>) {
-  // eslint-disable-next-line react-compiler/react-compiler -- false-positive "unused directive"; see GridHeaderCell
-  'use no memo'
   const [search, setSearch] = useState('')
 
   const sensors = useSensors(

@@ -1,5 +1,5 @@
 import { arrayMove } from '@dnd-kit/sortable'
-import type { LegacyColumn as Column, LegacyReactTable as Table } from '@tanstack/react-table/legacy'
+import type { Column, Table } from './index'
 import type { ColumnOrderState } from '@tanstack/react-table'
 import type { RowData } from '@tanstack/react-table'
 /**
@@ -94,11 +94,11 @@ export function reorderIds(
 export function getOrderedVisibleLeafColumns<T extends RowData>(
   table: Table<T>,
 ): Column<T, unknown>[] {
-  // The pin-section getters read table.getState().columnPinning; a headless
+  // The pin-section getters read table.state.columnPinning; a headless
   // harness may omit it. columnOrder is still applied by getVisibleLeafColumns,
   // so fall back to that (def-position for pinned, but nothing is pinned when
   // there's no pinning state anyway).
-  if (!table.getState().columnPinning) return table.getVisibleLeafColumns()
+  if (!table.state.columnPinning) return table.getVisibleLeafColumns()
   return [
     ...table.getStartVisibleLeafColumns(),
     ...table.getCenterVisibleLeafColumns(),
@@ -117,7 +117,7 @@ export function getOrderedVisibleLeafColumns<T extends RowData>(
 export function getOrderedAllLeafColumns<T extends RowData>(
   table: Table<T>,
 ): Column<T, unknown>[] {
-  const { start = [], end = [] } = table.getState().columnPinning ?? {}
+  const { start = [], end = [] } = table.state.columnPinning ?? {}
   const pinned = new Set([...start, ...end])
   // getAllLeafColumns() already applies columnOrder to every leaf.
   const byId = new Map(

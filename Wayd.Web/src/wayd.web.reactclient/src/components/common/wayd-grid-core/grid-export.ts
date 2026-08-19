@@ -1,4 +1,4 @@
-import type { LegacyColumn as Column, LegacyReactTable as Table } from '@tanstack/react-table/legacy'
+import type { Column, Table } from './index'
 import {
   escapeCsv,
   generateCsv,

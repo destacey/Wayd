@@ -1,4 +1,4 @@
-import type { LegacyColumnDef as ColumnDef } from '@tanstack/react-table/legacy'
+import type { ColumnDef } from './index'
 import { applySafeAccessor } from './column-accessors'
 import type { RowData } from '@tanstack/react-table'
 

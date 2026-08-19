@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import type { CellData, RowData, TableFeatures } from '@tanstack/table-core'
 import type { FilterType } from './filters'
 
 /**
@@ -21,9 +20,11 @@ export type WaydColumnType = 'yesNo' | 'dateOnly' | 'dateTime'
  * Extended column metadata for Wayd grids, stored in TanStack's
  * `columnDef.meta`.
  *
- * This interface is merged into TanStack's `ColumnMeta` via module augmentation
- * (see the `declare module` block below), so `column.meta.hide`, `.columnType`,
- * `.filterType`, etc. are strongly typed at every call site with no casts.
+ * Wired into TanStack via the `columnMeta` slot on the grid's feature set
+ * (grid-features.ts), so `column.meta.hide`, `.columnType`, `.filterType`,
+ * etc. are strongly typed at every call site with no casts. v9 scopes this to
+ * the feature set rather than augmenting a global interface, so these fields
+ * no longer leak onto unrelated TanStack tables.
  */
 export interface WaydGridColumnMeta {
   /**
@@ -97,18 +98,4 @@ export interface WaydGridColumnMeta {
   exportFormatter?: (value: unknown, row: any) => string
   /** Override the CSV header text for this column. */
   exportHeader?: string
-}
-
-/**
- * Augment TanStack's `ColumnMeta` with the Wayd grid fields so `column.meta`
- * is strongly typed everywhere (autocomplete on `meta: { ... }`, no casts).
- * `ColumnMeta` is global, so these optional fields are suggested on any TanStack
- * table in the app — harmless, and the Wayd grids are the only consumers.
- */
-declare module '@tanstack/table-core' {
-  interface ColumnMeta<
-    TFeatures extends TableFeatures,
-    TData extends RowData,
-    TValue extends CellData,
-  > extends WaydGridColumnMeta {}
 }

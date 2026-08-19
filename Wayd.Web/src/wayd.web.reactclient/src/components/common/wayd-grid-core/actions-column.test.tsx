@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import type { LegacyRow as Row } from '@tanstack/react-table/legacy'
+import type { Row } from './index'
 import type { CellContext } from './index'
 import { flexRender } from '@tanstack/react-table'
 import type { ItemType } from 'antd/es/menu/interface'

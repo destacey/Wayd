@@ -8,7 +8,7 @@ import {
   type TouchEvent,
 } from 'react'
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons'
-import type { LegacyHeader as Header } from '@tanstack/react-table/legacy'
+import type { Header } from './index'
 import { flexRender } from '@tanstack/react-table'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -21,8 +21,6 @@ import type { RowData } from '@tanstack/react-table'
  * CSV export also reads) instead of hand-rolling a Tooltip header renderer.
  */
 export function GridHeaderContent<T extends RowData>({ header }: { header: Header<T, unknown> }) {
-  // eslint-disable-next-line react-compiler/react-compiler -- same mutable-header caveat as GridHeaderCell
-  'use no memo'
   if (header.isPlaceholder) return null
 
   const content = flexRender(
@@ -79,7 +77,6 @@ export function useResizeClickGuard(): ResizeClickGuard {
 export interface GridHeaderCellClasses {
   th: string
   thSortable: string
-  thResizable: string
   thContent: string
   thText: string
   resizer: string
@@ -162,13 +159,10 @@ export function useHeaderCellSortable(
  * (ctrl-click multisort via the table config), the asc/desc sort icon, an
  * optional filter slot, and the column-resize handle (double-click resets).
  *
- * The TanStack `header`/`header.column` props keep a stable identity while
- * their sort/resize state mutates underneath, which breaks React Compiler
- * memoization at BOTH levels: a memoized consumer never re-creates this
- * element (so consumers must carry `'use no memo'` — both grids do), and this
- * cell's own compiled cache would key on `header.column` identity and serve a
- * stale `getIsSorted()` — hence the directive below. (The eslint plugin
- * mis-reports it as unused; runtime fiber inspection shows the cache slots.)
+ * Safe to memoize: v9 re-creates the table and its headers on each state
+ * change, so a compiled cache keyed on `header`/`header.column` identity
+ * cannot serve a stale `getIsSorted()`. Under v8 these mutated in place, which
+ * is why this file used to carry `'use no memo'`.
  */
 export function GridHeaderCell<T extends RowData>({
   header,
@@ -180,8 +174,6 @@ export function GridHeaderCell<T extends RowData>({
   thStyle,
   sortable,
 }: GridHeaderCellProps<T>) {
-  // eslint-disable-next-line react-compiler/react-compiler -- false-positive "unused directive"; see doc comment
-  'use no memo'
   const canSort = header.column.getCanSort()
   const sortState = header.column.getIsSorted()
   const canResize = header.column.getCanResize()
@@ -216,8 +208,8 @@ export function GridHeaderCell<T extends RowData>({
       data-column-id={header.column.id}
       ref={sortable?.setNodeRef}
       className={`${classes.th}${canSort ? ` ${classes.thSortable}` : ''}${
-        canResize ? ` ${classes.thResizable}` : ''
-      }${sortable ? ` ${classes.thDraggable}` : ''}${
+        sortable ? ` ${classes.thDraggable}` : ''
+      }${
         sortable?.isDragging && classes.thDragging
           ? ` ${classes.thDragging}`
           : ''
@@ -265,8 +257,6 @@ export function SortableHeaderCell<T extends RowData>({
   reorderable,
   ...cellProps
 }: GridHeaderCellProps<T> & { reorderable: boolean }) {
-  // eslint-disable-next-line react-compiler/react-compiler -- same mutable-header caveat as GridHeaderCell
-  'use no memo'
   const sortable = useHeaderCellSortable(cellProps.header.column.id, !reorderable)
   return (
     <GridHeaderCell {...cellProps} sortable={reorderable ? sortable : undefined} />

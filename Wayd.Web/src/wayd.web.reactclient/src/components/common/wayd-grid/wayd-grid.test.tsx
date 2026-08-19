@@ -1178,6 +1178,34 @@ describe('WaydGrid', () => {
       )
     })
 
+    it('omits the menu on control columns (meta.enableReordering false)', () => {
+      // Arrange - a control column, matching createActionsColumn's shape
+      const withControl = [
+        ...columns,
+        {
+          id: 'row-actions',
+          header: '',
+          enableSorting: false,
+          enableResizing: false,
+          meta: { enableReordering: false } satisfies WaydGridColumnMeta,
+          cell: () => null,
+        },
+      ] as ColumnDef<Flag, unknown>[]
+
+      // Act
+      renderGrid({ columns: withControl })
+
+      // Assert - a trigger per real column, none on the control column
+      expect(screen.getAllByLabelText('Column menu')).toHaveLength(
+        columns.length,
+      )
+      expect(
+        document
+          .querySelector('th[data-column-id="row-actions"]')
+          ?.querySelector('[aria-label="Column menu"]'),
+      ).toBeNull()
+    })
+
     it('opening the menu does not toggle the column sort', () => {
       // Arrange
       renderGrid()

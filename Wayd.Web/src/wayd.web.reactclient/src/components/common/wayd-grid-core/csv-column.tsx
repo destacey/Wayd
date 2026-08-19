@@ -1,6 +1,6 @@
 'use client'
 
-import type { LegacyColumnDef as ColumnDef } from '@tanstack/react-table/legacy'
+import type { ColumnDef } from './index'
 import { createMultiValueSetFilter } from './filters'
 import TagListCell from './tag-list-cell'
 import type { RowData } from '@tanstack/react-table'

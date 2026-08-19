@@ -17,11 +17,6 @@ import { Popover, Spin } from 'antd'
 import type { FormInstance } from 'antd'
 import { FilterFilled, FilterOutlined } from '@ant-design/icons'
 import type { RowData } from '@tanstack/react-table'
-import {
-  getExpandedRowModel,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
-} from '@tanstack/react-table/legacy'
 import type {
   Column,
   ColumnDef,
@@ -222,7 +217,6 @@ const requestScrollRowIntoView = (
 const headerCellClasses: GridHeaderCellClasses = {
   th: styles.th,
   thSortable: styles.thSortable,
-  thResizable: styles.thResizable,
   thContent: styles.thContent,
   thText: styles.thText,
   resizer: styles.resizer,
@@ -376,7 +370,6 @@ function GridBody<T extends RowData>({
   onCellClick,
 }: GridBodyProps<T>) {
   // Owns virtualizer + TanStack row JSX — same staleness hazard as the grid.
-  'use no memo'
 
   // ─── Row virtualization ──────────────────────────────────
   // Only the visible window of rows (plus overscan) is mounted, ag-grid
@@ -384,7 +377,7 @@ function GridBody<T extends RowData>({
   // expand/collapse flows through naturally as a count change. Offsets render
   // as spacer rows (real <tr>s) so the body stays a genuine table — colgroup
   // column alignment with the header table is untouched.
-  // eslint-disable-next-line react-hooks/incompatible-library -- the warning is about compiler memoization, which 'use no memo' above already opts out of
+  // eslint-disable-next-line react-hooks/incompatible-library -- the rule flags TanStack Virtual as compiler-incompatible; the virtualizer is read through its own hook each render, so there is no cached instance to go stale
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     // The grid's own table wrapper is the single vertical scroller (unchanged
@@ -674,7 +667,6 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
   // the table config moved into useGridTable, the direct useReactTable call
   // made the compiler skip this component automatically; the directive keeps
   // that behavior now that the call is behind the hook.
-  'use no memo'
   const {
     data: dataProp,
     columns: columnsProp,
@@ -695,6 +687,8 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
     getRowId,
     persistStateKey,
     onDisplayedRowsChange,
+    rowSelection,
+    onRowSelectionChange,
     onRowReorder,
     getSubRows,
     enableDragAndDrop = false,
@@ -1361,8 +1355,6 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
     columns: resolvedColumns,
     gridState,
     tableOptions: {
-      getFacetedRowModel: getFacetedRowModel(),
-      getFacetedUniqueValues: getFacetedUniqueValues(),
       defaultColumn: {
         filterFn: waydColumnFilter,
         sortFn: sortEmptyLast,
@@ -1372,14 +1364,18 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
       // visible (filterFromLeafRows).
       ...(isTree
         ? {
-            getExpandedRowModel: getExpandedRowModel(),
             getSubRows,
             filterFromLeafRows: true,
             initialState: { expanded: true as const },
           }
         : {}),
+      ...(onRowSelectionChange ? { onRowSelectionChange } : {}),
     },
-    extraState: { columnVisibility, columnOrder: effectiveColumnOrder },
+    extraState: {
+      columnVisibility,
+      columnOrder: effectiveColumnOrder,
+      ...(rowSelection ? { rowSelection } : {}),
+    },
   })
 
   tableRef.current = table
@@ -1926,7 +1922,13 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
                   showHeaderFilterIcon ? renderFilterPopover(header) : undefined
                 }
                 menuSlot={
-                  !header.isPlaceholder ? renderColumnMenu(header) : undefined
+                  // Control columns (drag grip, checkbox, actions) opt out of
+                  // reordering and have nothing the menu can act on -- its
+                  // button would also crowd the narrow header.
+                  !header.isPlaceholder &&
+                  header.column.columnDef.meta?.enableReordering !== false
+                    ? renderColumnMenu(header)
+                    : undefined
                 }
                 thClassName={
                   pinned

@@ -1,18 +1,18 @@
 import { useState, type ChangeEvent } from 'react'
-import type { ColumnFiltersState, ColumnOrderState, ColumnPinningState, ColumnSizingState, SortingState, ColumnVisibilityState as VisibilityState } from '@tanstack/react-table'
-import type { TableState } from './index'
-import {
-  type LegacyColumnDef as ColumnDef,
-  type LegacyReactTable as Table,
-  type LegacyTableOptions as TableOptions,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  useLegacyTable,
-} from '@tanstack/react-table/legacy'
+import type {
+  ColumnFiltersState,
+  ColumnOrderState,
+  ColumnPinningState,
+  ColumnSizingState,
+  RowData,
+  SortingState,
+  ColumnVisibilityState as VisibilityState,
+} from '@tanstack/react-table'
+import { useTable } from '@tanstack/react-table'
 
+import { waydGridFeatures } from './grid-features'
+import type { ColumnDef, Table, TableOptions, TableState } from './index'
 import { stringContainsFilter } from './grid-filters'
-import type { RowData } from '@tanstack/react-table'
 
 /**
  * Shared grid state: sorting, column filters, column sizing, user column
@@ -190,13 +190,14 @@ export interface UseGridTableOptions<T extends RowData> {
   /** The shared state from {@link useGridState}. */
   gridState: GridState
   /**
-   * Grid-specific TanStack options merged over the shared defaults (extra row
-   * models, defaultColumn, getSubRows, initialState, …). Cannot override the
-   * state/handler wiring, which the hook owns.
+   * Grid-specific TanStack options merged over the shared defaults
+   * (defaultColumn, getSubRows, initialState, …). Cannot override the
+   * state/handler wiring, which the hook owns. Row models are not per-table
+   * options in v9 — they are registered in grid-features.ts.
    */
   tableOptions?: Omit<
     Partial<TableOptions<T>>,
-    'data' | 'columns' | 'state' | 'onStateChange'
+    'data' | 'columns' | 'state' | 'features'
   >
   /** Extra controlled state merged into the table state (e.g. a derived
    *  columnVisibility). */
@@ -231,12 +232,10 @@ export function useGridTable<T extends RowData>({
     setSearchValue,
   } = gridState
 
-  return useLegacyTable({
+  return useTable({
+    features: waydGridFeatures,
     data,
     columns,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     getColumnCanGlobalFilter,
     globalFilterFn: stringContainsFilter,
     enableMultiSort: true,

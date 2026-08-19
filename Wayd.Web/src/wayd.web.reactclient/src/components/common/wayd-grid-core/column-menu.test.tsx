@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import type { LegacyColumnDef as ColumnDef } from '@tanstack/react-table/legacy'
+import type { ColumnDef } from './index'
 import type { ColumnVisibilityState as VisibilityState } from '@tanstack/react-table'
 import type { TableState } from './index'
 

@@ -1,35 +1,62 @@
 // Shared grid engine powering the unified WaydGrid (components/common/wayd-grid).
 
-import type { LegacyFeatures as LegacyFeaturesType } from '@tanstack/react-table/legacy'
 import type {
+  Cell as CellCore,
   CellContext as CellContextCore,
+  Column as ColumnCore,
+  ColumnDef as ColumnDefCore,
   FilterFn as FilterFnCore,
+  Header as HeaderCore,
   HeaderContext as HeaderContextCore,
+  HeaderGroup as HeaderGroupCore,
+  Row as RowCore,
   RowData as RowDataCore,
   SortFn as SortFnCore,
+  TableOptions as TableOptionsCore,
   TableState as TableStateCore,
 } from '@tanstack/table-core'
+import type { ReactTable } from '@tanstack/react-table'
 
-// TanStack table types, re-exported under their v8 names.
+import type { WaydGridFeatures } from './grid-features'
+
+// TanStack table types with the grid's feature set pre-bound.
 //
 // v9 puts a TFeatures generic first on every public type (ColumnDef<TFeatures,
 // TData, TValue>), so importing these straight from '@tanstack/react-table'
-// silently binds the row type to the FEATURES slot and fails to compile. The
-// grid runs on the v9 `/legacy` shim, whose Legacy* aliases keep the v8 arity
-// (TData, TValue). Import table types from this barrel, never from
-// '@tanstack/react-table' directly, so the whole app moves off legacy in one
-// place when the core migrates to native v9 features.
-export type {
-  LegacyCell as Cell,
-  LegacyColumn as Column,
-  LegacyColumnDef as ColumnDef,
-  LegacyHeader as Header,
-  LegacyHeaderGroup as HeaderGroup,
-  LegacyRow as Row,
-  LegacyReactTable as Table,
-  LegacyTableOptions as TableOptions,
-} from '@tanstack/react-table/legacy'
-export type { LegacyFeatures } from '@tanstack/react-table/legacy'
+// binds the ROW type to the features slot and fails to compile. Binding it
+// once here keeps call sites at the familiar (TData, TValue) arity and makes
+// this the only place that knows which features the grid runs on. Import
+// table types from this barrel, never from '@tanstack/react-table' directly.
+export type Cell<TData extends RowDataCore, TValue> = CellCore<
+  WaydGridFeatures,
+  TData,
+  TValue
+>
+export type Column<TData extends RowDataCore, TValue> = ColumnCore<
+  WaydGridFeatures,
+  TData,
+  TValue
+>
+export type ColumnDef<TData extends RowDataCore, TValue = unknown> =
+  ColumnDefCore<WaydGridFeatures, TData, TValue>
+export type Header<TData extends RowDataCore, TValue> = HeaderCore<
+  WaydGridFeatures,
+  TData,
+  TValue
+>
+export type HeaderGroup<TData extends RowDataCore> = HeaderGroupCore<
+  WaydGridFeatures,
+  TData
+>
+export type Row<TData extends RowDataCore> = RowCore<WaydGridFeatures, TData>
+export type Table<TData extends RowDataCore> = ReactTable<
+  WaydGridFeatures,
+  TData
+>
+export type TableOptions<TData extends RowDataCore> = TableOptionsCore<
+  WaydGridFeatures,
+  TData
+>
 export type {
   ColumnFiltersState,
   ColumnOrderState,
@@ -39,25 +66,25 @@ export type {
   RowData,
   SortingState,
 } from '@tanstack/react-table'
+export type { WaydGridFeatures } from './grid-features'
+export { waydGridFeatures } from './grid-features'
 
-// These v9 types take TFeatures first; bind it to the legacy feature set so
-// call sites keep the v8 arity.
-export type TableState = TableStateCore<LegacyFeaturesType>
+export type TableState = TableStateCore<WaydGridFeatures>
 export type FilterFn<TData extends RowDataCore> = FilterFnCore<
-  LegacyFeaturesType,
+  WaydGridFeatures,
   TData
 >
 export type SortingFn<TData extends RowDataCore> = SortFnCore<
-  LegacyFeaturesType,
+  WaydGridFeatures,
   TData
 >
 export type CellContext<TData extends RowDataCore, TValue> = CellContextCore<
-  LegacyFeaturesType,
+  WaydGridFeatures,
   TData,
   TValue
 >
 export type HeaderContext<TData extends RowDataCore, TValue> = HeaderContextCore<
-  LegacyFeaturesType,
+  WaydGridFeatures,
   TData,
   TValue
 >

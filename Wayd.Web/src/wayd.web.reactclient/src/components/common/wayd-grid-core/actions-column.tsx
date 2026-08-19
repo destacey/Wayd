@@ -3,7 +3,7 @@
 import { Button, Dropdown } from 'antd'
 import { MoreOutlined } from '@ant-design/icons'
 import type { ItemType } from 'antd/es/menu/interface'
-import type { LegacyColumnDef as ColumnDef, LegacyRow as Row } from '@tanstack/react-table/legacy'
+import type { ColumnDef, Row } from './index'
 import type { RowData } from '@tanstack/react-table'
 /** Default width of the actions column — just wide enough for the ⋯ button. */
 export const ACTIONS_COLUMN_SIZE = 50

@@ -3,7 +3,7 @@
 // needs real date math, so restore the actual dayjs for these tests.
 jest.mock('dayjs', () => jest.requireActual('dayjs'))
 
-import type { LegacyRow as Row } from '@tanstack/react-table/legacy'
+import type { Row } from '../index'
 import {
   createMultiValueSetFilter,
   evaluateFilterModel,

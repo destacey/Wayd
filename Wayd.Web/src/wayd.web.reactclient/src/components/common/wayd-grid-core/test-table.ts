@@ -1,20 +1,17 @@
 import { renderHook } from '@testing-library/react'
-import {
-  type LegacyColumnDef as ColumnDef,
-  type LegacyReactTable as Table,
-  getCoreRowModel,
-  useLegacyTable,
-} from '@tanstack/react-table/legacy'
-import type { TableState } from './index'
+import { useTable } from '@tanstack/react-table'
 import type { RowData } from '@tanstack/react-table'
+
+import { waydGridFeatures } from './grid-features'
+import type { ColumnDef, Table, TableState } from './index'
 
 /**
  * Builds a headless TanStack table for assertions in tests.
  *
- * v9 removed the standalone `createTable` these tests used; the legacy shim
- * only exposes the `useLegacyTable` hook, so the table is built inside a
- * throwaway render. State is fully controlled by the caller (no onStateChange)
- * — these are pure structural assertions, nothing dispatches state updates.
+ * v9 removed the standalone `createTable` these tests used and exposes only
+ * the `useTable` hook, so the table is built inside a throwaway render. State
+ * is fully controlled by the caller — these are pure structural assertions,
+ * nothing dispatches state updates.
  */
 export function buildHeadlessTable<T extends RowData>(
   data: T[],
@@ -22,10 +19,10 @@ export function buildHeadlessTable<T extends RowData>(
   state: Partial<TableState> = {},
 ): Table<T> {
   const { result } = renderHook(() =>
-    useLegacyTable<T>({
+    useTable<typeof waydGridFeatures, T>({
+      features: waydGridFeatures,
       data,
       columns,
-      getCoreRowModel: getCoreRowModel(),
       state: {
         columnSizing: {},
         columnVisibility: {},

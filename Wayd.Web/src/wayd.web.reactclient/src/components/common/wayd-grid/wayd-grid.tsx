@@ -1923,7 +1923,13 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
                   showHeaderFilterIcon ? renderFilterPopover(header) : undefined
                 }
                 menuSlot={
-                  !header.isPlaceholder ? renderColumnMenu(header) : undefined
+                  // Control columns (drag grip, checkbox, actions) opt out of
+                  // reordering and have nothing the menu can act on -- its
+                  // button would also crowd the narrow header.
+                  !header.isPlaceholder &&
+                  header.column.columnDef.meta?.enableReordering !== false
+                    ? renderColumnMenu(header)
+                    : undefined
                 }
                 thClassName={
                   pinned

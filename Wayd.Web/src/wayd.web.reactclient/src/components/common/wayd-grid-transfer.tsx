@@ -178,6 +178,10 @@ const WaydGridTransfer = <TData extends RowData,>(props: WaydGridTransferProps<T
       size: DRAG_COLUMN_SIZE,
       enableSorting: false,
       enableColumnFilter: false,
+      enableResizing: false,
+      enableGlobalFilter: false,
+      // A control column: holds its position and has no column menu.
+      meta: { enableReordering: false },
       header: () => null,
       cell: ({ row }) => <TransferDragHandle id={getRowId(row.original)} />,
     },
@@ -186,6 +190,10 @@ const WaydGridTransfer = <TData extends RowData,>(props: WaydGridTransferProps<T
       size: CONTROL_COLUMN_SIZE,
       enableSorting: false,
       enableColumnFilter: false,
+      enableResizing: false,
+      enableGlobalFilter: false,
+      // A control column: holds its position and has no column menu.
+      meta: { enableReordering: false },
       header: ({ table }) => (
         <Checkbox
           aria-label="Select all rows"
@@ -215,6 +223,10 @@ const WaydGridTransfer = <TData extends RowData,>(props: WaydGridTransferProps<T
       size: CONTROL_COLUMN_SIZE,
       enableSorting: false,
       enableColumnFilter: false,
+      enableResizing: false,
+      enableGlobalFilter: false,
+      // A control column: holds its position and has no column menu.
+      meta: { enableReordering: false },
       header: () => null,
       cell: ({ row }) => (
         <Button

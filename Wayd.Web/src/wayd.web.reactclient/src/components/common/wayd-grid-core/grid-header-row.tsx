@@ -77,7 +77,6 @@ export function useResizeClickGuard(): ResizeClickGuard {
 export interface GridHeaderCellClasses {
   th: string
   thSortable: string
-  thResizable: string
   thContent: string
   thText: string
   resizer: string
@@ -209,8 +208,8 @@ export function GridHeaderCell<T extends RowData>({
       data-column-id={header.column.id}
       ref={sortable?.setNodeRef}
       className={`${classes.th}${canSort ? ` ${classes.thSortable}` : ''}${
-        canResize ? ` ${classes.thResizable}` : ''
-      }${sortable ? ` ${classes.thDraggable}` : ''}${
+        sortable ? ` ${classes.thDraggable}` : ''
+      }${
         sortable?.isDragging && classes.thDragging
           ? ` ${classes.thDragging}`
           : ''

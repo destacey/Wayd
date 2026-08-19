@@ -217,7 +217,6 @@ const requestScrollRowIntoView = (
 const headerCellClasses: GridHeaderCellClasses = {
   th: styles.th,
   thSortable: styles.thSortable,
-  thResizable: styles.thResizable,
   thContent: styles.thContent,
   thText: styles.thText,
   resizer: styles.resizer,

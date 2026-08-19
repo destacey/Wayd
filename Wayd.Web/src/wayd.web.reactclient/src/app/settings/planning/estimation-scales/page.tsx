@@ -13,7 +13,7 @@ import {
   useGetEstimationScalesQuery,
   useSetEstimationScaleActiveStatusMutation,
 } from '@/src/store/features/planning/estimation-scales-api'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import { Button } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'

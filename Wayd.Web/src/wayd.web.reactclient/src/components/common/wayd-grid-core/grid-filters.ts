@@ -1,5 +1,4 @@
-import type { FilterFn } from '@tanstack/react-table'
-
+import type { FilterFn } from './index'
 /**
  * Case-insensitive substring match filter.
  * Mirrors TanStack's built-in `includesString` behavior as a reusable function.

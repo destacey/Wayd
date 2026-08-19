@@ -1,7 +1,7 @@
 'use client'
 
 import { FC, ReactNode } from 'react'
-import { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import { CaretDownOutlined, CaretRightOutlined } from '@ant-design/icons'
 import { Button, Flex } from 'antd'
 import treeGridStyles from '@/src/components/common/wayd-grid/wayd-grid.module.css'
@@ -41,7 +41,7 @@ const getColumns = (
     accessorKey: 'key',
     header: 'Key',
     size: 120,
-    sortingFn: workItemKeySort,
+    sortFn: workItemKeySort,
     cell: ({ row }) =>
       renderWorkItemLink({
         key: row.original.key,
@@ -102,7 +102,7 @@ const getColumns = (
     accessorFn: (row) => row.statusCategory?.name ?? '',
     header: 'Status Category',
     size: 140,
-    sortingFn: workStatusCategorySort,
+    sortFn: workStatusCategorySort,
     meta: { filterType: 'set' },
   },
   {
@@ -111,7 +111,7 @@ const getColumns = (
     header: 'SPs',
     size: 100,
     enableGlobalFilter: false,
-    sortingFn: 'basic',
+    sortFn: 'basic',
     sortUndefined: -1,
     meta: {
       exportHeader: 'Story Points',

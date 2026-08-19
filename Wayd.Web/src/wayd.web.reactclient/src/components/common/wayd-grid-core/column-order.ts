@@ -1,6 +1,7 @@
 import { arrayMove } from '@dnd-kit/sortable'
-import type { Column, ColumnOrderState, Table } from '@tanstack/react-table'
-
+import type { LegacyColumn as Column, LegacyReactTable as Table } from '@tanstack/react-table/legacy'
+import type { ColumnOrderState } from '@tanstack/react-table'
+import type { RowData } from '@tanstack/react-table'
 /**
  * Column-ordering helpers for WaydGrid. Pure and table-agnostic so they're
  * unit-testable without a table instance.
@@ -90,7 +91,7 @@ export function reorderIds(
  * this, because plain getVisibleLeafColumns() stays in def order and ignores
  * both pinning and columnOrder.
  */
-export function getOrderedVisibleLeafColumns<T>(
+export function getOrderedVisibleLeafColumns<T extends RowData>(
   table: Table<T>,
 ): Column<T, unknown>[] {
   // The pin-section getters read table.getState().columnPinning; a headless
@@ -99,9 +100,9 @@ export function getOrderedVisibleLeafColumns<T>(
   // there's no pinning state anyway).
   if (!table.getState().columnPinning) return table.getVisibleLeafColumns()
   return [
-    ...table.getLeftVisibleLeafColumns(),
+    ...table.getStartVisibleLeafColumns(),
     ...table.getCenterVisibleLeafColumns(),
-    ...table.getRightVisibleLeafColumns(),
+    ...table.getEndVisibleLeafColumns(),
   ]
 }
 
@@ -113,18 +114,18 @@ export function getOrderedVisibleLeafColumns<T>(
  * Columns list mirrors the display order while still listing hideable columns
  * the user has turned off.
  */
-export function getOrderedAllLeafColumns<T>(
+export function getOrderedAllLeafColumns<T extends RowData>(
   table: Table<T>,
 ): Column<T, unknown>[] {
-  const { left = [], right = [] } = table.getState().columnPinning ?? {}
-  const pinned = new Set([...left, ...right])
+  const { start = [], end = [] } = table.getState().columnPinning ?? {}
+  const pinned = new Set([...start, ...end])
   // getAllLeafColumns() already applies columnOrder to every leaf.
   const byId = new Map(
     table.getAllLeafColumns().map((column) => [column.id, column]),
   )
   const lookup = (id: string) => byId.get(id)
-  const leftCols = left.map(lookup).filter(Boolean) as Column<T, unknown>[]
-  const rightCols = right.map(lookup).filter(Boolean) as Column<T, unknown>[]
+  const leftCols = start.map(lookup).filter(Boolean) as Column<T, unknown>[]
+  const rightCols = end.map(lookup).filter(Boolean) as Column<T, unknown>[]
   const centerCols = table
     .getAllLeafColumns()
     .filter((column) => !pinned.has(column.id))

@@ -15,7 +15,7 @@ import {
 } from '@/src/store/features/ppm/project-lifecycles-api'
 import { App, Button } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../../components/common/wayd-grid-core'
 import { useMemo, useState } from 'react'
 import AddProjectLifecyclePhaseForm from './add-project-lifecycle-phase-form'
 import EditProjectLifecyclePhaseForm from './edit-project-lifecycle-phase-form'

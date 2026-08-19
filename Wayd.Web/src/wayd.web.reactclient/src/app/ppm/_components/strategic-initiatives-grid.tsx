@@ -11,7 +11,7 @@ import {
   StrategicInitiativeListDto,
 } from '@/src/services/wayd-api'
 import { getSortedNameList } from '@/src/utils'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../components/common/wayd-grid-core'
 import Link from 'next/link'
 import { FC } from 'react'
 

@@ -14,7 +14,7 @@ import {
   createActionsColumn,
   formatDateTime,
 } from '@/src/components/common/wayd-grid'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../components/common/wayd-grid-core'
 import {
   CreatePersonalAccessTokenForm,
   EditPersonalAccessTokenForm,

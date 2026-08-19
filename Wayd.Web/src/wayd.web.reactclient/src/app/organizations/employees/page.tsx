@@ -5,7 +5,7 @@ import { WaydGrid } from '../../../components/common/wayd-grid'
 import { useEffect, useState, useMemo } from 'react'
 import { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../components/common/wayd-grid-core'
 import { useDocumentTitle } from '../../../hooks/use-document-title'
 import {
   ControlItemsMenu,

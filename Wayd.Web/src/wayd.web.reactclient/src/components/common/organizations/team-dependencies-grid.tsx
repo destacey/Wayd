@@ -1,7 +1,7 @@
 'use client'
 
 import { DependencyDto, TeamDetailsDto } from '@/src/services/wayd-api'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../wayd-grid-core'
 import { FC, useMemo } from 'react'
 import {
   WaydGrid,
@@ -64,7 +64,7 @@ const TeamDependenciesGrid: FC<TeamDependenciesGridProps> = (props) => {
             id: 'sourceKey',
             accessorKey: 'source.key',
             header: 'Key',
-            sortingFn: workItemKeySort,
+            sortFn: workItemKeySort,
             cell: ({ row }) => renderWorkItemLink(row.original.source),
           },
           {
@@ -114,7 +114,7 @@ const TeamDependenciesGrid: FC<TeamDependenciesGridProps> = (props) => {
             id: 'targetKey',
             accessorKey: 'target.key',
             header: 'Key',
-            sortingFn: workItemKeySort,
+            sortFn: workItemKeySort,
             cell: ({ row }) => renderWorkItemLink(row.original.target),
           },
           {

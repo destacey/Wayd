@@ -7,7 +7,7 @@
 // children (see core/rollup). Domain-agnostic grid + roadmap-specific bars.
 
 import { useMemo } from 'react'
-import type { Row } from '@tanstack/react-table'
+import type { Row } from '../../../../components/common/wayd-grid-core'
 import dayjs from 'dayjs'
 import { createTimeScale } from '@/src/components/common/timeline/core/scale'
 import { rollupSummaries } from '@/src/components/common/timeline/core/rollup'

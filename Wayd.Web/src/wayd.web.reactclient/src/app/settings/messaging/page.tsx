@@ -8,7 +8,7 @@ import {
 import MetricCard from '@/src/components/common/metrics/metric-card'
 import { useMemo, useState } from 'react'
 import { Button, Flex, Typography } from 'antd'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../components/common/wayd-grid-core'
 import type { ItemType } from 'antd/es/menu/interface'
 import { authorizePage } from '../../../components/hoc'
 import useAuth from '../../../components/contexts/auth'

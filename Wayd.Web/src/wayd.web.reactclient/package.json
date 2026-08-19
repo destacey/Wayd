@@ -56,7 +56,7 @@
     "@opentelemetry/exporter-trace-otlp-grpc": "^0.221.0",
     "@opentelemetry/sdk-node": "^0.221.0",
     "@reduxjs/toolkit": "2.12.0",
-    "@tanstack/react-table": "^8.21.3",
+    "@tanstack/react-table": "^9.1.2",
     "@tanstack/react-virtual": "^3.14.8",
     "@uiw/react-md-editor": "^4.1.1",
     "antd": "6.6.0",

@@ -1,9 +1,9 @@
 'use client'
 
-import type { ColumnDef } from '@tanstack/react-table'
-
+import type { LegacyColumnDef as ColumnDef } from '@tanstack/react-table/legacy'
 import { createMultiValueSetFilter } from './filters'
 import TagListCell from './tag-list-cell'
+import type { RowData } from '@tanstack/react-table'
 
 /**
  * Splits a comma-separated string into its trimmed, non-empty values. The
@@ -18,7 +18,7 @@ export const splitCsv = (value: string | null | undefined): string[] =>
     .map((v) => v.trim())
     .filter((v) => v.length > 0)
 
-export interface CsvColumnOptions<T> {
+export interface CsvColumnOptions<T extends RowData> {
   /** Column id (also the fallback accessor/sort key). */
   id: string
   /** Header text. */
@@ -59,7 +59,7 @@ export interface CsvColumnOptions<T> {
  *   getValues: (row) => getSortedNameList(row.projectManagers ?? []),
  * })
  */
-export const createCsvColumn = <T,>(
+export const createCsvColumn = <T extends RowData,>(
   options: CsvColumnOptions<T>,
 ): ColumnDef<T, any> => {
   const { id, header, size } = options

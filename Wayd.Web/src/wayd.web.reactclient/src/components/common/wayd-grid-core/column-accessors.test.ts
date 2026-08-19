@@ -1,12 +1,13 @@
-import type { ColumnDef } from '@tanstack/react-table'
+import type { LegacyColumnDef as ColumnDef } from '@tanstack/react-table/legacy'
 import { applySafeAccessor } from './column-accessors'
+import type { RowData } from '@tanstack/react-table'
 
 type Item = {
   name: string
   team?: { name: string } | null
 }
 
-const getAccessorFn = <T>(col: ColumnDef<T, unknown>) =>
+const getAccessorFn = <T extends RowData>(col: ColumnDef<T, unknown>) =>
   (col as { accessorFn?: (row: T, index: number) => unknown }).accessorFn
 
 describe('applySafeAccessor', () => {
@@ -93,7 +94,7 @@ describe('applySafeAccessor', () => {
     }
 
     // Act
-    const result = applySafeAccessor(group) as {
+    const result = applySafeAccessor(group) as unknown as {
       columns: ColumnDef<Item, unknown>[]
     }
 

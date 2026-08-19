@@ -6,7 +6,7 @@ import Link from 'next/link'
 import ProjectHealthCheckTag from '@/src/app/ppm/projects/_components/project-health-check-tag'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { ProjectHealthCheckDetailsDto } from '@/src/services/wayd-api'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../../components/common/wayd-grid-core'
 import styles from './project-health-report-grid.module.css'
 
 interface ProjectHealthReportGridProps {

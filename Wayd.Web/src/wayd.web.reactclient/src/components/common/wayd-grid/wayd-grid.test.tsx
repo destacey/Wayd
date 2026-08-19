@@ -11,8 +11,7 @@ jest.mock('@/src/utils/csv-utils', () => {
 
 import { createRef } from 'react'
 import { render, screen, fireEvent, within, act } from '@testing-library/react'
-import type { ColumnDef } from '@tanstack/react-table'
-
+import type { ColumnDef } from '../wayd-grid-core'
 import WaydGrid from './wayd-grid'
 import { createCsvColumn } from '../wayd-grid-core/csv-column'
 import { SET_FILTER_BLANK } from '../wayd-grid-core/filters'
@@ -1200,7 +1199,7 @@ describe('WaydGrid', () => {
 
       // Act
       act(() => {
-        ref.current!.table.getColumn('type').pin('left')
+        ref.current!.table.getColumn('type').pin('start')
       })
 
       // Assert — header and body cells lead with the pinned column. Target
@@ -1223,8 +1222,8 @@ describe('WaydGrid', () => {
 
       // Act — pin two columns left; the second is offset by the first's width
       act(() => {
-        ref.current!.table.getColumn('name').pin('left')
-        ref.current!.table.getColumn('type').pin('left')
+        ref.current!.table.getColumn('name').pin('start')
+        ref.current!.table.getColumn('type').pin('start')
       })
 
       // Assert
@@ -1414,7 +1413,7 @@ describe('WaydGrid', () => {
         JSON.stringify({
           columnSizing: { name: 240 },
           userColumnVisibility: { type: false },
-          columnPinning: { left: ['isEnabled'], right: [] },
+          columnPinning: { start: ['isEnabled'], end: [] },
         }),
       )
       const ref = createRef<WaydGridHandle>()
@@ -1448,7 +1447,7 @@ describe('WaydGrid', () => {
       // the debounce elapse, then remount
       act(() => {
         ref.current!.table.setColumnSizing({ name: 300 })
-        ref.current!.table.getColumn('type').pin('left')
+        ref.current!.table.getColumn('type').pin('start')
       })
       act(() => {
         jest.advanceTimersByTime(1000)
@@ -1459,7 +1458,7 @@ describe('WaydGrid', () => {
       expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!)).toEqual({
         columnSizing: { name: 300 },
         userColumnVisibility: {},
-        columnPinning: { left: ['type'], right: [] },
+        columnPinning: { start: ['type'], end: [] },
       })
 
       // Act — fresh mount restores it
@@ -1514,7 +1513,7 @@ describe('WaydGrid', () => {
       expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!)).toEqual({
         columnSizing: {},
         userColumnVisibility: {},
-        columnPinning: { left: [], right: [] },
+        columnPinning: { start: [], end: [] },
         columnOrder: ['isEnabled', 'name', 'type'],
       })
 

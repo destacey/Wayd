@@ -1,8 +1,7 @@
 jest.mock('dayjs', () => jest.requireActual('dayjs'))
 
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
-import type { ColumnDef } from '@tanstack/react-table'
-
+import type { ColumnDef } from './wayd-grid-core'
 import WaydGridTransfer, { resolveDragItems } from './wayd-grid-transfer'
 
 interface Item {

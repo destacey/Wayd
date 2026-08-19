@@ -8,17 +8,19 @@ import {
   type TouchEvent,
 } from 'react'
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons'
-import { type Header, flexRender } from '@tanstack/react-table'
+import type { LegacyHeader as Header } from '@tanstack/react-table/legacy'
+import { flexRender } from '@tanstack/react-table'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
+import type { RowData } from '@tanstack/react-table'
 
 /**
  * A header's content, wrapped in a {@link WaydTooltip} when the column
  * declares `meta.headerTooltip` — columns keep a plain-string `header` (which
  * CSV export also reads) instead of hand-rolling a Tooltip header renderer.
  */
-export function GridHeaderContent<T>({ header }: { header: Header<T, unknown> }) {
+export function GridHeaderContent<T extends RowData>({ header }: { header: Header<T, unknown> }) {
   // eslint-disable-next-line react-compiler/react-compiler -- same mutable-header caveat as GridHeaderCell
   'use no memo'
   if (header.isPlaceholder) return null
@@ -102,7 +104,7 @@ export interface HeaderCellSortable {
   handleProps: Record<string, unknown>
 }
 
-export interface GridHeaderCellProps<T> {
+export interface GridHeaderCellProps<T extends RowData> {
   header: Header<T, unknown>
   /** The grid's {@link useResizeClickGuard}, so the click that ends a column
    *  resize doesn't toggle the sort. */
@@ -168,7 +170,7 @@ export function useHeaderCellSortable(
  * stale `getIsSorted()` — hence the directive below. (The eslint plugin
  * mis-reports it as unused; runtime fiber inspection shows the cache slots.)
  */
-export function GridHeaderCell<T>({
+export function GridHeaderCell<T extends RowData>({
   header,
   resizeGuard,
   classes,
@@ -259,7 +261,7 @@ export function GridHeaderCell<T>({
  * Extracted so the per-header hook lives in its own component instead of a map
  * callback.
  */
-export function SortableHeaderCell<T>({
+export function SortableHeaderCell<T extends RowData>({
   reorderable,
   ...cellProps
 }: GridHeaderCellProps<T> & { reorderable: boolean }) {

@@ -5,8 +5,7 @@ import {
   workItemKeySort,
   workStatusCategorySort,
 } from './grid-sorting'
-import type { Row } from '@tanstack/react-table'
-
+import type { LegacyRow as Row } from '@tanstack/react-table/legacy'
 describe('grid-sorting', () => {
   describe('caseInsensitiveCompare', () => {
     it('interleaves capitalized and lowercase values alphabetically', () => {

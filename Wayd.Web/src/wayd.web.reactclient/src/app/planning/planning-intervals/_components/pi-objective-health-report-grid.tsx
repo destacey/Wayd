@@ -6,7 +6,7 @@ import Link from 'next/link'
 import PiObjectiveHealthCheckTag from './pi-objective-health-check-tag'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { PlanningIntervalObjectiveHealthCheckDetailsDto } from '@/src/services/wayd-api'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import { useGetObjectiveHealthChecksQuery } from '@/src/store/features/planning/pi-objective-health-checks-api'
 import styles from './pi-objective-health-report-grid.module.css'
 

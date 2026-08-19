@@ -4,7 +4,7 @@ import {
   ScopedDependencyDto,
   WorkItemDetailsDto,
 } from '@/src/services/wayd-api'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../wayd-grid-core'
 import { FC, useMemo } from 'react'
 import { WaydTooltip } from '@/src/components/common'
 import {
@@ -95,7 +95,7 @@ const WorkItemDependenciesGrid: FC<WorkItemDependenciesGridProps> = (props) => {
             id: 'key',
             accessorKey: 'dependency.key',
             header: 'Key',
-            sortingFn: workItemKeySort,
+            sortFn: workItemKeySort,
             cell: ({ row }) => renderWorkItemLink(row.original.dependency),
           },
           {

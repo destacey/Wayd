@@ -2,7 +2,7 @@
 
 import { WaydGrid } from '@/src/components/common/wayd-grid'
 import { StrategicThemeListDto } from '@/src/services/wayd-api'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import Link from 'next/link'
 import { useMemo } from 'react'
 

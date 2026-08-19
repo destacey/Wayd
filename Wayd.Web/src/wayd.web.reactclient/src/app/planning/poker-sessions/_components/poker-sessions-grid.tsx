@@ -6,7 +6,7 @@ import {
 } from '@/src/components/common/wayd-grid'
 import { ControlItemsMenu } from '@/src/components/common/control-items-menu'
 import { PokerSessionListDto } from '@/src/services/wayd-api'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
 import { FC, useMemo } from 'react'

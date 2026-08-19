@@ -1,11 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import {
-  createTable,
-  getCoreRowModel,
-  type ColumnDef,
-  type TableState,
-  type VisibilityState,
-} from '@tanstack/react-table'
+import type { LegacyColumnDef as ColumnDef } from '@tanstack/react-table/legacy'
+import type { ColumnVisibilityState as VisibilityState } from '@tanstack/react-table'
+import type { TableState } from './index'
+
+import { buildHeadlessTable } from './test-table'
 
 import {
   COLUMN_MENU_KEYS,
@@ -27,17 +25,10 @@ const buildChooserTable = (
 ) => {
   const state: Partial<TableState> = {
     columnVisibility,
-    columnPinning: { left: [], right: [] },
+    columnPinning: { start: [], end: [] },
     columnSizing: {},
   }
-  return createTable<Item>({
-    data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    state: state as TableState,
-    onStateChange: () => {},
-    renderFallbackValue: null,
-  })
+  return buildHeadlessTable<Item>(data, columns, state)
 }
 
 /** Flattened keys of a built items array (submenu children inlined). */
@@ -206,7 +197,7 @@ describe('column-menu', () => {
       // Arrange / Act
       const items = buildColumnMenuItems({
         ...baseInput,
-        pinnedState: 'left',
+        pinnedState: 'start',
       })
       const pin = (items ?? []).find(
         (item) => item && 'key' in item && item.key === COLUMN_MENU_KEYS.pin,

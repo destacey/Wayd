@@ -12,8 +12,7 @@ import { ItemType } from 'antd/es/menu/interface'
 import EditTeamMembershipForm from './edit-team-membership-form'
 import { TeamTypeName } from '../types'
 import DeleteTeamMembershipForm from './delete-team-membership-form'
-import type { ColumnDef } from '@tanstack/react-table'
-
+import type { ColumnDef } from '../../../components/common/wayd-grid-core'
 export interface TeamMembershipsGridProps {
   teamId: string
   teamMemberships: TeamMembershipDto[] | undefined

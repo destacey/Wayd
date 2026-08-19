@@ -13,7 +13,7 @@ import {
   workStatusCategorySort,
 } from '@/src/components/common/wayd-grid'
 import { WorkItemListDto } from '@/src/services/wayd-api'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../wayd-grid-core'
 import { FC, ReactNode, useMemo } from 'react'
 
 export interface WorkItemsGridProps {
@@ -41,7 +41,7 @@ const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
         id: 'key',
         accessorKey: 'key',
         header: 'Key',
-        sortingFn: workItemKeySort,
+        sortFn: workItemKeySort,
         cell: ({ row }) =>
           renderWorkItemLink({
             key: row.original.key,
@@ -70,7 +70,7 @@ const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
         accessorKey: 'statusCategory.name',
         header: 'Status Category',
         size: 140,
-        sortingFn: workStatusCategorySort,
+        sortFn: workStatusCategorySort,
         meta: { filterType: 'set' },
       },
       {
@@ -104,7 +104,7 @@ const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
               id: 'parentKey',
               accessorKey: 'parent.key',
               header: 'Parent Key',
-              sortingFn: workItemKeySort,
+              sortFn: workItemKeySort,
               meta: { filterType: 'set' },
               cell: ({ row }) =>
                 renderWorkItemLink(

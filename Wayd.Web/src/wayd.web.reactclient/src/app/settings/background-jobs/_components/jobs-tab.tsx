@@ -6,7 +6,7 @@ import {
 } from '@/src/components/common/wayd-grid'
 import { useMemo, useState } from 'react'
 import { Button, Segmented, Typography } from 'antd'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import type { ItemType } from 'antd/es/menu/interface'
 import useAuth from '@/src/components/contexts/auth'
 import { JobStateFilter, JobSummaryResponse } from '@/src/services/wayd-api'

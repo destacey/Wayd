@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { RowData } from '@tanstack/react-table'
+import type { CellData, RowData, TableFeatures } from '@tanstack/table-core'
 import type { FilterType } from './filters'
 
 /**
@@ -105,9 +105,10 @@ export interface WaydGridColumnMeta {
  * `ColumnMeta` is global, so these optional fields are suggested on any TanStack
  * table in the app — harmless, and the Wayd grids are the only consumers.
  */
-declare module '@tanstack/react-table' {
+declare module '@tanstack/table-core' {
   interface ColumnMeta<
+    TFeatures extends TableFeatures,
     TData extends RowData,
-    TValue,
+    TValue extends CellData,
   > extends WaydGridColumnMeta {}
 }

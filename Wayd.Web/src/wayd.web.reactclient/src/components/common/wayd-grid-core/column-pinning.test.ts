@@ -1,10 +1,7 @@
-import {
-  createTable,
-  getCoreRowModel,
-  type ColumnDef,
-  type ColumnPinningState,
-  type TableState,
-} from '@tanstack/react-table'
+import type { LegacyColumnDef as ColumnDef } from '@tanstack/react-table/legacy'
+import type { ColumnPinningState } from '@tanstack/react-table'
+
+import { buildHeadlessTable } from './test-table'
 
 import {
   getPinnedBandOffsets,
@@ -30,18 +27,7 @@ const buildTable = (
   columnPinning: ColumnPinningState,
   columns: ColumnDef<Item, any>[] = leafColumns,
 ) =>
-  createTable<Item>({
-    data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    state: {
-      columnPinning,
-      columnSizing: {},
-      columnVisibility: {},
-    } as TableState,
-    onStateChange: () => {},
-    renderFallbackValue: null,
-  })
+  buildHeadlessTable<Item>(data, columns, { columnPinning })
 
 const classes: PinnedCellClasses = {
   pinned: 'pinned',
@@ -53,7 +39,7 @@ describe('column-pinning', () => {
   describe('getPinnedOffsets', () => {
     it('returns undefined for an unpinned column', () => {
       // Arrange
-      const table = buildTable({ left: [], right: [] })
+      const table = buildTable({ start: [], end: [] })
 
       // Act
       const offsets = getPinnedOffsets(table.getColumn('a')!)
@@ -64,7 +50,7 @@ describe('column-pinning', () => {
 
     it('offsets left-pinned columns by the preceding pinned widths', () => {
       // Arrange — b (200) then c (50) pinned left
-      const table = buildTable({ left: ['b', 'c'], right: [] })
+      const table = buildTable({ start: ['b', 'c'], end: [] })
 
       // Act
       const first = getPinnedOffsets(table.getColumn('b')!)
@@ -77,7 +63,7 @@ describe('column-pinning', () => {
 
     it('offsets right-pinned columns by the following pinned widths', () => {
       // Arrange — a (100) then d (80) pinned right; d renders last
-      const table = buildTable({ left: [], right: ['a', 'd'] })
+      const table = buildTable({ start: [], end: ['a', 'd'] })
 
       // Act
       const first = getPinnedOffsets(table.getColumn('a')!)
@@ -92,13 +78,13 @@ describe('column-pinning', () => {
       // Arrange — the grid builds its colgroup from the three pin-section
       // methods because getHeaderGroups/getVisibleCells render that order
       // while plain getVisibleLeafColumns stays in def order
-      const table = buildTable({ left: ['c'], right: ['a'] })
+      const table = buildTable({ start: ['c'], end: ['a'] })
 
       // Act
       const order = [
-        ...table.getLeftVisibleLeafColumns(),
+        ...table.getStartVisibleLeafColumns(),
         ...table.getCenterVisibleLeafColumns(),
-        ...table.getRightVisibleLeafColumns(),
+        ...table.getEndVisibleLeafColumns(),
       ].map((col) => col.id)
 
       // Assert
@@ -137,7 +123,7 @@ describe('column-pinning', () => {
 
     it('returns undefined for a band over unpinned leaves', () => {
       // Arrange
-      const headers = bandHeaders({ left: [], right: [] })
+      const headers = bandHeaders({ start: [], end: [] })
       const band = headers.find((h) => h.column.id === 'group')!
 
       // Act / Assert
@@ -146,7 +132,7 @@ describe('column-pinning', () => {
 
     it('sticks a band over left-pinned leaves at the first leaf offset', () => {
       // Arrange — whole group pinned left
-      const headers = bandHeaders({ left: ['a', 'b'], right: [] })
+      const headers = bandHeaders({ start: ['a', 'b'], end: [] })
       const band = headers.find(
         (h) => h.column.id === 'group' && !h.isPlaceholder,
       )!
@@ -161,7 +147,7 @@ describe('column-pinning', () => {
     it('splits a band whose leaves are torn apart by pinning', () => {
       // Arrange — pinning a and c reorders leaves to [a, c, b, d]: the group
       // band renders once over a (pinned) and once over b (center)
-      const headers = bandHeaders({ left: ['a', 'c'], right: [] })
+      const headers = bandHeaders({ start: ['a', 'c'], end: [] })
       const groupBands = headers.filter((h) => h.column.id === 'group')
 
       // Act
@@ -183,7 +169,7 @@ describe('column-pinning', () => {
       // stays adjacent, so TanStack emits ONE band over a mixed
       // pinned/unpinned run; the band scrolls (documented limitation) while
       // leaf b still sticks
-      const headers = bandHeaders({ left: ['b'], right: [] })
+      const headers = bandHeaders({ start: ['b'], end: [] })
       const groupBands = headers.filter((h) => h.column.id === 'group')
 
       // Act / Assert

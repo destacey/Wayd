@@ -14,7 +14,7 @@ import {
   useActivateTeamMemberRoleMutation,
   useDeactivateTeamMemberRoleMutation,
 } from '@/src/store/features/organization/team-member-roles-api'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import { Button } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import {

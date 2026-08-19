@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
-import type { Column, Header } from '@tanstack/react-table'
-
+import type { LegacyColumn as Column, LegacyHeader as Header } from '@tanstack/react-table/legacy'
+import type { RowData } from '@tanstack/react-table'
 /**
  * Sticky-rendering facts for a pinned column's cells, derived from TanStack's
  * columnPinning state. TanStack owns the state model (and reorders pinned
@@ -9,6 +9,8 @@ import type { Column, Header } from '@tanstack/react-table'
  * with these offsets on the pinned `th`s and `td`s in BOTH tables.
  */
 export interface PinnedColumnOffsets {
+  /** CSS side. TanStack v9 speaks logical 'start'/'end'; the grid is LTR-only
+   *  and renders physical insets, so the boundary is mapped here once. */
   side: 'left' | 'right'
   /** Sticky inset in px — `left` for left-pinned, `right` for right-pinned:
    *  the summed widths of the other pinned columns between this one and its
@@ -20,21 +22,21 @@ export interface PinnedColumnOffsets {
 }
 
 /** Pinned offsets for a leaf column's cells, or undefined when unpinned. */
-export function getPinnedOffsets<T>(
+export function getPinnedOffsets<T extends RowData>(
   column: Column<T, unknown>,
 ): PinnedColumnOffsets | undefined {
-  const side = column.getIsPinned()
-  if (!side) return undefined
-  return side === 'left'
+  const pinned = column.getIsPinned()
+  if (!pinned) return undefined
+  return pinned === 'start'
     ? {
-        side,
-        offset: column.getStart('left'),
-        isEdge: column.getIsLastColumn('left'),
+        side: 'left',
+        offset: column.getStart('start'),
+        isEdge: column.getIsLastColumn('start'),
       }
     : {
-        side,
-        offset: column.getAfter('right'),
-        isEdge: column.getIsFirstColumn('right'),
+        side: 'right',
+        offset: column.getAfter('end'),
+        isEdge: column.getIsFirstColumn('end'),
       }
 }
 
@@ -47,26 +49,26 @@ export function getPinnedOffsets<T>(
  * The band sticks at its leftmost (left-pinned) / rightmost (right-pinned)
  * leaf's offset and draws the divider edge when it contains the edge leaf.
  */
-export function getPinnedBandOffsets<T>(
+export function getPinnedBandOffsets<T extends RowData>(
   header: Header<T, unknown>,
 ): PinnedColumnOffsets | undefined {
   const leaves = header.getLeafHeaders()
   const columns =
     leaves.length > 0 ? leaves.map((leaf) => leaf.column) : [header.column]
-  const side = columns[0].getIsPinned()
-  if (!side || columns.some((col) => col.getIsPinned() !== side)) {
+  const pinned = columns[0].getIsPinned()
+  if (!pinned || columns.some((col) => col.getIsPinned() !== pinned)) {
     return undefined
   }
-  return side === 'left'
+  return pinned === 'start'
     ? {
-        side,
-        offset: Math.min(...columns.map((col) => col.getStart('left'))),
-        isEdge: columns.some((col) => col.getIsLastColumn('left')),
+        side: 'left',
+        offset: Math.min(...columns.map((col) => col.getStart('start'))),
+        isEdge: columns.some((col) => col.getIsLastColumn('start')),
       }
     : {
-        side,
-        offset: Math.min(...columns.map((col) => col.getAfter('right'))),
-        isEdge: columns.some((col) => col.getIsFirstColumn('right')),
+        side: 'right',
+        offset: Math.min(...columns.map((col) => col.getAfter('end'))),
+        isEdge: columns.some((col) => col.getIsFirstColumn('end')),
       }
 }
 

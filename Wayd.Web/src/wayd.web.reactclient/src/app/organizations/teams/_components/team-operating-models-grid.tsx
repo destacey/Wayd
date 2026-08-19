@@ -17,8 +17,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import EditTeamOperatingModelForm from './edit-team-operating-model-form'
-import type { ColumnDef } from '@tanstack/react-table'
-
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 interface TeamOperatingModelsGridProps {
   teamId: string
   canUpdate: boolean

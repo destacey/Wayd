@@ -18,7 +18,7 @@ import {
 } from 'antd'
 import { BaseOptionType } from 'antd/es/select'
 import dayjs from 'dayjs'
-import { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 import styles from '@/src/components/common/wayd-grid/wayd-grid.module.css'
 import {
   type FilterOption,
@@ -220,14 +220,14 @@ export const getProjectPlanTableColumns = ({
       size: 100,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      sortingFn: 'alphanumeric',
+      sortFn: 'alphanumeric',
     },
     {
       accessorKey: 'key',
       header: 'Key',
       size: 140,
       enableColumnFilter: true,
-      sortingFn: 'alphanumeric',
+      sortFn: 'alphanumeric',
       cell: ({ row, getValue }) => {
         const task = row.original as ProjectPlanNodeDto
         const isDraft = task.id.startsWith('draft-')
@@ -257,7 +257,7 @@ export const getProjectPlanTableColumns = ({
       header: 'Name',
       size: 300,
       enableColumnFilter: true,
-      sortingFn: 'alphanumeric',
+      sortFn: 'alphanumeric',
       cell: ({ row }: { row: any }) => {
         const depth = row.depth
         const task = row.original as ProjectPlanNodeDto
@@ -361,7 +361,7 @@ export const getProjectPlanTableColumns = ({
       size: 110,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      sortingFn: 'text',
+      sortFn: 'text',
       meta: {
         filterType: 'select',
         filterOptions: taskTypeFilterOptions,
@@ -420,7 +420,7 @@ export const getProjectPlanTableColumns = ({
       size: 130,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      sortingFn: 'text',
+      sortFn: 'text',
       meta: {
         filterType: 'select',
         filterOptions: taskStatusFilterOptions,
@@ -478,7 +478,7 @@ export const getProjectPlanTableColumns = ({
       size: 110,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      sortingFn: 'text',
+      sortFn: 'text',
       meta: {
         filterType: 'select',
         filterOptions: taskPriorityFilterOptions,
@@ -537,7 +537,7 @@ export const getProjectPlanTableColumns = ({
           return date ? dayjs(date).format('MMM D, YYYY') : ''
         },
       } satisfies WaydGridColumnMeta,
-      sortingFn: dateSortBy((row: any) => {
+      sortFn: dateSortBy((row: any) => {
         const isMilestone = row.original.type?.name === 'Milestone'
         return isMilestone ? row.original.plannedDate : row.original.start
       }),
@@ -604,7 +604,7 @@ export const getProjectPlanTableColumns = ({
         exportFormatter: (value) =>
           value ? dayjs(value as string).format('MMM D, YYYY') : '',
       } satisfies WaydGridColumnMeta,
-      sortingFn: dateSortBy((row: any) => row.original.end),
+      sortFn: dateSortBy((row: any) => row.original.end),
       cell: (info) => {
         const task = info.row.original as ProjectPlanNodeDto
         const value = (info.getValue() as string) ?? ''
@@ -661,7 +661,7 @@ export const getProjectPlanTableColumns = ({
       size: 250,
       enableGlobalFilter: true,
       enableColumnFilter: true,
-      sortingFn: 'text',
+      sortFn: 'text',
       cell: (info) => {
         const task = info.row.original as ProjectPlanNodeDto
         const assignees = task.assignees ?? []
@@ -745,7 +745,7 @@ export const getProjectPlanTableColumns = ({
           </FormItem>
         )
       },
-      sortingFn: 'basic',
+      sortFn: 'basic',
       sortUndefined: -1,
     },
     {
@@ -800,7 +800,7 @@ export const getProjectPlanTableColumns = ({
           </FormItem>
         )
       },
-      sortingFn: 'basic',
+      sortFn: 'basic',
       sortUndefined: -1,
     },
   ]

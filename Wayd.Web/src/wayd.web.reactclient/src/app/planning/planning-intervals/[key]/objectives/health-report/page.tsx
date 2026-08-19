@@ -15,7 +15,7 @@ import PiObjectiveHealthCheckTag from '@/src/app/planning/planning-intervals/_co
 import { Progress } from 'antd'
 import { useGetPlanningIntervalObjectivesHealthReportQuery } from '@/src/store/features/planning/planning-interval-api'
 import { PlanningIntervalObjectiveHealthCheckDto } from '@/src/services/wayd-api'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../../../../../../components/common/wayd-grid-core'
 import styles from './health-report-page.module.css'
 
 const ObjectiveHealthReportPage = (props: {

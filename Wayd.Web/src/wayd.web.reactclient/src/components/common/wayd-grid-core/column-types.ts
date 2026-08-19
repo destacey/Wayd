@@ -1,7 +1,8 @@
-import type { ColumnDef } from '@tanstack/react-table'
+import type { LegacyColumnDef as ColumnDef } from '@tanstack/react-table/legacy'
 import dayjs from 'dayjs'
 
 import type { WaydColumnType, WaydGridColumnMeta } from './types'
+import type { RowData } from '@tanstack/react-table'
 
 // WaydColumnType keys the registry below.
 
@@ -34,7 +35,7 @@ export const NO = 'No'
  * merge into the column's meta; the rest override the column's own fields when
  * the column doesn't already set them.
  */
-interface ColumnTypeDef<T> {
+interface ColumnTypeDef<T extends RowData> {
   /** Transforms the raw accessed value for display + (for set types) filtering. */
   accessorFn?: (raw: unknown) => unknown
   cell?: NonNullable<ColumnDef<T, unknown>['cell']>
@@ -59,8 +60,10 @@ export const YES_NO_COLUMN_SIZE = 110
  *   descriptor filter (which parses dates) works. Mirrors AG Grid, where
  *   `valueFormatter` formats while the underlying value drives sort/filter.
  */
-const registry: { [K in WaydColumnType]: <T>() => ColumnTypeDef<T> } = {
-  yesNo: <T>(): ColumnTypeDef<T> => ({
+const registry: {
+  [K in WaydColumnType]: <T extends RowData>() => ColumnTypeDef<T>
+} = {
+  yesNo: <T extends RowData>(): ColumnTypeDef<T> => ({
     accessorFn: (raw) => {
       if (raw === null || raw === undefined) return ''
       return raw ? YES : NO
@@ -75,12 +78,12 @@ const registry: { [K in WaydColumnType]: <T>() => ColumnTypeDef<T> } = {
     // (False/True as a 2-item checkbox list) — consistent with AG Grid.
     size: YES_NO_COLUMN_SIZE,
   }),
-  dateOnly: <T>(): ColumnTypeDef<T> => ({
+  dateOnly: <T extends RowData>(): ColumnTypeDef<T> => ({
     // Accessor left undefined → raw value flows through for sorting/filtering.
     cell: ({ getValue }) => formatDateOnly(getValue()),
     filterType: 'date',
   }),
-  dateTime: <T>(): ColumnTypeDef<T> => ({
+  dateTime: <T extends RowData>(): ColumnTypeDef<T> => ({
     cell: ({ getValue }) => formatDateTime(getValue()),
     filterType: 'dateTime',
   }),
@@ -90,7 +93,7 @@ const registry: { [K in WaydColumnType]: <T>() => ColumnTypeDef<T> } = {
  * Reads the raw accessed value for a column, honoring `accessorFn` then
  * `accessorKey`. Used to feed a column type's value transform.
  */
-const readRaw = <T>(col: ColumnDef<T, unknown>, row: T): unknown => {
+const readRaw = <T extends RowData>(col: ColumnDef<T, unknown>, row: T): unknown => {
   const anyCol = col as {
     accessorFn?: (row: T, index: number) => unknown
     accessorKey?: string | number
@@ -113,7 +116,7 @@ const readRaw = <T>(col: ColumnDef<T, unknown>, row: T): unknown => {
  * - `cell`, `size`, and meta `filterType`/`filterOptions` are only filled in
  *   where the column didn't already set them.
  */
-export const applyColumnType = <T>(
+export const applyColumnType = <T extends RowData>(
   col: ColumnDef<T, unknown>,
 ): ColumnDef<T, unknown> => {
   const meta = col.meta
@@ -158,7 +161,7 @@ export const applyColumnType = <T>(
  * leaves nested under a header band get their declared types applied the same
  * as top-level columns. No-op for leaf defs.
  */
-const applyGroupChildren = <T>(
+const applyGroupChildren = <T extends RowData>(
   col: ColumnDef<T, unknown>,
 ): ColumnDef<T, unknown> => {
   const children = (col as { columns?: ColumnDef<T, unknown>[] }).columns

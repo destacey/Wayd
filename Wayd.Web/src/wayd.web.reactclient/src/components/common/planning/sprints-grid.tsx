@@ -6,7 +6,7 @@ import {
   renderTeamLink,
 } from '@/src/components/common/wayd-grid'
 import { SprintListDto } from '@/src/services/wayd-api'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '../wayd-grid-core'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import { FC, useMemo } from 'react'

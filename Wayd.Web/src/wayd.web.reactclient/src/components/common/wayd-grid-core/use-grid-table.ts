@@ -1,23 +1,18 @@
 import { useState, type ChangeEvent } from 'react'
+import type { ColumnFiltersState, ColumnOrderState, ColumnPinningState, ColumnSizingState, SortingState, ColumnVisibilityState as VisibilityState } from '@tanstack/react-table'
+import type { TableState } from './index'
 import {
-  type Column,
-  type ColumnDef,
-  type ColumnFiltersState,
-  type ColumnOrderState,
-  type ColumnPinningState,
-  type ColumnSizingState,
-  type SortingState,
-  type Table,
-  type TableOptions,
-  type TableState,
-  type VisibilityState,
+  type LegacyColumnDef as ColumnDef,
+  type LegacyReactTable as Table,
+  type LegacyTableOptions as TableOptions,
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
-  useReactTable,
-} from '@tanstack/react-table'
+  useLegacyTable,
+} from '@tanstack/react-table/legacy'
 
 import { stringContainsFilter } from './grid-filters'
+import type { RowData } from '@tanstack/react-table'
 
 /**
  * Shared grid state: sorting, column filters, column sizing, user column
@@ -90,7 +85,7 @@ export interface UseGridStateOptions {
 }
 
 /** Empty pinning state (nothing pinned) — also what Reset restores. */
-const EMPTY_COLUMN_PINNING: ColumnPinningState = { left: [], right: [] }
+const EMPTY_COLUMN_PINNING: ColumnPinningState = { start: [], end: [] }
 
 /**
  * Owns the shared state slices (sorting, column filters, column sizing, user
@@ -177,7 +172,9 @@ export function mergeColumnVisibility(
 
 /** Global quick-search applies to any column with an accessor unless the
  *  column opts out via `enableGlobalFilter: false`. */
-const getColumnCanGlobalFilter = <T>(column: Column<T, unknown>): boolean => {
+const getColumnCanGlobalFilter = (column: {
+  columnDef: unknown
+}): boolean => {
   const colDef = column.columnDef as unknown as {
     enableGlobalFilter?: boolean
     accessorFn?: unknown
@@ -187,7 +184,7 @@ const getColumnCanGlobalFilter = <T>(column: Column<T, unknown>): boolean => {
   return Boolean(colDef.accessorFn || colDef.accessorKey)
 }
 
-export interface UseGridTableOptions<T> {
+export interface UseGridTableOptions<T extends RowData> {
   data: T[]
   columns: ColumnDef<T, any>[]
   /** The shared state from {@link useGridState}. */
@@ -212,7 +209,7 @@ export interface UseGridTableOptions<T> {
  * ctrl-click multisort, and onChange column resizing — all wired to the state
  * from {@link useGridState}.
  */
-export function useGridTable<T>({
+export function useGridTable<T extends RowData>({
   data,
   columns,
   gridState,
@@ -234,8 +231,7 @@ export function useGridTable<T>({
     setSearchValue,
   } = gridState
 
-  // eslint-disable-next-line react-hooks/incompatible-library -- the warning is about compiler memoization; WaydGrid, this hook's only consumer, carries 'use no memo' to opt its JSX out, which is where the stale-UI risk actually lives
-  return useReactTable({
+  return useLegacyTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),

@@ -1,7 +1,7 @@
-import type { ColumnDef, Row } from '@tanstack/react-table'
-
+import type { LegacyColumnDef as ColumnDef, LegacyRow as Row } from '@tanstack/react-table/legacy'
 import { createCsvColumn, splitCsv } from './csv-column'
 import type { SetFilterModel } from './filters'
+import type { RowData } from '@tanstack/react-table'
 
 describe('splitCsv', () => {
   it('splits, trims, and drops empty tokens', () => {
@@ -33,7 +33,7 @@ describe('createCsvColumn', () => {
 
   // TanStack's ColumnDef is a union that only exposes accessorFn on the
   // accessor variant; the factory always sets one, so read it via a cast.
-  const accessorOf = <R,>(col: ColumnDef<R, any>): ((row: R) => string) =>
+  const accessorOf = <R extends RowData>(col: ColumnDef<R, any>): ((row: R) => string) =>
     (col as unknown as { accessorFn: (row: R) => string }).accessorFn
 
   it('joins the row values for the accessor (search/sort/export)', () => {

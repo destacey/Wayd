@@ -12,8 +12,7 @@ import { useDocumentTitle } from '@/src/hooks'
 import { useGetRolesQuery } from '@/src/store/features/user-management/roles-api'
 import { CreateRoleForm } from './_components'
 import { RoleListDto } from '@/src/services/wayd-api'
-import type { ColumnDef } from '@tanstack/react-table'
-
+import type { ColumnDef } from '../../../../components/common/wayd-grid-core'
 const RoleListPage = () => {
   useDocumentTitle('Roles')
   const [openCreateRoleForm, setOpenCreateRoleForm] = useState(false)

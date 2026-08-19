@@ -13,8 +13,7 @@ import {
   workStatusCategorySort,
 } from '@/src/components/common/wayd-grid'
 import { WorkItemBacklogItemDto } from '@/src/services/wayd-api'
-import type { ColumnDef } from '@tanstack/react-table'
-
+import type { ColumnDef } from '../wayd-grid-core'
 export interface WorkItemsBacklogGridProps {
   workItems: WorkItemBacklogItemDto[]
   hideTeamColumn: boolean
@@ -33,7 +32,7 @@ const WorkItemsBacklogGrid = (props: WorkItemsBacklogGridProps) => {
       id: 'key',
       accessorKey: 'key',
       header: 'Key',
-      sortingFn: workItemKeySort,
+      sortFn: workItemKeySort,
       cell: ({ row }) =>
         renderWorkItemLink({
           key: row.original.key,
@@ -68,7 +67,7 @@ const WorkItemsBacklogGrid = (props: WorkItemsBacklogGridProps) => {
       accessorKey: 'statusCategory.name',
       header: 'Status Category',
       size: 140,
-      sortingFn: workStatusCategorySort,
+      sortFn: workStatusCategorySort,
       meta: { filterType: 'set' },
     },
     // Context-redundant column: excluded from the defs (not meta.hide) so
@@ -95,7 +94,7 @@ const WorkItemsBacklogGrid = (props: WorkItemsBacklogGridProps) => {
       id: 'parentKey',
       accessorKey: 'parent.key',
       header: 'Parent Key',
-      sortingFn: workItemKeySort,
+      sortFn: workItemKeySort,
       meta: { filterType: 'set' },
       cell: ({ row }) =>
         renderWorkItemLink(

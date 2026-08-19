@@ -5,7 +5,7 @@
  * against a cell value, plus a single TanStack `FilterFn` that dispatches on the
  * descriptor's `type`. UI-free and unit-testable.
  */
-import type { FilterFn } from '@tanstack/react-table'
+import type { FilterFn } from '../index'
 import dayjs from 'dayjs'
 
 import {
@@ -19,6 +19,7 @@ import {
   type NumberCondition,
   type TextCondition,
 } from './filter-model'
+import type { RowData } from '@tanstack/react-table'
 
 /** Granularity used when comparing values in date vs date-time filters. */
 type DateUnit = 'day' | 'minute'
@@ -276,7 +277,7 @@ export const waydColumnFilter: FilterFn<any> = (
  * @param getValues extracts the row's individual string values from `row.original`.
  */
 export const createMultiValueSetFilter =
-  <T>(getValues: (row: T) => string[]): FilterFn<T> =>
+  <T extends RowData>(getValues: (row: T) => string[]): FilterFn<T> =>
   (row, columnId, filterValue) => {
     if (!filterValue || typeof filterValue !== 'object') return true
     const model = filterValue as ColumnFilterModel

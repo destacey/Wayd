@@ -14,11 +14,11 @@ import {
   useDroppable,
   type DragEndEvent,
 } from '@dnd-kit/core'
-import type { ColumnDef } from '@tanstack/react-table'
-
+import type { ColumnDef } from './wayd-grid-core'
 import { useGridDndSensors } from './wayd-grid-core/dnd/grid-dnd'
 import WaydGrid from './wayd-grid/wayd-grid'
 import WaydTooltip from './wayd-tooltip'
+import type { RowData } from '@tanstack/react-table'
 
 const DEFAULT_HEIGHT = 400
 const CONTROL_COLUMN_SIZE = 44
@@ -32,7 +32,7 @@ const DROP_ZONE_ID = 'wayd-grid-transfer-target'
  * `leftData` (moved earlier, or dropped from fresh search results) are
  * ignored.
  */
-export const resolveDragItems = <TData,>(
+export const resolveDragItems = <TData extends RowData,>(
   draggedId: string,
   leftData: TData[],
   selectedIds: ReadonlySet<string>,
@@ -84,7 +84,7 @@ const TransferDropZone = ({ children }: { children: ReactNode }) => {
   )
 }
 
-export interface WaydGridTransferProps<TData> {
+export interface WaydGridTransferProps<TData extends RowData> {
   /** Rows available to pick from (the left grid). */
   leftData?: TData[]
   /** Rows already chosen (the right grid). */
@@ -117,7 +117,7 @@ export interface WaydGridTransferProps<TData> {
  * here — the grid core has no row-selection model, and the cross-grid
  * DndContext must span both grids so it cannot live inside either one.
  */
-const WaydGridTransfer = <TData,>(props: WaydGridTransferProps<TData>) => {
+const WaydGridTransfer = <TData extends RowData,>(props: WaydGridTransferProps<TData>) => {
   const {
     leftData = [],
     rightData = [],

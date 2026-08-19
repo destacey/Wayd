@@ -1,4 +1,4 @@
-import type { LegacyColumnDef as ColumnDef } from '@tanstack/react-table/legacy'
+import type { ColumnDef } from './index'
 import type { TableState } from './index'
 
 import { buildHeadlessTable } from './test-table'

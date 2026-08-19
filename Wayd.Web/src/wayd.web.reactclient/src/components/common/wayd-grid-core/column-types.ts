@@ -1,4 +1,4 @@
-import type { LegacyColumnDef as ColumnDef } from '@tanstack/react-table/legacy'
+import type { ColumnDef } from './index'
 import dayjs from 'dayjs'
 
 import type { WaydColumnType, WaydGridColumnMeta } from './types'

@@ -15,7 +15,7 @@ import {
   ColumnWidthOutlined,
   ControlOutlined,
 } from '@ant-design/icons'
-import type { LegacyHeader as Header, LegacyReactTable as Table } from '@tanstack/react-table/legacy'
+import type { Header, Table } from './index'
 import type { ColumnPinningPosition } from '@tanstack/react-table'
 import {
   DndContext,

@@ -1,6 +1,6 @@
 'use client'
 
-import type { LegacyCell as Cell, LegacyRow as Row } from '@tanstack/react-table/legacy'
+import type { Cell, Row } from './index'
 import { flexRender } from '@tanstack/react-table'
 import { GridSortableRow } from './dnd/grid-dnd'
 import {

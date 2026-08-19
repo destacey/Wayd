@@ -1,4 +1,4 @@
-import type { LegacyColumnDef as ColumnDef, LegacyRow as Row } from '@tanstack/react-table/legacy'
+import type { ColumnDef, Row } from './index'
 import { createCsvColumn, splitCsv } from './csv-column'
 import type { SetFilterModel } from './filters'
 import type { RowData } from '@tanstack/react-table'

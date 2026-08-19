@@ -17,11 +17,6 @@ import { Popover, Spin } from 'antd'
 import type { FormInstance } from 'antd'
 import { FilterFilled, FilterOutlined } from '@ant-design/icons'
 import type { RowData } from '@tanstack/react-table'
-import {
-  getExpandedRowModel,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
-} from '@tanstack/react-table/legacy'
 import type {
   Column,
   ColumnDef,
@@ -1361,8 +1356,6 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
     columns: resolvedColumns,
     gridState,
     tableOptions: {
-      getFacetedRowModel: getFacetedRowModel(),
-      getFacetedUniqueValues: getFacetedUniqueValues(),
       defaultColumn: {
         filterFn: waydColumnFilter,
         sortFn: sortEmptyLast,
@@ -1372,7 +1365,6 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
       // visible (filterFromLeafRows).
       ...(isTree
         ? {
-            getExpandedRowModel: getExpandedRowModel(),
             getSubRows,
             filterFromLeafRows: true,
             initialState: { expanded: true as const },

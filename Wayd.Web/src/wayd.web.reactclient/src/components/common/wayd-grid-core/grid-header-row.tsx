@@ -8,7 +8,7 @@ import {
   type TouchEvent,
 } from 'react'
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons'
-import type { LegacyHeader as Header } from '@tanstack/react-table/legacy'
+import type { Header } from './index'
 import { flexRender } from '@tanstack/react-table'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'

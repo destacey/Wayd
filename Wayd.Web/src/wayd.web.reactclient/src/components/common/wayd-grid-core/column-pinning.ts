@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import type { LegacyColumn as Column, LegacyHeader as Header } from '@tanstack/react-table/legacy'
+import type { Column, Header } from './index'
 import type { RowData } from '@tanstack/react-table'
 /**
  * Sticky-rendering facts for a pinned column's cells, derived from TanStack's

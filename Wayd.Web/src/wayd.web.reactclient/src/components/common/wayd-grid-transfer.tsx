@@ -18,7 +18,7 @@ import type { ColumnDef } from './wayd-grid-core'
 import { useGridDndSensors } from './wayd-grid-core/dnd/grid-dnd'
 import WaydGrid from './wayd-grid/wayd-grid'
 import WaydTooltip from './wayd-tooltip'
-import type { RowData } from '@tanstack/react-table'
+import type { RowData, RowSelectionState } from '@tanstack/react-table'
 
 const DEFAULT_HEIGHT = 400
 const CONTROL_COLUMN_SIZE = 44
@@ -129,56 +129,30 @@ const WaydGridTransfer = <TData extends RowData,>(props: WaydGridTransferProps<T
     height = DEFAULT_HEIGHT,
   } = props
 
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [displayedLeftRows, setDisplayedLeftRows] = useState<TData[]>([])
+  // TanStack owns selection (see WaydGrid's `rowSelection` prop): select-all
+  // is filtered-scoped and selections survive a filter change, which is the
+  // behavior this transfer needs.
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [draggingId, setDraggingId] = useState<string | null>(null)
 
   const sensors = useGridDndSensors()
 
   // Intersect with leftData so ids that left the grid (moved, or dropped from
   // fresh search results) never count toward the move button or payload.
+  const selectedIds = new Set(
+    Object.entries(rowSelection)
+      .filter(([, isSelected]) => isSelected)
+      .map(([id]) => id),
+  )
   const selectedItems = leftData.filter((item) =>
     selectedIds.has(getRowId(item)),
   )
 
-  const displayedIds = displayedLeftRows.map(getRowId)
-  const allDisplayedSelected =
-    displayedIds.length > 0 && displayedIds.every((id) => selectedIds.has(id))
-  const someDisplayedSelected = displayedIds.some((id) => selectedIds.has(id))
-
-  const toggleRow = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      return next
-    })
-  }
-
-  const toggleAllDisplayed = () => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      for (const id of displayedIds) {
-        if (allDisplayedSelected) {
-          next.delete(id)
-        } else {
-          next.add(id)
-        }
-      }
-      return next
-    })
-  }
-
   const moveItems = (items: TData[]) => {
     if (items.length === 0) return
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      for (const item of items) {
-        next.delete(getRowId(item))
-      }
+    setRowSelection((prev) => {
+      const next = { ...prev }
+      for (const item of items) delete next[getRowId(item)]
       return next
     })
     onMove(items)
@@ -212,24 +186,25 @@ const WaydGridTransfer = <TData extends RowData,>(props: WaydGridTransferProps<T
       size: CONTROL_COLUMN_SIZE,
       enableSorting: false,
       enableColumnFilter: false,
-      header: () => (
+      header: ({ table }) => (
         <Checkbox
           aria-label="Select all rows"
-          checked={allDisplayedSelected}
-          indeterminate={!allDisplayedSelected && someDisplayedSelected}
-          onChange={toggleAllDisplayed}
+          checked={table.getIsAllRowsSelected()}
+          // getIsSomeRowsSelected() is "at least one" in v9, so it is true
+          // when all are selected too -- exclude that for the dash state.
+          indeterminate={
+            !table.getIsAllRowsSelected() && table.getIsSomeRowsSelected()
+          }
+          onChange={() => table.toggleAllRowsSelected()}
         />
       ),
-      cell: ({ row }) => {
-        const id = getRowId(row.original)
-        return (
-          <Checkbox
-            aria-label="Select row"
-            checked={selectedIds.has(id)}
-            onChange={() => toggleRow(id)}
-          />
-        )
-      },
+      cell: ({ row }) => (
+        <Checkbox
+          aria-label="Select row"
+          checked={row.getIsSelected()}
+          onChange={() => row.toggleSelected()}
+        />
+      ),
     },
     ...columns,
   ]
@@ -274,7 +249,8 @@ const WaydGridTransfer = <TData extends RowData,>(props: WaydGridTransferProps<T
             height={height}
             includeGlobalSearch={false}
             includeExportButton={false}
-            onDisplayedRowsChange={setDisplayedLeftRows}
+            rowSelection={rowSelection}
+            onRowSelectionChange={setRowSelection}
           />
         </div>
         <Flex vertical justify="center">

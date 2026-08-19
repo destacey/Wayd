@@ -1,4 +1,5 @@
 import type { ColumnDef, Row, SortingState } from '../wayd-grid-core'
+import type { OnChangeFn, RowSelectionState } from '@tanstack/react-table'
 import type { FormInstance } from 'antd'
 import type { DraftItem } from '../wayd-grid-core/draft-utils'
 import type { MoveValidator } from '../wayd-grid-core/dnd/tree-projection'
@@ -197,6 +198,18 @@ export interface WaydGridProps<T extends RowData> {
    * external UI (e.g. a chart) from the grid state.
    */
   onDisplayedRowsChange?: (rows: T[]) => void
+
+  /**
+   * Controlled TanStack row-selection state (a map of row id -> selected).
+   * Supplying it turns on the grid's selection APIs -- `table.getIsSelected()`,
+   * `getToggleAllRowsSelectedHandler()`, etc. -- so consumers render their own
+   * checkbox column against the table instead of tracking selection
+   * themselves. Select-all is scoped to the FILTERED rows; selections of rows
+   * that later filter out are retained, matching TanStack.
+   */
+  rowSelection?: RowSelectionState
+  /** Change handler for {@link rowSelection}. Required to make it editable. */
+  onRowSelectionChange?: OnChangeFn<RowSelectionState>
 
   // -- Flat row reorder (enabled when provided) --
   /**

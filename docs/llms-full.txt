@@ -339,19 +339,19 @@ Lifecycle: Proposed is editable/deletable; Active is locked and assignable; Arch
 
 ### Project Lifecycles
 
-Templates of phases. States: Proposed (editable) → Active (locked) → Archived.
-Must have min 1 phase to activate. Only Proposed deletable/editable.
+Templates of stages. States: Proposed (editable) → Active (locked) → Archived.
+Must have min 1 stage to activate. Only Proposed deletable/editable.
 
-### Project Phases
+### Project Stages
 
-Concrete instances from lifecycle template. Properties:
+Concrete instances created from the lifecycle's stages. Properties:
 - Name (from template, not editable), Description (editable), Status (NotStarted/InProgress/Completed/Canceled)
 - Date Range, Progress (0-100%), Roles (Assignee)
-Rules: Date range is optional unless root tasks have dates, in which case it automatically rolls up to cover the child range span. A phase range cannot be manually shrunk behind its children's dates, nor can its dates be cleared while root tasks have dates.
+Rules: Date range is optional unless root tasks have dates, in which case it automatically rolls up to cover the child range span. A stage range cannot be manually shrunk behind its children's dates, nor can its dates be cleared while root tasks have dates.
 
 ### Project Tasks
 
-Hierarchical work items within phases (WBS). Properties:
+Hierarchical work items within stages (WBS). Properties:
 - Key: {ProjectKey}-{Number}. Name, Description, Type (Task/Milestone)
 - Status (NotStarted/InProgress/Completed/Canceled), Priority (Low/Medium/High/Critical)
 - Progress (0-100 for tasks, 0 or 100 for milestones), Order, Dates, Effort (hours)
@@ -495,7 +495,7 @@ Work Management
 PPM
   Portfolio → contains → Program → groups → Project
   Portfolio → contains → Strategic Initiative → tracks → KPI
-  Project → has → Lifecycle → defines → Phase → contains → Task
+  Project → has → Lifecycle → defines → Stage → copied to → Stage → contains → Task
   Strategic Theme → tags → Project, Program, Strategic Initiative
 
 Strategic Management

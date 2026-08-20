@@ -1,6 +1,6 @@
 ---
 title: Bulk Import
-description: Loading portfolios, programs, projects, tasks, phases, strategic themes, and initiatives into Wayd from CSV via the import API.
+description: Loading portfolios, programs, projects, tasks, stages, strategic themes, and initiatives into Wayd from CSV via the import API.
 sidebar_position: 5
 audience: [user, agent]
 ---
@@ -53,7 +53,7 @@ Reference data (expenditure categories, project lifecycles — created in Settin
   → Programs
   → Projects
   → Project tasks
-  → Project phase statuses
+  → Project stage statuses
   → Strategic initiatives (with KPIs)
   → Finalize (close historical programs and portfolios)
 ```
@@ -78,7 +78,7 @@ Each import requires the **Import** permission for the relevant resource:
 | Strategic themes | Import Strategic Themes |
 | Portfolios · Finalize | Import Portfolios |
 | Programs | Import Programs |
-| Projects · Tasks · Phases | Import Projects |
+| Projects · Tasks · Stages | Import Projects |
 | Strategic initiatives (+ KPIs) | Import Strategic Initiatives |
 
 ---
@@ -185,8 +185,8 @@ cycle is rejected.
 | `ProjectKey` | Yes | The project this task belongs to, by key. |
 | `Name` | Yes | Unique within the project (child tasks reference parents by name). Max 128 chars. |
 | `Description` | No | Max 2048 chars. |
-| `PhaseName` | Yes | A phase of the project's assigned lifecycle, by name. |
-| `ParentTaskName` | No | The parent task, by name. Empty makes this a root task of its phase. |
+| `StageName` | Yes | A project stage, by name — created from a stage of the project's assigned lifecycle. |
+| `ParentTaskName` | No | The parent task, by name. Empty makes this a root task of its stage. |
 | `Type` | No | `Task` or `Milestone`. Defaults to `Task`. |
 | `Status` | No | `NotStarted`, `InProgress`, `Completed`, or `Canceled`. Defaults to `NotStarted`. |
 | `Priority` | No | `Low`, `Medium`, `High`, or `Critical`. Defaults to `Medium`. |
@@ -196,23 +196,23 @@ cycle is rejected.
 | `EstimatedEffortHours` | No | Greater than 0 when present. |
 | `Assignees` | No | Semicolon-separated employee numbers. |
 
-## Project phase statuses import
+## Project stage statuses import
 
-`POST /api/ppm/projects/phases/import`
+`POST /api/ppm/projects/stages/import`
 
-Sets the [status of project phases](./projects.mdx#project-phases). Phases come from the project's assigned lifecycle
-and start as *Not Started*; this import sets each one's status.
+Sets the [status of project stages](./projects.mdx#project-stages). Stages are created from the stages of the
+project's assigned lifecycle and start as *Not Started*; this import sets each one's status.
 
 | Column | Required | Notes |
 |---|---|---|
 | `ProjectKey` | Yes | The project, by key. |
-| `PhaseName` | Yes | A phase of the project's lifecycle, by name. |
+| `StageName` | Yes | A project stage, by name — created from a stage of the project's lifecycle. |
 | `Status` | Yes | `NotStarted`, `InProgress`, `Completed`, or `Canceled`. |
 
 :::note Applied exactly as given
-This import sets phase status to **exactly** the value supplied — it does **not** derive a phase's status
-from its tasks. Whatever produces the file decides what each phase's status should be, so you keep full
-control. (The [data-generation tool](../../contributing/tools/data-generation.mdx) rolls each phase's status
+This import sets stage status to **exactly** the value supplied — it does **not** derive a stage's status
+from its tasks. Whatever produces the file decides what each stage's status should be, so you keep full
+control. (The [data-generation tool](../../contributing/tools/data-generation.mdx) rolls each stage's status
 up from its tasks and emits these rows for seeding.)
 :::
 

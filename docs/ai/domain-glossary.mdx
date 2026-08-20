@@ -43,7 +43,7 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Roadmap** | A visual timeline for planning work. Has Visibility (Public/Private), Managers (min 1), and hierarchical Items (Activities, Milestones, Timeboxes). Date ranges are inclusive, so start and end may be the same day. Can be copied. Optionally has a **Color palette** — an ordered set of named colors (one optional default) used to color activities and drive the timeline legend. |
 | **Activity** | A roadmap item with an inclusive date range that can contain child items (other activities, milestones, timeboxes). Ordered within parent. Parent activities auto-expand to contain child dates; shrinking an activity behind its children is rejected; moving an activity without changing duration shifts the whole subtree. |
 | **Milestone** | A roadmap item representing a single point in time (key date or achievement). |
-| **Timebox** | A roadmap item representing a fixed time period (e.g., a sprint or phase). |
+| **Timebox** | A roadmap item representing a fixed time period (e.g., a sprint or stage). |
 | **Planning Poker** | Collaborative estimation using estimation scales and real-time voting via SignalR. Behind `planning-poker` feature flag. |
 | **Estimation Scale** | A named set of values for estimation (e.g., Fibonacci: 1, 2, 3, 5, 8, 13). Minimum 2 values. |
 | **Poker Session** | A real-time estimation event with a facilitator, estimation scale, and rounds. Immediately Active on creation. |
@@ -52,7 +52,7 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Goal** | The top level of a story map — what the user is trying to accomplish (the "backbone"). Ordered within the map. May have zero steps. Deleting a goal cascades to its steps and their tasks. |
 | **Step** | A stage within a goal, occupying one column of the board. Ordered within its goal. May have zero tasks. Can be moved between goals. |
 | **Story Map Task** | A unit of work under a step, positioned at the intersection of its step and a swim lane. `Order` is scoped per (step × swim lane) cell, not per step. Optionally links to one work item. |
-| **Swim Lane** | A horizontal band slicing a story map into releases or phases. Every map has exactly one default lane (named "Tasks", Order 0) that cannot be renamed, reordered, or removed. Removing a lane reassigns its tasks to the default lane rather than deleting them. |
+| **Swim Lane** | A horizontal band slicing a story map into releases or stages. Every map has exactly one default lane (named "Tasks", Order 0) that cannot be renamed, reordered, or removed. Removing a lane reassigns its tasks to the default lane rather than deleting them. |
 | **Persona** | An audience tag scoped to a single story map. Has Name, optional Description, and Color. Tagged on steps and tasks (goals are tagged only by inheritance in the UI). Deleting a persona untags it everywhere without deleting the tagged work. |
 | **Checklist Item** | A sub-item of a story map task, with Name and IsChecked. Can be **promoted** into a full task in the same step, always landing in the default swim lane. Exposed via API; no board UI as of this writing. |
 
@@ -101,10 +101,10 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Program** | Groups related projects within a portfolio. Status: Proposed → Active → Completed/Canceled. Only active programs accept new projects. |
 | **Project** | A timed endeavor with scope, timeline, and deliverables. Key is 2-20 uppercase alphanumeric. Status: Proposed → Approved (requires lifecycle) → Active (requires dates) → Completed/Canceled. Uniquely among PPM records, a project can also move **backwards** — see Project Status Revert. |
 | **Project Key** | A unique 2-20 character uppercase alphanumeric code identifying a project (e.g., `APOLLO`). Can be changed (cascades to task keys). |
-| **Project Lifecycle** | A template of phases that projects go through. States: Proposed (editable) → Active (locked) → Archived. Must have min 1 phase to activate. |
-| **Project Lifecycle Phase** | A template phase within a lifecycle (e.g., Initiation, Planning, Execution, Closing). Ordered. Immutable after lifecycle activation. |
-| **Project Phase** | A concrete instance of a lifecycle phase on a project. Has Status (NotStarted/InProgress/Completed/Canceled), Date Range, Progress (0-100%), and Assignee roles. Date range is optional unless root tasks have dates, in which case it automatically rolls up to encompass the minimum start and maximum end dates of all tasks under the phase. |
-| **Project Task** | An actionable work item within a project phase. Key: ProjectKey-Number. Type: Task (date range, 0-100% progress) or Milestone (single date, 0 or 100% only). Supports hierarchy (WBS) and Finish-to-Start dependencies. Parent task date ranges automatically roll up from child dates. A parent task cannot be manually shrunk behind its children's dates, nor can its dates be cleared while children have dates. Shifting a parent task shifts its dated descendants. |
+| **Project Lifecycle** | A template of stages that projects go through. States: Proposed (editable) → Active (locked) → Archived. Must have min 1 stage to activate. |
+| **Project Lifecycle Stage** | A template stage within a lifecycle (e.g., Initiation, Planning, Execution, Closing). Ordered. Immutable after lifecycle activation. |
+| **Project Stage** | A concrete instance of a lifecycle stage on a project. Has Status (NotStarted/InProgress/Completed/Canceled), Date Range, Progress (0-100%), and Assignee roles. Date range is optional unless root tasks have dates, in which case it automatically rolls up to encompass the minimum start and maximum end dates of all tasks under the stage. |
+| **Project Task** | An actionable work item within a project stage. Key: ProjectKey-Number. Type: Task (date range, 0-100% progress) or Milestone (single date, 0 or 100% only). Supports hierarchy (WBS) and Finish-to-Start dependencies. Parent task date ranges automatically roll up from child dates. A parent task cannot be manually shrunk behind its children's dates, nor can its dates be cleared while children have dates. Shifting a parent task shifts its dated descendants. |
 | **Project Rank** | Opaque fractional sort key used to order projects within a portfolio. Every project receives a rank on creation. Users see the derived 1-based display position, not the raw rank value. |
 | **Portfolio Ranking Board** | Portfolio detail tab that shows Proposed, Approved, and Active projects in rank order. Portfolio Owners/Managers — and PPM Administrators — can drag projects to reorder them; score columns come from the current portfolio scoring model when assigned. |
 | **Delivery Leadership** | The PPM membership rule that decides *which* records a user may change, evaluated in addition to the permission claim. An actor leads a record if they hold the Owner or Manager role on it or on any ancestor (project ← program ← portfolio); leadership inherits downward. Sponsors and project Members are deliberately excluded — they fund, oversee, or contribute, but don't run delivery. Gates status transitions, detail/timeline edits, role assignment, health checks, scores, and ranking. Does not gate viewing, creation, deletion, or bulk import. |
@@ -120,7 +120,7 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **KPI Checkpoint** | A planned target value at a specific date within a KPI. Has TargetValue and optional AtRiskValue threshold. |
 | **KPI Measurement** | An actual recorded value at a specific date. Most recent becomes the KPI's ActualValue. |
 | **Expenditure Category** | Classifies project spending. Has IsCapitalizable, RequiresDepreciation, AccountingCode. Settings frozen after activation. |
-| **My Projects Dashboard** | Personalized view of projects where the user has a role. Two-panel layout: portfolio-grouped project cards (left) and selected project detail with phase timeline and task summary (right). |
+| **My Projects Dashboard** | Personalized view of projects where the user has a role. Two-panel layout: portfolio-grouped project cards (left) and selected project detail with stage timeline and task summary (right). |
 
 ## Strategic Management
 

@@ -1,6 +1,6 @@
 ---
 title: Project Portfolio Management
-description: Managing portfolios, programs, projects, strategic initiatives, lifecycles, phases, tasks, and KPIs in Wayd.
+description: Managing portfolios, programs, projects, strategic initiatives, lifecycles, stages, tasks, and KPIs in Wayd.
 sidebar_position: 4
 audience: [user, agent]
 ---
@@ -24,7 +24,7 @@ graph LR
         Proj["Projects"]
         SI["Strategic Initiatives"]
         KPI["KPIs"]
-        Phase["Phases"]
+        Stage["Stages"]
         Task["Tasks"]
     end
     subgraph "Work Management"
@@ -42,8 +42,8 @@ graph LR
     PF -->|contains| SI
     PF -->|ranks| Proj
     Prog -->|groups| Proj
-    Proj -->|has| Phase
-    Phase -->|has| Task
+    Proj -->|has| Stage
+    Stage -->|has| Task
     SI -->|tracks| KPI
     SI -->|links to| Proj
     WI -->|associated with| Proj
@@ -59,10 +59,10 @@ graph LR
 ## Sections
 
 - **[Portfolios & Programs](./portfolios-programs.mdx)** — Top-level containers, program management, and portfolio governance
-- **[Projects](./projects.mdx)** — Project lifecycle, phases, tasks, dependencies, health checks, and the plan tab
+- **[Projects](./projects.mdx)** — Project lifecycle, stages, tasks, dependencies, health checks, and the plan tab
 - **[Strategic Initiatives](./strategic-initiatives.mdx)** — Initiative tracking with KPIs, checkpoints, and measurements
 - **[My Projects Dashboard](./my-projects.mdx)** — Personalized project overview with task metrics
-- **[Bulk Import](./bulk-import.mdx)** — Loading portfolios, programs, projects, tasks, phases, themes, and initiatives from CSV via the import API
+- **[Bulk Import](./bulk-import.mdx)** — Loading portfolios, programs, projects, tasks, stages, themes, and initiatives from CSV via the import API
 
 ## Business Rules Summary
 
@@ -79,6 +79,6 @@ graph LR
 | Task hierarchy | Milestones cannot have children |
 | Task deletion | Cannot delete tasks with children or active dependencies |
 | Dependencies | Cannot create circular task dependencies |
-| Lifecycle lock | Phases cannot be modified after lifecycle activation |
+| Lifecycle lock | Stages cannot be modified after lifecycle activation |
 | Financial freeze | [Expenditure category](../settings/index.mdx#expenditure-categories) settings frozen after activation |
 | Initiative read-only | Completed/Canceled [initiatives](./strategic-initiatives.mdx) cannot be modified |

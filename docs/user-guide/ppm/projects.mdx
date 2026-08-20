@@ -1,13 +1,13 @@
 ---
 title: Projects
-description: Project lifecycle, phases, tasks, dependencies, lifecycles, project health checks, and the project plan in Wayd.
+description: Project lifecycle, stages, tasks, dependencies, lifecycles, project health checks, and the project plan in Wayd.
 sidebar_position: 2
 audience: [user, agent]
 ---
 
 # Projects
 
-A **Project** represents a timed endeavor with defined scope, timeline, and deliverables. Projects are the most feature-rich entities in PPM, supporting full lifecycle management with phases, tasks, and dependencies.
+A **Project** represents a timed endeavor with defined scope, timeline, and deliverables. Projects are the most feature-rich entities in PPM, supporting full lifecycle management with stages, tasks, and dependencies.
 
 Every project has:
 - **Key** — Unique identifier (2-20 uppercase alphanumeric characters, e.g., `APOLLO`)
@@ -15,7 +15,7 @@ Every project has:
 - **Status** — Proposed, Approved, Active, Completed, or Canceled
 - **Date Range** — Start and optional end date
 - **[Expenditure Category](../settings/index.mdx#expenditure-categories)** — Budget classification
-- **[Lifecycle](#project-lifecycles)** — Defines the phases the project goes through
+- **[Lifecycle](#project-lifecycles)** — Defines the stages the project goes through
 - **Roles** — Sponsor, Owner, Manager, Member (see [Project Roles](#project-roles))
 - **Health Check** — Optional point-in-time project health signal (Healthy, At Risk, Unhealthy) with expiration
 - **Priority Score** — Optional score recorded with the project's portfolio [scoring model](./portfolios-programs.mdx#portfolio-project-scoring)
@@ -116,12 +116,12 @@ The project detail page adapts based on the project's status:
 *Left sidebar* — [Portfolio](./portfolios-programs.mdx#portfolios) link, [Program](./portfolios-programs.mdx#programs) link (if assigned), date range, [Expenditure Category](../settings/index.mdx#expenditure-categories), Lifecycle name with tooltip, [Strategic Themes](../strategic-management/index.mdx#strategic-themes), Sponsors/Owners/Managers/Members, timeline progress bar, Priority Score (when enabled), and links.
 
 *Right content area* — Changes based on status:
-- **Pre-Execution** (Proposed/Approved): Shows **Project Definition** first (Description, Business Case, Expected Benefits as expandable Markdown sections), then [Phases](#project-phases)/[Tasks](#project-tasks)
-- **Execution** (Active+): Shows **[Phases](#project-phases)** first, then Project Definition
+- **Pre-Execution** (Proposed/Approved): Shows **Project Definition** first (Description, Business Case, Expected Benefits as expandable Markdown sections), then [Stages](#project-stages)/[Tasks](#project-tasks)
+- **Execution** (Active+): Shows **[Stages](#project-stages)** first, then Project Definition
 
 The page header also shows a **Health tag** when the project has an active health check. Hovering the tag shows details (status, reported by, reported on, expiration, and note).
 
-The **Phase Timeline** is a step-based visualization showing each phase's status (completed, in progress, not started, canceled), date range, and progress percentage. It automatically adjusts between horizontal and vertical layout based on available space.
+The **Stage Timeline** is a step-based visualization showing each stage's status (completed, in progress, not started, canceled), date range, and progress percentage. It automatically adjusts between horizontal and vertical layout based on available space.
 
 Warning alerts appear when requirements are missing:
 - *"Project Dates are required before activating"*
@@ -131,7 +131,7 @@ Warning alerts appear when requirements are missing:
 
 **Plan Tab** (only visible if lifecycle is assigned) — This is the project's work breakdown structure:
 
-- **Tree grid** with hierarchical [tasks](#project-tasks) organized by [phase](#project-phases)
+- **Tree grid** with hierarchical [tasks](#project-tasks) organized by [stage](#project-stages)
 - **Drag-and-drop** reordering (for users with update permission)
 - **Inline-editable columns**: Name, Type (Task/Milestone), Status, Priority, Start Date, End Date, Planned Date, Assigned Members, Progress %, Estimated Effort
 - **Row actions**: Edit task, Delete task, Add child task
@@ -139,7 +139,7 @@ Warning alerts appear when requirements are missing:
 - **Drawer actions**: Edit, Delete, and Add child task (same actions as row menu)
 - **Drawer links**: Parent Task and Assignees are clickable links
 - **Description rendering**: Task Description supports Markdown
-- **Filtering** by task type, status, and priority (Type filter includes **Phase**)
+- **Filtering** by task type, status, and priority (Type filter includes **Stage**)
 - **Keyboard shortcuts** for efficient navigation
 
 Common keyboard shortcuts in Plan:
@@ -250,37 +250,37 @@ To create, edit, or delete project health checks, users need project update righ
 
 ## Project Lifecycles
 
-A **Project Lifecycle** defines the template of phases that a project goes through from inception to completion. Lifecycles are configured in [Settings > PPM > Project Lifecycles](../settings/index.mdx#project-lifecycles).
+A **Project Lifecycle** defines the template of stages that a project goes through from inception to completion. Lifecycles are configured in [Settings > PPM > Project Lifecycles](../settings/index.mdx#project-lifecycles).
 
 Lifecycles have a state:
-- **Proposed** — Being defined; phases can be added, modified, reordered
-- **Active** — In use; phases are locked and cannot be changed
+- **Proposed** — Being defined; stages can be added, modified, reordered
+- **Active** — In use; stages are locked and cannot be changed
 - **Archived** — No longer assignable to new projects (existing projects unaffected)
 
-Each lifecycle contains ordered **Phases** (e.g., Initiation, Planning, Execution, Closing). When a lifecycle is assigned to a project, its phases are copied as [Project Phases](#project-phases) that can then be tracked independently.
+Each lifecycle contains ordered **Stages** (e.g., Initiation, Planning, Execution, Closing). When a lifecycle is assigned to a project, its stages are copied as [Project Stages](#project-stages) that can then be tracked independently.
 
 **Business rules:**
-- Must have at least one phase before activation
-- Only Proposed lifecycles can have phases modified
+- Must have at least one stage before activation
+- Only Proposed lifecycles can have stages modified
 - Only Proposed lifecycles can be deleted
 
-Projects can **change lifecycles** after assignment. When changing, a phase mapping dialog allows you to map [tasks](#project-tasks) from old phases to new phases.
+Projects can **change lifecycles** after assignment. When changing, a mapping dialog allows you to map [tasks](#project-tasks) from the project's existing stages onto the new lifecycle's stages.
 
-## Project Phases
+## Project Stages
 
-When a lifecycle is assigned to a project, its template phases become **Project Phases** — concrete instances that track actual progress.
+When a lifecycle is assigned to a project, its template stages become **Project Stages** — concrete instances that track actual progress.
 
-Each phase has:
+Each stage has:
 - **Name** — Copied from the lifecycle template (not editable)
 - **Description** — Editable per project
 - **Status** — Not Started, In Progress, Completed, or Canceled
 - **Date Range** — Planned start and end dates
 - **Progress** — 0-100% completion
-- **Roles** — People assigned to work on this phase (Assignee)
+- **Roles** — People assigned to work on this stage (Assignee)
 
 ## Project Tasks
 
-**Tasks** are the actionable work items within a [project phase](#project-phases). They support a hierarchical work breakdown structure (WBS).
+**Tasks** are the actionable work items within a [project stage](#project-stages). They support a hierarchical work breakdown structure (WBS).
 
 ### Task Types
 
@@ -307,7 +307,7 @@ Tasks can contain child tasks, creating a work breakdown structure:
 
 ```mermaid
 graph TD
-    P1["Phase: Planning"]
+    P1["Stage: Planning"]
     T1["Task: Requirements Gathering"]
     T2["Task: Architecture Design"]
     M1["Milestone: Design Complete"]
@@ -326,9 +326,9 @@ graph TD
 - Milestones cannot be In Progress (only Not Started or Completed)
 - Tasks cannot be deleted if they have children or active dependencies
 - Tasks cannot be moved under their own descendants (prevents circular references)
-- **Date Rollup** — Phase and parent task date ranges automatically roll up from child dates:
-  - If a phase or parent task has dated children, its range automatically expands to cover the minimum start date through the maximum end date of its descendants.
-  - A phase or parent task date range cannot be manually shrunk behind its children's dates, nor can its dates be cleared while any of its descendants have dates.
+- **Date Rollup** — Stage and parent task date ranges automatically roll up from child dates:
+  - If a stage or parent task has dated children, its range automatically expands to cover the minimum start date through the maximum end date of its descendants.
+  - A stage or parent task date range cannot be manually shrunk behind its children's dates, nor can its dates be cleared while any of its descendants have dates.
   - Leaf regular tasks and empty containers can remain undated.
   - Shifting a parent task's range offsets all of its dated descendants by the same duration.
 
@@ -350,13 +350,13 @@ Tasks support **Finish-to-Start** dependencies — a predecessor task must compl
 6. Add **Roles** to assign [team](../organizations/index.mdx#teams) members
 7. **Approve** the project (requires lifecycle), then **Activate** (requires date range)
 
-### Managing Project Phases and Tasks
+### Managing Project Stages and Tasks
 
 1. Navigate to the project detail page
 2. Go to the **Plan** tab (visible once a [lifecycle](#project-lifecycles) is assigned)
-3. Create [tasks](#project-tasks) within each [phase](#project-phases) — choose Task or Milestone type
+3. Create [tasks](#project-tasks) within each [stage](#project-stages) — choose Task or Milestone type
 4. Set priority, dates, assignees, and estimated effort
-5. Drag and drop to reorder tasks within phases
+5. Drag and drop to reorder tasks within stages
 6. Set [dependencies](#task-dependencies) between tasks
 7. Track progress and update statuses
 
@@ -372,6 +372,6 @@ Tasks support **Finish-to-Start** dependencies — a predecessor task must compl
 
 1. Navigate to [Settings > PPM > Project Lifecycles](../settings/index.mdx#project-lifecycles)
 2. Click **Create Lifecycle**
-3. Add **Phases** in order (e.g., Initiation, Planning, Execution, Closing)
-4. **Activate** the lifecycle when the phase list is complete
+3. Add **Stages** in order (e.g., Initiation, Planning, Execution, Closing)
+4. **Activate** the lifecycle when the stage list is complete
 5. The lifecycle can now be assigned to projects

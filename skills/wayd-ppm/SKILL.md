@@ -1,6 +1,6 @@
 ---
 name: wayd-ppm
-description: Guides agents working with Wayd Portfolio, Program, Project, and Task management via the Wayd MCP server. Use when looking up portfolios, programs, or projects, exploring project lifecycles and phases, viewing the project plan or team, reviewing project scores or a portfolio's ranking board, exploring strategic initiatives and their KPIs or recording KPI measurements, approving, activating, completing, cancelling, closing, or archiving any of those records, or creating, updating, or managing tasks within a project.
+description: Guides agents working with Wayd Portfolio, Program, Project, and Task management via the Wayd MCP server. Use when looking up portfolios, programs, or projects, exploring project lifecycles and stages, viewing the project plan or team, reviewing project scores or a portfolio's ranking board, exploring strategic initiatives and their KPIs or recording KPI measurements, approving, activating, completing, cancelling, closing, or archiving any of those records, or creating, updating, or managing tasks within a project.
 ---
 
 # Wayd PPM (Portfolio / Program / Project / Task Management)
@@ -9,8 +9,8 @@ description: Guides agents working with Wayd Portfolio, Program, Project, and Ta
 
 - Finding or listing portfolios, programs, or projects
 - Understanding what projects or programs are in a portfolio
-- Exploring project lifecycles and their phases
-- Viewing a project's plan tree, phases, team, or plan summary metrics
+- Exploring project lifecycles and their stages
+- Viewing a project's plan tree, stages, team, or plan summary metrics
 - Listing, creating, updating, or deleting tasks within a project
 - Managing task hierarchies, dependencies, or the critical path
 - Reviewing or logging project health checks (Healthy / AtRisk / Unhealthy)
@@ -18,7 +18,7 @@ description: Guides agents working with Wayd Portfolio, Program, Project, and Ta
 - Exploring strategic initiatives, their KPIs, and recording KPI measurements
 - Changing the status of a portfolio, program, project, or strategic initiative (approve, activate, complete, cancel, close, archive)
 
-> **Note on what can be changed via MCP.** Portfolios, programs, and projects can be **created and updated**, and their **status changed** (confirm with the user first — see below). **Tasks** support full CRUD. **Project health checks** support create, update, and delete. **KPI measurements** can be added and removed. Read-only: scoring and ranking (scores cannot be recorded, ranks cannot be reordered), project **lifecycles and phases**, and strategic **initiative records** and their **KPI definitions** — initiative status can still be changed and measurements still recorded. Nothing here deletes a portfolio, program, or project.
+> **Note on what can be changed via MCP.** Portfolios, programs, and projects can be **created and updated**, and their **status changed** (confirm with the user first — see below). **Tasks** support full CRUD. **Project health checks** support create, update, and delete. **KPI measurements** can be added and removed. Read-only: scoring and ranking (scores cannot be recorded, ranks cannot be reordered), project **lifecycles and stages**, and strategic **initiative records** and their **KPI definitions** — initiative status can still be changed and measurements still recorded. Nothing here deletes a portfolio, program, or project.
 
 ---
 
@@ -35,9 +35,9 @@ Portfolio
 │   └── Projects (the delivery work, linked many-to-many)
 └── Program (optional grouping)
     └── Project
-        ├── Lifecycle (optional — defines the phases a project moves through)
-        │   └── Phases (ordered stages of the project plan)
-        │       └── Tasks (leaf tasks assigned to a phase)
+        ├── Lifecycle (optional — defines the stages a project moves through)
+        │   └── Stages (ordered stages of the project plan)
+        │       └── Tasks (leaf tasks assigned to a stage)
         ├── Team Members (employees with project roles)
         ├── Work Items
         └── Tasks
@@ -59,20 +59,20 @@ Portfolio
 - Must belong to a portfolio; optionally belongs to a program
 - Has a unique string `key` (2–20 uppercase alphanumeric, e.g. `MYPROJ`)
 - Has a status (integer enum — call `Projects_GetStatuses` to resolve values)
-- May have an assigned lifecycle that defines its phases
+- May have an assigned lifecycle that defines its stages, created from the lifecycle's stages
 
 ### Project Lifecycle
 
-- A reusable template that defines an ordered set of named phases
+- A reusable template that defines an ordered set of named stages
 - Has a **state**: `1=Proposed`, `2=Active`, `3=Archived`
 - Only `Active` lifecycles can be assigned to projects
-- Phases within a lifecycle are ordered and named (e.g. Initiation, Planning, Execution, Closure)
+- Stages within a lifecycle are ordered and named (e.g. Initiation, Planning, Execution, Closure)
 
-### Project Phase
+### Project Stage
 
 - A stage of a specific project's plan, derived from its assigned lifecycle
 - Has a **status**, date range, progress, and assignees
-- Tasks in the project are associated with a phase
+- Tasks in the project are associated with a stage
 
 ### Task
 
@@ -114,7 +114,7 @@ Portfolio
 | Project details | `Projects_GetProject` | |
 | Project status change history | `Projects_GetStatusHistory` | Takes project `id` (**UUID only** — unlike most project endpoints, it does not accept a key) |
 | All project lifecycles | `ProjectLifecycles_GetProjectLifecycles` | Optional `state` filter: `1=Proposed, 2=Active, 3=Archived` |
-| Project lifecycle details (with phases) | `ProjectLifecycles_GetProjectLifecycle` | `idOrKey` accepts UUID or integer key |
+| Project lifecycle details (with stages) | `ProjectLifecycles_GetProjectLifecycle` | `idOrKey` accepts UUID or integer key |
 
 Before filtering by status, call `Projects_GetStatuses` (or `Programs_GetProgramStatuses` / `Portfolios_GetPortfolioStatuses`) to resolve the integer enum values.
 
@@ -137,14 +137,14 @@ Both return aggregate counts, not the projects or tasks themselves — follow up
 
 | Goal | Tool | Notes |
 |---|---|---|
-| Project team members | `Projects_GetProjectTeam` | Returns roles, assigned phases, and active task count per member |
-| All phases for a project | `Projects_GetProjectPhases` | Takes project `id` (UUID) |
-| Single phase details | `Projects_GetProjectPhase` | Takes project `id` and `phaseId` (both UUIDs) |
-| Unified plan tree (phases + tasks) | `Projects_GetProjectPlanTree` | Top-level nodes are phases; tasks nested within with WBS codes |
+| Project team members | `Projects_GetProjectTeam` | Returns roles, assigned stages, and active task count per member |
+| All stages for a project | `Projects_GetProjectStages` | Takes project `id` (UUID) |
+| Single stage details | `Projects_GetProjectStage` | Takes project `id` and `stageId` (both UUIDs) |
+| Unified plan tree (stages + tasks) | `Projects_GetProjectPlanTree` | Top-level nodes are stages; tasks nested within with WBS codes |
 | Plan summary metrics | `Projects_GetProjectPlanSummary` | Returns overdue, due this week, upcoming, and total task counts; optional `employeeId` to scope to one person |
 | Work items linked to a project | `Projects_GetWorkItems` | Takes project `id` (UUID) |
 
-Prefer `Projects_GetProjectPlanTree` over `Tasks_GetProjectTasks` when you need a full hierarchical view of the project plan including phases.
+Prefer `Projects_GetProjectPlanTree` over `Tasks_GetProjectTasks` when you need a full hierarchical view of the project plan including stages.
 
 ### Listing and navigating tasks
 

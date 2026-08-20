@@ -6835,13 +6835,13 @@
         ]
       }
     },
-    "/api/ppm/project-lifecycles/{id}/phases": {
+    "/api/ppm/project-lifecycles/{id}/stages": {
       "post": {
         "tags": [
           "ProjectLifecycles"
         ],
-        "summary": "Add a phase to a project lifecycle.",
-        "operationId": "ProjectLifecycles_AddPhase",
+        "summary": "Add a stage to a project lifecycle.",
+        "operationId": "ProjectLifecycles_AddStage",
         "parameters": [
           {
             "name": "id",
@@ -6861,7 +6861,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ProjectLifecyclePhaseRequest"
+                "$ref": "#/components/schemas/ProjectLifecycleStageRequest"
               }
             }
           },
@@ -6900,13 +6900,13 @@
         ]
       }
     },
-    "/api/ppm/project-lifecycles/{id}/phases/{phaseId}": {
+    "/api/ppm/project-lifecycles/{id}/stages/{stageId}": {
       "put": {
         "tags": [
           "ProjectLifecycles"
         ],
-        "summary": "Update a phase in a project lifecycle.",
-        "operationId": "ProjectLifecycles_UpdatePhase",
+        "summary": "Update a stage in a project lifecycle.",
+        "operationId": "ProjectLifecycles_UpdateStage",
         "parameters": [
           {
             "name": "id",
@@ -6921,7 +6921,7 @@
             "x-position": 1
           },
           {
-            "name": "phaseId",
+            "name": "stageId",
             "in": "path",
             "required": true,
             "schema": {
@@ -6938,7 +6938,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ProjectLifecyclePhaseRequest"
+                "$ref": "#/components/schemas/ProjectLifecycleStageRequest"
               }
             }
           },
@@ -6980,8 +6980,8 @@
         "tags": [
           "ProjectLifecycles"
         ],
-        "summary": "Remove a phase from a project lifecycle.",
-        "operationId": "ProjectLifecycles_RemovePhase",
+        "summary": "Remove a stage from a project lifecycle.",
+        "operationId": "ProjectLifecycles_RemoveStage",
         "parameters": [
           {
             "name": "id",
@@ -6996,7 +6996,7 @@
             "x-position": 1
           },
           {
-            "name": "phaseId",
+            "name": "stageId",
             "in": "path",
             "required": true,
             "schema": {
@@ -7030,13 +7030,13 @@
         ]
       }
     },
-    "/api/ppm/project-lifecycles/{id}/phases/reorder": {
+    "/api/ppm/project-lifecycles/{id}/stages/reorder": {
       "post": {
         "tags": [
           "ProjectLifecycles"
         ],
-        "summary": "Reorder phases in a project lifecycle.",
-        "operationId": "ProjectLifecycles_ReorderPhases",
+        "summary": "Reorder stages in a project lifecycle.",
+        "operationId": "ProjectLifecycles_ReorderStages",
         "parameters": [
           {
             "name": "id",
@@ -7056,7 +7056,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ReorderProjectLifecyclePhasesRequest"
+                "$ref": "#/components/schemas/ReorderProjectLifecycleStagesRequest"
               }
             }
           },
@@ -7573,14 +7573,14 @@
         ]
       }
     },
-    "/api/ppm/projects/phases/import": {
+    "/api/ppm/projects/stages/import": {
       "post": {
         "tags": [
           "Projects"
         ],
-        "summary": "Import project phase statuses from a csv file.",
-        "description": "Each row names the project and phase it sets, so one file can cover many projects.",
-        "operationId": "Projects_ImportPhases",
+        "summary": "Import project stage statuses from a csv file.",
+        "description": "Each row names the project and stage it sets, so one file can cover many projects.",
+        "operationId": "Projects_ImportStages",
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -8374,7 +8374,7 @@
         "tags": [
           "Projects"
         ],
-        "summary": "Change a project's lifecycle, remapping tasks between phases.",
+        "summary": "Change a project's lifecycle, remapping tasks between stages.",
         "operationId": "Projects_ChangeProjectLifecycle",
         "parameters": [
           {
@@ -8434,13 +8434,13 @@
         ]
       }
     },
-    "/api/ppm/projects/{id}/phases": {
+    "/api/ppm/projects/{id}/stages": {
       "get": {
         "tags": [
           "Projects"
         ],
-        "summary": "Get phases for a project.",
-        "operationId": "Projects_GetProjectPhases",
+        "summary": "Get stages for a project.",
+        "operationId": "Projects_GetProjectStages",
         "parameters": [
           {
             "name": "id",
@@ -8463,7 +8463,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ProjectPhaseListDto"
+                    "$ref": "#/components/schemas/ProjectStageListDto"
                   }
                 }
               }
@@ -8492,7 +8492,7 @@
         "tags": [
           "Projects"
         ],
-        "summary": "Get a unified plan tree with phases as top-level nodes and tasks nested within.",
+        "summary": "Get a unified plan tree with stages as top-level nodes and tasks nested within.",
         "operationId": "Projects_GetProjectPlanTree",
         "parameters": [
           {
@@ -8657,13 +8657,13 @@
         ]
       }
     },
-    "/api/ppm/projects/{id}/phases/{phaseId}": {
+    "/api/ppm/projects/{id}/stages/{stageId}": {
       "get": {
         "tags": [
           "Projects"
         ],
-        "summary": "Get project phase details.",
-        "operationId": "Projects_GetProjectPhase",
+        "summary": "Get project stage details.",
+        "operationId": "Projects_GetProjectStage",
         "parameters": [
           {
             "name": "id",
@@ -8678,7 +8678,7 @@
             "x-position": 1
           },
           {
-            "name": "phaseId",
+            "name": "stageId",
             "in": "path",
             "required": true,
             "schema": {
@@ -8696,7 +8696,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProjectPhaseDetailsDto"
+                  "$ref": "#/components/schemas/ProjectStageDetailsDto"
                 }
               }
             }
@@ -8722,8 +8722,8 @@
         "tags": [
           "Projects"
         ],
-        "summary": "Update a project phase.",
-        "operationId": "Projects_UpdateProjectPhase",
+        "summary": "Update a project stage.",
+        "operationId": "Projects_UpdateProjectStage",
         "parameters": [
           {
             "name": "id",
@@ -8738,7 +8738,7 @@
             "x-position": 1
           },
           {
-            "name": "phaseId",
+            "name": "stageId",
             "in": "path",
             "required": true,
             "schema": {
@@ -8755,7 +8755,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateProjectPhaseRequest"
+                "$ref": "#/components/schemas/UpdateProjectStageRequest"
               }
             }
           },
@@ -8787,8 +8787,8 @@
         "tags": [
           "Projects"
         ],
-        "summary": "Partially update a project phase using JSON Patch (RFC 6902).",
-        "operationId": "Projects_PatchProjectPhase",
+        "summary": "Partially update a project stage using JSON Patch (RFC 6902).",
+        "operationId": "Projects_PatchProjectStage",
         "parameters": [
           {
             "name": "id",
@@ -8803,7 +8803,7 @@
             "x-position": 1
           },
           {
-            "name": "phaseId",
+            "name": "stageId",
             "in": "path",
             "required": true,
             "schema": {
@@ -8820,7 +8820,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/JsonPatchDocumentOfUpdateProjectPhaseRequest"
+                "$ref": "#/components/schemas/JsonPatchDocumentOfUpdateProjectStageRequest"
               }
             }
           },
@@ -31585,7 +31585,7 @@
           "projectMembers",
           "strategicThemes",
           "id",
-          "phases",
+          "stages",
           "rank",
           "canManageProject"
         ],
@@ -31664,10 +31664,10 @@
               }
             ]
           },
-          "phases": {
+          "stages": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ProjectPhaseListDto"
+              "$ref": "#/components/schemas/ProjectStageListDto"
             }
           },
           "healthCheck": {
@@ -31700,7 +31700,7 @@
           }
         }
       },
-      "ProjectPhaseListDto": {
+      "ProjectStageListDto": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -32311,7 +32311,7 @@
           "state",
           "id",
           "key",
-          "phaseCount"
+          "stageCount"
         ],
         "properties": {
           "id": {
@@ -32333,7 +32333,7 @@
           "state": {
             "$ref": "#/components/schemas/SimpleNavigationDto"
           },
-          "phaseCount": {
+          "stageCount": {
             "type": "integer",
             "format": "int32"
           }
@@ -32360,7 +32360,7 @@
           "name",
           "description",
           "state",
-          "phases",
+          "stages",
           "id",
           "key"
         ],
@@ -32384,15 +32384,15 @@
           "state": {
             "$ref": "#/components/schemas/SimpleNavigationDto"
           },
-          "phases": {
+          "stages": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ProjectLifecyclePhaseDto"
+              "$ref": "#/components/schemas/ProjectLifecycleStageDto"
             }
           }
         }
       },
-      "ProjectLifecyclePhaseDto": {
+      "ProjectLifecycleStageDto": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -32442,17 +32442,17 @@
             "minLength": 1,
             "nullable": false
           },
-          "phases": {
+          "stages": {
             "type": "array",
-            "description": "Optional initial phases for the project lifecycle.",
+            "description": "Optional initial stages for the project lifecycle.",
             "nullable": true,
             "items": {
-              "$ref": "#/components/schemas/PhaseInput"
+              "$ref": "#/components/schemas/StageInput"
             }
           }
         }
       },
-      "PhaseInput": {
+      "StageInput": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -32462,11 +32462,11 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "The name of the phase."
+            "description": "The name of the stage."
           },
           "description": {
             "type": "string",
-            "description": "The description of the phase."
+            "description": "The description of the stage."
           }
         }
       },
@@ -32494,7 +32494,7 @@
           }
         }
       },
-      "ProjectLifecyclePhaseRequest": {
+      "ProjectLifecycleStageRequest": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -32504,30 +32504,30 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "The name of the phase.",
+            "description": "The name of the stage.",
             "maxLength": 64,
             "minLength": 1,
             "nullable": false
           },
           "description": {
             "type": "string",
-            "description": "The description of the phase.",
+            "description": "The description of the stage.",
             "maxLength": 1024,
             "minLength": 1,
             "nullable": false
           }
         }
       },
-      "ReorderProjectLifecyclePhasesRequest": {
+      "ReorderProjectLifecycleStagesRequest": {
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "orderedPhaseIds"
+          "orderedStageIds"
         ],
         "properties": {
-          "orderedPhaseIds": {
+          "orderedStageIds": {
             "type": "array",
-            "description": "The ordered list of phase IDs representing the desired order.",
+            "description": "The ordered list of stage IDs representing the desired order.",
             "minLength": 1,
             "nullable": false,
             "items": {
@@ -32617,7 +32617,7 @@
           "strategicThemes",
           "strategicInitiatives",
           "id",
-          "phases",
+          "stages",
           "canManageProject",
           "backwardStatusTargets",
           "rank"
@@ -32717,10 +32717,10 @@
               }
             ]
           },
-          "phases": {
+          "stages": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ProjectPhaseListDto"
+              "$ref": "#/components/schemas/ProjectStageListDto"
             }
           },
           "healthCheck": {
@@ -33273,7 +33273,7 @@
         "required": [
           "employee",
           "roles",
-          "assignedPhases",
+          "assignedStages",
           "activeWorkItemCount"
         ],
         "properties": {
@@ -33286,7 +33286,7 @@
               "type": "string"
             }
           },
-          "assignedPhases": {
+          "assignedStages": {
             "type": "array",
             "items": {
               "type": "string"
@@ -33603,7 +33603,7 @@
         "additionalProperties": false,
         "required": [
           "lifecycleId",
-          "phaseMapping"
+          "stageMapping"
         ],
         "properties": {
           "lifecycleId": {
@@ -33613,7 +33613,7 @@
             "nullable": false,
             "example": "00000000-0000-0000-0000-000000000000"
           },
-          "phaseMapping": {
+          "stageMapping": {
             "type": "object",
             "minLength": 1,
             "nullable": false,
@@ -33715,7 +33715,7 @@
             "nullable": true,
             "example": "00000000-0000-0000-0000-000000000000"
           },
-          "projectPhaseId": {
+          "projectStageId": {
             "type": "string",
             "format": "guid",
             "nullable": true,
@@ -33761,7 +33761,7 @@
           }
         }
       },
-      "ProjectPhaseDetailsDto": {
+      "ProjectStageDetailsDto": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -33815,7 +33815,7 @@
           }
         }
       },
-      "UpdateProjectPhaseRequest": {
+      "UpdateProjectStageRequest": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -33862,7 +33862,7 @@
           }
         }
       },
-      "JsonPatchDocumentOfUpdateProjectPhaseRequest": {
+      "JsonPatchDocumentOfUpdateProjectStageRequest": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -33873,12 +33873,12 @@
             "type": "array",
             "nullable": true,
             "items": {
-              "$ref": "#/components/schemas/OperationOfUpdateProjectPhaseRequest"
+              "$ref": "#/components/schemas/OperationOfUpdateProjectStageRequest"
             }
           }
         }
       },
-      "OperationOfUpdateProjectPhaseRequest": {
+      "OperationOfUpdateProjectStageRequest": {
         "allOf": [
           {
             "$ref": "#/components/schemas/Operation"
@@ -34265,7 +34265,7 @@
           "projectId",
           "progress",
           "order",
-          "projectPhaseId"
+          "projectStageId"
         ],
         "properties": {
           "id": {
@@ -34319,7 +34319,7 @@
             "nullable": true,
             "example": "00000000-0000-0000-0000-000000000000"
           },
-          "projectPhaseId": {
+          "projectStageId": {
             "type": "string",
             "format": "guid",
             "nullable": false,
@@ -34435,7 +34435,7 @@
           },
           "parentId": {
             "type": "string",
-            "description": "The ID of the parent phase or task. If it matches a phase, the task becomes a root task in that phase.\nIf it matches a task, the new task becomes a child of that task and inherits the phase.",
+            "description": "The ID of the parent stage or task. If it matches a stage, the task becomes a root task in that stage.\nIf it matches a task, the new task becomes a child of that task and inherits the stage.",
             "format": "guid",
             "minLength": 1,
             "nullable": false,
@@ -34531,7 +34531,7 @@
           },
           "parentId": {
             "type": "string",
-            "description": "The ID of the parent phase or task.",
+            "description": "The ID of the parent stage or task.",
             "format": "guid",
             "nullable": false,
             "example": "00000000-0000-0000-0000-000000000000"
@@ -34609,7 +34609,7 @@
           },
           "parentId": {
             "type": "string",
-            "description": "The ID of the parent phase or task. If it matches a phase, the task becomes a root task in that phase.\nIf it matches a task, the task becomes a child of that task.",
+            "description": "The ID of the parent stage or task. If it matches a stage, the task becomes a root task in that stage.\nIf it matches a task, the task becomes a child of that task.",
             "format": "guid",
             "minLength": 1,
             "nullable": false,

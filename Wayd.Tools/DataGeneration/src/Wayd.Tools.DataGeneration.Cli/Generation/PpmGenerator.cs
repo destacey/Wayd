@@ -27,7 +27,7 @@ public sealed class PpmGenerator
     private readonly List<ProgramCsvRow> _programs = [];
     private readonly List<ProjectCsvRow> _projects = [];
     private readonly List<ProjectTaskCsvRow> _tasks = [];
-    private readonly List<ProjectPhaseCsvRow> _phaseStatuses = [];
+    private readonly List<ProjectStageCsvRow> _stageStatuses = [];
     private readonly List<StrategicInitiativeCsvRow> _initiatives = [];
     private readonly List<StrategicInitiativeKpiCsvRow> _kpis = [];
     private readonly List<PpmFinalizationCsvRow> _finalizations = [];
@@ -79,7 +79,7 @@ public sealed class PpmGenerator
             _programs,
             _projects,
             _tasks,
-            _phaseStatuses,
+            _stageStatuses,
             _initiatives,
             _kpis,
             _finalizations,
@@ -377,89 +377,89 @@ public sealed class PpmGenerator
 
     private void BuildTasksForProject(string projectKey, DateTime? projectStart, DateTime? projectEnd, IReadOnlyList<string> members, string projectStatus)
     {
-        var phases = PpmVocabulary.StandardLifecycle.Phases;
+        var stages = PpmVocabulary.StandardLifecycle.Stages;
         var start = projectStart ?? EarlyWindowDate();
         var end = projectEnd ?? Today;
         var completed = string.Equals(projectStatus, "Completed", StringComparison.OrdinalIgnoreCase);
 
-        // Slice the project window across the phases in order, so tasks land in a sensible timeline.
-        var totalDays = Math.Max(phases.Count, (int)(end - start).TotalDays);
-        var perPhase = Math.Max(1, totalDays / phases.Count);
+        // Slice the project window across the stages in order, so tasks land in a sensible timeline.
+        var totalDays = Math.Max(stages.Count, (int)(end - start).TotalDays);
+        var perStage = Math.Max(1, totalDays / stages.Count);
 
-        for (var p = 0; p < phases.Count; p++)
+        for (var p = 0; p < stages.Count; p++)
         {
-            var phase = phases[p];
-            var phaseStart = start.AddDays(p * perPhase);
-            var phaseEnd = p == phases.Count - 1 ? end : start.AddDays((p + 1) * perPhase);
+            var stage = stages[p];
+            var stageStart = start.AddDays(p * perStage);
+            var stageEnd = p == stages.Count - 1 ? end : start.AddDays((p + 1) * perStage);
 
-            // A few root tasks per phase, each with a couple of child tasks — a dense breakdown.
+            // A few root tasks per stage, each with a couple of child tasks — a dense breakdown.
             var rootCount = _faker.Random.Int(2, 3);
             for (var r = 0; r < rootCount; r++)
             {
-                var rootName = MakeUniqueTaskName($"{phase.Name} workstream {r + 1}", projectKey);
-                var (rootStart, rootEnd) = SubWindow(phaseStart, phaseEnd);
-                AddTask(projectKey, rootName, phase.Name, parent: null, rootStart, rootEnd, members, completed, phaseEnd);
+                var rootName = MakeUniqueTaskName($"{stage.Name} workstream {r + 1}", projectKey);
+                var (rootStart, rootEnd) = SubWindow(stageStart, stageEnd);
+                AddTask(projectKey, rootName, stage.Name, parent: null, rootStart, rootEnd, members, completed, stageEnd);
 
                 var childCount = _faker.Random.Int(1, 3);
                 for (var c = 0; c < childCount; c++)
                 {
-                    var childName = MakeUniqueTaskName($"{phase.Name} task {r + 1}.{c + 1}", projectKey);
+                    var childName = MakeUniqueTaskName($"{stage.Name} task {r + 1}.{c + 1}", projectKey);
                     var (childStart, childEnd) = SubWindow(rootStart, rootEnd);
-                    AddTask(projectKey, childName, phase.Name, parent: rootName, childStart, childEnd, members, completed, phaseEnd);
+                    AddTask(projectKey, childName, stage.Name, parent: rootName, childStart, childEnd, members, completed, stageEnd);
                 }
             }
 
-            // A milestone at the end of each phase.
-            var milestoneName = MakeUniqueTaskName($"{phase.Name} complete", projectKey);
+            // A milestone at the end of each stage.
+            var milestoneName = MakeUniqueTaskName($"{stage.Name} complete", projectKey);
             _tasks.Add(new ProjectTaskCsvRow
             {
                 ProjectKey = projectKey,
                 Name = milestoneName,
-                Description = $"Milestone marking the end of the {phase.Name} phase.",
-                PhaseName = phase.Name,
+                Description = $"Milestone marking the end of the {stage.Name} stage.",
+                StageName = stage.Name,
                 ParentTaskName = null,
                 Type = "Milestone",
-                Status = completed ? "Completed" : (phaseEnd < Today ? "Completed" : "NotStarted"),
+                Status = completed ? "Completed" : (stageEnd < Today ? "Completed" : "NotStarted"),
                 Priority = "High",
                 Progress = null,
                 PlannedStart = null,
                 PlannedEnd = null,
-                PlannedDate = phaseEnd,
+                PlannedDate = stageEnd,
                 EstimatedEffortHours = null,
                 Assignees = Join([members.FirstOrDefault()]),
             });
 
-            // The import applies phase status as data (it does not derive it from tasks), so the generator
-            // rolls each phase's status up from the tasks it just emitted and records a phase row. Reading the
-            // emitted task statuses back keeps the phase consistent with them by construction.
-            EmitPhaseStatus(projectKey, phase.Name);
+            // The import applies stage status as data (it does not derive it from tasks), so the generator
+            // rolls each stage's status up from the tasks it just emitted and records a stage row. Reading the
+            // emitted task statuses back keeps the stage consistent with them by construction.
+            EmitStageStatus(projectKey, stage.Name);
         }
     }
 
     /// <summary>
-    /// Records a phase-status row derived from the tasks emitted for that phase: Completed when every task is
+    /// Records a stage-status row derived from the tasks emitted for that stage: Completed when every task is
     /// closed (Completed/Canceled) and at least one finished, Not Started when none has begun, and In
     /// Progress for anything in between.
     /// </summary>
-    private void EmitPhaseStatus(string projectKey, string phaseName)
+    private void EmitStageStatus(string projectKey, string stageName)
     {
         var taskStatuses = _tasks
             .Where(t => string.Equals(t.ProjectKey, projectKey, StringComparison.OrdinalIgnoreCase)
-                && string.Equals(t.PhaseName, phaseName, StringComparison.OrdinalIgnoreCase))
+                && string.Equals(t.StageName, stageName, StringComparison.OrdinalIgnoreCase))
             .Select(t => t.Status)
             .ToList();
 
-        var status = RollUpPhaseStatus(taskStatuses);
+        var status = RollUpStageStatus(taskStatuses);
 
-        _phaseStatuses.Add(new ProjectPhaseCsvRow
+        _stageStatuses.Add(new ProjectStageCsvRow
         {
             ProjectKey = projectKey,
-            PhaseName = phaseName,
+            StageName = stageName,
             Status = status,
         });
     }
 
-    private static string RollUpPhaseStatus(IReadOnlyList<string> taskStatuses)
+    private static string RollUpStageStatus(IReadOnlyList<string> taskStatuses)
     {
         if (taskStatuses.Count == 0)
             return "NotStarted";
@@ -475,7 +475,7 @@ public sealed class PpmGenerator
         return "InProgress";
     }
 
-    private void AddTask(string projectKey, string name, string phaseName, string? parent, DateTime start, DateTime end, IReadOnlyList<string> members, bool projectCompleted, DateTime phaseEnd)
+    private void AddTask(string projectKey, string name, string stageName, string? parent, DateTime start, DateTime end, IReadOnlyList<string> members, bool projectCompleted, DateTime stageEnd)
     {
         // Progress and status follow the timeline: done in the past, in progress around now, not started later.
         var (status, progress) = projectCompleted || end < Today
@@ -489,7 +489,7 @@ public sealed class PpmGenerator
             ProjectKey = projectKey,
             Name = name,
             Description = null,
-            PhaseName = phaseName,
+            StageName = stageName,
             ParentTaskName = parent,
             Type = "Task",
             Status = status,

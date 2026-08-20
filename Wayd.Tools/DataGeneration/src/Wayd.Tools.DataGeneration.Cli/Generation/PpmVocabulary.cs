@@ -134,10 +134,10 @@ public static class PpmVocabulary
         new("Maintenance", "Keeping existing systems running; expensed operationally.", IsCapitalizable: false, RequiresDepreciation: false, "MAINT"),
     ];
 
-    /// <summary>The project lifecycle to bootstrap and assign to projects, with its ordered phases.</summary>
+    /// <summary>The project lifecycle to bootstrap and assign to projects, with its ordered stages.</summary>
     public static readonly ProjectLifecycleDefinition StandardLifecycle = new(
         "Standard Delivery",
-        "A standard phased delivery lifecycle from initiation through closure.",
+        "A standard staged delivery lifecycle from initiation through closure.",
         [
             new("Initiation", "Define the problem, scope and business case."),
             new("Planning", "Break down the work, estimate and sequence it."),
@@ -182,9 +182,9 @@ public static class PpmVocabulary
     public sealed record ProjectLifecycleDefinition(
         string Name,
         string Description,
-        IReadOnlyList<ProjectLifecyclePhaseDefinition> Phases);
+        IReadOnlyList<ProjectLifecycleStageDefinition> Stages);
 
-    public sealed record ProjectLifecyclePhaseDefinition(string Name, string Description);
+    public sealed record ProjectLifecycleStageDefinition(string Name, string Description);
 
     public sealed record KpiTemplate(
         string Name,

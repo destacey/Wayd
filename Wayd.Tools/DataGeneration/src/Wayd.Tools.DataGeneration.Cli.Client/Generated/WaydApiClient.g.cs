@@ -16062,31 +16062,31 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Add a phase to a project lifecycle.
+        /// Add a stage to a project lifecycle.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Guid> AddPhaseAsync(System.Guid id, ProjectLifecyclePhaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Guid> AddStageAsync(System.Guid id, ProjectLifecycleStageRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a phase in a project lifecycle.
+        /// Update a stage in a project lifecycle.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task UpdatePhaseAsync(System.Guid id, System.Guid phaseId, ProjectLifecyclePhaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task UpdateStageAsync(System.Guid id, System.Guid stageId, ProjectLifecycleStageRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Remove a phase from a project lifecycle.
+        /// Remove a stage from a project lifecycle.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task RemovePhaseAsync(System.Guid id, System.Guid phaseId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task RemoveStageAsync(System.Guid id, System.Guid stageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Reorder phases in a project lifecycle.
+        /// Reorder stages in a project lifecycle.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ReorderPhasesAsync(System.Guid id, ReorderProjectLifecyclePhasesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ReorderStagesAsync(System.Guid id, ReorderProjectLifecycleStagesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -16771,10 +16771,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Add a phase to a project lifecycle.
+        /// Add a stage to a project lifecycle.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Guid> AddPhaseAsync(System.Guid id, ProjectLifecyclePhaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Guid> AddStageAsync(System.Guid id, ProjectLifecycleStageRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -16797,10 +16797,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/ppm/project-lifecycles/{id}/phases"
+                    // Operation Path: "api/ppm/project-lifecycles/{id}/stages"
                     urlBuilder_.Append("api/ppm/project-lifecycles/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/phases");
+                    urlBuilder_.Append("/stages");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -16866,16 +16866,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a phase in a project lifecycle.
+        /// Update a stage in a project lifecycle.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task UpdatePhaseAsync(System.Guid id, System.Guid phaseId, ProjectLifecyclePhaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task UpdateStageAsync(System.Guid id, System.Guid stageId, ProjectLifecycleStageRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
 
-            if (phaseId == null)
-                throw new System.ArgumentNullException("phaseId");
+            if (stageId == null)
+                throw new System.ArgumentNullException("stageId");
 
             if (request == null)
                 throw new System.ArgumentNullException("request");
@@ -16894,11 +16894,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/ppm/project-lifecycles/{id}/phases/{phaseId}"
+                    // Operation Path: "api/ppm/project-lifecycles/{id}/stages/{stageId}"
                     urlBuilder_.Append("api/ppm/project-lifecycles/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/phases/");
-                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(phaseId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/stages/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(stageId, System.Globalization.CultureInfo.InvariantCulture)));
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -16969,16 +16969,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Remove a phase from a project lifecycle.
+        /// Remove a stage from a project lifecycle.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task RemovePhaseAsync(System.Guid id, System.Guid phaseId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task RemoveStageAsync(System.Guid id, System.Guid stageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
 
-            if (phaseId == null)
-                throw new System.ArgumentNullException("phaseId");
+            if (stageId == null)
+                throw new System.ArgumentNullException("stageId");
 
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -16990,11 +16990,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/ppm/project-lifecycles/{id}/phases/{phaseId}"
+                    // Operation Path: "api/ppm/project-lifecycles/{id}/stages/{stageId}"
                     urlBuilder_.Append("api/ppm/project-lifecycles/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/phases/");
-                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(phaseId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/stages/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(stageId, System.Globalization.CultureInfo.InvariantCulture)));
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -17055,10 +17055,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Reorder phases in a project lifecycle.
+        /// Reorder stages in a project lifecycle.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ReorderPhasesAsync(System.Guid id, ReorderProjectLifecyclePhasesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task ReorderStagesAsync(System.Guid id, ReorderProjectLifecycleStagesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -17080,10 +17080,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/ppm/project-lifecycles/{id}/phases/reorder"
+                    // Operation Path: "api/ppm/project-lifecycles/{id}/stages/reorder"
                     urlBuilder_.Append("api/ppm/project-lifecycles/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/phases/reorder");
+                    urlBuilder_.Append("/stages/reorder");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -17346,13 +17346,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Import project phase statuses from a csv file.
+        /// Import project stage statuses from a csv file.
         /// </summary>
         /// <remarks>
-        /// Each row names the project and phase it sets, so one file can cover many projects.
+        /// Each row names the project and stage it sets, so one file can cover many projects.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ImportPhasesAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ImportStagesAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -17450,21 +17450,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Change a project's lifecycle, remapping tasks between phases.
+        /// Change a project's lifecycle, remapping tasks between stages.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ChangeProjectLifecycleAsync(System.Guid id, ChangeProjectLifecycleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get phases for a project.
+        /// Get stages for a project.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectPhaseListDto>> GetProjectPhasesAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectStageListDto>> GetProjectStagesAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a unified plan tree with phases as top-level nodes and tasks nested within.
+        /// Get a unified plan tree with stages as top-level nodes and tasks nested within.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectPlanNodeDto>> GetProjectPlanTreeAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -17485,24 +17485,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get project phase details.
+        /// Get project stage details.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ProjectPhaseDetailsDto> GetProjectPhaseAsync(System.Guid id, System.Guid phaseId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ProjectStageDetailsDto> GetProjectStageAsync(System.Guid id, System.Guid stageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a project phase.
+        /// Update a project stage.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task UpdateProjectPhaseAsync(System.Guid id, System.Guid phaseId, UpdateProjectPhaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task UpdateProjectStageAsync(System.Guid id, System.Guid stageId, UpdateProjectStageRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Partially update a project phase using JSON Patch (RFC 6902).
+        /// Partially update a project stage using JSON Patch (RFC 6902).
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task PatchProjectPhaseAsync(System.Guid id, System.Guid phaseId, JsonPatchDocumentOfUpdateProjectPhaseRequest patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task PatchProjectStageAsync(System.Guid id, System.Guid stageId, JsonPatchDocumentOfUpdateProjectStageRequest patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -18337,13 +18337,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Import project phase statuses from a csv file.
+        /// Import project stage statuses from a csv file.
         /// </summary>
         /// <remarks>
-        /// Each row names the project and phase it sets, so one file can cover many projects.
+        /// Each row names the project and stage it sets, so one file can cover many projects.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ImportPhasesAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task ImportStagesAsync(string? contentType = null, string? contentDisposition = null, System.Collections.Generic.IEnumerable<object>? headers = null, long? length = null, string? name = null, string? fileName = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -18395,8 +18395,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/ppm/projects/phases/import"
-                    urlBuilder_.Append("api/ppm/projects/phases/import");
+                    // Operation Path: "api/ppm/projects/stages/import"
+                    urlBuilder_.Append("api/ppm/projects/stages/import");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -19676,7 +19676,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Change a project's lifecycle, remapping tasks between phases.
+        /// Change a project's lifecycle, remapping tasks between stages.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ChangeProjectLifecycleAsync(System.Guid id, ChangeProjectLifecycleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -19775,10 +19775,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get phases for a project.
+        /// Get stages for a project.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectPhaseListDto>> GetProjectPhasesAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectStageListDto>> GetProjectStagesAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -19794,10 +19794,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/ppm/projects/{id}/phases"
+                    // Operation Path: "api/ppm/projects/{id}/stages"
                     urlBuilder_.Append("api/ppm/projects/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/phases");
+                    urlBuilder_.Append("/stages");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -19824,7 +19824,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<ProjectPhaseListDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<ProjectStageListDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -19863,7 +19863,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a unified plan tree with phases as top-level nodes and tasks nested within.
+        /// Get a unified plan tree with stages as top-level nodes and tasks nested within.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectPlanNodeDto>> GetProjectPlanTreeAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -20128,16 +20128,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get project phase details.
+        /// Get project stage details.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ProjectPhaseDetailsDto> GetProjectPhaseAsync(System.Guid id, System.Guid phaseId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ProjectStageDetailsDto> GetProjectStageAsync(System.Guid id, System.Guid stageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
 
-            if (phaseId == null)
-                throw new System.ArgumentNullException("phaseId");
+            if (stageId == null)
+                throw new System.ArgumentNullException("stageId");
 
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -20150,11 +20150,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/ppm/projects/{id}/phases/{phaseId}"
+                    // Operation Path: "api/ppm/projects/{id}/stages/{stageId}"
                     urlBuilder_.Append("api/ppm/projects/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/phases/");
-                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(phaseId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/stages/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(stageId, System.Globalization.CultureInfo.InvariantCulture)));
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -20181,7 +20181,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<ProjectPhaseDetailsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ProjectStageDetailsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -20220,16 +20220,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Update a project phase.
+        /// Update a project stage.
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task UpdateProjectPhaseAsync(System.Guid id, System.Guid phaseId, UpdateProjectPhaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task UpdateProjectStageAsync(System.Guid id, System.Guid stageId, UpdateProjectStageRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
 
-            if (phaseId == null)
-                throw new System.ArgumentNullException("phaseId");
+            if (stageId == null)
+                throw new System.ArgumentNullException("stageId");
 
             if (request == null)
                 throw new System.ArgumentNullException("request");
@@ -20248,11 +20248,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/ppm/projects/{id}/phases/{phaseId}"
+                    // Operation Path: "api/ppm/projects/{id}/stages/{stageId}"
                     urlBuilder_.Append("api/ppm/projects/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/phases/");
-                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(phaseId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/stages/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(stageId, System.Globalization.CultureInfo.InvariantCulture)));
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -20313,16 +20313,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Partially update a project phase using JSON Patch (RFC 6902).
+        /// Partially update a project stage using JSON Patch (RFC 6902).
         /// </summary>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task PatchProjectPhaseAsync(System.Guid id, System.Guid phaseId, JsonPatchDocumentOfUpdateProjectPhaseRequest patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task PatchProjectStageAsync(System.Guid id, System.Guid stageId, JsonPatchDocumentOfUpdateProjectStageRequest patchDocument, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
 
-            if (phaseId == null)
-                throw new System.ArgumentNullException("phaseId");
+            if (stageId == null)
+                throw new System.ArgumentNullException("stageId");
 
             if (patchDocument == null)
                 throw new System.ArgumentNullException("patchDocument");
@@ -20341,11 +20341,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/ppm/projects/{id}/phases/{phaseId}"
+                    // Operation Path: "api/ppm/projects/{id}/stages/{stageId}"
                     urlBuilder_.Append("api/ppm/projects/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/phases/");
-                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(phaseId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/stages/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(stageId, System.Globalization.CultureInfo.InvariantCulture)));
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -62363,9 +62363,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("projectLifecycle")]
         public NavigationDto? ProjectLifecycle { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("phases")]
+        [System.Text.Json.Serialization.JsonPropertyName("stages")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<ProjectPhaseListDto> Phases { get; set; } = new System.Collections.ObjectModel.Collection<ProjectPhaseListDto>();
+        public System.Collections.Generic.ICollection<ProjectStageListDto> Stages { get; set; } = new System.Collections.ObjectModel.Collection<ProjectStageListDto>();
 
         [System.Text.Json.Serialization.JsonPropertyName("healthCheck")]
         public ProjectHealthCheckSummaryDto? HealthCheck { get; set; } = default!;
@@ -62385,7 +62385,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class ProjectPhaseListDto
+    public partial class ProjectStageListDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("id")]
@@ -62854,8 +62854,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto State { get; set; } = new SimpleNavigationDto();
 
-        [System.Text.Json.Serialization.JsonPropertyName("phaseCount")]
-        public int PhaseCount { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("stageCount")]
+        public int StageCount { get; set; } = default!;
 
     }
 
@@ -62897,14 +62897,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto State { get; set; } = new SimpleNavigationDto();
 
-        [System.Text.Json.Serialization.JsonPropertyName("phases")]
+        [System.Text.Json.Serialization.JsonPropertyName("stages")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<ProjectLifecyclePhaseDto> Phases { get; set; } = new System.Collections.ObjectModel.Collection<ProjectLifecyclePhaseDto>();
+        public System.Collections.Generic.ICollection<ProjectLifecycleStageDto> Stages { get; set; } = new System.Collections.ObjectModel.Collection<ProjectLifecycleStageDto>();
 
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class ProjectLifecyclePhaseDto
+    public partial class ProjectLifecycleStageDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("id")]
@@ -62945,26 +62945,26 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string Description { get; set; } = default!;
 
         /// <summary>
-        /// Optional initial phases for the project lifecycle.
+        /// Optional initial stages for the project lifecycle.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("phases")]
-        public System.Collections.Generic.ICollection<PhaseInput>? Phases { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("stages")]
+        public System.Collections.Generic.ICollection<StageInput>? Stages { get; set; } = default!;
 
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class PhaseInput
+    public partial class StageInput
     {
 
         /// <summary>
-        /// The name of the phase.
+        /// The name of the stage.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
         /// <summary>
-        /// The description of the phase.
+        /// The description of the stage.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -62995,11 +62995,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class ProjectLifecyclePhaseRequest
+    public partial class ProjectLifecycleStageRequest
     {
 
         /// <summary>
-        /// The name of the phase.
+        /// The name of the stage.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -63007,7 +63007,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string Name { get; set; } = default!;
 
         /// <summary>
-        /// The description of the phase.
+        /// The description of the stage.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -63017,15 +63017,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class ReorderProjectLifecyclePhasesRequest
+    public partial class ReorderProjectLifecycleStagesRequest
     {
 
         /// <summary>
-        /// The ordered list of phase IDs representing the desired order.
+        /// The ordered list of stage IDs representing the desired order.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("orderedPhaseIds")]
+        [System.Text.Json.Serialization.JsonPropertyName("orderedStageIds")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<System.Guid> OrderedPhaseIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+        public System.Collections.Generic.ICollection<System.Guid> OrderedStageIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
 
     }
 
@@ -63144,9 +63144,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("projectLifecycle")]
         public DescriptiveNavigationDto? ProjectLifecycle { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("phases")]
+        [System.Text.Json.Serialization.JsonPropertyName("stages")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<ProjectPhaseListDto> Phases { get; set; } = new System.Collections.ObjectModel.Collection<ProjectPhaseListDto>();
+        public System.Collections.Generic.ICollection<ProjectStageListDto> Stages { get; set; } = new System.Collections.ObjectModel.Collection<ProjectStageListDto>();
 
         [System.Text.Json.Serialization.JsonPropertyName("healthCheck")]
         public ProjectHealthCheckDto? HealthCheck { get; set; } = default!;
@@ -63582,9 +63582,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<string> Roles { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
-        [System.Text.Json.Serialization.JsonPropertyName("assignedPhases")]
+        [System.Text.Json.Serialization.JsonPropertyName("assignedStages")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<string> AssignedPhases { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+        public System.Collections.Generic.ICollection<string> AssignedStages { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         [System.Text.Json.Serialization.JsonPropertyName("activeWorkItemCount")]
         public int ActiveWorkItemCount { get; set; } = default!;
@@ -63798,9 +63798,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Guid LifecycleId { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("phaseMapping")]
+        [System.Text.Json.Serialization.JsonPropertyName("stageMapping")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.IDictionary<string, System.Guid> PhaseMapping { get; set; } = new System.Collections.Generic.Dictionary<string, System.Guid>();
+        public System.Collections.Generic.IDictionary<string, System.Guid> StageMapping { get; set; } = new System.Collections.Generic.Dictionary<string, System.Guid>();
 
     }
 
@@ -63862,8 +63862,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("parentId")]
         public System.Guid? ParentId { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("projectPhaseId")]
-        public System.Guid? ProjectPhaseId { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("projectStageId")]
+        public System.Guid? ProjectStageId { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("plannedDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -63893,7 +63893,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class ProjectPhaseDetailsDto
+    public partial class ProjectStageDetailsDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("id")]
@@ -63933,7 +63933,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class UpdateProjectPhaseRequest
+    public partial class UpdateProjectStageRequest
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("description")]
@@ -63962,16 +63962,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class JsonPatchDocumentOfUpdateProjectPhaseRequest
+    public partial class JsonPatchDocumentOfUpdateProjectStageRequest
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("operations")]
-        public System.Collections.Generic.ICollection<OperationOfUpdateProjectPhaseRequest>? Operations { get; set; } = default!;
+        public System.Collections.Generic.ICollection<OperationOfUpdateProjectStageRequest>? Operations { get; set; } = default!;
 
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class OperationOfUpdateProjectPhaseRequest : Operation
+    public partial class OperationOfUpdateProjectStageRequest : Operation
     {
 
     }
@@ -64256,9 +64256,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("parentId")]
         public System.Guid? ParentId { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("projectPhaseId")]
+        [System.Text.Json.Serialization.JsonPropertyName("projectStageId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.Guid ProjectPhaseId { get; set; } = default!;
+        public System.Guid ProjectStageId { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("parent")]
         public ProjectTaskNavigationDto? Parent { get; set; } = default!;
@@ -64344,8 +64344,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public decimal Progress { get; set; } = default!;
 
         /// <summary>
-        /// The ID of the parent phase or task. If it matches a phase, the task becomes a root task in that phase.
-        /// <br/>If it matches a task, the new task becomes a child of that task and inherits the phase.
+        /// The ID of the parent stage or task. If it matches a stage, the task becomes a root task in that stage.
+        /// <br/>If it matches a task, the new task becomes a child of that task and inherits the stage.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("parentId")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -64433,7 +64433,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public decimal? Progress { get; set; } = default!;
 
         /// <summary>
-        /// The ID of the parent phase or task.
+        /// The ID of the parent stage or task.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("parentId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -64496,7 +64496,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Guid TaskId { get; set; } = default!;
 
         /// <summary>
-        /// The ID of the parent phase or task. If it matches a phase, the task becomes a root task in that phase.
+        /// The ID of the parent stage or task. If it matches a stage, the task becomes a root task in that stage.
         /// <br/>If it matches a task, the task becomes a child of that task.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("parentId")]

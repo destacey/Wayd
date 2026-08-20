@@ -13,7 +13,7 @@ public sealed record GeneratedPpm(
     IReadOnlyList<ProgramCsvRow> Programs,
     IReadOnlyList<ProjectCsvRow> Projects,
     IReadOnlyList<ProjectTaskCsvRow> ProjectTasks,
-    IReadOnlyList<ProjectPhaseCsvRow> ProjectPhases,
+    IReadOnlyList<ProjectStageCsvRow> ProjectStages,
     IReadOnlyList<StrategicInitiativeCsvRow> StrategicInitiatives,
     IReadOnlyList<StrategicInitiativeKpiCsvRow> StrategicInitiativeKpis,
     IReadOnlyList<PpmFinalizationCsvRow> Finalizations,

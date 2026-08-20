@@ -84,9 +84,25 @@ export function computeGanttDomain<T>(
   }
   walk(treeData)
 
-  // Nothing dated anywhere — fall back to a one-year window around today.
-  const start = min ?? now - FALLBACK_LEAD_DAYS * DAY_MS
-  const end = max ?? start + 365 * DAY_MS
+  // Nothing dated on one or both sides — fall back to a one-year window, anchored
+  // to whichever bound we do have so a one-sided hint is always inside the domain
+  // (anchoring both sides to `now` could otherwise put the hinted end before the
+  // start, inverting the axis and the drag clamp).
+  let start: number
+  let end: number
+  if (min != null && max != null) {
+    start = min
+    end = max
+  } else if (min != null) {
+    start = min
+    end = min + 365 * DAY_MS
+  } else if (max != null) {
+    end = max
+    start = max - 365 * DAY_MS
+  } else {
+    start = now - FALLBACK_LEAD_DAYS * DAY_MS
+    end = start + 365 * DAY_MS
+  }
   return {
     domainStart: start - DOMAIN_PAD_DAYS * DAY_MS,
     domainEnd: end + DOMAIN_PAD_DAYS * DAY_MS,

@@ -82,6 +82,43 @@ describe('computeGanttDomain', () => {
     expect(domain.domainEnd).toBeGreaterThan(now)
   })
 
+  it('keeps a start-only hint inside the domain when nothing is dated', () => {
+    // Arrange — an undated tree, hinted only with a window start.
+    const roots: Node[] = [{ id: 'p', children: [{ id: 'c' }] }]
+    const now = Date.parse('2026-08-20T12:00:00.000Z')
+    // Act
+    const domain = computeGanttDomain(roots, accessors, [day(100), undefined], now)
+    // Assert — the axis starts at the hint and runs a year forward.
+    expect(domain.domainStart).toBe(day(100) - PAD)
+    expect(domain.domainEnd).toBe(day(100) + day(365) + PAD)
+  })
+
+  it('keeps an end-only hint inside the domain when nothing is dated', () => {
+    // Arrange — an undated tree, hinted only with a window end.
+    const roots: Node[] = [{ id: 'p', children: [{ id: 'c' }] }]
+    const now = Date.parse('2026-08-20T12:00:00.000Z')
+    // Act
+    const domain = computeGanttDomain(roots, accessors, [undefined, day(100)], now)
+    // Assert — the axis ends at the hint, with the year running backwards from it,
+    // rather than anchoring the start to `now` and excluding the hinted end.
+    expect(domain.domainEnd).toBe(day(100) + PAD)
+    expect(domain.domainStart).toBe(day(100) - day(365) - PAD)
+  })
+
+  it('does not invert when an end-only hint predates today', () => {
+    // Arrange — a past end date is the case that would flip end before start if
+    // the start fell back to `now`.
+    const roots: Node[] = [{ id: 'p', children: [{ id: 'c' }] }]
+    const now = Date.parse('2026-08-20T12:00:00.000Z')
+    const pastEnd = now - 500 * DAY
+    // Act
+    const domain = computeGanttDomain(roots, accessors, [undefined, pastEnd], now)
+    // Assert — the domain stays ordered and still contains the hint.
+    expect(domain.domainEnd).toBeGreaterThan(domain.domainStart)
+    expect(domain.domainStart).toBeLessThanOrEqual(pastEnd)
+    expect(domain.domainEnd).toBeGreaterThanOrEqual(pastEnd)
+  })
+
   it('treats a milestone (zero-length range) as a single point', () => {
     // Arrange — start === end, the shape an adapter returns for a milestone.
     const roots: Node[] = [{ id: 'm', start: day(7), end: day(7) }]

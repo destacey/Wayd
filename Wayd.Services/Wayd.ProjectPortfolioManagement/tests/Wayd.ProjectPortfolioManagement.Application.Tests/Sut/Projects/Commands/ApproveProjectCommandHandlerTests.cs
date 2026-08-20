@@ -75,7 +75,7 @@ public class ApproveProjectCommandHandlerTests : IDisposable
             .ReturnsAsync(false);
 
         var project = _projectFaker.AsProposed(_dateTimeProvider, Guid.NewGuid());
-        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Planning")));
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Planning")));
         _dbContext.AddProject(project);
 
         var command = new ApproveProjectCommand(project.Id);
@@ -104,7 +104,7 @@ public class ApproveProjectCommandHandlerTests : IDisposable
             .WithRoles(new() { [ProjectRole.Owner] = [_actorEmployeeId] })
             .Generate();
         project.SetPrivate(p => p.Portfolio, portfolio);
-        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Planning")));
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Planning")));
         _dbContext.AddProject(project);
 
         var command = new ApproveProjectCommand(project.Id);
@@ -137,7 +137,7 @@ public class ApproveProjectCommandHandlerTests : IDisposable
             .WithRoles(null)
             .Generate();
         project.SetPrivate(p => p.Portfolio, portfolio);
-        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Planning")));
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Planning")));
         _dbContext.AddProject(project);
 
         var command = new ApproveProjectCommand(project.Id);
@@ -194,7 +194,7 @@ public class ApproveProjectCommandHandlerTests : IDisposable
     {
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider, Guid.NewGuid());
-        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Planning"), ("Execute", "Execution"));
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Planning"), ("Execute", "Execution"));
         project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
         _dbContext.AddProject(project);
 

@@ -200,17 +200,17 @@ public class PpmGeneratorTests
     }
 
     [Fact]
-    public void Generate_EveryTaskPhaseIsOnTheLifecycle()
+    public void Generate_EveryTaskStageIsOnTheLifecycle()
     {
         // Arrange
         var ppm = Generate();
-        var phaseNames = ppm.Lifecycle.Phases.Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var stageNames = ppm.Lifecycle.Stages.Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         // Act
-        var badPhases = ppm.ProjectTasks.Where(t => !phaseNames.Contains(t.PhaseName)).ToList();
+        var badStages = ppm.ProjectTasks.Where(t => !stageNames.Contains(t.StageName)).ToList();
 
         // Assert
-        badPhases.Should().BeEmpty();
+        badStages.Should().BeEmpty();
     }
 
     [Fact]
@@ -290,27 +290,27 @@ public class PpmGeneratorTests
     }
 
     [Fact]
-    public void Generate_EmitsAPhaseRowForEveryPhaseOfATaskedProject()
+    public void Generate_EmitsAStageRowForEveryStageOfATaskedProject()
     {
-        // Arrange — the phase-status import is separate data, so a project with tasks needs a phase row per
-        // lifecycle phase.
+        // Arrange — the stage-status import is separate data, so a project with tasks needs a stage row per
+        // lifecycle stage.
         var ppm = Generate();
-        var phaseNames = ppm.Lifecycle.Phases.Select(p => p.Name).ToList();
+        var stageNames = ppm.Lifecycle.Stages.Select(p => p.Name).ToList();
         var taskedProjects = ppm.ProjectTasks.Select(t => t.ProjectKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        // Act / Assert — every project that has tasks has a phase row for each lifecycle phase.
+        // Act / Assert — every project that has tasks has a stage row for each lifecycle stage.
         foreach (var key in taskedProjects)
         {
-            var phases = ppm.ProjectPhases.Where(p => string.Equals(p.ProjectKey, key, StringComparison.OrdinalIgnoreCase)).Select(p => p.PhaseName);
-            phases.Should().BeEquivalentTo(phaseNames);
+            var stages = ppm.ProjectStages.Where(p => string.Equals(p.ProjectKey, key, StringComparison.OrdinalIgnoreCase)).Select(p => p.StageName);
+            stages.Should().BeEquivalentTo(stageNames);
         }
     }
 
     [Fact]
-    public void Generate_PhaseStatusMatchesTheRollupOfItsTasks()
+    public void Generate_StageStatusMatchesTheRollupOfItsTasks()
     {
-        // Arrange — the generator owns the rollup rule (the import applies phase status verbatim), so each
-        // emitted phase status must equal the rollup of that phase's own tasks.
+        // Arrange — the generator owns the rollup rule (the import applies stage status verbatim), so each
+        // emitted stage status must equal the rollup of that stage's own tasks.
         var ppm = Generate();
 
         static string RollUp(IReadOnlyCollection<string> statuses)
@@ -322,13 +322,13 @@ public class PpmGeneratorTests
             return "InProgress";
         }
 
-        var tasksByPhase = ppm.ProjectTasks
-            .GroupBy(t => (t.ProjectKey, t.PhaseName))
+        var tasksByStage = ppm.ProjectTasks
+            .GroupBy(t => (t.ProjectKey, t.StageName))
             .ToDictionary(g => g.Key, g => g.Select(t => t.Status).ToList());
 
         // Act
-        var mismatches = ppm.ProjectPhases
-            .Where(ph => tasksByPhase.TryGetValue((ph.ProjectKey, ph.PhaseName), out var statuses)
+        var mismatches = ppm.ProjectStages
+            .Where(ph => tasksByStage.TryGetValue((ph.ProjectKey, ph.StageName), out var statuses)
                 ? ph.Status != RollUp(statuses)
                 : ph.Status != "NotStarted")
             .ToList();
@@ -338,14 +338,14 @@ public class PpmGeneratorTests
     }
 
     [Fact]
-    public void Generate_EveryPhaseRowReferencesAnExistingProject()
+    public void Generate_EveryStageRowReferencesAnExistingProject()
     {
         // Arrange
         var ppm = Generate();
         var projectKeys = ppm.Projects.Select(p => p.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         // Act
-        var dangling = ppm.ProjectPhases.Where(p => !projectKeys.Contains(p.ProjectKey)).ToList();
+        var dangling = ppm.ProjectStages.Where(p => !projectKeys.Contains(p.ProjectKey)).ToList();
 
         // Assert
         dangling.Should().BeEmpty();

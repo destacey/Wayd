@@ -15,7 +15,7 @@ import { FC, useEffect, useState } from 'react'
 export interface ProjectPlanItemDrawerProps {
   projectKey: string
   taskId: string | null
-  phaseName?: string
+  stageName?: string
   drawerOpen: boolean
   onDrawerClose: () => void
   onOpenTask: (taskId: string) => void
@@ -36,7 +36,7 @@ const formatDate = (value?: Date) =>
 const ProjectPlanItemDrawer: FC<ProjectPlanItemDrawerProps> = ({
   projectKey,
   taskId,
-  phaseName,
+  stageName,
   drawerOpen,
   onDrawerClose,
   onOpenTask,
@@ -139,7 +139,7 @@ const ProjectPlanItemDrawer: FC<ProjectPlanItemDrawerProps> = ({
               {taskData.estimatedEffortHours}
             </LabeledContent>
           )}
-        <LabeledContent label="Phase">{phaseName ?? '-'}</LabeledContent>
+        <LabeledContent label="Stage">{stageName ?? '-'}</LabeledContent>
         {taskData?.parent?.id && (
           <LabeledContent label="Parent Task">
             <Button

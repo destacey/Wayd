@@ -97,7 +97,7 @@ describe('ProjectPlanItemDrawer', () => {
   const baseProps = {
     projectKey: 'PROJ-1',
     taskId: 'task-1',
-    phaseName: 'Build',
+    stageName: 'Build',
     drawerOpen: true,
     onDrawerClose: jest.fn(),
     onOpenTask: jest.fn(),

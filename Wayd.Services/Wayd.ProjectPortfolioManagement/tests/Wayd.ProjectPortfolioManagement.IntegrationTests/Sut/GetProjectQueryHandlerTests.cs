@@ -93,7 +93,7 @@ public sealed class GetProjectQueryHandlerTests
             var lifecycle = ProjectLifecycle.Create(
                 "Standard",
                 "Standard delivery lifecycle",
-                [("Delivery", "Delivery phase")]);
+                [("Delivery", "Delivery stage")]);
             lifecycle.Activate();
             await context.Set<ProjectLifecycle>().AddAsync(lifecycle, cancellationToken);
             await context.SaveChangesAsync(cancellationToken);

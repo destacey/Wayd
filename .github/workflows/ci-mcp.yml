@@ -64,6 +64,12 @@ jobs:
               uses: changesets/action@v1.5.1
               with:
                   cwd: Wayd.Web/src/Wayd.Mcp
+                  # `changeset version` rewrites package.json but never runs an
+                  # install, so package-lock.json keeps the old version and drifts
+                  # a little further behind with every release. Refresh it here so
+                  # the release PR carries the bump too. --package-lock-only skips
+                  # node_modules, which the npm ci step above already populated.
+                  version: npx changeset version && npm install --package-lock-only
                   title: "chore: release @wayd/mcp"
                   commit: "chore: version mcp package"
               env:

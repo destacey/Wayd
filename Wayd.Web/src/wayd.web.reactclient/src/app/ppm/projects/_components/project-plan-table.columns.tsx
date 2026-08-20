@@ -84,8 +84,8 @@ interface ProjectPlanTableColumnsParams {
   taskTypeFilterOptions?: FilterOption[]
   taskStatusFilterOptions?: FilterOption[]
   taskPriorityFilterOptions?: FilterOption[]
-  isPhaseNode?: (node: ProjectPlanNodeDto | null | undefined) => boolean
-  handleEditPhase?: (phase: ProjectPlanNodeDto) => void
+  isStageNode?: (node: ProjectPlanNodeDto | null | undefined) => boolean
+  handleEditStage?: (stage: ProjectPlanNodeDto) => void
   openPlanItemDrawer?: (taskId: string) => void
 }
 
@@ -111,8 +111,8 @@ export const getProjectPlanTableColumns = ({
   taskTypeFilterOptions = [],
   taskStatusFilterOptions = [],
   taskPriorityFilterOptions = [],
-  isPhaseNode = () => false,
-  handleEditPhase,
+  isStageNode = () => false,
+  handleEditStage,
   openPlanItemDrawer,
 }: ProjectPlanTableColumnsParams): ColumnDef<ProjectPlanNodeDto>[] => {
   return [
@@ -129,29 +129,29 @@ export const getProjectPlanTableColumns = ({
             meta: { enableExport: false } satisfies WaydGridColumnMeta,
             cell: ({ row }: { row: any }) => {
               const isDraft = row.original.id.startsWith('draft-')
-              const isPhase = isPhaseNode(row.original)
+              const isStage = isStageNode(row.original)
 
-              if (isPhase) {
-                // Phase rows: no drag handle, show edit and add task options
-                const phaseMenuItems = []
-                if (handleEditPhase && canManageTasks) {
-                  phaseMenuItems.push({
-                    key: 'edit-phase',
+              if (isStage) {
+                // Stage rows: no drag handle, show edit and add task options
+                const stageMenuItems = []
+                if (handleEditStage && canManageTasks) {
+                  stageMenuItems.push({
+                    key: 'edit-stage',
                     label: 'Edit',
-                    onClick: () => handleEditPhase(row.original),
+                    onClick: () => handleEditStage(row.original),
                   })
                 }
                 if (canCreateTasks && addDraftTaskAsChild) {
-                  phaseMenuItems.push({
+                  stageMenuItems.push({
                     key: 'add-task',
                     label: 'Add Task',
                     onClick: () => addDraftTaskAsChild(row.original.id),
                   })
                 }
-                return phaseMenuItems.length > 0 ? (
+                return stageMenuItems.length > 0 ? (
                   <Flex align="center" gap={4}>
                     <Dropdown
-                      menu={{ items: phaseMenuItems }}
+                      menu={{ items: stageMenuItems }}
                       trigger={['click']}
                     >
                       <Button
@@ -265,7 +265,7 @@ export const getProjectPlanTableColumns = ({
         const cellId = `${task.id}-name`
         const isDraft = task.id.startsWith('draft-')
         const isMilestone = task.type?.name === 'Milestone'
-        const isPhase = isPhaseNode(task)
+        const isStage = isStageNode(task)
 
         return (
           <Flex
@@ -297,8 +297,8 @@ export const getProjectPlanTableColumns = ({
               ) : (
                 <span className={styles.indentSpacer} />
               )}
-              {isPhase ? (
-                <span className={styles.phaseName}>{task.name}</span>
+              {isStage ? (
+                <span className={styles.stageName}>{task.name}</span>
               ) : isSelected && handleUpdateTask ? (
                 <FormItem
                   name="name"
@@ -488,8 +488,8 @@ export const getProjectPlanTableColumns = ({
         const priority = (info.getValue() as string) ?? ''
         const isSelected = selectedRowId === task.id
 
-        if (!isSelected || !handleUpdateTask || task.nodeType === 'Phase') {
-          if (!priority) return task.nodeType === 'Phase' ? null : '-'
+        if (!isSelected || !handleUpdateTask || task.nodeType === 'Stage') {
+          if (!priority) return task.nodeType === 'Stage' ? null : '-'
           const colorMap: Record<string, string> = {
             Low: 'green',
             Medium: 'orange',
@@ -774,7 +774,7 @@ export const getProjectPlanTableColumns = ({
           !isSelected ||
           !handleUpdateTask ||
           isMilestone ||
-          task.nodeType === 'Phase'
+          task.nodeType === 'Stage'
         ) {
           return value
         }

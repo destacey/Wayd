@@ -319,8 +319,8 @@ public sealed class ImportProjectsCommandHandler(
     }
 
     /// <summary>
-    /// Loads referenced lifecycles with their phases, which the project copies when the lifecycle is
-    /// assigned — those copied phases are what project tasks are later imported into.
+    /// Loads referenced lifecycles with their stages. Assigning a lifecycle copies those
+    /// definitions onto the project, and the copies are what project tasks import into.
     /// </summary>
     private async Task<Result<Dictionary<string, ProjectLifecycle>>> ResolveLifecycles(ImportProjectsCommand request, CancellationToken cancellationToken)
     {
@@ -334,7 +334,7 @@ public sealed class ImportProjectsCommandHandler(
             return Result.Success(new Dictionary<string, ProjectLifecycle>(StringComparer.OrdinalIgnoreCase));
 
         var lifecycles = await _projectPortfolioManagementDbContext.ProjectLifecycles
-            .Include(l => l.Phases)
+            .Include(l => l.Stages)
             .Where(l => lifecycleNames.Contains(l.Name))
             .ToListAsync(cancellationToken);
 

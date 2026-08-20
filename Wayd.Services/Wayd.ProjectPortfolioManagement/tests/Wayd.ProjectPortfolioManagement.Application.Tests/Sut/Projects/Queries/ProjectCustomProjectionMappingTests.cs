@@ -16,10 +16,10 @@ namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Projects.Queries
 public class ProjectCustomProjectionMappingTests
 {
     [Fact]
-    public void ProjectListDto_CustomProjection_ShouldMapPhaseStatuses()
+    public void ProjectListDto_CustomProjection_ShouldMapStageStatuses()
     {
         // Arrange
-        var project = CreateProjectWithPhases();
+        var project = CreateProjectWithStages();
         var now = SystemClock.Instance.GetCurrentInstant();
         var config = ProjectListDto.CreateTypeAdapterConfig(now, null);
 
@@ -30,10 +30,10 @@ public class ProjectCustomProjectionMappingTests
             .Single();
 
         // Assert
-        dto.Phases.Should().HaveCount(2);
-        dto.Phases.Select(p => p.Order).Should().ContainInOrder(1, 2);
-        dto.Phases[0].Status.Should().BeEquivalentTo(SimpleNavigationDto.FromEnum(TaskStatus.InProgress));
-        dto.Phases[1].Status.Should().BeEquivalentTo(SimpleNavigationDto.FromEnum(TaskStatus.NotStarted));
+        dto.Stages.Should().HaveCount(2);
+        dto.Stages.Select(p => p.Order).Should().ContainInOrder(1, 2);
+        dto.Stages[0].Status.Should().BeEquivalentTo(SimpleNavigationDto.FromEnum(TaskStatus.InProgress));
+        dto.Stages[1].Status.Should().BeEquivalentTo(SimpleNavigationDto.FromEnum(TaskStatus.NotStarted));
     }
 
     [Fact]
@@ -85,10 +85,10 @@ public class ProjectCustomProjectionMappingTests
     }
 
     [Fact]
-    public void ProjectDetailsDto_CustomProjection_ShouldMapPhaseStatuses()
+    public void ProjectDetailsDto_CustomProjection_ShouldMapStageStatuses()
     {
         // Arrange
-        var project = CreateProjectWithPhases();
+        var project = CreateProjectWithStages();
         var now = SystemClock.Instance.GetCurrentInstant();
         var config = ProjectDetailsDto.CreateTypeAdapterConfig(now, employeeId: null);
 
@@ -99,10 +99,10 @@ public class ProjectCustomProjectionMappingTests
             .Single();
 
         // Assert
-        dto.Phases.Should().HaveCount(2);
-        dto.Phases.Select(p => p.Order).Should().ContainInOrder(1, 2);
-        dto.Phases[0].Status.Should().BeEquivalentTo(SimpleNavigationDto.FromEnum(TaskStatus.InProgress));
-        dto.Phases[1].Status.Should().BeEquivalentTo(SimpleNavigationDto.FromEnum(TaskStatus.NotStarted));
+        dto.Stages.Should().HaveCount(2);
+        dto.Stages.Select(p => p.Order).Should().ContainInOrder(1, 2);
+        dto.Stages[0].Status.Should().BeEquivalentTo(SimpleNavigationDto.FromEnum(TaskStatus.InProgress));
+        dto.Stages[1].Status.Should().BeEquivalentTo(SimpleNavigationDto.FromEnum(TaskStatus.NotStarted));
     }
 
     [Fact]
@@ -162,7 +162,7 @@ public class ProjectCustomProjectionMappingTests
     public void ProjectDetailsDto_CustomProjection_ShouldReturnEmptyWhenNoStrategicInitiatives()
     {
         // Arrange
-        var project = CreateProjectWithPhases();
+        var project = CreateProjectWithStages();
         var now = SystemClock.Instance.GetCurrentInstant();
         var config = ProjectDetailsDto.CreateTypeAdapterConfig(now, employeeId: null);
 
@@ -176,7 +176,7 @@ public class ProjectCustomProjectionMappingTests
         dto.StrategicInitiatives.Should().BeEmpty();
     }
 
-    private static Project CreateProjectWithPhases()
+    private static Project CreateProjectWithStages()
     {
         var portfolio = new ProjectPortfolioFaker().Generate();
         var expenditureCategory = new ExpenditureCategoryFaker().GenerateActive();
@@ -188,16 +188,16 @@ public class ProjectCustomProjectionMappingTests
         typeof(Project).GetProperty(nameof(Project.Portfolio))!.SetValue(project, portfolio);
         typeof(Project).GetProperty(nameof(Project.ExpenditureCategory))!.SetValue(project, expenditureCategory);
 
-        var firstPhase = new ProjectPhaseFaker()
+        var firstStage = new ProjectStageFaker()
             .WithProjectId(project.Id).WithName("Build").WithOrder(2).WithStatus(TaskStatus.NotStarted)
             .Generate();
 
-        var secondPhase = new ProjectPhaseFaker()
+        var secondStage = new ProjectStageFaker()
             .WithProjectId(project.Id).WithName("Design").WithOrder(1).WithStatus(TaskStatus.InProgress)
             .Generate();
 
-        project.AddToPrivateList("_phases", firstPhase);
-        project.AddToPrivateList("_phases", secondPhase);
+        project.AddToPrivateList("_stages", firstStage);
+        project.AddToPrivateList("_stages", secondStage);
 
         return project;
     }

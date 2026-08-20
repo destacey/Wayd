@@ -17,13 +17,13 @@ import DeleteProjectLifecycleForm from '../_components/delete-project-lifecycle-
 import ChangeProjectLifecycleStateForm, {
   ProjectLifecycleStateAction,
 } from '../_components/change-project-lifecycle-state-form'
-import ProjectLifecyclePhasesList from '../_components/project-lifecycle-phases-list'
+import ProjectLifecycleStagesList from '../_components/project-lifecycle-stages-list'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 import { isApiError } from '@/src/utils'
 
 enum ProjectLifecycleTabs {
   Details = 'details',
-  Phases = 'phases',
+  Stages = 'stages',
 }
 
 const tabs = [
@@ -32,8 +32,8 @@ const tabs = [
     tab: 'Details',
   },
   {
-    key: ProjectLifecycleTabs.Phases,
-    tab: 'Phases',
+    key: ProjectLifecycleTabs.Stages,
+    tab: 'Stages',
   },
 ]
 
@@ -79,11 +79,11 @@ const ProjectLifecycleDetailsPage = (props: {
     switch (activeTab) {
       case ProjectLifecycleTabs.Details:
         return <ProjectLifecycleDetails lifecycle={lifecycleData!} />
-      case ProjectLifecycleTabs.Phases:
+      case ProjectLifecycleTabs.Stages:
         return (
-          <ProjectLifecyclePhasesList
+          <ProjectLifecycleStagesList
             lifecycle={lifecycleData!}
-            canManagePhases={
+            canManageStages={
               canUpdate && lifecycleData?.state?.name === 'Proposed'
             }
             loadData={refetch}

@@ -25,7 +25,7 @@ public sealed class ActivateProjectLifecycleCommandHandler(
         try
         {
             var lifecycle = await _projectPortfolioManagementDbContext.ProjectLifecycles
-                .Include(x => x.Phases)
+                .Include(x => x.Stages)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
             if (lifecycle is null)
             {

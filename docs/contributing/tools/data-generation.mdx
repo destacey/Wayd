@@ -155,11 +155,11 @@ delivery teams:
   and an expenditure category. Volume is set by `--concurrent-projects-per-art` (how many an ART runs at
   once); the total is derived from the four-year window and typical 2–9-month durations, so an ART
   accumulates a deep history and a full runway rather than a handful of projects.
-- **Project tasks** — a dense work breakdown (phases → root tasks → child tasks, plus a milestone per
-  phase) for every project that has started; proposed and future projects have none yet. Each **phase's
+- **Project tasks** — a dense work breakdown (stages → root tasks → child tasks, plus a milestone per
+  stage) for every project that has started; proposed and future projects have none yet. Each **stage's
   status** is rolled up from its tasks (all done → Completed, some in flight → In Progress, none started →
-  Not Started) and imported as data — the phase-status import applies exactly what the generator computes and
-  never derives it server-side, so a real client keeps full control of phase status.
+  Not Started) and imported as data — the stage-status import applies exactly what the generator computes and
+  never derives it server-side, so a real client keeps full control of stage status.
 - **Strategic themes** — a handful of active themes, tagged onto programs and projects.
 - **Strategic initiatives + KPIs** — one per portfolio, linking a few of its projects, each with a couple
   of KPIs.
@@ -216,7 +216,7 @@ The `seed` verb imports in the order that replication and the domain's own rules
 ```
 employees → teams → team hierarchy → roles (created as needed) → team staffing
   → expenditure categories + lifecycle (settings bootstrap)
-  → strategic themes → portfolios → programs → projects → project tasks → project phase statuses
+  → strategic themes → portfolios → programs → projects → project tasks → project stage statuses
   → strategic initiatives (+ KPIs) → finalize (close historical programs/portfolios)
 ```
 

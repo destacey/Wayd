@@ -1,16 +1,16 @@
 'use client'
 
 import { CheckCircleFilled, CloseCircleFilled } from '@ant-design/icons'
-import { ProjectPhaseListDto } from '@/src/services/wayd-api'
+import { ProjectStageListDto } from '@/src/services/wayd-api'
 import { Steps } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
 import dayjs from 'dayjs'
 import { FC, useEffect, useRef, useState } from 'react'
-import styles from './phase-timeline.module.css'
+import styles from './stage-timeline.module.css'
 
-type PhaseStatus = 'completed' | 'in-progress' | 'not-started' | 'canceled'
+type StageStatus = 'completed' | 'in-progress' | 'not-started' | 'canceled'
 
-function mapPhaseStatus(statusName: string): PhaseStatus {
+function mapStageStatus(statusName: string): StageStatus {
   switch (statusName) {
     case 'Completed':
       return 'completed'
@@ -24,7 +24,7 @@ function mapPhaseStatus(statusName: string): PhaseStatus {
 }
 
 function mapStepStatus(
-  status: PhaseStatus,
+  status: StageStatus,
 ): 'finish' | 'process' | 'wait' | 'error' {
   switch (status) {
     case 'completed':
@@ -38,7 +38,7 @@ function mapStepStatus(
   }
 }
 
-function getIcon(status: PhaseStatus, tooltipContent: React.ReactNode) {
+function getIcon(status: StageStatus, tooltipContent: React.ReactNode) {
   switch (status) {
     case 'completed':
       return (
@@ -83,8 +83,8 @@ function formatDateRange(start?: Date, end?: Date): string | null {
 type DisplayMode = 'default' | 'small' | 'vertical'
 
 function buildTooltip(
-  phase: ProjectPhaseListDto,
-  status: PhaseStatus,
+  stage: ProjectStageListDto,
+  status: StageStatus,
   mode: DisplayMode,
 ) {
   const statusLabel = status
@@ -95,29 +95,29 @@ function buildTooltip(
   if (mode !== 'small') return statusLabel
 
   // small mode packs details into the tooltip
-  const dateRange = formatDateRange(phase.start, phase.end)
+  const dateRange = formatDateRange(stage.start, stage.end)
   return (
     <div>
       <div>{statusLabel}</div>
       {dateRange && <div>{dateRange}</div>}
-      {phase.progress != null && <div>Progress: {phase.progress}%</div>}
+      {stage.progress != null && <div>Progress: {stage.progress}%</div>}
     </div>
   )
 }
 
-function buildContent(phase: ProjectPhaseListDto, mode: DisplayMode) {
+function buildContent(stage: ProjectStageListDto, mode: DisplayMode) {
   // only small (horizontal) hides inline content
   if (mode === 'small') return undefined
 
-  const dateRange = formatDateRange(phase.start, phase.end)
-  const hasContent = dateRange || phase.progress != null
+  const dateRange = formatDateRange(stage.start, stage.end)
+  const hasContent = dateRange || stage.progress != null
   if (!hasContent) return undefined
 
   return (
     <div className={styles.description}>
       {dateRange && <div className={styles.dates}>{dateRange}</div>}
-      {phase.progress != null && (
-        <div className={styles.progress}>{phase.progress}%</div>
+      {stage.progress != null && (
+        <div className={styles.progress}>{stage.progress}%</div>
       )}
     </div>
   )
@@ -138,15 +138,15 @@ function getDisplayMode(
   return 'vertical'
 }
 
-export interface PhaseTimelineProps {
-  phases: ProjectPhaseListDto[]
+export interface StageTimelineProps {
+  stages: ProjectStageListDto[]
   displayMode?: 'default' | 'small'
 }
 
-const PhaseTimeline: FC<PhaseTimelineProps> = ({ phases, displayMode }) => {
+const StageTimeline: FC<StageTimelineProps> = ({ stages, displayMode }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [autoMode, setAutoMode] = useState<DisplayMode>('default')
-  const stepCount = phases.length
+  const stepCount = stages.length
 
   useEffect(() => {
     if (displayMode) return
@@ -163,25 +163,25 @@ const PhaseTimeline: FC<PhaseTimelineProps> = ({ phases, displayMode }) => {
     return () => observer.disconnect()
   }, [displayMode, stepCount])
 
-  if (phases.length === 0) return null
+  if (stages.length === 0) return null
 
   const mode: DisplayMode = displayMode ?? autoMode
   const isVertical = mode === 'vertical'
   const stepsSize = mode === 'default' ? 'medium' : 'small'
-  const sorted = [...phases].sort((a, b) => a.order - b.order)
+  const sorted = [...stages].sort((a, b) => a.order - b.order)
 
-  const items = sorted.map((phase) => {
-    const status = mapPhaseStatus(phase.status?.name)
-    const tooltip = buildTooltip(phase, status, mode)
+  const items = sorted.map((stage) => {
+    const status = mapStageStatus(stage.status?.name)
+    const tooltip = buildTooltip(stage, status, mode)
     return {
       title: (
         <WaydTooltip title={tooltip}>
           <span className={mode === 'small' ? styles.titleSmall : undefined}>
-            {phase.name}
+            {stage.name}
           </span>
         </WaydTooltip>
       ),
-      content: buildContent(phase, mode),
+      content: buildContent(stage, mode),
       status: mapStepStatus(status),
       icon: getIcon(status, tooltip),
     }
@@ -200,4 +200,4 @@ const PhaseTimeline: FC<PhaseTimelineProps> = ({ phases, displayMode }) => {
   )
 }
 
-export default PhaseTimeline
+export default StageTimeline

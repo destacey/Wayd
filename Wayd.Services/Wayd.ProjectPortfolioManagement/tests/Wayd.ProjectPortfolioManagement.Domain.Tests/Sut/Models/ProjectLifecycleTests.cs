@@ -17,7 +17,7 @@ public class ProjectLifecycleTests
     #region Create
 
     [Fact]
-    public void Create_ShouldCreateProposedLifecycleWithoutPhases()
+    public void Create_ShouldCreateProposedLifecycleWithoutStages()
     {
         // Act
         var lifecycle = ProjectLifecycle.Create("Standard Waterfall", "Classic lifecycle for traditional projects.");
@@ -27,14 +27,14 @@ public class ProjectLifecycleTests
         lifecycle.Name.Should().Be("Standard Waterfall");
         lifecycle.Description.Should().Be("Classic lifecycle for traditional projects.");
         lifecycle.State.Should().Be(ProjectLifecycleState.Proposed);
-        lifecycle.Phases.Should().BeEmpty();
+        lifecycle.Stages.Should().BeEmpty();
     }
 
     [Fact]
-    public void Create_ShouldCreateProposedLifecycleWithPhases()
+    public void Create_ShouldCreateProposedLifecycleWithStages()
     {
         // Arrange
-        var phases = new[]
+        var stages = new[]
         {
             ("Plan", "Define goals and timeline"),
             ("Execute", "Perform the work"),
@@ -42,14 +42,14 @@ public class ProjectLifecycleTests
         };
 
         // Act
-        var lifecycle = ProjectLifecycle.Create("Lightweight Project", "For smaller efforts.", phases);
+        var lifecycle = ProjectLifecycle.Create("Lightweight Project", "For smaller efforts.", stages);
 
         // Assert
         lifecycle.Should().NotBeNull();
         lifecycle.State.Should().Be(ProjectLifecycleState.Proposed);
-        lifecycle.Phases.Should().HaveCount(3);
-        lifecycle.Phases.Select(p => p.Name).Should().ContainInOrder("Plan", "Execute", "Deliver");
-        lifecycle.Phases.Select(p => p.Order).Should().ContainInOrder(1, 2, 3);
+        lifecycle.Stages.Should().HaveCount(3);
+        lifecycle.Stages.Select(p => p.Name).Should().ContainInOrder("Plan", "Execute", "Deliver");
+        lifecycle.Stages.Select(p => p.Order).Should().ContainInOrder(1, 2, 3);
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public class ProjectLifecycleTests
     public void Update_ShouldFail_WhenActive()
     {
         // Arrange
-        var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Phase 1", "Description"));
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Stage 1", "Description"));
 
         // Act
         var result = lifecycle.Update("New Name", "New Description");
@@ -120,7 +120,7 @@ public class ProjectLifecycleTests
     public void Update_ShouldFail_WhenArchived()
     {
         // Arrange
-        var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Phase 1", "Description"));
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Stage 1", "Description"));
         lifecycle.Archive();
 
         // Act
@@ -135,10 +135,10 @@ public class ProjectLifecycleTests
     #region State Transitions
 
     [Fact]
-    public void Activate_ShouldSucceed_WhenProposedWithPhases()
+    public void Activate_ShouldSucceed_WhenProposedWithStages()
     {
         // Arrange
-        var lifecycle = ProjectLifecycle.Create("Test", "Description", [("Phase 1", "Description")]);
+        var lifecycle = ProjectLifecycle.Create("Test", "Description", [("Stage 1", "Description")]);
 
         // Act
         var result = lifecycle.Activate();
@@ -149,7 +149,7 @@ public class ProjectLifecycleTests
     }
 
     [Fact]
-    public void Activate_ShouldFail_WhenProposedWithoutPhases()
+    public void Activate_ShouldFail_WhenProposedWithoutStages()
     {
         // Arrange
         var lifecycle = ProjectLifecycle.Create("Test", "Description");
@@ -159,14 +159,14 @@ public class ProjectLifecycleTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("at least one phase");
+        result.Error.Should().Contain("at least one stage");
     }
 
     [Fact]
     public void Activate_ShouldFail_WhenAlreadyActive()
     {
         // Arrange
-        var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Phase 1", "Description"));
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Stage 1", "Description"));
 
         // Act
         var result = lifecycle.Activate();
@@ -180,7 +180,7 @@ public class ProjectLifecycleTests
     public void Activate_ShouldFail_WhenArchived()
     {
         // Arrange
-        var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Phase 1", "Description"));
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Stage 1", "Description"));
         lifecycle.Archive();
 
         // Act
@@ -194,7 +194,7 @@ public class ProjectLifecycleTests
     public void Archive_ShouldSucceed_WhenActive()
     {
         // Arrange
-        var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Phase 1", "Description"));
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Stage 1", "Description"));
 
         // Act
         var result = lifecycle.Archive();
@@ -222,7 +222,7 @@ public class ProjectLifecycleTests
     public void Archive_ShouldFail_WhenAlreadyArchived()
     {
         // Arrange
-        var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Phase 1", "Description"));
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Stage 1", "Description"));
         lifecycle.Archive();
 
         // Act
@@ -250,7 +250,7 @@ public class ProjectLifecycleTests
     public void CanBeDeleted_ShouldReturnFalse_WhenActive()
     {
         // Arrange
-        var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Phase 1", "Description"));
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Stage 1", "Description"));
 
         // Act & Assert
         lifecycle.CanBeDeleted().Should().BeFalse();
@@ -260,7 +260,7 @@ public class ProjectLifecycleTests
     public void CanBeDeleted_ShouldReturnFalse_WhenArchived()
     {
         // Arrange
-        var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Phase 1", "Description"));
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Stage 1", "Description"));
         lifecycle.Archive();
 
         // Act & Assert
@@ -269,48 +269,48 @@ public class ProjectLifecycleTests
 
     #endregion CanBeDeleted
 
-    #region AddPhase
+    #region AddStage
 
     [Fact]
-    public void AddPhase_ShouldSucceed_WhenProposed()
+    public void AddStage_ShouldSucceed_WhenProposed()
     {
         // Arrange
         var lifecycle = ProjectLifecycle.Create("Test", "Description");
 
         // Act
-        var result = lifecycle.AddPhase("Initiation", "Define business case and project charter");
+        var result = lifecycle.AddStage("Initiation", "Define business case and project charter");
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        lifecycle.Phases.Should().HaveCount(1);
-        lifecycle.Phases.First().Name.Should().Be("Initiation");
-        lifecycle.Phases.First().Order.Should().Be(1);
+        lifecycle.Stages.Should().HaveCount(1);
+        lifecycle.Stages.First().Name.Should().Be("Initiation");
+        lifecycle.Stages.First().Order.Should().Be(1);
     }
 
     [Fact]
-    public void AddPhase_ShouldAutoCalculateOrder()
+    public void AddStage_ShouldAutoCalculateOrder()
     {
         // Arrange
         var lifecycle = ProjectLifecycle.Create("Test", "Description");
 
         // Act
-        lifecycle.AddPhase("Phase 1", "First phase");
-        lifecycle.AddPhase("Phase 2", "Second phase");
-        lifecycle.AddPhase("Phase 3", "Third phase");
+        lifecycle.AddStage("Stage 1", "First stage");
+        lifecycle.AddStage("Stage 2", "Second stage");
+        lifecycle.AddStage("Stage 3", "Third stage");
 
         // Assert
-        lifecycle.Phases.Should().HaveCount(3);
-        lifecycle.Phases.Select(p => p.Order).Should().ContainInOrder(1, 2, 3);
+        lifecycle.Stages.Should().HaveCount(3);
+        lifecycle.Stages.Select(p => p.Order).Should().ContainInOrder(1, 2, 3);
     }
 
     [Fact]
-    public void AddPhase_ShouldFail_WhenActive()
+    public void AddStage_ShouldFail_WhenActive()
     {
         // Arrange
-        var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Phase 1", "Description"));
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Stage 1", "Description"));
 
         // Act
-        var result = lifecycle.AddPhase("New Phase", "Description");
+        var result = lifecycle.AddStage("New Stage", "Description");
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -318,47 +318,47 @@ public class ProjectLifecycleTests
     }
 
     [Fact]
-    public void AddPhase_ShouldFail_WhenArchived()
+    public void AddStage_ShouldFail_WhenArchived()
     {
         // Arrange
-        var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Phase 1", "Description"));
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Stage 1", "Description"));
         lifecycle.Archive();
 
         // Act
-        var result = lifecycle.AddPhase("New Phase", "Description");
+        var result = lifecycle.AddStage("New Stage", "Description");
 
         // Assert
         result.IsFailure.Should().BeTrue();
     }
 
-    #endregion AddPhase
+    #endregion AddStage
 
-    #region UpdatePhase
+    #region UpdateStage
 
     [Fact]
-    public void UpdatePhase_ShouldSucceed_WhenProposed()
+    public void UpdateStage_ShouldSucceed_WhenProposed()
     {
         // Arrange
         var lifecycle = ProjectLifecycle.Create("Test", "Description", [("Old Name", "Old Description")]);
-        var phaseId = lifecycle.Phases.First().Id;
+        var stageId = lifecycle.Stages.First().Id;
 
         // Act
-        var result = lifecycle.UpdatePhase(phaseId, "New Name", "New Description");
+        var result = lifecycle.UpdateStage(stageId, "New Name", "New Description");
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        lifecycle.Phases.First().Name.Should().Be("New Name");
-        lifecycle.Phases.First().Description.Should().Be("New Description");
+        lifecycle.Stages.First().Name.Should().Be("New Name");
+        lifecycle.Stages.First().Description.Should().Be("New Description");
     }
 
     [Fact]
-    public void UpdatePhase_ShouldFail_WhenPhaseNotFound()
+    public void UpdateStage_ShouldFail_WhenStageNotFound()
     {
         // Arrange
-        var lifecycle = ProjectLifecycle.Create("Test", "Description", [("Phase 1", "Description")]);
+        var lifecycle = ProjectLifecycle.Create("Test", "Description", [("Stage 1", "Description")]);
 
         // Act
-        var result = lifecycle.UpdatePhase(Guid.NewGuid(), "New Name", "New Description");
+        var result = lifecycle.UpdateStage(Guid.NewGuid(), "New Name", "New Description");
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -366,53 +366,53 @@ public class ProjectLifecycleTests
     }
 
     [Fact]
-    public void UpdatePhase_ShouldFail_WhenActive()
+    public void UpdateStage_ShouldFail_WhenActive()
     {
         // Arrange
-        var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Phase 1", "Description"));
-        var phaseId = lifecycle.Phases.First().Id;
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Stage 1", "Description"));
+        var stageId = lifecycle.Stages.First().Id;
 
         // Act
-        var result = lifecycle.UpdatePhase(phaseId, "New Name", "New Description");
+        var result = lifecycle.UpdateStage(stageId, "New Name", "New Description");
 
         // Assert
         result.IsFailure.Should().BeTrue();
     }
 
-    #endregion UpdatePhase
+    #endregion UpdateStage
 
-    #region RemovePhase
+    #region RemoveStage
 
     [Fact]
-    public void RemovePhase_ShouldSucceed_WhenProposed()
+    public void RemoveStage_ShouldSucceed_WhenProposed()
     {
         // Arrange
         var lifecycle = ProjectLifecycle.Create("Test", "Description",
         [
-            ("Phase 1", "First"),
-            ("Phase 2", "Second"),
-            ("Phase 3", "Third")
+            ("Stage 1", "First"),
+            ("Stage 2", "Second"),
+            ("Stage 3", "Third")
         ]);
-        var phaseToRemove = lifecycle.Phases.First(p => p.Name == "Phase 2");
+        var stageToRemove = lifecycle.Stages.First(p => p.Name == "Stage 2");
 
         // Act
-        var result = lifecycle.RemovePhase(phaseToRemove.Id);
+        var result = lifecycle.RemoveStage(stageToRemove.Id);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        lifecycle.Phases.Should().HaveCount(2);
-        lifecycle.Phases.Select(p => p.Name).Should().ContainInOrder("Phase 1", "Phase 3");
-        lifecycle.Phases.Select(p => p.Order).Should().ContainInOrder(1, 2);
+        lifecycle.Stages.Should().HaveCount(2);
+        lifecycle.Stages.Select(p => p.Name).Should().ContainInOrder("Stage 1", "Stage 3");
+        lifecycle.Stages.Select(p => p.Order).Should().ContainInOrder(1, 2);
     }
 
     [Fact]
-    public void RemovePhase_ShouldFail_WhenPhaseNotFound()
+    public void RemoveStage_ShouldFail_WhenStageNotFound()
     {
         // Arrange
-        var lifecycle = ProjectLifecycle.Create("Test", "Description", [("Phase 1", "Description")]);
+        var lifecycle = ProjectLifecycle.Create("Test", "Description", [("Stage 1", "Description")]);
 
         // Act
-        var result = lifecycle.RemovePhase(Guid.NewGuid());
+        var result = lifecycle.RemoveStage(Guid.NewGuid());
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -420,80 +420,80 @@ public class ProjectLifecycleTests
     }
 
     [Fact]
-    public void RemovePhase_ShouldFail_WhenActive()
+    public void RemoveStage_ShouldFail_WhenActive()
     {
         // Arrange
-        var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Phase 1", "Description"));
-        var phaseId = lifecycle.Phases.First().Id;
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Stage 1", "Description"));
+        var stageId = lifecycle.Stages.First().Id;
 
         // Act
-        var result = lifecycle.RemovePhase(phaseId);
+        var result = lifecycle.RemoveStage(stageId);
 
         // Assert
         result.IsFailure.Should().BeTrue();
     }
 
-    #endregion RemovePhase
+    #endregion RemoveStage
 
-    #region ReorderPhases
+    #region ReorderStages
 
     [Fact]
-    public void ReorderPhases_ShouldSucceed_WhenProposed()
+    public void ReorderStages_ShouldSucceed_WhenProposed()
     {
         // Arrange
         var lifecycle = ProjectLifecycle.Create("Test", "Description",
         [
-            ("Phase A", "First"),
-            ("Phase B", "Second"),
-            ("Phase C", "Third")
+            ("Stage A", "First"),
+            ("Stage B", "Second"),
+            ("Stage C", "Third")
         ]);
-        var phases = lifecycle.Phases.OrderBy(p => p.Order).ToList();
-        var reorderedIds = new List<Guid> { phases[2].Id, phases[0].Id, phases[1].Id }; // C, A, B
+        var stages = lifecycle.Stages.OrderBy(p => p.Order).ToList();
+        var reorderedIds = new List<Guid> { stages[2].Id, stages[0].Id, stages[1].Id }; // C, A, B
 
         // Act
-        var result = lifecycle.ReorderPhases(reorderedIds);
+        var result = lifecycle.ReorderStages(reorderedIds);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        var orderedPhases = lifecycle.Phases.OrderBy(p => p.Order).ToList();
-        orderedPhases[0].Name.Should().Be("Phase C");
-        orderedPhases[1].Name.Should().Be("Phase A");
-        orderedPhases[2].Name.Should().Be("Phase B");
+        var orderedStages = lifecycle.Stages.OrderBy(p => p.Order).ToList();
+        orderedStages[0].Name.Should().Be("Stage C");
+        orderedStages[1].Name.Should().Be("Stage A");
+        orderedStages[2].Name.Should().Be("Stage B");
     }
 
     [Fact]
-    public void ReorderPhases_ShouldFail_WhenCountMismatch()
+    public void ReorderStages_ShouldFail_WhenCountMismatch()
     {
         // Arrange
         var lifecycle = ProjectLifecycle.Create("Test", "Description",
         [
-            ("Phase A", "First"),
-            ("Phase B", "Second")
+            ("Stage A", "First"),
+            ("Stage B", "Second")
         ]);
-        var partialIds = new List<Guid> { lifecycle.Phases.First().Id };
+        var partialIds = new List<Guid> { lifecycle.Stages.First().Id };
 
         // Act
-        var result = lifecycle.ReorderPhases(partialIds);
+        var result = lifecycle.ReorderStages(partialIds);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("number of phase IDs");
+        result.Error.Should().Contain("number of stage IDs");
     }
 
     [Fact]
-    public void ReorderPhases_ShouldFail_WhenDuplicateIds()
+    public void ReorderStages_ShouldFail_WhenDuplicateIds()
     {
         // Arrange
         var lifecycle = ProjectLifecycle.Create("Test", "Description",
         [
-            ("Phase A", "First"),
-            ("Phase B", "Second")
+            ("Stage A", "First"),
+            ("Stage B", "Second")
         ]);
-        var firstPhaseId = lifecycle.Phases.First().Id;
-        var duplicateIds = new List<Guid> { firstPhaseId, firstPhaseId };
+        var firstStageId = lifecycle.Stages.First().Id;
+        var duplicateIds = new List<Guid> { firstStageId, firstStageId };
 
         // Act
-        var result = lifecycle.ReorderPhases(duplicateIds);
+        var result = lifecycle.ReorderStages(duplicateIds);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -501,18 +501,18 @@ public class ProjectLifecycleTests
     }
 
     [Fact]
-    public void ReorderPhases_ShouldFail_WhenPhaseIdNotFound()
+    public void ReorderStages_ShouldFail_WhenStageIdNotFound()
     {
         // Arrange
         var lifecycle = ProjectLifecycle.Create("Test", "Description",
         [
-            ("Phase A", "First"),
-            ("Phase B", "Second")
+            ("Stage A", "First"),
+            ("Stage B", "Second")
         ]);
-        var invalidIds = new List<Guid> { lifecycle.Phases.First().Id, Guid.NewGuid() };
+        var invalidIds = new List<Guid> { lifecycle.Stages.First().Id, Guid.NewGuid() };
 
         // Act
-        var result = lifecycle.ReorderPhases(invalidIds);
+        var result = lifecycle.ReorderStages(invalidIds);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -520,19 +520,19 @@ public class ProjectLifecycleTests
     }
 
     [Fact]
-    public void ReorderPhases_ShouldFail_WhenActive()
+    public void ReorderStages_ShouldFail_WhenActive()
     {
         // Arrange
-        var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Phase 1", "First"), ("Phase 2", "Second"));
-        var phases = lifecycle.Phases.OrderBy(p => p.Order).ToList();
-        var reorderedIds = new List<Guid> { phases[1].Id, phases[0].Id };
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Stage 1", "First"), ("Stage 2", "Second"));
+        var stages = lifecycle.Stages.OrderBy(p => p.Order).ToList();
+        var reorderedIds = new List<Guid> { stages[1].Id, stages[0].Id };
 
         // Act
-        var result = lifecycle.ReorderPhases(reorderedIds);
+        var result = lifecycle.ReorderStages(reorderedIds);
 
         // Assert
         result.IsFailure.Should().BeTrue();
     }
 
-    #endregion ReorderPhases
+    #endregion ReorderStages
 }

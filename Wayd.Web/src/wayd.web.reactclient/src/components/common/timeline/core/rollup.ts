@@ -2,7 +2,7 @@
 // Summary rollup (pure, generic). For a tree of records where some nodes are
 // parents (containers) and some carry a date range, compute each parent's
 // rolled-up span (min descendant start → max descendant end) and an aggregated
-// progress. Used by a Gantt to draw a summary bar on a parent/phase row.
+// progress. Used by a Gantt to draw a summary bar on a parent/stage row.
 //
 // This is deliberately decoupled from any specific record type: the caller
 // supplies accessors, so it works equally for a WaydGrid tree node or a

@@ -7,38 +7,38 @@ using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
 namespace Wayd.ProjectPortfolioManagement.Domain.Models;
 
 /// <summary>
-/// Represents a phase instance on a project, created from a project lifecycle phase template.
-/// Phases provide the top-level structure for a project's plan and group related tasks.
+/// Represents a stage instance on a project, created from a project lifecycle stage template.
+/// Stages provide the top-level structure for a project's plan and group related tasks.
 /// </summary>
-public sealed class ProjectPhase : BaseAuditableEntity
+public sealed class ProjectStage : BaseAuditableEntity
 {
-    private readonly HashSet<RoleAssignment<ProjectPhaseRole>> _roles = [];
+    private readonly HashSet<RoleAssignment<ProjectStageRole>> _roles = [];
 
-    private ProjectPhase() { }
+    private ProjectStage() { }
 
-    private ProjectPhase(Guid projectId, ProjectLifecyclePhase lifecyclePhase)
+    private ProjectStage(Guid projectId, ProjectLifecycleStage lifecycleStage)
     {
         ProjectId = projectId;
-        ProjectLifecyclePhaseId = lifecyclePhase.Id;
-        Name = lifecyclePhase.Name;
-        Description = lifecyclePhase.Description;
+        ProjectLifecycleStageId = lifecycleStage.Id;
+        Name = lifecycleStage.Name;
+        Description = lifecycleStage.Description;
         Status = TaskStatus.NotStarted;
-        Order = lifecyclePhase.Order;
+        Order = lifecycleStage.Order;
         Progress = Progress.NotStarted();
     }
 
     /// <summary>
-    /// The ID of the project this phase belongs to.
+    /// The ID of the project this stage belongs to.
     /// </summary>
     public Guid ProjectId { get; private init; }
 
     /// <summary>
-    /// The ID of the lifecycle phase template this phase was created from.
+    /// The ID of the lifecycle stage template this stage was created from.
     /// </summary>
-    public Guid ProjectLifecyclePhaseId { get; private init; }
+    public Guid ProjectLifecycleStageId { get; private init; }
 
     /// <summary>
-    /// The name of the phase. Copied from the lifecycle template and not editable.
+    /// The name of the stage. Copied from the lifecycle template and not editable.
     /// </summary>
     public string Name
     {
@@ -47,7 +47,7 @@ public sealed class ProjectPhase : BaseAuditableEntity
     } = default!;
 
     /// <summary>
-    /// A description of the phase's purpose. Defaults from the lifecycle template but is editable per project.
+    /// A description of the stage's purpose. Defaults from the lifecycle template but is editable per project.
     /// </summary>
     public string Description
     {
@@ -56,32 +56,32 @@ public sealed class ProjectPhase : BaseAuditableEntity
     } = default!;
 
     /// <summary>
-    /// The current status of the phase.
+    /// The current status of the stage.
     /// </summary>
     public TaskStatus Status { get; private set; }
 
     /// <summary>
-    /// The display order of the phase within the project. From the lifecycle template, not editable.
+    /// The display order of the stage within the project. From the lifecycle template, not editable.
     /// </summary>
     public int Order { get; private set; }
 
     /// <summary>
-    /// The planned date range for the phase.
+    /// The planned date range for the stage.
     /// </summary>
     public FlexibleDateRange? DateRange { get; private set; }
 
     /// <summary>
-    /// The current progress of the phase as a percentage (0-100).
+    /// The current progress of the stage as a percentage (0-100).
     /// </summary>
     public Progress Progress { get; private set; } = null!;
 
     /// <summary>
-    /// The role assignments for this phase (e.g., assignees, reviewers).
+    /// The role assignments for this stage (e.g., assignees, reviewers).
     /// </summary>
-    public IReadOnlyCollection<RoleAssignment<ProjectPhaseRole>> Roles => _roles;
+    public IReadOnlyCollection<RoleAssignment<ProjectStageRole>> Roles => _roles;
 
     /// <summary>
-    /// Updates the description of the phase.
+    /// Updates the description of the stage.
     /// </summary>
     public Result UpdateDescription(string description)
     {
@@ -90,7 +90,7 @@ public sealed class ProjectPhase : BaseAuditableEntity
     }
 
     /// <summary>
-    /// Updates the status of the phase.
+    /// Updates the status of the stage.
     /// </summary>
     public Result UpdateStatus(TaskStatus status)
     {
@@ -99,7 +99,7 @@ public sealed class ProjectPhase : BaseAuditableEntity
     }
 
     /// <summary>
-    /// Updates the planned date range for the phase.
+    /// Updates the planned date range for the stage.
     /// </summary>
     public Result UpdatePlannedDates(FlexibleDateRange? dateRange)
     {
@@ -108,7 +108,7 @@ public sealed class ProjectPhase : BaseAuditableEntity
     }
 
     /// <summary>
-    /// Updates the planned date range for the phase, validating that it contains all dated root tasks.
+    /// Updates the planned date range for the stage, validating that it contains all dated root tasks.
     /// </summary>
     internal Result UpdatePlannedDates(FlexibleDateRange? dateRange, IEnumerable<ProjectTask> rootTasks)
     {
@@ -118,7 +118,7 @@ public sealed class ProjectPhase : BaseAuditableEntity
         {
             if (rootTaskList.Any(t => t.Type == ProjectTaskType.Milestone ? t.PlannedDate.HasValue : t.PlannedDateRange is not null))
             {
-                return Result.Failure("A phase cannot be updated to null when it has root tasks with dates.");
+                return Result.Failure("A stage cannot be updated to null when it has root tasks with dates.");
             }
             DateRange = null;
             return Result.Success();
@@ -195,7 +195,7 @@ public sealed class ProjectPhase : BaseAuditableEntity
     }
 
     /// <summary>
-    /// Updates the progress of the phase.
+    /// Updates the progress of the stage.
     /// </summary>
     public Result UpdateProgress(Progress progress)
     {
@@ -206,20 +206,20 @@ public sealed class ProjectPhase : BaseAuditableEntity
     }
 
     /// <summary>
-    /// Updates all role assignments for this phase.
+    /// Updates all role assignments for this stage.
     /// </summary>
-    public Result UpdateRoles(Dictionary<ProjectPhaseRole, HashSet<Guid>> updatedRoles)
+    public Result UpdateRoles(Dictionary<ProjectStageRole, HashSet<Guid>> updatedRoles)
     {
         return RoleManager.UpdateRoles(_roles, Id, updatedRoles);
     }
 
     /// <summary>
-    /// Creates a new project phase from a lifecycle phase template.
+    /// Creates a new project stage from a lifecycle stage template.
     /// </summary>
-    internal static ProjectPhase Create(Guid projectId, ProjectLifecyclePhase lifecyclePhase)
+    internal static ProjectStage Create(Guid projectId, ProjectLifecycleStage lifecycleStage)
     {
-        Guard.Against.Null(lifecyclePhase, nameof(lifecyclePhase));
+        Guard.Against.Null(lifecycleStage, nameof(lifecycleStage));
 
-        return new ProjectPhase(projectId, lifecyclePhase);
+        return new ProjectStage(projectId, lifecycleStage);
     }
 }

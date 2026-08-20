@@ -94,7 +94,7 @@ Planning Intervals (8-12 week PIs with iterations), Sprints (team-owned, mapped 
 Workspaces (containers using work processes), Work Items (hierarchical with dependencies and revision tracking), Work Processes (type-to-workflow mappings), Work Types (Portfolio/Requirement/Task/Other tiers), Workflows (status progressions), Work Statuses (normalized to 4 categories: Proposed/Active/Done/Removed).
 
 ### Project Portfolio Management
-Portfolios (top-level containers), Programs (project groups), Projects (lifecycle phases, tasks with WBS, dependencies), Strategic Initiatives (KPI tracking with checkpoints/measurements), Expenditure Categories.
+Portfolios (top-level containers), Programs (project groups), Projects (lifecycle stages, tasks with WBS, dependencies), Strategic Initiatives (KPI tracking with checkpoints/measurements), Expenditure Categories.
 
 ### Strategic Management
 Visions (one Active at a time), Strategies, Strategic Themes (cross-domain tags on projects/programs/initiatives).

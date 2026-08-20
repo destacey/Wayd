@@ -32,7 +32,7 @@ function createNode(
   } as ProjectPlanNodeDto
 }
 
-function createPhase(
+function createStage(
   name: string,
   statusName: string,
   children: ProjectPlanNodeDto[] = [],
@@ -40,7 +40,7 @@ function createPhase(
 ): ProjectPlanNodeDto {
   return createNode({
     name,
-    nodeType: 'Phase',
+    nodeType: 'Stage',
     status: { id: 1, name: statusName } as any,
     children,
     progress,
@@ -81,12 +81,12 @@ describe('ProjectPlanView', () => {
     expect(screen.getByText('No project plan defined.')).toBeInTheDocument()
   })
 
-  it('renders phase names', () => {
+  it('renders stage names', () => {
     mockQuery.mockReturnValue({
       data: [
-        createPhase('Discovery', 'Completed'),
-        createPhase('Design', 'In Progress'),
-        createPhase('Build', 'Not Started'),
+        createStage('Discovery', 'Completed'),
+        createStage('Design', 'In Progress'),
+        createStage('Build', 'Not Started'),
       ],
       isLoading: false,
     })
@@ -98,11 +98,11 @@ describe('ProjectPlanView', () => {
     expect(screen.getByText('Build')).toBeInTheDocument()
   })
 
-  it('renders phase status tags', () => {
+  it('renders stage status tags', () => {
     mockQuery.mockReturnValue({
       data: [
-        createPhase('Discovery', 'Completed'),
-        createPhase('Design', 'In Progress'),
+        createStage('Discovery', 'Completed'),
+        createStage('Design', 'In Progress'),
       ],
       isLoading: false,
     })
@@ -113,9 +113,9 @@ describe('ProjectPlanView', () => {
     expect(screen.getByText('In Progress')).toBeInTheDocument()
   })
 
-  it('renders progress bar for phases', () => {
+  it('renders progress bar for stages', () => {
     mockQuery.mockReturnValue({
-      data: [createPhase('Discovery', 'In Progress', [], 75)],
+      data: [createStage('Discovery', 'In Progress', [], 75)],
       isLoading: false,
     })
 
@@ -124,10 +124,10 @@ describe('ProjectPlanView', () => {
     expect(container.querySelector('.ant-progress')).toBeInTheDocument()
   })
 
-  it('expands active phase by default', () => {
+  it('expands active stage by default', () => {
     const task = createTask('Task 1', 'Not Started')
     mockQuery.mockReturnValue({
-      data: [createPhase('Active Phase', 'In Progress', [task])],
+      data: [createStage('Active Stage', 'In Progress', [task])],
       isLoading: false,
     })
 
@@ -136,10 +136,10 @@ describe('ProjectPlanView', () => {
     expect(screen.getByText('Task 1')).toBeInTheDocument()
   })
 
-  it('collapses non-active phases by default', () => {
+  it('collapses non-active stages by default', () => {
     const task = createTask('Hidden Task', 'Not Started')
     mockQuery.mockReturnValue({
-      data: [createPhase('Future Phase', 'Not Started', [task])],
+      data: [createStage('Future Stage', 'Not Started', [task])],
       isLoading: false,
     })
 
@@ -148,10 +148,10 @@ describe('ProjectPlanView', () => {
     expect(screen.queryByText('Hidden Task')).not.toBeInTheDocument()
   })
 
-  it('toggles phase open/closed on click', async () => {
+  it('toggles stage open/closed on click', async () => {
     const task = createTask('Toggle Task', 'Not Started')
     mockQuery.mockReturnValue({
-      data: [createPhase('Collapsible', 'Not Started', [task])],
+      data: [createStage('Collapsible', 'Not Started', [task])],
       isLoading: false,
     })
 
@@ -171,7 +171,7 @@ describe('ProjectPlanView', () => {
   it('renders task with completed icon styling', () => {
     const task = createTask('Done Task', 'Completed')
     mockQuery.mockReturnValue({
-      data: [createPhase('Phase', 'In Progress', [task])],
+      data: [createStage('Stage', 'In Progress', [task])],
       isLoading: false,
     })
 
@@ -183,7 +183,7 @@ describe('ProjectPlanView', () => {
   it('does not show stat pills when tasks have no dates', () => {
     const task = createTask('No Date', 'Not Started')
     mockQuery.mockReturnValue({
-      data: [createPhase('Phase', 'In Progress', [task])],
+      data: [createStage('Stage', 'In Progress', [task])],
       isLoading: false,
     })
 
@@ -203,7 +203,7 @@ describe('ProjectPlanView', () => {
       ],
     })
     mockQuery.mockReturnValue({
-      data: [createPhase('Phase', 'In Progress', [deliverable])],
+      data: [createStage('Stage', 'In Progress', [deliverable])],
       isLoading: false,
     })
 
@@ -216,7 +216,7 @@ describe('ProjectPlanView', () => {
   it('renders completed task with Complete badge', () => {
     const task = createTask('Done Task', 'Completed')
     mockQuery.mockReturnValue({
-      data: [createPhase('Phase', 'In Progress', [task])],
+      data: [createStage('Stage', 'In Progress', [task])],
       isLoading: false,
     })
 
@@ -230,7 +230,7 @@ describe('ProjectPlanView', () => {
       assignees: [{ id: 'emp-1', key: 1, name: 'Alice Brown' }] as any[],
     })
     mockQuery.mockReturnValue({
-      data: [createPhase('Phase', 'In Progress', [task])],
+      data: [createStage('Stage', 'In Progress', [task])],
       isLoading: false,
     })
 
@@ -239,10 +239,10 @@ describe('ProjectPlanView', () => {
     expect(screen.getByText('AB')).toBeInTheDocument()
   })
 
-  it('only renders Phase nodes at root level', () => {
+  it('only renders Stage nodes at root level', () => {
     mockQuery.mockReturnValue({
       data: [
-        createPhase('Real Phase', 'In Progress'),
+        createStage('Real Stage', 'In Progress'),
         createNode({ name: 'Stray Task', nodeType: 'Task' }),
       ],
       isLoading: false,
@@ -250,7 +250,7 @@ describe('ProjectPlanView', () => {
 
     render(<ProjectPlanView projectKey="P1" />)
 
-    expect(screen.getByText('Real Phase')).toBeInTheDocument()
+    expect(screen.getByText('Real Stage')).toBeInTheDocument()
     expect(screen.queryByText('Stray Task')).not.toBeInTheDocument()
   })
 })

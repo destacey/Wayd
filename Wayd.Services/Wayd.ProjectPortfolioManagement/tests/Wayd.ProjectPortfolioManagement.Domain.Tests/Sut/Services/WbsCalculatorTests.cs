@@ -8,9 +8,9 @@ namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Sut.Services;
 public class WbsCalculatorTests
 {
     private static ProjectTaskFaker TaskFaker() => new();
-    private static ProjectPhaseFaker PhaseFaker() => new();
+    private static ProjectStageFaker StageFaker() => new();
 
-    #region CalculateWbs - Without Phases
+    #region CalculateWbs - Without Stages
 
     [Fact]
     public void CalculateWbs_ShouldReturnPosition_ForSingleRootTask()
@@ -122,87 +122,87 @@ public class WbsCalculatorTests
 
     #endregion
 
-    #region CalculateWbs - With Phases
+    #region CalculateWbs - With Stages
 
     [Fact]
-    public void CalculateWbs_ShouldPrefixWithPhaseOrder_WhenPhasesProvided()
+    public void CalculateWbs_ShouldPrefixWithStageOrder_WhenStagesProvided()
     {
         // Arrange
         var projectId = Guid.NewGuid();
-        var phase1 = PhaseFaker().WithProjectId(projectId).WithOrder(1).Generate();
-        var phase2 = PhaseFaker().WithProjectId(projectId).WithOrder(2).Generate();
-        var phases = new List<ProjectPhase> { phase1, phase2 };
+        var stage1 = StageFaker().WithProjectId(projectId).WithOrder(1).Generate();
+        var stage2 = StageFaker().WithProjectId(projectId).WithOrder(2).Generate();
+        var stages = new List<ProjectStage> { stage1, stage2 };
 
-        var task = TaskFaker().WithOrder(1).WithProjectPhaseId(phase1.Id).Generate();
+        var task = TaskFaker().WithOrder(1).WithProjectStageId(stage1.Id).Generate();
         var tasks = new List<ProjectTask> { task };
 
         // Act
-        var wbs = WbsCalculator.CalculateWbs(task, tasks, phases);
+        var wbs = WbsCalculator.CalculateWbs(task, tasks, stages);
 
         // Assert
         wbs.Should().Be("1.1");
     }
 
     [Fact]
-    public void CalculateWbs_ShouldUseCorrectPhasePrefix_ForDifferentPhases()
+    public void CalculateWbs_ShouldUseCorrectStagePrefix_ForDifferentStages()
     {
         // Arrange
         var projectId = Guid.NewGuid();
-        var phase1 = PhaseFaker().WithProjectId(projectId).WithOrder(1).Generate();
-        var phase2 = PhaseFaker().WithProjectId(projectId).WithOrder(2).Generate();
-        var phase3 = PhaseFaker().WithProjectId(projectId).WithOrder(3).Generate();
-        var phases = new List<ProjectPhase> { phase1, phase2, phase3 };
+        var stage1 = StageFaker().WithProjectId(projectId).WithOrder(1).Generate();
+        var stage2 = StageFaker().WithProjectId(projectId).WithOrder(2).Generate();
+        var stage3 = StageFaker().WithProjectId(projectId).WithOrder(3).Generate();
+        var stages = new List<ProjectStage> { stage1, stage2, stage3 };
 
-        var taskInPhase1 = TaskFaker().WithOrder(1).WithProjectPhaseId(phase1.Id).Generate();
-        var taskInPhase3 = TaskFaker().WithOrder(1).WithProjectPhaseId(phase3.Id).Generate();
-        var tasks = new List<ProjectTask> { taskInPhase1, taskInPhase3 };
+        var taskInStage1 = TaskFaker().WithOrder(1).WithProjectStageId(stage1.Id).Generate();
+        var taskInStage3 = TaskFaker().WithOrder(1).WithProjectStageId(stage3.Id).Generate();
+        var tasks = new List<ProjectTask> { taskInStage1, taskInStage3 };
 
         // Act & Assert
-        WbsCalculator.CalculateWbs(taskInPhase1, tasks, phases).Should().Be("1.1");
-        WbsCalculator.CalculateWbs(taskInPhase3, tasks, phases).Should().Be("3.1");
+        WbsCalculator.CalculateWbs(taskInStage1, tasks, stages).Should().Be("1.1");
+        WbsCalculator.CalculateWbs(taskInStage3, tasks, stages).Should().Be("3.1");
     }
 
     [Fact]
-    public void CalculateWbs_ShouldScopeRootSiblings_ToSamePhase()
+    public void CalculateWbs_ShouldScopeRootSiblings_ToSameStage()
     {
         // Arrange
         var projectId = Guid.NewGuid();
-        var phase1 = PhaseFaker().WithProjectId(projectId).WithOrder(1).Generate();
-        var phase2 = PhaseFaker().WithProjectId(projectId).WithOrder(2).Generate();
-        var phases = new List<ProjectPhase> { phase1, phase2 };
+        var stage1 = StageFaker().WithProjectId(projectId).WithOrder(1).Generate();
+        var stage2 = StageFaker().WithProjectId(projectId).WithOrder(2).Generate();
+        var stages = new List<ProjectStage> { stage1, stage2 };
 
-        var task1InPhase1 = TaskFaker().WithOrder(1).WithProjectPhaseId(phase1.Id).Generate();
-        var task2InPhase1 = TaskFaker().WithOrder(2).WithProjectPhaseId(phase1.Id).Generate();
-        var task1InPhase2 = TaskFaker().WithOrder(1).WithProjectPhaseId(phase2.Id).Generate();
-        var tasks = new List<ProjectTask> { task1InPhase1, task2InPhase1, task1InPhase2 };
+        var task1InStage1 = TaskFaker().WithOrder(1).WithProjectStageId(stage1.Id).Generate();
+        var task2InStage1 = TaskFaker().WithOrder(2).WithProjectStageId(stage1.Id).Generate();
+        var task1InStage2 = TaskFaker().WithOrder(1).WithProjectStageId(stage2.Id).Generate();
+        var tasks = new List<ProjectTask> { task1InStage1, task2InStage1, task1InStage2 };
 
         // Act & Assert
-        WbsCalculator.CalculateWbs(task1InPhase1, tasks, phases).Should().Be("1.1");
-        WbsCalculator.CalculateWbs(task2InPhase1, tasks, phases).Should().Be("1.2");
-        WbsCalculator.CalculateWbs(task1InPhase2, tasks, phases).Should().Be("2.1");
+        WbsCalculator.CalculateWbs(task1InStage1, tasks, stages).Should().Be("1.1");
+        WbsCalculator.CalculateWbs(task2InStage1, tasks, stages).Should().Be("1.2");
+        WbsCalculator.CalculateWbs(task1InStage2, tasks, stages).Should().Be("2.1");
     }
 
     [Fact]
-    public void CalculateWbs_ShouldIncludePhasePrefix_ForNestedTasks()
+    public void CalculateWbs_ShouldIncludeStagePrefix_ForNestedTasks()
     {
         // Arrange
         var projectId = Guid.NewGuid();
-        var phase = PhaseFaker().WithProjectId(projectId).WithOrder(3).Generate();
-        var phases = new List<ProjectPhase> { phase };
+        var stage = StageFaker().WithProjectId(projectId).WithOrder(3).Generate();
+        var stages = new List<ProjectStage> { stage };
 
-        var rootTask = TaskFaker().WithOrder(1).WithProjectPhaseId(phase.Id).Generate();
-        var childTask = TaskFaker().WithOrder(1).WithParentId(rootTask.Id).WithProjectPhaseId(phase.Id).Generate();
-        var grandchild = TaskFaker().WithOrder(1).WithParentId(childTask.Id).WithProjectPhaseId(phase.Id).Generate();
+        var rootTask = TaskFaker().WithOrder(1).WithProjectStageId(stage.Id).Generate();
+        var childTask = TaskFaker().WithOrder(1).WithParentId(rootTask.Id).WithProjectStageId(stage.Id).Generate();
+        var grandchild = TaskFaker().WithOrder(1).WithParentId(childTask.Id).WithProjectStageId(stage.Id).Generate();
         var tasks = new List<ProjectTask> { rootTask, childTask, grandchild };
 
         // Act & Assert
-        WbsCalculator.CalculateWbs(rootTask, tasks, phases).Should().Be("3.1");
-        WbsCalculator.CalculateWbs(childTask, tasks, phases).Should().Be("3.1.1");
-        WbsCalculator.CalculateWbs(grandchild, tasks, phases).Should().Be("3.1.1.1");
+        WbsCalculator.CalculateWbs(rootTask, tasks, stages).Should().Be("3.1");
+        WbsCalculator.CalculateWbs(childTask, tasks, stages).Should().Be("3.1.1");
+        WbsCalculator.CalculateWbs(grandchild, tasks, stages).Should().Be("3.1.1.1");
     }
 
     [Fact]
-    public void CalculateWbs_ShouldNotPrefixPhase_WhenPhasesNull()
+    public void CalculateWbs_ShouldNotPrefixStage_WhenStagesNull()
     {
         // Arrange
         var task = TaskFaker().WithOrder(1).Generate();
@@ -217,7 +217,7 @@ public class WbsCalculatorTests
 
     #endregion
 
-    #region CalculateAllWbs - Without Phases
+    #region CalculateAllWbs - Without Stages
 
     [Fact]
     public void CalculateAllWbs_ShouldReturnWbsForAllTasks()
@@ -250,34 +250,34 @@ public class WbsCalculatorTests
 
     #endregion
 
-    #region CalculateAllWbs - With Phases
+    #region CalculateAllWbs - With Stages
 
     [Fact]
-    public void CalculateAllWbs_ShouldReturnPhasePrefixedWbs_ForAllTasks()
+    public void CalculateAllWbs_ShouldReturnStagePrefixedWbs_ForAllTasks()
     {
         // Arrange
         var projectId = Guid.NewGuid();
-        var phase1 = PhaseFaker().WithProjectId(projectId).WithOrder(1).Generate();
-        var phase2 = PhaseFaker().WithProjectId(projectId).WithOrder(2).Generate();
-        var phases = new List<ProjectPhase> { phase1, phase2 };
+        var stage1 = StageFaker().WithProjectId(projectId).WithOrder(1).Generate();
+        var stage2 = StageFaker().WithProjectId(projectId).WithOrder(2).Generate();
+        var stages = new List<ProjectStage> { stage1, stage2 };
 
-        var rootInPhase1 = TaskFaker().WithOrder(1).WithProjectPhaseId(phase1.Id).Generate();
-        var childInPhase1 = TaskFaker().WithOrder(1).WithParentId(rootInPhase1.Id).WithProjectPhaseId(phase1.Id).Generate();
-        var rootInPhase2 = TaskFaker().WithOrder(1).WithProjectPhaseId(phase2.Id).Generate();
-        var tasks = new List<ProjectTask> { rootInPhase1, childInPhase1, rootInPhase2 };
+        var rootInStage1 = TaskFaker().WithOrder(1).WithProjectStageId(stage1.Id).Generate();
+        var childInStage1 = TaskFaker().WithOrder(1).WithParentId(rootInStage1.Id).WithProjectStageId(stage1.Id).Generate();
+        var rootInStage2 = TaskFaker().WithOrder(1).WithProjectStageId(stage2.Id).Generate();
+        var tasks = new List<ProjectTask> { rootInStage1, childInStage1, rootInStage2 };
 
         // Act
-        var result = WbsCalculator.CalculateAllWbs(tasks, phases);
+        var result = WbsCalculator.CalculateAllWbs(tasks, stages);
 
         // Assert
         result.Should().HaveCount(3);
-        result[rootInPhase1.Id].Should().Be("1.1");
-        result[childInPhase1.Id].Should().Be("1.1.1");
-        result[rootInPhase2.Id].Should().Be("2.1");
+        result[rootInStage1.Id].Should().Be("1.1");
+        result[childInStage1.Id].Should().Be("1.1.1");
+        result[rootInStage2.Id].Should().Be("2.1");
     }
 
     [Fact]
-    public void CalculateAllWbs_ShouldReturnNonPrefixedWbs_WhenPhasesNull()
+    public void CalculateAllWbs_ShouldReturnNonPrefixedWbs_WhenStagesNull()
     {
         // Arrange
         var task1 = TaskFaker().WithOrder(1).Generate();
@@ -297,32 +297,32 @@ public class WbsCalculatorTests
     #region CalculateWbs - Edge Cases
 
     [Fact]
-    public void CalculateWbs_ShouldHandleComplexHierarchy_AcrossMultiplePhases()
+    public void CalculateWbs_ShouldHandleComplexHierarchy_AcrossMultipleStages()
     {
         // Arrange - realistic project plan structure
         var projectId = Guid.NewGuid();
-        var planning = PhaseFaker().WithProjectId(projectId).WithName("Planning").WithOrder(1).Generate();
-        var execution = PhaseFaker().WithProjectId(projectId).WithName("Execution").WithOrder(2).Generate();
-        var closure = PhaseFaker().WithProjectId(projectId).WithName("Closure").WithOrder(3).Generate();
-        var phases = new List<ProjectPhase> { planning, execution, closure };
+        var planning = StageFaker().WithProjectId(projectId).WithName("Planning").WithOrder(1).Generate();
+        var execution = StageFaker().WithProjectId(projectId).WithName("Execution").WithOrder(2).Generate();
+        var closure = StageFaker().WithProjectId(projectId).WithName("Closure").WithOrder(3).Generate();
+        var stages = new List<ProjectStage> { planning, execution, closure };
 
-        // Planning phase tasks
-        var requirements = TaskFaker().WithName("Requirements").WithOrder(1).WithProjectPhaseId(planning.Id).Generate();
-        var design = TaskFaker().WithName("Design").WithOrder(2).WithProjectPhaseId(planning.Id).Generate();
+        // Planning stage tasks
+        var requirements = TaskFaker().WithName("Requirements").WithOrder(1).WithProjectStageId(planning.Id).Generate();
+        var design = TaskFaker().WithName("Design").WithOrder(2).WithProjectStageId(planning.Id).Generate();
 
-        // Execution phase tasks with nesting
-        var buildApi = TaskFaker().WithName("Build API").WithOrder(1).WithProjectPhaseId(execution.Id).Generate();
-        var endpoint1 = TaskFaker().WithName("Users endpoint").WithOrder(1).WithParentId(buildApi.Id).WithProjectPhaseId(execution.Id).Generate();
-        var endpoint2 = TaskFaker().WithName("Orders endpoint").WithOrder(2).WithParentId(buildApi.Id).WithProjectPhaseId(execution.Id).Generate();
-        var buildUi = TaskFaker().WithName("Build UI").WithOrder(2).WithProjectPhaseId(execution.Id).Generate();
+        // Execution stage tasks with nesting
+        var buildApi = TaskFaker().WithName("Build API").WithOrder(1).WithProjectStageId(execution.Id).Generate();
+        var endpoint1 = TaskFaker().WithName("Users endpoint").WithOrder(1).WithParentId(buildApi.Id).WithProjectStageId(execution.Id).Generate();
+        var endpoint2 = TaskFaker().WithName("Orders endpoint").WithOrder(2).WithParentId(buildApi.Id).WithProjectStageId(execution.Id).Generate();
+        var buildUi = TaskFaker().WithName("Build UI").WithOrder(2).WithProjectStageId(execution.Id).Generate();
 
-        // Closure phase tasks
-        var signOff = TaskFaker().WithName("Sign-off").WithOrder(1).WithProjectPhaseId(closure.Id).Generate();
+        // Closure stage tasks
+        var signOff = TaskFaker().WithName("Sign-off").WithOrder(1).WithProjectStageId(closure.Id).Generate();
 
         var tasks = new List<ProjectTask> { requirements, design, buildApi, endpoint1, endpoint2, buildUi, signOff };
 
         // Act
-        var result = WbsCalculator.CalculateAllWbs(tasks, phases);
+        var result = WbsCalculator.CalculateAllWbs(tasks, stages);
 
         // Assert
         result[requirements.Id].Should().Be("1.1");      // Planning > Requirements

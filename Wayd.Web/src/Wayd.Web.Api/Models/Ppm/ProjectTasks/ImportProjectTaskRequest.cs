@@ -8,9 +8,9 @@ using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
 namespace Wayd.Web.Api.Models.Ppm.ProjectTasks;
 
 /// <summary>
-/// A single CSV row for the project task import. The project is referenced by key and the phase by name
-/// (phases come from the project's assigned lifecycle). A task nests under another by naming it in
-/// <see cref="ParentTaskName"/>; leaving that empty makes the task a root task of its phase. Rows may be
+/// A single CSV row for the project task import. The project is referenced by key and the stage by name
+/// (stages come from the project's assigned lifecycle). A task nests under another by naming it in
+/// <see cref="ParentTaskName"/>; leaving that empty makes the task a root task of its stage. Rows may be
 /// listed in any order — parents are applied before children.
 /// </summary>
 public sealed class ImportProjectTaskRequest
@@ -18,9 +18,9 @@ public sealed class ImportProjectTaskRequest
     public string ProjectKey { get; set; } = default!;
     public string Name { get; set; } = default!;
     public string? Description { get; set; }
-    public string PhaseName { get; set; } = default!;
+    public string StageName { get; set; } = default!;
 
-    /// <summary>The task this one nests under. Empty makes it a root task of its phase.</summary>
+    /// <summary>The task this one nests under. Empty makes it a root task of its stage.</summary>
     public string? ParentTaskName { get; set; }
 
     /// <summary>'Task' or 'Milestone'. Defaults to Task when the column is absent.</summary>
@@ -57,7 +57,7 @@ public sealed class ImportProjectTaskRequest
             type,
             status,
             priority,
-            PhaseName,
+            StageName,
             string.IsNullOrWhiteSpace(ParentTaskName) ? null : ParentTaskName,
             Progress,
             PlannedStart?.ToLocalDateTime().Date,
@@ -86,7 +86,7 @@ public sealed class ImportProjectTaskRequestValidator : CustomValidator<ImportPr
         RuleFor(t => t.Description)
             .MaximumLength(2048);
 
-        RuleFor(t => t.PhaseName)
+        RuleFor(t => t.StageName)
             .NotEmpty();
 
         RuleFor(t => t.Type)

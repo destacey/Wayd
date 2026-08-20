@@ -1,7 +1,7 @@
 'use client'
 
 import { LifecycleStatusTag } from '@/src/components/common'
-import PhaseTimeline from '@/src/app/ppm/_components/phase-timeline'
+import StageTimeline from '@/src/app/ppm/_components/stage-timeline'
 import ProjectHealthCheckTag from '@/src/app/ppm/projects/_components/project-health-check-tag'
 import { ProjectListDto, ProjectPlanSummaryDto } from '@/src/services/wayd-api'
 import { Card, Flex, Typography } from 'antd'
@@ -69,9 +69,9 @@ const ProjectCard: FC<ProjectCardProps> = ({
           </Text>
         </Flex>
 
-        {/* Phase timeline */}
-        {project.phases?.length > 0 && (
-          <PhaseTimeline phases={project.phases} displayMode="small" />
+        {/* Stage timeline */}
+        {project.stages?.length > 0 && (
+          <StageTimeline stages={project.stages} displayMode="small" />
         )}
 
         {/* Stat pills */}

@@ -69,7 +69,7 @@ public sealed class UpdateProjectTaskCommandHandler(
         {
             var project = await _ppmDbContext.Projects
                 .AsSplitQuery()
-                .Include(p => p.Phases)
+                .Include(p => p.Stages)
                 .Include(p => p.Tasks)
                 .ThenInclude(t => t.Roles)
                 .FirstOrDefaultAsync(p => p.Tasks.Any(t => t.Id == request.Id), cancellationToken);
@@ -81,7 +81,7 @@ public sealed class UpdateProjectTaskCommandHandler(
 
             var task = project.Tasks.First(t => t.Id == request.Id);
 
-            // Validate parent — ParentId can be a phase or task, domain handles full validation
+            // Validate parent — ParentId can be a stage or task, domain handles full validation
             if (request.ParentId == request.Id)
             {
                 _logger.LogInformation("Cannot set task {TaskId} as its own parent.", request.Id);
@@ -125,9 +125,9 @@ public sealed class UpdateProjectTaskCommandHandler(
                 return await HandleDomainFailure(project, effortResult, cancellationToken);
             }
 
-            // Update parent/phase if changed
-            // For root tasks, the effective parent is the phase; for child tasks, it's the parent task
-            var effectiveCurrentParentId = task.ParentId ?? task.ProjectPhaseId;
+            // Update parent/stage if changed
+            // For root tasks, the effective parent is the stage; for child tasks, it's the parent task
+            var effectiveCurrentParentId = task.ParentId ?? task.ProjectStageId;
             var parentChanging = request.ParentId != effectiveCurrentParentId;
 
             // Update planned dates
@@ -200,17 +200,17 @@ public sealed class UpdateProjectTaskCommandHandler(
     {
         try
         {
-            // Reset the project aggregate and all tasks/phases
+            // Reset the project aggregate and all tasks/stages
             await _ppmDbContext.Entry(project).ReloadAsync(cancellationToken);
             foreach (var task in project.Tasks)
             {
                 await _ppmDbContext.Entry(task).ReloadAsync(cancellationToken);
                 task.ClearDomainEvents();
             }
-            foreach (var phase in project.Phases)
+            foreach (var stage in project.Stages)
             {
-                await _ppmDbContext.Entry(phase).ReloadAsync(cancellationToken);
-                phase.ClearDomainEvents();
+                await _ppmDbContext.Entry(stage).ReloadAsync(cancellationToken);
+                stage.ClearDomainEvents();
             }
         }
         catch (NotImplementedException)
@@ -220,9 +220,9 @@ public sealed class UpdateProjectTaskCommandHandler(
             {
                 task.ClearDomainEvents();
             }
-            foreach (var phase in project.Phases)
+            foreach (var stage in project.Stages)
             {
-                phase.ClearDomainEvents();
+                stage.ClearDomainEvents();
             }
         }
 

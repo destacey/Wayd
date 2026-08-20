@@ -65,9 +65,9 @@ const ProjectLifecyclesPage = () => {
         meta: { filterType: 'set' },
       },
       {
-        id: 'phaseCount',
-        accessorKey: 'phaseCount',
-        header: 'Phase Count',
+        id: 'stageCount',
+        accessorKey: 'stageCount',
+        header: 'Stage Count',
         size: 120,
       },
     ],

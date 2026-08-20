@@ -66,7 +66,7 @@ export const useMyProjectsTour = (): MyProjectsTourResult => {
     {
       title: 'Project List',
       description:
-        'Your projects are grouped by portfolio. Each card shows your role, project status, phase timeline, task statistics, and team members. Task statistics on each card reflect your role filters, not your actual roles on the project.',
+        'Your projects are grouped by portfolio. Each card shows your role, project status, stage timeline, task statistics, and team members. Task statistics on each card reflect your role filters, not your actual roles on the project.',
       target: (() => leftPanelRef.current) as () => HTMLElement,
       placement: 'right',
       style: stepStyle,
@@ -74,7 +74,7 @@ export const useMyProjectsTour = (): MyProjectsTourResult => {
     {
       title: 'Project Details',
       description:
-        'Clicking a project card opens its details here, including phases, task summary, and the full project plan with deliverables and tasks. Click any task row to view additional task details.',
+        'Clicking a project card opens its details here, including stages, task summary, and the full project plan with deliverables and tasks. Click any task row to view additional task details.',
       target: (() => rightPanelRef.current) as () => HTMLElement,
       placement: 'left',
       style: stepStyle,

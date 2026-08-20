@@ -7,7 +7,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Dtos;
 /// <summary>
 /// A single project task row. The task's own <see cref="Name"/> is its natural key within its project, so
 /// child rows can name their parent: <see cref="ParentTaskName"/> when nesting under another task, or
-/// <see cref="PhaseName"/> alone for a task at the root of a phase. Phases come from the lifecycle assigned
+/// <see cref="StageName"/> alone for a task at the root of a stage. Stages come from the lifecycle assigned
 /// to the project, so the project must already have one.
 /// <para>
 /// A milestone carries a single <see cref="PlannedDate"/> and no progress; a task carries a planned range
@@ -22,7 +22,7 @@ public sealed record ImportProjectTaskDto(
     ProjectTaskType Type,
     TaskStatus Status,
     TaskPriority Priority,
-    string PhaseName,
+    string StageName,
     string? ParentTaskName,
     decimal? Progress,
     LocalDate? PlannedStart,
@@ -56,7 +56,7 @@ public sealed class ImportProjectTaskDtoValidator : CustomValidator<ImportProjec
         RuleFor(t => t.Priority)
             .IsInEnum();
 
-        RuleFor(t => t.PhaseName)
+        RuleFor(t => t.StageName)
             .NotEmpty();
 
         RuleFor(t => t.EstimatedEffortHours)

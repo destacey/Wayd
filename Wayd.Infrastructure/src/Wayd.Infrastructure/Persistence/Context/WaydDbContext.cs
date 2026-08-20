@@ -124,7 +124,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<PpmStrategicTheme> PpmStrategicThemes => Set<PpmStrategicTheme>();
     public DbSet<StrategicInitiative> StrategicInitiatives => Set<StrategicInitiative>();
     public DbSet<ProjectLifecycle> ProjectLifecycles => Set<ProjectLifecycle>();
-    public DbSet<ProjectPhase> ProjectPhases => Set<ProjectPhase>();
+    public DbSet<ProjectStage> ProjectStages => Set<ProjectStage>();
     public DbSet<ScoringModel> ScoringModels => Set<ScoringModel>();
 
     #endregion IProjectPortfolioManagementDbContext

@@ -15,27 +15,27 @@ public sealed record CreateProjectLifecycleRequest
     public string Description { get; set; } = default!;
 
     /// <summary>
-    /// Optional initial phases for the project lifecycle.
+    /// Optional initial stages for the project lifecycle.
     /// </summary>
-    public List<PhaseInput>? Phases { get; set; }
+    public List<StageInput>? Stages { get; set; }
 
-    public sealed record PhaseInput
+    public sealed record StageInput
     {
         /// <summary>
-        /// The name of the phase.
+        /// The name of the stage.
         /// </summary>
         public string Name { get; set; } = default!;
 
         /// <summary>
-        /// The description of the phase.
+        /// The description of the stage.
         /// </summary>
         public string Description { get; set; } = default!;
     }
 
     public CreateProjectLifecycleCommand ToCreateProjectLifecycleCommand()
     {
-        var phases = Phases?.Select(p => new CreateProjectLifecycleCommand.PhaseInput(p.Name, p.Description)).ToList();
-        return new CreateProjectLifecycleCommand(Name, Description, phases);
+        var stages = Stages?.Select(p => new CreateProjectLifecycleCommand.StageInput(p.Name, p.Description)).ToList();
+        return new CreateProjectLifecycleCommand(Name, Description, stages);
     }
 }
 
@@ -51,13 +51,13 @@ public sealed class CreateProjectLifecycleRequestValidator : AbstractValidator<C
             .NotEmpty()
             .MaximumLength(1024);
 
-        RuleForEach(x => x.Phases).ChildRules(phase =>
+        RuleForEach(x => x.Stages).ChildRules(stage =>
         {
-            phase.RuleFor(p => p.Name)
+            stage.RuleFor(p => p.Name)
                 .NotEmpty()
                 .MaximumLength(64);
 
-            phase.RuleFor(p => p.Description)
+            stage.RuleFor(p => p.Description)
                 .NotEmpty()
                 .MaximumLength(1024);
         });

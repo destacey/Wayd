@@ -57,8 +57,8 @@ public sealed class WaydSeedClient : IDisposable
     public Task ImportProjectTasks(byte[] csv, CancellationToken cancellationToken) =>
         PostCsv("api/ppm/projects/tasks/import", csv, "project-tasks.csv", cancellationToken);
 
-    public Task ImportProjectPhases(byte[] csv, CancellationToken cancellationToken) =>
-        PostCsv("api/ppm/projects/phases/import", csv, "project-phases.csv", cancellationToken);
+    public Task ImportProjectStages(byte[] csv, CancellationToken cancellationToken) =>
+        PostCsv("api/ppm/projects/stages/import", csv, "project-stages.csv", cancellationToken);
 
     public Task ImportStrategicInitiatives(byte[] initiativesCsv, byte[]? kpisCsv, CancellationToken cancellationToken) =>
         PostCsv("api/ppm/strategic-initiatives/import", initiativesCsv, "strategic-initiatives.csv", cancellationToken,
@@ -95,7 +95,7 @@ public sealed class WaydSeedClient : IDisposable
     }
 
     /// <summary>
-    /// Ensures the project lifecycle exists (creating it with its phases if missing) and returns it active,
+    /// Ensures the project lifecycle exists (creating it with its stages if missing) and returns it active,
     /// since a lifecycle must be active before a project can be assigned it. Projects reference it by name.
     /// </summary>
     public async Task EnsureProjectLifecycle(PpmVocabulary.ProjectLifecycleDefinition lifecycle, CancellationToken cancellationToken)
@@ -118,7 +118,7 @@ public sealed class WaydSeedClient : IDisposable
             {
                 Name = lifecycle.Name,
                 Description = lifecycle.Description,
-                Phases = [.. lifecycle.Phases.Select(p => new PhaseInput { Name = p.Name, Description = p.Description })],
+                Stages = [.. lifecycle.Stages.Select(p => new StageInput { Name = p.Name, Description = p.Description })],
             }, cancellationToken);
         }
 

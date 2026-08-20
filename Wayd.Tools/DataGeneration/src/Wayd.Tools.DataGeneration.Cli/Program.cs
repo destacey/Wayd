@@ -87,7 +87,7 @@ generateCommand.SetAction((parse, _) =>
         CsvFile.Write(Path.Combine(outDir.FullName, "programs.csv"), ppm.Programs);
         CsvFile.Write(Path.Combine(outDir.FullName, "projects.csv"), ppm.Projects);
         CsvFile.Write(Path.Combine(outDir.FullName, "project-tasks.csv"), ppm.ProjectTasks);
-        CsvFile.Write(Path.Combine(outDir.FullName, "project-phases.csv"), ppm.ProjectPhases);
+        CsvFile.Write(Path.Combine(outDir.FullName, "project-stages.csv"), ppm.ProjectStages);
         CsvFile.Write(Path.Combine(outDir.FullName, "strategic-initiatives.csv"), ppm.StrategicInitiatives);
         CsvFile.Write(Path.Combine(outDir.FullName, "strategic-initiative-kpis.csv"), ppm.StrategicInitiativeKpis);
         CsvFile.Write(Path.Combine(outDir.FullName, "ppm-finalizations.csv"), ppm.Finalizations);

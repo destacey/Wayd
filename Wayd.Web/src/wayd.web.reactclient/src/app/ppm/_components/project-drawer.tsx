@@ -7,7 +7,7 @@ import {
   LabeledContent,
 } from '@/src/components/common/content'
 import LinksCard from '@/src/components/common/links/links-card'
-import PhaseTimeline from './phase-timeline'
+import StageTimeline from './stage-timeline'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
@@ -197,8 +197,8 @@ const ProjectDrawer: FC<ProjectDrawerProps> = ({
           )}
         </Flex>
 
-        {(projectData?.phases?.length ?? 0) > 0 && (
-          <PhaseTimeline phases={projectData!.phases} />
+        {(projectData?.stages?.length ?? 0) > 0 && (
+          <StageTimeline stages={projectData!.stages} />
         )}
 
         {projectData?.id && (

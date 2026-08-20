@@ -23,7 +23,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.ProjectTasks.Com
 public class ImportProjectTasksCommandHandlerTests : IDisposable
 {
     private const string ProjectKey = "APOLLO";
-    private const string PhaseName = "Build";
+    private const string StageName = "Build";
 
     private static readonly LocalDate _start = new(2024, 7, 1);
     private static readonly LocalDate _end = new(2025, 6, 30);
@@ -43,7 +43,7 @@ public class ImportProjectTasksCommandHandlerTests : IDisposable
 
         _handler = new ImportProjectTasksCommandHandler(_dbContext, _mockLogger.Object);
 
-        // Tasks need a project with an assigned lifecycle, since phases come from it.
+        // Tasks need a project with an assigned lifecycle, since stages come from it.
         var portfolio = ProjectPortfolio.Create("Growth", "Growth portfolio");
         portfolio.Activate(PpmActor.System, _start);
 
@@ -60,14 +60,14 @@ public class ImportProjectTasksCommandHandlerTests : IDisposable
             null,
             _dateTimeProvider.Now, PpmActor.System).Value;
 
-        var lifecycle = new ProjectLifecycleFaker().WithName("Standard").AsActiveWithPhases((PhaseName, "Delivery"), ("Close", "Closure"));
+        var lifecycle = new ProjectLifecycleFaker().WithName("Standard").AsActiveWithStages((StageName, "Delivery"), ("Close", "Closure"));
         _project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
 
         _dbContext.AddProject(_project);
     }
 
     [Fact]
-    public async Task Handle_ImportsRootTask_IntoThePhaseNamedOnTheRow()
+    public async Task Handle_ImportsRootTask_IntoTheStageNamedOnTheRow()
     {
         // Arrange
         var command = new ImportProjectTasksCommand([TaskRow("Design")]);
@@ -80,7 +80,7 @@ public class ImportProjectTasksCommandHandlerTests : IDisposable
         var task = _project.Tasks.Single();
         task.Name.Should().Be("Design");
         task.ParentId.Should().BeNull();
-        task.ProjectPhaseId.Should().Be(_project.Phases.Single(p => p.Name == PhaseName).Id);
+        task.ProjectStageId.Should().Be(_project.Stages.Single(p => p.Name == StageName).Id);
         _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 
@@ -207,10 +207,10 @@ public class ImportProjectTasksCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_Fails_WhenThePhaseIsNotOnTheProjectsLifecycle()
+    public async Task Handle_Fails_WhenTheStageIsNotOnTheProjectsLifecycle()
     {
         // Arrange
-        var row = TaskRow("Design") with { PhaseName = "Nonexistent" };
+        var row = TaskRow("Design") with { StageName = "Nonexistent" };
 
         // Act
         var result = await _handler.Handle(new ImportProjectTasksCommand([row]), TestContext.Current.CancellationToken);
@@ -275,7 +275,7 @@ public class ImportProjectTasksCommandHandlerTests : IDisposable
             ProjectTaskType.Task,
             TaskStatus.NotStarted,
             TaskPriority.Medium,
-            PhaseName,
+            StageName,
             parentTaskName,
             0m,
             _start,

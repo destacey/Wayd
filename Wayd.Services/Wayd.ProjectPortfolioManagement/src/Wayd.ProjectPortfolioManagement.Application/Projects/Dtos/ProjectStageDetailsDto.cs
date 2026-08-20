@@ -5,7 +5,7 @@ using Wayd.ProjectPortfolioManagement.Domain.Models;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 
-public sealed record ProjectPhaseDetailsDto : IMapFrom<ProjectPhase>
+public sealed record ProjectStageDetailsDto : IMapFrom<ProjectStage>
 {
     public Guid Id { get; set; }
     public required string Name { get; set; }
@@ -19,13 +19,13 @@ public sealed record ProjectPhaseDetailsDto : IMapFrom<ProjectPhase>
 
     public void ConfigureMapping(TypeAdapterConfig config)
     {
-        config.NewConfig<ProjectPhase, ProjectPhaseDetailsDto>()
+        config.NewConfig<ProjectStage, ProjectStageDetailsDto>()
             .Map(dest => dest.Status, src => SimpleNavigationDto.FromEnum(src.Status))
             .Map(dest => dest.Start, src => src.DateRange != null ? src.DateRange.Start : (LocalDate?)null)
             .Map(dest => dest.End, src => src.DateRange != null ? src.DateRange.End : (LocalDate?)null)
             .Map(dest => dest.Progress, src => src.Progress.Value)
             .Map(dest => dest.Assignees, src => src.Roles
-                .Where(r => r.Role == ProjectPhaseRole.Assignee)
+                .Where(r => r.Role == ProjectStageRole.Assignee)
                 .Select(r => EmployeeNavigationDto.From(r.Employee!)));
     }
 }

@@ -36,7 +36,7 @@ function createProject(
     projectManagers: [],
     projectMembers: [],
     strategicThemes: [],
-    phases: [],
+    stages: [],
     ...overrides,
   } as ProjectListDto
 }

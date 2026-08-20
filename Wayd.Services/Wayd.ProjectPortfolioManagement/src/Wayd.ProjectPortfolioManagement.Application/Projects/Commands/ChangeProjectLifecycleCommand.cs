@@ -5,7 +5,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 public sealed record ChangeProjectLifecycleCommand(
     Guid ProjectId,
     Guid NewLifecycleId,
-    Dictionary<Guid, Guid> PhaseMapping) : ICommand;
+    Dictionary<Guid, Guid> StageMapping) : ICommand;
 
 public sealed class ChangeProjectLifecycleCommandValidator : CustomValidator<ChangeProjectLifecycleCommand>
 {
@@ -17,7 +17,7 @@ public sealed class ChangeProjectLifecycleCommandValidator : CustomValidator<Cha
         RuleFor(x => x.NewLifecycleId)
             .NotEmpty();
 
-        RuleFor(x => x.PhaseMapping)
+        RuleFor(x => x.StageMapping)
             .NotNull();
     }
 }
@@ -44,7 +44,7 @@ public sealed class ChangeProjectLifecycleCommandHandler(
 
             var project = await _ppmDbContext.Projects
                 .AsSplitQuery()
-                .Include(p => p.Phases)
+                .Include(p => p.Stages)
                 .Include(p => p.Tasks)
                 .Include(p => p.Roles)
                 .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
@@ -58,7 +58,7 @@ public sealed class ChangeProjectLifecycleCommandHandler(
             }
 
             var newLifecycle = await _ppmDbContext.ProjectLifecycles
-                .Include(l => l.Phases)
+                .Include(l => l.Stages)
                 .FirstOrDefaultAsync(l => l.Id == request.NewLifecycleId, cancellationToken);
 
             if (newLifecycle is null)
@@ -67,7 +67,7 @@ public sealed class ChangeProjectLifecycleCommandHandler(
                 return Result.Failure($"Project Lifecycle {request.NewLifecycleId} not found.");
             }
 
-            var result = project.ChangeLifecycle(actor, project.AncestryRoles(), newLifecycle, request.PhaseMapping);
+            var result = project.ChangeLifecycle(actor, project.AncestryRoles(), newLifecycle, request.StageMapping);
             if (result.IsFailure)
             {
                 _logger.LogWarning("Unable to change lifecycle for project {ProjectId}. Error: {Error}", request.ProjectId, result.Error);

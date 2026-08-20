@@ -38,7 +38,7 @@ public sealed class GetProjectPlanTreeQueryHandler(IProjectPortfolioManagementDb
         var project = await _ppmDbContext.Projects
             .AsNoTracking()
             .Where(request.ProjectIdOrKeyFilter)
-            .Include(p => p.Phases)
+            .Include(p => p.Stages)
                 .ThenInclude(p => p.Roles)
                     .ThenInclude(r => r.Employee)
             .Include(p => p.Tasks)
@@ -49,50 +49,50 @@ public sealed class GetProjectPlanTreeQueryHandler(IProjectPortfolioManagementDb
         if (project is null)
             return [];
 
-        var phases = project.Phases.OrderBy(p => p.Order).ToList();
+        var stages = project.Stages.OrderBy(p => p.Order).ToList();
         var tasks = project.Tasks.ToList();
 
-        if (phases.Count == 0)
+        if (stages.Count == 0)
             return [];
 
-        // Calculate WBS codes for all tasks with phase prefix
-        var wbsCodes = WbsCalculator.CalculateAllWbs(tasks, phases);
+        // Calculate WBS codes for all tasks with stage prefix
+        var wbsCodes = WbsCalculator.CalculateAllWbs(tasks, stages);
 
-        // Build phase nodes with task children
-        var phaseNodes = new List<ProjectPlanNodeDto>();
-        foreach (var phase in phases)
+        // Build stage nodes with task children
+        var stageNodes = new List<ProjectPlanNodeDto>();
+        foreach (var stage in stages)
         {
-            var phaseNode = MapPhaseToNode(phase);
+            var stageNode = MapStageToNode(stage);
 
-            // Get root tasks for this phase
+            // Get root tasks for this stage
             var rootTasks = tasks
-                .Where(t => t.ProjectPhaseId == phase.Id && t.ParentId is null)
+                .Where(t => t.ProjectStageId == stage.Id && t.ParentId is null)
                 .OrderBy(t => t.Order)
                 .ToList();
 
-            phaseNode.Children = [.. rootTasks.Select(t => MapTaskToNode(t, tasks, wbsCodes))];
+            stageNode.Children = [.. rootTasks.Select(t => MapTaskToNode(t, tasks, wbsCodes))];
 
-            phaseNodes.Add(phaseNode);
+            stageNodes.Add(stageNode);
         }
 
-        return phaseNodes;
+        return stageNodes;
     }
 
-    private static ProjectPlanNodeDto MapPhaseToNode(ProjectPhase phase)
+    private static ProjectPlanNodeDto MapStageToNode(ProjectStage stage)
     {
         return new ProjectPlanNodeDto
         {
-            Id = phase.Id,
-            NodeType = "Phase",
-            Name = phase.Name,
-            Status = SimpleNavigationDto.FromEnum(phase.Status),
-            Order = phase.Order,
-            Wbs = phase.Order.ToString(),
-            Start = phase.DateRange?.Start,
-            End = phase.DateRange?.End,
-            Progress = phase.Progress.Value,
-            Assignees = [.. phase.Roles
-                .Where(r => r.Role == ProjectPhaseRole.Assignee)
+            Id = stage.Id,
+            NodeType = "Stage",
+            Name = stage.Name,
+            Status = SimpleNavigationDto.FromEnum(stage.Status),
+            Order = stage.Order,
+            Wbs = stage.Order.ToString(),
+            Start = stage.DateRange?.Start,
+            End = stage.DateRange?.End,
+            Progress = stage.Progress.Value,
+            Assignees = [.. stage.Roles
+                .Where(r => r.Role == ProjectStageRole.Assignee)
                 .Select(r => EmployeeNavigationDto.From(r.Employee!))],
         };
     }
@@ -117,7 +117,7 @@ public sealed class GetProjectPlanTreeQueryHandler(IProjectPortfolioManagementDb
             Type = SimpleNavigationDto.FromEnum(task.Type),
             Priority = SimpleNavigationDto.FromEnum(task.Priority),
             ParentId = task.ParentId,
-            ProjectPhaseId = task.ProjectPhaseId,
+            ProjectStageId = task.ProjectStageId,
             PlannedDate = task.PlannedDate,
             EstimatedEffortHours = task.EstimatedEffortHours,
         };

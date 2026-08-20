@@ -4,13 +4,13 @@ using CSharpFunctionalExtensions;
 namespace Wayd.ProjectPortfolioManagement.Domain.Models;
 
 /// <summary>
-/// Represents a phase definition within a project lifecycle template.
+/// Represents a stage definition within a project lifecycle template.
 /// </summary>
-public sealed class ProjectLifecyclePhase : BaseAuditableEntity
+public sealed class ProjectLifecycleStage : BaseAuditableEntity
 {
-    private ProjectLifecyclePhase() { }
+    private ProjectLifecycleStage() { }
 
-    internal ProjectLifecyclePhase(Guid projectLifecycleId, string name, string description, int order)
+    internal ProjectLifecycleStage(Guid projectLifecycleId, string name, string description, int order)
     {
         ProjectLifecycleId = projectLifecycleId;
         Name = name;
@@ -19,12 +19,12 @@ public sealed class ProjectLifecyclePhase : BaseAuditableEntity
     }
 
     /// <summary>
-    /// The ID of the lifecycle this phase belongs to.
+    /// The ID of the lifecycle this stage belongs to.
     /// </summary>
     public Guid ProjectLifecycleId { get; private init; }
 
     /// <summary>
-    /// The name of the phase (e.g., "Planning", "Execution", "Closure").
+    /// The name of the stage (e.g., "Planning", "Execution", "Closure").
     /// </summary>
     public string Name
     {
@@ -33,7 +33,7 @@ public sealed class ProjectLifecyclePhase : BaseAuditableEntity
     } = default!;
 
     /// <summary>
-    /// A description of the phase's purpose and expected activities.
+    /// A description of the stage's purpose and expected activities.
     /// </summary>
     public string Description
     {
@@ -42,12 +42,12 @@ public sealed class ProjectLifecyclePhase : BaseAuditableEntity
     } = default!;
 
     /// <summary>
-    /// The display order of the phase within the lifecycle.
+    /// The display order of the stage within the lifecycle.
     /// </summary>
     public int Order { get; internal set; }
 
     /// <summary>
-    /// Updates the phase details.
+    /// Updates the stage details.
     /// </summary>
     internal Result Update(string name, string description)
     {

@@ -36,10 +36,10 @@ jest.mock('@/src/components/common/planning/timeline-progress', () => {
   return MockTimelineProgress
 })
 
-jest.mock('./phase-timeline', () => {
-  const MockPhaseTimeline = () => <div data-testid="phase-timeline" />
-  MockPhaseTimeline.displayName = 'MockPhaseTimeline'
-  return MockPhaseTimeline
+jest.mock('./stage-timeline', () => {
+  const MockStageTimeline = () => <div data-testid="stage-timeline" />
+  MockStageTimeline.displayName = 'MockStageTimeline'
+  return MockStageTimeline
 })
 
 jest.mock('../projects/_components', () => ({
@@ -62,7 +62,7 @@ function createProject(
     projectManagers: [],
     projectMembers: [],
     strategicThemes: [],
-    phases: [],
+    stages: [],
     rank: 0,
     canManageProject: true,
     ...rest,

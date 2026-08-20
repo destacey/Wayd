@@ -29,10 +29,10 @@ const columns: ColumnDef<ProjectTeamMemberDto, any>[] = [
     getValues: (row) => row.roles ?? [],
   }),
   createCsvColumn<ProjectTeamMemberDto>({
-    id: 'assignedPhases',
-    header: 'Assigned Phases',
+    id: 'assignedStages',
+    header: 'Assigned Stages',
     size: 250,
-    getValues: (row) => row.assignedPhases ?? [],
+    getValues: (row) => row.assignedStages ?? [],
   }),
   {
     id: 'activeWorkItemCount',

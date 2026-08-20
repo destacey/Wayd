@@ -5,10 +5,10 @@ namespace Wayd.ProjectPortfolioManagement.Application.ProjectLifecycles.Commands
 public sealed record CreateProjectLifecycleCommand(
     string Name,
     string Description,
-    List<CreateProjectLifecycleCommand.PhaseInput>? Phases)
+    List<CreateProjectLifecycleCommand.StageInput>? Stages)
     : ICommand<Guid>
 {
-    public sealed record PhaseInput(string Name, string Description);
+    public sealed record StageInput(string Name, string Description);
 }
 
 public sealed class CreateProjectLifecycleCommandValidator : AbstractValidator<CreateProjectLifecycleCommand>
@@ -23,13 +23,13 @@ public sealed class CreateProjectLifecycleCommandValidator : AbstractValidator<C
             .NotEmpty()
             .MaximumLength(1024);
 
-        RuleForEach(x => x.Phases).ChildRules(phase =>
+        RuleForEach(x => x.Stages).ChildRules(stage =>
         {
-            phase.RuleFor(p => p.Name)
+            stage.RuleFor(p => p.Name)
                 .NotEmpty()
                 .MaximumLength(32);
 
-            phase.RuleFor(p => p.Description)
+            stage.RuleFor(p => p.Description)
                 .NotEmpty()
                 .MaximumLength(1024);
         });
@@ -50,14 +50,14 @@ public sealed class CreateProjectLifecycleCommandHandler(
     {
         try
         {
-            var phases = request.Phases?
+            var stages = request.Stages?
                 .Select(p => (p.Name, p.Description))
                 .ToList();
 
             var lifecycle = ProjectLifecycle.Create(
                 request.Name,
                 request.Description,
-                phases
+                stages
                 );
 
             await _projectPortfolioManagementDbContext.ProjectLifecycles.AddAsync(lifecycle, cancellationToken);

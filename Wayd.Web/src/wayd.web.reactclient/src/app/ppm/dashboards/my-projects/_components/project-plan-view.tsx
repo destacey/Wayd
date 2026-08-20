@@ -22,9 +22,9 @@ import styles from '../my-projects-dashboard.module.css'
 
 const { Text } = Typography
 
-// --- Phase tag color ---
+// --- Stage tag color ---
 
-function getPhaseTagColor(statusName: string): string {
+function getStageTagColor(statusName: string): string {
   switch (statusName) {
     case 'Completed':
       return 'success'
@@ -253,24 +253,24 @@ const DeliverableSection: FC<DeliverableSectionProps> = ({
   )
 }
 
-// --- Phase Section ---
+// --- Stage Section ---
 
-interface PhaseSectionProps {
-  phase: ProjectPlanNodeDto
+interface StageSectionProps {
+  stage: ProjectPlanNodeDto
   isActive: boolean
 }
 
-const PhaseSection: FC<PhaseSectionProps> = ({ phase, isActive }) => {
+const StageSection: FC<StageSectionProps> = ({ stage, isActive }) => {
   const [collapsed, setCollapsed] = useState(!isActive)
-  const children = phase.children ?? []
+  const children = stage.children ?? []
   const hasChildren = children.length > 0
 
   const taskCounts = countTasksByStatus(children)
 
   return (
-    <div className={styles.phaseSection}>
+    <div className={styles.stageSection}>
       <Flex
-        className={styles.phaseHeader}
+        className={styles.stageHeader}
         align="center"
         gap={8}
         wrap
@@ -281,10 +281,10 @@ const PhaseSection: FC<PhaseSectionProps> = ({ phase, isActive }) => {
             className={`${styles.collapseIcon} ${!collapsed ? styles.collapseIconExpanded : ''}`}
           />
         )}
-        <span className={styles.phaseName}>{phase.name}</span>
-        {phase.status?.name && (
-          <Tag color={getPhaseTagColor(phase.status.name)} style={{ margin: 0 }}>
-            {phase.status.name}
+        <span className={styles.stageName}>{stage.name}</span>
+        {stage.status?.name && (
+          <Tag color={getStageTagColor(stage.status.name)} style={{ margin: 0 }}>
+            {stage.status.name}
           </Tag>
         )}
         <Flex align="center" gap={8} style={{ marginLeft: 'auto' }}>
@@ -310,14 +310,14 @@ const PhaseSection: FC<PhaseSectionProps> = ({ phase, isActive }) => {
             </WaydTooltip>
           )}
           <Progress
-            percent={phase.progress}
+            percent={stage.progress}
             size="small"
             style={{ width: 80 }}
           />
         </Flex>
       </Flex>
       {!collapsed && hasChildren && (
-        <div className={styles.phaseContent}>
+        <div className={styles.stageContent}>
           {children.map((child) => {
             if (child.children && child.children.length > 0) {
               return (
@@ -336,14 +336,14 @@ const PhaseSection: FC<PhaseSectionProps> = ({ phase, isActive }) => {
   )
 }
 
-interface PhaseTaskCounts {
+interface StageTaskCounts {
   overdue: number
   dueThisWeek: number
   upcoming: number
 }
 
-function countTasksByStatus(nodes: ProjectPlanNodeDto[]): PhaseTaskCounts {
-  const counts: PhaseTaskCounts = { overdue: 0, dueThisWeek: 0, upcoming: 0 }
+function countTasksByStatus(nodes: ProjectPlanNodeDto[]): StageTaskCounts {
+  const counts: StageTaskCounts = { overdue: 0, dueThisWeek: 0, upcoming: 0 }
   for (const node of nodes) {
     const label = getTaskStatusLabel(node)
     if (label === 'Overdue') counts.overdue++
@@ -377,15 +377,15 @@ const ProjectPlanView: FC<ProjectPlanViewProps> = ({ projectKey }) => {
     )
   }
 
-  const phases = planTree.filter((n) => n.nodeType === 'Phase')
+  const stages = planTree.filter((n) => n.nodeType === 'Stage')
 
   return (
     <Flex vertical gap={8}>
-      {phases.map((phase) => (
-        <PhaseSection
-          key={phase.id}
-          phase={phase}
-          isActive={phase.status?.name === 'In Progress'}
+      {stages.map((stage) => (
+        <StageSection
+          key={stage.id}
+          stage={stage}
+          isActive={stage.status?.name === 'In Progress'}
         />
       ))}
     </Flex>

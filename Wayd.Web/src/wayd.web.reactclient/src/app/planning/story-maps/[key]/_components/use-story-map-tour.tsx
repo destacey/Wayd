@@ -283,7 +283,7 @@ export const useStoryMapTour = (
   const swimLaneStep = {
     title: 'Slice releases with swim lanes',
     description:
-      'Swim lanes split tasks into releases or phases — each can carry a date range. Click Add swim lane to create one, then drag tasks into it. A lane’s caret collapses it, which keeps a finished release out of the way.',
+      'Swim lanes split tasks into releases or stages — each can carry a date range. Click Add swim lane to create one, then drag tasks into it. A lane’s caret collapses it, which keeps a finished release out of the way.',
     target: anchor('add-swim-lane'),
     mask: false,
     placement: 'top' as const,

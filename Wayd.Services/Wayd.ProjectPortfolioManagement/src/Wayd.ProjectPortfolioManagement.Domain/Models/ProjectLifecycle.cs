@@ -5,12 +5,12 @@ using Wayd.ProjectPortfolioManagement.Domain.Enums;
 namespace Wayd.ProjectPortfolioManagement.Domain.Models;
 
 /// <summary>
-/// Represents a project lifecycle template that defines the ordered phases a project goes through.
+/// Represents a project lifecycle template that defines the ordered stages a project goes through.
 /// Lifecycles enforce consistency across projects by standardizing the top-level planning structure.
 /// </summary>
 public sealed class ProjectLifecycle : BaseAuditableEntity, IHasIdAndKey
 {
-    private readonly List<ProjectLifecyclePhase> _phases = [];
+    private readonly List<ProjectLifecycleStage> _stages = [];
 
     private ProjectLifecycle() { }
 
@@ -50,9 +50,9 @@ public sealed class ProjectLifecycle : BaseAuditableEntity, IHasIdAndKey
     public ProjectLifecycleState State { get; private set; }
 
     /// <summary>
-    /// The ordered phases defined in this lifecycle template.
+    /// The ordered stages defined in this lifecycle template.
     /// </summary>
-    public IReadOnlyCollection<ProjectLifecyclePhase> Phases => _phases.AsReadOnly();
+    public IReadOnlyCollection<ProjectLifecycleStage> Stages => _stages.AsReadOnly();
 
     /// <summary>
     /// Indicates whether the lifecycle can be deleted. Only proposed lifecycles can be deleted.
@@ -79,7 +79,7 @@ public sealed class ProjectLifecycle : BaseAuditableEntity, IHasIdAndKey
 
     /// <summary>
     /// Activates the lifecycle, making it available for project assignment.
-    /// Requires at least one phase to be defined.
+    /// Requires at least one stage to be defined.
     /// </summary>
     public Result Activate()
     {
@@ -88,9 +88,9 @@ public sealed class ProjectLifecycle : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("Only proposed lifecycles can be activated.");
         }
 
-        if (_phases.Count == 0)
+        if (_stages.Count == 0)
         {
-            return Result.Failure("A lifecycle must have at least one phase before it can be activated.");
+            return Result.Failure("A lifecycle must have at least one stage before it can be activated.");
         }
 
         State = ProjectLifecycleState.Active;
@@ -116,140 +116,140 @@ public sealed class ProjectLifecycle : BaseAuditableEntity, IHasIdAndKey
 
     #endregion Lifecycle State Transitions
 
-    #region Phase Management
+    #region Stage Management
 
     /// <summary>
-    /// Adds a new phase to the lifecycle. Only allowed when the lifecycle is in the Proposed state.
-    /// The phase is appended at the end of the existing phases.
+    /// Adds a new stage to the lifecycle. Only allowed when the lifecycle is in the Proposed state.
+    /// The stage is appended at the end of the existing stages.
     /// </summary>
-    public Result<ProjectLifecyclePhase> AddPhase(string name, string description)
+    public Result<ProjectLifecycleStage> AddStage(string name, string description)
     {
         if (State != ProjectLifecycleState.Proposed)
         {
-            return Result.Failure<ProjectLifecyclePhase>("Phases can only be added to proposed lifecycles.");
+            return Result.Failure<ProjectLifecycleStage>("Stages can only be added to proposed lifecycles.");
         }
 
-        var order = _phases.Count > 0 ? _phases.Max(p => p.Order) + 1 : 1;
+        var order = _stages.Count > 0 ? _stages.Max(p => p.Order) + 1 : 1;
 
-        var phase = new ProjectLifecyclePhase(Id, name, description, order);
-        _phases.Add(phase);
+        var stage = new ProjectLifecycleStage(Id, name, description, order);
+        _stages.Add(stage);
 
-        return Result.Success(phase);
+        return Result.Success(stage);
     }
 
     /// <summary>
-    /// Updates the details of an existing phase. Only allowed when the lifecycle is in the Proposed state.
+    /// Updates the details of an existing stage. Only allowed when the lifecycle is in the Proposed state.
     /// </summary>
-    public Result UpdatePhase(Guid phaseId, string name, string description)
+    public Result UpdateStage(Guid stageId, string name, string description)
     {
         if (State != ProjectLifecycleState.Proposed)
         {
-            return Result.Failure("Phases can only be updated on proposed lifecycles.");
+            return Result.Failure("Stages can only be updated on proposed lifecycles.");
         }
 
-        var phase = _phases.FirstOrDefault(p => p.Id == phaseId);
-        if (phase is null)
+        var stage = _stages.FirstOrDefault(p => p.Id == stageId);
+        if (stage is null)
         {
-            return Result.Failure("Phase not found.");
+            return Result.Failure("Stage not found.");
         }
 
-        return phase.Update(name, description);
+        return stage.Update(name, description);
     }
 
     /// <summary>
-    /// Removes a phase from the lifecycle and reorders remaining phases.
+    /// Removes a stage from the lifecycle and reorders remaining stages.
     /// Only allowed when the lifecycle is in the Proposed state.
     /// </summary>
-    public Result RemovePhase(Guid phaseId)
+    public Result RemoveStage(Guid stageId)
     {
         if (State != ProjectLifecycleState.Proposed)
         {
-            return Result.Failure("Phases can only be removed from proposed lifecycles.");
+            return Result.Failure("Stages can only be removed from proposed lifecycles.");
         }
 
-        var phase = _phases.FirstOrDefault(p => p.Id == phaseId);
-        if (phase is null)
+        var stage = _stages.FirstOrDefault(p => p.Id == stageId);
+        if (stage is null)
         {
-            return Result.Failure("Phase not found.");
+            return Result.Failure("Stage not found.");
         }
 
-        _phases.Remove(phase);
+        _stages.Remove(stage);
 
-        ReorderPhases();
+        ReorderStages();
 
         return Result.Success();
     }
 
     /// <summary>
-    /// Reorders the phases based on the provided ordered list of phase IDs.
+    /// Reorders the stages based on the provided ordered list of stage IDs.
     /// Only allowed when the lifecycle is in the Proposed state.
     /// </summary>
-    /// <param name="orderedPhaseIds">The phase IDs in the desired order.</param>
-    public Result ReorderPhases(List<Guid> orderedPhaseIds)
+    /// <param name="orderedStageIds">The stage IDs in the desired order.</param>
+    public Result ReorderStages(List<Guid> orderedStageIds)
     {
-        Guard.Against.Null(orderedPhaseIds, nameof(orderedPhaseIds));
+        Guard.Against.Null(orderedStageIds, nameof(orderedStageIds));
 
         if (State != ProjectLifecycleState.Proposed)
         {
-            return Result.Failure("Phases can only be reordered on proposed lifecycles.");
+            return Result.Failure("Stages can only be reordered on proposed lifecycles.");
         }
 
-        if (orderedPhaseIds.Count != _phases.Count)
+        if (orderedStageIds.Count != _stages.Count)
         {
-            return Result.Failure("The number of phase IDs must match the number of existing phases.");
+            return Result.Failure("The number of stage IDs must match the number of existing stages.");
         }
 
-        if (orderedPhaseIds.Distinct().Count() != orderedPhaseIds.Count)
+        if (orderedStageIds.Distinct().Count() != orderedStageIds.Count)
         {
-            return Result.Failure("Duplicate phase IDs are not allowed.");
+            return Result.Failure("Duplicate stage IDs are not allowed.");
         }
 
-        for (int i = 0; i < orderedPhaseIds.Count; i++)
+        for (int i = 0; i < orderedStageIds.Count; i++)
         {
-            var phase = _phases.FirstOrDefault(p => p.Id == orderedPhaseIds[i]);
-            if (phase is null)
+            var stage = _stages.FirstOrDefault(p => p.Id == orderedStageIds[i]);
+            if (stage is null)
             {
-                return Result.Failure($"Phase with ID '{orderedPhaseIds[i]}' not found.");
+                return Result.Failure($"Stage with ID '{orderedStageIds[i]}' not found.");
             }
 
-            phase.Order = i + 1;
+            stage.Order = i + 1;
         }
 
         return Result.Success();
     }
 
     /// <summary>
-    /// Resets phase ordering to eliminate gaps after removal.
+    /// Resets stage ordering to eliminate gaps after removal.
     /// </summary>
-    private void ReorderPhases()
+    private void ReorderStages()
     {
         int order = 1;
-        foreach (var phase in _phases.OrderBy(p => p.Order))
+        foreach (var stage in _stages.OrderBy(p => p.Order))
         {
-            phase.Order = order;
+            stage.Order = order;
             order++;
         }
     }
 
-    #endregion Phase Management
+    #endregion Stage Management
 
     /// <summary>
     /// Creates a new project lifecycle in the Proposed state.
     /// </summary>
     /// <param name="name">The name of the lifecycle.</param>
     /// <param name="description">A description of the lifecycle's purpose and use cases.</param>
-    /// <param name="phases">Optional initial phases to include. Each tuple contains (name, description).</param>
+    /// <param name="stages">Optional initial stages to include. Each tuple contains (name, description).</param>
     /// <returns>A new ProjectLifecycle instance.</returns>
-    public static ProjectLifecycle Create(string name, string description, IEnumerable<(string Name, string Description)>? phases = null)
+    public static ProjectLifecycle Create(string name, string description, IEnumerable<(string Name, string Description)>? stages = null)
     {
         var lifecycle = new ProjectLifecycle(name, description);
 
-        if (phases is not null)
+        if (stages is not null)
         {
             int order = 1;
-            foreach (var (phaseName, phaseDescription) in phases)
+            foreach (var (stageName, stageDescription) in stages)
             {
-                lifecycle._phases.Add(new ProjectLifecyclePhase(lifecycle.Id, phaseName, phaseDescription, order));
+                lifecycle._stages.Add(new ProjectLifecycleStage(lifecycle.Id, stageName, stageDescription, order));
                 order++;
             }
         }

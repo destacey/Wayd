@@ -3,7 +3,7 @@
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 
 /// <summary>
-/// Represents a team member on a project with their roles, assigned phases, and active workload.
+/// Represents a team member on a project with their roles, assigned stages, and active workload.
 /// </summary>
 public sealed record ProjectTeamMemberDto
 {
@@ -18,9 +18,9 @@ public sealed record ProjectTeamMemberDto
     public required List<string> Roles { get; init; } = [];
 
     /// <summary>
-    /// The names of the phases this team member is assigned to, ordered by phase order.
+    /// The names of the stages this team member is assigned to, ordered by stage order.
     /// </summary>
-    public required List<string> AssignedPhases { get; init; } = [];
+    public required List<string> AssignedStages { get; init; } = [];
 
     /// <summary>
     /// The number of active leaf tasks (Not Started or In Progress) assigned to this team member.

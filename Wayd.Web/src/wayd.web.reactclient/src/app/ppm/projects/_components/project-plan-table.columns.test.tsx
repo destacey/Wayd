@@ -25,8 +25,8 @@ describe('project-plan-table key column', () => {
     taskTypeFilterOptions: [],
     taskStatusFilterOptions: [],
     taskPriorityFilterOptions: [],
-    isPhaseNode: () => false,
-    handleEditPhase: jest.fn(),
+    isStageNode: () => false,
+    handleEditStage: jest.fn(),
   }
 
   beforeEach(() => {

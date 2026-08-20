@@ -259,7 +259,7 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
             .HasForeignKey(p => p.ProjectLifecycleId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        builder.HasMany(p => p.Phases)
+        builder.HasMany(p => p.Stages)
             .WithOne()
             .HasForeignKey(p => p.ProjectId)
             .OnDelete(DeleteBehavior.Cascade);
@@ -633,18 +633,18 @@ public class ProjectLifecycleConfiguration : IEntityTypeConfiguration<ProjectLif
             .HasColumnType("varchar");
 
         // Relationships
-        builder.HasMany(l => l.Phases)
+        builder.HasMany(l => l.Stages)
             .WithOne()
             .HasForeignKey(p => p.ProjectLifecycleId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
 
-public class ProjectLifecyclePhaseConfiguration : IEntityTypeConfiguration<ProjectLifecyclePhase>
+public class ProjectLifecycleStageConfiguration : IEntityTypeConfiguration<ProjectLifecycleStage>
 {
-    public void Configure(EntityTypeBuilder<ProjectLifecyclePhase> builder)
+    public void Configure(EntityTypeBuilder<ProjectLifecycleStage> builder)
     {
-        builder.ToTable("ProjectLifecyclePhases", SchemaNames.ProjectPortfolioManagement);
+        builder.ToTable("ProjectLifecycleStages", SchemaNames.ProjectPortfolioManagement);
 
         builder.HasKey(p => p.Id);
 
@@ -657,16 +657,16 @@ public class ProjectLifecyclePhaseConfiguration : IEntityTypeConfiguration<Proje
     }
 }
 
-public class ProjectPhaseConfiguration : IEntityTypeConfiguration<ProjectPhase>
+public class ProjectStageConfiguration : IEntityTypeConfiguration<ProjectStage>
 {
-    public void Configure(EntityTypeBuilder<ProjectPhase> builder)
+    public void Configure(EntityTypeBuilder<ProjectStage> builder)
     {
-        builder.ToTable("ProjectPhases", SchemaNames.ProjectPortfolioManagement);
+        builder.ToTable("ProjectStages", SchemaNames.ProjectPortfolioManagement);
 
         builder.HasKey(p => p.Id);
 
         builder.HasIndex(p => p.ProjectId);
-        builder.HasIndex(p => p.ProjectLifecyclePhaseId);
+        builder.HasIndex(p => p.ProjectLifecycleStageId);
 
         builder.Property(p => p.Id).ValueGeneratedNever();
         builder.Property(p => p.Name).HasMaxLength(32).IsRequired();
@@ -693,9 +693,9 @@ public class ProjectPhaseConfiguration : IEntityTypeConfiguration<ProjectPhase>
         });
 
         // Relationships
-        builder.HasOne<ProjectLifecyclePhase>()
+        builder.HasOne<ProjectLifecycleStage>()
             .WithMany()
-            .HasForeignKey(p => p.ProjectLifecyclePhaseId)
+            .HasForeignKey(p => p.ProjectLifecycleStageId)
             .OnDelete(DeleteBehavior.NoAction);
 
         builder.HasMany(p => p.Roles)
@@ -805,11 +805,11 @@ public class StrategicInitiativeRoleAssignmentConfiguration : IEntityTypeConfigu
     }
 }
 
-public class ProjectPhaseRoleAssignmentConfiguration : IEntityTypeConfiguration<RoleAssignment<ProjectPhaseRole>>
+public class ProjectStageRoleAssignmentConfiguration : IEntityTypeConfiguration<RoleAssignment<ProjectStageRole>>
 {
-    public void Configure(EntityTypeBuilder<RoleAssignment<ProjectPhaseRole>> builder)
+    public void Configure(EntityTypeBuilder<RoleAssignment<ProjectStageRole>> builder)
     {
-        builder.ToTable("ProjectPhaseAssignments", SchemaNames.ProjectPortfolioManagement);
+        builder.ToTable("ProjectStageAssignments", SchemaNames.ProjectPortfolioManagement);
 
         builder.HasKey(r => new { r.ObjectId, r.EmployeeId, r.Role });
 
@@ -817,7 +817,7 @@ public class ProjectPhaseRoleAssignmentConfiguration : IEntityTypeConfiguration<
         builder.HasIndex(r => r.EmployeeId);
 
         builder.Property(p => p.Role).IsRequired()
-            .HasConversion<EnumConverter<ProjectPhaseRole>>()
+            .HasConversion<EnumConverter<ProjectStageRole>>()
             .HasMaxLength(32)
             .HasColumnType("varchar");
 
@@ -986,10 +986,10 @@ public class ProjectTaskConfiguration : IEntityTypeConfiguration<ProjectTask>
             .HasForeignKey(t => t.ParentId)
             .OnDelete(DeleteBehavior.ClientSetNull);
 
-        // Relationship to ProjectPhase
-        builder.HasOne(t => t.ProjectPhase)
+        // Relationship to ProjectStage
+        builder.HasOne(t => t.ProjectStage)
             .WithMany()
-            .HasForeignKey(t => t.ProjectPhaseId)
+            .HasForeignKey(t => t.ProjectStageId)
             .OnDelete(DeleteBehavior.NoAction);
 
         // Relationship to Roles

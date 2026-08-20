@@ -3,7 +3,7 @@ import {
   LabeledContent,
 } from '@/src/components/common/content'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
-import PhaseTimeline from '../../_components/phase-timeline'
+import StageTimeline from '../../_components/stage-timeline'
 import { ProjectDetailsDto } from '@/src/services/wayd-api'
 import { useGetProjectPlanSummaryQuery } from '@/src/store/features/ppm/projects-api'
 import { Card, Col, Flex, Row, Typography } from 'antd'
@@ -79,7 +79,7 @@ export interface ProjectDetailsTabProps {
 const ProjectDetailsTab: FC<ProjectDetailsTabProps> = ({ project }) => {
   const { data: planSummary } = useGetProjectPlanSummaryQuery(
     { projectKey: project?.key },
-    { skip: !project?.phases?.length },
+    { skip: !project?.stages?.length },
   )
   const hasTasks = (planSummary?.totalLeafTasks ?? 0) > 0
 
@@ -89,12 +89,12 @@ const ProjectDetailsTab: FC<ProjectDetailsTabProps> = ({ project }) => {
 
   const executionContent = (
     <>
-      {project.phases?.length > 0 && (
+      {project.stages?.length > 0 && (
         <Flex vertical gap="large">
           <Flex align="center" gap={8}>
-            <Title level={4} style={{ margin: 0 }}>Phases</Title>
+            <Title level={4} style={{ margin: 0 }}>Stages</Title>
           </Flex>
-          <PhaseTimeline phases={project.phases} />
+          <StageTimeline stages={project.stages} />
           {hasTasks && (
             <>
               <Flex align="center" gap={8}>

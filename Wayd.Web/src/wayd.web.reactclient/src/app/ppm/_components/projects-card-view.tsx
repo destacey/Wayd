@@ -2,7 +2,7 @@
 
 import { LifecycleStatusTag } from '@/src/components/common'
 import TimelineProgress from '@/src/components/common/planning/timeline-progress'
-import PhaseTimeline from './phase-timeline'
+import StageTimeline from './stage-timeline'
 import { ProjectListDto } from '@/src/services/wayd-api'
 import { getSortedNames } from '@/src/utils'
 import { Card, Flex, Segmented, Spin, Typography } from 'antd'
@@ -103,9 +103,9 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, onCardClick, hidePortfolio
           </Flex>
         </Flex>
 
-        {/* Phases */}
-        {project.phases?.length > 0 ? (
-          <PhaseTimeline phases={project.phases} displayMode="small" />
+        {/* Stages */}
+        {project.stages?.length > 0 ? (
+          <StageTimeline stages={project.stages} displayMode="small" />
         ) : (
           <Text type="secondary" style={{ fontSize: 12 }}>
             No lifecycle defined

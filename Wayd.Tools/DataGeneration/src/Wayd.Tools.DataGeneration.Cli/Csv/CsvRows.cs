@@ -112,13 +112,13 @@ public sealed class ProjectCsvRow
     public string? Members { get; init; }
 }
 
-/// <summary>One row of the project tasks CSV. Project by key; phase and parent task by name.</summary>
+/// <summary>One row of the project tasks CSV. Project by key; stage and parent task by name.</summary>
 public sealed class ProjectTaskCsvRow
 {
     public required string ProjectKey { get; init; }
     public required string Name { get; init; }
     public string? Description { get; init; }
-    public required string PhaseName { get; init; }
+    public required string StageName { get; init; }
     public string? ParentTaskName { get; init; }
     public required string Type { get; init; }
     public required string Status { get; init; }
@@ -131,11 +131,11 @@ public sealed class ProjectTaskCsvRow
     public string? Assignees { get; init; }
 }
 
-/// <summary>One row of the project phases CSV: sets one phase's status. Project by key; phase by name.</summary>
-public sealed class ProjectPhaseCsvRow
+/// <summary>One row of the project stages CSV: sets one stage's status. Project by key; stage by name.</summary>
+public sealed class ProjectStageCsvRow
 {
     public required string ProjectKey { get; init; }
-    public required string PhaseName { get; init; }
+    public required string StageName { get; init; }
     public required string Status { get; init; }
 }
 

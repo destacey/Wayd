@@ -31,7 +31,7 @@ public sealed class ProjectTask : BaseAuditableEntity, IHasIdAndKey<ProjectTaskK
         Progress progress,
         int order,
         Guid? parentId,
-        Guid projectPhaseId,
+        Guid projectStageId,
         FlexibleDateRange? plannedDateRange,
         LocalDate? plannedDate,
         decimal? estimatedEffortHours,
@@ -56,7 +56,7 @@ public sealed class ProjectTask : BaseAuditableEntity, IHasIdAndKey<ProjectTaskK
         Progress = progress;
         Order = order;
         ParentId = parentId;
-        ProjectPhaseId = projectPhaseId;
+        ProjectStageId = projectStageId;
         PlannedDateRange = plannedDateRange;
         PlannedDate = plannedDate;
         EstimatedEffortHours = estimatedEffortHours;
@@ -140,15 +140,15 @@ public sealed class ProjectTask : BaseAuditableEntity, IHasIdAndKey<ProjectTaskK
     public ProjectTask? Parent { get; private set; }
 
     /// <summary>
-    /// The ID of the project phase this task belongs to.
-    /// All tasks belong to a phase. Child tasks inherit the phase from their root ancestor.
+    /// The ID of the project stage this task belongs to.
+    /// All tasks belong to a stage. Child tasks inherit the stage from their root ancestor.
     /// </summary>
-    public Guid ProjectPhaseId { get; private set; }
+    public Guid ProjectStageId { get; private set; }
 
     /// <summary>
-    /// The project phase this task belongs to.
+    /// The project stage this task belongs to.
     /// </summary>
-    public ProjectPhase? ProjectPhase { get; private set; }
+    public ProjectStage? ProjectStage { get; private set; }
 
     /// <summary>
     /// The child tasks.
@@ -716,11 +716,11 @@ public sealed class ProjectTask : BaseAuditableEntity, IHasIdAndKey<ProjectTaskK
     /// <param name="roles">A mapping of task roles to sets of user identifiers assigned to each role, or null if no roles are assigned.</param>
     /// <returns>A new ProjectTask instance initialized with the specified values.</returns>
     /// <summary>
-    /// Changes the project phase assignment for this task.
+    /// Changes the project stage assignment for this task.
     /// </summary>
-    internal Result ChangePhase(Guid projectPhaseId)
+    internal Result ChangeStage(Guid projectStageId)
     {
-        ProjectPhaseId = projectPhaseId;
+        ProjectStageId = projectStageId;
         return Result.Success();
     }
 
@@ -735,7 +735,7 @@ public sealed class ProjectTask : BaseAuditableEntity, IHasIdAndKey<ProjectTaskK
         Progress? progress,
         int order,
         Guid? parentId,
-        Guid projectPhaseId,
+        Guid projectStageId,
         FlexibleDateRange? plannedDateRange,
         LocalDate? plannedDate,
         decimal? estimatedEffortHours,
@@ -752,7 +752,7 @@ public sealed class ProjectTask : BaseAuditableEntity, IHasIdAndKey<ProjectTaskK
             progress ?? Progress.NotStarted(),
             order,
             parentId,
-            projectPhaseId,
+            projectStageId,
             plannedDateRange,
             plannedDate,
             estimatedEffortHours,

@@ -1,57 +1,65 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { ProjectLifecyclePhaseRequest } from '@/src/services/wayd-api'
-import { useAddProjectLifecyclePhaseMutation } from '@/src/store/features/ppm/project-lifecycles-api'
+import {
+  ProjectLifecycleStageDto,
+  ProjectLifecycleStageRequest,
+} from '@/src/services/wayd-api'
+import { useUpdateProjectLifecycleStageMutation } from '@/src/store/features/ppm/project-lifecycles-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
+import { useEffect } from 'react'
 import { useModalForm } from '@/src/hooks'
 
 const { Item } = Form
 
-export interface AddProjectLifecyclePhaseFormProps {
+export interface EditProjectLifecycleStageFormProps {
   lifecycleId: string
+  stage: ProjectLifecycleStageDto
   onFormComplete: () => void
   onFormCancel: () => void
 }
 
-interface AddProjectLifecyclePhaseFormValues {
+interface UpdateProjectLifecycleStageFormValues {
   name: string
   description: string
 }
 
 const mapToRequestValues = (
-  values: AddProjectLifecyclePhaseFormValues,
-): ProjectLifecyclePhaseRequest => {
+  values: UpdateProjectLifecycleStageFormValues,
+): ProjectLifecycleStageRequest => {
   return {
     name: values.name,
     description: values.description,
-  } as ProjectLifecyclePhaseRequest
+  } as ProjectLifecycleStageRequest
 }
 
-const AddProjectLifecyclePhaseForm = ({
+const EditProjectLifecycleStageForm = ({
   lifecycleId,
+  stage,
   onFormComplete,
   onFormCancel,
-}: AddProjectLifecyclePhaseFormProps) => {
+}: EditProjectLifecycleStageFormProps) => {
   const messageApi = useMessage()
 
-  const [addProjectLifecyclePhase] = useAddProjectLifecyclePhaseMutation()
+  const [updateProjectLifecycleStage] =
+    useUpdateProjectLifecycleStageMutation()
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
-    useModalForm<AddProjectLifecyclePhaseFormValues>({
-      onSubmit: async (values: AddProjectLifecyclePhaseFormValues, form) => {
+    useModalForm<UpdateProjectLifecycleStageFormValues>({
+      onSubmit: async (values: UpdateProjectLifecycleStageFormValues, form) => {
           try {
             const request = mapToRequestValues(values)
-            const response = await addProjectLifecyclePhase({
+            const response = await updateProjectLifecycleStage({
               lifecycleId,
+              stageId: stage.id,
               ...request,
             })
             if (response.error) {
               throw response.error
             }
-            messageApi.success('Phase added successfully.')
+            messageApi.success('Stage updated successfully.')
             return true
           } catch (error) {
             const apiError: ApiError = isApiError(error) ? error : {}
@@ -62,7 +70,7 @@ const AddProjectLifecyclePhaseForm = ({
             } else {
               messageApi.error(
                 apiError.detail ??
-                  'An error occurred while adding the phase. Please try again.',
+                  'An error occurred while updating the stage. Please try again.',
               )
             }
             return false
@@ -71,17 +79,25 @@ const AddProjectLifecyclePhaseForm = ({
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:
-        'An error occurred while adding the phase. Please try again.',
+        'An error occurred while updating the stage. Please try again.',
       permission: 'Permissions.ProjectLifecycles.Update',
     })
 
+  useEffect(() => {
+    if (!stage) return
+    form.setFieldsValue({
+      name: stage.name,
+      description: stage.description,
+    })
+  }, [stage, form])
+
   return (
     <Modal
-      title="Add Phase"
+      title="Edit Stage"
       open={isOpen}
       onOk={handleOk}
       okButtonProps={{ disabled: !isValid }}
-      okText="Add"
+      okText="Save"
       confirmLoading={isSaving}
       onCancel={handleCancel}
       keyboard={false}
@@ -91,7 +107,7 @@ const AddProjectLifecyclePhaseForm = ({
         form={form}
         size="small"
         layout="vertical"
-        name="add-project-lifecycle-phase-form"
+        name="update-project-lifecycle-stage-form"
       >
         <Item
           label="Name"
@@ -119,4 +135,4 @@ const AddProjectLifecyclePhaseForm = ({
   )
 }
 
-export default AddProjectLifecyclePhaseForm
+export default EditProjectLifecycleStageForm

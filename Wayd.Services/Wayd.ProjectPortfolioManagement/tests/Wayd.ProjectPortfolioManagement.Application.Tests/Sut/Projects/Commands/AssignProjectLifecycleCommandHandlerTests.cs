@@ -91,7 +91,7 @@ public class AssignProjectLifecycleCommandHandlerTests : IDisposable
         var project = _projectFaker.AsProposed(_dateTimeProvider);
         _dbContext.AddProject(project);
 
-        var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Plan", "Planning"), ("Execute", "Execution"), ("Deliver", "Delivery"));
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Plan", "Planning"), ("Execute", "Execution"), ("Deliver", "Delivery"));
         _dbContext.AddProjectLifecycle(lifecycle);
 
         var command = new AssignProjectLifecycleCommand(project.Id, lifecycle.Id);
@@ -102,7 +102,7 @@ public class AssignProjectLifecycleCommandHandlerTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue();
         project.ProjectLifecycleId.Should().Be(lifecycle.Id);
-        project.Phases.Count.Should().Be(3);
+        project.Stages.Count.Should().Be(3);
         _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 
@@ -111,11 +111,11 @@ public class AssignProjectLifecycleCommandHandlerTests : IDisposable
     {
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
-        var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Plan", "Planning"), ("Execute", "Execution"));
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Plan", "Planning"), ("Execute", "Execution"));
         project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
         _dbContext.AddProject(project);
 
-        var secondLifecycle = _lifecycleFaker.AsActiveWithPhases(("Design", "Design Phase"), ("Build", "Build Phase"));
+        var secondLifecycle = _lifecycleFaker.AsActiveWithStages(("Design", "Design Stage"), ("Build", "Build Stage"));
         _dbContext.AddProjectLifecycle(secondLifecycle);
 
         var command = new AssignProjectLifecycleCommand(project.Id, secondLifecycle.Id);
@@ -136,7 +136,7 @@ public class AssignProjectLifecycleCommandHandlerTests : IDisposable
         var project = _projectFaker.AsProposed(_dateTimeProvider);
         _dbContext.AddProject(project);
 
-        var lifecycle = _lifecycleFaker.AsProposedWithPhases(("Plan", "Planning"), ("Execute", "Execution"));
+        var lifecycle = _lifecycleFaker.AsProposedWithStages(("Plan", "Planning"), ("Execute", "Execution"));
         _dbContext.AddProjectLifecycle(lifecycle);
 
         var command = new AssignProjectLifecycleCommand(project.Id, lifecycle.Id);

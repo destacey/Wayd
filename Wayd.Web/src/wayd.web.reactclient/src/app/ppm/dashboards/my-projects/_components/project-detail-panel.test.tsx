@@ -40,12 +40,12 @@ jest.mock('./project-plan-view', () => {
   return MockPlanView
 })
 
-jest.mock('@/src/app/ppm/_components/phase-timeline', () => {
-  const MockPhaseTimeline = ({ phases }: any) => (
-    <div data-testid="phase-timeline">{phases.length} phases</div>
+jest.mock('@/src/app/ppm/_components/stage-timeline', () => {
+  const MockStageTimeline = ({ stages }: any) => (
+    <div data-testid="stage-timeline">{stages.length} stages</div>
   )
-  MockPhaseTimeline.displayName = 'MockPhaseTimeline'
-  return MockPhaseTimeline
+  MockStageTimeline.displayName = 'MockStageTimeline'
+  return MockStageTimeline
 })
 
 jest.mock('@/src/app/ppm/projects/_components/project-task-metrics', () => {
@@ -74,7 +74,7 @@ function createProjectDetails(overrides?: any) {
     projectManagers: [],
     projectMembers: [],
     strategicThemes: [],
-    phases: [{ id: 'ph-1', name: 'Phase 1', order: 1, status: { id: 1, name: 'Not Started' }, progress: 0 }],
+    stages: [{ id: 'ph-1', name: 'Stage 1', order: 1, status: { id: 1, name: 'Not Started' }, progress: 0 }],
     projectLifecycle: { id: 'lc-1', key: 1, name: 'Standard' },
     ...overrides,
   }
@@ -130,7 +130,7 @@ describe('ProjectDetailPanel', () => {
     )
   })
 
-  it('renders phase timeline when phases exist', () => {
+  it('renders stage timeline when stages exist', () => {
     mockUseGetProjectQuery.mockReturnValue({
       data: createProjectDetails(),
       isLoading: false,
@@ -138,8 +138,8 @@ describe('ProjectDetailPanel', () => {
 
     render(<ProjectDetailPanel projectKey="PROJ1" />)
 
-    expect(screen.getByTestId('phase-timeline')).toHaveTextContent(
-      '1 phases',
+    expect(screen.getByTestId('stage-timeline')).toHaveTextContent(
+      '1 stages',
     )
   })
 
@@ -182,14 +182,14 @@ describe('ProjectDetailPanel', () => {
     expect(screen.queryByTestId('task-metrics')).not.toBeInTheDocument()
   })
 
-  it('hides phase timeline when no phases', () => {
+  it('hides stage timeline when no stages', () => {
     mockUseGetProjectQuery.mockReturnValue({
-      data: createProjectDetails({ phases: [] }),
+      data: createProjectDetails({ stages: [] }),
       isLoading: false,
     })
 
     render(<ProjectDetailPanel projectKey="PROJ1" />)
 
-    expect(screen.queryByTestId('phase-timeline')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('stage-timeline')).not.toBeInTheDocument()
   })
 })

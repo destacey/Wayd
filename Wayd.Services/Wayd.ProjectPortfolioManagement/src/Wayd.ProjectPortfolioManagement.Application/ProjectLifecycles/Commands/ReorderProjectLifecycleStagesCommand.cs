@@ -1,38 +1,38 @@
 ﻿namespace Wayd.ProjectPortfolioManagement.Application.ProjectLifecycles.Commands;
 
-public sealed record RemoveProjectLifecyclePhaseCommand(
+public sealed record ReorderProjectLifecycleStagesCommand(
     Guid LifecycleId,
-    Guid PhaseId)
+    List<Guid> OrderedStageIds)
     : ICommand;
 
-public sealed class RemoveProjectLifecyclePhaseCommandValidator : AbstractValidator<RemoveProjectLifecyclePhaseCommand>
+public sealed class ReorderProjectLifecycleStagesCommandValidator : AbstractValidator<ReorderProjectLifecycleStagesCommand>
 {
-    public RemoveProjectLifecyclePhaseCommandValidator()
+    public ReorderProjectLifecycleStagesCommandValidator()
     {
         RuleFor(x => x.LifecycleId)
             .NotEmpty();
 
-        RuleFor(x => x.PhaseId)
+        RuleFor(x => x.OrderedStageIds)
             .NotEmpty();
     }
 }
 
-public sealed class RemoveProjectLifecyclePhaseCommandHandler(
+public sealed class ReorderProjectLifecycleStagesCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
-    ILogger<RemoveProjectLifecyclePhaseCommandHandler> logger)
-    : ICommandHandler<RemoveProjectLifecyclePhaseCommand>
+    ILogger<ReorderProjectLifecycleStagesCommandHandler> logger)
+    : ICommandHandler<ReorderProjectLifecycleStagesCommand>
 {
-    private const string AppRequestName = nameof(RemoveProjectLifecyclePhaseCommand);
+    private const string AppRequestName = nameof(ReorderProjectLifecycleStagesCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
-    private readonly ILogger<RemoveProjectLifecyclePhaseCommandHandler> _logger = logger;
+    private readonly ILogger<ReorderProjectLifecycleStagesCommandHandler> _logger = logger;
 
-    public async Task<Result> Handle(RemoveProjectLifecyclePhaseCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(ReorderProjectLifecycleStagesCommand request, CancellationToken cancellationToken)
     {
         try
         {
             var lifecycle = await _projectPortfolioManagementDbContext.ProjectLifecycles
-                .Include(x => x.Phases)
+                .Include(x => x.Stages)
                 .FirstOrDefaultAsync(r => r.Id == request.LifecycleId, cancellationToken);
             if (lifecycle is null)
             {
@@ -40,16 +40,16 @@ public sealed class RemoveProjectLifecyclePhaseCommandHandler(
                 return Result.Failure("Project Lifecycle not found.");
             }
 
-            var removeResult = lifecycle.RemovePhase(request.PhaseId);
-            if (removeResult.IsFailure)
+            var reorderResult = lifecycle.ReorderStages(request.OrderedStageIds);
+            if (reorderResult.IsFailure)
             {
-                _logger.LogError("Unable to remove phase {PhaseId} from Project Lifecycle {ProjectLifecycleId}.  Error message: {Error}", request.PhaseId, request.LifecycleId, removeResult.Error);
-                return Result.Failure(removeResult.Error);
+                _logger.LogError("Unable to reorder stages on Project Lifecycle {ProjectLifecycleId}.  Error message: {Error}", request.LifecycleId, reorderResult.Error);
+                return Result.Failure(reorderResult.Error);
             }
 
             await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Phase {PhaseId} removed from Project Lifecycle {ProjectLifecycleId}.", request.PhaseId, request.LifecycleId);
+            _logger.LogInformation("Stages reordered on Project Lifecycle {ProjectLifecycleId}.", request.LifecycleId);
 
             return Result.Success();
         }

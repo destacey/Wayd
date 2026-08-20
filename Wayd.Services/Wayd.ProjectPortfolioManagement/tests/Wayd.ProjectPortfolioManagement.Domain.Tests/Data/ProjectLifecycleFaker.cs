@@ -55,36 +55,36 @@ public static class ProjectLifecycleFakerExtensions
     }
 
     /// <summary>
-    /// Generates a proposed lifecycle with the specified phases.
+    /// Generates a proposed lifecycle with the specified stages.
     /// </summary>
-    public static ProjectLifecycle AsProposedWithPhases(this ProjectLifecycleFaker faker, params (string Name, string Description)[] phases)
+    public static ProjectLifecycle AsProposedWithStages(this ProjectLifecycleFaker faker, params (string Name, string Description)[] stages)
     {
         var lifecycle = faker.Generate();
-        foreach (var (name, description) in phases)
+        foreach (var (name, description) in stages)
         {
-            lifecycle.AddPhase(name, description);
+            lifecycle.AddStage(name, description);
         }
         return lifecycle;
     }
 
     /// <summary>
-    /// Generates an active lifecycle with the specified phases.
+    /// Generates an active lifecycle with the specified stages.
     /// </summary>
-    public static ProjectLifecycle AsActiveWithPhases(this ProjectLifecycleFaker faker, params (string Name, string Description)[] phases)
+    public static ProjectLifecycle AsActiveWithStages(this ProjectLifecycleFaker faker, params (string Name, string Description)[] stages)
     {
-        var lifecycle = faker.AsProposedWithPhases(phases);
+        var lifecycle = faker.AsProposedWithStages(stages);
         lifecycle.Activate();
         return lifecycle;
     }
 
     /// <summary>
-    /// Adds phases to an existing lifecycle using the lifecycle's AddPhase method.
+    /// Adds stages to an existing lifecycle using the lifecycle's AddStage method.
     /// </summary>
-    public static ProjectLifecycle WithPhases(this ProjectLifecycle lifecycle, params (string Name, string Description)[] phases)
+    public static ProjectLifecycle WithStages(this ProjectLifecycle lifecycle, params (string Name, string Description)[] stages)
     {
-        foreach (var (name, description) in phases)
+        foreach (var (name, description) in stages)
         {
-            lifecycle.AddPhase(name, description);
+            lifecycle.AddStage(name, description);
         }
         return lifecycle;
     }

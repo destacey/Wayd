@@ -46,7 +46,7 @@ describe('project-parent-date-hint', () => {
     const nodes = [
       {
         id: 'A1B2C3D4-E5F6-7A8B-9C0D-E1F2A3B4C5D6',
-        name: 'Phase 1',
+        name: 'Stage 1',
         start: '2026-06-01',
         end: '2026-06-30',
         children: []
@@ -56,14 +56,14 @@ describe('project-parent-date-hint', () => {
     it('finds node with lowercase parentId', () => {
       const result = findParentPlanNodeRange(nodes, 'a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6')
       expect(result).not.toBeNull()
-      expect(result?.name).toBe('Phase 1')
+      expect(result?.name).toBe('Stage 1')
       expect(result?.start.format('YYYY-MM-DD')).toBe('2026-06-01')
     })
 
     it('finds node with uppercase parentId', () => {
       const result = findParentPlanNodeRange(nodes, 'A1B2C3D4-E5F6-7A8B-9C0D-E1F2A3B4C5D6')
       expect(result).not.toBeNull()
-      expect(result?.name).toBe('Phase 1')
+      expect(result?.name).toBe('Stage 1')
     })
   })
 

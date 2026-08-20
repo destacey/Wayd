@@ -3363,7 +3363,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("ProjectLifecycles", "Ppm");
                 });
 
-            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectLifecyclePhase", b =>
+            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectLifecycleStage", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
@@ -3402,62 +3402,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasIndex("ProjectLifecycleId");
 
-                    b.ToTable("ProjectLifecyclePhases", "Ppm");
-                });
-
-            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectPhase", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(1024)
-                        .HasColumnType("nvarchar(1024)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Progress")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ProjectLifecyclePhaseId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar");
-
-                    b.Property<DateTime>("SystemCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemCreatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("SystemLastModified")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemLastModifiedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProjectId");
-
-                    b.HasIndex("ProjectLifecyclePhaseId");
-
-                    b.ToTable("ProjectPhases", "Ppm");
+                    b.ToTable("ProjectLifecycleStages", "Ppm");
                 });
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectPortfolio", b =>
@@ -3512,6 +3457,61 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("Portfolios", "Ppm");
+                });
+
+            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectStage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Progress")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectLifecycleStageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("ProjectLifecycleStageId");
+
+                    b.ToTable("ProjectStages", "Ppm");
                 });
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectStatusHistory", b =>
@@ -3612,7 +3612,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("ProjectPhaseId")
+                    b.Property<Guid>("ProjectStageId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Status")
@@ -3650,7 +3650,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasIndex("ProjectId");
 
-                    b.HasIndex("ProjectPhaseId");
+                    b.HasIndex("ProjectStageId");
 
                     b.HasIndex("Status");
 
@@ -3739,41 +3739,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("ProgramRoleAssignments", "Ppm");
                 });
 
-            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.RoleAssignment<Wayd.ProjectPortfolioManagement.Domain.Enums.ProjectPhaseRole>", b =>
-                {
-                    b.Property<Guid>("ObjectId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("EmployeeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Role")
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar");
-
-                    b.Property<DateTime>("SystemCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemCreatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("SystemLastModified")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemLastModifiedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("ObjectId", "EmployeeId", "Role");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.HasIndex("ObjectId");
-
-                    b.ToTable("ProjectPhaseAssignments", "Ppm");
-                });
-
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.RoleAssignment<Wayd.ProjectPortfolioManagement.Domain.Enums.ProjectPortfolioRole>", b =>
                 {
                     b.Property<Guid>("ObjectId")
@@ -3842,6 +3807,41 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasIndex("ObjectId");
 
                     b.ToTable("ProjectRoleAssignments", "Ppm");
+                });
+
+            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.RoleAssignment<Wayd.ProjectPortfolioManagement.Domain.Enums.ProjectStageRole>", b =>
+                {
+                    b.Property<Guid>("ObjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Role")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("ObjectId", "EmployeeId", "Role");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("ObjectId");
+
+                    b.ToTable("ProjectStageAssignments", "Ppm");
                 });
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.RoleAssignment<Wayd.ProjectPortfolioManagement.Domain.Enums.StrategicInitiativeRole>", b =>
@@ -6575,51 +6575,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("ReportedBy");
                 });
 
-            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectLifecyclePhase", b =>
+            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectLifecycleStage", b =>
                 {
                     b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectLifecycle", null)
-                        .WithMany("Phases")
+                        .WithMany("Stages")
                         .HasForeignKey("ProjectLifecycleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectPhase", b =>
-                {
-                    b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.Project", null)
-                        .WithMany("Phases")
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectLifecyclePhase", null)
-                        .WithMany()
-                        .HasForeignKey("ProjectLifecyclePhaseId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.OwnsOne("Wayd.Common.Models.FlexibleDateRange", "DateRange", b1 =>
-                        {
-                            b1.Property<Guid>("ProjectPhaseId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<DateTime?>("End")
-                                .HasColumnType("date")
-                                .HasColumnName("End");
-
-                            b1.Property<DateTime>("Start")
-                                .HasColumnType("date")
-                                .HasColumnName("Start");
-
-                            b1.HasKey("ProjectPhaseId");
-
-                            b1.ToTable("ProjectPhases", "Ppm");
-
-                            b1.WithOwner()
-                                .HasForeignKey("ProjectPhaseId");
-                        });
-
-                    b.Navigation("DateRange");
                 });
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectPortfolio", b =>
@@ -6655,6 +6617,44 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("ScoringModel");
                 });
 
+            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectStage", b =>
+                {
+                    b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.Project", null)
+                        .WithMany("Stages")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectLifecycleStage", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectLifecycleStageId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.OwnsOne("Wayd.Common.Models.FlexibleDateRange", "DateRange", b1 =>
+                        {
+                            b1.Property<Guid>("ProjectStageId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<DateTime?>("End")
+                                .HasColumnType("date")
+                                .HasColumnName("End");
+
+                            b1.Property<DateTime>("Start")
+                                .HasColumnType("date")
+                                .HasColumnName("Start");
+
+                            b1.HasKey("ProjectStageId");
+
+                            b1.ToTable("ProjectStages", "Ppm");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ProjectStageId");
+                        });
+
+                    b.Navigation("DateRange");
+                });
+
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectStatusHistory", b =>
                 {
                     b.HasOne("Wayd.Common.Domain.Employees.Employee", "ChangedByEmployee")
@@ -6683,9 +6683,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectPhase", "ProjectPhase")
+                    b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectStage", "ProjectStage")
                         .WithMany()
-                        .HasForeignKey("ProjectPhaseId")
+                        .HasForeignKey("ProjectStageId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
@@ -6716,7 +6716,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.Navigation("Project");
 
-                    b.Navigation("ProjectPhase");
+                    b.Navigation("ProjectStage");
                 });
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectTaskDependency", b =>
@@ -6755,23 +6755,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Employee");
                 });
 
-            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.RoleAssignment<Wayd.ProjectPortfolioManagement.Domain.Enums.ProjectPhaseRole>", b =>
-                {
-                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectPhase", null)
-                        .WithMany("Roles")
-                        .HasForeignKey("ObjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Employee");
-                });
-
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.RoleAssignment<Wayd.ProjectPortfolioManagement.Domain.Enums.ProjectPortfolioRole>", b =>
                 {
                     b.HasOne("Wayd.Common.Domain.Employees.Employee", "Employee")
@@ -6798,6 +6781,23 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
 
                     b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.Project", null)
+                        .WithMany("Roles")
+                        .HasForeignKey("ObjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.RoleAssignment<Wayd.ProjectPortfolioManagement.Domain.Enums.ProjectStageRole>", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectStage", null)
                         .WithMany("Roles")
                         .HasForeignKey("ObjectId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -7491,11 +7491,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 {
                     b.Navigation("HealthChecks");
 
-                    b.Navigation("Phases");
-
                     b.Navigation("Roles");
 
                     b.Navigation("Scores");
+
+                    b.Navigation("Stages");
 
                     b.Navigation("StatusHistory");
 
@@ -7508,12 +7508,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectLifecycle", b =>
                 {
-                    b.Navigation("Phases");
-                });
-
-            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectPhase", b =>
-                {
-                    b.Navigation("Roles");
+                    b.Navigation("Stages");
                 });
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectPortfolio", b =>
@@ -7525,6 +7520,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Roles");
 
                     b.Navigation("StrategicInitiatives");
+                });
+
+            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectStage", b =>
+                {
+                    b.Navigation("Roles");
                 });
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectTask", b =>

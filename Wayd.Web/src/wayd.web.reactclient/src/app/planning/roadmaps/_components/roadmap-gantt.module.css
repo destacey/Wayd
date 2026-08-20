@@ -129,7 +129,7 @@
   color: var(--ant-color-text-secondary);
 }
 
-/* Summary (rollup) bar for a parent/phase row — slim, squared, bracketed. */
+/* Summary (rollup) bar for a parent/stage row — slim, squared, bracketed. */
 .summaryBar {
   position: absolute;
   z-index: 2;

@@ -83,10 +83,10 @@ public sealed class SeedRunner
             await _client.ImportProjectTasks(CsvFile.ToBytes(ppm.ProjectTasks), cancellationToken);
         }
 
-        if (ppm.ProjectPhases.Count > 0)
+        if (ppm.ProjectStages.Count > 0)
         {
-            _log($"Setting {ppm.ProjectPhases.Count} project phase statuses...");
-            await _client.ImportProjectPhases(CsvFile.ToBytes(ppm.ProjectPhases), cancellationToken);
+            _log($"Setting {ppm.ProjectStages.Count} project stage statuses...");
+            await _client.ImportProjectStages(CsvFile.ToBytes(ppm.ProjectStages), cancellationToken);
         }
 
         if (ppm.StrategicInitiatives.Count > 0)

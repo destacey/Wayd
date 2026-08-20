@@ -212,31 +212,31 @@
 }
 
 /* Project plan hierarchy */
-.phaseSection {
+.stageSection {
   margin-bottom: 8px;
   border: 1px solid var(--ant-color-border);
   border-radius: 8px;
   overflow: hidden;
 }
 
-.phaseHeader {
+.stageHeader {
   padding: 10px 12px;
   cursor: pointer;
   -webkit-user-select: none;
   user-select: none;
 }
 
-.phaseHeader:hover {
+.stageHeader:hover {
   background: var(--ant-color-fill-content);
 }
 
 
-.phaseName {
+.stageName {
   font-size: 13px;
   font-weight: 600;
 }
 
-.phaseContent {
+.stageContent {
   padding: 0 12px 8px;
 }
 

@@ -416,7 +416,7 @@ export const projectTasksApi = apiSlice.injectEndpoints({
               .filter(
                 (t: any) =>
                   t.id !== excludeTaskId &&
-                  t.nodeType !== 'Phase' &&
+                  t.nodeType !== 'Stage' &&
                   t.type?.name !== 'Milestone',
               )
               .map((t: any) => ({
@@ -429,9 +429,9 @@ export const projectTasksApi = apiSlice.injectEndpoints({
               }))
           }
 
-          // Build tree with phases as top-level selectable parents
+          // Build tree with stages as top-level selectable parents
           const data = planData.map((node: any) => {
-            if (node.nodeType === 'Phase') {
+            if (node.nodeType === 'Stage') {
               return {
                 value: node.id,
                 title: node.name,
@@ -441,7 +441,7 @@ export const projectTasksApi = apiSlice.injectEndpoints({
                     : undefined,
               }
             }
-            // Non-phase root nodes (shouldn't happen with lifecycle, but handle gracefully)
+            // Non-stage root nodes (shouldn't happen with lifecycle, but handle gracefully)
             return {
               value: node.id,
               title: `${node.key} - ${node.name}`,

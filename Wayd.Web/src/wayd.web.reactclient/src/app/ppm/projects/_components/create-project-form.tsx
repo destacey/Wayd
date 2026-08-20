@@ -189,14 +189,14 @@ const CreateProjectForm = ({
     { skip: !selectedLifecycleId },
   )
 
-  const phaseItems = !selectedLifecycle?.phases ? [] : [...selectedLifecycle.phases]
+  const stageItems = !selectedLifecycle?.stages ? [] : [...selectedLifecycle.stages]
       .sort((a, b) => a.order - b.order)
-      .map((phase) => ({
+      .map((stage) => ({
         content: (
           <>
-            <Text strong>{phase.name}</Text>
+            <Text strong>{stage.name}</Text>
             <br />
-            <Text type="secondary">{phase.description}</Text>
+            <Text type="secondary">{stage.description}</Text>
           </>
         ),
       }))
@@ -370,9 +370,9 @@ const CreateProjectForm = ({
           />
         </Item>
       </Form>
-      {phaseItems.length > 0 && (
-        <Card size="small" title="Phases">
-          <Timeline items={phaseItems} />
+      {stageItems.length > 0 && (
+        <Card size="small" title="Stages">
+          <Timeline items={stageItems} />
         </Card>
       )}
     </Modal>

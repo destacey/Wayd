@@ -21,11 +21,11 @@ import {
 } from '@/src/components/common/wayd-grid'
 import CreateProjectTaskForm from './create-project-task-form'
 import DeleteProjectTaskForm from './delete-project-task-form'
-import EditProjectPhaseForm from './edit-project-phase-form'
+import EditProjectStageForm from './edit-project-stage-form'
 import EditProjectTaskForm from './edit-project-task-form'
 import ProjectPlanItemDrawer from './project-plan-item-drawer'
 import {
-  buildProjectPhasePatchOperations,
+  buildProjectStagePatchOperations,
   buildProjectTaskPatchOperations,
 } from './project-task-patch'
 import { getProjectPlanTableColumns } from './project-plan-table.columns'
@@ -39,7 +39,7 @@ import {
   useCreateProjectTaskMutation,
 } from '@/src/store/features/ppm/project-tasks-api'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
-import { usePatchProjectPhaseMutation } from '@/src/store/features/ppm/projects-api'
+import { usePatchProjectStageMutation } from '@/src/store/features/ppm/projects-api'
 import { Form } from 'antd'
 
 interface ProjectPlanTableProps {
@@ -69,13 +69,13 @@ const ProjectPlanTable = ({
   const [openCreateTaskForm, setOpenCreateTaskForm] = useState(false)
   const [openEditTaskForm, setOpenEditTaskForm] = useState(false)
   const [openDeleteTaskForm, setOpenDeleteTaskForm] = useState(false)
-  const [openEditPhaseForm, setOpenEditPhaseForm] = useState(false)
+  const [openEditStageForm, setOpenEditStageForm] = useState(false)
   const [openPlanItemDrawer, setOpenPlanItemDrawer] = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>()
   const [createParentTaskId, setCreateParentTaskId] = useState<
     string | undefined
   >()
-  const [selectedPhaseId, setSelectedPhaseId] = useState<string | undefined>()
+  const [selectedStageId, setSelectedStageId] = useState<string | undefined>()
   const [selectedPlanItemId, setSelectedPlanItemId] = useState<string | null>(
     null,
   )
@@ -99,7 +99,7 @@ const ProjectPlanTable = ({
   )
 
   const [patchProjectTask] = usePatchProjectTaskMutation()
-  const [patchProjectPhase] = usePatchProjectPhaseMutation()
+  const [patchProjectStage] = usePatchProjectStageMutation()
   const [updateProjectTaskPlacement] = useUpdateProjectTaskPlacementMutation()
   const [createProjectTask] = useCreateProjectTaskMutation()
 
@@ -133,8 +133,8 @@ const ProjectPlanTable = ({
       })
       .filter((x): x is FilterOption => x !== null)
 
-    if (!options.some((o) => o.value === 'Phase')) {
-      options.unshift({ label: 'Phase', value: 'Phase' })
+    if (!options.some((o) => o.value === 'Stage')) {
+      options.unshift({ label: 'Stage', value: 'Stage' })
     }
 
     return options
@@ -180,17 +180,17 @@ const ProjectPlanTable = ({
     [],
   )
 
-  const isPhaseNode = useCallback(
-    (node: ProjectPlanNodeDto | null | undefined) => node?.nodeType === 'Phase',
+  const isStageNode = useCallback(
+    (node: ProjectPlanNodeDto | null | undefined) => node?.nodeType === 'Stage',
     [],
   )
 
   const projectTaskMoveValidator: MoveValidator<ProjectPlanNodeDto> =
     useCallback(
       (activeNode, targetParentNode, targetParentId) => {
-        // Phases cannot be moved
-        if (isPhaseNode(activeNode.node)) {
-          return { canMove: false, reason: 'Phases cannot be moved' }
+        // Stages cannot be moved
+        if (isStageNode(activeNode.node)) {
+          return { canMove: false, reason: 'Stages cannot be moved' }
         }
         const result = defaultMoveValidator(
           activeNode,
@@ -206,7 +206,7 @@ const ProjectPlanTable = ({
         }
         return { canMove: true }
       },
-      [isPhaseNode],
+      [isStageNode],
     )
 
   const handleNodeMove = useCallback(
@@ -220,7 +220,7 @@ const ProjectPlanTable = ({
       let resolvedParentId = parentId
 
       // When parentId is null (task dropped at root level), resolve to
-      // the nearest phase above the drop position in the flat tree.
+      // the nearest stage above the drop position in the flat tree.
       if (resolvedParentId === null && overNodeId) {
         const flatten = (nodes: ProjectPlanNodeDto[]): ProjectPlanNodeDto[] => {
           const result: ProjectPlanNodeDto[] = []
@@ -237,35 +237,35 @@ const ProjectPlanTable = ({
         const overIdx = overIndex ?? flat.findIndex((n) => n.id === overNodeId)
         const isDraggingUp = activeIdx > overIdx
 
-        // Scan backwards from over index to find the nearest phase
-        let nearestPhaseId: string | null = null
+        // Scan backwards from over index to find the nearest stage
+        let nearestStageId: string | null = null
         for (let i = Math.min(overIdx, flat.length - 1); i >= 0; i--) {
-          if (flat[i].nodeType === 'Phase') {
-            nearestPhaseId = flat[i].id
+          if (flat[i].nodeType === 'Stage') {
+            nearestStageId = flat[i].id
             break
           }
         }
 
-        if (nearestPhaseId) {
-          // If dragging up and the nearest phase is the task's current phase,
-          // use the phase above it instead (the user intends to leave this phase)
+        if (nearestStageId) {
+          // If dragging up and the nearest stage is the task's current stage,
+          // use the stage above it instead (the user intends to leave this stage)
           const activeNode = flat[activeIdx]
-          if (isDraggingUp && activeNode?.projectPhaseId === nearestPhaseId) {
-            const phases = flat.filter((n) => n.nodeType === 'Phase')
-            const phaseIdx = phases.findIndex((p) => p.id === nearestPhaseId)
-            if (phaseIdx > 0) {
-              resolvedParentId = phases[phaseIdx - 1].id
+          if (isDraggingUp && activeNode?.projectStageId === nearestStageId) {
+            const stages = flat.filter((n) => n.nodeType === 'Stage')
+            const stageIdx = stages.findIndex((p) => p.id === nearestStageId)
+            if (stageIdx > 0) {
+              resolvedParentId = stages[stageIdx - 1].id
             } else {
-              resolvedParentId = nearestPhaseId
+              resolvedParentId = nearestStageId
             }
           } else {
-            resolvedParentId = nearestPhaseId
+            resolvedParentId = nearestStageId
           }
         }
       }
 
       if (!resolvedParentId) {
-        messageApi.warning('Tasks must be placed within a phase')
+        messageApi.warning('Tasks must be placed within a stage')
         return
       }
 
@@ -429,12 +429,12 @@ const ProjectPlanTable = ({
         if (!node) return false
 
         try {
-          if (isPhaseNode(node)) {
-            const patchOperations = buildProjectPhasePatchOperations(updates)
-            const response = await patchProjectPhase({
+          if (isStageNode(node)) {
+            const patchOperations = buildProjectStagePatchOperations(updates)
+            const response = await patchProjectStage({
               projectId,
               projectKey,
-              phaseId: taskId,
+              stageId: taskId,
               patchOperations,
             })
             if (response.error) throw response.error
@@ -451,7 +451,7 @@ const ProjectPlanTable = ({
           await refetch()
           return true
         } catch (error: any) {
-          const entityName = isPhaseNode(node) ? 'phase' : 'task'
+          const entityName = isStageNode(node) ? 'stage' : 'task'
           return handleTaskError(
             error,
             taskId,
@@ -467,10 +467,10 @@ const ProjectPlanTable = ({
       refetch,
       tasks,
       patchProjectTask,
-      patchProjectPhase,
+      patchProjectStage,
       createProjectTask,
       handleTaskError,
-      isPhaseNode,
+      isStageNode,
     ],
   )
 
@@ -479,9 +479,9 @@ const ProjectPlanTable = ({
     setOpenEditTaskForm(true)
   }, [])
 
-  const handleEditPhase = useCallback((phase: any) => {
-    setSelectedPhaseId(phase.id)
-    setOpenEditPhaseForm(true)
+  const handleEditStage = useCallback((stage: any) => {
+    setSelectedStageId(stage.id)
+    setOpenEditStageForm(true)
   }, [])
 
   const handleDeleteTask = useCallback((task: any) => {
@@ -541,8 +541,8 @@ const ProjectPlanTable = ({
         }
       }
 
-      // Phase rows: limited fields
-      if (isPhaseNode(task)) {
+      // Stage rows: limited fields
+      if (isStageNode(task)) {
         return {
           statusId: task.status?.id,
           assigneeIds: task.assignees?.map((a) => a.id) ?? [],
@@ -565,7 +565,7 @@ const ProjectPlanTable = ({
         estimatedEffortHours: task.estimatedEffortHours,
       }
     },
-    [isPhaseNode],
+    [isStageNode],
   )
 
   const computeChanges = useCallback(
@@ -766,7 +766,7 @@ const ProjectPlanTable = ({
     [isSelectedRowMilestone, tasks],
   )
 
-  const selectedPlanItemPhaseName = useMemo(() => {
+  const selectedPlanItemStageName = useMemo(() => {
     if (!selectedPlanItemId) return undefined
 
     const selectedNode = findNodeById(
@@ -775,11 +775,11 @@ const ProjectPlanTable = ({
     ) as ProjectPlanNodeDto | null
     if (!selectedNode) return undefined
 
-    const phaseId = selectedNode.projectPhaseId
-    if (!phaseId) return undefined
+    const stageId = selectedNode.projectStageId
+    if (!stageId) return undefined
 
-    const phaseNode = findNodeById(tasks, phaseId) as ProjectPlanNodeDto | null
-    return phaseNode?.name
+    const stageNode = findNodeById(tasks, stageId) as ProjectPlanNodeDto | null
+    return stageNode?.name
   }, [selectedPlanItemId, tasks])
 
   return (
@@ -813,8 +813,8 @@ const ProjectPlanTable = ({
               taskTypeFilterOptions,
               taskStatusFilterOptions,
               taskPriorityFilterOptions,
-              isPhaseNode,
-              handleEditPhase,
+              isStageNode,
+              handleEditStage,
               openPlanItemDrawer: handleOpenPlanItemDrawer,
             })
           }
@@ -842,12 +842,12 @@ const ProjectPlanTable = ({
                   'estimatedEffortHours',
                 ]
               }
-              // Phase rows: limited editable fields
+              // Stage rows: limited editable fields
               const node = findNodeById(
                 tasks,
                 rowId,
               ) as ProjectPlanNodeDto | null
-              if (node && isPhaseNode(node)) {
+              if (node && isStageNode(node)) {
                 return [
                   'status',
                   'plannedStart',
@@ -923,25 +923,25 @@ const ProjectPlanTable = ({
           onFormCancel={() => onDeleteTaskFormClosed(false)}
         />
       )}
-      {openEditPhaseForm && selectedPhaseId && (
-        <EditProjectPhaseForm
+      {openEditStageForm && selectedStageId && (
+        <EditProjectStageForm
           projectId={projectId}
-          phaseId={selectedPhaseId}
+          stageId={selectedStageId}
           onFormComplete={() => {
-            setOpenEditPhaseForm(false)
-            setSelectedPhaseId(undefined)
+            setOpenEditStageForm(false)
+            setSelectedStageId(undefined)
             refetch()
           }}
           onFormCancel={() => {
-            setOpenEditPhaseForm(false)
-            setSelectedPhaseId(undefined)
+            setOpenEditStageForm(false)
+            setSelectedStageId(undefined)
           }}
         />
       )}
       <ProjectPlanItemDrawer
         projectKey={projectKey}
         taskId={selectedPlanItemId}
-        phaseName={selectedPlanItemPhaseName}
+        stageName={selectedPlanItemStageName}
         drawerOpen={openPlanItemDrawer}
         onOpenTask={handleOpenPlanItemDrawer}
         onEditTask={(taskId) => {

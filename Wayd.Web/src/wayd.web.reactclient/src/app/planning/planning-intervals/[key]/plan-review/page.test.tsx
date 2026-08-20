@@ -136,7 +136,7 @@ describe('PlanningIntervalPlanReviewPage', () => {
   // Regression: the page used to read window.location.hash during render and
   // mirror activeTab to the URL via an effect. In Next.js's client router,
   // the destination page renders BEFORE window.location.hash reflects the
-  // incoming hash — so the render-phase read returned "", the page fell back
+  // incoming hash — so the render-stage read returned "", the page fell back
   // to the first team alphabetically, and the mirror effect overwrote the
   // user-supplied hash with that fallback. The fix reads the hash in an
   // effect (post-commit) and gates the mirror effect on that read, so the

@@ -3,7 +3,7 @@
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useModalForm } from '@/src/hooks'
-import { useGetProjectPhaseQuery, useGetProjectPlanTreeQuery } from '@/src/store/features/ppm/projects-api'
+import { useGetProjectStageQuery, useGetProjectPlanTreeQuery } from '@/src/store/features/ppm/projects-api'
 import { useGetTaskStatusOptionsQuery } from '@/src/store/features/ppm/project-tasks-api'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import { authenticatedFetch } from '@/src/services/clients'
@@ -21,14 +21,14 @@ const { Item } = Form
 const { RangePicker } = DatePicker
 const { Group: RadioGroup } = Radio
 
-export interface EditProjectPhaseFormProps {
+export interface EditProjectStageFormProps {
   projectId: string
-  phaseId: string
+  stageId: string
   onFormComplete: () => void
   onFormCancel: () => void
 }
 
-interface EditPhaseFormValues {
+interface EditStageFormValues {
   description: string
   statusId: number
   plannedRange: any[] | undefined
@@ -36,15 +36,15 @@ interface EditPhaseFormValues {
   assigneeIds: string[]
 }
 
-const EditProjectPhaseForm = ({
+const EditProjectStageForm = ({
   projectId,
-  phaseId,
+  stageId,
   onFormComplete,
   onFormCancel,
-}: EditProjectPhaseFormProps) => {
-  const { data: phaseData, isLoading } = useGetProjectPhaseQuery(
-    { projectId, phaseId },
-    { skip: !projectId || !phaseId },
+}: EditProjectStageFormProps) => {
+  const { data: stageData, isLoading } = useGetProjectStageQuery(
+    { projectId, stageId },
+    { skip: !projectId || !stageId },
   )
   const { data: planTree } = useGetProjectPlanTreeQuery(projectId, { skip: !projectId })
 
@@ -52,15 +52,15 @@ const EditProjectPhaseForm = ({
   const { data: employeeData } = useGetEmployeeOptionsQuery(true)
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
-    useModalForm<EditPhaseFormValues>({
-      onSubmit: async (values: EditPhaseFormValues, form: any): Promise<boolean> => {
+    useModalForm<EditStageFormValues>({
+      onSubmit: async (values: EditStageFormValues, form: any): Promise<boolean> => {
           const patchOperations: Array<{
             op: 'replace'
             path: string
             value: unknown
           }> = []
 
-          if (values.description !== phaseData?.description) {
+          if (values.description !== stageData?.description) {
             patchOperations.push({
               op: 'replace',
               path: '/Description',
@@ -68,7 +68,7 @@ const EditProjectPhaseForm = ({
             })
           }
 
-          if (values.statusId !== phaseData?.status?.id) {
+          if (values.statusId !== stageData?.status?.id) {
             patchOperations.push({
               op: 'replace',
               path: '/Status',
@@ -80,11 +80,11 @@ const EditProjectPhaseForm = ({
             values.plannedRange?.[0]?.format('YYYY-MM-DD') ?? null
           const newEnd =
             values.plannedRange?.[1]?.format('YYYY-MM-DD') ?? null
-          const oldStart = phaseData?.start
-            ? dayjs(phaseData.start.toString()).format('YYYY-MM-DD')
+          const oldStart = stageData?.start
+            ? dayjs(stageData.start.toString()).format('YYYY-MM-DD')
             : null
-          const oldEnd = phaseData?.end
-            ? dayjs(phaseData.end.toString()).format('YYYY-MM-DD')
+          const oldEnd = stageData?.end
+            ? dayjs(stageData.end.toString()).format('YYYY-MM-DD')
             : null
 
           if (newStart !== oldStart) {
@@ -102,7 +102,7 @@ const EditProjectPhaseForm = ({
             })
           }
 
-          if (values.progress !== phaseData?.progress) {
+          if (values.progress !== stageData?.progress) {
             patchOperations.push({
               op: 'replace',
               path: '/Progress',
@@ -111,7 +111,7 @@ const EditProjectPhaseForm = ({
           }
 
           const currentAssigneeIds =
-            phaseData?.assignees?.map((a) => a.id).sort() ?? []
+            stageData?.assignees?.map((a) => a.id).sort() ?? []
           const newAssigneeIds = [...(values.assigneeIds ?? [])].sort()
           if (
             JSON.stringify(currentAssigneeIds) !==
@@ -127,7 +127,7 @@ const EditProjectPhaseForm = ({
           if (patchOperations.length === 0) return true
 
           const response = await authenticatedFetch(
-            `/api/ppm/projects/${projectId}/phases/${phaseId}`,
+            `/api/ppm/projects/${projectId}/stages/${stageId}`,
             {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json-patch+json' },
@@ -153,29 +153,29 @@ const EditProjectPhaseForm = ({
         },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
-      errorMessage: 'Failed to update phase. Please try again.',
+      errorMessage: 'Failed to update stage. Please try again.',
       permission: 'Permissions.Projects.Update',
     })
 
   useEffect(() => {
-    if (phaseData) {
+    if (stageData) {
       const plannedRange =
-        phaseData.start && phaseData.end
+        stageData.start && stageData.end
           ? [
-              dayjs(phaseData.start.toString()),
-              dayjs(phaseData.end.toString()),
+              dayjs(stageData.start.toString()),
+              dayjs(stageData.end.toString()),
             ]
           : undefined
 
       form.setFieldsValue({
-        description: phaseData.description,
-        statusId: phaseData.status?.id,
+        description: stageData.description,
+        statusId: stageData.status?.id,
         plannedRange,
-        progress: phaseData.progress ?? 0,
-        assigneeIds: phaseData.assignees?.map((a) => a.id) ?? [],
+        progress: stageData.progress ?? 0,
+        assigneeIds: stageData.assignees?.map((a) => a.id) ?? [],
       })
     }
-  }, [phaseData, form])
+  }, [stageData, form])
 
   if (isLoading) {
     return null
@@ -183,7 +183,7 @@ const EditProjectPhaseForm = ({
 
   return (
     <Modal
-      title={`Edit Phase - ${phaseData?.name ?? ''}`}
+      title={`Edit Stage - ${stageData?.name ?? ''}`}
       open={isOpen}
       onOk={handleOk}
       okButtonProps={{ disabled: !isValid || isSaving }}
@@ -198,7 +198,7 @@ const EditProjectPhaseForm = ({
         form={form}
         size="small"
         layout="vertical"
-        name="edit-project-phase-form"
+        name="edit-project-stage-form"
       >
         <Item
           name="description"
@@ -240,7 +240,7 @@ const EditProjectPhaseForm = ({
           rules={[
             {
               validator: (_, value) => {
-                const childrenSpan = findOwnChildrenSpan(planTree, phaseId)
+                const childrenSpan = findOwnChildrenSpan(planTree, stageId)
                 if (childrenSpan) {
                   if (!value || !value[0] || !value[1]) {
                     return Promise.reject(
@@ -249,8 +249,8 @@ const EditProjectPhaseForm = ({
                   }
                   const start = value[0]
                   const end = value[1]
-                  const originalStart = phaseData?.start ? dayjs(phaseData.start.toString()) : null
-                  const originalEnd = phaseData?.end ? dayjs(phaseData.end.toString()) : null
+                  const originalStart = stageData?.start ? dayjs(stageData.start.toString()) : null
+                  const originalEnd = stageData?.end ? dayjs(stageData.end.toString()) : null
                   const isShift = isShiftOnlyChange(originalStart, originalEnd, start, end)
 
                   if (!isShift) {
@@ -276,4 +276,4 @@ const EditProjectPhaseForm = ({
   )
 }
 
-export default EditProjectPhaseForm
+export default EditProjectStageForm

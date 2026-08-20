@@ -18,7 +18,7 @@ export type JsonPatchReplaceOperation = {
 }
 
 // Note: ASP.NET Core JsonPatch expects PascalCase paths matching the C# property names
-export type ProjectPhaseUpdate = {
+export type ProjectStageUpdate = {
   description?: string
   statusId?: number
   progress?: number
@@ -28,8 +28,8 @@ export type ProjectPhaseUpdate = {
 }
 
 // Note: ASP.NET Core JsonPatch expects PascalCase paths matching the C# property names
-export const buildProjectPhasePatchOperations = (
-  updates: ProjectPhaseUpdate,
+export const buildProjectStagePatchOperations = (
+  updates: ProjectStageUpdate,
 ): JsonPatchReplaceOperation[] => {
   const patchOperations: JsonPatchReplaceOperation[] = []
 

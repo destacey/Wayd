@@ -1,7 +1,7 @@
 import { render, screen, act } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
-import { ProjectPhaseListDto } from '@/src/services/wayd-api'
-import PhaseTimeline from './phase-timeline'
+import { ProjectStageListDto } from '@/src/services/wayd-api'
+import StageTimeline from './stage-timeline'
 
 // --- ResizeObserver mock that allows triggering resize callbacks ---
 type ResizeCallback = (entries: { contentRect: { width: number } }[]) => void
@@ -40,14 +40,14 @@ function setWindowWidth(width: number) {
   })
 }
 
-// --- Phase factory ---
+// --- Stage factory ---
 let nextId = 0
 
-function createPhase(
-  overrides: Partial<ProjectPhaseListDto> & { name: string; order: number },
-): ProjectPhaseListDto {
+function createStage(
+  overrides: Partial<ProjectStageListDto> & { name: string; order: number },
+): ProjectStageListDto {
   return {
-    id: `test-phase-${nextId++}`,
+    id: `test-stage-${nextId++}`,
     status: { id: 1, name: 'Not Started' },
     start: undefined,
     end: undefined,
@@ -64,36 +64,36 @@ beforeEach(() => {
   setWindowWidth(1024)
 })
 
-describe('PhaseTimeline', () => {
+describe('StageTimeline', () => {
   // --- Basic rendering ---
 
-  it('renders nothing when phases is empty', () => {
-    const { container } = render(<PhaseTimeline phases={[]} />)
+  it('renders nothing when stages is empty', () => {
+    const { container } = render(<StageTimeline stages={[]} />)
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('renders phase names', () => {
-    const phases = [
-      createPhase({ name: 'Discovery', order: 1 }),
-      createPhase({ name: 'Development', order: 2 }),
-      createPhase({ name: 'Launch', order: 3 }),
+  it('renders stage names', () => {
+    const stages = [
+      createStage({ name: 'Discovery', order: 1 }),
+      createStage({ name: 'Development', order: 2 }),
+      createStage({ name: 'Launch', order: 3 }),
     ]
 
-    render(<PhaseTimeline phases={phases} />)
+    render(<StageTimeline stages={stages} />)
 
     expect(screen.getByText('Discovery')).toBeInTheDocument()
     expect(screen.getByText('Development')).toBeInTheDocument()
     expect(screen.getByText('Launch')).toBeInTheDocument()
   })
 
-  it('sorts phases by order', () => {
-    const phases = [
-      createPhase({ name: 'Launch', order: 3 }),
-      createPhase({ name: 'Discovery', order: 1 }),
-      createPhase({ name: 'Development', order: 2 }),
+  it('sorts stages by order', () => {
+    const stages = [
+      createStage({ name: 'Launch', order: 3 }),
+      createStage({ name: 'Discovery', order: 1 }),
+      createStage({ name: 'Development', order: 2 }),
     ]
 
-    const { container } = render(<PhaseTimeline phases={phases} />)
+    const { container } = render(<StageTimeline stages={stages} />)
 
     const titles = container.querySelectorAll('.ant-steps-item-title')
     expect(titles[0]).toHaveTextContent('Discovery')
@@ -101,101 +101,101 @@ describe('PhaseTimeline', () => {
     expect(titles[2]).toHaveTextContent('Launch')
   })
 
-  it('does not mutate the original phases array', () => {
-    const phases = [
-      createPhase({ name: 'B', order: 2 }),
-      createPhase({ name: 'A', order: 1 }),
+  it('does not mutate the original stages array', () => {
+    const stages = [
+      createStage({ name: 'B', order: 2 }),
+      createStage({ name: 'A', order: 1 }),
     ]
-    const original = [...phases]
+    const original = [...stages]
 
-    render(<PhaseTimeline phases={phases} />)
+    render(<StageTimeline stages={stages} />)
 
-    expect(phases[0].name).toBe(original[0].name)
-    expect(phases[1].name).toBe(original[1].name)
+    expect(stages[0].name).toBe(original[0].name)
+    expect(stages[1].name).toBe(original[1].name)
   })
 
   // --- Status rendering ---
 
-  it('renders completed phases with finish status', () => {
-    const phases = [
-      createPhase({
+  it('renders completed stages with finish status', () => {
+    const stages = [
+      createStage({
         name: 'Discovery',
         order: 1,
         status: { id: 3, name: 'Completed' },
       }),
     ]
 
-    const { container } = render(<PhaseTimeline phases={phases} />)
+    const { container } = render(<StageTimeline stages={stages} />)
 
     expect(
       container.querySelector('.ant-steps-item-finish'),
     ).toBeInTheDocument()
   })
 
-  it('renders in-progress phases with process status', () => {
-    const phases = [
-      createPhase({
+  it('renders in-progress stages with process status', () => {
+    const stages = [
+      createStage({
         name: 'Development',
         order: 1,
         status: { id: 2, name: 'In Progress' },
       }),
     ]
 
-    const { container } = render(<PhaseTimeline phases={phases} />)
+    const { container } = render(<StageTimeline stages={stages} />)
 
     expect(
       container.querySelector('.ant-steps-item-process'),
     ).toBeInTheDocument()
   })
 
-  it('renders canceled phases with error status', () => {
-    const phases = [
-      createPhase({
-        name: 'Canceled Phase',
+  it('renders canceled stages with error status', () => {
+    const stages = [
+      createStage({
+        name: 'Canceled Stage',
         order: 1,
         status: { id: 4, name: 'Canceled' },
       }),
     ]
 
-    const { container } = render(<PhaseTimeline phases={phases} />)
+    const { container } = render(<StageTimeline stages={stages} />)
 
     expect(container.querySelector('.ant-steps-item-error')).toBeInTheDocument()
   })
 
-  it('renders not-started phases with wait status', () => {
-    const phases = [
-      createPhase({
-        name: 'Future Phase',
+  it('renders not-started stages with wait status', () => {
+    const stages = [
+      createStage({
+        name: 'Future Stage',
         order: 1,
         status: { id: 1, name: 'Not Started' },
       }),
     ]
 
-    const { container } = render(<PhaseTimeline phases={phases} />)
+    const { container } = render(<StageTimeline stages={stages} />)
 
     expect(container.querySelector('.ant-steps-item-wait')).toBeInTheDocument()
   })
 
   it('handles mixed statuses', () => {
-    const phases = [
-      createPhase({
+    const stages = [
+      createStage({
         name: 'Done',
         order: 1,
         status: { id: 3, name: 'Completed' },
       }),
-      createPhase({
+      createStage({
         name: 'Active',
         order: 2,
         status: { id: 2, name: 'In Progress' },
       }),
-      createPhase({
+      createStage({
         name: 'Upcoming',
         order: 3,
         status: { id: 1, name: 'Not Started' },
       }),
     ]
 
-    const { container } = render(<PhaseTimeline phases={phases} />)
+    const { container } = render(<StageTimeline stages={stages} />)
 
     expect(
       container.querySelector('.ant-steps-item-finish'),
@@ -209,8 +209,8 @@ describe('PhaseTimeline', () => {
   // --- Inline content (default mode) ---
 
   it('shows dates inline in default mode', () => {
-    const phases = [
-      createPhase({
+    const stages = [
+      createStage({
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
@@ -219,14 +219,14 @@ describe('PhaseTimeline', () => {
       }),
     ]
 
-    render(<PhaseTimeline phases={phases} displayMode="default" />)
+    render(<StageTimeline stages={stages} displayMode="default" />)
 
     expect(screen.getByText('Jan 15 - Mar 15, 2026')).toBeInTheDocument()
   })
 
   it('shows progress inline in default mode', () => {
-    const phases = [
-      createPhase({
+    const stages = [
+      createStage({
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
@@ -234,28 +234,28 @@ describe('PhaseTimeline', () => {
       }),
     ]
 
-    render(<PhaseTimeline phases={phases} displayMode="default" />)
+    render(<StageTimeline stages={stages} displayMode="default" />)
 
     expect(screen.getByText('45%')).toBeInTheDocument()
   })
 
   it('does not show dates when dates are not set', () => {
-    const phases = [
-      createPhase({
+    const stages = [
+      createStage({
         name: 'Discovery',
         order: 1,
         status: { id: 1, name: 'Not Started' },
       }),
     ]
 
-    render(<PhaseTimeline phases={phases} displayMode="default" />)
+    render(<StageTimeline stages={stages} displayMode="default" />)
 
     expect(screen.queryByText(/Jan|Feb|Mar/)).not.toBeInTheDocument()
   })
 
   it('shows start-only date inline', () => {
-    const phases = [
-      createPhase({
+    const stages = [
+      createStage({
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
@@ -263,14 +263,14 @@ describe('PhaseTimeline', () => {
       }),
     ]
 
-    render(<PhaseTimeline phases={phases} displayMode="default" />)
+    render(<StageTimeline stages={stages} displayMode="default" />)
 
     expect(screen.getByText('Starts Feb 1, 2026')).toBeInTheDocument()
   })
 
   it('shows end-only date inline', () => {
-    const phases = [
-      createPhase({
+    const stages = [
+      createStage({
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
@@ -278,7 +278,7 @@ describe('PhaseTimeline', () => {
       }),
     ]
 
-    render(<PhaseTimeline phases={phases} displayMode="default" />)
+    render(<StageTimeline stages={stages} displayMode="default" />)
 
     expect(screen.getByText('Ends Jun 30, 2026')).toBeInTheDocument()
   })
@@ -286,8 +286,8 @@ describe('PhaseTimeline', () => {
   // --- Small mode ---
 
   it('hides inline content in small mode', () => {
-    const phases = [
-      createPhase({
+    const stages = [
+      createStage({
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
@@ -297,15 +297,15 @@ describe('PhaseTimeline', () => {
       }),
     ]
 
-    render(<PhaseTimeline phases={phases} displayMode="small" />)
+    render(<StageTimeline stages={stages} displayMode="small" />)
 
     expect(screen.queryByText('Jan 15 - Mar 15, 2026')).not.toBeInTheDocument()
     expect(screen.queryByText('45%')).not.toBeInTheDocument()
   })
 
   it('shows tooltip with details in small mode on hover', async () => {
-    const phases = [
-      createPhase({
+    const stages = [
+      createStage({
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
@@ -315,7 +315,7 @@ describe('PhaseTimeline', () => {
       }),
     ]
 
-    render(<PhaseTimeline phases={phases} displayMode="small" />)
+    render(<StageTimeline stages={stages} displayMode="small" />)
 
     await userEvent.hover(screen.getByText('Discovery'))
 
@@ -327,8 +327,8 @@ describe('PhaseTimeline', () => {
   // --- Tooltip in default mode ---
 
   it('shows tooltip with status only in default mode on hover', async () => {
-    const phases = [
-      createPhase({
+    const stages = [
+      createStage({
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
@@ -338,7 +338,7 @@ describe('PhaseTimeline', () => {
       }),
     ]
 
-    render(<PhaseTimeline phases={phases} displayMode="default" />)
+    render(<StageTimeline stages={stages} displayMode="default" />)
 
     await userEvent.hover(screen.getByText('Discovery'))
 
@@ -348,15 +348,15 @@ describe('PhaseTimeline', () => {
   // --- Auto-sizing display modes ---
 
   describe('auto-sizing', () => {
-    const threePhases = [
-      createPhase({ name: 'Plan', order: 1 }),
-      createPhase({ name: 'Execute', order: 2 }),
-      createPhase({ name: 'Deliver', order: 3 }),
+    const threeStages = [
+      createStage({ name: 'Plan', order: 1 }),
+      createStage({ name: 'Execute', order: 2 }),
+      createStage({ name: 'Deliver', order: 3 }),
     ]
 
     it('uses default mode when container is wide enough', () => {
-      // 3 phases × 120px = 360px needed for default
-      const { container } = render(<PhaseTimeline phases={threePhases} />)
+      // 3 stages × 120px = 360px needed for default
+      const { container } = render(<StageTimeline stages={threeStages} />)
       triggerResize(400)
 
       expect(
@@ -365,8 +365,8 @@ describe('PhaseTimeline', () => {
     })
 
     it('uses small mode when container is moderately narrow', () => {
-      // 3 phases × 120px = 360px for default, 3 × 70px = 210px for vertical
-      const { container } = render(<PhaseTimeline phases={threePhases} />)
+      // 3 stages × 120px = 360px for default, 3 × 70px = 210px for vertical
+      const { container } = render(<StageTimeline stages={threeStages} />)
       triggerResize(250)
 
       expect(
@@ -375,16 +375,16 @@ describe('PhaseTimeline', () => {
     })
 
     it('switches to vertical when container is too narrow', () => {
-      // 3 phases × 70px = 210px threshold
-      const { container } = render(<PhaseTimeline phases={threePhases} />)
+      // 3 stages × 70px = 210px threshold
+      const { container } = render(<StageTimeline stages={threeStages} />)
       triggerResize(150)
 
       expect(container.querySelector('.ant-steps-vertical')).toBeInTheDocument()
     })
 
     it('shows inline content in vertical mode', () => {
-      const phases = [
-        createPhase({
+      const stages = [
+        createStage({
           name: 'Plan',
           order: 1,
           start: new Date('2026-01-15T12:00:00'),
@@ -393,7 +393,7 @@ describe('PhaseTimeline', () => {
         }),
       ]
 
-      render(<PhaseTimeline phases={phases} />)
+      render(<StageTimeline stages={stages} />)
       triggerResize(50)
 
       expect(screen.getByText('Jan 15 - Mar 15, 2026')).toBeInTheDocument()
@@ -402,7 +402,7 @@ describe('PhaseTimeline', () => {
 
     it('switches to vertical when page width is below 500px', () => {
       setWindowWidth(400)
-      const { container } = render(<PhaseTimeline phases={threePhases} />)
+      const { container } = render(<StageTimeline stages={threeStages} />)
       triggerResize(800) // container is wide, but page is narrow
 
       expect(container.querySelector('.ant-steps-vertical')).toBeInTheDocument()
@@ -410,7 +410,7 @@ describe('PhaseTimeline', () => {
 
     it('skips auto-detection when size is explicitly set', () => {
       const { container } = render(
-        <PhaseTimeline phases={threePhases} displayMode="small" />,
+        <StageTimeline stages={threeStages} displayMode="small" />,
       )
       triggerResize(800)
 
@@ -420,26 +420,26 @@ describe('PhaseTimeline', () => {
       ).toBeInTheDocument()
     })
 
-    it('adapts breakpoints to phase count', () => {
-      const sixPhases = Array.from({ length: 6 }, (_, i) =>
-        createPhase({ name: `Phase ${i + 1}`, order: i + 1 }),
+    it('adapts breakpoints to stage count', () => {
+      const sixStages = Array.from({ length: 6 }, (_, i) =>
+        createStage({ name: `Stage ${i + 1}`, order: i + 1 }),
       )
 
       // 6 × 70px = 420px for vertical threshold
-      const { container } = render(<PhaseTimeline phases={sixPhases} />)
+      const { container } = render(<StageTimeline stages={sixStages} />)
       triggerResize(400)
 
       expect(container.querySelector('.ant-steps-vertical')).toBeInTheDocument()
     })
 
-    it('stays horizontal for few phases at same width', () => {
-      const twoPhases = [
-        createPhase({ name: 'Start', order: 1 }),
-        createPhase({ name: 'End', order: 2 }),
+    it('stays horizontal for few stages at same width', () => {
+      const twoStages = [
+        createStage({ name: 'Start', order: 1 }),
+        createStage({ name: 'End', order: 2 }),
       ]
 
       // 2 × 70px = 140px for vertical threshold — 400px is well above
-      const { container } = render(<PhaseTimeline phases={twoPhases} />)
+      const { container } = render(<StageTimeline stages={twoStages} />)
       triggerResize(400)
 
       expect(

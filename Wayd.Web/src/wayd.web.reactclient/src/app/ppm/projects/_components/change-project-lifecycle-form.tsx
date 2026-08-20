@@ -5,7 +5,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   ProjectDetailsDto,
   ProjectLifecycleState,
-  ProjectPhaseListDto,
+  ProjectStageListDto,
 } from '@/src/services/wayd-api'
 import { getProjectsClient } from '@/src/services/clients'
 import {
@@ -37,7 +37,7 @@ export interface ChangeProjectLifecycleFormProps {
 
 interface ChangeProjectLifecycleFormValues {
   lifecycleId: string
-  phaseMapping: Record<string, string>
+  stageMapping: Record<string, string>
 }
 
 const ChangeProjectLifecycleForm = ({
@@ -47,15 +47,15 @@ const ChangeProjectLifecycleForm = ({
 }: ChangeProjectLifecycleFormProps) => {
   const messageApi = useMessage()
   const [changeProjectLifecycle] = useChangeProjectLifecycleMutation()
-  const [currentPhases, setCurrentPhases] = useState<ProjectPhaseListDto[]>([])
+  const [currentStages, setCurrentStages] = useState<ProjectStageListDto[]>([])
 
-  // Load current project phases
+  // Load current project stages
   useEffect(() => {
     if (!project?.id) return
     getProjectsClient()
-      .getProjectPhases(project.id)
-      .then((phases) => setCurrentPhases(phases ?? []))
-      .catch(() => setCurrentPhases([]))
+      .getProjectStages(project.id)
+      .then((stages) => setCurrentStages(stages ?? []))
+      .catch(() => setCurrentStages([]))
   }, [project?.id])
 
   // Load active lifecycles (exclude current)
@@ -74,12 +74,12 @@ const ChangeProjectLifecycleForm = ({
     useModalForm<ChangeProjectLifecycleFormValues>({
       onSubmit: async (values: ChangeProjectLifecycleFormValues, form) => {
           try {
-            // Build phaseMapping from the form's mapping fields
-            const phaseMapping: Record<string, string> = {}
-            for (const phase of currentPhases) {
-              const targetId = values.phaseMapping?.[phase.id]
+            // Build stageMapping from the form's mapping fields
+            const stageMapping: Record<string, string> = {}
+            for (const stage of currentStages) {
+              const targetId = values.stageMapping?.[stage.id]
               if (targetId) {
-                phaseMapping[phase.id] = targetId
+                stageMapping[stage.id] = targetId
               }
             }
 
@@ -87,7 +87,7 @@ const ChangeProjectLifecycleForm = ({
               projectId: project.id,
               request: {
                 lifecycleId: values.lifecycleId,
-                phaseMapping,
+                stageMapping,
               },
             })
             if (response.error) throw response.error
@@ -124,68 +124,68 @@ const ChangeProjectLifecycleForm = ({
     { skip: !selectedLifecycleId },
   )
 
-  // New lifecycle phase options for mapping dropdowns
-  const newPhaseOptions = !selectedLifecycle?.phases ? [] : [...selectedLifecycle.phases]
+  // New lifecycle stage options for mapping dropdowns
+  const newStageOptions = !selectedLifecycle?.stages ? [] : [...selectedLifecycle.stages]
       .sort((a, b) => a.order - b.order)
-      .map((phase) => ({
-        label: phase.name,
-        value: phase.id,
+      .map((stage) => ({
+        label: stage.name,
+        value: stage.id,
       }))
 
-  // Auto-populate mapping when phase names match
+  // Auto-populate mapping when stage names match
   useEffect(() => {
-    if (!selectedLifecycle?.phases || currentPhases.length === 0) return
+    if (!selectedLifecycle?.stages || currentStages.length === 0) return
 
     const mapping: Record<string, string> = {}
-    for (const currentPhase of currentPhases) {
-      const match = selectedLifecycle.phases.find(
-        (p) => p.name.toLowerCase() === currentPhase.name.toLowerCase(),
+    for (const currentStage of currentStages) {
+      const match = selectedLifecycle.stages.find(
+        (p) => p.name.toLowerCase() === currentStage.name.toLowerCase(),
       )
       if (match) {
-        mapping[currentPhase.id] = match.id
+        mapping[currentStage.id] = match.id
       }
     }
 
     if (Object.keys(mapping).length > 0) {
-      form.setFieldValue('phaseMapping', mapping)
+      form.setFieldValue('stageMapping', mapping)
     }
-  }, [selectedLifecycle?.phases, currentPhases, form])
+  }, [selectedLifecycle?.stages, currentStages, form])
 
-  // Phase preview timeline
-  const phaseItems = !selectedLifecycle?.phases ? [] : [...selectedLifecycle.phases]
+  // Stage preview timeline
+  const stageItems = !selectedLifecycle?.stages ? [] : [...selectedLifecycle.stages]
       .sort((a, b) => a.order - b.order)
-      .map((phase) => ({
+      .map((stage) => ({
         content: (
           <>
-            <Text strong>{phase.name}</Text>
+            <Text strong>{stage.name}</Text>
             <br />
-            <Text type="secondary">{phase.description}</Text>
+            <Text type="secondary">{stage.description}</Text>
           </>
         ),
       }))
 
-  // Phase mapping table columns
+  // Stage mapping table columns
   const mappingColumns = [
     {
-      title: 'Current Phase',
+      title: 'Current Stage',
       dataIndex: 'name',
       key: 'name',
-      render: (name: string, record: ProjectPhaseListDto) => (
+      render: (name: string, record: ProjectStageListDto) => (
         <Text strong>{`${record.order}. ${name}`}</Text>
       ),
     },
     {
       title: 'Map To',
       key: 'mapping',
-      render: (_: unknown, record: ProjectPhaseListDto) => (
+      render: (_: unknown, record: ProjectStageListDto) => (
         <Item
-          name={['phaseMapping', record.id]}
+          name={['stageMapping', record.id]}
           rules={[{ required: true, message: 'Required' }]}
           style={{ margin: 0 }}
         >
           <Select
-            options={newPhaseOptions}
-            placeholder="Select target phase"
+            options={newStageOptions}
+            placeholder="Select target stage"
             size="small"
           />
         </Item>
@@ -208,8 +208,8 @@ const ChangeProjectLifecycleForm = ({
     >
       <Flex vertical gap="small">
         <Text type="secondary">
-          Select a new lifecycle and map existing phases to the new
-          lifecycle&apos;s phases. Tasks will be moved to the mapped phases.
+          Select a new lifecycle and map existing stages to the new
+          lifecycle&apos;s stages. Tasks will be moved to the mapped stages.
         </Text>
         <Form
           form={form}
@@ -229,19 +229,19 @@ const ChangeProjectLifecycleForm = ({
             />
           </Item>
 
-          {selectedLifecycleId && phaseItems.length > 0 && (
-            <Card size="small" title="New Phases" style={{ marginBottom: 16 }}>
-              <Timeline items={phaseItems} />
+          {selectedLifecycleId && stageItems.length > 0 && (
+            <Card size="small" title="New Stages" style={{ marginBottom: 16 }}>
+              <Timeline items={stageItems} />
             </Card>
           )}
 
-          {selectedLifecycleId && currentPhases.length > 0 && (
-            <Card size="small" title="Phase Mapping">
+          {selectedLifecycleId && currentStages.length > 0 && (
+            <Card size="small" title="Stage Mapping">
               <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
-                Map each current phase to a phase in the new lifecycle.
+                Map each current stage to a stage in the new lifecycle.
               </Text>
               <Table
-                dataSource={[...currentPhases].sort(
+                dataSource={[...currentStages].sort(
                   (a, b) => a.order - b.order,
                 )}
                 columns={mappingColumns}

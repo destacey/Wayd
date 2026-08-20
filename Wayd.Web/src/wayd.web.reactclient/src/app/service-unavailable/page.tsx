@@ -65,7 +65,7 @@ export default function ServiceUnavailablePage({
   }
 
   const [dotClicks, setDotClicks] = useState(0)
-  const [diagnosticPhase, setDiagnosticPhase] = useState<'idle' | 'transition' | 'diagnostic'>('idle')
+  const [diagnosticStage, setDiagnosticStage] = useState<'idle' | 'transition' | 'diagnostic'>('idle')
 
   const isAuthIssue = apiReachable === true
 
@@ -145,7 +145,7 @@ export default function ServiceUnavailablePage({
         onClick={() =>
           setDotClicks((prev) => {
             const next = Math.min(prev + 1, 5)
-            if (next === 5) setDiagnosticPhase('transition')
+            if (next === 5) setDiagnosticStage('transition')
             return next
           })
         }
@@ -162,11 +162,11 @@ export default function ServiceUnavailablePage({
         ))}
       </div>
       </div>
-      {(diagnosticPhase === 'transition' || diagnosticPhase === 'diagnostic') && (
-        <DiagnosticCanvas onClose={() => { setDiagnosticPhase('idle'); setDotClicks(0) }} />
+      {(diagnosticStage === 'transition' || diagnosticStage === 'diagnostic') && (
+        <DiagnosticCanvas onClose={() => { setDiagnosticStage('idle'); setDotClicks(0) }} />
       )}
-      {diagnosticPhase === 'transition' && (
-        <DiagnosticTransition onComplete={() => setDiagnosticPhase('diagnostic')} />
+      {diagnosticStage === 'transition' && (
+        <DiagnosticTransition onComplete={() => setDiagnosticStage('diagnostic')} />
       )}
     </div>
   )

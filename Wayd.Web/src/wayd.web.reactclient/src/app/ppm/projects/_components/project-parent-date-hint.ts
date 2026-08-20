@@ -7,7 +7,7 @@ interface ParentRange {
 }
 
 /**
- * Finds a parent node (phase or task) anywhere in the plan tree and returns its name and range.
+ * Finds a parent node (stage or task) anywhere in the plan tree and returns its name and range.
  */
 export const findParentPlanNodeRange = (
   nodes: any[] | undefined,

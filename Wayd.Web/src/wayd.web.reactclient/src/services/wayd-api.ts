@@ -8963,10 +8963,10 @@ export class ProjectLifecyclesClient {
     }
 
     /**
-     * Add a phase to a project lifecycle.
+     * Add a stage to a project lifecycle.
      */
-    addPhase(id: string, request: ProjectLifecyclePhaseRequest, cancelToken?: CancelToken): Promise<string> {
-        let url_ = this.baseUrl + "/api/ppm/project-lifecycles/{id}/phases";
+    addStage(id: string, request: ProjectLifecycleStageRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/ppm/project-lifecycles/{id}/stages";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -8992,11 +8992,11 @@ export class ProjectLifecyclesClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processAddPhase(_response);
+            return this.processAddStage(_response);
         });
     }
 
-    protected processAddPhase(response: AxiosResponse): Promise<string> {
+    protected processAddStage(response: AxiosResponse): Promise<string> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -9028,16 +9028,16 @@ export class ProjectLifecyclesClient {
     }
 
     /**
-     * Update a phase in a project lifecycle.
+     * Update a stage in a project lifecycle.
      */
-    updatePhase(id: string, phaseId: string, request: ProjectLifecyclePhaseRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/ppm/project-lifecycles/{id}/phases/{phaseId}";
+    updateStage(id: string, stageId: string, request: ProjectLifecycleStageRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/project-lifecycles/{id}/stages/{stageId}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        if (phaseId === undefined || phaseId === null)
-            throw new globalThis.Error("The parameter 'phaseId' must be defined.");
-        url_ = url_.replace("{phaseId}", encodeURIComponent("" + phaseId));
+        if (stageId === undefined || stageId === null)
+            throw new globalThis.Error("The parameter 'stageId' must be defined.");
+        url_ = url_.replace("{stageId}", encodeURIComponent("" + stageId));
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(request);
@@ -9059,11 +9059,11 @@ export class ProjectLifecyclesClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processUpdatePhase(_response);
+            return this.processUpdateStage(_response);
         });
     }
 
-    protected processUpdatePhase(response: AxiosResponse): Promise<void> {
+    protected processUpdateStage(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -9099,16 +9099,16 @@ export class ProjectLifecyclesClient {
     }
 
     /**
-     * Remove a phase from a project lifecycle.
+     * Remove a stage from a project lifecycle.
      */
-    removePhase(id: string, phaseId: string, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/ppm/project-lifecycles/{id}/phases/{phaseId}";
+    removeStage(id: string, stageId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/project-lifecycles/{id}/stages/{stageId}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        if (phaseId === undefined || phaseId === null)
-            throw new globalThis.Error("The parameter 'phaseId' must be defined.");
-        url_ = url_.replace("{phaseId}", encodeURIComponent("" + phaseId));
+        if (stageId === undefined || stageId === null)
+            throw new globalThis.Error("The parameter 'stageId' must be defined.");
+        url_ = url_.replace("{stageId}", encodeURIComponent("" + stageId));
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -9126,11 +9126,11 @@ export class ProjectLifecyclesClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processRemovePhase(_response);
+            return this.processRemoveStage(_response);
         });
     }
 
-    protected processRemovePhase(response: AxiosResponse): Promise<void> {
+    protected processRemoveStage(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -9159,10 +9159,10 @@ export class ProjectLifecyclesClient {
     }
 
     /**
-     * Reorder phases in a project lifecycle.
+     * Reorder stages in a project lifecycle.
      */
-    reorderPhases(id: string, request: ReorderProjectLifecyclePhasesRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/ppm/project-lifecycles/{id}/phases/reorder";
+    reorderStages(id: string, request: ReorderProjectLifecycleStagesRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/project-lifecycles/{id}/stages/reorder";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -9187,11 +9187,11 @@ export class ProjectLifecyclesClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processReorderPhases(_response);
+            return this.processReorderStages(_response);
         });
     }
 
-    protected processReorderPhases(response: AxiosResponse): Promise<void> {
+    protected processReorderStages(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -9771,7 +9771,7 @@ export class ProjectsClient {
     }
 
     /**
-     * Import project phase statuses from a csv file.
+     * Import project stage statuses from a csv file.
      * @param contentType (optional) 
      * @param contentDisposition (optional) 
      * @param headers (optional) 
@@ -9779,8 +9779,8 @@ export class ProjectsClient {
      * @param name (optional) 
      * @param fileName (optional) 
      */
-    importPhases(contentType?: string | null | undefined, contentDisposition?: string | null | undefined, headers?: any[] | null | undefined, length?: number | undefined, name?: string | null | undefined, fileName?: string | null | undefined, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/ppm/projects/phases/import";
+    importStages(contentType?: string | null | undefined, contentDisposition?: string | null | undefined, headers?: any[] | null | undefined, length?: number | undefined, name?: string | null | undefined, fileName?: string | null | undefined, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/projects/stages/import";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = new FormData();
@@ -9815,11 +9815,11 @@ export class ProjectsClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processImportPhases(_response);
+            return this.processImportStages(_response);
         });
     }
 
-    protected processImportPhases(response: AxiosResponse): Promise<void> {
+    protected processImportStages(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -10688,7 +10688,7 @@ export class ProjectsClient {
     }
 
     /**
-     * Change a project's lifecycle, remapping tasks between phases.
+     * Change a project's lifecycle, remapping tasks between stages.
      */
     changeProjectLifecycle(id: string, request: ChangeProjectLifecycleRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/ppm/projects/{id}/lifecycle/change";
@@ -10756,10 +10756,10 @@ export class ProjectsClient {
     }
 
     /**
-     * Get phases for a project.
+     * Get stages for a project.
      */
-    getProjectPhases(id: string, cancelToken?: CancelToken): Promise<ProjectPhaseListDto[]> {
-        let url_ = this.baseUrl + "/api/ppm/projects/{id}/phases";
+    getProjectStages(id: string, cancelToken?: CancelToken): Promise<ProjectStageListDto[]> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/stages";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -10781,11 +10781,11 @@ export class ProjectsClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processGetProjectPhases(_response);
+            return this.processGetProjectStages(_response);
         });
     }
 
-    protected processGetProjectPhases(response: AxiosResponse): Promise<ProjectPhaseListDto[]> {
+    protected processGetProjectStages(response: AxiosResponse): Promise<ProjectStageListDto[]> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -10800,7 +10800,7 @@ export class ProjectsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<ProjectPhaseListDto[]>(result200);
+            return Promise.resolve<ProjectStageListDto[]>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -10813,11 +10813,11 @@ export class ProjectsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<ProjectPhaseListDto[]>(null as any);
+        return Promise.resolve<ProjectStageListDto[]>(null as any);
     }
 
     /**
-     * Get a unified plan tree with phases as top-level nodes and tasks nested within.
+     * Get a unified plan tree with stages as top-level nodes and tasks nested within.
      */
     getProjectPlanTree(idOrKey: string, cancelToken?: CancelToken): Promise<ProjectPlanNodeDto[]> {
         let url_ = this.baseUrl + "/api/ppm/projects/{idOrKey}/plan-tree";
@@ -11001,16 +11001,16 @@ export class ProjectsClient {
     }
 
     /**
-     * Get project phase details.
+     * Get project stage details.
      */
-    getProjectPhase(id: string, phaseId: string, cancelToken?: CancelToken): Promise<ProjectPhaseDetailsDto> {
-        let url_ = this.baseUrl + "/api/ppm/projects/{id}/phases/{phaseId}";
+    getProjectStage(id: string, stageId: string, cancelToken?: CancelToken): Promise<ProjectStageDetailsDto> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/stages/{stageId}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        if (phaseId === undefined || phaseId === null)
-            throw new globalThis.Error("The parameter 'phaseId' must be defined.");
-        url_ = url_.replace("{phaseId}", encodeURIComponent("" + phaseId));
+        if (stageId === undefined || stageId === null)
+            throw new globalThis.Error("The parameter 'stageId' must be defined.");
+        url_ = url_.replace("{stageId}", encodeURIComponent("" + stageId));
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -11029,11 +11029,11 @@ export class ProjectsClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processGetProjectPhase(_response);
+            return this.processGetProjectStage(_response);
         });
     }
 
-    protected processGetProjectPhase(response: AxiosResponse): Promise<ProjectPhaseDetailsDto> {
+    protected processGetProjectStage(response: AxiosResponse): Promise<ProjectStageDetailsDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -11048,7 +11048,7 @@ export class ProjectsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<ProjectPhaseDetailsDto>(result200);
+            return Promise.resolve<ProjectStageDetailsDto>(result200);
 
         } else if (status === 404) {
             const _responseText = response.data;
@@ -11061,20 +11061,20 @@ export class ProjectsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<ProjectPhaseDetailsDto>(null as any);
+        return Promise.resolve<ProjectStageDetailsDto>(null as any);
     }
 
     /**
-     * Update a project phase.
+     * Update a project stage.
      */
-    updateProjectPhase(id: string, phaseId: string, request: UpdateProjectPhaseRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/ppm/projects/{id}/phases/{phaseId}";
+    updateProjectStage(id: string, stageId: string, request: UpdateProjectStageRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/stages/{stageId}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        if (phaseId === undefined || phaseId === null)
-            throw new globalThis.Error("The parameter 'phaseId' must be defined.");
-        url_ = url_.replace("{phaseId}", encodeURIComponent("" + phaseId));
+        if (stageId === undefined || stageId === null)
+            throw new globalThis.Error("The parameter 'stageId' must be defined.");
+        url_ = url_.replace("{stageId}", encodeURIComponent("" + stageId));
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(request);
@@ -11096,11 +11096,11 @@ export class ProjectsClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processUpdateProjectPhase(_response);
+            return this.processUpdateProjectStage(_response);
         });
     }
 
-    protected processUpdateProjectPhase(response: AxiosResponse): Promise<void> {
+    protected processUpdateProjectStage(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -11129,16 +11129,16 @@ export class ProjectsClient {
     }
 
     /**
-     * Partially update a project phase using JSON Patch (RFC 6902).
+     * Partially update a project stage using JSON Patch (RFC 6902).
      */
-    patchProjectPhase(id: string, phaseId: string, patchDocument: JsonPatchDocumentOfUpdateProjectPhaseRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/ppm/projects/{id}/phases/{phaseId}";
+    patchProjectStage(id: string, stageId: string, patchDocument: JsonPatchDocumentOfUpdateProjectStageRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/stages/{stageId}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        if (phaseId === undefined || phaseId === null)
-            throw new globalThis.Error("The parameter 'phaseId' must be defined.");
-        url_ = url_.replace("{phaseId}", encodeURIComponent("" + phaseId));
+        if (stageId === undefined || stageId === null)
+            throw new globalThis.Error("The parameter 'stageId' must be defined.");
+        url_ = url_.replace("{stageId}", encodeURIComponent("" + stageId));
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(patchDocument);
@@ -11160,11 +11160,11 @@ export class ProjectsClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processPatchProjectPhase(_response);
+            return this.processPatchProjectStage(_response);
         });
     }
 
-    protected processPatchProjectPhase(response: AxiosResponse): Promise<void> {
+    protected processPatchProjectStage(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -34192,7 +34192,7 @@ export interface ProjectListDto {
     projectMembers: EmployeeNavigationDto[];
     strategicThemes: NavigationDto[];
     projectLifecycle?: NavigationDto | undefined;
-    phases: ProjectPhaseListDto[];
+    stages: ProjectStageListDto[];
     healthCheck?: ProjectHealthCheckSummaryDto | undefined;
     currentScore?: ScoreSummaryDto | undefined;
     rank: number;
@@ -34200,7 +34200,7 @@ export interface ProjectListDto {
     canManageProject: boolean;
 }
 
-export interface ProjectPhaseListDto {
+export interface ProjectStageListDto {
     id: string;
     name: string;
     status: SimpleNavigationDto;
@@ -34348,7 +34348,7 @@ export interface ProjectLifecycleListDto {
     name: string;
     description: string;
     state: SimpleNavigationDto;
-    phaseCount: number;
+    stageCount: number;
 }
 
 export enum ProjectLifecycleState {
@@ -34363,10 +34363,10 @@ export interface ProjectLifecycleDetailsDto {
     name: string;
     description: string;
     state: SimpleNavigationDto;
-    phases: ProjectLifecyclePhaseDto[];
+    stages: ProjectLifecycleStageDto[];
 }
 
-export interface ProjectLifecyclePhaseDto {
+export interface ProjectLifecycleStageDto {
     id: string;
     name: string;
     description: string;
@@ -34378,14 +34378,14 @@ export interface CreateProjectLifecycleRequest {
     name: string;
     /** The description of the project lifecycle. */
     description: string;
-    /** Optional initial phases for the project lifecycle. */
-    phases?: PhaseInput[] | undefined;
+    /** Optional initial stages for the project lifecycle. */
+    stages?: StageInput[] | undefined;
 }
 
-export interface PhaseInput {
-    /** The name of the phase. */
+export interface StageInput {
+    /** The name of the stage. */
     name: string;
-    /** The description of the phase. */
+    /** The description of the stage. */
     description: string;
 }
 
@@ -34396,16 +34396,16 @@ export interface UpdateProjectLifecycleRequest {
     description: string;
 }
 
-export interface ProjectLifecyclePhaseRequest {
-    /** The name of the phase. */
+export interface ProjectLifecycleStageRequest {
+    /** The name of the stage. */
     name: string;
-    /** The description of the phase. */
+    /** The description of the stage. */
     description: string;
 }
 
-export interface ReorderProjectLifecyclePhasesRequest {
-    /** The ordered list of phase IDs representing the desired order. */
-    orderedPhaseIds: string[];
+export interface ReorderProjectLifecycleStagesRequest {
+    /** The ordered list of stage IDs representing the desired order. */
+    orderedStageIds: string[];
 }
 
 export interface MyProjectsSummaryDto {
@@ -34443,7 +34443,7 @@ export interface ProjectDetailsDto {
     strategicThemes: NavigationDto[];
     strategicInitiatives: NavigationDto[];
     projectLifecycle?: DescriptiveNavigationDto | undefined;
-    phases: ProjectPhaseListDto[];
+    stages: ProjectStageListDto[];
     healthCheck?: ProjectHealthCheckDto | undefined;
     canManageProject: boolean;
     backwardStatusTargets: LifecycleNavigationDto[];
@@ -34591,7 +34591,7 @@ export interface ProjectStatusDto {
 export interface ProjectTeamMemberDto {
     employee: EmployeeNavigationDto;
     roles: string[];
-    assignedPhases: string[];
+    assignedStages: string[];
     activeWorkItemCount: number;
 }
 
@@ -34664,7 +34664,7 @@ export interface AssignProjectLifecycleRequest {
 
 export interface ChangeProjectLifecycleRequest {
     lifecycleId: string;
-    phaseMapping: { [key: string]: string; };
+    stageMapping: { [key: string]: string; };
 }
 
 export interface ProjectPlanNodeDto {
@@ -34683,7 +34683,7 @@ export interface ProjectPlanNodeDto {
     type?: SimpleNavigationDto | undefined;
     priority?: SimpleNavigationDto | undefined;
     parentId?: string | undefined;
-    projectPhaseId?: string | undefined;
+    projectStageId?: string | undefined;
     plannedDate?: Date | undefined;
     estimatedEffortHours?: number | undefined;
 }
@@ -34695,7 +34695,7 @@ export interface ProjectPlanSummaryDto {
     totalLeafTasks: number;
 }
 
-export interface ProjectPhaseDetailsDto {
+export interface ProjectStageDetailsDto {
     id: string;
     name: string;
     description: string;
@@ -34707,7 +34707,7 @@ export interface ProjectPhaseDetailsDto {
     assignees: EmployeeNavigationDto[];
 }
 
-export interface UpdateProjectPhaseRequest {
+export interface UpdateProjectStageRequest {
     description: string;
     status: number;
     plannedStart?: Date | undefined;
@@ -34716,8 +34716,8 @@ export interface UpdateProjectPhaseRequest {
     assigneeIds?: string[] | undefined;
 }
 
-export interface JsonPatchDocumentOfUpdateProjectPhaseRequest {
-    operations: OperationOfUpdateProjectPhaseRequest[] | undefined;
+export interface JsonPatchDocumentOfUpdateProjectStageRequest {
+    operations: OperationOfUpdateProjectStageRequest[] | undefined;
 }
 
 export interface OperationBase {
@@ -34730,7 +34730,7 @@ export interface Operation extends OperationBase {
     value?: any | undefined;
 }
 
-export interface OperationOfUpdateProjectPhaseRequest extends Operation {
+export interface OperationOfUpdateProjectStageRequest extends Operation {
 }
 
 export interface ProjectScoringContextDto {
@@ -34813,7 +34813,7 @@ export interface ProjectTaskDto {
     progress: number;
     order: number;
     parentId?: string | undefined;
-    projectPhaseId: string;
+    projectStageId: string;
     parent?: ProjectTaskNavigationDto | undefined;
     plannedStart?: Date | undefined;
     plannedEnd?: Date | undefined;
@@ -34841,8 +34841,8 @@ export interface CreateProjectTaskRequest {
     assigneeIds?: string[] | undefined;
     /** The progress of the task (optional). Ranges from 0.0 to 100.0. Milestones can not update progress directly. */
     progress: number;
-    /** The ID of the parent phase or task. If it matches a phase, the task becomes a root task in that phase.
-If it matches a task, the new task becomes a child of that task and inherits the phase. */
+    /** The ID of the parent stage or task. If it matches a stage, the task becomes a root task in that stage.
+If it matches a task, the new task becomes a child of that task and inherits the stage. */
     parentId: string;
     /** The planned start date for the task (for tasks, not milestones). */
     plannedStart?: Date | undefined;
@@ -34869,7 +34869,7 @@ export interface UpdateProjectTaskRequest {
     assigneeIds?: string[] | undefined;
     /** The progress of the task (optional). Ranges from 0.0 to 100.0. Milestones can not update progress directly. */
     progress?: number | undefined;
-    /** The ID of the parent phase or task. */
+    /** The ID of the parent stage or task. */
     parentId: string;
     /** The planned start date for the task. */
     plannedStart?: Date | undefined;
@@ -34891,7 +34891,7 @@ export interface OperationOfUpdateProjectTaskRequest extends Operation {
 export interface UpdateProjectTaskPlacementRequest {
     /** The ID of the task. */
     taskId: string;
-    /** The ID of the parent phase or task. If it matches a phase, the task becomes a root task in that phase.
+    /** The ID of the parent stage or task. If it matches a stage, the task becomes a root task in that stage.
 If it matches a task, the task becomes a child of that task. */
     parentId: string;
     /** The new order/position of the task within its parent. */

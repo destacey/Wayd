@@ -11,7 +11,7 @@ import {
   ChangeProjectKeyRequest,
   AssignProjectLifecycleRequest,
   ProjectPlanNodeDto,
-  ProjectPhaseDetailsDto,
+  ProjectStageDetailsDto,
   ProjectPlanSummaryDto,
   ProjectTeamMemberDto,
   MyProjectsSummaryDto,
@@ -385,15 +385,15 @@ export const projectsApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    getProjectPhase: builder.query<
-      ProjectPhaseDetailsDto,
-      { projectId: string; phaseId: string }
+    getProjectStage: builder.query<
+      ProjectStageDetailsDto,
+      { projectId: string; stageId: string }
     >({
-      queryFn: async ({ projectId, phaseId }) => {
+      queryFn: async ({ projectId, stageId }) => {
         try {
-          const data = await getProjectsClient().getProjectPhase(
+          const data = await getProjectsClient().getProjectStage(
             projectId,
-            phaseId,
+            stageId,
           )
           return { data }
         } catch (error) {
@@ -403,12 +403,12 @@ export const projectsApi = apiSlice.injectEndpoints({
       },
     }),
 
-    patchProjectPhase: builder.mutation<
+    patchProjectStage: builder.mutation<
       void,
       {
         projectId: string
         projectKey: string
-        phaseId: string
+        stageId: string
         patchOperations: Array<{
           op: 'replace' | 'add' | 'remove'
           path: string
@@ -416,10 +416,10 @@ export const projectsApi = apiSlice.injectEndpoints({
         }>
       }
     >({
-      queryFn: async ({ projectId, phaseId, patchOperations }) => {
+      queryFn: async ({ projectId, stageId, patchOperations }) => {
         try {
           const response = await authenticatedFetch(
-            `/api/ppm/projects/${projectId}/phases/${phaseId}`,
+            `/api/ppm/projects/${projectId}/stages/${stageId}`,
             {
               method: 'PATCH',
               headers: {
@@ -464,7 +464,7 @@ export const projectsApi = apiSlice.injectEndpoints({
         projectId: string
         request: {
           lifecycleId: string
-          phaseMapping: Record<string, string>
+          stageMapping: Record<string, string>
         }
       }
     >({
@@ -620,8 +620,8 @@ export const {
   useGetProjectStatusOptionsQuery,
   useAssignProjectLifecycleMutation,
   useGetProjectPlanTreeQuery,
-  useGetProjectPhaseQuery,
-  usePatchProjectPhaseMutation,
+  useGetProjectStageQuery,
+  usePatchProjectStageMutation,
   useChangeProjectLifecycleMutation,
   useGetProjectPlanSummaryQuery,
   useGetProjectsPlanSummariesQuery,

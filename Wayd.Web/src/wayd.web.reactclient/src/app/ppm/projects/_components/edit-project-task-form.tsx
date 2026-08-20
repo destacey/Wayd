@@ -186,7 +186,7 @@ const EditProjectTaskForm = ({
       priority: taskData.priority?.id,
       assigneeIds: taskData.assignees.map((a: any) => a.id),
       progress: taskData.progress,
-      parentId: taskData.parent?.id ?? taskData.projectPhaseId,
+      parentId: taskData.parent?.id ?? taskData.projectStageId,
       plannedRange,
       plannedDate: taskData.plannedDate
         ? dayjs(taskData.plannedDate)

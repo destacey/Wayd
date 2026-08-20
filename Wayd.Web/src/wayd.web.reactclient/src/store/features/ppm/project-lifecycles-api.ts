@@ -5,7 +5,7 @@ import {
   CreateProjectLifecycleRequest,
   ProjectLifecycleDetailsDto,
   ProjectLifecycleListDto,
-  ProjectLifecyclePhaseRequest,
+  ProjectLifecycleStageRequest,
   ProjectLifecycleState,
   UpdateProjectLifecycleRequest,
 } from '@/src/services/wayd-api'
@@ -133,13 +133,13 @@ export const projectLifecyclesApi = apiSlice.injectEndpoints({
         ]
       },
     }),
-    addProjectLifecyclePhase: builder.mutation<
+    addProjectLifecycleStage: builder.mutation<
       string,
-      { lifecycleId: string } & ProjectLifecyclePhaseRequest
+      { lifecycleId: string } & ProjectLifecycleStageRequest
     >({
       queryFn: async ({ lifecycleId, ...request }) => {
         try {
-          const data = await getProjectLifecyclesClient().addPhase(
+          const data = await getProjectLifecyclesClient().addStage(
             lifecycleId,
             request,
           )
@@ -153,15 +153,15 @@ export const projectLifecyclesApi = apiSlice.injectEndpoints({
         { type: QueryTags.ProjectLifecycle },
       ],
     }),
-    updateProjectLifecyclePhase: builder.mutation<
+    updateProjectLifecycleStage: builder.mutation<
       void,
-      { lifecycleId: string; phaseId: string } & ProjectLifecyclePhaseRequest
+      { lifecycleId: string; stageId: string } & ProjectLifecycleStageRequest
     >({
-      queryFn: async ({ lifecycleId, phaseId, ...request }) => {
+      queryFn: async ({ lifecycleId, stageId, ...request }) => {
         try {
-          const data = await getProjectLifecyclesClient().updatePhase(
+          const data = await getProjectLifecyclesClient().updateStage(
             lifecycleId,
-            phaseId,
+            stageId,
             request,
           )
           return { data }
@@ -172,15 +172,15 @@ export const projectLifecyclesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [{ type: QueryTags.ProjectLifecycle }],
     }),
-    removeProjectLifecyclePhase: builder.mutation<
+    removeProjectLifecycleStage: builder.mutation<
       void,
-      { lifecycleId: string; phaseId: string }
+      { lifecycleId: string; stageId: string }
     >({
-      queryFn: async ({ lifecycleId, phaseId }) => {
+      queryFn: async ({ lifecycleId, stageId }) => {
         try {
-          const data = await getProjectLifecyclesClient().removePhase(
+          const data = await getProjectLifecyclesClient().removeStage(
             lifecycleId,
-            phaseId,
+            stageId,
           )
           return { data }
         } catch (error) {
@@ -192,15 +192,15 @@ export const projectLifecyclesApi = apiSlice.injectEndpoints({
         { type: QueryTags.ProjectLifecycle },
       ],
     }),
-    reorderProjectLifecyclePhases: builder.mutation<
+    reorderProjectLifecycleStages: builder.mutation<
       void,
-      { lifecycleId: string; orderedPhaseIds: string[] }
+      { lifecycleId: string; orderedStageIds: string[] }
     >({
-      queryFn: async ({ lifecycleId, orderedPhaseIds }) => {
+      queryFn: async ({ lifecycleId, orderedStageIds }) => {
         try {
-          const data = await getProjectLifecyclesClient().reorderPhases(
+          const data = await getProjectLifecyclesClient().reorderStages(
             lifecycleId,
-            { orderedPhaseIds },
+            { orderedStageIds },
           )
           return { data }
         } catch (error) {
@@ -223,8 +223,8 @@ export const {
   useDeleteProjectLifecycleMutation,
   useActivateProjectLifecycleMutation,
   useArchiveProjectLifecycleMutation,
-  useAddProjectLifecyclePhaseMutation,
-  useUpdateProjectLifecyclePhaseMutation,
-  useRemoveProjectLifecyclePhaseMutation,
-  useReorderProjectLifecyclePhasesMutation,
+  useAddProjectLifecycleStageMutation,
+  useUpdateProjectLifecycleStageMutation,
+  useRemoveProjectLifecycleStageMutation,
+  useReorderProjectLifecycleStagesMutation,
 } = projectLifecyclesApi

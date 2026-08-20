@@ -638,7 +638,7 @@
   flex: 0 0 24px;
 }
 
-.phaseName {
+.stageName {
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;

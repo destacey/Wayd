@@ -1,7 +1,7 @@
 'use client'
 
 import { WaydEmpty } from '@/src/components/common'
-import PhaseTimeline from '@/src/app/ppm/_components/phase-timeline'
+import StageTimeline from '@/src/app/ppm/_components/stage-timeline'
 import ProjectTaskMetrics from '@/src/app/ppm/projects/_components/project-task-metrics'
 import { useGetProjectQuery } from '@/src/store/features/ppm/projects-api'
 import { Card, Flex, Skeleton, Typography } from 'antd'
@@ -53,10 +53,10 @@ const ProjectDetailContent: FC<{ projectKey: string }> = ({ projectKey }) => {
 
       {hasLifecycle ? (
         <>
-          {project.phases?.length > 0 && (
+          {project.stages?.length > 0 && (
             <Flex vertical gap={8} className={styles.detailSection}>
-              <Text strong style={{ fontSize: 13 }}>Phases</Text>
-              <PhaseTimeline phases={project.phases} />
+              <Text strong style={{ fontSize: 13 }}>Stages</Text>
+              <StageTimeline stages={project.stages} />
             </Flex>
           )}
 

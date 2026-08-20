@@ -90,31 +90,31 @@ export const definitions: [string, McpToolDefinition][] = [
     securityRequirements: [{"ApiKey":[]}],
   }],
 
-  ['Projects_GetProjectPhases', {
-    name: 'Projects_GetProjectPhases',
-    description: `Get phases for a project.`,
+  ['Projects_GetProjectStages', {
+    name: 'Projects_GetProjectStages',
+    description: `Get stages for a project.`,
     inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid"}},"required":["id"]},
     method: 'get',
-    pathTemplate: '/api/ppm/projects/{id}/phases',
+    pathTemplate: '/api/ppm/projects/{id}/stages',
     executionParameters: [{"name":"id","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
   }],
 
-  ['Projects_GetProjectPhase', {
-    name: 'Projects_GetProjectPhase',
-    description: `Get project phase details.`,
-    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid"},"phaseId":{"type":"string","format":"uuid"}},"required":["id","phaseId"]},
+  ['Projects_GetProjectStage', {
+    name: 'Projects_GetProjectStage',
+    description: `Get project stage details.`,
+    inputSchema: {"type":"object","properties":{"id":{"type":"string","format":"uuid"},"stageId":{"type":"string","format":"uuid"}},"required":["id","stageId"]},
     method: 'get',
-    pathTemplate: '/api/ppm/projects/{id}/phases/{phaseId}',
-    executionParameters: [{"name":"id","in":"path"},{"name":"phaseId","in":"path"}],
+    pathTemplate: '/api/ppm/projects/{id}/stages/{stageId}',
+    executionParameters: [{"name":"id","in":"path"},{"name":"stageId","in":"path"}],
     requestBodyContentType: undefined,
     securityRequirements: [{"ApiKey":[]}],
   }],
 
   ['Projects_GetProjectPlanTree', {
     name: 'Projects_GetProjectPlanTree',
-    description: `Get a unified plan tree with phases as top-level nodes and tasks nested within. Returns both phase nodes and task nodes with WBS codes.`,
+    description: `Get a unified plan tree with stages as top-level nodes and tasks nested within. Returns both stage nodes and task nodes with WBS codes.`,
     inputSchema: {"type":"object","properties":{"idOrKey":{"type":"string"}},"required":["idOrKey"]},
     method: 'get',
     pathTemplate: '/api/ppm/projects/{idOrKey}/plan-tree',

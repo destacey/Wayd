@@ -113,11 +113,11 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
-    [HttpPost("{id}/phases")]
+    [HttpPost("{id}/stages")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectLifecycles)]
-    [OpenApiOperation("Add a phase to a project lifecycle.", "")]
+    [OpenApiOperation("Add a stage to a project lifecycle.", "")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
-    public async Task<ActionResult<Guid>> AddPhase(Guid id, [FromBody] ProjectLifecyclePhaseRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<Guid>> AddStage(Guid id, [FromBody] ProjectLifecycleStageRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(request.ToAddCommand(id), cancellationToken);
 
@@ -126,44 +126,44 @@ public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> lo
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
-    [HttpPut("{id}/phases/{phaseId}")]
+    [HttpPut("{id}/stages/{stageId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectLifecycles)]
-    [OpenApiOperation("Update a phase in a project lifecycle.", "")]
+    [OpenApiOperation("Update a stage in a project lifecycle.", "")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> UpdatePhase(Guid id, Guid phaseId, [FromBody] ProjectLifecyclePhaseRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult> UpdateStage(Guid id, Guid stageId, [FromBody] ProjectLifecycleStageRequest request, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(request.ToUpdateCommand(id, phaseId), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateCommand(id, stageId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
-    [HttpDelete("{id}/phases/{phaseId}")]
+    [HttpDelete("{id}/stages/{stageId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectLifecycles)]
-    [OpenApiOperation("Remove a phase from a project lifecycle.", "")]
+    [OpenApiOperation("Remove a stage from a project lifecycle.", "")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> RemovePhase(Guid id, Guid phaseId, CancellationToken cancellationToken)
+    public async Task<ActionResult> RemoveStage(Guid id, Guid stageId, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(new RemoveProjectLifecyclePhaseCommand(id, phaseId), cancellationToken);
+        var result = await _dispatcher.Send(new RemoveProjectLifecycleStageCommand(id, stageId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
-    [HttpPost("{id}/phases/reorder")]
+    [HttpPost("{id}/stages/reorder")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProjectLifecycles)]
-    [OpenApiOperation("Reorder phases in a project lifecycle.", "")]
+    [OpenApiOperation("Reorder stages in a project lifecycle.", "")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ReorderPhases(Guid id, [FromBody] ReorderProjectLifecyclePhasesRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult> ReorderStages(Guid id, [FromBody] ReorderProjectLifecycleStagesRequest request, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(request.ToReorderProjectLifecyclePhasesCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToReorderProjectLifecycleStagesCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

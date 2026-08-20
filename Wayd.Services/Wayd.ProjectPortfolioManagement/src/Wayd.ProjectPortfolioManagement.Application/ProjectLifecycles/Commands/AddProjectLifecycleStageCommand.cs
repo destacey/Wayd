@@ -1,14 +1,14 @@
 ﻿namespace Wayd.ProjectPortfolioManagement.Application.ProjectLifecycles.Commands;
 
-public sealed record AddProjectLifecyclePhaseCommand(
+public sealed record AddProjectLifecycleStageCommand(
     Guid LifecycleId,
     string Name,
     string Description)
     : ICommand<Guid>;
 
-public sealed class AddProjectLifecyclePhaseCommandValidator : AbstractValidator<AddProjectLifecyclePhaseCommand>
+public sealed class AddProjectLifecycleStageCommandValidator : AbstractValidator<AddProjectLifecycleStageCommand>
 {
-    public AddProjectLifecyclePhaseCommandValidator()
+    public AddProjectLifecycleStageCommandValidator()
     {
         RuleFor(x => x.LifecycleId)
             .NotEmpty();
@@ -23,22 +23,22 @@ public sealed class AddProjectLifecyclePhaseCommandValidator : AbstractValidator
     }
 }
 
-public sealed class AddProjectLifecyclePhaseCommandHandler(
+public sealed class AddProjectLifecycleStageCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
-    ILogger<AddProjectLifecyclePhaseCommandHandler> logger)
-    : ICommandHandler<AddProjectLifecyclePhaseCommand, Guid>
+    ILogger<AddProjectLifecycleStageCommandHandler> logger)
+    : ICommandHandler<AddProjectLifecycleStageCommand, Guid>
 {
-    private const string AppRequestName = nameof(AddProjectLifecyclePhaseCommand);
+    private const string AppRequestName = nameof(AddProjectLifecycleStageCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
-    private readonly ILogger<AddProjectLifecyclePhaseCommandHandler> _logger = logger;
+    private readonly ILogger<AddProjectLifecycleStageCommandHandler> _logger = logger;
 
-    public async Task<Result<Guid>> Handle(AddProjectLifecyclePhaseCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Guid>> Handle(AddProjectLifecycleStageCommand request, CancellationToken cancellationToken)
     {
         try
         {
             var lifecycle = await _projectPortfolioManagementDbContext.ProjectLifecycles
-                .Include(x => x.Phases)
+                .Include(x => x.Stages)
                 .FirstOrDefaultAsync(r => r.Id == request.LifecycleId, cancellationToken);
             if (lifecycle is null)
             {
@@ -46,16 +46,16 @@ public sealed class AddProjectLifecyclePhaseCommandHandler(
                 return Result.Failure<Guid>("Project Lifecycle not found.");
             }
 
-            var addResult = lifecycle.AddPhase(request.Name, request.Description);
+            var addResult = lifecycle.AddStage(request.Name, request.Description);
             if (addResult.IsFailure)
             {
-                _logger.LogError("Unable to add phase to Project Lifecycle {ProjectLifecycleId}.  Error message: {Error}", request.LifecycleId, addResult.Error);
+                _logger.LogError("Unable to add stage to Project Lifecycle {ProjectLifecycleId}.  Error message: {Error}", request.LifecycleId, addResult.Error);
                 return Result.Failure<Guid>(addResult.Error);
             }
 
             await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Phase {PhaseId} added to Project Lifecycle {ProjectLifecycleId}.", addResult.Value.Id, request.LifecycleId);
+            _logger.LogInformation("Stage {StageId} added to Project Lifecycle {ProjectLifecycleId}.", addResult.Value.Id, request.LifecycleId);
 
             return Result.Success(addResult.Value.Id);
         }

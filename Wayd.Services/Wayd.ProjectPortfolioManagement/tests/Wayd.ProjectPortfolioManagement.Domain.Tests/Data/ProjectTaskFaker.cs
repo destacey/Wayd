@@ -31,7 +31,7 @@ public sealed class ProjectTaskFaker : PrivateConstructorFaker<ProjectTask>
         RuleFor(x => x.Progress, f => Progress.NotStarted());
         RuleFor(x => x.Order, f => f.Random.Int(1, 10));
         RuleFor(x => x.ParentId, f => null); // No parent by default
-        RuleFor(x => x.ProjectPhaseId, f => Guid.Empty); // Default; set via WithProjectPhaseId for tests needing phases
+        RuleFor(x => x.ProjectStageId, f => Guid.Empty); // Default; set via WithProjectStageId for tests needing stages
         RuleFor(x => x.PlannedDateRange, f => null);
         RuleFor(x => x.EstimatedEffortHours, f => f.Random.Decimal(1, 100));
     }
@@ -117,9 +117,9 @@ public static class ProjectTaskFakerExtensions
         return faker;
     }
 
-    public static ProjectTaskFaker WithProjectPhaseId(this ProjectTaskFaker faker, Guid? projectPhaseId)
+    public static ProjectTaskFaker WithProjectStageId(this ProjectTaskFaker faker, Guid? projectStageId)
     {
-        faker.RuleFor(x => x.ProjectPhaseId, projectPhaseId);
+        faker.RuleFor(x => x.ProjectStageId, projectStageId);
 
         return faker;
     }

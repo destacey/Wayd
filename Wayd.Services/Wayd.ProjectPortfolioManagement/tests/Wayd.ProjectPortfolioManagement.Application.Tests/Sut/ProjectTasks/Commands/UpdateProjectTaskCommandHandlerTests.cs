@@ -70,19 +70,19 @@ public class UpdateProjectTaskCommandHandlerTests : IDisposable
     {
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
-        var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Plan", "Planning"));
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Plan", "Planning"));
         project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
-        var phase = project.Phases.First();
+        var stage = project.Stages.First();
         
         var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
-        var parentTask = project.CreateTask(1, "Parent Task", null, ProjectTaskType.Task, TaskStatus.NotStarted, TaskPriority.Medium, new Progress(0m), phase.Id, parentRange, null, null, null).Value;
+        var parentTask = project.CreateTask(1, "Parent Task", null, ProjectTaskType.Task, TaskStatus.NotStarted, TaskPriority.Medium, new Progress(0m), stage.Id, parentRange, null, null, null).Value;
 
         var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 6, 12));
         project.CreateTask(2, "Child Task", null, ProjectTaskType.Task, TaskStatus.NotStarted, TaskPriority.Medium, new Progress(0m), parentTask.Id, childRange, null, null, null);
 
         project.LinkTaskParents();
         _dbContext.AddProject(project);
-        _dbContext.AddProjectPhases(project.Phases);
+        _dbContext.AddProjectStages(project.Stages);
         _dbContext.AddProjectTasks(project.Tasks);
 
         var command = new UpdateProjectTaskCommand(
@@ -92,7 +92,7 @@ public class UpdateProjectTaskCommandHandlerTests : IDisposable
             TaskStatus.NotStarted,
             TaskPriority.Medium,
             new Progress(0m), // Progress
-            phase.Id, // ParentId
+            stage.Id, // ParentId
             null, // Clear dates
             null,
             null,
@@ -112,19 +112,19 @@ public class UpdateProjectTaskCommandHandlerTests : IDisposable
     {
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
-        var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Plan", "Planning"));
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Plan", "Planning"));
         project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
-        var phase = project.Phases.First();
+        var stage = project.Stages.First();
         
         var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
-        var parentTask = project.CreateTask(1, "Parent Task", null, ProjectTaskType.Task, TaskStatus.NotStarted, TaskPriority.Medium, new Progress(0m), phase.Id, parentRange, null, null, null).Value;
+        var parentTask = project.CreateTask(1, "Parent Task", null, ProjectTaskType.Task, TaskStatus.NotStarted, TaskPriority.Medium, new Progress(0m), stage.Id, parentRange, null, null, null).Value;
 
         var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 6, 12));
         project.CreateTask(2, "Child Task", null, ProjectTaskType.Task, TaskStatus.NotStarted, TaskPriority.Medium, new Progress(0m), parentTask.Id, childRange, null, null, null);
 
         project.LinkTaskParents();
         _dbContext.AddProject(project);
-        _dbContext.AddProjectPhases(project.Phases);
+        _dbContext.AddProjectStages(project.Stages);
         _dbContext.AddProjectTasks(project.Tasks);
 
         var shrunkRange = new FlexibleDateRange(new LocalDate(2026, 6, 9), new LocalDate(2026, 6, 15)); // Excludes child start on 8
@@ -136,7 +136,7 @@ public class UpdateProjectTaskCommandHandlerTests : IDisposable
             TaskStatus.NotStarted,
             TaskPriority.Medium,
             new Progress(0m), // Progress
-            phase.Id, // ParentId
+            stage.Id, // ParentId
             shrunkRange,
             null,
             null,
@@ -156,19 +156,19 @@ public class UpdateProjectTaskCommandHandlerTests : IDisposable
     {
         // Arrange
         var project = _projectFaker.AsProposed(_dateTimeProvider);
-        var lifecycle = _lifecycleFaker.AsActiveWithPhases(("Plan", "Planning"));
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Plan", "Planning"));
         project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle);
-        var phase = project.Phases.First();
+        var stage = project.Stages.First();
         
         var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
-        var parentTask = project.CreateTask(1, "Parent Task", null, ProjectTaskType.Task, TaskStatus.NotStarted, TaskPriority.Medium, new Progress(0m), phase.Id, parentRange, null, null, null).Value;
+        var parentTask = project.CreateTask(1, "Parent Task", null, ProjectTaskType.Task, TaskStatus.NotStarted, TaskPriority.Medium, new Progress(0m), stage.Id, parentRange, null, null, null).Value;
 
         var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 6, 12));
         var childTask = project.CreateTask(2, "Child Task", null, ProjectTaskType.Task, TaskStatus.NotStarted, TaskPriority.Medium, new Progress(0m), parentTask.Id, childRange, null, null, null).Value;
 
         project.LinkTaskParents();
         _dbContext.AddProject(project);
-        _dbContext.AddProjectPhases(project.Phases);
+        _dbContext.AddProjectStages(project.Stages);
         _dbContext.AddProjectTasks(project.Tasks);
 
         var shiftedRange = new FlexibleDateRange(new LocalDate(2026, 6, 10), new LocalDate(2026, 6, 20)); // Shift +5 days
@@ -180,7 +180,7 @@ public class UpdateProjectTaskCommandHandlerTests : IDisposable
             TaskStatus.NotStarted,
             TaskPriority.Medium,
             new Progress(0m), // Progress
-            phase.Id, // ParentId
+            stage.Id, // ParentId
             shiftedRange,
             null,
             null,

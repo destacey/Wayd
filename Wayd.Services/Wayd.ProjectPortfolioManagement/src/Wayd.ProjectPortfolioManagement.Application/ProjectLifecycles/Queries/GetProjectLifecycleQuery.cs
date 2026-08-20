@@ -23,7 +23,7 @@ public sealed class GetProjectLifecycleQueryHandler(IProjectPortfolioManagementD
     public async Task<ProjectLifecycleDetailsDto?> Handle(GetProjectLifecycleQuery request, CancellationToken cancellationToken)
     {
         return await _ppmDbContext.ProjectLifecycles
-            .Include(x => x.Phases.OrderBy(p => p.Order))
+            .Include(x => x.Stages.OrderBy(p => p.Order))
             .Where(request.IdOrKeyFilter)
             .ProjectToType<ProjectLifecycleDetailsDto>()
             .FirstOrDefaultAsync(cancellationToken);

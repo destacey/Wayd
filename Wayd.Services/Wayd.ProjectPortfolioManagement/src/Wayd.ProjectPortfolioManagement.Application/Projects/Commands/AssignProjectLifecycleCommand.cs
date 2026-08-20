@@ -38,7 +38,7 @@ public sealed class AssignProjectLifecycleCommandHandler(
 
             var project = await _ppmDbContext.Projects
                 .AsSplitQuery()
-                .Include(p => p.Phases)
+                .Include(p => p.Stages)
                 .Include(p => p.Roles)
                 .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
                 .Include(p => p.Program).ThenInclude(p => p!.Roles)
@@ -51,7 +51,7 @@ public sealed class AssignProjectLifecycleCommandHandler(
             }
 
             var lifecycle = await _ppmDbContext.ProjectLifecycles
-                .Include(l => l.Phases)
+                .Include(l => l.Stages)
                 .FirstOrDefaultAsync(l => l.Id == request.LifecycleId, cancellationToken);
 
             if (lifecycle is null)

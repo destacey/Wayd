@@ -208,44 +208,44 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     }
 
     /// <summary>
-    /// Sets the status of project phases across projects. The status is applied exactly as supplied — the
-    /// import does not derive a phase's status from its tasks — so a caller keeps full control over phase
-    /// status. Companion to the task import, which does not touch phase status.
+    /// Sets the status of project stages across projects. The status is applied exactly as supplied — the
+    /// import does not derive a stage's status from its tasks — so a caller keeps full control over stage
+    /// status. Companion to the task import, which does not touch stage status.
     /// </summary>
-    [HttpPost("phases/import")]
+    [HttpPost("stages/import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Projects)]
-    [OpenApiOperation("Import project phase statuses from a csv file.", "Each row names the project and phase it sets, so one file can cover many projects.")]
+    [OpenApiOperation("Import project stage statuses from a csv file.", "Each row names the project and stage it sets, so one file can cover many projects.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ImportPhases([FromForm] IFormFile file, CancellationToken cancellationToken)
+    public async Task<ActionResult> ImportStages([FromForm] IFormFile file, CancellationToken cancellationToken)
     {
         try
         {
-            var importedPhases = _csvService.ReadCsv<ImportProjectPhaseRequest>(file.OpenReadStream());
+            var importedStages = _csvService.ReadCsv<ImportProjectStageRequest>(file.OpenReadStream());
 
-            List<ImportProjectPhaseDto> phases = [];
-            var validator = new ImportProjectPhaseRequestValidator();
-            foreach (var phase in importedPhases)
+            List<ImportProjectStageDto> stages = [];
+            var validator = new ImportProjectStageRequestValidator();
+            foreach (var stage in importedStages)
             {
-                var validationResults = await validator.ValidateAsync(phase, cancellationToken);
+                var validationResults = await validator.ValidateAsync(stage, cancellationToken);
                 if (!validationResults.IsValid)
                 {
                     foreach (var error in validationResults.Errors)
                     {
-                        error.ErrorMessage = $"{error.ErrorMessage} (Project: {phase.ProjectKey}, Phase: {phase.PhaseName})";
+                        error.ErrorMessage = $"{error.ErrorMessage} (Project: {stage.ProjectKey}, Stage: {stage.StageName})";
                         ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                     }
                     return UnprocessableEntity(validationResults);
                 }
 
-                phases.Add(phase.ToImportProjectPhaseDto());
+                stages.Add(stage.ToImportProjectStageDto());
             }
 
-            if (phases.Count == 0)
-                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No project phases imported.", HttpContext));
+            if (stages.Count == 0)
+                return BadRequest(ProblemDetailsExtensions.ForBadRequest("No project stages imported.", HttpContext));
 
-            var result = await _dispatcher.Send(new ImportProjectPhasesCommand(phases), cancellationToken);
+            var result = await _dispatcher.Send(new ImportProjectStagesCommand(stages), cancellationToken);
 
             return result.IsSuccess
                 ? NoContent()
@@ -451,7 +451,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
     [HttpPost("{id}/lifecycle/change")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation("Change a project's lifecycle, remapping tasks between phases.", "")]
+    [OpenApiOperation("Change a project's lifecycle, remapping tasks between stages.", "")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -467,21 +467,21 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
-    [HttpGet("{id}/phases")]
+    [HttpGet("{id}/stages")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Get phases for a project.", "")]
+    [OpenApiOperation("Get stages for a project.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IEnumerable<ProjectPhaseListDto>>> GetProjectPhases(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<ProjectStageListDto>>> GetProjectStages(Guid id, CancellationToken cancellationToken)
     {
-        var phases = await _dispatcher.Send(new GetProjectPhasesQuery(id), cancellationToken);
+        var stages = await _dispatcher.Send(new GetProjectStagesQuery(id), cancellationToken);
 
-        return Ok(phases);
+        return Ok(stages);
     }
 
     [HttpGet("{idOrKey}/plan-tree")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Get a unified plan tree with phases as top-level nodes and tasks nested within.", "")]
+    [OpenApiOperation("Get a unified plan tree with stages as top-level nodes and tasks nested within.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ProjectPlanNodeDto>>> GetProjectPlanTree(string idOrKey, CancellationToken cancellationToken)
@@ -516,56 +516,56 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
         return Ok(summaries);
     }
 
-    [HttpGet("{id}/phases/{phaseId}")]
+    [HttpGet("{id}/stages/{stageId}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
-    [OpenApiOperation("Get project phase details.", "")]
+    [OpenApiOperation("Get project stage details.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ProjectPhaseDetailsDto>> GetProjectPhase(Guid id, Guid phaseId, CancellationToken cancellationToken)
+    public async Task<ActionResult<ProjectStageDetailsDto>> GetProjectStage(Guid id, Guid stageId, CancellationToken cancellationToken)
     {
-        var phase = await _dispatcher.Send(new GetProjectPhaseQuery(id, phaseId), cancellationToken);
+        var stage = await _dispatcher.Send(new GetProjectStageQuery(id, stageId), cancellationToken);
 
-        return phase is not null
-            ? Ok(phase)
+        return stage is not null
+            ? Ok(stage)
             : NotFound();
     }
 
-    [HttpPut("{id}/phases/{phaseId}")]
+    [HttpPut("{id}/stages/{stageId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation("Update a project phase.", "")]
+    [OpenApiOperation("Update a project stage.", "")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> UpdateProjectPhase(Guid id, Guid phaseId, [FromBody] UpdateProjectPhaseRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult> UpdateProjectStage(Guid id, Guid stageId, [FromBody] UpdateProjectStageRequest request, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(request.ToCommand(id, phaseId), cancellationToken);
+        var result = await _dispatcher.Send(request.ToCommand(id, stageId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
-    [HttpPatch("{id}/phases/{phaseId}")]
+    [HttpPatch("{id}/stages/{stageId}")]
     [Consumes("application/json", "application/json-patch+json")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
-    [OpenApiOperation("Partially update a project phase using JSON Patch (RFC 6902).", "")]
+    [OpenApiOperation("Partially update a project stage using JSON Patch (RFC 6902).", "")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> PatchProjectPhase(
+    public async Task<ActionResult> PatchProjectStage(
         Guid id,
-        Guid phaseId,
-        [FromBody] JsonPatchDocument<UpdateProjectPhaseRequest> patchDocument,
+        Guid stageId,
+        [FromBody] JsonPatchDocument<UpdateProjectStageRequest> patchDocument,
         CancellationToken cancellationToken)
     {
         if (patchDocument == null)
             return BadRequest("Patch document cannot be null.");
 
-        var phaseDto = await _dispatcher.Send(new GetProjectPhaseQuery(id, phaseId), cancellationToken);
-        if (phaseDto is null)
-            return NotFound($"Project phase with ID '{phaseId}' not found.");
+        var stageDto = await _dispatcher.Send(new GetProjectStageQuery(id, stageId), cancellationToken);
+        if (stageDto is null)
+            return NotFound($"Project stage with ID '{stageId}' not found.");
 
-        var updateRequest = UpdateProjectPhaseRequest.FromDto(phaseDto);
+        var updateRequest = UpdateProjectStageRequest.FromDto(stageDto);
 
         patchDocument.ApplyTo(updateRequest, error =>
         {
@@ -578,7 +578,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
         if (!TryValidateModel(updateRequest))
             return ValidationProblem(ModelState);
 
-        var result = await _dispatcher.Send(updateRequest.ToCommand(id, phaseId), cancellationToken);
+        var result = await _dispatcher.Send(updateRequest.ToCommand(id, stageId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

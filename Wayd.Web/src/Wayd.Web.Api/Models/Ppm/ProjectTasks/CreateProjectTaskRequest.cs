@@ -41,8 +41,8 @@ public sealed record CreateProjectTaskRequest
     public decimal? Progress { get; set; }
 
     /// <summary>
-    /// The ID of the parent phase or task. If it matches a phase, the task becomes a root task in that phase.
-    /// If it matches a task, the new task becomes a child of that task and inherits the phase.
+    /// The ID of the parent stage or task. If it matches a stage, the task becomes a root task in that stage.
+    /// If it matches a task, the new task becomes a child of that task and inherits the stage.
     /// </summary>
     public Guid ParentId { get; set; }
 

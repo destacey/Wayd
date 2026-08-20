@@ -2,19 +2,19 @@
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 
-public sealed record GetProjectPhasesQuery(Guid ProjectId) : IQuery<List<ProjectPhaseListDto>>;
+public sealed record GetProjectStagesQuery(Guid ProjectId) : IQuery<List<ProjectStageListDto>>;
 
-public sealed class GetProjectPhasesQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
-    : IQueryHandler<GetProjectPhasesQuery, List<ProjectPhaseListDto>>
+public sealed class GetProjectStagesQueryHandler(IProjectPortfolioManagementDbContext ppmDbContext)
+    : IQueryHandler<GetProjectStagesQuery, List<ProjectStageListDto>>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
 
-    public async Task<List<ProjectPhaseListDto>> Handle(GetProjectPhasesQuery request, CancellationToken cancellationToken)
+    public async Task<List<ProjectStageListDto>> Handle(GetProjectStagesQuery request, CancellationToken cancellationToken)
     {
-        return await _ppmDbContext.ProjectPhases
+        return await _ppmDbContext.ProjectStages
             .Where(p => p.ProjectId == request.ProjectId)
             .OrderBy(p => p.Order)
-            .ProjectToType<ProjectPhaseListDto>()
+            .ProjectToType<ProjectStageListDto>()
             .ToListAsync(cancellationToken);
     }
 }

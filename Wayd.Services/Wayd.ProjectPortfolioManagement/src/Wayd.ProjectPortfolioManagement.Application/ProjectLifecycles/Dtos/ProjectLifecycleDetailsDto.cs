@@ -10,7 +10,7 @@ public sealed record ProjectLifecycleDetailsDto : IMapFrom<ProjectLifecycle>
     public required string Name { get; set; }
     public required string Description { get; set; }
     public required SimpleNavigationDto State { get; set; }
-    public required List<ProjectLifecyclePhaseDto> Phases { get; set; }
+    public required List<ProjectLifecycleStageDto> Stages { get; set; }
 
     public void ConfigureMapping(TypeAdapterConfig config)
     {

@@ -4,7 +4,7 @@ namespace Wayd.ProjectPortfolioManagement.Domain.Services;
 
 /// <summary>
 /// Domain service for calculating Work Breakdown Structure (WBS) codes for project tasks.
-/// When phases are present, the WBS is prefixed with the phase order (e.g., "3.1.2" means phase 3, task 1, subtask 2).
+/// When stages are present, the WBS is prefixed with the stage order (e.g., "3.1.2" means stage 3, task 1, subtask 2).
 /// </summary>
 public static class WbsCalculator
 {
@@ -20,27 +20,27 @@ public static class WbsCalculator
     }
 
     /// <summary>
-    /// Calculates the WBS code for a specific task, including phase-level numbering when phases are present.
+    /// Calculates the WBS code for a specific task, including stage-level numbering when stages are present.
     /// </summary>
     /// <param name="task">The task to calculate the WBS code for.</param>
     /// <param name="allTasks">All tasks in the project.</param>
-    /// <param name="phases">The project phases, or null if no lifecycle is assigned.</param>
-    /// <returns>The WBS code (e.g., "3.1.2" where 3 is the phase order).</returns>
-    public static string CalculateWbs(ProjectTask task, IEnumerable<ProjectTask> allTasks, IEnumerable<ProjectPhase>? phases)
+    /// <param name="stages">The project stages, or null if no lifecycle is assigned.</param>
+    /// <returns>The WBS code (e.g., "3.1.2" where 3 is the stage order).</returns>
+    public static string CalculateWbs(ProjectTask task, IEnumerable<ProjectTask> allTasks, IEnumerable<ProjectStage>? stages)
     {
         var path = new List<int>();
         var current = task;
         var taskList = allTasks.ToList();
-        var phaseList = phases?.ToList();
+        var stageList = stages?.ToList();
 
         // Build path from current task to root
         while (current is not null)
         {
-            // For root tasks with phases, scope siblings to the same phase
+            // For root tasks with stages, scope siblings to the same stage
             var siblings = current.ParentId.HasValue
                 ? taskList.Where(t => t.ParentId == current.ParentId)
-                : phaseList is not null
-                    ? taskList.Where(t => t.ParentId is null && t.ProjectPhaseId == current.ProjectPhaseId)
+                : stageList is not null
+                    ? taskList.Where(t => t.ParentId is null && t.ProjectStageId == current.ProjectStageId)
                     : taskList.Where(t => t.ParentId is null);
 
             var orderedSiblings = siblings.OrderBy(t => t.Order).ToList();
@@ -57,13 +57,13 @@ public static class WbsCalculator
                 : null;
         }
 
-        // Prefix with phase order if phases are provided
-        if (phaseList is not null)
+        // Prefix with stage order if stages are provided
+        if (stageList is not null)
         {
-            var phase = phaseList.FirstOrDefault(p => p.Id == task.ProjectPhaseId);
-            if (phase is not null)
+            var stage = stageList.FirstOrDefault(p => p.Id == task.ProjectStageId);
+            if (stage is not null)
             {
-                path.Insert(0, phase.Order);
+                path.Insert(0, stage.Order);
             }
         }
 
@@ -81,20 +81,20 @@ public static class WbsCalculator
     }
 
     /// <summary>
-    /// Calculates WBS codes for all tasks in a collection, including phase-level numbering.
+    /// Calculates WBS codes for all tasks in a collection, including stage-level numbering.
     /// </summary>
     /// <param name="tasks">The tasks to calculate WBS codes for.</param>
-    /// <param name="phases">The project phases, or null if no lifecycle is assigned.</param>
+    /// <param name="stages">The project stages, or null if no lifecycle is assigned.</param>
     /// <returns>A dictionary mapping task IDs to their WBS codes.</returns>
-    public static Dictionary<Guid, string> CalculateAllWbs(IEnumerable<ProjectTask> tasks, IEnumerable<ProjectPhase>? phases)
+    public static Dictionary<Guid, string> CalculateAllWbs(IEnumerable<ProjectTask> tasks, IEnumerable<ProjectStage>? stages)
     {
         var result = new Dictionary<Guid, string>();
         var taskList = tasks.ToList();
-        var phaseList = phases?.ToList();
+        var stageList = stages?.ToList();
 
         foreach (var task in taskList)
         {
-            result[task.Id] = CalculateWbs(task, taskList, phaseList);
+            result[task.Id] = CalculateWbs(task, taskList, stageList);
         }
 
         return result;

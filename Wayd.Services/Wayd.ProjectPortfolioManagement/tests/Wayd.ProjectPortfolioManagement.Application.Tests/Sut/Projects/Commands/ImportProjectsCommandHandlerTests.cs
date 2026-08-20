@@ -88,11 +88,11 @@ public class ImportProjectsCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_AssignsLifecycleAndCopiesItsPhases()
+    public async Task Handle_AssignsLifecycleAndCopiesItsStagesIntoStages()
     {
         // Arrange
-        // The copied phases are what project tasks are later imported into.
-        var lifecycle = new ProjectLifecycleFaker().WithName("Standard").AsActiveWithPhases(("Plan", "Planning"), ("Build", "Delivery"));
+        // The lifecycle's stages are copied into project stages, which project tasks are later imported into.
+        var lifecycle = new ProjectLifecycleFaker().WithName("Standard").AsActiveWithStages(("Plan", "Planning"), ("Build", "Delivery"));
         _dbContext.AddProjectLifecycle(lifecycle);
 
         var row = Row("APOLLO", ProjectStatus.Proposed, start: null) with { ProjectLifecycleName = "Standard" };
@@ -104,7 +104,7 @@ public class ImportProjectsCommandHandlerTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         var project = _portfolio.Projects.Single();
         project.ProjectLifecycleId.Should().Be(lifecycle.Id);
-        project.Phases.Select(p => p.Name).Should().Equal("Plan", "Build");
+        project.Stages.Select(p => p.Name).Should().Equal("Plan", "Build");
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public class ImportProjectsCommandHandlerTests : IDisposable
     {
         // Arrange
         // Approval is refused without a lifecycle, so the two have to be applied in that order.
-        var lifecycle = new ProjectLifecycleFaker().WithName("Standard").AsActiveWithPhases(("Plan", "Planning"));
+        var lifecycle = new ProjectLifecycleFaker().WithName("Standard").AsActiveWithStages(("Plan", "Planning"));
         _dbContext.AddProjectLifecycle(lifecycle);
 
         var row = Row("APOLLO", ProjectStatus.Approved, start: null) with { ProjectLifecycleName = "Standard" };

@@ -10,12 +10,12 @@ public sealed record ProjectLifecycleListDto : IMapFrom<ProjectLifecycle>
     public required string Name { get; set; }
     public required string Description { get; set; }
     public required SimpleNavigationDto State { get; set; }
-    public int PhaseCount { get; set; }
+    public int StageCount { get; set; }
 
     public void ConfigureMapping(TypeAdapterConfig config)
     {
         config.NewConfig<ProjectLifecycle, ProjectLifecycleListDto>()
             .Map(dest => dest.State, src => SimpleNavigationDto.FromEnum(src.State))
-            .Map(dest => dest.PhaseCount, src => src.Phases.Count);
+            .Map(dest => dest.StageCount, src => src.Stages.Count);
     }
 }

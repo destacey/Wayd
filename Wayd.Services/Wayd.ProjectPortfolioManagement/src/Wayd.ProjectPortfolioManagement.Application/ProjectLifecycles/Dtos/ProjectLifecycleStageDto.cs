@@ -2,7 +2,7 @@
 
 namespace Wayd.ProjectPortfolioManagement.Application.ProjectLifecycles.Dtos;
 
-public sealed record ProjectLifecyclePhaseDto : IMapFrom<ProjectLifecyclePhase>
+public sealed record ProjectLifecycleStageDto : IMapFrom<ProjectLifecycleStage>
 {
     public Guid Id { get; set; }
     public required string Name { get; set; }

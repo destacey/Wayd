@@ -96,9 +96,9 @@ public sealed class CreateProjectTaskCommandHandler(
     {
         try
         {
-            // Load the project with phases and tasks so the domain can resolve parentId
+            // Load the project with stages and tasks so the domain can resolve parentId
             var project = await _ppmDbContext.Projects
-                .Include(p => p.Phases)
+                .Include(p => p.Stages)
                 .Include(p => p.Tasks)
                 .FirstOrDefaultAsync(p => p.Id == request.ProjectId, cancellationToken);
             if (project is null)

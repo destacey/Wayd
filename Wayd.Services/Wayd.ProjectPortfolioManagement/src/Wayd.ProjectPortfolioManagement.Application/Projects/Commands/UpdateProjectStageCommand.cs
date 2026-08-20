@@ -4,9 +4,9 @@ using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 
-public sealed record UpdateProjectPhaseCommand(
+public sealed record UpdateProjectStageCommand(
     Guid ProjectId,
-    Guid PhaseId,
+    Guid StageId,
     string Description,
     int Status,
     LocalDate? PlannedStart,
@@ -14,12 +14,12 @@ public sealed record UpdateProjectPhaseCommand(
     decimal Progress,
     List<Guid>? AssigneeIds) : ICommand;
 
-public sealed class UpdateProjectPhaseCommandValidator : CustomValidator<UpdateProjectPhaseCommand>
+public sealed class UpdateProjectStageCommandValidator : CustomValidator<UpdateProjectStageCommand>
 {
-    public UpdateProjectPhaseCommandValidator()
+    public UpdateProjectStageCommandValidator()
     {
         RuleFor(x => x.ProjectId).NotEmpty();
-        RuleFor(x => x.PhaseId).NotEmpty();
+        RuleFor(x => x.StageId).NotEmpty();
         RuleFor(x => x.Description).NotEmpty().MaximumLength(1024);
         RuleFor(x => x.Status).Must(s => Enum.IsDefined(typeof(TaskStatus), s))
             .WithMessage("Invalid status value.");
@@ -27,23 +27,23 @@ public sealed class UpdateProjectPhaseCommandValidator : CustomValidator<UpdateP
     }
 }
 
-public sealed class UpdateProjectPhaseCommandHandler(
+public sealed class UpdateProjectStageCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
-    ILogger<UpdateProjectPhaseCommandHandler> logger)
-    : ICommandHandler<UpdateProjectPhaseCommand>
+    ILogger<UpdateProjectStageCommandHandler> logger)
+    : ICommandHandler<UpdateProjectStageCommand>
 {
-    private const string AppRequestName = nameof(UpdateProjectPhaseCommand);
+    private const string AppRequestName = nameof(UpdateProjectStageCommand);
 
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
-    private readonly ILogger<UpdateProjectPhaseCommandHandler> _logger = logger;
+    private readonly ILogger<UpdateProjectStageCommandHandler> _logger = logger;
 
-    public async Task<Result> Handle(UpdateProjectPhaseCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(UpdateProjectStageCommand request, CancellationToken cancellationToken)
     {
         try
         {
             var project = await _ppmDbContext.Projects
                 .AsSplitQuery()
-                .Include(p => p.Phases)
+                .Include(p => p.Stages)
                 .ThenInclude(p => p.Roles)
                 .Include(p => p.Tasks)
                 .FirstOrDefaultAsync(p => p.Id == request.ProjectId, cancellationToken);
@@ -54,18 +54,18 @@ public sealed class UpdateProjectPhaseCommandHandler(
                 return Result.Failure($"Project {request.ProjectId} not found.");
             }
 
-            var phase = project.Phases.FirstOrDefault(p => p.Id == request.PhaseId);
-            if (phase is null)
+            var stage = project.Stages.FirstOrDefault(p => p.Id == request.StageId);
+            if (stage is null)
             {
-                _logger.LogInformation("Project Phase {PhaseId} not found for Project {ProjectId}.", request.PhaseId, request.ProjectId);
-                return Result.Failure($"Project Phase {request.PhaseId} not found.");
+                _logger.LogInformation("Project Stage {StageId} not found for Project {ProjectId}.", request.StageId, request.ProjectId);
+                return Result.Failure($"Project Stage {request.StageId} not found.");
             }
 
-            var descriptionResult = phase.UpdateDescription(request.Description);
+            var descriptionResult = stage.UpdateDescription(request.Description);
             if (descriptionResult.IsFailure)
                 return await HandleDomainFailure(project, descriptionResult, cancellationToken);
 
-            var statusResult = phase.UpdateStatus((TaskStatus)request.Status);
+            var statusResult = stage.UpdateStatus((TaskStatus)request.Status);
             if (statusResult.IsFailure)
                 return await HandleDomainFailure(project, statusResult, cancellationToken);
 
@@ -73,29 +73,29 @@ public sealed class UpdateProjectPhaseCommandHandler(
                 ? new FlexibleDateRange(request.PlannedStart.Value, request.PlannedEnd.Value)
                 : null;
 
-            var datesResult = project.UpdatePhaseDates(phase.Id, dateRange);
+            var datesResult = project.UpdateStageDates(stage.Id, dateRange);
             if (datesResult.IsFailure)
                 return await HandleDomainFailure(project, datesResult, cancellationToken);
 
-            var progressResult = phase.UpdateProgress(new Progress(request.Progress));
+            var progressResult = stage.UpdateProgress(new Progress(request.Progress));
             if (progressResult.IsFailure)
                 return await HandleDomainFailure(project, progressResult, cancellationToken);
 
             if (request.AssigneeIds is not null)
             {
-                var updatedRoles = new Dictionary<ProjectPhaseRole, HashSet<Guid>>
+                var updatedRoles = new Dictionary<ProjectStageRole, HashSet<Guid>>
                 {
-                    { ProjectPhaseRole.Assignee, [.. request.AssigneeIds] }
+                    { ProjectStageRole.Assignee, [.. request.AssigneeIds] }
                 };
 
-                var rolesResult = phase.UpdateRoles(updatedRoles);
+                var rolesResult = stage.UpdateRoles(updatedRoles);
                 if (rolesResult.IsFailure)
                     return await HandleDomainFailure(project, rolesResult, cancellationToken);
             }
 
             await _ppmDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Project Phase {PhaseId} updated for Project {ProjectId}.", request.PhaseId, request.ProjectId);
+            _logger.LogInformation("Project Stage {StageId} updated for Project {ProjectId}.", request.StageId, request.ProjectId);
 
             return Result.Success();
         }
@@ -116,10 +116,10 @@ public sealed class UpdateProjectPhaseCommandHandler(
                 await _ppmDbContext.Entry(task).ReloadAsync(cancellationToken);
                 task.ClearDomainEvents();
             }
-            foreach (var phase in project.Phases)
+            foreach (var stage in project.Stages)
             {
-                await _ppmDbContext.Entry(phase).ReloadAsync(cancellationToken);
-                phase.ClearDomainEvents();
+                await _ppmDbContext.Entry(stage).ReloadAsync(cancellationToken);
+                stage.ClearDomainEvents();
             }
         }
         catch (NotImplementedException)
@@ -128,13 +128,13 @@ public sealed class UpdateProjectPhaseCommandHandler(
             {
                 task.ClearDomainEvents();
             }
-            foreach (var phase in project.Phases)
+            foreach (var stage in project.Stages)
             {
-                phase.ClearDomainEvents();
+                stage.ClearDomainEvents();
             }
         }
 
-        _logger.LogError("Unable to update project phase. Error message: {Error}", errorResult.Error);
+        _logger.LogError("Unable to update project stage. Error message: {Error}", errorResult.Error);
         return Result.Failure(errorResult.Error);
     }
 }

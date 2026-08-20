@@ -6,13 +6,13 @@ using Wayd.TestData.Core;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 
-public sealed class ProjectPhaseFaker : PrivateConstructorFaker<ProjectPhase>
+public sealed class ProjectStageFaker : PrivateConstructorFaker<ProjectStage>
 {
-    public ProjectPhaseFaker()
+    public ProjectStageFaker()
     {
         RuleFor(x => x.Id, f => f.Random.Guid());
         RuleFor(x => x.ProjectId, f => f.Random.Guid());
-        RuleFor(x => x.ProjectLifecyclePhaseId, f => f.Random.Guid());
+        RuleFor(x => x.ProjectLifecycleStageId, f => f.Random.Guid());
         RuleFor(x => x.Name, f => f.Commerce.ProductName());
         RuleFor(x => x.Description, f => f.Lorem.Paragraph());
         RuleFor(x => x.Status, f => TaskStatus.NotStarted);
@@ -21,58 +21,58 @@ public sealed class ProjectPhaseFaker : PrivateConstructorFaker<ProjectPhase>
     }
 }
 
-public static class ProjectPhaseFakerExtensions
+public static class ProjectStageFakerExtensions
 {
-    public static ProjectPhaseFaker WithId(this ProjectPhaseFaker faker, Guid id)
+    public static ProjectStageFaker WithId(this ProjectStageFaker faker, Guid id)
     {
         faker.RuleFor(x => x.Id, id);
 
         return faker;
     }
 
-    public static ProjectPhaseFaker WithProjectId(this ProjectPhaseFaker faker, Guid projectId)
+    public static ProjectStageFaker WithProjectId(this ProjectStageFaker faker, Guid projectId)
     {
         faker.RuleFor(x => x.ProjectId, projectId);
 
         return faker;
     }
 
-    public static ProjectPhaseFaker WithProjectLifecyclePhaseId(this ProjectPhaseFaker faker, Guid projectLifecyclePhaseId)
+    public static ProjectStageFaker WithProjectLifecycleStageId(this ProjectStageFaker faker, Guid projectLifecycleStageId)
     {
-        faker.RuleFor(x => x.ProjectLifecyclePhaseId, projectLifecyclePhaseId);
+        faker.RuleFor(x => x.ProjectLifecycleStageId, projectLifecycleStageId);
 
         return faker;
     }
 
-    public static ProjectPhaseFaker WithName(this ProjectPhaseFaker faker, string? name)
+    public static ProjectStageFaker WithName(this ProjectStageFaker faker, string? name)
     {
         faker.RuleFor(x => x.Name, name);
 
         return faker;
     }
 
-    public static ProjectPhaseFaker WithDescription(this ProjectPhaseFaker faker, string? description)
+    public static ProjectStageFaker WithDescription(this ProjectStageFaker faker, string? description)
     {
         faker.RuleFor(x => x.Description, description);
 
         return faker;
     }
 
-    public static ProjectPhaseFaker WithStatus(this ProjectPhaseFaker faker, TaskStatus status)
+    public static ProjectStageFaker WithStatus(this ProjectStageFaker faker, TaskStatus status)
     {
         faker.RuleFor(x => x.Status, status);
 
         return faker;
     }
 
-    public static ProjectPhaseFaker WithOrder(this ProjectPhaseFaker faker, int order)
+    public static ProjectStageFaker WithOrder(this ProjectStageFaker faker, int order)
     {
         faker.RuleFor(x => x.Order, order);
 
         return faker;
     }
 
-    public static ProjectPhaseFaker WithProgress(this ProjectPhaseFaker faker, Progress? progress)
+    public static ProjectStageFaker WithProgress(this ProjectStageFaker faker, Progress? progress)
     {
         faker.RuleFor(x => x.Progress, progress);
 

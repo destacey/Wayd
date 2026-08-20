@@ -6,7 +6,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
 
 /// <summary>
 /// Additively imports a batch of project tasks and milestones, each created through its project so the
-/// aggregate assigns keys, ordering and rolled-up phase dates exactly as it would for a task created in the
+/// aggregate assigns keys, ordering and rolled-up stage dates exactly as it would for a task created in the
 /// UI.
 /// <para>
 /// Rows are applied parents-before-children rather than in file order, so a batch can describe a whole work
@@ -178,8 +178,8 @@ public sealed class ImportProjectTasksCommandHandler(
     }
 
     /// <summary>
-    /// Resolves the id a row hangs off: its named parent task when it has one, otherwise the phase itself,
-    /// which the aggregate reads as "root task in this phase". Parents may come from this batch or from
+    /// Resolves the id a row hangs off: its named parent task when it has one, otherwise the stage itself,
+    /// which the aggregate reads as "root task in this stage". Parents may come from this batch or from
     /// tasks the project already has.
     /// </summary>
     private Result<Guid> ResolveParentId(Project project, ImportProjectTaskDto row, Dictionary<string, ProjectTask> createdByName)
@@ -203,21 +203,21 @@ public sealed class ImportProjectTasksCommandHandler(
             };
         }
 
-        var phaseName = Normalize(row.PhaseName);
-        var phases = project.Phases
-            .Where(p => string.Equals(p.Name, phaseName, StringComparison.OrdinalIgnoreCase))
+        var stageName = Normalize(row.StageName);
+        var stages = project.Stages
+            .Where(p => string.Equals(p.Name, stageName, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
-        return phases.Count switch
+        return stages.Count switch
         {
-            1 => Result.Success(phases[0].Id),
-            0 => Fail<Guid>($"Could not resolve phase '{row.PhaseName}' for task '{row.Name}' in project '{row.ProjectKey.Value}'. The project's lifecycle determines its phases."),
-            _ => Fail<Guid>($"Phase name '{row.PhaseName}' matches more than one phase in project '{row.ProjectKey.Value}'."),
+            1 => Result.Success(stages[0].Id),
+            0 => Fail<Guid>($"Could not resolve stage '{row.StageName}' for task '{row.Name}' in project '{row.ProjectKey.Value}'. The project's lifecycle determines its stages."),
+            _ => Fail<Guid>($"Stage name '{row.StageName}' matches more than one stage in project '{row.ProjectKey.Value}'."),
         };
     }
 
     /// <summary>
-    /// Loads every referenced project with the phases and tasks the aggregate needs to place new work.
+    /// Loads every referenced project with the stages and tasks the aggregate needs to place new work.
     /// </summary>
     private async Task<Result<Dictionary<string, Project>>> ResolveProjects(ImportProjectTasksCommand request, CancellationToken cancellationToken)
     {
@@ -225,7 +225,7 @@ public sealed class ImportProjectTasksCommandHandler(
         var keys = request.Tasks.Select(t => t.ProjectKey).Distinct().ToList();
 
         var projects = await _projectPortfolioManagementDbContext.Projects
-            .Include(p => p.Phases)
+            .Include(p => p.Stages)
             .Include(p => p.Tasks)
             .Where(p => keys.Contains(p.Key))
             .ToListAsync(cancellationToken);

@@ -31,7 +31,7 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
     private readonly List<StrategicTheme> _ppmStrategicThemes = [];
     private readonly List<StrategicInitiative> _strategicInitiatives = [];
     private readonly List<ProjectLifecycle> _projectLifecycles = [];
-    private readonly List<ProjectPhase> _projectPhases = [];
+    private readonly List<ProjectStage> _projectStages = [];
     private readonly List<ScoringModel> _scoringModels = [];
 
     // Common domain entities
@@ -55,7 +55,7 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
     public DbSet<StrategicTheme> PpmStrategicThemes => _ppmStrategicThemes.AsDbSet();
     public DbSet<StrategicInitiative> StrategicInitiatives => _strategicInitiatives.AsDbSet();
     public DbSet<ProjectLifecycle> ProjectLifecycles => _projectLifecycles.AsDbSet();
-    public DbSet<ProjectPhase> ProjectPhases => _projectPhases.AsDbSet();
+    public DbSet<ProjectStage> ProjectStages => _projectStages.AsDbSet();
     public DbSet<ScoringModel> ScoringModels => _scoringModels.AsDbSet();
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();
@@ -150,9 +150,9 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
     public void AddProjectLifecycle(ProjectLifecycle lifecycle) => _projectLifecycles.Add(lifecycle);
     public void AddProjectLifecycles(IEnumerable<ProjectLifecycle> lifecycles) => _projectLifecycles.AddRange(lifecycles);
 
-    // ProjectPhase
-    public void AddProjectPhase(ProjectPhase phase) => _projectPhases.Add(phase);
-    public void AddProjectPhases(IEnumerable<ProjectPhase> phases) => _projectPhases.AddRange(phases);
+    // ProjectStage
+    public void AddProjectStage(ProjectStage stage) => _projectStages.Add(stage);
+    public void AddProjectStages(IEnumerable<ProjectStage> stages) => _projectStages.AddRange(stages);
 
     // ScoringModel
     public void AddScoringModel(ScoringModel model) => _scoringModels.Add(model);
@@ -181,7 +181,7 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
         _ppmStrategicThemes.Clear();
         _strategicInitiatives.Clear();
         _projectLifecycles.Clear();
-        _projectPhases.Clear();
+        _projectStages.Clear();
         _scoringModels.Clear();
         _employees.Clear();
         _externalEmployeeBlacklistItems.Clear();

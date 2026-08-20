@@ -33,15 +33,15 @@ public class ProjectTests
     }
 
     /// <summary>
-    /// Creates a project with an assigned lifecycle containing the specified phases.
-    /// Returns the project and the list of phases for easy access.
+    /// Creates a project with an assigned lifecycle containing the specified stages.
+    /// Returns the project and the list of resulting project stages for easy access.
     /// </summary>
-    private (Project Project, List<ProjectPhase> Phases) CreateProjectWithLifecycle(params (string Name, string Description)[] phases)
+    private (Project Project, List<ProjectStage> Stages) CreateProjectWithLifecycle(params (string Name, string Description)[] stages)
     {
         var project = _projectFaker.Generate();
-        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(phases);
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(stages);
         project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
-        return (project, project.Phases.ToList());
+        return (project, project.Stages.ToList());
     }
 
     #region Project Create and Update
@@ -403,7 +403,7 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.Generate();
-        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase"), ("Execute", "Execute phase"));
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage"), ("Execute", "Execute stage"));
         project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
 
         // Act
@@ -542,7 +542,7 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.Generate();
-        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase"));
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage"));
         project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
         var actor = Guid.NewGuid().AsPpmAdministrator();
 
@@ -614,7 +614,7 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.WithDateRange(new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3))).Generate();
-        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase"));
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage"));
         project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
 
         // Act
@@ -1069,7 +1069,7 @@ public class ProjectTests
             .WithStatus(ProjectStatus.Proposed)
             .WithDateRange(ADeliveredDateRange())
             .Generate();
-        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Delivery", "Delivery phase"));
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Delivery", "Delivery stage"));
         project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
         project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
         project.Activate(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
@@ -1099,7 +1099,7 @@ public class ProjectTests
             Guid.NewGuid(), rank: 1, programId: null, businessCase: null, expectedBenefits: null,
             roles: null, strategicThemes: null, timestamp: _dateTimeProvider.Now, actor: PpmActor.System);
 
-        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Delivery", "Delivery phase"));
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Delivery", "Delivery stage"));
         project.AssignLifecycle(PpmActor.System, NoProjectAncestry(), lifecycle);
 
         project.StatusTransitionCount.Should().Be(project.StatusHistory.Count);
@@ -1127,7 +1127,7 @@ public class ProjectTests
             .Generate();
         project.CanBeDeleted().Should().BeTrue();
 
-        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Delivery", "Delivery phase"));
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Delivery", "Delivery stage"));
         project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
         project.Approve(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
         project.Activate(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
@@ -1360,7 +1360,7 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.Generate();
-        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase")));
+        project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage")));
 
         // Act
         var result = project.Approve(AnUnauthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
@@ -1569,7 +1569,7 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.Generate();
-        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase"));
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage"));
 
         // Act
         var result = project.AssignLifecycle(AnUnauthorizedActor(), NoProjectAncestry(), lifecycle);
@@ -1578,7 +1578,7 @@ public class ProjectTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not authorized");
         project.ProjectLifecycleId.Should().BeNull();
-        project.Phases.Should().BeEmpty();
+        project.Stages.Should().BeEmpty();
     }
 
     [Fact]
@@ -1589,7 +1589,7 @@ public class ProjectTests
         var project = _projectFaker
             .WithRoles(new Dictionary<ProjectRole, HashSet<Guid>> { [ProjectRole.Manager] = [employeeId] })
             .Generate();
-        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase"));
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage"));
 
         // Act
         var result = project.AssignLifecycle(employeeId.AsActor(), NoProjectAncestry(), lifecycle);
@@ -1604,7 +1604,7 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.Generate();
-        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase"));
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage"));
 
         // Act
         var result = project.AssignLifecycle(
@@ -1619,15 +1619,15 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.Generate();
-        var original = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase"));
+        var original = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage"));
         project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), original);
 
-        var replacement = new ProjectLifecycleFaker().AsActiveWithPhases(("Discover", "Discovery phase"));
-        var phaseMapping = project.Phases.ToDictionary(p => p.Id, _ => replacement.Phases.First().Id);
+        var replacement = new ProjectLifecycleFaker().AsActiveWithStages(("Discover", "Discovery stage"));
+        var stageMapping = project.Stages.ToDictionary(p => p.Id, _ => replacement.Stages.First().Id);
 
         // Act
         var result = project.ChangeLifecycle(
-            AnUnauthorizedActor(), NoProjectAncestry(), replacement, phaseMapping);
+            AnUnauthorizedActor(), NoProjectAncestry(), replacement, stageMapping);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1641,15 +1641,15 @@ public class ProjectTests
         // Arrange
         var employeeId = Guid.NewGuid();
         var project = _projectFaker.WithOwner(employeeId).Generate();
-        var original = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Plan phase"));
+        var original = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage"));
         project.AssignLifecycle(employeeId.AsActor(), NoProjectAncestry(), original);
 
-        var replacement = new ProjectLifecycleFaker().AsActiveWithPhases(("Discover", "Discovery phase"));
-        var phaseMapping = project.Phases.ToDictionary(p => p.Id, _ => replacement.Phases.First().Id);
+        var replacement = new ProjectLifecycleFaker().AsActiveWithStages(("Discover", "Discovery stage"));
+        var stageMapping = project.Stages.ToDictionary(p => p.Id, _ => replacement.Stages.First().Id);
 
         // Act
         var result = project.ChangeLifecycle(
-            employeeId.AsActor(), NoProjectAncestry(), replacement, phaseMapping);
+            employeeId.AsActor(), NoProjectAncestry(), replacement, stageMapping);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1816,8 +1816,8 @@ public class ProjectTests
     public void ChangeKey_ShouldUpdateAllTaskKeys_WhenProjectHasTasks()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
 
         var task1 = project.CreateTask(
             nextNumber: 1,
@@ -1827,7 +1827,7 @@ public class ProjectTests
             status: Enums.TaskStatus.NotStarted,
             priority: TaskPriority.Medium,
             progress: null,
-            parentId: phaseId,
+            parentId: stageId,
             plannedDateRange: null,
             plannedDate: null,
             estimatedEffortHours: null,
@@ -1841,7 +1841,7 @@ public class ProjectTests
             status: Enums.TaskStatus.NotStarted,
             priority: TaskPriority.Medium,
             progress: null,
-            parentId: phaseId,
+            parentId: stageId,
             plannedDateRange: null,
             plannedDate: null,
             estimatedEffortHours: null,
@@ -1868,11 +1868,11 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldFail_WhenTaskNotFound()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
         var nonExistentTaskId = Guid.NewGuid();
 
         // Act
-        var result = project.ChangeTaskPlacement(nonExistentTaskId, phases[0].Id, null);
+        var result = project.ChangeTaskPlacement(nonExistentTaskId, stages[0].Id, null);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1883,12 +1883,12 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldFail_WhenOrderIsZero()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
-        var task = project.CreateTask(1, "Task 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, phaseId, null, null, null, null).Value;
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
+        var task = project.CreateTask(1, "Task 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, stageId, null, null, null, null).Value;
 
         // Act
-        var result = project.ChangeTaskPlacement(task.Id, phaseId, 0);
+        var result = project.ChangeTaskPlacement(task.Id, stageId, 0);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1899,12 +1899,12 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldFail_WhenOrderIsNegative()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
-        var task = project.CreateTask(1, "Task 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, phaseId, null, null, null, null).Value;
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
+        var task = project.CreateTask(1, "Task 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, stageId, null, null, null, null).Value;
 
         // Act
-        var result = project.ChangeTaskPlacement(task.Id, phaseId, -1);
+        var result = project.ChangeTaskPlacement(task.Id, stageId, -1);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1915,9 +1915,9 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldFail_WhenNewParentNotFound()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
-        var task = project.CreateTask(1, "Task 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, phaseId, null, null, null, null).Value;
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
+        var task = project.CreateTask(1, "Task 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, stageId, null, null, null, null).Value;
         var nonExistentParentId = Guid.NewGuid();
 
         // Act
@@ -1932,11 +1932,11 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldFail_WhenNewParentIsMilestone()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
 
-        var milestoneTask = project.CreateTask(1, "Milestone", null, ProjectTaskType.Milestone, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, phaseId, null, _dateTimeProvider.Today.PlusDays(30), null, null).Value;
-        var regularTask = project.CreateTask(2, "Regular Task", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, phaseId, null, null, null, null).Value;
+        var milestoneTask = project.CreateTask(1, "Milestone", null, ProjectTaskType.Milestone, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, stageId, null, _dateTimeProvider.Today.PlusDays(30), null, null).Value;
+        var regularTask = project.CreateTask(2, "Regular Task", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, stageId, null, null, null, null).Value;
 
         // Act
         var result = project.ChangeTaskPlacement(regularTask.Id, milestoneTask.Id, null);
@@ -1950,9 +1950,9 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldSucceed_WhenMovingTaskToNewParent()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
-        var tasks = project.WithTasks(3, phaseId);
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
+        var tasks = project.WithTasks(3, stageId);
         var parentTask = tasks[0];
         var taskToMove = tasks[1];
 
@@ -1969,22 +1969,22 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldSucceed_WhenMovingTaskToRoot()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
 
         var parentTask = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 1)).WithOrder(1).WithProjectPhaseId(phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 1)).WithOrder(1).WithProjectStageId(stageId)
             .Generate();
         project.AddToPrivateList("_tasks", parentTask);
 
         var childTask = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 2)).WithOrder(1).WithParentId(parentTask.Id).WithProjectPhaseId(phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 2)).WithOrder(1).WithParentId(parentTask.Id).WithProjectStageId(stageId)
             .Generate();
         project.AddToPrivateList("_tasks", childTask);
         parentTask.AddChild(childTask);
 
-        // Act - Move child to root of phase
-        var result = project.ChangeTaskPlacement(childTask.Id, phaseId, null);
+        // Act - Move child to root of stage
+        var result = project.ChangeTaskPlacement(childTask.Id, stageId, null);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1995,15 +1995,15 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldSucceed_WhenChangingOrderWithinSameParent_MovingUp()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
-        var tasks = project.WithTasks(3, phaseId);
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
+        var tasks = project.WithTasks(3, stageId);
         var task1 = tasks[0]; // Order 1
         var task2 = tasks[1]; // Order 2
         var task3 = tasks[2]; // Order 3
 
         // Act - Move task3 to position 1
-        var result = project.ChangeTaskPlacement(task3.Id, phaseId, 1);
+        var result = project.ChangeTaskPlacement(task3.Id, stageId, 1);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -2016,15 +2016,15 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldSucceed_WhenChangingOrderWithinSameParent_MovingDown()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
-        var tasks = project.WithTasks(3, phaseId);
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
+        var tasks = project.WithTasks(3, stageId);
         var task1 = tasks[0]; // Order 1
         var task2 = tasks[1]; // Order 2
         var task3 = tasks[2]; // Order 3
 
         // Act - Move task1 to position 3
-        var result = project.ChangeTaskPlacement(task1.Id, phaseId, 3);
+        var result = project.ChangeTaskPlacement(task1.Id, stageId, 3);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -2037,22 +2037,22 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldSucceed_WhenOrderIsNull_DefaultsToEnd()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
 
         var parentTask = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 1)).WithOrder(1).WithProjectPhaseId(phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 1)).WithOrder(1).WithProjectStageId(stageId)
             .Generate();
         project.AddToPrivateList("_tasks", parentTask);
 
         var existingChild = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 2)).WithOrder(1).WithParentId(parentTask.Id).WithProjectPhaseId(phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 2)).WithOrder(1).WithParentId(parentTask.Id).WithProjectStageId(stageId)
             .Generate();
         project.AddToPrivateList("_tasks", existingChild);
         parentTask.AddChild(existingChild);
 
         var taskToMove = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 3)).WithOrder(2).WithProjectPhaseId(phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 3)).WithOrder(2).WithProjectStageId(stageId)
             .Generate();
         project.AddToPrivateList("_tasks", taskToMove);
 
@@ -2069,13 +2069,13 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldClampOrder_WhenOrderExceedsChildrenCount()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
-        var tasks = project.WithTasks(2, phaseId);
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
+        var tasks = project.WithTasks(2, stageId);
         var task1 = tasks[0];
 
         // Act - Try to move task1 to position 10 (only 2 tasks exist)
-        var result = project.ChangeTaskPlacement(task1.Id, phaseId, 10);
+        var result = project.ChangeTaskPlacement(task1.Id, stageId, 10);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -2086,13 +2086,13 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldReturnSuccess_WhenNoChangeNeeded()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
-        var tasks = project.WithTasks(3, phaseId);
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
+        var tasks = project.WithTasks(3, stageId);
         var task2 = tasks[1]; // Order 2
 
         // Act - Request same order
-        var result = project.ChangeTaskPlacement(task2.Id, phaseId, 2);
+        var result = project.ChangeTaskPlacement(task2.Id, stageId, 2);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -2103,34 +2103,34 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldUpdateOldParentChildren_WhenMovingToNewParent()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
 
         var oldParent = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 1)).WithOrder(1).WithProjectPhaseId(phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 1)).WithOrder(1).WithProjectStageId(stageId)
             .Generate();
         project.AddToPrivateList("_tasks", oldParent);
 
         var child1 = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 2)).WithOrder(1).WithParentId(oldParent.Id).WithProjectPhaseId(phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 2)).WithOrder(1).WithParentId(oldParent.Id).WithProjectStageId(stageId)
             .Generate();
         project.AddToPrivateList("_tasks", child1);
         oldParent.AddChild(child1);
 
         var child2 = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 3)).WithOrder(2).WithParentId(oldParent.Id).WithProjectPhaseId(phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 3)).WithOrder(2).WithParentId(oldParent.Id).WithProjectStageId(stageId)
             .Generate();
         project.AddToPrivateList("_tasks", child2);
         oldParent.AddChild(child2);
 
         var child3 = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 4)).WithOrder(3).WithParentId(oldParent.Id).WithProjectPhaseId(phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 4)).WithOrder(3).WithParentId(oldParent.Id).WithProjectStageId(stageId)
             .Generate();
         project.AddToPrivateList("_tasks", child3);
         oldParent.AddChild(child3);
 
         var newParent = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 5)).WithOrder(2).WithProjectPhaseId(phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 5)).WithOrder(2).WithProjectStageId(stageId)
             .Generate();
         project.AddToPrivateList("_tasks", newParent);
 
@@ -2148,28 +2148,28 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldMoveTaskToSpecificPosition_WhenMovingToNewParent()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
 
         var newParent = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 1)).WithOrder(1).WithProjectPhaseId(phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 1)).WithOrder(1).WithProjectStageId(stageId)
             .Generate();
         project.AddToPrivateList("_tasks", newParent);
 
         var existingChild1 = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 2)).WithOrder(1).WithParentId(newParent.Id).WithProjectPhaseId(phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 2)).WithOrder(1).WithParentId(newParent.Id).WithProjectStageId(stageId)
             .Generate();
         project.AddToPrivateList("_tasks", existingChild1);
         newParent.AddChild(existingChild1);
 
         var existingChild2 = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 3)).WithOrder(2).WithParentId(newParent.Id).WithProjectPhaseId(phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 3)).WithOrder(2).WithParentId(newParent.Id).WithProjectStageId(stageId)
             .Generate();
         project.AddToPrivateList("_tasks", existingChild2);
         newParent.AddChild(existingChild2);
 
         var taskToMove = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 4)).WithOrder(2).WithProjectPhaseId(phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 4)).WithOrder(2).WithProjectStageId(stageId)
             .Generate();
         project.AddToPrivateList("_tasks", taskToMove);
 
@@ -2188,8 +2188,8 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldFail_WhenTaskIsItsOwnParent()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var tasks = project.WithTasks(1, phases[0].Id);
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var tasks = project.WithTasks(1, stages[0].Id);
         var task = tasks[0];
 
         // Act
@@ -2204,22 +2204,22 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldFail_WhenMovingToDescendant()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
 
         var parentTask = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 1)).WithOrder(1).WithProjectPhaseId(phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 1)).WithOrder(1).WithProjectStageId(stageId)
             .Generate();
         project.AddToPrivateList("_tasks", parentTask);
 
         var childTask = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 2)).WithOrder(1).WithParentId(parentTask.Id).WithProjectPhaseId(phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 2)).WithOrder(1).WithParentId(parentTask.Id).WithProjectStageId(stageId)
             .Generate();
         project.AddToPrivateList("_tasks", childTask);
         parentTask.AddChild(childTask);
 
         var grandchildTask = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 3)).WithOrder(1).WithParentId(childTask.Id).WithProjectPhaseId(phaseId)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 3)).WithOrder(1).WithParentId(childTask.Id).WithProjectStageId(stageId)
             .Generate();
         project.AddToPrivateList("_tasks", grandchildTask);
         childTask.AddChild(grandchildTask);
@@ -2236,13 +2236,13 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldHandleSingleTask_WhenChangingOrder()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
-        var tasks = project.WithTasks(1, phaseId);
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
+        var tasks = project.WithTasks(1, stageId);
         var task = tasks[0];
 
         // Act - Try to change order of only task
-        var result = project.ChangeTaskPlacement(task.Id, phaseId, 1);
+        var result = project.ChangeTaskPlacement(task.Id, stageId, 1);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -2253,9 +2253,9 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldMoveToMiddlePosition_WhenMovingUp()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
-        var tasks = project.WithTasks(5, phaseId);
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
+        var tasks = project.WithTasks(5, stageId);
         var task1 = tasks[0]; // Order 1
         var task2 = tasks[1]; // Order 2
         var task3 = tasks[2]; // Order 3
@@ -2263,7 +2263,7 @@ public class ProjectTests
         var task5 = tasks[4]; // Order 5
 
         // Act - Move task5 to position 2
-        var result = project.ChangeTaskPlacement(task5.Id, phaseId, 2);
+        var result = project.ChangeTaskPlacement(task5.Id, stageId, 2);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -2278,9 +2278,9 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldMoveToMiddlePosition_WhenMovingDown()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
-        var tasks = project.WithTasks(5, phaseId);
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
+        var tasks = project.WithTasks(5, stageId);
         var task1 = tasks[0]; // Order 1
         var task2 = tasks[1]; // Order 2
         var task3 = tasks[2]; // Order 3
@@ -2288,7 +2288,7 @@ public class ProjectTests
         var task5 = tasks[4]; // Order 5
 
         // Act - Move task1 to position 4
-        var result = project.ChangeTaskPlacement(task1.Id, phaseId, 4);
+        var result = project.ChangeTaskPlacement(task1.Id, stageId, 4);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -2308,7 +2308,7 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.Generate();
-        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(
             ("Plan", "Define goals"),
             ("Execute", "Perform the work"),
             ("Deliver", "Release outcome"));
@@ -2319,10 +2319,10 @@ public class ProjectTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         project.ProjectLifecycleId.Should().Be(lifecycle.Id);
-        project.Phases.Should().HaveCount(3);
-        project.Phases.Select(p => p.Name).Should().ContainInOrder("Plan", "Execute", "Deliver");
-        project.Phases.Select(p => p.Order).Should().ContainInOrder(1, 2, 3);
-        project.Phases.Should().AllSatisfy(p =>
+        project.Stages.Should().HaveCount(3);
+        project.Stages.Select(p => p.Name).Should().ContainInOrder("Plan", "Execute", "Deliver");
+        project.Stages.Select(p => p.Order).Should().ContainInOrder(1, 2, 3);
+        project.Stages.Should().AllSatisfy(p =>
         {
             p.ProjectId.Should().Be(project.Id);
             p.Status.Should().Be(Enums.TaskStatus.NotStarted);
@@ -2334,7 +2334,7 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.Generate();
-        var lifecycle = ProjectLifecycle.Create("Test", "Description", [("Phase 1", "Description")]);
+        var lifecycle = ProjectLifecycle.Create("Test", "Description", [("Stage 1", "Description")]);
 
         // Act
         var result = project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
@@ -2349,10 +2349,10 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.Generate();
-        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Phase 1", "Description"));
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Stage 1", "Description"));
         project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
 
-        var anotherLifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Phase A", "Description"));
+        var anotherLifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Stage A", "Description"));
 
         // Act
         var result = project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), anotherLifecycle);
@@ -2368,7 +2368,7 @@ public class ProjectTests
         // Arrange
         var project = _projectFaker.AsCompleted(_dateTimeProvider);
 
-        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Phase 1", "Description"));
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Stage 1", "Description"));
 
         // Act
         var result = project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
@@ -2380,16 +2380,16 @@ public class ProjectTests
 
     #endregion AssignLifecycle Tests
 
-    #region CreateTask with Phase Tests
+    #region CreateTask with Stage Tests
 
     [Fact]
-    public void CreateTask_ShouldSucceed_WhenRootTaskWithPhase()
+    public void CreateTask_ShouldSucceed_WhenRootTaskWithStage()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(
-            ("Plan", "Planning phase"),
-            ("Execute", "Execution phase"));
-        var executePhase = phases.First(p => p.Name == "Execute");
+        var (project, stages) = CreateProjectWithLifecycle(
+            ("Plan", "Planning stage"),
+            ("Execute", "Execution stage"));
+        var executeStage = stages.First(p => p.Name == "Execute");
 
         // Act
         var result = project.CreateTask(
@@ -2400,7 +2400,7 @@ public class ProjectTests
             status: Enums.TaskStatus.NotStarted,
             priority: TaskPriority.Medium,
             progress: null,
-            parentId: executePhase.Id,
+            parentId: executeStage.Id,
             plannedDateRange: null,
             plannedDate: null,
             estimatedEffortHours: null,
@@ -2408,7 +2408,7 @@ public class ProjectTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.ProjectPhaseId.Should().Be(executePhase.Id);
+        result.Value.ProjectStageId.Should().Be(executeStage.Id);
     }
 
     [Fact]
@@ -2438,10 +2438,10 @@ public class ProjectTests
     }
 
     [Fact]
-    public void CreateTask_ShouldFail_WhenParentIdDoesNotMatchPhaseOrTask()
+    public void CreateTask_ShouldFail_WhenParentIdDoesNotMatchStageOrTask()
     {
         // Arrange
-        var (project, _) = CreateProjectWithLifecycle(("Phase 1", "Description"));
+        var (project, _) = CreateProjectWithLifecycle(("Stage 1", "Description"));
 
         // Act
         var result = project.CreateTask(
@@ -2452,7 +2452,7 @@ public class ProjectTests
             status: Enums.TaskStatus.NotStarted,
             priority: TaskPriority.Medium,
             progress: null,
-            parentId: Guid.NewGuid(), // Random ID that doesn't match any phase or task
+            parentId: Guid.NewGuid(), // Random ID that doesn't match any stage or task
             plannedDateRange: null,
             plannedDate: null,
             estimatedEffortHours: null,
@@ -2464,11 +2464,11 @@ public class ProjectTests
     }
 
     [Fact]
-    public void CreateTask_ShouldInheritPhase_WhenChildTask()
+    public void CreateTask_ShouldInheritStage_WhenChildTask()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Execute", "Execution phase"));
-        var executePhase = phases.First();
+        var (project, stages) = CreateProjectWithLifecycle(("Execute", "Execution stage"));
+        var executeStage = stages.First();
 
         var parentResult = project.CreateTask(
             nextNumber: 1,
@@ -2478,7 +2478,7 @@ public class ProjectTests
             status: Enums.TaskStatus.NotStarted,
             priority: TaskPriority.Medium,
             progress: null,
-            parentId: executePhase.Id,
+            parentId: executeStage.Id,
             plannedDateRange: null,
             plannedDate: null,
             estimatedEffortHours: null,
@@ -2493,7 +2493,7 @@ public class ProjectTests
             status: Enums.TaskStatus.NotStarted,
             priority: TaskPriority.Medium,
             progress: null,
-            parentId: parentResult.Value.Id, // Parent task ID — should inherit phase
+            parentId: parentResult.Value.Id, // Parent task ID — should inherit stage
             plannedDateRange: null,
             plannedDate: null,
             estimatedEffortHours: null,
@@ -2501,123 +2501,123 @@ public class ProjectTests
 
         // Assert
         childResult.IsSuccess.Should().BeTrue();
-        childResult.Value.ProjectPhaseId.Should().Be(executePhase.Id);
+        childResult.Value.ProjectStageId.Should().Be(executeStage.Id);
     }
 
     [Fact]
-    public void CreateTask_ShouldScopeOrderToPhase_WhenRootTasks()
+    public void CreateTask_ShouldScopeOrderToStage_WhenRootTasks()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(
+        var (project, stages) = CreateProjectWithLifecycle(
             ("Plan", "Planning"),
             ("Execute", "Execution"));
-        var planPhase = phases.First(p => p.Name == "Plan");
-        var executePhase = phases.First(p => p.Name == "Execute");
+        var planStage = stages.First(p => p.Name == "Plan");
+        var executeStage = stages.First(p => p.Name == "Execute");
 
-        // Create tasks in Plan phase
-        project.CreateTask(1, "Plan Task 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, planPhase.Id, null, null, null, null);
-        project.CreateTask(2, "Plan Task 2", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, planPhase.Id, null, null, null, null);
+        // Create tasks in Plan stage
+        project.CreateTask(1, "Plan Task 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, planStage.Id, null, null, null, null);
+        project.CreateTask(2, "Plan Task 2", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, planStage.Id, null, null, null, null);
 
-        // Act — Create first task in Execute phase
-        var result = project.CreateTask(3, "Execute Task 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, executePhase.Id, null, null, null, null);
+        // Act — Create first task in Execute stage
+        var result = project.CreateTask(3, "Execute Task 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, executeStage.Id, null, null, null, null);
 
-        // Assert — Order should be 1 (scoped to Execute phase), not 3
+        // Assert — Order should be 1 (scoped to Execute stage), not 3
         result.IsSuccess.Should().BeTrue();
         result.Value.Order.Should().Be(1);
     }
 
-    #endregion CreateTask with Phase Tests
+    #endregion CreateTask with Stage Tests
 
-    #region ChangeTaskPlacement Phase Tests
+    #region ChangeTaskPlacement Stage Tests
 
     [Fact]
-    public void ChangeTaskPlacement_ShouldSucceed_WhenMovingRootTaskToAnotherPhase()
+    public void ChangeTaskPlacement_ShouldSucceed_WhenMovingRootTaskToAnotherStage()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"), ("Execute", "Execution"));
-        var planPhase = phases.First(p => p.Name == "Plan");
-        var executePhase = phases.First(p => p.Name == "Execute");
-        var tasks = project.WithTasks(1, planPhase.Id);
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"), ("Execute", "Execution"));
+        var planStage = stages.First(p => p.Name == "Plan");
+        var executeStage = stages.First(p => p.Name == "Execute");
+        var tasks = project.WithTasks(1, planStage.Id);
         var task = tasks[0];
 
-        // Act - Move root task to Execute phase
-        var result = project.ChangeTaskPlacement(task.Id, executePhase.Id, null);
+        // Act - Move root task to Execute stage
+        var result = project.ChangeTaskPlacement(task.Id, executeStage.Id, null);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        task.ProjectPhaseId.Should().Be(executePhase.Id);
+        task.ProjectStageId.Should().Be(executeStage.Id);
         task.ParentId.Should().BeNull();
         task.Order.Should().Be(1);
     }
 
     [Fact]
-    public void ChangeTaskPlacement_ShouldMoveDescendants_WhenMovingRootTaskToAnotherPhase()
+    public void ChangeTaskPlacement_ShouldMoveDescendants_WhenMovingRootTaskToAnotherStage()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"), ("Execute", "Execution"));
-        var planPhase = phases.First(p => p.Name == "Plan");
-        var executePhase = phases.First(p => p.Name == "Execute");
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"), ("Execute", "Execution"));
+        var planStage = stages.First(p => p.Name == "Plan");
+        var executeStage = stages.First(p => p.Name == "Execute");
 
         var parent = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 1)).WithOrder(1).WithProjectPhaseId(planPhase.Id)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 1)).WithOrder(1).WithProjectStageId(planStage.Id)
             .Generate();
         project.AddToPrivateList("_tasks", parent);
 
         var child = new ProjectTaskFaker()
-            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 2)).WithOrder(1).WithParentId(parent.Id).WithProjectPhaseId(planPhase.Id)
+            .WithProjectId(project.Id).WithKey(new ProjectTaskKey(project.Key, 2)).WithOrder(1).WithParentId(parent.Id).WithProjectStageId(planStage.Id)
             .Generate();
         project.AddToPrivateList("_tasks", child);
         parent.AddChild(child);
 
-        // Act - Move parent (and its descendants) to Execute phase
-        var result = project.ChangeTaskPlacement(parent.Id, executePhase.Id, null);
+        // Act - Move parent (and its descendants) to Execute stage
+        var result = project.ChangeTaskPlacement(parent.Id, executeStage.Id, null);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        parent.ProjectPhaseId.Should().Be(executePhase.Id);
-        child.ProjectPhaseId.Should().Be(executePhase.Id);
+        parent.ProjectStageId.Should().Be(executeStage.Id);
+        child.ProjectStageId.Should().Be(executeStage.Id);
     }
 
     [Fact]
-    public void ChangeTaskPlacement_ShouldReorderOldPhase_WhenTaskMoved()
+    public void ChangeTaskPlacement_ShouldReorderOldStage_WhenTaskMoved()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"), ("Execute", "Execution"));
-        var planPhase = phases.First(p => p.Name == "Plan");
-        var executePhase = phases.First(p => p.Name == "Execute");
-        var tasks = project.WithTasks(3, planPhase.Id);
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"), ("Execute", "Execution"));
+        var planStage = stages.First(p => p.Name == "Plan");
+        var executeStage = stages.First(p => p.Name == "Execute");
+        var tasks = project.WithTasks(3, planStage.Id);
         var task1 = tasks[0];
         var task2 = tasks[1];
         var task3 = tasks[2];
 
-        // Act — Move task2 to Execute phase
-        var result = project.ChangeTaskPlacement(task2.Id, executePhase.Id, null);
+        // Act — Move task2 to Execute stage
+        var result = project.ChangeTaskPlacement(task2.Id, executeStage.Id, null);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         task1.Order.Should().Be(1);
         task3.Order.Should().Be(2); // Reordered to fill gap
-        task2.Order.Should().Be(1); // First in new phase
-        task2.ProjectPhaseId.Should().Be(executePhase.Id);
+        task2.Order.Should().Be(1); // First in new stage
+        task2.ProjectStageId.Should().Be(executeStage.Id);
     }
 
     [Fact]
-    public void ChangeTaskPlacement_ShouldBeNoOp_WhenSamePhaseAndNoOrderChange()
+    public void ChangeTaskPlacement_ShouldBeNoOp_WhenSameStageAndNoOrderChange()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning"));
-        var phaseId = phases[0].Id;
-        var tasks = project.WithTasks(1, phaseId);
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var stageId = stages[0].Id;
+        var tasks = project.WithTasks(1, stageId);
 
-        // Act - Move to same phase with same order
-        var result = project.ChangeTaskPlacement(tasks[0].Id, phaseId, 1);
+        // Act - Move to same stage with same order
+        var result = project.ChangeTaskPlacement(tasks[0].Id, stageId, 1);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        tasks[0].ProjectPhaseId.Should().Be(phaseId);
+        tasks[0].ProjectStageId.Should().Be(stageId);
     }
 
-    #endregion ChangeTaskPlacement Phase Tests
+    #endregion ChangeTaskPlacement Stage Tests
 
     #region ChangeLifecycle Tests
 
@@ -2625,50 +2625,50 @@ public class ProjectTests
     public void ChangeLifecycle_ShouldSucceed_WhenMappingIsValid()
     {
         // Arrange
-        var (project, oldPhases) = CreateProjectWithLifecycle(
-            ("Plan", "Planning phase"),
-            ("Execute", "Execution phase"),
-            ("Deliver", "Delivery phase"));
+        var (project, oldStages) = CreateProjectWithLifecycle(
+            ("Plan", "Planning stage"),
+            ("Execute", "Execution stage"),
+            ("Deliver", "Delivery stage"));
 
-        var oldPhase1 = oldPhases[0];
-        var oldPhase2 = oldPhases[1];
+        var oldStage1 = oldStages[0];
+        var oldStage2 = oldStages[1];
 
-        // Create tasks in the first two phases
-        project.CreateTask(1, "Task 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, oldPhase1.Id, null, null, null, null);
-        project.CreateTask(2, "Task 2", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, oldPhase2.Id, null, null, null, null);
+        // Create tasks in the first two stages
+        project.CreateTask(1, "Task 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, oldStage1.Id, null, null, null, null);
+        project.CreateTask(2, "Task 2", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, oldStage2.Id, null, null, null, null);
 
-        var newLifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(
-            ("Discovery", "Discovery phase"),
-            ("Build", "Build phase"),
-            ("Launch", "Launch phase"));
+        var newLifecycle = new ProjectLifecycleFaker().AsActiveWithStages(
+            ("Discovery", "Discovery stage"),
+            ("Build", "Build stage"),
+            ("Launch", "Launch stage"));
 
-        var newLifecyclePhases = newLifecycle.Phases.OrderBy(p => p.Order).ToList();
+        var newLifecycleStages = newLifecycle.Stages.OrderBy(p => p.Order).ToList();
 
-        var phaseMapping = new Dictionary<Guid, Guid>
+        var stageMapping = new Dictionary<Guid, Guid>
         {
-            { oldPhase1.Id, newLifecyclePhases[0].Id },
-            { oldPhase2.Id, newLifecyclePhases[1].Id },
+            { oldStage1.Id, newLifecycleStages[0].Id },
+            { oldStage2.Id, newLifecycleStages[1].Id },
         };
 
         // Act
-        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, phaseMapping);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, stageMapping);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         project.ProjectLifecycleId.Should().Be(newLifecycle.Id);
-        project.Phases.Should().HaveCount(3);
-        project.Phases.Select(p => p.Name).Should().BeEquivalentTo("Discovery", "Build", "Launch");
+        project.Stages.Should().HaveCount(3);
+        project.Stages.Select(p => p.Name).Should().BeEquivalentTo("Discovery", "Build", "Launch");
 
         var tasks = project.Tasks.ToList();
         tasks.Should().HaveCount(2);
 
-        // Task 1 should be in the Discovery phase (mapped from Plan)
-        var newDiscoveryPhase = project.Phases.First(p => p.Name == "Discovery");
-        tasks.First(t => t.Name == "Task 1").ProjectPhaseId.Should().Be(newDiscoveryPhase.Id);
+        // Task 1 should be in the Discovery stage (mapped from Plan)
+        var newDiscoveryStage = project.Stages.First(p => p.Name == "Discovery");
+        tasks.First(t => t.Name == "Task 1").ProjectStageId.Should().Be(newDiscoveryStage.Id);
 
-        // Task 2 should be in the Build phase (mapped from Execute)
-        var newBuildPhase = project.Phases.First(p => p.Name == "Build");
-        tasks.First(t => t.Name == "Task 2").ProjectPhaseId.Should().Be(newBuildPhase.Id);
+        // Task 2 should be in the Build stage (mapped from Execute)
+        var newBuildStage = project.Stages.First(p => p.Name == "Build");
+        tasks.First(t => t.Name == "Task 2").ProjectStageId.Should().Be(newBuildStage.Id);
     }
 
     [Fact]
@@ -2676,7 +2676,7 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.AsCompleted(_dateTimeProvider);
-        var newLifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Phase 1", "First phase"));
+        var newLifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Stage 1", "First stage"));
 
         // Act
         var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, []);
@@ -2691,7 +2691,7 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.Generate();
-        var newLifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Phase 1", "First phase"));
+        var newLifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Stage 1", "First stage"));
 
         // Act
         var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, []);
@@ -2705,8 +2705,8 @@ public class ProjectTests
     public void ChangeLifecycle_ShouldFail_WhenNewLifecycleIsNotActive()
     {
         // Arrange
-        var (project, _) = CreateProjectWithLifecycle(("Plan", "Planning phase"));
-        var newLifecycle = new ProjectLifecycleFaker().AsProposedWithPhases(("Phase 1", "First phase"));
+        var (project, _) = CreateProjectWithLifecycle(("Plan", "Planning stage"));
+        var newLifecycle = new ProjectLifecycleFaker().AsProposedWithStages(("Stage 1", "First stage"));
 
         // Act
         var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, []);
@@ -2720,7 +2720,7 @@ public class ProjectTests
     public void ChangeLifecycle_ShouldFail_WhenSameLifecycle()
     {
         // Arrange
-        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Plan", "Planning phase"), ("Execute", "Execution phase"));
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Planning stage"), ("Execute", "Execution stage"));
         var project = _projectFaker.Generate();
         project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle);
 
@@ -2733,27 +2733,27 @@ public class ProjectTests
     }
 
     [Fact]
-    public void ChangeLifecycle_ShouldFail_WhenPhaseWithTasksNotMapped()
+    public void ChangeLifecycle_ShouldFail_WhenStageWithTasksNotMapped()
     {
         // Arrange
-        var (project, oldPhases) = CreateProjectWithLifecycle(
-            ("Plan", "Planning phase"),
-            ("Execute", "Execution phase"));
+        var (project, oldStages) = CreateProjectWithLifecycle(
+            ("Plan", "Planning stage"),
+            ("Execute", "Execution stage"));
 
-        // Create a task in the Execute phase
-        project.CreateTask(1, "Task 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, oldPhases[1].Id, null, null, null, null);
+        // Create a task in the Execute stage
+        project.CreateTask(1, "Task 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, oldStages[1].Id, null, null, null, null);
 
-        var newLifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Phase 1", "First phase"));
-        var newPhases = newLifecycle.Phases.ToList();
+        var newLifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Stage 1", "First stage"));
+        var newStages = newLifecycle.Stages.ToList();
 
         // Only map Plan, but Execute has tasks
-        var phaseMapping = new Dictionary<Guid, Guid>
+        var stageMapping = new Dictionary<Guid, Guid>
         {
-            { oldPhases[0].Id, newPhases[0].Id },
+            { oldStages[0].Id, newStages[0].Id },
         };
 
         // Act
-        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, phaseMapping);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, stageMapping);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -2764,18 +2764,18 @@ public class ProjectTests
     public void ChangeLifecycle_ShouldFail_WhenMappingTargetInvalid()
     {
         // Arrange
-        var (project, oldPhases) = CreateProjectWithLifecycle(("Plan", "Planning phase"));
-        project.CreateTask(1, "Task 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, oldPhases[0].Id, null, null, null, null);
+        var (project, oldStages) = CreateProjectWithLifecycle(("Plan", "Planning stage"));
+        project.CreateTask(1, "Task 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, oldStages[0].Id, null, null, null, null);
 
-        var newLifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Phase 1", "First phase"));
+        var newLifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Stage 1", "First stage"));
 
-        var phaseMapping = new Dictionary<Guid, Guid>
+        var stageMapping = new Dictionary<Guid, Guid>
         {
-            { oldPhases[0].Id, Guid.NewGuid() }, // Invalid target
+            { oldStages[0].Id, Guid.NewGuid() }, // Invalid target
         };
 
         // Act
-        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, phaseMapping);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, stageMapping);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -2783,61 +2783,61 @@ public class ProjectTests
     }
 
     [Fact]
-    public void ChangeLifecycle_ShouldSucceed_WithEmptyPhasesNoTasks()
+    public void ChangeLifecycle_ShouldSucceed_WithEmptyStagesNoTasks()
     {
         // Arrange
-        var (project, _) = CreateProjectWithLifecycle(("Plan", "Planning phase"), ("Execute", "Execution phase"));
+        var (project, _) = CreateProjectWithLifecycle(("Plan", "Planning stage"), ("Execute", "Execution stage"));
 
-        var newLifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(
-            ("Discovery", "Discovery phase"),
-            ("Build", "Build phase"));
+        var newLifecycle = new ProjectLifecycleFaker().AsActiveWithStages(
+            ("Discovery", "Discovery stage"),
+            ("Build", "Build stage"));
 
-        // No tasks, so no mapping needed for phases with tasks
-        var phaseMapping = new Dictionary<Guid, Guid>();
+        // No tasks, so no mapping needed for stages with tasks
+        var stageMapping = new Dictionary<Guid, Guid>();
 
         // Act
-        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, phaseMapping);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, stageMapping);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         project.ProjectLifecycleId.Should().Be(newLifecycle.Id);
-        project.Phases.Should().HaveCount(2);
-        project.Phases.Select(p => p.Name).Should().BeEquivalentTo("Discovery", "Build");
+        project.Stages.Should().HaveCount(2);
+        project.Stages.Select(p => p.Name).Should().BeEquivalentTo("Discovery", "Build");
     }
 
     [Fact]
-    public void ChangeLifecycle_ShouldMapMultipleTasksToSamePhase()
+    public void ChangeLifecycle_ShouldMapMultipleTasksToSameStage()
     {
         // Arrange
-        var (project, oldPhases) = CreateProjectWithLifecycle(
-            ("Plan", "Planning phase"),
-            ("Execute", "Execution phase"),
-            ("Deliver", "Delivery phase"));
+        var (project, oldStages) = CreateProjectWithLifecycle(
+            ("Plan", "Planning stage"),
+            ("Execute", "Execution stage"),
+            ("Deliver", "Delivery stage"));
 
-        project.CreateTask(1, "Task A", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, oldPhases[0].Id, null, null, null, null);
-        project.CreateTask(2, "Task B", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, oldPhases[1].Id, null, null, null, null);
-        project.CreateTask(3, "Task C", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, oldPhases[2].Id, null, null, null, null);
+        project.CreateTask(1, "Task A", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, oldStages[0].Id, null, null, null, null);
+        project.CreateTask(2, "Task B", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, oldStages[1].Id, null, null, null, null);
+        project.CreateTask(3, "Task C", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, oldStages[2].Id, null, null, null, null);
 
-        var newLifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(("Single Phase", "The only phase"));
-        var newPhases = newLifecycle.Phases.ToList();
+        var newLifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Single Stage", "The only stage"));
+        var newStages = newLifecycle.Stages.ToList();
 
-        // Map all old phases to the single new phase
-        var phaseMapping = new Dictionary<Guid, Guid>
+        // Map all old stages to the single new stage
+        var stageMapping = new Dictionary<Guid, Guid>
         {
-            { oldPhases[0].Id, newPhases[0].Id },
-            { oldPhases[1].Id, newPhases[0].Id },
-            { oldPhases[2].Id, newPhases[0].Id },
+            { oldStages[0].Id, newStages[0].Id },
+            { oldStages[1].Id, newStages[0].Id },
+            { oldStages[2].Id, newStages[0].Id },
         };
 
         // Act
-        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, phaseMapping);
+        var result = project.ChangeLifecycle(AnAuthorizedActor(), NoProjectAncestry(), newLifecycle, stageMapping);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        project.Phases.Should().HaveCount(1);
+        project.Stages.Should().HaveCount(1);
 
-        var singlePhase = project.Phases.First();
-        project.Tasks.Should().OnlyContain(t => t.ProjectPhaseId == singlePhase.Id);
+        var singleStage = project.Stages.First();
+        project.Tasks.Should().OnlyContain(t => t.ProjectStageId == singleStage.Id);
     }
 
     #endregion ChangeLifecycle Tests
@@ -3084,12 +3084,12 @@ public class ProjectTests
     #region Date Rollup Tests
 
     [Fact]
-    public void CreateTask_ShouldExpandUndatedPhase_WhenDatedRootTaskCreated()
+    public void CreateTask_ShouldExpandUndatedStage_WhenDatedRootTaskCreated()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning phase"));
-        var phase = phases[0];
-        phase.DateRange.Should().BeNull();
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning stage"));
+        var stage = stages[0];
+        stage.DateRange.Should().BeNull();
 
         var plannedRange = new FlexibleDateRange(new LocalDate(2026, 6, 1), new LocalDate(2026, 6, 10));
 
@@ -3102,7 +3102,7 @@ public class ProjectTests
             status: Enums.TaskStatus.NotStarted,
             priority: TaskPriority.Medium,
             progress: null,
-            parentId: phase.Id,
+            parentId: stage.Id,
             plannedDateRange: plannedRange,
             plannedDate: null,
             estimatedEffortHours: null,
@@ -3110,17 +3110,17 @@ public class ProjectTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        phase.DateRange.Should().NotBeNull();
-        phase.DateRange!.Start.Should().Be(plannedRange.Start);
-        phase.DateRange.End.Should().Be(plannedRange.End);
+        stage.DateRange.Should().NotBeNull();
+        stage.DateRange!.Start.Should().Be(plannedRange.Start);
+        stage.DateRange.End.Should().Be(plannedRange.End);
     }
 
     [Fact]
-    public void CreateTask_ShouldExpandUndatedParentTaskAndPhase_WhenDatedChildTaskCreated()
+    public void CreateTask_ShouldExpandUndatedParentTaskAndStage_WhenDatedChildTaskCreated()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning phase"));
-        var phase = phases[0];
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning stage"));
+        var stage = stages[0];
 
         // Create undated parent task
         var parentResult = project.CreateTask(
@@ -3131,7 +3131,7 @@ public class ProjectTests
             status: Enums.TaskStatus.NotStarted,
             priority: TaskPriority.Medium,
             progress: null,
-            parentId: phase.Id,
+            parentId: stage.Id,
             plannedDateRange: null,
             plannedDate: null,
             estimatedEffortHours: null,
@@ -3140,7 +3140,7 @@ public class ProjectTests
         parentResult.IsSuccess.Should().BeTrue();
         var parentTask = parentResult.Value;
         parentTask.PlannedDateRange.Should().BeNull();
-        phase.DateRange.Should().BeNull();
+        stage.DateRange.Should().BeNull();
 
         var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
 
@@ -3165,17 +3165,17 @@ public class ProjectTests
         parentTask.PlannedDateRange!.Start.Should().Be(childRange.Start);
         parentTask.PlannedDateRange.End.Should().Be(childRange.End);
 
-        phase.DateRange.Should().NotBeNull();
-        phase.DateRange!.Start.Should().Be(childRange.Start);
-        phase.DateRange.End.Should().Be(childRange.End);
+        stage.DateRange.Should().NotBeNull();
+        stage.DateRange!.Start.Should().Be(childRange.Start);
+        stage.DateRange.End.Should().Be(childRange.End);
     }
 
     [Fact]
     public void CreateTask_ShouldExpandAncestors_WhenMilestoneCreatedOutsideParent()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning phase"));
-        var phase = phases[0];
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning stage"));
+        var stage = stages[0];
 
         var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
         var parentResult = project.CreateTask(
@@ -3186,7 +3186,7 @@ public class ProjectTests
             status: Enums.TaskStatus.NotStarted,
             priority: TaskPriority.Medium,
             progress: null,
-            parentId: phase.Id,
+            parentId: stage.Id,
             plannedDateRange: parentRange,
             plannedDate: null,
             estimatedEffortHours: null,
@@ -3215,20 +3215,20 @@ public class ProjectTests
         parentTask.PlannedDateRange!.Start.Should().Be(parentRange.Start);
         parentTask.PlannedDateRange.End.Should().Be(new LocalDate(2026, 6, 20));
 
-        phase.DateRange.Should().NotBeNull();
-        phase.DateRange!.Start.Should().Be(parentRange.Start);
-        phase.DateRange.End.Should().Be(new LocalDate(2026, 6, 20));
+        stage.DateRange.Should().NotBeNull();
+        stage.DateRange!.Start.Should().Be(parentRange.Start);
+        stage.DateRange.End.Should().Be(new LocalDate(2026, 6, 20));
     }
 
     [Fact]
     public void UpdateTaskDates_ShouldShiftDatedDescendants_WhenShiftingParent()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning phase"));
-        var phase = phases[0];
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning stage"));
+        var stage = stages[0];
 
         var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
-        var parentTask = project.CreateTask(1, "Parent", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, phase.Id, parentRange, null, null, null).Value;
+        var parentTask = project.CreateTask(1, "Parent", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, stage.Id, parentRange, null, null, null).Value;
         
         var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 6, 12));
         var childTask = project.CreateTask(2, "Child", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, parentTask.Id, childRange, null, null, null).Value;
@@ -3259,11 +3259,11 @@ public class ProjectTests
     public void UpdateTaskDates_ShouldFail_WhenResizeExcludesDatedChildren()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning phase"));
-        var phase = phases[0];
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning stage"));
+        var stage = stages[0];
 
         var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
-        var parentTask = project.CreateTask(1, "Parent", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, phase.Id, parentRange, null, null, null).Value;
+        var parentTask = project.CreateTask(1, "Parent", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, stage.Id, parentRange, null, null, null).Value;
         
         var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 6, 12));
         project.CreateTask(2, "Child", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, parentTask.Id, childRange, null, null, null);
@@ -3282,11 +3282,11 @@ public class ProjectTests
     public void UpdateTaskDates_ShouldFail_WhenClearingDatesWithDatedChildren()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning phase"));
-        var phase = phases[0];
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning stage"));
+        var stage = stages[0];
 
         var parentRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
-        var parentTask = project.CreateTask(1, "Parent", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, phase.Id, parentRange, null, null, null).Value;
+        var parentTask = project.CreateTask(1, "Parent", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, stage.Id, parentRange, null, null, null).Value;
         
         var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 6, 12));
         project.CreateTask(2, "Child", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, parentTask.Id, childRange, null, null, null);
@@ -3300,17 +3300,17 @@ public class ProjectTests
     }
 
     [Fact]
-    public void UpdatePhaseDates_ShouldFail_WhenClearingDatesWithDatedRootTasks()
+    public void UpdateStageDates_ShouldFail_WhenClearingDatesWithDatedRootTasks()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning phase"));
-        var phase = phases[0];
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning stage"));
+        var stage = stages[0];
 
         var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 6, 12));
-        project.CreateTask(1, "Child", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, phase.Id, childRange, null, null, null);
+        project.CreateTask(1, "Child", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, stage.Id, childRange, null, null, null);
 
         // Act
-        var result = project.UpdatePhaseDates(phase.Id, null);
+        var result = project.UpdateStageDates(stage.Id, null);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -3321,14 +3321,14 @@ public class ProjectTests
     public void ChangeTaskPlacement_ShouldExpandNewParent_WhenMoved()
     {
         // Arrange
-        var (project, phases) = CreateProjectWithLifecycle(("Plan", "Planning phase"));
-        var phase = phases[0];
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning stage"));
+        var stage = stages[0];
 
         var parent1Range = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
-        var parent1 = project.CreateTask(1, "Parent 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, phase.Id, parent1Range, null, null, null).Value;
+        var parent1 = project.CreateTask(1, "Parent 1", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, stage.Id, parent1Range, null, null, null).Value;
 
         var parent2Range = new FlexibleDateRange(new LocalDate(2026, 6, 10), new LocalDate(2026, 6, 12));
-        var parent2 = project.CreateTask(2, "Parent 2", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, phase.Id, parent2Range, null, null, null).Value;
+        var parent2 = project.CreateTask(2, "Parent 2", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, stage.Id, parent2Range, null, null, null).Value;
 
         var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 15));
         var child = project.CreateTask(3, "Child", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, parent1.Id, childRange, null, null, null).Value;

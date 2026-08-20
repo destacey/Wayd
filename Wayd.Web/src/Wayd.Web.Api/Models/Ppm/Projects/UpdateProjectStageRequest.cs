@@ -4,7 +4,7 @@ using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
 
 namespace Wayd.Web.Api.Models.Ppm.Projects;
 
-public sealed record UpdateProjectPhaseRequest
+public sealed record UpdateProjectStageRequest
 {
     public required string Description { get; set; }
     public int Status { get; set; }
@@ -13,14 +13,14 @@ public sealed record UpdateProjectPhaseRequest
     public decimal Progress { get; set; }
     public List<Guid>? AssigneeIds { get; set; } = [];
 
-    public UpdateProjectPhaseCommand ToCommand(Guid projectId, Guid phaseId)
+    public UpdateProjectStageCommand ToCommand(Guid projectId, Guid stageId)
     {
-        return new UpdateProjectPhaseCommand(projectId, phaseId, Description, Status, PlannedStart, PlannedEnd, Progress, AssigneeIds);
+        return new UpdateProjectStageCommand(projectId, stageId, Description, Status, PlannedStart, PlannedEnd, Progress, AssigneeIds);
     }
 
-    public static UpdateProjectPhaseRequest FromDto(ProjectPhaseDetailsDto dto)
+    public static UpdateProjectStageRequest FromDto(ProjectStageDetailsDto dto)
     {
-        return new UpdateProjectPhaseRequest
+        return new UpdateProjectStageRequest
         {
             Description = dto.Description,
             Status = dto.Status.Id,
@@ -32,9 +32,9 @@ public sealed record UpdateProjectPhaseRequest
     }
 }
 
-public sealed class UpdateProjectPhaseRequestValidator : CustomValidator<UpdateProjectPhaseRequest>
+public sealed class UpdateProjectStageRequestValidator : CustomValidator<UpdateProjectStageRequest>
 {
-    public UpdateProjectPhaseRequestValidator()
+    public UpdateProjectStageRequestValidator()
     {
         RuleFor(x => x.Description)
             .NotEmpty()

@@ -125,10 +125,10 @@ public class CreateProjectCommandHandlerTests : IDisposable
         // Arrange
         var portfolio = new ProjectPortfolioFaker().AsActive(_dateTimeProvider);
         var expenditureCategory = new ExpenditureCategoryFaker().GenerateActive();
-        var lifecycle = new ProjectLifecycleFaker().AsActiveWithPhases(
-            ("Plan", "Planning phase"),
-            ("Execute", "Execution phase"),
-            ("Deliver", "Delivery phase"));
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(
+            ("Plan", "Planning stage"),
+            ("Execute", "Execution stage"),
+            ("Deliver", "Delivery stage"));
         _dbContext.AddPortfolio(portfolio);
         _dbContext.AddExpenditureCategory(expenditureCategory);
         _dbContext.AddProjectLifecycle(lifecycle);
@@ -147,7 +147,7 @@ public class CreateProjectCommandHandlerTests : IDisposable
 
         var project = portfolio.Projects.First();
         project.ProjectLifecycleId.Should().Be(lifecycle.Id);
-        project.Phases.Should().HaveCount(3);
+        project.Stages.Should().HaveCount(3);
     }
 
     [Fact]
@@ -177,8 +177,8 @@ public class CreateProjectCommandHandlerTests : IDisposable
         // Arrange
         var portfolio = new ProjectPortfolioFaker().AsActive(_dateTimeProvider);
         var expenditureCategory = new ExpenditureCategoryFaker().GenerateActive();
-        var lifecycle = new ProjectLifecycleFaker().AsProposedWithPhases(
-            ("Plan", "Planning phase"));
+        var lifecycle = new ProjectLifecycleFaker().AsProposedWithStages(
+            ("Plan", "Planning stage"));
         _dbContext.AddPortfolio(portfolio);
         _dbContext.AddExpenditureCategory(expenditureCategory);
         _dbContext.AddProjectLifecycle(lifecycle);

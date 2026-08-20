@@ -8,38 +8,38 @@ using Wayd.Common.Models;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Sut.Models;
 
-public class ProjectPhaseTests
+public class ProjectStageTests
 {
     [Fact]
     public void UpdatePlannedDates_ShouldSucceed_WhenNoChildrenExist()
     {
         // Arrange
-        var phase = new ProjectPhaseFaker().Generate();
+        var stage = new ProjectStageFaker().Generate();
         var range = new FlexibleDateRange(new LocalDate(2026, 6, 1), new LocalDate(2026, 6, 10));
 
         // Act
-        var result = phase.UpdatePlannedDates(range, []);
+        var result = stage.UpdatePlannedDates(range, []);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        phase.DateRange.Should().Be(range);
+        stage.DateRange.Should().Be(range);
     }
 
     [Fact]
     public void UpdatePlannedDates_ShouldFail_WhenDatesClearedButChildrenHaveDates()
     {
         // Arrange
-        var phase = new ProjectPhaseFaker().Generate();
+        var stage = new ProjectStageFaker().Generate();
         
-        // Create a dated child task under this phase
+        // Create a dated child task under this stage
         var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 8));
         var childTask = new ProjectTaskFaker()
-            .WithProjectPhaseId(phase.Id)
+            .WithProjectStageId(stage.Id)
             .WithPlannedDateRange(childRange)
             .Generate();
 
         // Act
-        var result = phase.UpdatePlannedDates(null, [childTask]);
+        var result = stage.UpdatePlannedDates(null, [childTask]);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -50,20 +50,20 @@ public class ProjectPhaseTests
     public void UpdatePlannedDates_ShouldFail_WhenRangeShrunkAndExcludesChildren()
     {
         // Arrange
-        var phase = new ProjectPhaseFaker().Generate();
+        var stage = new ProjectStageFaker().Generate();
         
         // Create a child task whose range is June 5 to June 8
         var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 8));
         var childTask = new ProjectTaskFaker()
-            .WithProjectPhaseId(phase.Id)
+            .WithProjectStageId(stage.Id)
             .WithPlannedDateRange(childRange)
             .Generate();
 
-        // Propose a range for the phase that starts on June 6 (excluding the child's June 5 start)
+        // Propose a range for the stage that starts on June 6 (excluding the child's June 5 start)
         var proposedRange = new FlexibleDateRange(new LocalDate(2026, 6, 6), new LocalDate(2026, 6, 10));
 
         // Act
-        var result = phase.UpdatePlannedDates(proposedRange, [childTask]);
+        var result = stage.UpdatePlannedDates(proposedRange, [childTask]);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -74,53 +74,53 @@ public class ProjectPhaseTests
     public void UpdatePlannedDates_ShouldSucceed_WhenRangeContainsAllChildren()
     {
         // Arrange
-        var phase = new ProjectPhaseFaker().Generate();
+        var stage = new ProjectStageFaker().Generate();
         
         // Create a child task whose range is June 5 to June 8
         var childRange = new FlexibleDateRange(new LocalDate(2026, 6, 5), new LocalDate(2026, 6, 8));
         var childTask = new ProjectTaskFaker()
-            .WithProjectPhaseId(phase.Id)
+            .WithProjectStageId(stage.Id)
             .WithPlannedDateRange(childRange)
             .Generate();
 
-        // Propose a range for the phase that completely contains the child range
+        // Propose a range for the stage that completely contains the child range
         var proposedRange = new FlexibleDateRange(new LocalDate(2026, 6, 4), new LocalDate(2026, 6, 9));
 
         // Act
-        var result = phase.UpdatePlannedDates(proposedRange, [childTask]);
+        var result = stage.UpdatePlannedDates(proposedRange, [childTask]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        phase.DateRange.Should().Be(proposedRange);
+        stage.DateRange.Should().Be(proposedRange);
     }
 
     [Fact]
     public void UpdatePlannedDates_ShouldShiftRootTaskSubtrees_WhenRangeShiftedBySameDuration()
     {
         // Arrange
-        var phase = new ProjectPhaseFaker().Generate();
-        var originalPhaseRange = new FlexibleDateRange(new LocalDate(2026, 6, 1), new LocalDate(2026, 6, 30));
-        phase.UpdatePlannedDates(originalPhaseRange, []).IsSuccess.Should().BeTrue();
+        var stage = new ProjectStageFaker().Generate();
+        var originalStageRange = new FlexibleDateRange(new LocalDate(2026, 6, 1), new LocalDate(2026, 6, 30));
+        stage.UpdatePlannedDates(originalStageRange, []).IsSuccess.Should().BeTrue();
 
         var rootTask = new ProjectTaskFaker()
-            .WithProjectPhaseId(phase.Id)
+            .WithProjectStageId(stage.Id)
             .WithPlannedDateRange(new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 6, 12)))
             .Generate();
         var childTask = new ProjectTaskFaker()
-            .WithProjectPhaseId(phase.Id)
+            .WithProjectStageId(stage.Id)
             .WithParentId(rootTask.Id)
             .WithPlannedDateRange(new FlexibleDateRange(new LocalDate(2026, 6, 9), new LocalDate(2026, 6, 10)))
             .Generate();
         rootTask.AddChild(childTask);
 
-        var shiftedPhaseRange = new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 7, 7));
+        var shiftedStageRange = new FlexibleDateRange(new LocalDate(2026, 6, 8), new LocalDate(2026, 7, 7));
 
         // Act
-        var result = phase.UpdatePlannedDates(shiftedPhaseRange, [rootTask]);
+        var result = stage.UpdatePlannedDates(shiftedStageRange, [rootTask]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        phase.DateRange.Should().Be(shiftedPhaseRange);
+        stage.DateRange.Should().Be(shiftedStageRange);
         rootTask.PlannedDateRange.Should().NotBeNull();
         rootTask.PlannedDateRange!.Start.Should().Be(new LocalDate(2026, 6, 15));
         rootTask.PlannedDateRange.End.Should().Be(new LocalDate(2026, 6, 19));

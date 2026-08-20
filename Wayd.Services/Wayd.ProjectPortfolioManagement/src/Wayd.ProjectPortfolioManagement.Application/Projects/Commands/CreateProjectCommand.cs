@@ -164,7 +164,7 @@ public sealed class CreateProjectCommandHandler(
             if (request.ProjectLifecycleId.HasValue)
             {
                 var lifecycle = await _projectPortfolioManagementDbContext.ProjectLifecycles
-                    .Include(l => l.Phases)
+                    .Include(l => l.Stages)
                     .FirstOrDefaultAsync(l => l.Id == request.ProjectLifecycleId.Value, cancellationToken);
 
                 if (lifecycle is null)

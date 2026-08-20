@@ -6,28 +6,28 @@ using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
 namespace Wayd.Web.Api.Models.Ppm.ProjectTasks;
 
 /// <summary>
-/// A single CSV row for the project phase import: sets one phase's status. The project is referenced by key
-/// and the phase by name (phases come from the project's assigned lifecycle). The status is applied as given.
+/// A single CSV row for the project stage import: sets one stage's status. The project is referenced by key
+/// and the stage by name (stages come from the project's assigned lifecycle). The status is applied as given.
 /// </summary>
-public sealed class ImportProjectPhaseRequest
+public sealed class ImportProjectStageRequest
 {
     public string ProjectKey { get; set; } = default!;
-    public string PhaseName { get; set; } = default!;
+    public string StageName { get; set; } = default!;
 
-    /// <summary>The phase status (case-insensitive): 'NotStarted', 'InProgress', 'Completed' or 'Canceled'.</summary>
+    /// <summary>The stage status (case-insensitive): 'NotStarted', 'InProgress', 'Completed' or 'Canceled'.</summary>
     public string Status { get; set; } = default!;
 
-    public ImportProjectPhaseDto ToImportProjectPhaseDto()
+    public ImportProjectStageDto ToImportProjectStageDto()
     {
         var status = Enum.Parse<TaskStatus>(Status.Trim(), ignoreCase: true);
 
-        return new ImportProjectPhaseDto(new ProjectKey(ProjectKey), PhaseName, status);
+        return new ImportProjectStageDto(new ProjectKey(ProjectKey), StageName, status);
     }
 }
 
-public sealed class ImportProjectPhaseRequestValidator : CustomValidator<ImportProjectPhaseRequest>
+public sealed class ImportProjectStageRequestValidator : CustomValidator<ImportProjectStageRequest>
 {
-    public ImportProjectPhaseRequestValidator()
+    public ImportProjectStageRequestValidator()
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
@@ -36,7 +36,7 @@ public sealed class ImportProjectPhaseRequestValidator : CustomValidator<ImportP
             .Must(k => k.Trim().IsValidProjectKeyFormat())
                 .WithMessage("Invalid project key format. Project keys are uppercase letters and numbers only, 2-20 characters.");
 
-        RuleFor(p => p.PhaseName)
+        RuleFor(p => p.StageName)
             .NotEmpty();
 
         RuleFor(p => p.Status)

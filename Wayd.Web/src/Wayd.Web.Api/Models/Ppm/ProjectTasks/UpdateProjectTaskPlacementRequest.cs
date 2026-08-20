@@ -10,7 +10,7 @@ public sealed record UpdateProjectTaskPlacementRequest
     public Guid TaskId { get; set; }
 
     /// <summary>
-    /// The ID of the parent phase or task. If it matches a phase, the task becomes a root task in that phase.
+    /// The ID of the parent stage or task. If it matches a stage, the task becomes a root task in that stage.
     /// If it matches a task, the task becomes a child of that task.
     /// </summary>
     public Guid ParentId { get; set; }

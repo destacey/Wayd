@@ -3,7 +3,7 @@ using Wayd.ProjectPortfolioManagement.Domain.Models;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 
-public sealed record ProjectPhaseListDto : IMapFrom<ProjectPhase>
+public sealed record ProjectStageListDto : IMapFrom<ProjectStage>
 {
     public Guid Id { get; set; }
     public required string Name { get; set; }
@@ -15,7 +15,7 @@ public sealed record ProjectPhaseListDto : IMapFrom<ProjectPhase>
 
     public static void RegisterMapping(TypeAdapterConfig config)
     {
-        config.NewConfig<ProjectPhase, ProjectPhaseListDto>()
+        config.NewConfig<ProjectStage, ProjectStageListDto>()
             .Map(dest => dest.Status, src => SimpleNavigationDto.FromEnum(src.Status))
             .Map(dest => dest.Start, src => src.DateRange != null ? src.DateRange.Start : (LocalDate?)null)
             .Map(dest => dest.End, src => src.DateRange != null ? src.DateRange.End : (LocalDate?)null)

@@ -76,9 +76,9 @@ public sealed record ProjectListDto
     public NavigationDto? ProjectLifecycle { get; set; }
 
     /// <summary>
-    /// The project phases, ordered by display order.
+    /// The project stages, ordered by display order.
     /// </summary>
-    public List<ProjectPhaseListDto> Phases { get; set; } = [];
+    public List<ProjectStageListDto> Stages { get; set; } = [];
 
     /// <summary>
     /// The current (non-expired) health check for this project, or null if none exists.
@@ -127,7 +127,7 @@ public sealed record ProjectListDto
     {
         var config = new TypeAdapterConfig();
 
-        ProjectPhaseListDto.RegisterMapping(config);
+        ProjectStageListDto.RegisterMapping(config);
 
         config.NewConfig<Project, ProjectListDto>()
             .Map(dest => dest.Key, src => src.Key.Value)
@@ -142,7 +142,7 @@ public sealed record ProjectListDto
             .Map(dest => dest.ProjectMembers, src => src.Roles.Where(r => r.Role == ProjectRole.Member).Select(x => EmployeeNavigationDto.From(x.Employee!)).ToList())
             .Map(dest => dest.StrategicThemes, src => src.StrategicThemeTags.Select(x => NavigationDto.Create(x.StrategicTheme!.Id, x.StrategicTheme.Key, x.StrategicTheme.Name)).ToList())
             .Map(dest => dest.ProjectLifecycle, src => src.ProjectLifecycle != null ? NavigationDto.Create(src.ProjectLifecycle.Id, src.ProjectLifecycle.Key, src.ProjectLifecycle.Name) : null)
-            .Map(dest => dest.Phases, src => src.Phases.OrderBy(p => p.Order))
+            .Map(dest => dest.Stages, src => src.Stages.OrderBy(p => p.Order))
             .Map(dest => dest.HealthCheck, src => src.HealthChecks
                 .Where(h => !h.IsDeleted && h.Expiration > now)
                 .Select(h => new ProjectHealthCheckSummaryDto

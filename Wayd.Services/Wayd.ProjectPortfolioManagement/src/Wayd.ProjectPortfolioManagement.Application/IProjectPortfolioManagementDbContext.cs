@@ -19,5 +19,5 @@ public interface IProjectPortfolioManagementDbContext : IWaydDbContext
     DbSet<StrategicTheme> PpmStrategicThemes { get; }
     DbSet<StrategicInitiative> StrategicInitiatives { get; }
     DbSet<ProjectLifecycle> ProjectLifecycles { get; }
-    DbSet<ProjectPhase> ProjectPhases { get; }
+    DbSet<ProjectStage> ProjectStages { get; }
 }

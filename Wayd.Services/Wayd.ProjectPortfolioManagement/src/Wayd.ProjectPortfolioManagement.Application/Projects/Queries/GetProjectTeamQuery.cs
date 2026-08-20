@@ -38,12 +38,12 @@ public sealed class GetProjectTeamQueryHandler(IProjectPortfolioManagementDbCont
                     EmployeeKey = r.Employee!.Key,
                     EmployeeName = r.Employee.Name.FirstName + " " + r.Employee.Name.LastName,
                 }).ToList(),
-                PhaseAssignments = p.Phases
+                StageAssignments = p.Stages
                     .OrderBy(ph => ph.Order)
                     .SelectMany(ph => ph.Roles.Select(r => new
                     {
                         r.EmployeeId,
-                        PhaseName = ph.Name,
+                        StageName = ph.Name,
                     }))
                     .ToList(),
             })
@@ -74,12 +74,12 @@ public sealed class GetProjectTeamQueryHandler(IProjectPortfolioManagementDbCont
             .GroupBy(x => x.EmployeeId)
             .ToDictionary(g => g.Key, g => g.Count());
 
-        // Build phase assignments lookup
-        var phasesByEmployee = project.PhaseAssignments
+        // Build stage assignments lookup
+        var stagesByEmployee = project.StageAssignments
             .GroupBy(pa => pa.EmployeeId)
             .ToDictionary(
                 g => g.Key,
-                g => g.Select(pa => pa.PhaseName).Distinct().ToList());
+                g => g.Select(pa => pa.StageName).Distinct().ToList());
 
         // Collect all unique employees from project roles and task assignments
         var employeeMap = new Dictionary<Guid, (int Key, string Name, List<string> Roles)>();
@@ -115,7 +115,7 @@ public sealed class GetProjectTeamQueryHandler(IProjectPortfolioManagementDbCont
                     Name = kvp.Value.Name,
                 },
                 Roles = kvp.Value.Roles,
-                AssignedPhases = phasesByEmployee.TryGetValue(kvp.Key, out var phases) ? phases : [],
+                AssignedStages = stagesByEmployee.TryGetValue(kvp.Key, out var stages) ? stages : [],
                 ActiveWorkItemCount = activeTaskCounts.TryGetValue(kvp.Key, out var count) ? count : 0,
             })
             .OrderBy(m => m.Employee.Name)

@@ -23,7 +23,7 @@
     "test:only": "node --import tsx --test tests/**/*.test.ts",
     "prepare": "npm run build",
     "changeset": "changeset",
-    "version-packages": "changeset version",
+    "version-packages": "changeset version && npm install --package-lock-only",
     "release": "npm run build && changeset publish"
   },
   "keywords": [

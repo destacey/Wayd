@@ -88,7 +88,7 @@ const Permissions = (props: PermissionsProps) => {
       e.returnValue = message
     }
 
-    // Client-side navigation (capture stage to intercept before Next.js)
+    // Client-side navigation (capture phase to intercept before Next.js)
     const handleClick = (e: MouseEvent) => {
       const anchor = (e.target as HTMLElement).closest('a')
       if (!anchor) return

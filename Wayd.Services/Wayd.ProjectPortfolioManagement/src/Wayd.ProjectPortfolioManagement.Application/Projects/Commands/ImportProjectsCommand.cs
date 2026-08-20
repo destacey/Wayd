@@ -319,8 +319,8 @@ public sealed class ImportProjectsCommandHandler(
     }
 
     /// <summary>
-    /// Loads referenced lifecycles with their stages, which the project copies into stages when the
-    /// lifecycle is assigned — those copied stages are what project tasks are later imported into.
+    /// Loads referenced lifecycles with their stages. Assigning a lifecycle copies those
+    /// definitions onto the project, and the copies are what project tasks import into.
     /// </summary>
     private async Task<Result<Dictionary<string, ProjectLifecycle>>> ResolveLifecycles(ImportProjectsCommand request, CancellationToken cancellationToken)
     {

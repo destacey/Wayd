@@ -46,7 +46,7 @@ const PlanningIntervalPlanReviewPage = (props: {
 
   // Tab the user/URL has selected. `undefined` is the "haven't checked yet"
   // sentinel — important because Next.js's client-side navigation commits the
-  // URL hash AFTER the first render stage, so window.location.hash returns ""
+  // URL hash AFTER the first render phase, so window.location.hash returns ""
   // during render even when the URL bar shows "/plan-review#juice". We read
   // the hash in an effect (post-commit) and gate the URL-mirroring effect
   // until that read has happened, otherwise mirror would clobber the incoming
@@ -57,7 +57,7 @@ const PlanningIntervalPlanReviewPage = (props: {
   useEffect(() => {
     // Legitimate mount-time read of window.location.hash. Lint flags this as
     // "setState in effect" but it's the documented pattern for reading
-    // external state on mount when render-stage reads aren't available
+    // external state on mount when render-phase reads aren't available
     // (see comment above on Next.js's hash-commit timing).
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedTab(window.location.hash.slice(1) || null)

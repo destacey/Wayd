@@ -19,3 +19,7 @@ export type { UseBarDrag, BarDragState } from './render/use-bar-drag'
 export { applyDrag, progressFromX, snapToDay } from './core/interaction'
 export type { DragMode, DragResult } from './core/interaction'
 export { dragLabel, formatDragDay } from './core/drag-label'
+
+// Grid-hosted Gantt chart pane — the reusable capability behind the roadmap and
+// project plan charts. Consumers supply accessors for their own node shape.
+export * from './gantt'

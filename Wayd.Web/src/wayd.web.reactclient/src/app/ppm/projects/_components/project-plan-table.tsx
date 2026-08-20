@@ -31,6 +31,19 @@ import {
 import { getProjectPlanTableColumns } from './project-plan-table.columns'
 import { ProjectPlanHelp } from './project-plan-table.keyboard-shortcuts'
 import {
+  useProjectPlanGantt,
+  applyOptimisticPlanDates,
+  computeProjectPlanGanttDomain,
+  isMilestoneNode,
+  pxPerMsFor,
+} from './project-plan-gantt'
+import {
+  GanttToolbarActions,
+  useBarDrag,
+  useGanttZoom,
+  type GanttDragItem,
+} from '@/src/components/common/timeline'
+import {
   useGetTaskStatusOptionsQuery,
   useGetTaskPriorityOptionsQuery,
   useGetTaskTypeOptionsQuery,
@@ -39,7 +52,11 @@ import {
   useCreateProjectTaskMutation,
 } from '@/src/store/features/ppm/project-tasks-api'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
-import { usePatchProjectStageMutation } from '@/src/store/features/ppm/projects-api'
+import {
+  projectsApi,
+  usePatchProjectStageMutation,
+} from '@/src/store/features/ppm/projects-api'
+import { useAppDispatch } from '@/src/hooks'
 import { Form } from 'antd'
 
 interface ProjectPlanTableProps {
@@ -64,6 +81,7 @@ const ProjectPlanTable = ({
   const [form] = Form.useForm()
   const treeGridRef = useRef<WaydGridHandle>(null)
   const messageApi = useMessage()
+  const dispatch = useAppDispatch()
 
   // Modal form state
   const [openCreateTaskForm, setOpenCreateTaskForm] = useState(false)
@@ -474,6 +492,85 @@ const ProjectPlanTable = ({
     ],
   )
 
+  // ── Gantt chart pane ──────────────────────────────────────────────────────
+  // Stages, tasks and milestones drawn on a shared time axis to the right of the
+  // grid. Chart mechanics live in the shared engine (components/common/timeline/
+  // gantt); project-plan-gantt.tsx supplies the accessors for our node shape.
+  const [showGantt, setShowGantt] = useState(true)
+  const zoom = useGanttZoom()
+
+  // Commit a dragged bar's new dates through the SAME handler inline editing
+  // uses, so stage-vs-task routing, error handling and refetch stay single-sourced.
+  //
+  // Patch the plan-tree cache up front so the bar stays where it was dropped,
+  // before the refetch lands. Otherwise the dragged bar visibly snaps back to its
+  // original position and then to the new one once the refetch returns (the same
+  // reason updateRoadmapItemDates patches optimistically). Roll back on failure.
+  const commitBarDates = useCallback(
+    async (change: { id: string; start: number; end: number }) => {
+      const node = findNodeById(
+        tasks || [],
+        change.id,
+      ) as ProjectPlanNodeDto | null
+      if (!node) return
+      // A milestone carries one date; a stage/task carries a planned range.
+      const isMilestone = isMilestoneNode(node)
+      const start = dayjs(change.start).format('YYYY-MM-DD')
+      const end = dayjs(change.end).format('YYYY-MM-DD')
+      const updates = isMilestone
+        ? { plannedDate: start }
+        : { plannedStart: start, plannedEnd: end }
+
+      const patchResult = dispatch(
+        projectsApi.util.updateQueryData(
+          'getProjectPlanTree',
+          projectKey,
+          (draft) => {
+            applyOptimisticPlanDates(draft, change.id, isMilestone, start, end)
+          },
+        ),
+      )
+      const succeeded = await handleUpdateTask(change.id, updates)
+      if (!succeeded) patchResult.undo()
+    },
+    [tasks, handleUpdateTask, dispatch, projectKey],
+  )
+
+  // Domain drives the drag clamp range; pxPerMs comes from the zoom level. Both
+  // are computed the same way the chart's scale is (no duplication).
+  const { domainStart, domainEnd } = useMemo(
+    () => computeProjectPlanGanttDomain(tasks ?? []),
+    [tasks],
+  )
+
+  const barDrag = useBarDrag({
+    pxPerMs: pxPerMsFor(zoom.pxPerDay),
+    min: domainStart,
+    max: domainEnd,
+    onCommit: commitBarDates,
+  })
+
+  // Pointer offset from the bar's left edge at move-drag start, so the live date
+  // label can follow the cursor rather than centering on the whole bar.
+  const grabOffsetRef = useRef(0)
+  const onBarPointerDown = useCallback(
+    (e: React.PointerEvent, item: GanttDragItem, mode: 'move' | 'resize-start' | 'resize-end') => {
+      if (mode === 'move') grabOffsetRef.current = e.nativeEvent.offsetX
+      barDrag.start(e, item, mode)
+    },
+    [barDrag],
+  )
+
+  // Called unconditionally (rules of hooks); the pane is only wired when shown.
+  const gantt = useProjectPlanGantt(tasks ?? [], {
+    pxPerDay: zoom.pxPerDay,
+    editable: canManageTasks,
+    activeDrag: barDrag.active,
+    onBarPointerDown,
+    moveGrabOffset:
+      barDrag.active?.mode === 'move' ? grabOffsetRef.current : undefined,
+  })
+
   const handleEditTask = useCallback((task: any) => {
     setSelectedTaskId(task.id)
     setOpenEditTaskForm(true)
@@ -817,6 +914,25 @@ const ProjectPlanTable = ({
               handleEditStage,
               openPlanItemDrawer: handleOpenPlanItemDrawer,
             })
+          }
+          actionsSlot={
+            <GanttToolbarActions
+              visible={showGantt}
+              onToggle={() => setShowGantt((v) => !v)}
+              zoom={zoom}
+            />
+          }
+          rightPane={
+            showGantt
+              ? {
+                  header: gantt.header,
+                  defaultWidth: gantt.defaultWidth,
+                  renderRow: gantt.renderRow,
+                  renderBackground: gantt.renderBackground,
+                  // Ctrl/Cmd+wheel zooms the chart (matches the timeline).
+                  onWheel: zoom.onWheel,
+                }
+              : undefined
           }
           onRefresh={refetch}
           enableDragAndDrop={enableDragAndDrop}

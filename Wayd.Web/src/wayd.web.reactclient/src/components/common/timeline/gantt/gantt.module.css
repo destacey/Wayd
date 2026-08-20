@@ -1,5 +1,6 @@
-/* roadmap-gantt.module.css — bars + axis for the roadmap Gantt chart pane.
-   Theme-token styling only (no hardcoded colors). */
+/* gantt.module.css — bars + axis for any grid-hosted Gantt chart pane.
+   Theme-token styling only (no hardcoded colors). Shared by the roadmap and
+   project plan panes; originally roadmap-gantt.module.css. */
 
 /* ── Date axis (two-tier header) ───────────────────────────────────────── */
 .axis {
@@ -65,8 +66,26 @@
 }
 
 .barLabel {
+  /* Sits above the progress fill, which is absolutely placed behind it. */
+  position: relative;
+  z-index: 1;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Progress fill — a darker wash over the completed portion of a bar. Drawn as
+   an overlay (not a background swap) so it composes with a custom bar color. */
+.progressFill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 0;
+  background-color: var(--ant-color-text);
+  opacity: 0.25;
+  pointer-events: none;
+  border-top-left-radius: var(--ant-border-radius);
+  border-bottom-left-radius: var(--ant-border-radius);
 }
 
 /* Editable range bar — grab cursor + endpoint resize handles (match timeline). */
@@ -122,8 +141,9 @@
   box-shadow: var(--ant-box-shadow-tertiary);
 }
 
-/* Timebox — a lighter background band rather than a solid task bar. */
-.timeboxBar {
+/* Muted bar — a lighter background band rather than a solid task bar.
+   Used for roadmap timeboxes. */
+.mutedBar {
   background-color: var(--ant-color-fill-secondary);
   border: 1px solid var(--ant-color-border);
   color: var(--ant-color-text-secondary);
@@ -161,6 +181,17 @@
   border-color: var(--ant-color-text-tertiary) transparent transparent transparent;
 }
 
+/* Progress fill on a summary bar — squared corners to match its shape. */
+.summaryProgressFill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background-color: var(--ant-color-text-tertiary);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
 /* Milestone — a square rotated 45° (diamond) centered on its date. */
 .milestone {
   position: absolute;
@@ -168,4 +199,18 @@
   transform: rotate(45deg);
   background-color: var(--ant-color-primary);
   border-radius: 2px;
+}
+
+/* A completed milestone reads filled-dark rather than primary. */
+.milestoneComplete {
+  background-color: var(--ant-color-text);
+}
+
+/* A draggable milestone gets the same grab affordance as an editable bar. */
+.milestoneEditable {
+  cursor: grab;
+}
+
+.milestoneEditable:active {
+  cursor: grabbing;
 }

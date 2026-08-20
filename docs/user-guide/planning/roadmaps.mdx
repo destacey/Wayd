@@ -63,7 +63,7 @@ The roadmap detail page offers two views:
 
 **Timeline View** (default) — Visual timeline showing activities, milestones, and timeboxes. Managers can drag and drop items to reorder them. Single-day activity and timebox ranges use a compact marker treatment with the label beside the marker.
 
-**List View** — Hierarchical tree grid showing all items with Name, Type, Start Date, End Date, and Status. Supports inline editing for managers and keyboard shortcuts.
+**List View** — Hierarchical tree grid showing all items with Name, Type, Start Date, End Date, and Status. Supports inline editing for managers and keyboard shortcuts, and pairs the grid with a [Gantt chart](#gantt-chart).
 
 Clicking an item opens a **drawer** with full details, edit, and delete actions.
 
@@ -101,6 +101,39 @@ The default color is applied when the timeline is displayed — it is not writte
 :::note
 Color palettes apply to **activities**. Milestones and timeboxes still use their own colors. If a roadmap has no palette configured, activities use the standard free color picker and no legend is shown.
 :::
+
+## Gantt Chart
+
+The List view pairs the item grid with a Gantt chart on the right, sharing the same rows: each grid row draws its dates on a common date axis. The chart is shown by default and can be hidden from the toolbar.
+
+| Row | Drawn as |
+|-----|----------|
+| Activity | A bar from start to end, in its [roadmap color](#roadmap-colors) |
+| Timebox | A lighter banded bar |
+| Milestone | A diamond on its date |
+
+A parent activity with no dates of its own is drawn as a summary bar spanning its children.
+
+**Toolbar controls:**
+
+| Control | Action |
+|---------|--------|
+| Chart button | Show or hide the chart pane |
+| **+** / **−** buttons | Zoom in / out |
+| Reset zoom button | Return to the default zoom |
+| Ctrl/Cmd + scroll | Zoom in / out over the chart |
+| Drag the divider | Resize the chart pane |
+
+**Editing (managers only):**
+
+| Control | Action |
+|---------|--------|
+| Drag a bar | Move the item, keeping its duration |
+| Drag a bar's left/right handle | Change the start or end date |
+| Drag a diamond | Change a milestone's date |
+| Esc during drag | Cancel without saving |
+
+Dragging saves immediately and follows the same [parent/child date rules](#activity-date-rollup) as editing dates in a form — moving a child past its parent's range expands the parent.
 
 ## Timeline Controls
 

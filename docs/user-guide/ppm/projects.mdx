@@ -332,6 +332,39 @@ graph TD
   - Leaf regular tasks and empty containers can remain undated.
   - Shifting a parent task's range offsets all of its dated descendants by the same duration.
 
+### Gantt Chart
+
+The **Plan** tab pairs the task grid with a Gantt chart on the right, sharing the same rows: each grid row draws its schedule on a common date axis. The chart is shown by default and can be hidden from the toolbar.
+
+| Row | Drawn as |
+|-----|----------|
+| [Stage](#project-stages) | A summary bar spanning its tasks. A stage with no dates of its own is rolled up from its children |
+| Task | A bar from planned start to planned end, shaded to show [progress](#task-properties) |
+| Milestone | A diamond on its planned date |
+
+Rows with no dates draw nothing — the grid still lists them, so an unscheduled plan is visible rather than hidden.
+
+**Toolbar controls:**
+
+| Control | Action |
+|---------|--------|
+| Chart button | Show or hide the chart pane |
+| **+** / **−** buttons | Zoom in / out |
+| Reset zoom button | Return to the default zoom |
+| Ctrl/Cmd + scroll | Zoom in / out over the chart |
+| Drag the divider | Resize the chart pane |
+
+**Rescheduling (requires permission to manage tasks):**
+
+| Control | Action |
+|---------|--------|
+| Drag a bar | Move the task, keeping its duration |
+| Drag a bar's left/right handle | Change the planned start or end date |
+| Drag a diamond | Change a milestone's planned date |
+| Esc during drag | Cancel without saving |
+
+Dragging saves the new dates immediately and follows the same rules as editing dates in the grid — including [date rollup](#task-hierarchy), so moving a task past the edge of its stage expands the stage to contain it.
+
 ### Task Dependencies
 
 Tasks support **Finish-to-Start** dependencies — a predecessor task must complete before its successor can start. Dependencies are soft-deleted (marked as removed rather than permanently deleted).
@@ -357,8 +390,9 @@ Tasks support **Finish-to-Start** dependencies — a predecessor task must compl
 3. Create [tasks](#project-tasks) within each [stage](#project-stages) — choose Task or Milestone type
 4. Set priority, dates, assignees, and estimated effort
 5. Drag and drop to reorder tasks within stages
-6. Set [dependencies](#task-dependencies) between tasks
-7. Track progress and update statuses
+6. Use the [Gantt chart](#gantt-chart) to review the schedule and drag bars to reschedule
+7. Set [dependencies](#task-dependencies) between tasks
+8. Track progress and update statuses
 
 ### Reporting Project Health
 

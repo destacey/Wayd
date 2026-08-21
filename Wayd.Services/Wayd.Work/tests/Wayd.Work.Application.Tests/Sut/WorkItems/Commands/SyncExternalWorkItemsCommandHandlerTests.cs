@@ -2,7 +2,9 @@
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Enums.Work;
+using Wayd.Tests.Shared;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.Tests.Data;
 using Wayd.Work.Application.Tests.Infrastructure;
@@ -18,10 +20,13 @@ namespace Wayd.Work.Application.Tests.Sut.WorkItems.Commands;
 
 public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
 {
+    private static readonly Guid _connectionId = Guid.Parse("1c9f0a3e-6b4d-4f2a-9c81-5d0e7a2b4f63");
+
     private readonly FakeWorkDbContext _fakeWorkDbContext;
     private readonly Mock<ILogger<SyncExternalWorkItemsCommandHandler>> _mockLogger;
     private readonly SyncExternalWorkItemsCommandHandler _handler;
     private readonly FakeClock _clock;
+    private readonly TestingDateTimeProvider _dateTimeProvider;
 
     private readonly ExternalWorkItemFaker _externalWorkItemFaker;
     private readonly WorkspaceFaker _workspaceFaker;
@@ -32,7 +37,8 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
         _fakeWorkDbContext = new FakeWorkDbContext();
         _mockLogger = new Mock<ILogger<SyncExternalWorkItemsCommandHandler>>();
         _clock = new FakeClock(Instant.FromUtc(2024, 1, 15, 12, 0, 0));
-        _handler = new SyncExternalWorkItemsCommandHandler(_fakeWorkDbContext, _mockLogger.Object);
+        _dateTimeProvider = new TestingDateTimeProvider(_clock);
+        _handler = new SyncExternalWorkItemsCommandHandler(_fakeWorkDbContext, _dateTimeProvider, _mockLogger.Object);
 
         _externalWorkItemFaker = new ExternalWorkItemFaker(_clock.GetCurrentInstant(), _clock.GetCurrentInstant());
         _workspaceFaker = new WorkspaceFaker();
@@ -49,6 +55,8 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
     {
         // Arrange
         var command = new SyncExternalWorkItemsCommand(
+            _connectionId,
+            Connector.AzureDevOps,
             Guid.NewGuid(),
             [],
             [],
@@ -191,7 +199,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
         mockWorkDbContext.Setup(x => x.Workspaces)
             .Throws(new InvalidOperationException("Database error"));
 
-        var handlerWithMock = new SyncExternalWorkItemsCommandHandler(mockWorkDbContext.Object, _mockLogger.Object);
+        var handlerWithMock = new SyncExternalWorkItemsCommandHandler(mockWorkDbContext.Object, _dateTimeProvider, _mockLogger.Object);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -236,7 +244,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
         mockWorkDbContext.Setup(x => x.Workspaces)
             .Throws(new InvalidOperationException("Database error"));
 
-        var handlerWithMock = new SyncExternalWorkItemsCommandHandler(mockWorkDbContext.Object, _mockLogger.Object);
+        var handlerWithMock = new SyncExternalWorkItemsCommandHandler(mockWorkDbContext.Object, _dateTimeProvider, _mockLogger.Object);
 
         // Act
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -329,9 +337,12 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
         Guid workspaceId,
         List<IExternalWorkItem> workItems,
         Dictionary<Guid, Guid?>? teamMappings = null,
-        Dictionary<string, Guid>? iterationMappings = null)
+        Dictionary<string, Guid>? iterationMappings = null,
+        Guid? connectionId = null)
     {
         return new SyncExternalWorkItemsCommand(
+            connectionId ?? _connectionId,
+            Connector.AzureDevOps,
             workspaceId,
             workItems,
             teamMappings ?? [],

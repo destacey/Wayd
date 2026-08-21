@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Scoring;
@@ -37,6 +38,7 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
     // Common domain entities
     private readonly List<Employee> _employees = [];
     private readonly List<ExternalEmployeeBlacklistItem> _externalEmployeeBlacklistItems = [];
+    private readonly List<ExternalIdentityMapping> _externalIdentityMappings = [];
     private readonly List<OidcProvider> _oidcProviders = [];
     private readonly List<PersonalAccessToken> _personalAccessTokens = [];
     private readonly List<User> _waydUsers = [];
@@ -59,6 +61,7 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
     public DbSet<ScoringModel> ScoringModels => _scoringModels.AsDbSet();
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();
+    public DbSet<ExternalIdentityMapping> ExternalIdentityMappings => _externalIdentityMappings.AsDbSet();
     public DbSet<OidcProvider> OidcProviders => _oidcProviders.AsDbSet();
     public DbSet<PersonalAccessToken> PersonalAccessTokens => _personalAccessTokens.AsDbSet();
     public DbSet<User> WaydUsers => _waydUsers.AsDbSet();
@@ -82,7 +85,7 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
         var count = _expenditureCategories.Count + _portfolios.Count + _programs.Count +
                     _projects.Count + _projectTasks.Count + _projectTaskDependencies.Count +
                     _ppmTeams.Count + _ppmStrategicThemes.Count + _strategicInitiatives.Count +
-                    _employees.Count + _externalEmployeeBlacklistItems.Count + _personalAccessTokens.Count;
+                    _employees.Count + _externalEmployeeBlacklistItems.Count + _externalIdentityMappings.Count + _personalAccessTokens.Count;
         return Task.FromResult(count);
     }
 
@@ -185,6 +188,7 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
         _scoringModels.Clear();
         _employees.Clear();
         _externalEmployeeBlacklistItems.Clear();
+        _externalIdentityMappings.Clear();
         _personalAccessTokens.Clear();
         SaveChangesCallCount = 0;
     }

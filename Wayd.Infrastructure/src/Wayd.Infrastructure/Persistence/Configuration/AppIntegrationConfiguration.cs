@@ -4,6 +4,8 @@ using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.Common.Application.Enums;
+using Wayd.Common.Domain.AppIntegrations;
+using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Infrastructure.Persistence.Converters;
 using Wayd.Infrastructure.Persistence.Extensions;
@@ -153,5 +155,54 @@ public class SyncRunConfig : IEntityTypeConfiguration<SyncRun>
         builder.HasIndex(r => r.ConnectionId);
         builder.HasIndex(r => new { r.ConnectionId, r.StartedAt });
         builder.HasIndex(r => new { r.Status, r.StartedAt });
+    }
+}
+
+public class ExternalIdentityMappingConfig : IEntityTypeConfiguration<ExternalIdentityMapping>
+{
+    public void Configure(EntityTypeBuilder<ExternalIdentityMapping> builder)
+    {
+        builder.ToTable("ExternalIdentityMappings", SchemaNames.AppIntegration);
+
+        builder.HasKey(m => m.Id);
+        builder.Property(m => m.Id).ValueGeneratedNever();
+
+        // No FK to Connections, matching SyncRuns: Connection is soft-deletable, so a constraint
+        // would not fire on delete anyway, and an admin's mapping decisions are worth keeping if a
+        // connection is removed and re-created. Queries filter on the connection explicitly.
+        builder.Property(m => m.ConnectionId).IsRequired();
+
+        builder.Property(m => m.Connector).IsRequired()
+            .HasConversion<EnumConverter<Connector>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+
+        builder.Property(m => m.ExternalId).IsRequired().HasMaxLength(128);
+        builder.Property(m => m.Email).HasMaxLength(256);
+        builder.Property(m => m.DisplayName).HasMaxLength(256);
+        builder.Property(m => m.Handle).HasMaxLength(256);
+
+        builder.Property(m => m.Status).IsRequired()
+            .HasConversion<EnumConverter<ExternalIdentityMappingStatus>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(16);
+
+        builder.Property(m => m.LastSeen).IsRequired();
+
+        // One row per identity per connection. Unfiltered: these rows are never soft-deleted, and
+        // the sync upserts against this key on every run.
+        builder.HasIndex(m => new { m.ConnectionId, m.ExternalId }).IsUnique();
+
+        // Drives the review queue (unmapped first, most recently seen first).
+        builder.HasIndex(m => new { m.ConnectionId, m.Status });
+
+        builder.HasIndex(m => m.EmployeeId);
+
+        // An employee delete must not silently drop the mapping row and let the identity quietly
+        // re-resolve to nobody; the row stays and returns to the review queue.
+        builder.HasOne(m => m.Employee)
+            .WithMany()
+            .HasForeignKey(m => m.EmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

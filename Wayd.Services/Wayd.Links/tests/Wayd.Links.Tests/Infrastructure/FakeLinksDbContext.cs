@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Scoring;
@@ -21,6 +22,7 @@ public class FakeLinksDbContext : ILinksDbContext, IDisposable
     // Common domain entities
     private readonly List<Employee> _employees = [];
     private readonly List<ExternalEmployeeBlacklistItem> _externalEmployeeBlacklistItems = [];
+    private readonly List<ExternalIdentityMapping> _externalIdentityMappings = [];
     private readonly List<OidcProvider> _oidcProviders = [];
     private readonly List<PersonalAccessToken> _personalAccessTokens = [];
     private readonly List<User> _waydUsers = [];
@@ -30,6 +32,7 @@ public class FakeLinksDbContext : ILinksDbContext, IDisposable
     public DbSet<Link> Links => _links.AsDbSet();
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();
+    public DbSet<ExternalIdentityMapping> ExternalIdentityMappings => _externalIdentityMappings.AsDbSet();
     public DbSet<OidcProvider> OidcProviders => _oidcProviders.AsDbSet();
     public DbSet<PersonalAccessToken> PersonalAccessTokens => _personalAccessTokens.AsDbSet();
     public DbSet<User> WaydUsers => _waydUsers.AsDbSet();
@@ -51,7 +54,7 @@ public class FakeLinksDbContext : ILinksDbContext, IDisposable
         SaveChangesCallCount++;
 
         // Return the total number of entities as a simple success indicator
-        var count = _links.Count + _employees.Count + _externalEmployeeBlacklistItems.Count + _personalAccessTokens.Count;
+        var count = _links.Count + _employees.Count + _externalEmployeeBlacklistItems.Count + _externalIdentityMappings.Count + _personalAccessTokens.Count;
         return Task.FromResult(count);
     }
 
@@ -84,6 +87,7 @@ public class FakeLinksDbContext : ILinksDbContext, IDisposable
         _links.Clear();
         _employees.Clear();
         _externalEmployeeBlacklistItems.Clear();
+        _externalIdentityMappings.Clear();
         _personalAccessTokens.Clear();
         SaveChangesCallCount = 0;
     }

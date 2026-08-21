@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Ardalis.GuardClauses;
 using NodaTime;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
@@ -209,7 +209,7 @@ public sealed class AzureDevOpsWorkItemSource(
         else if (workItemsResult.Value.Count > 0)
         {
             var iterationMappings = await _dispatcher.Send(new GetIterationMappingsQuery(Connector.AzureDevOps, ctx.SystemId), cancellationToken);
-            var syncResult = await _dispatcher.Send(new SyncExternalWorkItemsCommand(target.InternalWorkspaceId, workItemsResult.Value, teamMappings, iterationMappings), cancellationToken);
+            var syncResult = await _dispatcher.Send(new SyncExternalWorkItemsCommand(RequireDescriptor().ConnectionId, Connector.AzureDevOps, target.InternalWorkspaceId, workItemsResult.Value, teamMappings, iterationMappings), cancellationToken);
             if (syncResult.IsFailure)
             {
                 hadPartialFailure = true;

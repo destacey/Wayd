@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Scoring;
@@ -36,6 +37,7 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
     // Common domain entities
     private readonly List<Employee> _employees = [];
     private readonly List<ExternalEmployeeBlacklistItem> _externalEmployeeBlacklistItems = [];
+    private readonly List<ExternalIdentityMapping> _externalIdentityMappings = [];
     private readonly List<OidcProvider> _oidcProviders = [];
     private readonly List<PersonalAccessToken> _personalAccessTokens = [];
     private readonly List<User> _waydUsers = [];
@@ -55,6 +57,7 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
     public DbSet<StoryMap> StoryMaps => _storyMaps.AsDbSet();
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();
+    public DbSet<ExternalIdentityMapping> ExternalIdentityMappings => _externalIdentityMappings.AsDbSet();
     public DbSet<OidcProvider> OidcProviders => _oidcProviders.AsDbSet();
     public DbSet<PersonalAccessToken> PersonalAccessTokens => _personalAccessTokens.AsDbSet();
     public DbSet<User> WaydUsers => _waydUsers.AsDbSet();
@@ -91,7 +94,7 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
         var count = _iterations.Count + _planningIntervals.Count + _risks.Count +
                     _planningTeams.Count + _planningIntervalObjectiveHealthChecks.Count + _roadmaps.Count +
                     _estimationScales.Count + _pokerSessions.Count +
-                    _employees.Count + _externalEmployeeBlacklistItems.Count + _personalAccessTokens.Count;
+                    _employees.Count + _externalEmployeeBlacklistItems.Count + _externalIdentityMappings.Count + _personalAccessTokens.Count;
         return Task.FromResult(count);
     }
 
@@ -174,6 +177,7 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
         _employees.Clear();
         _waydUsers.Clear();
         _externalEmployeeBlacklistItems.Clear();
+        _externalIdentityMappings.Clear();
         _personalAccessTokens.Clear();
         SaveChangesCallCount = 0;
     }

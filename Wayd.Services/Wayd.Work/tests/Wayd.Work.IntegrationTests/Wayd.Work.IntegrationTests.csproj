@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
+        <IsTestProject>true</IsTestProject>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="FluentAssertions" />
+        <PackageReference Include="Moq" />
+        <PackageReference Include="Moq.AutoMock" />
+        <PackageReference Include="NodaTime.Testing" />
+        <PackageReference Include="Testcontainers.MsSql" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="xunit.v3" />
+        <PackageReference Include="xunit.runner.visualstudio">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="coverlet.collector">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- The real WaydDbContext and the SQL Server migrations, so EF translation, value
+             converters and NodaTime mapping behave exactly as in production. Set-based updates
+             (ExecuteUpdate) cannot be verified any other way: the in-memory fakes do not translate. -->
+        <ProjectReference Include="..\..\..\..\Wayd.Infrastructure\src\Wayd.Infrastructure.Migrators.MSSQL\Wayd.Infrastructure.Migrators.MSSQL.csproj" />
+        <ProjectReference Include="..\..\src\Wayd.Work.Application\Wayd.Work.Application.csproj" />
+        <ProjectReference Include="..\..\..\..\Wayd.Common\src\Wayd.Common.Application\Wayd.Common.Application.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Xunit" />
+    </ItemGroup>
+
+</Project>

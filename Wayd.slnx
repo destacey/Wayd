@@ -1,4 +1,4 @@
-<Solution>
+﻿<Solution>
   <Folder Name="/Wayd.Common/" />
   <Folder Name="/Wayd.Common/src/">
     <Project Path="Wayd.Common/src/Wayd.Common.Application/Wayd.Common.Application.csproj" />
@@ -106,6 +106,7 @@
   <Folder Name="/Wayd.Services/Wayd.Work/tests/">
     <Project Path="Wayd.Services/Wayd.Work/tests/Wayd.Work.Application.Tests/Wayd.Work.Application.Tests.csproj" />
     <Project Path="Wayd.Services/Wayd.Work/tests/Wayd.Work.Domain.Tests/Wayd.Work.Domain.Tests.csproj" />
+    <Project Path="Wayd.Services/Wayd.Work/tests/Wayd.Work.IntegrationTests/Wayd.Work.IntegrationTests.csproj" />
   </Folder>
   <Folder Name="/Wayd.Web/" />
   <Folder Name="/Wayd.Web/src/">

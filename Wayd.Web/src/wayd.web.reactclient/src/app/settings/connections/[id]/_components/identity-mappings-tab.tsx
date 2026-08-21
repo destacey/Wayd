@@ -114,7 +114,7 @@ const IdentityMappingsTab: FC<Props> = ({ connectionId }) => {
         mappingId: mapping.id,
         action,
         employeeId,
-      } as never)
+      })
       if (response.error) throw response.error
 
       const name = mapping.displayName ?? mapping.handle ?? mapping.externalId

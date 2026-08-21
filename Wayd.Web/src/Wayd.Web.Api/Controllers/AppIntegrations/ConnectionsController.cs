@@ -10,6 +10,7 @@ using Wayd.AppIntegration.Application.Connections.Dtos.Identities;
 using Wayd.AppIntegration.Application.Connections.Dtos.Workday;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.AppIntegration.Domain.Models;
+using Wayd.AppIntegration.Application.Connections.Commands.Identities;
 using Wayd.AppIntegration.Application.Connections.Queries.Identities;
 using Wayd.Common.Application.BackgroundJobs;
 using Wayd.Common.Application.Employees.Queries;
@@ -107,6 +108,8 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
     public async Task<ActionResult> UpdateConnectionIdentity(
         Guid id,
         [FromBody] UpdateConnectionIdentityMappingRequest request,
+        [FromServices] IJobService jobService,
+        [FromServices] IJobManager jobManager,
         CancellationToken cancellationToken)
     {
         if (id != request.ConnectionId)
@@ -115,7 +118,16 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
         var employeeIds = await _dispatcher.Send(new GetValidEmployeeIdsQuery(), cancellationToken);
         var result = await _dispatcher.Send(request.ToUpdateConnectionIdentityMappingCommand(employeeIds), cancellationToken);
 
-        return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
+        if (result.IsFailure)
+            return BadRequest(result.ToBadRequestObject(HttpContext));
+
+        // Queued rather than awaited: one identity can own tens of thousands of work items, and an
+        // admin picking a name from a dropdown must not wait on the repoint.
+        var decision = result.Value;
+        jobService.Enqueue(() => jobManager.RunRepointWorkItemAttribution(
+            decision.ExternalId, decision.EmployeeId, CancellationToken.None));
+
+        return NoContent();
     }
 
     [HttpPost]

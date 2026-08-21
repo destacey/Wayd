@@ -43919,8 +43919,7 @@
         "required": [
           "connectionId",
           "mappingId",
-          "action",
-          "employeeId"
+          "action"
         ],
         "properties": {
           "connectionId": {
@@ -43951,7 +43950,7 @@
             "type": "string",
             "description": "The employee to attribute this identity to. Required when the action is Map.",
             "format": "guid",
-            "nullable": false,
+            "nullable": true,
             "example": "00000000-0000-0000-0000-000000000000"
           }
         }

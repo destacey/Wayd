@@ -542,6 +542,9 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
             {
                 mapping.RefreshFromSync(user.Email, user.DisplayName, user.Handle, autoMatched, now);
                 resolved[externalId] = mapping.EmployeeId;
+
+                if (mapping.Status == ExternalIdentityMappingStatus.Unmapped)
+                    unmappedCount++;
             }
             else if (autoMatched.HasValue)
             {
@@ -556,10 +559,8 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
                     request.Connector, request.ConnectionId, externalId,
                     user.Email, user.DisplayName, user.Handle, now));
                 resolved[externalId] = null;
-            }
-
-            if (resolved[externalId] is null)
                 unmappedCount++;
+            }
         }
 
         if (newMappings.Count > 0)

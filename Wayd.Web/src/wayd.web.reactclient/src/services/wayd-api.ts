@@ -37261,7 +37261,7 @@ export interface UpdateConnectionIdentityMappingRequest {
     /** Map, Ignore, or Clear. */
     action: IdentityMappingAction;
     /** The employee to attribute this identity to. Required when the action is Map. */
-    employeeId: string;
+    employeeId?: string | undefined;
 }
 
 export enum IdentityMappingAction {

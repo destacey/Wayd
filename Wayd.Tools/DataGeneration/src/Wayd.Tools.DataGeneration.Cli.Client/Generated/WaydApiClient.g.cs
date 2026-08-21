@@ -71563,8 +71563,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// The employee to attribute this identity to. Required when the action is Map.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("employeeId")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.Guid EmployeeId { get; set; } = default!;
+        public System.Guid? EmployeeId { get; set; } = default!;
 
     }
 

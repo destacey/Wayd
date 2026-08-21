@@ -1,4 +1,4 @@
-using Wayd.AppIntegration.Application.Connections.Commands.Identities;
+﻿using Wayd.AppIntegration.Application.Connections.Commands.Identities;
 
 namespace Wayd.Web.Api.Models.AppIntegrations.Connections;
 
@@ -17,6 +17,11 @@ public sealed record UpdateConnectionIdentityMappingRequest
     public IdentityMappingAction Action { get; set; }
 
     /// <summary>The employee to attribute this identity to. Required when the action is Map.</summary>
+    /// <remarks>
+    /// Left out of this validator on purpose. A <c>NotNull</c> rule here — even behind a
+    /// <c>When</c> — makes NSwag emit the property as required, so the generated clients demand an
+    /// employee for Ignore and Clear too. The command validator enforces it where the rule belongs.
+    /// </remarks>
     public Guid? EmployeeId { get; set; }
 
     public UpdateConnectionIdentityMappingCommand ToUpdateConnectionIdentityMappingCommand(Guid[] validEmployeeIds) =>
@@ -35,11 +40,5 @@ public sealed class UpdateConnectionIdentityMappingRequestValidator : CustomVali
 
         RuleFor(r => r.Action)
             .IsInEnum();
-
-        RuleFor(r => r.EmployeeId)
-            .NotNull()
-            .NotEqual(Guid.Empty)
-            .When(r => r.Action == IdentityMappingAction.Map)
-            .WithMessage("An employee is required when mapping an identity.");
     }
 }

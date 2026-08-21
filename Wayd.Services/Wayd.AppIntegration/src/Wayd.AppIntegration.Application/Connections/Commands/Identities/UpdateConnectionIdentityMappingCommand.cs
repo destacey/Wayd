@@ -1,6 +1,5 @@
 ﻿using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 
@@ -38,7 +37,14 @@ public sealed record UpdateConnectionIdentityMappingCommand(
     Guid MappingId,
     IdentityMappingAction Action,
     Guid? EmployeeId,
-    Guid[] ValidEmployeeIds) : ICommand;
+    Guid[] ValidEmployeeIds) : ICommand<IdentityMappingDecision>;
+
+/// <summary>
+/// The decision that was applied, so the caller can queue the matching attribution repoint. The
+/// repoint is not dispatched here: it can touch tens of thousands of work items, and an admin
+/// picking a name from a dropdown must not wait on it.
+/// </summary>
+public sealed record IdentityMappingDecision(string ExternalId, Guid? EmployeeId);
 
 public sealed class UpdateConnectionIdentityMappingCommandValidator : CustomValidator<UpdateConnectionIdentityMappingCommand>
 {
@@ -65,17 +71,15 @@ public sealed class UpdateConnectionIdentityMappingCommandValidator : CustomVali
 
 public sealed class UpdateConnectionIdentityMappingCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
-    IDispatcher dispatcher,
     ILogger<UpdateConnectionIdentityMappingCommandHandler> logger)
-    : ICommandHandler<UpdateConnectionIdentityMappingCommand>
+    : ICommandHandler<UpdateConnectionIdentityMappingCommand, IdentityMappingDecision>
 {
     private const string AppRequestName = nameof(UpdateConnectionIdentityMappingCommand);
 
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
-    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ILogger<UpdateConnectionIdentityMappingCommandHandler> _logger = logger;
 
-    public async Task<Result> Handle(UpdateConnectionIdentityMappingCommand request, CancellationToken cancellationToken)
+    public async Task<Result<IdentityMappingDecision>> Handle(UpdateConnectionIdentityMappingCommand request, CancellationToken cancellationToken)
     {
         try
         {
@@ -84,24 +88,24 @@ public sealed class UpdateConnectionIdentityMappingCommandHandler(
             var mapping = await _appIntegrationDbContext.ExternalIdentityMappings
                 .FirstOrDefaultAsync(m => m.Id == request.MappingId && m.ConnectionId == request.ConnectionId, cancellationToken);
             if (mapping is null)
-                return Result.Failure("External identity mapping not found.");
+                return Result.Failure<IdentityMappingDecision>("External identity mapping not found.");
 
             switch (request.Action)
             {
                 case IdentityMappingAction.Map:
                     if (!request.EmployeeId.HasValue)
-                        return Result.Failure("An employee is required when mapping an identity.");
+                        return Result.Failure<IdentityMappingDecision>("An employee is required when mapping an identity.");
 
                     if (!request.ValidEmployeeIds.Contains(request.EmployeeId.Value))
                     {
                         _logger.LogWarning("{AppRequestName}: Invalid employee {EmployeeId} for connection {ConnectionId} mapping {MappingId}.",
                             AppRequestName, request.EmployeeId, request.ConnectionId, request.MappingId);
-                        return Result.Failure("The selected employee could not be found.");
+                        return Result.Failure<IdentityMappingDecision>("The selected employee could not be found.");
                     }
 
                     var mapResult = mapping.MapToEmployee(request.EmployeeId.Value);
                     if (mapResult.IsFailure)
-                        return mapResult;
+                        return Result.Failure<IdentityMappingDecision>(mapResult.Error);
                     break;
 
                 case IdentityMappingAction.Ignore:
@@ -113,7 +117,7 @@ public sealed class UpdateConnectionIdentityMappingCommandHandler(
                     break;
 
                 default:
-                    return Result.Failure($"Unsupported identity mapping action '{request.Action}'.");
+                    return Result.Failure<IdentityMappingDecision>($"Unsupported identity mapping action '{request.Action}'.");
             }
 
             await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
@@ -121,24 +125,13 @@ public sealed class UpdateConnectionIdentityMappingCommandHandler(
             _logger.LogInformation("{AppRequestName}: Connection {ConnectionId} identity {MappingId} set to {Status}.",
                 AppRequestName, request.ConnectionId, request.MappingId, mapping.Status);
 
-            // Carry the decision back to work already synced. Ignoring an identity clears the
-            // attribution rather than leaving a wrong one standing: an admin saying "this is
-            // nobody" is a stronger statement than the auto-match that put a name there.
-            //
-            // Dispatched after the commit and handled asynchronously — one identity can own tens
-            // of thousands of work items, and an admin picking a name from a dropdown should not
-            // wait on that.
-            await _dispatcher.Send(
-                new RepointWorkItemAttributionCommand(mapping.ExternalId, mapping.EmployeeId),
-                cancellationToken);
-
-            return Result.Success();
+            return Result.Success(new IdentityMappingDecision(mapping.ExternalId, mapping.EmployeeId));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "{AppRequestName}: Error updating connection {ConnectionId} identity {MappingId}.",
                 AppRequestName, request.ConnectionId, request.MappingId);
-            return Result.Failure(ex.Message);
+            return Result.Failure<IdentityMappingDecision>(ex.Message);
         }
     }
 }

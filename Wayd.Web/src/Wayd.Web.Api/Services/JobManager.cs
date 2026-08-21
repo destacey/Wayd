@@ -3,6 +3,7 @@ using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Exceptions;
+using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Planning.Application.Iterations.Queries;
@@ -134,6 +135,23 @@ public class JobManager(
     }
 
     [DisableConcurrentExecution(60 * 3)]
+    public async Task RunRepointWorkItemAttribution(string externalId, Guid? employeeId, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Running {BackgroundJob} job for external identity {ExternalId}",
+            nameof(RunRepointWorkItemAttribution), externalId);
+
+        var result = await _dispatcher.Send(
+            new RepointWorkItemAttributionCommand(externalId, employeeId), cancellationToken);
+        if (result.IsFailure)
+        {
+            _logger.LogError("Failed to repoint work item attribution for {ExternalId}: {Error}",
+                externalId, result.Error);
+        }
+
+        _logger.LogInformation("Completed {BackgroundJob} job for external identity {ExternalId}",
+            nameof(RunRepointWorkItemAttribution), externalId);
+    }
+
     public async Task RunSyncProjects(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncProjects));

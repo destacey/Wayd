@@ -10,11 +10,11 @@ public sealed record AzdoWorkItem : IExternalWorkItem
     public required string WorkType { get; set; }
     public required string WorkStatus { get; set; }
     public int? ParentId { get; set; }
-    public string? AssignedTo { get; set; }
+    public IExternalUserRef? AssignedTo { get; set; }
     public Instant Created { get; set; }
-    public string? CreatedBy { get; set; }
+    public IExternalUserRef? CreatedBy { get; set; }
     public Instant LastModified { get; set; }
-    public string? LastModifiedBy { get; set; }
+    public IExternalUserRef? LastModifiedBy { get; set; }
     public int? Priority { get; set; }
     public double StackRank { get; set; }
     public Instant? ActivatedTimestamp { get; set; }

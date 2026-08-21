@@ -159,10 +159,12 @@ export function useHeaderCellSortable(
  * (ctrl-click multisort via the table config), the asc/desc sort icon, an
  * optional filter slot, and the column-resize handle (double-click resets).
  *
- * Safe to memoize: v9 re-creates the table and its headers on each state
- * change, so a compiled cache keyed on `header`/`header.column` identity
- * cannot serve a stale `getIsSorted()`. Under v8 these mutated in place, which
- * is why this file used to carry `'use no memo'`.
+ * Opted out of compiler memoization. v9 re-creates `header` on each state
+ * change but REUSES `header.column`, so a compiled cache keyed on
+ * `header.column` identity freezes `getIsSorted()` at its first-seen value
+ * (unsorted on mount) and the sort arrow never appears — while the rows sort
+ * correctly, because the row model reads the state directly. Verified in the
+ * compiled Turbopack chunk: the emitted guard is `if ($[3] !== header.column)`.
  */
 export function GridHeaderCell<T extends RowData>({
   header,
@@ -174,6 +176,9 @@ export function GridHeaderCell<T extends RowData>({
   thStyle,
   sortable,
 }: GridHeaderCellProps<T>) {
+  // eslint-disable-next-line react-compiler/react-compiler -- see the note above: header.column identity outlives its sort state
+  'use no memo'
+
   const canSort = header.column.getCanSort()
   const sortState = header.column.getIsSorted()
   const canResize = header.column.getCanResize()

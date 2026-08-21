@@ -520,6 +520,57 @@ describe('WaydGrid', () => {
         'roadmap',
       ])
     })
+
+    // The rows sort even when the header is stale, because the row model reads
+    // the sort state directly — so asserting order alone let a frozen
+    // getIsSorted() ship. These assert the indicator the user actually sees.
+    it('shows an ascending indicator on the sorted header', () => {
+      // Arrange
+      const { container } = renderGrid()
+      const header = screen.getByText('Name').closest('th')!
+
+      // Act
+      fireEvent.click(screen.getByText('Name'))
+
+      // Assert
+      expect(
+        header.querySelectorAll('[class*="anticon-arrow-up"]'),
+      ).toHaveLength(1)
+      expect(container.querySelectorAll('[class*="anticon-arrow-down"]'))
+        .toHaveLength(0)
+    })
+
+    it('flips the indicator to descending on a second click', () => {
+      // Arrange
+      renderGrid()
+      const header = screen.getByText('Name').closest('th')!
+
+      // Act
+      fireEvent.click(screen.getByText('Name'))
+      fireEvent.click(screen.getByText('Name'))
+
+      // Assert
+      expect(
+        header.querySelectorAll('[class*="anticon-arrow-down"]'),
+      ).toHaveLength(1)
+      expect(header.querySelectorAll('[class*="anticon-arrow-up"]')).toHaveLength(
+        0,
+      )
+    })
+
+    it('clears the indicator on the third click', () => {
+      // Arrange
+      renderGrid()
+      const header = screen.getByText('Name').closest('th')!
+
+      // Act
+      fireEvent.click(screen.getByText('Name'))
+      fireEvent.click(screen.getByText('Name'))
+      fireEvent.click(screen.getByText('Name'))
+
+      // Assert
+      expect(header.querySelectorAll('[class*="anticon-arrow"]')).toHaveLength(0)
+    })
   })
 
   describe('full-width filler structure', () => {

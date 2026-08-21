@@ -287,13 +287,21 @@
 
 /*
  * Reorderable header cell — the WHOLE cell is the drag handle (no separate grip
- * taking up label width). A grab cursor signals it; dnd-kit's 8px activation
- * distance means a plain click still sorts. touch-action:none lets a touch drag
- * reorder instead of scrolling. The resizer overrides the cursor at the edge.
+ * taking up label width). dnd-kit's 8px activation distance means a plain click
+ * still sorts. touch-action:none lets a touch drag reorder instead of
+ * scrolling. The resizer overrides the cursor at the edge.
+ *
+ * No grab cursor at rest: on a sortable header, clicking is the far more common
+ * intent, so the header advertises `pointer` (see .thSortable) and only switches
+ * to `grabbing` once a drag actually starts. A non-sortable reorderable header
+ * has no competing action, so it keeps `grab`.
  */
 .thDraggable {
-  cursor: grab;
   touch-action: none;
+}
+
+.thDraggable:not(.thSortable) {
+  cursor: grab;
 }
 
 .thDraggable:active {

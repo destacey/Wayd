@@ -225,8 +225,11 @@ export interface ColumnMenuTriggerProps<T extends RowData> {
  * and while open. Sort items SET the sort (single column) — multi-sort stays
  * ctrl/meta-click on the header.
  *
- * Reads TanStack column state (sort/pin/visibility) off the table, which v9
- * re-creates on every state change — so compiler memoization stays correct.
+ * Opted out of compiler memoization for the same reason as `GridHeaderCell`:
+ * v9 reuses the `header.column` object across state changes, so a compiled
+ * cache keyed on its identity would freeze `getIsSorted()`/`getIsPinned()` at
+ * their first-seen values and the menu's sort and pin checkmarks would never
+ * track the real state.
  */
 export function ColumnMenuTrigger<T extends RowData>({
   header,
@@ -239,6 +242,9 @@ export function ColumnMenuTrigger<T extends RowData>({
   onAutosizeAllColumns,
   onResetColumns,
 }: ColumnMenuTriggerProps<T>) {
+  // eslint-disable-next-line react-compiler/react-compiler -- header.column identity outlives its sort/pin state
+  'use no memo'
+
   const column = header.column
 
   const items = buildColumnMenuItems({

@@ -1,5 +1,7 @@
 ﻿using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
+using Wayd.Common.Domain.AppIntegrations;
+using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Work.Application.Persistence;
@@ -11,9 +13,10 @@ namespace Wayd.Work.Application.WorkItems.Commands;
 
 // TODO: add validation
 
-public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbContext, ILogger<SyncExternalWorkItemsCommandHandler> logger) : ICommandHandler<SyncExternalWorkItemsCommand>
+public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbContext, IDateTimeProvider dateTimeProvider, ILogger<SyncExternalWorkItemsCommandHandler> logger) : ICommandHandler<SyncExternalWorkItemsCommand>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<SyncExternalWorkItemsCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(SyncExternalWorkItemsCommand request, CancellationToken cancellationToken)
@@ -81,37 +84,9 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
             var workTypeByName = workTypes.ToDictionary(t => t.Name, t => t);
             var workStatusMap = workStatusMappings.ToDictionary(m => (m.WorkTypeId, m.WorkStatus.Name), m => m);
 
-            // Build dictionary for employees referenced by the incoming payload to avoid loading all employees
-            var referencedEmails = request.WorkItems
-                .SelectMany(w => new[] { w.CreatedBy, w.LastModifiedBy, w.AssignedTo })
-                .Where(e => !string.IsNullOrWhiteSpace(e))
-                .Select(e => e!.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-
-            // Batch the employee queries to avoid very large IN lists (SQL parameter limits)
-            const int emailBatchSize = 1000;
-            var employeesByEmail = new Dictionary<string, Guid>(referencedEmails.Length, StringComparer.OrdinalIgnoreCase);
-            if (referencedEmails.Length > 0)
-            {
-                foreach (var batch in referencedEmails.Chunk(emailBatchSize))
-                {
-                    // Matched against every work address, not just the current one: Azure DevOps stamps
-                    // work items with whatever address the person had at the time, so items predating a
-                    // tenant or domain move still reference an address they have since left behind.
-                    // Employee.Email is always present in this collection, so it covers both cases.
-                    var rows = await _workDbContext.Employees
-                        .SelectMany(e => e.Emails)
-                        .Where(e => batch.Contains(e.Email))
-                        .Select(e => new { e.EmployeeId, e.Email })
-                        .ToListAsync(cancellationToken);
-
-                    foreach (var r in rows)
-                    {
-                        employeesByEmail[r.Email.Value] = r.EmployeeId;
-                    }
-                }
-            }
+            // Resolve every person referenced by this batch to an employee, recording any identity
+            // that cannot be resolved so an admin can map it. See ResolveExternalIdentities.
+            var identityMap = await ResolveExternalIdentities(request, cancellationToken);
 
             // Handle workspace changes separately before main batch processing
             await ProcessWorkspaceChanges(workspace, request.WorkItems, workTypeByName, workStatusMap, cancellationToken);
@@ -213,7 +188,7 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
 
                         if (workItem is null)
                         {
-                            var employeeIds = ResolveEmployeeIds(externalWorkItem, employeesByEmail);
+                            var employeeIds = ResolveEmployeeIds(externalWorkItem, identityMap);
 
                             workItem = WorkItem.CreateExternal(
                                 workspace,
@@ -235,7 +210,9 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
                                 iterationId,
                                 externalWorkItem.ActivatedTimestamp,
                                 externalWorkItem.DoneTimestamp,
-                                externalWorkItem.ExternalTeamIdentifier,
+                                // Guid.Empty: the item has no id until the ctor runs, which
+                                // rebinds this row to the real one.
+                                CreateExtendedPropsIfNeeded(Guid.Empty, externalWorkItem),
                                 [.. externalWorkItem.Tags.Select(t => new WorkItemTag(t))]
                             );
                             newWorkItems.Add(workItem);
@@ -244,7 +221,7 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
                         }
                         else
                         {
-                            var employeeIds = ResolveEmployeeIds(externalWorkItem, employeesByEmail);
+                            var employeeIds = ResolveEmployeeIds(externalWorkItem, identityMap);
 
                             workItem.Update(
                                 externalWorkItem.Title,
@@ -262,7 +239,7 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
                                 iterationId,
                                 externalWorkItem.ActivatedTimestamp,
                                 externalWorkItem.DoneTimestamp,
-                                CreateExtendedPropsIfNeeded(workItem.Id, externalWorkItem.ExternalTeamIdentifier),
+                                CreateExtendedPropsIfNeeded(workItem.Id, externalWorkItem),
                                 [.. externalWorkItem.Tags.Select(t => new WorkItemTag(t))]
                             );
 
@@ -423,25 +400,192 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
 
     private static EmployeeIds ResolveEmployeeIds(
         IExternalWorkItem externalWorkItem,
-        Dictionary<string, Guid> employeesByEmail)
+        Dictionary<string, Guid?> employeesByExternalId)
     {
         return new EmployeeIds(
             Resolve(externalWorkItem.CreatedBy),
             Resolve(externalWorkItem.LastModifiedBy),
             Resolve(externalWorkItem.AssignedTo));
 
-        // Trimmed to match how the dictionary was keyed: the lookup is case-insensitive but not
-        // whitespace-insensitive, so an identifier with stray padding would key on the trimmed value
-        // and then miss on the raw one.
-        Guid? Resolve(string? identifier) =>
-            !string.IsNullOrWhiteSpace(identifier) && employeesByEmail.TryGetValue(identifier.Trim(), out var id)
+        Guid? Resolve(IExternalUserRef? user) =>
+            user is not null && employeesByExternalId.TryGetValue(user.ExternalId, out var id)
                 ? id
                 : null;
     }
 
-    private static WorkItemExtended? CreateExtendedPropsIfNeeded(Guid workItemId, string? externalTeamIdentifier)
+    /// <summary>
+    /// Resolves every external identity in the batch to an employee, in three tiers: an admin
+    /// decision wins; otherwise the reported address is matched against employees' known work
+    /// addresses; otherwise the identity is recorded as unmapped for an admin to resolve.
+    /// </summary>
+    /// <remarks>
+    /// Recording the unresolved ones is the point. Attribution used to fail silently - the work
+    /// item saved with no assignee and nothing said so - which left admins with no way to discover
+    /// the problem, let alone fix it.
+    /// </remarks>
+    private async Task<Dictionary<string, Guid?>> ResolveExternalIdentities(
+        SyncExternalWorkItemsCommand request,
+        CancellationToken cancellationToken)
     {
-        return WorkItemExtended.Create(workItemId, externalTeamIdentifier);
+        // One entry per distinct identity. A person appears on many items in a batch; keep the
+        // first reference, since every reference to one identity carries the same fields.
+        var referenced = new Dictionary<string, IExternalUserRef>(StringComparer.Ordinal);
+        foreach (var item in request.WorkItems)
+        {
+            foreach (var user in new[] { item.CreatedBy, item.LastModifiedBy, item.AssignedTo })
+            {
+                if (user is not null && !string.IsNullOrWhiteSpace(user.ExternalId))
+                    referenced.TryAdd(user.ExternalId, user);
+            }
+        }
+
+        var resolved = new Dictionary<string, Guid?>(referenced.Count, StringComparer.Ordinal);
+        if (referenced.Count == 0)
+            return resolved;
+
+        // Batched to avoid very large IN lists (SQL parameter limits).
+        const int batchSize = 1000;
+
+        var existingMappings = new Dictionary<string, ExternalIdentityMapping>(referenced.Count, StringComparer.Ordinal);
+        foreach (var batch in referenced.Keys.Chunk(batchSize))
+        {
+            var rows = await _workDbContext.ExternalIdentityMappings
+                .Where(m => m.ConnectionId == request.ConnectionId && batch.Contains(m.ExternalId))
+                .ToListAsync(cancellationToken);
+
+            foreach (var row in rows)
+            {
+                existingMappings[row.ExternalId] = row;
+            }
+        }
+
+        // Adopt any row the seed migration keyed on an address rather than an identity id. Those
+        // rows carry the attribution history that predates this feature; without this, the identity
+        // arrives as brand new and every seeded person is listed twice.
+        var seedAdoptable = referenced.Values
+            .Where(u => !string.IsNullOrWhiteSpace(u.Email) && !existingMappings.ContainsKey(u.ExternalId))
+            .ToArray();
+
+        if (seedAdoptable.Length > 0)
+        {
+            var seedKeys = seedAdoptable.Select(u => u.Email!.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+
+            var seedRows = new List<ExternalIdentityMapping>();
+            foreach (var batch in seedKeys.Chunk(batchSize))
+            {
+                seedRows.AddRange(await _workDbContext.ExternalIdentityMappings
+                    .Where(m => m.ConnectionId == request.ConnectionId && batch.Contains(m.ExternalId))
+                    .ToListAsync(cancellationToken));
+            }
+
+            var seedByKey = new Dictionary<string, ExternalIdentityMapping>(StringComparer.OrdinalIgnoreCase);
+            foreach (var row in seedRows)
+            {
+                seedByKey.TryAdd(row.ExternalId, row);
+            }
+
+            // Tracks rows claimed during this pass. Two identities reporting the same address must
+            // not collapse onto one row; the first claims it, the rest fall through to normal
+            // auto-matching and get their own rows.
+            var claimed = new HashSet<Guid>();
+
+            foreach (var user in seedAdoptable)
+            {
+                if (seedByKey.TryGetValue(user.Email!.Trim(), out var seeded)
+                    && claimed.Add(seeded.Id)
+                    && seeded.TryAdoptExternalId(user.ExternalId))
+                {
+                    existingMappings[user.ExternalId] = seeded;
+                }
+            }
+        }
+
+        // Address lookup for the auto-match tier. Only identities that actually reported an
+        // address need it, and only those an admin has not already decided.
+        var candidateEmails = referenced.Values
+            .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+            .Where(u => !existingMappings.TryGetValue(u.ExternalId, out var m) || !m.IsAdminDecided)
+            .Select(u => u.Email!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        var employeesByEmail = new Dictionary<string, Guid>(candidateEmails.Length, StringComparer.OrdinalIgnoreCase);
+        foreach (var batch in candidateEmails.Chunk(batchSize))
+        {
+            // Matched against every work address, not just the current one: Azure DevOps stamps
+            // work items with whatever address the person had at the time, so items predating a
+            // tenant or domain move still reference an address they have since left behind.
+            // Employee.Email is always present in this collection, so it covers both cases.
+            var rows = await _workDbContext.Employees
+                .SelectMany(e => e.Emails)
+                .Where(e => batch.Contains(e.Email))
+                .Select(e => new { e.EmployeeId, e.Email })
+                .ToListAsync(cancellationToken);
+
+            foreach (var r in rows)
+            {
+                employeesByEmail[r.Email.Value] = r.EmployeeId;
+            }
+        }
+
+        var now = _dateTimeProvider.Now;
+        var newMappings = new List<ExternalIdentityMapping>();
+        var unmappedCount = 0;
+
+        foreach (var (externalId, user) in referenced)
+        {
+            Guid? autoMatched = null;
+            if (!string.IsNullOrWhiteSpace(user.Email) && employeesByEmail.TryGetValue(user.Email.Trim(), out var employeeId))
+                autoMatched = employeeId;
+
+            if (existingMappings.TryGetValue(externalId, out var mapping))
+            {
+                mapping.RefreshFromSync(user.Email, user.DisplayName, user.Handle, autoMatched, now);
+                resolved[externalId] = mapping.EmployeeId;
+
+                if (mapping.Status == ExternalIdentityMappingStatus.Unmapped)
+                    unmappedCount++;
+            }
+            else if (autoMatched.HasValue)
+            {
+                newMappings.Add(ExternalIdentityMapping.CreateAutoMatched(
+                    request.Connector, request.ConnectionId, externalId,
+                    user.Email, user.DisplayName, user.Handle, autoMatched.Value, now));
+                resolved[externalId] = autoMatched;
+            }
+            else
+            {
+                newMappings.Add(ExternalIdentityMapping.CreateUnmapped(
+                    request.Connector, request.ConnectionId, externalId,
+                    user.Email, user.DisplayName, user.Handle, now));
+                resolved[externalId] = null;
+                unmappedCount++;
+            }
+        }
+
+        if (newMappings.Count > 0)
+            await _workDbContext.ExternalIdentityMappings.AddRangeAsync(newMappings, cancellationToken);
+
+        await _workDbContext.SaveChangesAsync(cancellationToken);
+
+        if (unmappedCount > 0)
+        {
+            _logger.LogInformation(
+                "{UnmappedCount} of {TotalCount} external identities on connection {ConnectionId} could not be resolved to an employee and are awaiting mapping.",
+                unmappedCount, referenced.Count, request.ConnectionId);
+        }
+
+        return resolved;
+    }
+
+    private static WorkItemExtended? CreateExtendedPropsIfNeeded(Guid workItemId, IExternalWorkItem externalWorkItem)
+    {
+        return WorkItemExtended.Create(
+            workItemId,
+            externalWorkItem.ExternalTeamIdentifier,
+            externalWorkItem.AssignedTo?.ExternalId,
+            externalWorkItem.CreatedBy?.ExternalId,
+            externalWorkItem.LastModifiedBy?.ExternalId);
     }
 
     private async Task MapMissingParents(Workspace workspace, Dictionary<int, int> missingParents, CancellationToken cancellationToken)

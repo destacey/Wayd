@@ -4,10 +4,12 @@ import {
   ConnectionListDto,
   ConnectorListDto,
   CreateConnectionRequest,
+  ExternalIdentityMappingDto,
   SyncRunDetailsDto,
   SyncRunListDto,
   SyncType,
   UpdateConnectionRequest,
+  UpdateConnectionIdentityMappingRequest,
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
@@ -16,6 +18,11 @@ import { getConnectionsClient } from '@/src/services/clients'
 export interface GetAzdoConnectionTeamsRequest {
   connectionId: string
   workspaceId: string | null
+}
+
+export interface GetConnectionIdentitiesRequest {
+  connectionId: string
+  unmappedOnly?: boolean
 }
 
 export const connectionsApi = apiSlice.injectEndpoints({
@@ -202,6 +209,48 @@ export const connectionsApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    getConnectionIdentities: builder.query<
+      ExternalIdentityMappingDto[],
+      GetConnectionIdentitiesRequest
+    >({
+      queryFn: async (request) => {
+        try {
+          const data = await getConnectionsClient().getConnectionIdentities(
+            request.connectionId,
+            request.unmappedOnly,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, arg) => [
+        { type: QueryTags.ConnectionIdentity, id: arg.connectionId },
+      ],
+    }),
+
+    updateConnectionIdentity: builder.mutation<
+      void,
+      UpdateConnectionIdentityMappingRequest
+    >({
+      queryFn: async (request) => {
+        try {
+          const data = await getConnectionsClient().updateConnectionIdentity(
+            request.connectionId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.ConnectionIdentity, id: arg.connectionId },
+      ],
+    }),
+
     getSyncRun: builder.query<SyncRunDetailsDto, string>({
       queryFn: async (syncRunId) => {
         try {
@@ -232,4 +281,6 @@ export const {
   useGetSyncRunQuery,
   useRunSyncMutation,
   useInitConnectionMutation,
+  useGetConnectionIdentitiesQuery,
+  useUpdateConnectionIdentityMutation,
 } = connectionsApi

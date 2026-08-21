@@ -5,6 +5,7 @@ using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.Common.Application.FeatureManagement;
+using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.Models.Goals;
@@ -46,6 +47,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     #region Common
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => Set<ExternalEmployeeBlacklistItem>();
+    public DbSet<ExternalIdentityMapping> ExternalIdentityMappings => Set<ExternalIdentityMapping>();
     public DbSet<OidcProvider> OidcProviders => Set<OidcProvider>();
     public DbSet<PersonalAccessToken> PersonalAccessTokens => Set<PersonalAccessToken>();
     public DbSet<User> WaydUsers => Set<User>();

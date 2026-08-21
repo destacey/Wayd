@@ -422,8 +422,11 @@ One-way sync (Azure DevOps → Wayd):
 - Azure DevOps Work Item Type → Wayd Work Type
 - Azure DevOps Area → Team ↔ Work Item association
 - Azure DevOps Iteration → Sprint / PI association
+- Azure DevOps identity → Employee, via ExternalIdentityMapping
 
 Requires PAT with Work Items Read scope. Each org linked by one connection. Background sync via Hangfire.
+
+People on a work item (Assigned To / Created By / Changed By) resolve through `ExternalIdentityMapping`, keyed on the external system's stable identity id rather than an email address. Resolution is three-tier: an admin's mapping or ignore decision wins and is never revised by a sync; otherwise the reported address is auto-matched against every work email an employee has; otherwise the identity is recorded as Unmapped for review on the connection's People tab. Mapping or ignoring an identity repoints work items already synced, using the identity ids stored on WorkItemsExtended — so an item synced before those ids existed needs a full sync before a mapping can reach it.
 
 ### Microsoft Graph
 

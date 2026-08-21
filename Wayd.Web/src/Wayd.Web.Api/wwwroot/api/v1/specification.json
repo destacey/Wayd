@@ -25783,6 +25783,122 @@
         ]
       }
     },
+    "/api/app-integrations/connections/{id}/identities": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Get the external identities this connection has seen.",
+        "description": "Users the connection's syncs referenced on work items, and the employee each resolves to. Unmapped identities are listed first.",
+        "operationId": "Connections_GetConnectionIdentities",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "unmappedOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExternalIdentityMappingDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Map, ignore, or clear one external identity.",
+        "description": "Applies a single admin decision. A mapped or ignored identity is never revised by a later sync.",
+        "operationId": "Connections_UpdateConnectionIdentity",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConnectionIdentityMappingRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/app-integrations/connections/{id}/activate": {
       "post": {
         "tags": [
@@ -43745,6 +43861,113 @@
             "nullable": true
           }
         }
+      },
+      "ExternalIdentityMappingDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "externalId",
+          "status",
+          "id",
+          "lastSeen"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "externalId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "handle": {
+            "type": "string",
+            "nullable": true
+          },
+          "employeeId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "employeeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "lastSeen": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UpdateConnectionIdentityMappingRequest": {
+        "type": "object",
+        "description": "One admin decision about one external identity on a connection.",
+        "additionalProperties": false,
+        "required": [
+          "connectionId",
+          "mappingId",
+          "action"
+        ],
+        "properties": {
+          "connectionId": {
+            "type": "string",
+            "description": "The connection the identity belongs to.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "mappingId": {
+            "type": "string",
+            "description": "The identity mapping being decided.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "action": {
+            "description": "Map, Ignore, or Clear.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IdentityMappingAction"
+              }
+            ]
+          },
+          "employeeId": {
+            "type": "string",
+            "description": "The employee to attribute this identity to. Required when the action is Map.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          }
+        }
+      },
+      "IdentityMappingAction": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Map",
+          "Ignore",
+          "Clear"
+        ],
+        "enum": [
+          "Map",
+          "Ignore",
+          "Clear"
+        ]
       },
       "CreateConnectionRequest": {
         "type": "object",

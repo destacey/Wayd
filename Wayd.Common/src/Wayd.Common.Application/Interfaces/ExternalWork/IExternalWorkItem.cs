@@ -7,11 +7,11 @@ public interface IExternalWorkItem
     string WorkType { get; }
     string WorkStatus { get; }
     int? ParentId { get; }
-    string? AssignedTo { get; }
+    IExternalUserRef? AssignedTo { get; }
     Instant Created { get; }
-    string? CreatedBy { get; }
+    IExternalUserRef? CreatedBy { get; }
     Instant LastModified { get; }
-    string? LastModifiedBy { get; }
+    IExternalUserRef? LastModifiedBy { get; }
     int? Priority { get; }
     double StackRank { get; }
     Instant? ActivatedTimestamp { get; }

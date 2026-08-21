@@ -1,4 +1,5 @@
 ﻿using Bogus;
+using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Work.Application.Tests.Models;
 using NodaTime;
 
@@ -66,9 +67,16 @@ public static class ExternalWorkItemFakerExtensions
         return faker;
     }
 
-    public static ExternalWorkItemFaker WithAssignedTo(this ExternalWorkItemFaker faker, string? assignedTo)
+    public static ExternalWorkItemFaker WithAssignedTo(this ExternalWorkItemFaker faker, IExternalUserRef? assignedTo)
     {
         faker.RuleFor(x => x.AssignedTo, assignedTo);
+        return faker;
+    }
+
+    /// <summary>Convenience for the common case: an identity keyed on, and reporting, one address.</summary>
+    public static ExternalWorkItemFaker WithAssignedToEmail(this ExternalWorkItemFaker faker, string? email)
+    {
+        faker.RuleFor(x => x.AssignedTo, email is null ? null : ExternalTestUserRef.FromEmail(email));
         return faker;
     }
 
@@ -78,9 +86,16 @@ public static class ExternalWorkItemFakerExtensions
         return faker;
     }
 
-    public static ExternalWorkItemFaker WithCreatedBy(this ExternalWorkItemFaker faker, string? createdBy)
+    public static ExternalWorkItemFaker WithCreatedBy(this ExternalWorkItemFaker faker, IExternalUserRef? createdBy)
     {
         faker.RuleFor(x => x.CreatedBy, createdBy);
+        return faker;
+    }
+
+    /// <summary>Convenience for the common case: an identity keyed on, and reporting, one address.</summary>
+    public static ExternalWorkItemFaker WithCreatedByEmail(this ExternalWorkItemFaker faker, string? email)
+    {
+        faker.RuleFor(x => x.CreatedBy, email is null ? null : ExternalTestUserRef.FromEmail(email));
         return faker;
     }
 
@@ -90,9 +105,16 @@ public static class ExternalWorkItemFakerExtensions
         return faker;
     }
 
-    public static ExternalWorkItemFaker WithLastModifiedBy(this ExternalWorkItemFaker faker, string? lastModifiedBy)
+    public static ExternalWorkItemFaker WithLastModifiedBy(this ExternalWorkItemFaker faker, IExternalUserRef? lastModifiedBy)
     {
         faker.RuleFor(x => x.LastModifiedBy, lastModifiedBy);
+        return faker;
+    }
+
+    /// <summary>Convenience for the common case: an identity keyed on, and reporting, one address.</summary>
+    public static ExternalWorkItemFaker WithLastModifiedByEmail(this ExternalWorkItemFaker faker, string? email)
+    {
+        faker.RuleFor(x => x.LastModifiedBy, email is null ? null : ExternalTestUserRef.FromEmail(email));
         return faker;
     }
 

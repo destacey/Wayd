@@ -13,4 +13,9 @@ public interface IJobManager
     Task RunSyncProjects(CancellationToken cancellationToken);
     Task RunSyncTeams(CancellationToken cancellationToken);
     Task RunPortfolioRankRebalance(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Repoints work items attributed to one external identity after an admin maps or ignores it.
+    /// </summary>
+    Task RunRepointWorkItemAttribution(string externalId, Guid? employeeId, CancellationToken cancellationToken);
 }

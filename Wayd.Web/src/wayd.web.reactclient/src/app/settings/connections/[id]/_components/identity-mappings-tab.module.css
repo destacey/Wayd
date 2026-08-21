@@ -1,0 +1,33 @@
+/* A real <button> for keyboard reach, styled down to the plain text it replaces. */
+.employeeCellTrigger {
+  display: block;
+  width: 100%;
+  padding: 0 var(--ant-padding-xxs);
+  margin: 0 calc(-1 * var(--ant-padding-xxs));
+  border: 1px solid transparent;
+  border-radius: var(--ant-border-radius-sm);
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employeeCellTrigger:hover {
+  border-color: var(--ant-color-border);
+  background: var(--ant-color-fill-quaternary);
+}
+
+.employeeCellTrigger:focus-visible {
+  outline: none;
+  border-color: var(--ant-color-primary);
+  box-shadow: 0 0 0 2px var(--ant-color-primary-bg);
+}
+
+/* Theme token, not a literal — must read as an error in both light and dark. */
+.failureIcon {
+  color: var(--ant-color-error);
+}

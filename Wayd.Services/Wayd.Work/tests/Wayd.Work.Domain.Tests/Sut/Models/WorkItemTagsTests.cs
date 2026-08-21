@@ -69,7 +69,7 @@ public class WorkItemTagsTests
             iterationId: null,
             activatedTimestamp: null,
             doneTimestamp: null,
-            externalTeamIdentifier: null,
+            extendedProps: null,
             tags: tags);
 
         // Assert
@@ -105,7 +105,7 @@ public class WorkItemTagsTests
             iterationId: null,
             activatedTimestamp: null,
             doneTimestamp: null,
-            externalTeamIdentifier: null,
+            extendedProps: null,
             tags: null);
 
         // Assert
@@ -140,7 +140,7 @@ public class WorkItemTagsTests
             iterationId: null,
             activatedTimestamp: null,
             doneTimestamp: null,
-            externalTeamIdentifier: null,
+            extendedProps: null,
             tags: []);
 
         // Assert

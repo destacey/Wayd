@@ -21,7 +21,7 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
 
     private WorkItem() { }
 
-    private WorkItem(WorkItemKey key, string title, Guid workspaceId, int? externalId, WorkType workType, int statusId, WorkStatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant created, Guid? createdById, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, string? externalTeamIdentifier, List<WorkItemTag>? tags)
+    private WorkItem(WorkItemKey key, string title, Guid workspaceId, int? externalId, WorkType workType, int statusId, WorkStatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant created, Guid? createdById, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags)
     {
         Key = key;
         Title = title;
@@ -44,7 +44,15 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
 
         ActivatedTimestamp = activatedTimestamp;
         DoneTimestamp = doneTimestamp;
-        ExtendedProps = WorkItemExtended.Create(Id, externalTeamIdentifier);
+        // Rebound to this item's id: the caller builds the row before the id exists.
+        ExtendedProps = extendedProps is null
+            ? null
+            : WorkItemExtended.Create(
+                Id,
+                extendedProps.ExternalTeamIdentifier,
+                extendedProps.AssignedToExternalId,
+                extendedProps.CreatedByExternalId,
+                extendedProps.LastModifiedByExternalId);
 
         var result = UpdateParent(parentInfo, workType);
         if (result.IsFailure)
@@ -369,7 +377,7 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
         return Result.Success();
     }
 
-    public static WorkItem CreateExternal(Workspace workspace, int externalId, string title, WorkType workType, int statusId, WorkStatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant created, Guid? createdById, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, string? externalTeamIdentifier, List<WorkItemTag>? tags = null)
+    public static WorkItem CreateExternal(Workspace workspace, int externalId, string title, WorkType workType, int statusId, WorkStatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant created, Guid? createdById, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags = null)
     {
         Guard.Against.Null(workspace, nameof(workspace));
         Guard.Against.Null(workType, nameof(workType));
@@ -380,7 +388,7 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
         }
 
         var key = new WorkItemKey(workspace.Key, externalId);
-        return new WorkItem(key, title, workspace.Id, externalId, workType, statusId, statusCategory, parentInfo, teamId, created, createdById, lastModified, lastModifiedById, assignedToId, priority, stackRank, storyPoints, iterationId, activatedTimestamp, doneTimestamp, externalTeamIdentifier, tags);
+        return new WorkItem(key, title, workspace.Id, externalId, workType, statusId, statusCategory, parentInfo, teamId, created, createdById, lastModified, lastModifiedById, assignedToId, priority, stackRank, storyPoints, iterationId, activatedTimestamp, doneTimestamp, extendedProps, tags);
 
         //var result = workspace.AddWorkItem(workItem);  // this is handled in the handler for performance reasons
     }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Scoring;
@@ -28,6 +29,7 @@ public class FakeOrganizationDbContext : IOrganizationDbContext, IDisposable
     // Common domain entities
     private readonly List<Employee> _employees = [];
     private readonly List<ExternalEmployeeBlacklistItem> _externalEmployeeBlacklistItems = [];
+    private readonly List<ExternalIdentityMapping> _externalIdentityMappings = [];
     private readonly List<OidcProvider> _oidcProviders = [];
     private readonly List<PersonalAccessToken> _personalAccessTokens = [];
     private readonly List<User> _waydUsers = [];
@@ -42,6 +44,7 @@ public class FakeOrganizationDbContext : IOrganizationDbContext, IDisposable
     public DbSet<TeamMember> TeamMembers => _teamMembers.AsDbSet();
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();
+    public DbSet<ExternalIdentityMapping> ExternalIdentityMappings => _externalIdentityMappings.AsDbSet();
     public DbSet<OidcProvider> OidcProviders => _oidcProviders.AsDbSet();
     public DbSet<PersonalAccessToken> PersonalAccessTokens => _personalAccessTokens.AsDbSet();
     public DbSet<User> WaydUsers => _waydUsers.AsDbSet();
@@ -65,7 +68,7 @@ public class FakeOrganizationDbContext : IOrganizationDbContext, IDisposable
         // Return the total number of entities as a simple success indicator
         var count = _baseTeams.Count + _teams.Count + _teamOfTeams.Count + _teamOperatingModels.Count +
                     _teamMemberRoles.Count + _teamMembers.Count +
-                    _employees.Count + _externalEmployeeBlacklistItems.Count + _personalAccessTokens.Count;
+                    _employees.Count + _externalEmployeeBlacklistItems.Count + _externalIdentityMappings.Count + _personalAccessTokens.Count;
         return Task.FromResult(count);
     }
 
@@ -187,6 +190,7 @@ public class FakeOrganizationDbContext : IOrganizationDbContext, IDisposable
         _teamMembers.Clear();
         _employees.Clear();
         _externalEmployeeBlacklistItems.Clear();
+        _externalIdentityMappings.Clear();
         _personalAccessTokens.Clear();
         SaveChangesCallCount = 0;
         UpsertTeamNodeCallCount = 0;

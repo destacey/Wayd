@@ -152,7 +152,16 @@ jobs:
                   name: wolverine-handler-tree
                   path: Wayd.Web/src/Wayd.Web.Api/Internal/Generated/WolverineHandlers/
 
+            # Registry login and the push below are both gated on NOT being a pull_request. The job itself
+            # stays ungated so it always builds (a broken Dockerfile still fails the PR) and always reports
+            # success — `terraform` declares `needs: [build-and-push-image]`, and an `if:`-skipped job would
+            # propagate skipped-ness to any dependent whose own gate is later relaxed.
+            #
+            # workflow_dispatch MUST keep pushing even from a feature branch: `terraform apply` passes
+            # -var="docker_tag=sha-${{ github.sha }}", so a suppressed push would point the container app at
+            # a tag that was never published.
             - name: Log in to the Container registry
+              if: github.event_name != 'pull_request'
               uses: docker/login-action@v3
               with:
                   username: awaldow
@@ -170,14 +179,13 @@ jobs:
                       type=semver,pattern={{major}}
                       type=sha,format=long
                       type=ref,event=branch
-                      type=ref,event=pr
 
             - name: Build and push Docker image
               uses: docker/build-push-action@v6
               with:
                   context: ${{ matrix.contextDir }}
                   file: ${{ matrix.dockerfile }}
-                  push: true
+                  push: ${{ github.event_name != 'pull_request' }}
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
 

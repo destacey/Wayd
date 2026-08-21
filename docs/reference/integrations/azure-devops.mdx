@@ -61,26 +61,59 @@ There are no admin toggles for filtering or projection. Sync cadence is set by t
 3. Each Azure DevOps project is initialized into a Wayd **Workspace**; each work process into a Wayd **Work Process**.
 4. The `WorkSyncRunner` (Hangfire job `WorkFullSync` or `WorkDiffSync`) iterates all active AzDO connections and dispatches work item fetches through the keyed `IWorkItemSource` registered for `Connector.AzureDevOps`.
 5. Synced items have **Managed** ownership and are read-only in Wayd. Differential syncs only re-fetch items changed since the last successful run; full syncs re-pull everything and reconcile deletions.
-6. A work item's **Assigned To**, **Created By**, and **Changed By** are matched to Wayd employees by email address, comparing against every [work email](#people-matching) an employee has — not just their current one.
+6. A work item's **Assigned To**, **Created By**, and **Changed By** are resolved to Wayd employees through [identity mapping](#people-matching). Every identity a sync sees is recorded, whether or not it resolved.
 7. Each run is captured as a `SyncRun` row; per-run details are stored as JSON and rendered in the Sync History tab on the connection detail page.
 
 ## People matching
 
-Azure DevOps identifies people on a work item by the email address they had **at the time the item was
-stamped**. That address does not change retroactively, so after a tenant or domain migration a project's
-history is full of references to addresses nobody uses any more.
+Azure DevOps identifies people on a work item by the account they had **at the time the item was
+stamped**. That reference does not change retroactively, so after a tenant or domain migration a
+project's history is full of addresses nobody uses any more.
 
-Wayd matches those references against an employee's full set of work addresses, which the active
-[people-sync connection](./index.mdx) populates — Entra from `proxyAddresses`, Workday from the worker's
-WORK-typed entries. An employee whose address changed still resolves on their historical work items.
+Wayd keys people on the Azure DevOps **identity id** — a GUID that survives address, display name, and
+domain changes — rather than on the address itself. Each identity a sync encounters gets a row in the
+connection's **People** tab, mapping it to a Wayd employee.
 
-Two consequences worth knowing:
+### How an identity resolves
 
-- **A people sync has to have run.** The addresses come from the people connector, so an Azure DevOps
-  sync run before the first people sync has nothing to match against.
-- **Unmatched identities are silent.** An address Wayd has never seen — a contractor, a service account,
-  someone who left before Wayd was connected — leaves that field empty on the work item rather than
-  failing the sync. There is currently no report of which identities went unmatched.
+Each sync resolves every referenced identity in three tiers:
+
+1. **An admin's decision wins.** An identity you have mapped or ignored is never revised by a later
+   sync.
+2. **Automatic match by address.** If Azure DevOps reports an email for the identity, it is matched
+   against every work email an employee has (populated by the active [people-sync connection](./index.mdx)) — not just their current one — so someone
+   whose address changed still resolves on their historical work items. A match is recorded as
+   *Auto-matched* and may be revised by a later sync.
+3. **Recorded as unmapped.** No match leaves the work item's attribution empty, and the identity
+   appears in the People tab awaiting a decision.
+
+Not every Azure DevOps account is a person. Build service accounts and Entra groups report a
+non-address value, which Wayd never matches against an employee; they show under their account handle
+for you to **Ignore**.
+
+### The People tab
+
+On a connection's detail page, the **People** tab lists every identity its syncs have seen, unmapped
+first. Click the **Employee** cell to map one. The row menu offers **Ignore** for accounts that will
+never have an employee — service accounts, bots, ex-contractors — which keeps them out of the review
+queue permanently.
+
+Mapping or ignoring an identity also repoints work items already synced, so the decision repairs
+history rather than only affecting future syncs.
+
+:::note Run a full sync first
+A work item can only be repointed if its sync recorded an identity id, which releases before this
+feature did not do. **Run a full sync on the connection before mapping people**, otherwise a mapping
+will not reach existing work items.
+
+Wayd seeds the People tab with the attributions that already resolved, so the tab is not empty on
+first use. Identities that never resolved cannot be recovered this way — nothing was recorded about
+them — so they appear after the first sync.
+:::
+
+One thing still worth knowing: **a people sync has to have run.** The addresses that drive automatic
+matching come from the people connector, so an Azure DevOps sync run before the first people sync has
+nothing to match against and every identity lands unmapped.
 
 ## Cross-cutting
 

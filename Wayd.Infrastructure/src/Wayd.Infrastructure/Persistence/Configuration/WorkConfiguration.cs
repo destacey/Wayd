@@ -312,8 +312,23 @@ public class WorkItemExtendedConfig : IEntityTypeConfiguration<WorkItemExtended>
 
         builder.HasIndex(w => new { w.Id, w.ExternalTeamIdentifier });
 
+        // Drive the backfill that repoints work items when an admin maps an external identity.
+        // One per column because it repairs all three attributions, and each matches a different
+        // set of rows. Filtered, since only externally-synced items carry these at all.
+        builder.HasIndex(w => w.AssignedToExternalId)
+            .HasFilter("[AssignedToExternalId] IS NOT NULL");
+        builder.HasIndex(w => w.CreatedByExternalId)
+            .HasFilter("[CreatedByExternalId] IS NOT NULL");
+        builder.HasIndex(w => w.LastModifiedByExternalId)
+            .HasFilter("[LastModifiedByExternalId] IS NOT NULL");
+
         // Properties
         builder.Property(w => w.ExternalTeamIdentifier).HasMaxLength(128);
+
+        // Matches ExternalIdentityMapping.ExternalId, which these point at.
+        builder.Property(w => w.AssignedToExternalId).HasMaxLength(128);
+        builder.Property(w => w.CreatedByExternalId).HasMaxLength(128);
+        builder.Property(w => w.LastModifiedByExternalId).HasMaxLength(128);
     }
 }
 

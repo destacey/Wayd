@@ -16,12 +16,12 @@ import { AzdoConnectionContext } from './connection-context'
 import AzdoConnectionDetails from './connection-details'
 import AzdoOrganization from './organization'
 import SyncHistoryTab from '../_components/sync-history-tab'
+import IdentityMappingsTab from '../_components/identity-mappings-tab'
 import { ReactNode, useEffect, useMemo } from 'react'
 
 const isAzdo = (
   c: ConnectionDetailsDto,
-): c is AzureDevOpsConnectionDetailsDto =>
-  c?.connector?.name === 'Azure DevOps'
+): c is AzureDevOpsConnectionDetailsDto => c?.connector?.name === 'Azure DevOps'
 
 const Details = ({ connection }: { connection: ConnectionDetailsDto }) => {
   if (!isAzdo(connection)) return null
@@ -126,6 +126,13 @@ export const azureDevOpsDetailEntry: DetailEntry = {
           />
         )
       },
+    },
+    {
+      key: 'people',
+      label: 'People',
+      render: (connection) => (
+        <IdentityMappingsTab connectionId={connection.id} />
+      ),
     },
     {
       key: 'sync-history',

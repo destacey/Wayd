@@ -21,6 +21,7 @@ export enum QueryTags {
   AzdoConnectionTeam = 'AppIntegration.AzdoConnectionTeam',
   AzdoConnectionsConfiguration = 'AppIntegration.AzdoConnectionsConfiguration',
   AzdoConnectionsConfigurationTest = 'AppIntegration.AzdoConnectionsConfigurationTest',
+  ConnectionIdentity = 'AppIntegration.ConnectionIdentity',
   SyncRun = 'AppIntegration.SyncRun',
   SyncRunDetail = 'AppIntegration.SyncRunDetail',
 

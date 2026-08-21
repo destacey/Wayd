@@ -6,10 +6,13 @@ using Wayd.AppIntegration.Application.Connections.Commands.Workday;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureOpenAI;
 using Wayd.AppIntegration.Application.Connections.Dtos.Entra;
+using Wayd.AppIntegration.Application.Connections.Dtos.Identities;
 using Wayd.AppIntegration.Application.Connections.Dtos.Workday;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.AppIntegration.Domain.Models;
+using Wayd.AppIntegration.Application.Connections.Queries.Identities;
 using Wayd.Common.Application.BackgroundJobs;
+using Wayd.Common.Application.Employees.Queries;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Extensions;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -80,6 +83,39 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
         }
 
         return this.OkPolymorphic(connection);
+    }
+
+    [HttpGet("{id}/identities")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Connections)]
+    [OpenApiOperation("Get the external identities this connection has seen.", "Users the connection's syncs referenced on work items, and the employee each resolves to. Unmapped identities are listed first.")]
+    [ProducesResponseType(typeof(IEnumerable<ExternalIdentityMappingDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IEnumerable<ExternalIdentityMappingDto>>> GetConnectionIdentities(
+        Guid id,
+        bool unmappedOnly,
+        CancellationToken cancellationToken)
+    {
+        var identities = await _dispatcher.Send(new GetConnectionIdentityMappingsQuery(id, unmappedOnly), cancellationToken);
+        return Ok(identities);
+    }
+
+    [HttpPost("{id}/identities")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
+    [OpenApiOperation("Map, ignore, or clear one external identity.", "Applies a single admin decision. A mapped or ignored identity is never revised by a later sync.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> UpdateConnectionIdentity(
+        Guid id,
+        [FromBody] UpdateConnectionIdentityMappingRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (id != request.ConnectionId)
+            return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(id), nameof(request.ConnectionId), HttpContext));
+
+        var employeeIds = await _dispatcher.Send(new GetValidEmployeeIdsQuery(), cancellationToken);
+        var result = await _dispatcher.Send(request.ToUpdateConnectionIdentityMappingCommand(employeeIds), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
     [HttpPost]

@@ -16,10 +16,14 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="coverlet.collector">
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-            <PrivateAssets>all</PrivateAssets>
-        </PackageReference>
+        <!--
+            No coverlet.collector here, deliberately. These tests reflect over the whole solution with
+            NetArchTest's GetTypes(); coverlet instruments an assembly by injecting a synthetic
+            Coverlet.Core.Instrumentation.Tracker.* type into it, and reflecting over an instrumented
+            assembly then throws TypeLoadException resolving a type that exists only during collection.
+            Architecture tests assert on dependency rules rather than executing product code, so they
+            contribute no coverage worth collecting and lose nothing by opting out.
+        -->
     </ItemGroup>
 
     <ItemGroup>

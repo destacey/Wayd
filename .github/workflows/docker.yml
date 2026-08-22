@@ -168,8 +168,25 @@ jobs:
             - name: npm run build
               run: npm run build
 
+            # Coverage instrumentation costs roughly 4x the test run itself (v8 provider over the whole
+            # source tree), and a PR publishes no coverage report, so PRs run the tests without it. The
+            # main-branch build collects coverage and uploads it alongside the .NET report.
+            - name: npm test
+              if: github.event_name != 'push' || github.ref != 'refs/heads/main'
+              run: npm run test:ci
+
             - name: npm run test:coverage
+              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
               run: npm run test:coverage
+
+            - name: Upload client coverage
+              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-client
+                  path: Wayd.Web/src/wayd.web.reactclient/coverage/
+                  if-no-files-found: warn
+                  retention-days: 14
 
     # Merges the Cobertura files from BOTH test jobs into one report. Merging matters: the unit suites and
     # the Testcontainers suites cover different code (integration tests exercise the dispatch and persistence

@@ -9,6 +9,11 @@ const createJestConfig = nextJest({
 // Add any custom config to be passed to Jest
 const config: Config = {
   coverageProvider: 'v8',
+  // Jest's 5s default is comfortable for these suites normally, but v8 coverage instrumentation slows
+  // them enough that userEvent-driven tests (which simulate typing keystroke by keystroke) intermittently
+  // blow it -- failing on the coverage run while passing without it. Raise the ceiling rather than
+  // letting instrumentation overhead masquerade as a test failure.
+  testTimeout: 30_000,
   testEnvironment: 'jsdom',
   // Add more setup options before each test is run
   setupFilesAfterEnv: ['./src/jest.setup.ts'],

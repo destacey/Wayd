@@ -14,9 +14,8 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// in-memory config-validity check (which only proves the generated code compiles) by proving the
 /// pipeline runs: dispatch → validation middleware → handler → SaveChanges.
 /// </summary>
-[Trait("Category", "Docker")]
+[Collection(SqlServerApiTestCollection.Name)]
 public sealed class DispatchPipelineTests(WaydSqlServerApiFactory factory)
-    : IClassFixture<WaydSqlServerApiFactory>
 {
     private readonly WaydSqlServerApiFactory _factory = factory;
 

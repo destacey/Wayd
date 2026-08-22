@@ -18,9 +18,8 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// schema. The seeded envelopes use a fictional message type with no handler, so a replayed envelope
 /// that the durability agent picks up cannot trigger real application handlers.
 /// </summary>
-[Trait("Category", "Docker")]
+[Collection(SqlServerApiTestCollection.Name)]
 public sealed class MessagingControllerTests(WaydSqlServerApiFactory factory)
-    : IClassFixture<WaydSqlServerApiFactory>
 {
     private readonly WaydSqlServerApiFactory _factory = factory;
 

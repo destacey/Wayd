@@ -23,9 +23,8 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// <c>ManagePlanningIntervalTeamsCommandHandlerTests</c>.
 /// </para>
 /// </summary>
-[Trait("Category", "Docker")]
+[Collection(SqlServerApiTestCollection.Name)]
 public sealed class CrossDomainReplicationTests(WaydSqlServerApiFactory factory)
-    : IClassFixture<WaydSqlServerApiFactory>
 {
     private readonly WaydSqlServerApiFactory _factory = factory;
 

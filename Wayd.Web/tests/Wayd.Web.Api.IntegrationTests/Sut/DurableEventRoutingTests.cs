@@ -33,9 +33,8 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// command returns — the opposite of the inline replication contract that <c>CrossDomainReplicationTests</c>
 /// pins.
 /// </summary>
-[Trait("Category", "Docker")]
+[Collection(SqlServerApiTestCollection.Name)]
 public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
-    : IClassFixture<WaydSqlServerApiFactory>
 {
     private static readonly Instant Now = Instant.FromUtc(2026, 1, 15, 9, 30, 0);
 
@@ -213,11 +212,12 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
             var results = await store.DeadLetters.QueryAsync(
                 new DeadLetterEnvelopeQuery { MessageType = typeof(TeamCreatedEvent).FullName },
                 ct);
-            // This test class owns its SQL container, so any TeamCreatedEvent dead letter is ours; the
-            // serialized body containing the poisoned id double-checks that when the body is available.
+            // The dead letter store is shared with every other class in this collection, so match strictly on
+            // the poisoned id in the serialized body. A null-body envelope is NOT assumed to be ours: another
+            // test's TeamCreatedEvent failure would otherwise satisfy this and pass the assertions below.
             deadLetter = results.Envelopes.FirstOrDefault(e =>
-                e.Envelope.Data is null
-                || System.Text.Encoding.UTF8.GetString(e.Envelope.Data).Contains(poisonedId.ToString(), StringComparison.OrdinalIgnoreCase));
+                e.Envelope.Data is not null
+                && System.Text.Encoding.UTF8.GetString(e.Envelope.Data).Contains(poisonedId.ToString(), StringComparison.OrdinalIgnoreCase));
             if (deadLetter is not null)
             {
                 break;

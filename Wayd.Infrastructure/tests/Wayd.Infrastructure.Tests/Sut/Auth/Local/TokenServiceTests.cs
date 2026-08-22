@@ -33,6 +33,8 @@ public class TokenServiceTests
     private readonly Mock<IUserService> _mockUserService;
     private readonly Mock<IOidcTokenValidator> _mockOidcTokenValidator;
     private readonly Mock<IOidcProviderRegistry> _mockOidcProviderRegistry;
+    private readonly FakeRefreshTokenStore _refreshTokenStore;
+    private readonly FakeSessionContextAccessor _sessionContext = new();
     private readonly TokenService _sut;
 
     public TokenServiceTests()
@@ -77,6 +79,8 @@ public class TokenServiceTests
             .Setup(r => r.GetEnabled(It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<OidcProvider>)Array.Empty<OidcProvider>());
 
+        _refreshTokenStore = new FakeRefreshTokenStore();
+
         _sut = new TokenService(
             _mockUserManager.Object,
             _mockSignInManager.Object,
@@ -86,6 +90,8 @@ public class TokenServiceTests
             _mockUserService.Object,
             _mockOidcTokenValidator.Object,
             _mockOidcProviderRegistry.Object,
+            _refreshTokenStore,
+            _sessionContext,
             _mockLogger.Object);
     }
 
@@ -289,12 +295,11 @@ public class TokenServiceTests
         _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
 
         // Act
-        await _sut.GetTokenAsync(command, TestContext.Current.CancellationToken);
+        var result = await _sut.GetTokenAsync(command, TestContext.Current.CancellationToken);
 
         // Assert
-        user.RefreshToken.Should().NotBeNullOrWhiteSpace();
-        user.RefreshTokenExpiryTime.Should().NotBeNull();
-        _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
+        result.RefreshToken.Should().NotBeNullOrWhiteSpace();
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(1, "signing in opens a session");
     }
 
     #endregion
@@ -307,9 +312,6 @@ public class TokenServiceTests
         // Arrange - first get a valid token
         var user = CreateLocalUser();
         SeedActiveWaydIdentity(user.Id);
-        user.RefreshToken = "valid-refresh-token";
-        user.RefreshTokenExpiryTime = _dateTimeProvider.Now.ToDateTimeUtc().AddDays(7);
-
         var command = new LoginCommand("testuser", "Password123!");
         _mockUserManager.Setup(x => x.FindByNameAsync("testuser")).ReturnsAsync(user);
         _mockSignInManager.Setup(x => x.CheckPasswordSignInAsync(user, "Password123!", true))
@@ -318,8 +320,8 @@ public class TokenServiceTests
 
         var initialTokenResponse = await _sut.GetTokenAsync(command, TestContext.Current.CancellationToken);
 
-        // Update the user's refresh token to match what was generated
-        var currentRefreshToken = user.RefreshToken;
+        // The plaintext token exists only in the response — user.RefreshToken holds its hash.
+        var currentRefreshToken = initialTokenResponse.RefreshToken;
         _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
 
         // Advance time so the new token has a different expiry
@@ -343,9 +345,6 @@ public class TokenServiceTests
         // Arrange - get a valid JWT first
         var user = CreateLocalUser();
         SeedActiveWaydIdentity(user.Id);
-        user.RefreshToken = "stored-refresh-token";
-        user.RefreshTokenExpiryTime = _dateTimeProvider.Now.ToDateTimeUtc().AddDays(7);
-
         _mockUserManager.Setup(x => x.FindByNameAsync("testuser")).ReturnsAsync(user);
         _mockSignInManager.Setup(x => x.CheckPasswordSignInAsync(user, "Password123!", true))
             .ReturnsAsync(SignInResult.Success);
@@ -354,8 +353,6 @@ public class TokenServiceTests
         var tokenResponse = await _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
         _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
 
-        // Force the stored refresh token to differ
-        user.RefreshToken = "different-stored-token";
         var refreshCommand = new RefreshTokenCommand(tokenResponse.Token, "wrong-refresh-token");
 
         // Act
@@ -379,12 +376,15 @@ public class TokenServiceTests
         _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
 
         var tokenResponse = await _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
-        var currentRefreshToken = user.RefreshToken;
+
+        // Must be the real token, not the stored hash: passing the hash would fail on
+        // mismatch and the assertion would pass without the expiry check ever running.
+        var currentRefreshToken = tokenResponse.RefreshToken;
 
         _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
 
-        // Set expiry to the past
-        user.RefreshTokenExpiryTime = _dateTimeProvider.Now.ToDateTimeUtc().AddDays(-1);
+        // The store owns lifetime now; expire the session's token there.
+        _refreshTokenStore.ExpireToken(currentRefreshToken);
 
         var refreshCommand = new RefreshTokenCommand(tokenResponse.Token, currentRefreshToken!);
 
@@ -409,7 +409,7 @@ public class TokenServiceTests
         _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
 
         var tokenResponse = await _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
-        var currentRefreshToken = user.RefreshToken;
+        var currentRefreshToken = tokenResponse.RefreshToken;
 
         // Deactivate user after login
         user.IsActive = false;
@@ -440,7 +440,9 @@ public class TokenServiceTests
         _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
 
         var tokenResponse = await _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
-        var currentRefreshToken = user.RefreshToken;
+
+        // The plaintext token exists only in the response — user.RefreshToken holds its hash.
+        var currentRefreshToken = tokenResponse.RefreshToken;
 
         _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
 
@@ -823,6 +825,8 @@ public class TokenServiceTests
             _mockUserService.Object,
             _mockOidcTokenValidator.Object,
             _mockOidcProviderRegistry.Object,
+            _refreshTokenStore,
+            _sessionContext,
             _mockLogger.Object);
 
         var user = CreateLocalUser();
@@ -839,6 +843,390 @@ public class TokenServiceTests
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("Local JWT settings are not configured.");
+    }
+
+    #endregion
+
+    #region LogoutAsync and sessions
+
+    /// <summary>
+    /// Signs a user in and returns the plaintext refresh token the client would hold.
+    /// </summary>
+    private async Task<string> SignIn(ApplicationUser user)
+    {
+        SeedActiveWaydIdentity(user.Id);
+        _mockUserManager.Setup(x => x.FindByNameAsync(user.UserName!)).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.FindByIdAsync(user.Id)).ReturnsAsync(user);
+        _mockSignInManager.Setup(x => x.CheckPasswordSignInAsync(user, "Password123!", true))
+            .ReturnsAsync(SignInResult.Success);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+
+        var response = await _sut.GetTokenAsync(
+            new LoginCommand(user.UserName!, "Password123!"),
+            TestContext.Current.CancellationToken);
+
+        return response.RefreshToken;
+    }
+
+    private Task<TokenResponse> Refresh(ApplicationUser user, string accessToken, string refreshToken) =>
+        _sut.RefreshTokenAsync(new RefreshTokenCommand(accessToken, refreshToken), TestContext.Current.CancellationToken);
+
+    [Fact]
+    public async Task GetTokenAsync_ShouldOpenASecondSession_WhenUserSignsInAgain()
+    {
+        // The reason sessions are rows: signing in on a second device must not displace the
+        // first. With the old single column, the second login silently invalidated the first.
+
+        // Arrange
+        var user = CreateLocalUser();
+        var firstDevice = await SignIn(user);
+
+        // Act
+        var secondDevice = await SignIn(user);
+
+        // Assert
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(2);
+        secondDevice.Should().NotBe(firstDevice);
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_ShouldStillWorkOnFirstDevice_AfterSecondDeviceSignsIn()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        var firstDevice = await SignIn(user);
+        var accessToken = await _sut.GetTokenAsync(
+            new LoginCommand(user.UserName!, "Password123!"), TestContext.Current.CancellationToken);
+        await SignIn(user);
+
+        // Act
+        var result = await Refresh(user, accessToken.Token, firstDevice);
+
+        // Assert
+        result.RefreshToken.Should().NotBeNullOrWhiteSpace();
+        result.RefreshToken.Should().NotBe(firstDevice, "refresh rotates the presented token");
+    }
+
+    [Fact]
+    public async Task LogoutAsync_ShouldRevokeTheNamedSessionOnly()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        var laptop = await SignIn(user);
+        await SignIn(user);
+
+        // Act
+        await _sut.LogoutAsync(user.Id, laptop, TestContext.Current.CancellationToken);
+
+        // Assert
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(1);
+        _refreshTokenStore.RevokeReasons(user.Id).Should().AllBe(UserRefreshTokenRevokeReasons.SignedOut);
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_ShouldThrowUnauthorized_WhenRefreshTokenWasIssuedBeforeLogout()
+    {
+        // F8's core claim: signing out must revoke server-side, so a token captured
+        // beforehand can no longer mint a session.
+
+        // Arrange
+        var user = CreateLocalUser();
+        await SignIn(user);
+        var captured = await _sut.GetTokenAsync(
+            new LoginCommand(user.UserName!, "Password123!"), TestContext.Current.CancellationToken);
+        await _sut.LogoutAsync(user.Id, captured.RefreshToken, TestContext.Current.CancellationToken);
+
+        // Act
+        var act = () => Refresh(user, captured.Token, captured.RefreshToken);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>()
+            .WithMessage("Invalid or expired refresh token.");
+    }
+
+    [Fact]
+    public async Task LogoutAsync_ShouldNotAffectAnotherUsersSessions()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        var otherUser = CreateLocalUser(id: "user-2", userName: "otheruser");
+        var token = await SignIn(user);
+        await SignIn(otherUser);
+
+        // Act
+        await _sut.LogoutAsync(user.Id, token, TestContext.Current.CancellationToken);
+
+        // Assert
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(0);
+        _refreshTokenStore.ActiveSessionCount(otherUser.Id).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task LogoutAsync_ShouldNotThrow_WhenCalledTwice()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        await SignIn(user);
+        var token = await SignIn(user);
+        await _sut.LogoutAsync(user.Id, token, TestContext.Current.CancellationToken);
+
+        // Act
+        var act = () => _sut.LogoutAsync(user.Id, token, TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().NotThrowAsync();
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(1, "the earlier session is untouched");
+    }
+
+    #endregion
+
+    #region Reuse detection
+
+    [Fact]
+    public async Task RefreshTokenAsync_ShouldRevokeOnlyTheAffectedSession_WhenSupersededTokenIsReplayed()
+    {
+        // Reuse kills the chain it was presented against — and only that chain. Under the old
+        // single-column model this revoked every device the user had.
+
+        // Arrange
+        var user = CreateLocalUser();
+        var firstDevice = await SignIn(user);
+        var accessToken = await _sut.GetTokenAsync(
+            new LoginCommand(user.UserName!, "Password123!"), TestContext.Current.CancellationToken);
+        await SignIn(user);
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(3);
+
+        await Refresh(user, accessToken.Token, firstDevice);
+
+        // Act - replay the token that rotation just superseded
+        var act = () => Refresh(user, accessToken.Token, firstDevice);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>()
+            .WithMessage("Invalid or expired refresh token.");
+
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(2, "only the replayed session dies");
+        _refreshTokenStore.RevokeReasons(user.Id).Should().ContainSingle()
+            .Which.Should().Be(UserRefreshTokenRevokeReasons.ReuseDetected);
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_ShouldThrowUnauthorized_WhenTokenIsUnknown()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        await SignIn(user);
+        var accessToken = await _sut.GetTokenAsync(
+            new LoginCommand(user.UserName!, "Password123!"), TestContext.Current.CancellationToken);
+
+        // Act
+        var act = () => Refresh(user, accessToken.Token, "not-a-token-this-user-holds");
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>()
+            .WithMessage("Invalid or expired refresh token.");
+
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(2, "an unknown token is not a reuse signal");
+    }
+
+    #endregion
+
+    #region Per-device sign-out
+
+    [Fact]
+    public async Task LogoutAsync_ShouldEndOnlyTheCallingDevice_WhenRefreshTokenIsSupplied()
+    {
+        // Signing out on the laptop must leave the phone signed in.
+
+        // Arrange
+        var user = CreateLocalUser();
+        var laptop = await SignIn(user);
+        await SignIn(user);
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(2);
+
+        // Act
+        await _sut.LogoutAsync(user.Id, laptop, TestContext.Current.CancellationToken);
+
+        // Assert
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_ShouldStillWorkOnOtherDevices_AfterOneSignsOut()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        var laptop = await SignIn(user);
+        var phone = await SignIn(user);
+        var accessToken = await _sut.GetTokenAsync(
+            new LoginCommand(user.UserName!, "Password123!"), TestContext.Current.CancellationToken);
+
+        // Act
+        await _sut.LogoutAsync(user.Id, laptop, TestContext.Current.CancellationToken);
+
+        // Assert
+        var phoneRefresh = await Refresh(user, accessToken.Token, phone);
+        phoneRefresh.RefreshToken.Should().NotBeNullOrWhiteSpace();
+
+        var laptopRefresh = () => Refresh(user, accessToken.Token, laptop);
+        await laptopRefresh.Should().ThrowAsync<UnauthorizedException>();
+    }
+
+    [Fact]
+    public async Task LogoutAsync_ShouldRevokeNothing_WhenNoRefreshTokenIsSupplied()
+    {
+        // Regression: this once revoked every session. "I cannot tell which session this is"
+        // is not a reason to end them all — the caller is signed out locally regardless.
+
+        // Arrange
+        var user = CreateLocalUser();
+        await SignIn(user);
+        await SignIn(user);
+
+        // Act
+        await _sut.LogoutAsync(user.Id, refreshToken: null, TestContext.Current.CancellationToken);
+
+        // Assert
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task LogoutAsync_ShouldRevokeNothing_WhenRefreshTokenDoesNotMatch()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        await SignIn(user);
+        await SignIn(user);
+
+        // Act
+        await _sut.LogoutAsync(user.Id, "not-a-token-this-user-holds", TestContext.Current.CancellationToken);
+
+        // Assert
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task LogoutAsync_ShouldNotEndAnotherUsersSession_WhenGivenTheirToken()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        var otherUser = CreateLocalUser(id: "user-2", userName: "otheruser");
+        await SignIn(user);
+        var othersToken = await SignIn(otherUser);
+
+        // Act
+        await _sut.LogoutAsync(user.Id, othersToken, TestContext.Current.CancellationToken);
+
+        // Assert
+        _refreshTokenStore.ActiveSessionCount(otherUser.Id).Should().Be(1, "their session is not the caller's to end");
+    }
+
+    [Fact]
+    public async Task LogoutAllAsync_ShouldEndEverySessionForTheUser()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        await SignIn(user);
+        await SignIn(user);
+
+        // Act
+        await _sut.LogoutAllAsync(user.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(0);
+        _refreshTokenStore.RevokeReasons(user.Id).Should().AllBe(UserRefreshTokenRevokeReasons.SignedOut);
+    }
+
+    #endregion
+
+    #region Sessions list
+
+    [Fact]
+    public async Task GetSessions_ShouldMarkTheCallersOwnSession()
+    {
+        // The UI needs this to warn before someone revokes the session they are using.
+
+        // Arrange
+        var user = CreateLocalUser();
+        var laptop = await SignIn(user);
+        await SignIn(user);
+
+        // Act
+        var sessions = await _sut.GetSessions(user.Id, laptop, TestContext.Current.CancellationToken);
+
+        // Assert
+        sessions.Should().HaveCount(2);
+        sessions.Count(s => s.IsCurrent).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetSessions_ShouldMarkNoneCurrent_WhenNoRefreshTokenIsSupplied()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        await SignIn(user);
+
+        // Act
+        var sessions = await _sut.GetSessions(user.Id, currentRefreshToken: null, TestContext.Current.CancellationToken);
+
+        // Assert
+        sessions.Should().ContainSingle();
+        sessions.Should().AllSatisfy(s => s.IsCurrent.Should().BeFalse());
+    }
+
+    [Fact]
+    public async Task GetSessions_ShouldNotExposeTokensOrHashes()
+    {
+        // The response is display detail plus an id; nothing on it may be a credential.
+
+        // Arrange
+        var user = CreateLocalUser();
+        var token = await SignIn(user);
+
+        // Act
+        var sessions = await _sut.GetSessions(user.Id, token, TestContext.Current.CancellationToken);
+
+        // Assert
+        var properties = typeof(UserSessionResponse).GetProperties().Select(p => p.Name);
+        properties.Should().NotContain(n => n.Contains("Token", StringComparison.OrdinalIgnoreCase)
+                                         || n.Contains("Hash", StringComparison.OrdinalIgnoreCase));
+        sessions.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task RevokeSession_ShouldReturnFalse_WhenSessionIsNotTheirs()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        var otherUser = CreateLocalUser(id: "user-2", userName: "otheruser");
+        await SignIn(user);
+        var othersToken = await SignIn(otherUser);
+        var othersSessions = await _sut.GetSessions(otherUser.Id, othersToken, TestContext.Current.CancellationToken);
+
+        // Act
+        var revoked = await _sut.RevokeSession(user.Id, othersSessions[0].Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        revoked.Should().BeFalse();
+        _refreshTokenStore.ActiveSessionCount(otherUser.Id).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task RevokeSession_ShouldEndThatSessionOnly()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        var laptop = await SignIn(user);
+        await SignIn(user);
+        var sessions = await _sut.GetSessions(user.Id, laptop, TestContext.Current.CancellationToken);
+        var other = sessions.Single(s => !s.IsCurrent);
+
+        // Act
+        var revoked = await _sut.RevokeSession(user.Id, other.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        revoked.Should().BeTrue();
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(1);
     }
 
     #endregion

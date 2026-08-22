@@ -179,13 +179,20 @@ jobs:
               if: github.event_name == 'push' && github.ref == 'refs/heads/main'
               run: npm run test:coverage
 
+            # Only lcov.info is uploaded: it is what coverage-report parses, and the sibling artefacts are
+            # large and redundant (coverage-final.json and clover.xml are several MB each, and lcov-report is
+            # a full HTML tree that coverage-report regenerates anyway).
+            #
+            # if-no-files-found: error, not warn — this step only runs on the main-branch push where the
+            # coverage step above also ran, so a missing file means that step silently produced nothing
+            # rather than that coverage was legitimately skipped.
             - name: Upload client coverage
               if: github.event_name == 'push' && github.ref == 'refs/heads/main'
               uses: actions/upload-artifact@v4
               with:
                   name: coverage-client
-                  path: Wayd.Web/src/wayd.web.reactclient/coverage/
-                  if-no-files-found: warn
+                  path: Wayd.Web/src/wayd.web.reactclient/coverage/lcov.info
+                  if-no-files-found: error
                   retention-days: 14
 
     # Merges the Cobertura files from BOTH test jobs into one report. Merging matters: the unit suites and
@@ -196,7 +203,7 @@ jobs:
     # would find no artifacts. Never gates the build: this reports a number, it does not enforce one.
     coverage-report:
         runs-on: ubuntu-latest
-        needs: [build-and-test-api, test-api-integration]
+        needs: [build-and-test-api, test-api-integration, build-and-test-client]
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         steps:
             - name: Checkout repository
@@ -207,7 +214,8 @@ jobs:
               with:
                   dotnet-version: 10.0.x
 
-            # Both artifacts land under coverage/, whose subdirectories keep the two jobs' files apart.
+            # Every coverage artifact lands under coverage/, one subdirectory per uploading job:
+            # coverage-unit and coverage-integration hold .NET Cobertura, coverage-client holds Jest's lcov.
             - name: Download coverage artifacts
               uses: actions/download-artifact@v4
               with:
@@ -223,12 +231,32 @@ jobs:
             - name: Merge coverage reports
               run: >-
                   reportgenerator
-                  -reports:'coverage/**/coverage.cobertura.xml'
+                  -reports:'coverage/coverage-unit/**/coverage.cobertura.xml;coverage/coverage-integration/**/coverage.cobertura.xml'
                   -targetdir:coverage-report
                   -reporttypes:'Cobertura;MarkdownSummaryGithub'
 
-            - name: Write coverage summary
-              run: cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+            - name: Write .NET coverage summary
+              run: |
+                  echo '## .NET coverage' >> "$GITHUB_STEP_SUMMARY"
+                  cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+
+            # Reported separately rather than merged into the .NET number. ReportGenerator will happily
+            # combine them, but the result is a single blended percentage over two unrelated codebases, and
+            # the client lands in it as an unnamed "Default" assembly next to the real ones. Two labelled
+            # numbers say more than one averaged one.
+            #
+            # Jest writes lcov.info; ReportGenerator parses it directly, so nothing has to convert formats.
+            - name: Generate client coverage summary
+              run: >-
+                  reportgenerator
+                  -reports:'coverage/coverage-client/lcov.info'
+                  -targetdir:coverage-report/client
+                  -reporttypes:'MarkdownSummaryGithub'
+
+            - name: Write client coverage summary
+              run: |
+                  echo '## Client coverage' >> "$GITHUB_STEP_SUMMARY"
+                  cat coverage-report/client/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
 
             # Browsable drill-down. continue-on-error because it is a convenience artifact: the summary above
             # is already published, and a slow or failed render should not redden a green main build.
@@ -236,7 +264,7 @@ jobs:
               continue-on-error: true
               run: >-
                   reportgenerator
-                  -reports:'coverage/**/coverage.cobertura.xml'
+                  -reports:'coverage/coverage-unit/**/coverage.cobertura.xml;coverage/coverage-integration/**/coverage.cobertura.xml'
                   -targetdir:coverage-report/html
                   -reporttypes:'HtmlInline_AzurePipelines'
 

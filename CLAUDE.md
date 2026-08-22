@@ -23,8 +23,18 @@ dotnet build Wayd.slnx
 # Build a specific project
 dotnet build "Wayd.Web/src/Wayd.Web.Api/Wayd.Web.Api.csproj"
 
-# Run all tests
+# Run all tests (both halves; the Testcontainers suites need Docker running)
 dotnet test Wayd.slnx
+
+# Run only the tests that need no Docker — what CI's unit job runs
+./.github/scripts/dotnet-test-projects.sh unit
+
+# Run only the Testcontainers suites — what CI's integration job runs
+./.github/scripts/dotnet-test-projects.sh integration
+
+# Every test assembly is stamped with a Category trait derived from whether it
+# references Testcontainers, so a single project can be filtered the same way
+dotnet test "<project>" --filter "Category=Unit"
 
 # Run tests for a specific project
 dotnet test "Wayd.Services/Wayd.Work/tests/Wayd.Work.Application.Tests/Wayd.Work.Application.Tests.csproj"
@@ -207,7 +217,7 @@ The Wolverine handler tree at `Wayd.Web.Api/Internal/Generated/WolverineHandlers
 
 How the tree reaches tests and the shipped image (see `.github/workflows/docker.yml` + the API `Dockerfile`):
 
-- The `build-and-test-api` CI job generates the tree **once** (`codegen write`), uploads it as the `wolverine-handler-tree` artifact, then runs the full `dotnet test Wayd.slnx` suite. `Wayd.Web.Api.IntegrationTests` forces `CodegenMode=Static` (`WaydApiFactory`), so it boots that exact tree — validating the shipped dispatch path.
+- The `build-and-test-api` CI job generates the tree **once** (`codegen write`) and uploads it as the `wolverine-handler-tree` artifact, then runs the unit half of the suite. The `test-api-integration` job downloads that artifact and runs the Testcontainers half; `Wayd.Web.Api.IntegrationTests` forces `CodegenMode=Static` (`WaydApiFactory`), so it boots that exact tree — validating the shipped dispatch path. Both halves are selected by `.github/scripts/dotnet-test-projects.sh` (see **Running tests** above).
 - The `build-and-push-image` job downloads the same artifact into the build context; the Dockerfile compiles it in (with a guard that fails the build if it is absent). **One generation per run ⇒ the tested tree is byte-identical to the shipped tree.**
 - Codegen output is **DI-registration-order sensitive and not reproducible across environments** (even the OTLP exporter's presence reorders it), which is *why* it is generated once and shared rather than regenerated independently — and why committing it was noise (500+ churned files per handler change, which blocked Copilot review).
 - The `codegen write` boot needs `ASPNETCORE_ENVIRONMENT=Development` (Auto mode + skips the prod JWT-secret guard in `AddLocalJwtAuth`), `WAYD_SKIP_DB_INIT=true`, a **placeholder** `DatabaseSettings:ConnectionString` (it never connects — the verb builds the host but never calls `app.Run()`), and empty `OTEL_EXPORTER_OTLP_ENDPOINT`.

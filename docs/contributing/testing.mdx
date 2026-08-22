@@ -12,7 +12,42 @@ audience: [developer, agent]
 Test projects mirror the source structure:
 - `Wayd.\{ServiceName\}.Domain.Tests` - Domain logic tests
 - `Wayd.\{ServiceName\}.Application.Tests` - Handler and validator tests
+- `Wayd.\{ServiceName\}.IntegrationTests` - Run against a real SQL Server via Testcontainers
 - `Wayd.ArchitectureTests` - Enforce Clean Architecture dependency rules
+
+### Unit vs integration
+
+A project is an **integration** project if it references `Testcontainers.MsSql`, and a **unit** project
+otherwise. That one dependency is the source of truth for everything else: CI splits its two test jobs
+on it, and each test assembly is stamped with a matching `Category` trait automatically. Nothing needs
+tagging by hand, and the trait cannot drift from what a project actually requires.
+
+Integration tests need Docker running. Unit tests never do — including
+`Wayd.Integrations.AzureDevOps.IntegrationTests`, which despite its name needs a live Azure DevOps org
+rather than a container, and skips itself when one is not configured.
+
+### Sharing a container
+
+Every integration project shares **one** SQL Server container and one migrated schema across all of its
+test classes, via a collection fixture:
+
+```csharp
+[CollectionDefinition(Name)]
+public sealed class SqlServerTestCollection : ICollectionFixture<SqlServerDbContextFixture>
+{
+    public const string Name = "SqlServer integration tests";
+}
+
+[Collection(SqlServerTestCollection.Name)]
+public sealed class MyIntegrationTests(SqlServerDbContextFixture fixture) { }
+```
+
+Use `[Collection(...)]`, **never `IClassFixture<T>`**. xUnit constructs a class fixture once per test
+class, so `IClassFixture` means a container start and schema migration for every class — which is what
+made one suite take six containers to run 44 tests.
+
+The consequence is that tests **share a database**. Scope assertions to data the test itself created
+(a fresh `Guid`, a unique key) rather than assuming an empty schema or querying for "the only row".
 
 ## Frameworks and Libraries
 
@@ -98,8 +133,14 @@ private DeleteScoringModelCommandHandler CreateHandler() =>
 ## Running Tests
 
 ```bash
-# All tests
+# All tests (both halves; the integration suites need Docker running)
 dotnet test Wayd.slnx
+
+# Only the tests that need no Docker — what CI's unit job runs
+./.github/scripts/dotnet-test-projects.sh unit
+
+# Only the Testcontainers suites — what CI's integration job runs
+./.github/scripts/dotnet-test-projects.sh integration
 
 # Specific project
 dotnet test "Wayd.Services/Wayd.Work/tests/Wayd.Work.Application.Tests/Wayd.Work.Application.Tests.csproj"
@@ -107,16 +148,42 @@ dotnet test "Wayd.Services/Wayd.Work/tests/Wayd.Work.Application.Tests/Wayd.Work
 # By class name
 dotnet test --filter "FullyQualifiedName~ProjectServiceTests"
 
+# By category, within one project
+dotnet test "<project>" --filter "Category=Unit"
+
 # Architecture tests
 dotnet test Wayd.ArchitectureTests/Wayd.ArchitectureTests.csproj
 ```
+
+`--filter` matches per assembly and exits non-zero when an assembly contains no matching test, so a
+filtered run across the whole solution fails on every project that happens not to match. Filter one
+project at a time, or use the split script above.
+
+### Test traits
+
+Three independent axes are available for selecting tests:
+
+| Trait | Values | Meaning |
+|---|---|---|
+| `Category` | `Unit`, `Integration` | How it runs and what it needs. Applied automatically per assembly — do not set by hand. |
+| `Suite` | `Smoke` | A curated fast pass. Untagged tests are the default regression body. |
+| `Area` | `PPM`, `Security`, … | What it covers, cutting across projects. |
+
+Values live as constants in `Wayd.Tests.Shared` (`TestCategories`, `TestSuites`, `TestAreas`). Use
+them rather than string literals: a filter with a typo matches nothing and still exits zero for that
+assembly, so a mistyped trait silently runs fewer tests instead of failing.
 
 ## Frontend Tests
 
 ```bash
 cd Wayd.Web/src/wayd.web.reactclient
-npm test
-npm run test:coverage
+npm test               # watch-friendly local run
+npm run test:ci        # what CI runs on a PR
+npm run test:coverage  # what CI runs on a merge to main
 ```
 
 Uses Jest with React Testing Library.
+
+Coverage instrumentation costs roughly four times the test run itself, so PRs run without it and only
+the main-branch build collects it. Both the .NET and client coverage numbers are published to that
+run's summary page.

@@ -18,9 +18,8 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// Uses the SQL Server factory, not WaydApiFactory: the latter's UseInternalServiceProvider makes every
 /// Identity-backed endpoint throw before its auth logic runs (see that factory's comment).
 /// </summary>
-[Trait("Category", "Docker")]
+[Collection(SqlServerApiTestCollection.Name)]
 public sealed class AuthEndpointAuthorizationTests(WaydSqlServerApiFactory factory)
-    : IClassFixture<WaydSqlServerApiFactory>
 {
     private readonly WaydSqlServerApiFactory _factory = factory;
 

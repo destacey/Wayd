@@ -16,7 +16,6 @@ namespace Wayd.Infrastructure.IntegrationTests.Sut.Auth.Local;
 /// semantics; this proves the actual implementation matches — salted hashing (so no equality
 /// lookup exists), the filtered index, and Instant round-tripping.
 /// </summary>
-[Trait("Category", "Docker")]
 [Collection(nameof(SqlServerTestCollection))]
 public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 {

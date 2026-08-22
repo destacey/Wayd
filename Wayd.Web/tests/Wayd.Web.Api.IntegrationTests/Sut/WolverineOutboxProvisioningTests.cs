@@ -12,9 +12,8 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// without either clobbering the other. This asserts the provisioning; durable delivery itself is covered by
 /// <c>DurableEventRoutingTests</c>.
 /// </summary>
-[Trait("Category", "Docker")]
+[Collection(SqlServerApiTestCollection.Name)]
 public sealed class WolverineOutboxProvisioningTests(WaydSqlServerApiFactory factory)
-    : IClassFixture<WaydSqlServerApiFactory>
 {
     private readonly WaydSqlServerApiFactory _factory = factory;
 

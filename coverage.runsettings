@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+    <DataCollectionRunSettings>
+        <DataCollectors>
+            <DataCollector friendlyName="XPlat code coverage">
+                <Configuration>
+                    <Format>cobertura</Format>
+
+                    <!--
+                        Exclude code nobody writes or reviews, so the percentage reflects hand-written code.
+                        Without these the Wolverine handler tree alone (hundreds of generated files, regenerated
+                        on every handler change) swamps the number and makes it move for reasons unrelated to
+                        anyone's tests.
+                    -->
+                    <ExcludeByAttribute>GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute,DebuggerNonUserCodeAttribute</ExcludeByAttribute>
+
+                    <!--
+                        EF migrations carry no [GeneratedCode] attribute, so they need excluding by path.
+                        The Wolverine tree is matched by namespace via Exclude below.
+                    -->
+                    <ExcludeByFile>**/Migrations/*.cs,**/Internal/Generated/**/*.cs</ExcludeByFile>
+
+                    <!-- Test projects and generated dispatch code are not themselves subjects of coverage. -->
+                    <Exclude>[*]Wayd.Web.Api.Internal.Generated.*,[*Tests]*,[Wayd.Tests.Shared]*,[Wayd.TestData.*]*</Exclude>
+
+                    <IncludeTestAssembly>false</IncludeTestAssembly>
+                    <SingleHit>false</SingleHit>
+                    <UseSourceLink>true</UseSourceLink>
+                </Configuration>
+            </DataCollector>
+        </DataCollectors>
+    </DataCollectionRunSettings>
+</RunSettings>

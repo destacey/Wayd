@@ -13,8 +13,8 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// unresolvable dependency, or an ambiguous route. If Wolverine cannot build its runtime, resolving
 /// <see cref="IWolverineRuntime"/> throws and this test fails.
 /// </summary>
+[Collection(InMemoryApiTestCollection.Name)]
 public sealed class WolverineConfigurationValidityTests(WaydApiFactory factory)
-    : IClassFixture<WaydApiFactory>
 {
     private readonly WaydApiFactory _factory = factory;
 

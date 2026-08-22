@@ -17,9 +17,8 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// user id in its <c>SystemCreatedBy</c> column — otherwise Wolverine's fresh-per-message scope has dropped
 /// the identity (the exact silent regression <c>UserIdentityMiddleware</c> exists to prevent).
 /// </summary>
-[Trait("Category", "Docker")]
+[Collection(SqlServerApiTestCollection.Name)]
 public sealed class HangfireIdentityPropagationTests(WaydSqlServerApiFactory factory)
-    : IClassFixture<WaydSqlServerApiFactory>
 {
     private readonly WaydSqlServerApiFactory _factory = factory;
 

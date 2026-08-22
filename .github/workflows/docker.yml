@@ -68,27 +68,47 @@ jobs:
                   if-no-files-found: error
                   retention-days: 1
 
-            # Run the .NET solution suite. This includes Wayd.Web.Api.IntegrationTests, which forces
-            # Wolverine:CodegenMode=Static (see WaydApiFactory) and so boots the handler tree generated above —
-            # validating the exact Static dispatch path the shipped artifact uses. NOT --no-build: the test
-            # build recompiles the API so the just-generated handler tree is compiled in. Run from the repo root
-            # (overriding the job's API-project working-directory) so the whole solution is tested; the previous
-            # `dotnet test` ran from the API project dir, which is not a test project, and silently tested nothing.
+            # Every test project that does not need Docker, run BEFORE the Testcontainers suites below.
+            # dotnet-test-projects.sh owns the split and derives it from Wayd.slnx, so a new test project joins
+            # a side automatically. Ordering matters: a step that fails ends the job, so a unit-test failure is
+            # reported without ever starting a SQL Server container.
             #
-            # The Wayd.Integrations.AzureDevOps.IntegrationTests hit a live Azure DevOps org (OrganizationUrl +
-            # PAT from a developer's config, absent in CI) — they skip themselves here via Assert.SkipUnless (see
-            # OptionsFixture.IsConfigured) rather than being filtered out. A name filter is deliberately avoided:
-            # under xUnit v3 / Microsoft.Testing.Platform a filter that matches zero tests in an assembly makes
-            # `dotnet test` exit non-zero, so filtering the solution run emptied unrelated assemblies and failed
-            # the whole step.
+            # Wayd.Integrations.AzureDevOps.IntegrationTests runs HERE despite the name: it needs a live Azure
+            # DevOps org (OrganizationUrl + PAT from a developer's config, absent in CI), not Docker, and skips
+            # itself via Assert.SkipUnless (see OptionsFixture.IsConfigured).
             #
-            # The integration suites spin up a SQL Server via Testcontainers on the runner's preinstalled Docker;
-            # Ryuk (the resource reaper) stays enabled, per Testcontainers' guidance for GitHub Actions.
-            # --blame-hang-timeout aborts (with a dump naming the stuck test) instead of silently burning the job's
-            # time if a container never becomes ready, so a Testcontainers problem fails fast and legibly.
-            - name: Test
+            # Coverage is collected only on the main-branch build (see the coverage job): instrumentation
+            # slows the run, and a PR gets no report from it, so PRs keep the faster uninstrumented path.
+            - name: Test (unit + architecture)
               working-directory: .
-              run: dotnet test Wayd.slnx -c Release --verbosity normal --blame-hang-timeout 5m
+              env:
+                  COLLECT_COVERAGE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+              run: bash .github/scripts/dotnet-test-projects.sh unit
+
+            # The Testcontainers suites, in the SAME job as the unit tests above rather than a parallel one.
+            # A separate job has to repeat this job's restore and build before it can run a test -- 132s on the
+            # runner, against ~171s of actual integration testing -- and it cannot start until this job has
+            # published the Wolverine handler tree, so the two run effectively in series anyway. Sharing one
+            # build is both simpler and faster; the tests here already boot the tree this job just generated.
+            #
+            # Spins up SQL Server via Testcontainers on the runner's preinstalled Docker; Ryuk (the resource
+            # reaper) stays enabled, per Testcontainers' guidance for GitHub Actions.
+            - name: Test (integration)
+              working-directory: .
+              env:
+                  COLLECT_COVERAGE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+              run: bash .github/scripts/dotnet-test-projects.sh integration
+
+            # One artifact for both halves: coverage-report merges whatever Cobertura it finds under this
+            # directory, and both test runs write into the same TestResults tree.
+            - name: Upload .NET coverage
+              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-dotnet
+                  path: "**/TestResults/**/coverage.cobertura.xml"
+                  if-no-files-found: error
+                  retention-days: 1
 
     build-and-test-client:
         runs-on: ubuntu-latest
@@ -118,8 +138,112 @@ jobs:
             - name: npm run build
               run: npm run build
 
+            # Coverage instrumentation costs roughly 4x the test run itself (v8 provider over the whole
+            # source tree), and a PR publishes no coverage report, so PRs run the tests without it. The
+            # main-branch build collects coverage and uploads it alongside the .NET report.
+            - name: npm test
+              if: github.event_name != 'push' || github.ref != 'refs/heads/main'
+              run: npm run test:ci
+
             - name: npm run test:coverage
+              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
               run: npm run test:coverage
+
+            # Only lcov.info is uploaded: it is what coverage-report parses, and the sibling artefacts are
+            # large and redundant (coverage-final.json and clover.xml are several MB each, and lcov-report is
+            # a full HTML tree that coverage-report regenerates anyway).
+            #
+            # if-no-files-found: error, not warn — this step only runs on the main-branch push where the
+            # coverage step above also ran, so a missing file means that step silently produced nothing
+            # rather than that coverage was legitimately skipped.
+            - name: Upload client coverage
+              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-client
+                  path: Wayd.Web/src/wayd.web.reactclient/coverage/lcov.info
+                  if-no-files-found: error
+                  retention-days: 14
+
+    # Merges the Cobertura files from BOTH test jobs into one report. Merging matters: the unit suites and
+    # the Testcontainers suites cover different code (integration tests exercise the dispatch and persistence
+    # paths unit tests deliberately mock), so either half alone understates real coverage.
+    #
+    # main-branch pushes only -- PRs never collect coverage, so there is nothing to merge there, and the job
+    # would find no artifacts. Never gates the build: this reports a number, it does not enforce one.
+    coverage-report:
+        runs-on: ubuntu-latest
+        needs: [build-and-test-api, build-and-test-client]
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: 10.0.x
+
+            # Every coverage artifact lands under coverage/, one subdirectory per uploading job:
+            # coverage-dotnet holds Cobertura from both .NET halves, coverage-client holds Jest's lcov.
+            - name: Download coverage artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  pattern: coverage-*
+                  path: coverage
+
+            - name: Install ReportGenerator
+              run: dotnet tool install --global dotnet-reportgenerator-globaltool
+
+            # Split into two invocations deliberately. The markdown summary + merged Cobertura take ~3s; the
+            # per-class HTML takes minutes on a codebase this size (a page per class, thousands of them). Doing
+            # the cheap one first means the run-page number is never held up by, or lost to, the slow one.
+            - name: Merge coverage reports
+              run: >-
+                  reportgenerator
+                  -reports:'coverage/coverage-dotnet/**/coverage.cobertura.xml'
+                  -targetdir:coverage-report
+                  -reporttypes:'Cobertura;MarkdownSummaryGithub'
+
+            - name: Write .NET coverage summary
+              run: |
+                  echo '## .NET coverage' >> "$GITHUB_STEP_SUMMARY"
+                  cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+
+            # Reported separately rather than merged into the .NET number. ReportGenerator will happily
+            # combine them, but the result is a single blended percentage over two unrelated codebases, and
+            # the client lands in it as an unnamed "Default" assembly next to the real ones. Two labelled
+            # numbers say more than one averaged one.
+            #
+            # Jest writes lcov.info; ReportGenerator parses it directly, so nothing has to convert formats.
+            - name: Generate client coverage summary
+              run: >-
+                  reportgenerator
+                  -reports:'coverage/coverage-client/lcov.info'
+                  -targetdir:coverage-report/client
+                  -reporttypes:'MarkdownSummaryGithub'
+
+            - name: Write client coverage summary
+              run: |
+                  echo '## Client coverage' >> "$GITHUB_STEP_SUMMARY"
+                  cat coverage-report/client/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+
+            # Browsable drill-down. continue-on-error because it is a convenience artifact: the summary above
+            # is already published, and a slow or failed render should not redden a green main build.
+            - name: Generate browsable HTML report
+              continue-on-error: true
+              run: >-
+                  reportgenerator
+                  -reports:'coverage/coverage-dotnet/**/coverage.cobertura.xml'
+                  -targetdir:coverage-report/html
+                  -reporttypes:'HtmlInline_AzurePipelines'
+
+            - name: Upload coverage report
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-report
+                  path: coverage-report/
+                  retention-days: 14
 
     build-and-push-image:
         runs-on: ubuntu-latest

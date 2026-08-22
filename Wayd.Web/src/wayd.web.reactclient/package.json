@@ -11,8 +11,9 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "test:coverage": "jest --coverage",
-    "test:docs": "jest --config jest.docs.config.ts --no-coverage"
+    "test:coverage": "jest --coverage --ci",
+    "test:docs": "jest --config jest.docs.config.ts --no-coverage",
+    "test:ci": "jest --ci"
   },
   "devDependencies": {
     "@serwist/turbopack": "^9.5.12",

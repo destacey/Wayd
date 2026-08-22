@@ -34,8 +34,11 @@ dotnet ef migrations add <MigrationName> \
 ### Running Tests
 
 ```bash
-# All tests
+# All tests — the integration suites start SQL Server containers, so Docker must be running
 dotnet test Wayd.slnx
+
+# Only the tests that need no Docker
+./.github/scripts/dotnet-test-projects.sh unit
 
 # Specific project
 dotnet test "Wayd.Services/Wayd.Work/tests/Wayd.Work.Application.Tests/Wayd.Work.Application.Tests.csproj"
@@ -47,6 +50,8 @@ dotnet test --filter "FullyQualifiedName~ProjectServiceTests"
 cd Wayd.Web/src/wayd.web.reactclient
 npm test
 ```
+
+See [Testing](./testing.mdx) for the unit/integration split, test traits, and the shared-container conventions.
 
 ### Architecture Tests
 

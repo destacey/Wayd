@@ -12,7 +12,8 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// while the config file still looked complete. A test that asserted on the bound settings object, or
 /// that reused the production header-name constants, would have passed the whole time.
 /// </summary>
-public sealed class SecurityHeadersTests(WaydApiFactory factory) : IClassFixture<WaydApiFactory>
+[Collection(InMemoryApiTestCollection.Name)]
+public sealed class SecurityHeadersTests(WaydApiFactory factory)
 {
     private readonly WaydApiFactory _factory = factory;
 

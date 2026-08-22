@@ -45,6 +45,12 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
             {
                 sql.MigrationsAssembly("Wayd.Infrastructure.Migrators.MSSQL");
                 sql.UseNodaTime();
+
+                // Several of these containers start at once on a CI runner with far fewer cores than
+                // containers. SQL Server accepts connections before it has finished warming up, so the
+                // first queries can hit transient timeouts and fail a test that has nothing wrong with
+                // it. Retry those rather than letting load masquerade as a test failure.
+                sql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null);
             })
             .Options;
 

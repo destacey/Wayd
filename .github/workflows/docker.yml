@@ -68,27 +68,77 @@ jobs:
                   if-no-files-found: error
                   retention-days: 1
 
-            # Run the .NET solution suite. This includes Wayd.Web.Api.IntegrationTests, which forces
-            # Wolverine:CodegenMode=Static (see WaydApiFactory) and so boots the handler tree generated above —
-            # validating the exact Static dispatch path the shipped artifact uses. NOT --no-build: the test
-            # build recompiles the API so the just-generated handler tree is compiled in. Run from the repo root
-            # (overriding the job's API-project working-directory) so the whole solution is tested; the previous
-            # `dotnet test` ran from the API project dir, which is not a test project, and silently tested nothing.
+            # Every test project that does not need Docker; the Testcontainers suites run alongside this job in
+            # test-api-integration so they are not on this job's critical path. dotnet-test-projects.sh owns the
+            # split and derives it from Wayd.slnx, so a new test project joins a side automatically.
             #
-            # The Wayd.Integrations.AzureDevOps.IntegrationTests hit a live Azure DevOps org (OrganizationUrl +
-            # PAT from a developer's config, absent in CI) — they skip themselves here via Assert.SkipUnless (see
-            # OptionsFixture.IsConfigured) rather than being filtered out. A name filter is deliberately avoided:
-            # under xUnit v3 / Microsoft.Testing.Platform a filter that matches zero tests in an assembly makes
-            # `dotnet test` exit non-zero, so filtering the solution run emptied unrelated assemblies and failed
-            # the whole step.
+            # Wayd.Integrations.AzureDevOps.IntegrationTests runs HERE despite the name: it needs a live Azure
+            # DevOps org (OrganizationUrl + PAT from a developer's config, absent in CI), not Docker, and skips
+            # itself via Assert.SkipUnless (see OptionsFixture.IsConfigured).
             #
-            # The integration suites spin up a SQL Server via Testcontainers on the runner's preinstalled Docker;
-            # Ryuk (the resource reaper) stays enabled, per Testcontainers' guidance for GitHub Actions.
-            # --blame-hang-timeout aborts (with a dump naming the stuck test) instead of silently burning the job's
-            # time if a container never becomes ready, so a Testcontainers problem fails fast and legibly.
-            - name: Test
+            # Coverage is collected only on the main-branch build (see the coverage job): instrumentation
+            # slows the run, and a PR gets no report from it, so PRs keep the faster uninstrumented path.
+            - name: Test (unit + architecture)
               working-directory: .
-              run: dotnet test Wayd.slnx -c Release --verbosity normal --blame-hang-timeout 5m
+              env:
+                  COLLECT_COVERAGE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+              run: ./.github/scripts/dotnet-test-projects.sh unit
+
+            - name: Upload unit coverage
+              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-unit
+                  path: "**/TestResults/**/coverage.cobertura.xml"
+                  if-no-files-found: error
+                  retention-days: 1
+
+    # The Testcontainers suites, split out of build-and-test-api so the unit tests do not queue behind SQL
+    # Server container startup. Depends on build-and-test-api only for the Wolverine handler tree artifact;
+    # the split trades a second restore+build for taking these off the unit-test critical path.
+    test-api-integration:
+        runs-on: ubuntu-latest
+        needs: [build-and-test-api]
+        steps:
+            - name: checkout
+              uses: actions/checkout@v4
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: 10.0.x
+
+            # Wayd.Web.Api.IntegrationTests forces Wolverine:CodegenMode=Static (see WaydApiFactory), so it boots
+            # the pre-generated tree rather than compiling handlers at runtime. Download the exact tree
+            # build-and-test-api generated and the image ships, so all three run identical dispatch code. This
+            # must land BEFORE the build below, which compiles the tree into the API assembly.
+            - name: Download Wolverine handler tree
+              uses: actions/download-artifact@v4
+              with:
+                  name: wolverine-handler-tree
+                  path: Wayd.Web/src/Wayd.Web.Api/Internal/Generated/WolverineHandlers/
+
+            - name: Restore dependencies
+              run: dotnet restore
+
+            - name: Build
+              run: dotnet build --no-restore -c Release
+
+            # Spins up SQL Server via Testcontainers on the runner's preinstalled Docker; Ryuk (the resource
+            # reaper) stays enabled, per Testcontainers' guidance for GitHub Actions.
+            - name: Test (integration)
+              env:
+                  COLLECT_COVERAGE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+              run: ./.github/scripts/dotnet-test-projects.sh integration
+
+            - name: Upload integration coverage
+              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-integration
+                  path: "**/TestResults/**/coverage.cobertura.xml"
+                  if-no-files-found: error
+                  retention-days: 1
 
     build-and-test-client:
         runs-on: ubuntu-latest
@@ -121,9 +171,68 @@ jobs:
             - name: npm run test:coverage
               run: npm run test:coverage
 
+    # Merges the Cobertura files from BOTH test jobs into one report. Merging matters: the unit suites and
+    # the Testcontainers suites cover different code (integration tests exercise the dispatch and persistence
+    # paths unit tests deliberately mock), so either half alone understates real coverage.
+    #
+    # main-branch pushes only -- PRs never collect coverage, so there is nothing to merge there, and the job
+    # would find no artifacts. Never gates the build: this reports a number, it does not enforce one.
+    coverage-report:
+        runs-on: ubuntu-latest
+        needs: [build-and-test-api, test-api-integration]
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: 10.0.x
+
+            # Both artifacts land under coverage/, whose subdirectories keep the two jobs' files apart.
+            - name: Download coverage artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  pattern: coverage-*
+                  path: coverage
+
+            - name: Install ReportGenerator
+              run: dotnet tool install --global dotnet-reportgenerator-globaltool
+
+            # Split into two invocations deliberately. The markdown summary + merged Cobertura take ~3s; the
+            # per-class HTML takes minutes on a codebase this size (a page per class, thousands of them). Doing
+            # the cheap one first means the run-page number is never held up by, or lost to, the slow one.
+            - name: Merge coverage reports
+              run: >-
+                  reportgenerator
+                  -reports:'coverage/**/coverage.cobertura.xml'
+                  -targetdir:coverage-report
+                  -reporttypes:'Cobertura;MarkdownSummaryGithub'
+
+            - name: Write coverage summary
+              run: cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+
+            # Browsable drill-down. continue-on-error because it is a convenience artifact: the summary above
+            # is already published, and a slow or failed render should not redden a green main build.
+            - name: Generate browsable HTML report
+              continue-on-error: true
+              run: >-
+                  reportgenerator
+                  -reports:'coverage/**/coverage.cobertura.xml'
+                  -targetdir:coverage-report/html
+                  -reporttypes:'HtmlInline_AzurePipelines'
+
+            - name: Upload coverage report
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-report
+                  path: coverage-report/
+                  retention-days: 14
+
     build-and-push-image:
         runs-on: ubuntu-latest
-        needs: [build-and-test-api, build-and-test-client]
+        needs: [build-and-test-api, test-api-integration, build-and-test-client]
         strategy:
             fail-fast: false
             matrix:

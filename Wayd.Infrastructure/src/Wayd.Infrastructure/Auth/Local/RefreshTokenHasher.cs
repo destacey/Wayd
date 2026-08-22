@@ -4,7 +4,7 @@ using System.Text;
 namespace Wayd.Infrastructure.Auth.Local;
 
 /// <summary>
-/// Hashes refresh tokens for storage in <c>Identity.Users</c>.
+/// Hashes refresh tokens for storage in <c>Identity.UserRefreshTokens</c>.
 /// </summary>
 /// <remarks>
 /// Deliberately not <c>ITokenHashingService</c>: its <c>TokenIdentifier</c> exists so a

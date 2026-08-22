@@ -29140,7 +29140,7 @@
       },
       "LogoutRequest": {
         "type": "object",
-        "description": "Identifies which of the caller's sessions a request concerns. Optional: without it, logout\nfalls back to revoking every session and the sessions list cannot mark \"this device\".",
+        "description": "Identifies which of the caller's sessions a request concerns. Optional, but a request that\nomits it does less: logout revokes nothing, and the sessions list cannot mark \"this device\".\nUse logout-all to end every session.",
         "additionalProperties": false,
         "properties": {
           "refreshToken": {

@@ -33862,7 +33862,7 @@ export interface RefreshTokenCommand {
     refreshToken: string;
 }
 
-/** Identifies which of the caller's sessions a request concerns. Optional: without it, logout falls back to revoking every session and the sessions list cannot mark "this device". */
+/** Identifies which of the caller's sessions a request concerns. Optional, but a request that omits it does less: logout revokes nothing, and the sessions list cannot mark "this device". Use logout-all to end every session. */
 export interface LogoutRequest {
     refreshToken?: string | undefined;
 }

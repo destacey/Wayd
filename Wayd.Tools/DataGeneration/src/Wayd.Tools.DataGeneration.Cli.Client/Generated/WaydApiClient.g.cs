@@ -60833,8 +60833,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// Identifies which of the caller's sessions a request concerns. Optional: without it, logout
-    /// <br/>falls back to revoking every session and the sessions list cannot mark "this device".
+    /// Identifies which of the caller's sessions a request concerns. Optional, but a request that
+    /// <br/>omits it does less: logout revokes nothing, and the sessions list cannot mark "this device".
+    /// <br/>Use logout-all to end every session.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class LogoutRequest

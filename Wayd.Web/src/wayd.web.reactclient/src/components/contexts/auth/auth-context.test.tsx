@@ -4,7 +4,7 @@ import React from 'react'
 
 // --- Mocks (all before imports) ---
 
-jest.mock('../../../app/account/profile/change-password-form', () => ({
+jest.mock('../../common/forms/change-password-form', () => ({
   __esModule: true,
   default: ({ onFormComplete, onFormCancel }: any) => (
     <div data-testid="change-password-form">

@@ -2,7 +2,7 @@
 
 import React, { createContext, useCallback, useMemo, useState } from 'react'
 import { AuthContextType, AuthMethod, Claim, User } from './types'
-import ChangePasswordForm from '@/src/app/account/profile/change-password-form'
+import ChangePasswordForm from '@/src/components/common/forms/change-password-form'
 import styles from './auth-provider.module.css'
 import {
   AUTH_MUST_CHANGE_PASSWORD_KEY,

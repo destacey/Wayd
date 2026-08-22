@@ -2,12 +2,14 @@
 
 import React, { createContext, useCallback, useMemo, useState } from 'react'
 import { AuthContextType, AuthMethod, Claim, User } from './types'
-import ChangePasswordForm from '@/src/app/account/profile/change-password-form'
+import ChangePasswordForm from '@/src/components/common/forms/change-password-form'
 import styles from './auth-provider.module.css'
 import {
   AUTH_MUST_CHANGE_PASSWORD_KEY,
   clearAuth,
   getAuthClient,
+  getAuthenticatedAuthClient,
+  getAuthRefreshToken,
   getAuthStorage,
   getAuthToken,
   isAuthActive,
@@ -285,6 +287,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   )
 
   const logout = useCallback(async () => {
+    // Must precede clearAuth(), which removes both the bearer token this call
+    // authenticates with and the refresh token that identifies which session to end.
+    // Failure is swallowed deliberately: stranding someone in a signed-in UI is worse
+    // than a session outliving the click.
+    try {
+      await getAuthenticatedAuthClient().logout({
+        refreshToken: getAuthRefreshToken() ?? undefined,
+      })
+    } catch {
+      // Ignored — local sign-out proceeds regardless.
+    }
+
     clearAuth()
     const loginProvider = session.loginProvider
     if (loginProvider && session.authMethod === 'oidc') {

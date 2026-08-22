@@ -4,7 +4,7 @@ import React from 'react'
 
 // --- Mocks (all before imports) ---
 
-jest.mock('../../../app/account/profile/change-password-form', () => ({
+jest.mock('../../common/forms/change-password-form', () => ({
   __esModule: true,
   default: ({ onFormComplete, onFormCancel }: any) => (
     <div data-testid="change-password-form">
@@ -51,6 +51,7 @@ const mockStorage = {
 }
 
 const mockLogin = jest.fn()
+const mockLogout = jest.fn()
 
 jest.mock('@/src/services/clients', () => ({
   AUTH_TOKEN_KEY: 'wayd.token',
@@ -88,12 +89,19 @@ jest.mock('@/src/services/clients', () => ({
   getAuthClient: () => ({
     login: mockLogin,
   }),
+  getAuthenticatedAuthClient: () => ({
+    logout: mockLogout,
+  }),
 }))
 
 // Imports after mocks.
 import { AuthProvider } from './auth-context'
 import useAuth from './use-auth'
-import { clearAuth, storeAuth } from '@/src/services/clients'
+import {
+  clearAuth,
+  getAuthRefreshToken,
+  storeAuth,
+} from '@/src/services/clients'
 
 // --- Test helpers ---
 
@@ -311,5 +319,75 @@ describe('AuthProvider local login', () => {
       userName: 'alice',
       password: 'password',
     })
+  })
+})
+describe('logout', () => {
+  const TestLogoutConsumer = () => {
+    const auth = useAuth()
+    return (
+      <div>
+        <div data-testid="authenticated">
+          {auth.user?.isAuthenticated ? 'yes' : 'no'}
+        </div>
+        <button data-testid="do-logout" onClick={() => auth.logout()}>
+          logout
+        </button>
+      </div>
+    )
+  }
+
+  function signIn() {
+    storeAuth({
+      token: makeWaydJwt({
+        given_name: 'Alice',
+        loginProvider: 'Wayd',
+        permission: [],
+      }),
+      refreshToken: 'refresh-token-value',
+      tokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      mustChangePassword: false,
+    } as any)
+  }
+
+  it('revokes the session server-side before clearing local storage', async () => {
+    // The call must happen while the bearer token still exists; clearAuth() removes it.
+    let refreshTokenAtCallTime: string | null = null
+    mockLogout.mockImplementation(async () => {
+      refreshTokenAtCallTime = getAuthRefreshToken()
+    })
+    signIn()
+
+    render(
+      <AuthProvider>
+        <TestLogoutConsumer />
+      </AuthProvider>,
+    )
+
+    await act(async () => {
+      screen.getByTestId('do-logout').click()
+    })
+
+    expect(mockLogout).toHaveBeenCalledTimes(1)
+    expect(refreshTokenAtCallTime).toBe('refresh-token-value')
+    expect(getAuthRefreshToken()).toBeNull()
+  })
+
+  it('still signs out locally when the revoke call fails', async () => {
+    // A network error must not strand the user in a signed-in UI.
+    mockLogout.mockRejectedValue(new Error('Network Error'))
+    signIn()
+
+    render(
+      <AuthProvider>
+        <TestLogoutConsumer />
+      </AuthProvider>,
+    )
+
+    await act(async () => {
+      screen.getByTestId('do-logout').click()
+    })
+
+    expect(mockLogout).toHaveBeenCalledTimes(1)
+    expect(getAuthRefreshToken()).toBeNull()
   })
 })

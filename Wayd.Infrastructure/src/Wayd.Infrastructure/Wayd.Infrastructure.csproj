@@ -8,6 +8,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="Wayd.Infrastructure.Tests" />
+        <InternalsVisibleTo Include="Wayd.Infrastructure.IntegrationTests" />
         <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
     </ItemGroup>
 

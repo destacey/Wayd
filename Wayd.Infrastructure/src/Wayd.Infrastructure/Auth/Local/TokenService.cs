@@ -21,8 +21,12 @@ internal class TokenService(
     IUserService userService,
     IOidcTokenValidator oidcTokenValidator,
     IOidcProviderRegistry oidcProviderRegistry,
+    IRefreshTokenStore refreshTokenStore,
+    ISessionContextAccessor sessionContext,
     ILogger<TokenService> logger) : ITokenService
 {
+    private readonly IRefreshTokenStore _refreshTokenStore = refreshTokenStore;
+    private readonly ISessionContextAccessor _sessionContext = sessionContext;
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
     private readonly IConfiguration _config = config;
@@ -93,8 +97,12 @@ internal class TokenService(
             throw new UnauthorizedException("User account is inactive.");
         }
 
-        if (user.RefreshToken != command.RefreshToken || user.RefreshTokenExpiryTime is not { } expiry || expiry <= _dateTimeProvider.Now.ToDateTimeUtc())
+        var rotation = await _refreshTokenStore.Rotate(user.Id, command.RefreshToken, cancellationToken);
+        if (rotation.Outcome is not RefreshRotationOutcome.Rotated)
         {
+            // Reuse is reported identically to an ordinary miss. Saying "this token was
+            // already used" would confirm to a thief that they hold a real token from a real
+            // chain; the store has already revoked that session either way.
             throw new UnauthorizedException("Invalid or expired refresh token.");
         }
 
@@ -106,7 +114,7 @@ internal class TokenService(
         // requires an active Wayd identity.
         await EnsureActiveIdentityAsync(user, user.LoginProvider, user.UserName ?? userId, cancellationToken);
 
-        return await GenerateTokensAndUpdateUser(user, cancellationToken);
+        return await IssueAccessToken(user, rotation.Token!, cancellationToken);
     }
 
     public async Task<TokenResponse> ExchangeTokenAsync(ExchangeTokenCommand command, CancellationToken cancellationToken)
@@ -166,6 +174,67 @@ internal class TokenService(
         return await GenerateTokensAndUpdateUser(user, cancellationToken);
     }
 
+    public async Task LogoutAsync(string userId, string? refreshToken, CancellationToken cancellationToken)
+    {
+        // Signs out the calling device only, leaving the user's other sessions alone.
+        //
+        // An unusable token revokes NOTHING rather than falling back to revoking everything.
+        // "I cannot tell which session this is" is not the same as "end them all": treating it
+        // that way once made a single sign-out destroy every session the user had. The caller
+        // is signed out locally either way, and the orphaned session still expires on its own.
+        if (string.IsNullOrWhiteSpace(refreshToken))
+        {
+            _logger.LogWarning(
+                "Logout for user {UserId} supplied no refresh token; no session could be identified to revoke.",
+                userId);
+            return;
+        }
+
+        var sessionId = await _refreshTokenStore.FindSessionId(userId, refreshToken, cancellationToken);
+        if (sessionId is null)
+        {
+            _logger.LogWarning(
+                "Logout for user {UserId} supplied a refresh token matching no live session; nothing revoked.",
+                userId);
+            return;
+        }
+
+        await _refreshTokenStore.Revoke(userId, sessionId.Value, UserRefreshTokenRevokeReasons.SignedOut, cancellationToken);
+    }
+
+    public async Task LogoutAllAsync(string userId, CancellationToken cancellationToken)
+    {
+        await _refreshTokenStore.RevokeAll(userId, UserRefreshTokenRevokeReasons.SignedOut, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<UserSessionResponse>> GetSessions(string userId, string? currentRefreshToken, CancellationToken cancellationToken)
+    {
+        var sessions = await _refreshTokenStore.ListActive(userId, cancellationToken);
+
+        // Marking the caller's own row lets the UI warn before someone revokes the session
+        // they are using. Null when the client did not send its token — the list still works,
+        // it just cannot highlight "this device".
+        var currentId = string.IsNullOrWhiteSpace(currentRefreshToken)
+            ? null
+            : await _refreshTokenStore.FindSessionId(userId, currentRefreshToken, cancellationToken);
+
+        return sessions
+            .Select(s => new UserSessionResponse(
+                s.Id,
+                s.DeviceLabel,
+                s.IpAddress,
+                s.CreatedAt,
+                s.LastUsedAt,
+                s.ExpiresAt,
+                s.Id == currentId))
+            .ToList();
+    }
+
+    public async Task<bool> RevokeSession(string userId, Guid sessionId, CancellationToken cancellationToken)
+    {
+        return await _refreshTokenStore.Revoke(userId, sessionId, UserRefreshTokenRevokeReasons.SignedOut, cancellationToken);
+    }
+
     private async Task EnsureActiveIdentityAsync(ApplicationUser user, string provider, string usernameForLogging, CancellationToken cancellationToken)
     {
         // Requires an active UserIdentity row for the given provider. Enables
@@ -191,14 +260,32 @@ internal class TokenService(
         // clock.
         var permissions = await _userService.GetPermissionsAsync(user.Id, cancellationToken);
 
+        // A fresh sign-in opens its own session rather than replacing whatever else the user
+        // has open, so signing in on a second device leaves the first one working.
+        var refreshToken = await _refreshTokenStore.Issue(user.Id, _sessionContext.Current, cancellationToken);
+
+        return BuildResponse(user, permissions, settings, refreshToken);
+    }
+
+    /// <summary>
+    /// Mints an access token against an already-rotated refresh token, for the refresh path
+    /// where the store owns the session row.
+    /// </summary>
+    private async Task<TokenResponse> IssueAccessToken(ApplicationUser user, string refreshToken, CancellationToken cancellationToken)
+    {
+        var settings = GetSettings();
+        var permissions = await _userService.GetPermissionsAsync(user.Id, cancellationToken);
+
+        return BuildResponse(user, permissions, settings, refreshToken);
+    }
+
+    private TokenResponse BuildResponse(
+        ApplicationUser user,
+        IReadOnlyList<string> permissions,
+        LocalJwtSettings settings,
+        string refreshToken)
+    {
         var token = GenerateJwt(user, permissions, settings);
-        var refreshToken = GenerateRefreshToken();
-        var refreshTokenExpiry = _dateTimeProvider.Now.ToDateTimeUtc().AddDays(settings.RefreshTokenExpirationInDays);
-
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiryTime = refreshTokenExpiry;
-        await _userManager.UpdateAsync(user);
-
         var tokenExpiry = _dateTimeProvider.Now.ToDateTimeUtc().AddMinutes(settings.TokenExpirationInMinutes);
 
         return new TokenResponse(token, refreshToken, tokenExpiry, user.MustChangePassword);
@@ -243,14 +330,6 @@ internal class TokenService(
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-
-    private static string GenerateRefreshToken()
-    {
-        var randomNumber = new byte[32];
-        using var rng = RandomNumberGenerator.Create();
-        rng.GetBytes(randomNumber);
-        return Convert.ToBase64String(randomNumber);
     }
 
     private ClaimsPrincipal GetPrincipalFromExpiredToken(string token)

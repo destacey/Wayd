@@ -77,6 +77,58 @@ POST /api/auth/refresh-token
 
 Same response shape. Refresh works uniformly for both login providers — the refresh flow doesn't need to know how the user originally authenticated.
 
+Refresh tokens **rotate**: each refresh returns a new one and invalidates the one you presented. Store the new value and discard the old.
+
+Presenting a refresh token that was already rotated away is treated as **reuse** — evidence that two parties hold tokens from the same chain — and revokes that session. Other sessions are unaffected. A client that keeps a single in-flight refresh will never trigger this; one that races several concurrent refreshes can.
+
+### Sessions
+
+Each sign-in creates a session. Signing in on a second device does not invalidate the first.
+
+Signing out ends the calling device's session:
+
+```
+POST /api/auth/logout
+{
+  "refreshToken": "<wayd-refresh-token>"
+}
+```
+
+Returns `204`. The refresh token identifies **which** session to end — without it, or with one that matches no live session, nothing is revoked.
+
+To end every session:
+
+```
+POST /api/auth/logout-all
+```
+
+To list live sessions:
+
+```
+POST /api/auth/sessions
+{
+  "refreshToken": "<wayd-refresh-token>"
+}
+```
+
+Returns device label, IP address, timestamps, and `isCurrent` marking the caller's own session. The refresh token is optional and only used to set `isCurrent`; the response never contains a token or hash. This is a `POST` rather than a `GET` so the token stays out of URLs, access logs, and browser history.
+
+To end one session by id:
+
+```
+DELETE /api/auth/sessions/{sessionId}
+```
+
+Returns `204`, or `404` when the id is not one of the caller's live sessions.
+
+All four endpoints require authentication and act only on the calling user — no user id is read from the request.
+
+:::note
+Revoking a session stops it refreshing, but that device's existing JWT stays valid until it expires (`TokenExpirationInMinutes`, 60 by default). Revocation is not instant.
+
+Personal access tokens are **not** sessions and are unaffected by sign-out. Revoke them separately.
+:::
+
 ### Personal Access Tokens (PATs)
 
 **Personal Access Tokens** provide a way to authenticate API requests without interactive login. They are ideal for scripts, CI/CD pipelines, and integrations.

@@ -172,9 +172,34 @@ sequenceDiagram
     Note over U,A: Token refresh
     F->>W: POST /api/auth/refresh-token<br/>{ token, refreshToken }
     W-->>F: New { token, refreshToken }
+
+    Note over U,A: Sign-out
+    F->>W: POST /api/auth/logout<br/>{ refreshToken }
+    W->>W: Revoke that session only
+    F->>F: clearAuth()
 ```
 
 Permissions travel as `permission` claims inside the Wayd JWT — no separate `/permissions` round-trip. An admin permission change takes effect on the user's next refresh (within the access-token TTL).
+
+### Sessions
+
+Each sign-in writes a row to `Identity.UserRefreshTokens`. One row per concurrent session, so a second device does not displace the first.
+
+The row stores a **salted hash** of the refresh token, never the token itself, verified with `CryptographicOperations.FixedTimeEquals`. Because every hash carries its own salt there is no equality lookup: resolving a token means verifying it against each of that user's live rows, which is a handful. It also records a coarse device label parsed from the User-Agent and the remote address — both display-only, so a person can recognise their own sessions. Nothing authorizes on them.
+
+Refresh **rotates** the token and retains the superseded hash for five minutes. Presenting a superseded token within that window is reuse, and revokes that one session — not the user's other devices. Outside the window it is indistinguishable from any other stale value and is simply rejected.
+
+Sign-out revokes the session named by the refresh token the client sends. When that token is absent or matches no live session, **nothing** is revoked: "which session is this?" having no answer is not a reason to end them all, and treating it as one made a single sign-out destroy every device a user had. `POST /api/auth/logout-all` is the explicit way to end everything.
+
+The same five-minute grace applies when resolving a token to its session, not just when detecting reuse. A background refresh can land between the client reading its stored token and using it; if the two lookups disagreed about what identifies a session, a caller holding a seconds-old token would look like a stranger.
+
+:::note
+Revocation is not immediate. Access tokens are self-contained JWTs validated by signature and never looked up, so a revoked device keeps working until its token expires (`TokenExpirationInMinutes`).
+
+Sessions are created **only** by interactive sign-in. Personal access tokens authenticate through `PersonalAccessTokenAuthenticationHandler` and never touch this table.
+:::
+
+Users manage their own sessions on **Account → Profile → Sessions**. See [Your Profile](../getting-started/your-profile.mdx#sessions).
 
 The login page consults `GET /api/auth/providers` (anonymous, cheap) to decide which provider buttons to render. The response is:
 

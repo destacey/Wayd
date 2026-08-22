@@ -40,8 +40,12 @@ public class ApplicationUser : IdentityUser
 
     public bool MustChangePassword { get; set; }
 
-    public string? RefreshToken { get; set; }
-    public DateTime? RefreshTokenExpiryTime { get; set; }
+    /// <summary>
+    /// One row per concurrent sign-in session. Sessions live here rather than in columns on
+    /// this row so a second device does not displace the first, and so detected token reuse
+    /// revokes only the affected session.
+    /// </summary>
+    public ICollection<UserRefreshToken> RefreshTokens { get; set; } = [];
 
     public UserPreferences Preferences { get; set; } = new();
 

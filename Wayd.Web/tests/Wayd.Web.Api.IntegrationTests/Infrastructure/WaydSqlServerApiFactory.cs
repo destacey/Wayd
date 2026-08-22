@@ -11,6 +11,11 @@ namespace Wayd.Web.Api.IntegrationTests.Infrastructure;
 /// Wolverine-generated handler, its FluentValidation middleware, and persists through the real schema.
 /// This is the one end-to-end proof that the whole pipeline executes — not just that its generated code
 /// compiles (that is the in-memory <see cref="WaydApiFactory"/>).
+/// <para>
+/// Shared as a collection fixture (see <see cref="SqlServerApiTestCollection"/>): one container, schema and
+/// host for every SQL-backed class. Tests therefore share a database and must scope their assertions to
+/// data they created rather than assuming they are alone in it.
+/// </para>
 /// </summary>
 /// <remarks>Requires Docker to be running on the machine executing the tests.</remarks>
 public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
@@ -35,12 +40,35 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
         await _container.StartAsync();
 
         // Create the dedicated database, then point the host's connection string at it.
-        await using (var connection = new SqlConnection(_container.GetConnectionString()))
+        //
+        // Retried: Testcontainers reports the container ready as soon as SQL Server accepts connections, but
+        // under CI load (several of these containers starting at once on far fewer cores) the engine can still
+        // be warming up and drop or time out this first command. Failing here takes the whole class down before
+        // a single test runs, so a transient stumble is retried rather than reported as a suite failure.
+        var lastError = default(Exception);
+        for (var attempt = 1; attempt <= 5; attempt++)
         {
-            await connection.OpenAsync();
-            await using var command = connection.CreateCommand();
-            command.CommandText = $"IF DB_ID('{DatabaseName}') IS NULL CREATE DATABASE [{DatabaseName}];";
-            await command.ExecuteNonQueryAsync();
+            try
+            {
+                await using var connection = new SqlConnection(_container.GetConnectionString());
+                await connection.OpenAsync();
+                await using var command = connection.CreateCommand();
+                command.CommandText = $"IF DB_ID('{DatabaseName}') IS NULL CREATE DATABASE [{DatabaseName}];";
+                await command.ExecuteNonQueryAsync();
+                lastError = null;
+                break;
+            }
+            catch (SqlException ex)
+            {
+                lastError = ex;
+                await Task.Delay(TimeSpan.FromSeconds(attempt));
+            }
+        }
+
+        if (lastError is not null)
+        {
+            throw new InvalidOperationException(
+                $"Could not create the '{DatabaseName}' database on the test container after 5 attempts.", lastError);
         }
 
         _connectionString = new SqlConnectionStringBuilder(_container.GetConnectionString())
@@ -51,8 +79,9 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
 
     public override async ValueTask DisposeAsync()
     {
-        // Clear the env vars this factory set so nothing leaks to sibling test hosts. Safe because
-        // xunit.runner.json disables collection parallelism (these are process-global vars).
+        // Clear the env vars this factory set so nothing leaks to sibling test hosts. Safe because this
+        // factory is a single collection fixture (see SqlServerApiTestCollection) and xunit.runner.json
+        // disables collection parallelism, so no other host is constructing while these are cleared.
         Environment.SetEnvironmentVariable("DatabaseSettings__DBProvider", null);
         Environment.SetEnvironmentVariable("DatabaseSettings__ConnectionString", null);
         Environment.SetEnvironmentVariable("HangfireSettings__Storage__ConnectionString", null);

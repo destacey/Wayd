@@ -9,9 +9,10 @@
 # -- only the main-branch build does, where the extra time is not on anyone's feedback loop.
 #
 # The split is derived from Wayd.slnx at run time rather than hard-coded, so a new test project cannot
-# be silently dropped from CI. A project is "integration" iff its .csproj references Testcontainers --
-# the dependency that actually requires a Docker daemon, rather than a name or trait convention that
-# can drift out of sync with what the project really needs.
+# be silently dropped from CI. A project is "integration" iff its .csproj has a PackageReference to a
+# Testcontainers module -- the dependency that actually requires a Docker daemon, rather than a name or
+# trait convention that can drift out of sync with what the project really needs. Directory.Build.targets
+# derives the Category trait from the same signal, so a test's trait and the job it runs in agree.
 #
 # The selection is handed to `dotnet test` as a generated solution filter (.slnf). Two alternatives do
 # not work here: `dotnet test` takes only ONE project argument (MSB1008 on a list), and a solution-wide
@@ -28,7 +29,10 @@ selected=()
 for proj in "${all_projects[@]}"; do
     # Only test projects are candidates; src projects have no tests to run.
     [[ "$proj" == *Tests.csproj ]] || continue
-    if grep -q 'Testcontainers' "$proj"; then
+    # Matched on a PackageReference to any Testcontainers module, not the bare word: a comment or an
+    # unrelated string mentioning Testcontainers must not move a project into the Docker job. Keep this
+    # in step with the prefix match in Directory.Build.targets, which derives the Category trait.
+    if grep -qE '<PackageReference[^>]*Include="Testcontainers' "$proj"; then
         [[ "$mode" == "integration" ]] && selected+=("$proj")
     else
         [[ "$mode" == "unit" ]] && selected+=("$proj")

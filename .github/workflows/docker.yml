@@ -82,7 +82,7 @@ jobs:
               working-directory: .
               env:
                   COLLECT_COVERAGE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-              run: ./.github/scripts/dotnet-test-projects.sh unit
+              run: bash .github/scripts/dotnet-test-projects.sh unit
 
             - name: Upload unit coverage
               if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -129,7 +129,7 @@ jobs:
             - name: Test (integration)
               env:
                   COLLECT_COVERAGE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-              run: ./.github/scripts/dotnet-test-projects.sh integration
+              run: bash .github/scripts/dotnet-test-projects.sh integration
 
             - name: Upload integration coverage
               if: github.event_name == 'push' && github.ref == 'refs/heads/main'

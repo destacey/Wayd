@@ -18,6 +18,7 @@
     <Project Path="Wayd.Infrastructure/src/Wayd.Infrastructure/Wayd.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/Wayd.Infrastructure/tests/">
+    <Project Path="Wayd.Infrastructure/tests/Wayd.Infrastructure.IntegrationTests/Wayd.Infrastructure.IntegrationTests.csproj" />
     <Project Path="Wayd.Infrastructure/tests/Wayd.Infrastructure.Tests/Wayd.Infrastructure.Tests.csproj" />
   </Folder>
   <Folder Name="/Wayd.Integrations/" />

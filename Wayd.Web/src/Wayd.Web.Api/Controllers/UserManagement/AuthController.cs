@@ -10,16 +10,21 @@ namespace Wayd.Web.Api.Controllers.UserManagement;
 [Route("api/auth")]
 [ApiVersionNeutral]
 [ApiController]
-[AllowAnonymous]
+// AllowAnonymous is applied per action, not to the controller: a controller-level
+// AllowAnonymous cannot be narrowed by an action-level Authorize (ASP0026), which would
+// silently leave the authenticated logout endpoint open.
 public class AuthController(
     ITokenService tokenService,
     IBootstrapTokenService bootstrapTokenService,
-    IUserService userService) : ControllerBase
+    IUserService userService,
+    ICurrentUser currentUser) : ControllerBase
 {
     private readonly ITokenService _tokenService = tokenService;
     private readonly IBootstrapTokenService _bootstrapTokenService = bootstrapTokenService;
     private readonly IUserService _userService = userService;
+    private readonly ICurrentUser _currentUser = currentUser;
 
+    [AllowAnonymous]
     [HttpPost("login")]
     [OpenApiOperation("Authenticate with username and password.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -30,6 +35,7 @@ public class AuthController(
         return Ok(response);
     }
 
+    [AllowAnonymous]
     [HttpPost("refresh-token")]
     [OpenApiOperation("Refresh an expired JWT token.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -40,6 +46,63 @@ public class AuthController(
         return Ok(response);
     }
 
+    [Authorize]
+    [HttpPost("logout")]
+    [OpenApiOperation("End the calling device's session server-side.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Logout(LogoutRequest? request, CancellationToken cancellationToken)
+    {
+        // The subject comes from the validated principal, so this can only ever act on the
+        // caller's own account. The refresh token in the body selects which of their sessions
+        // to end; it cannot reach another user's, because the store scopes by user id too.
+        await _tokenService.LogoutAsync(_currentUser.GetUserId(), request?.RefreshToken, cancellationToken);
+        return NoContent();
+    }
+
+    [Authorize]
+    [HttpPost("logout-all")]
+    [OpenApiOperation("End every session for the calling user, on all devices.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> LogoutAll(CancellationToken cancellationToken)
+    {
+        await _tokenService.LogoutAllAsync(_currentUser.GetUserId(), cancellationToken);
+        return NoContent();
+    }
+
+    [Authorize]
+    [HttpPost("sessions")]
+    [OpenApiOperation("List the calling user's active sessions.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<IReadOnlyList<UserSessionResponse>>> GetSessions(
+        LogoutRequest? request,
+        CancellationToken cancellationToken)
+    {
+        // POST rather than GET: the caller's refresh token identifies which row is "this
+        // device", and a credential belongs in a body, not a query string where it would land
+        // in access logs and browser history.
+        var sessions = await _tokenService.GetSessions(_currentUser.GetUserId(), request?.RefreshToken, cancellationToken);
+        return Ok(sessions);
+    }
+
+    [Authorize]
+    [HttpDelete("sessions/{sessionId:guid}")]
+    [OpenApiOperation("Revoke one of the calling user's sessions.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RevokeSession(Guid sessionId, CancellationToken cancellationToken)
+    {
+        var revoked = await _tokenService.RevokeSession(_currentUser.GetUserId(), sessionId, cancellationToken);
+
+        // 404 covers "already revoked", "expired" and "belongs to someone else" alike, so the
+        // response never confirms that another user's session id exists.
+        return revoked ? NoContent() : NotFound();
+    }
+
+    [AllowAnonymous]
     [HttpPost("exchange")]
     [OpenApiOperation("Exchange an external identity-provider token (e.g., Microsoft Entra ID) for a Wayd JWT.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -50,6 +113,7 @@ public class AuthController(
         return Ok(response);
     }
 
+    [AllowAnonymous]
     [HttpGet("providers")]
     [OpenApiOperation("List the authentication providers enabled on this deployment.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -63,6 +127,7 @@ public class AuthController(
         return Ok(response);
     }
 
+    [AllowAnonymous]
     [HttpPost("setup")]
     [OpenApiOperation("Create the first admin user using the one-time bootstrap token.", "")]
     [ProducesResponseType(StatusCodes.Status200OK)]

@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
+        <IsTestProject>true</IsTestProject>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="FluentAssertions" />
+        <PackageReference Include="Moq" />
+        <PackageReference Include="NodaTime.Testing" />
+        <PackageReference Include="Testcontainers.MsSql" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="xunit.v3" />
+        <PackageReference Include="xunit.runner.visualstudio">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="coverlet.collector">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- The real WaydDbContext plus the SQL Server migrations, so hashing, the filtered index and
+             NodaTime mapping all behave exactly as in production. -->
+        <ProjectReference Include="..\..\src\Wayd.Infrastructure.Migrators.MSSQL\Wayd.Infrastructure.Migrators.MSSQL.csproj" />
+        <ProjectReference Include="..\..\src\Wayd.Infrastructure\Wayd.Infrastructure.csproj" />
+    </ItemGroup>
+
+</Project>

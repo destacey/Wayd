@@ -5,9 +5,10 @@ import { Button, Card } from 'antd'
 import { usePathname } from 'next/navigation'
 import PageTitle from '../../../components/common/page-title'
 import ProfileForm from './profile-form'
-import ChangePasswordForm from './change-password-form'
+import ChangePasswordForm from '@/src/components/common/forms/change-password-form'
 import ClaimsGrid from './claims-grid'
 import PersonalAccessTokens from './personal-access-tokens'
+import Sessions from './sessions'
 import Preferences from './preferences'
 import useAuth from '../../../components/contexts/auth'
 import { useDocumentTitle } from '../../../hooks/use-document-title'
@@ -20,11 +21,13 @@ enum AccountTabs {
   Preferences = 'preferences',
   Claims = 'claims',
   PersonalAccessTokens = 'personalAccessTokens',
+  Sessions = 'sessions',
 }
 
 const tabs = [
   { key: AccountTabs.Profile, tab: 'Profile' },
   { key: AccountTabs.Preferences, tab: 'Preferences' },
+  { key: AccountTabs.Sessions, tab: 'Sessions' },
   { key: AccountTabs.PersonalAccessTokens, tab: 'PATs' },
   { key: AccountTabs.Claims, tab: 'Claims' },
 ]
@@ -54,6 +57,8 @@ const AccountProfilePage = () => {
         return React.createElement(ProfileForm, profileData)
       case AccountTabs.Preferences:
         return <Preferences />
+      case AccountTabs.Sessions:
+        return <Sessions />
       case AccountTabs.PersonalAccessTokens:
         return <PersonalAccessTokens />
       case AccountTabs.Claims:

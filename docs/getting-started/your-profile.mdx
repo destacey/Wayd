@@ -31,6 +31,26 @@ Navigate to your profile by clicking your avatar or name in the top-right corner
 
 If this is your first login and you see a **Must Change Password** prompt, you'll need to set a new password before continuing.
 
+## Sessions
+
+Each time you sign in — on a laptop, a phone, a second browser — Wayd records a **session**. Signing in somewhere new does not sign you out anywhere else.
+
+The **Sessions** tab on your profile lists every device currently signed in to your account, showing:
+
+- **Device** — the browser and operating system it signed in from
+- **IP address** — where it signed in from
+- **Last active** and **Signed in** — when it was last used, and when the session started
+
+The session you are using is marked **This device**.
+
+### Signing out a device
+
+Use the row's actions menu to sign out a single device, or **Sign out of all devices** to end every session at once. Sign out anything you do not recognise.
+
+Signing out revokes a device's ability to stay signed in. That device can keep working for up to an hour, until the access token it already holds expires — so it is not instant. If you believe your account is compromised, change your password as well.
+
+> Signing out does **not** revoke personal access tokens. Those are managed separately on the **PATs** tab.
+
 ## Personal Access Tokens
 
 **Personal Access Tokens (PATs)** allow you to authenticate with the Wayd [API](../reference/api.mdx#personal-access-tokens-pats) without using your username and password. They are useful for scripts, automations, and integrations.

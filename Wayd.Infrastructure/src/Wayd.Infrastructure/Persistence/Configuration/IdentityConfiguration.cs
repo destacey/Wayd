@@ -42,9 +42,6 @@ public class ApplicationUserConfig : IEntityTypeConfiguration<ApplicationUser>
 
         builder.Property(u => u.MustChangePassword).HasDefaultValue(false);
 
-        builder.Property(u => u.RefreshToken).HasMaxLength(256);
-        builder.Property(u => u.RefreshTokenExpiryTime);
-
         builder.OwnsOne(u => u.Preferences, prefs =>
         {
             prefs.ToJson();
@@ -104,6 +101,51 @@ public class UserIdentityConfig : IEntityTypeConfiguration<UserIdentity>
         builder.HasOne(ui => ui.User)
             .WithMany(u => u.Identities)
             .HasForeignKey(ui => ui.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class UserRefreshTokenConfig : IEntityTypeConfiguration<UserRefreshToken>
+{
+    public void Configure(EntityTypeBuilder<UserRefreshToken> builder)
+    {
+        builder.ToTable("UserRefreshTokens", SchemaNames.Identity);
+
+        builder.HasKey(t => t.Id);
+        builder.Property(t => t.Id).ValueGeneratedNever();
+
+        builder.Property(t => t.UserId).HasMaxLength(450).IsRequired();
+
+        // {salt}:{hash} is ~70 chars; 256 leaves room without inviting a plaintext token.
+        builder.Property(t => t.TokenHash).HasMaxLength(256).IsRequired();
+        builder.Property(t => t.ExpiresAt).IsRequired();
+
+        builder.Property(t => t.PreviousTokenHash).HasMaxLength(256);
+        builder.Property(t => t.PreviousTokenExpiresAt);
+
+        builder.Property(t => t.DeviceLabel).HasMaxLength(200);
+
+        // 45 covers IPv6 including an IPv4-mapped form.
+        builder.Property(t => t.IpAddress).HasMaxLength(45);
+
+        builder.Property(t => t.CreatedAt).IsRequired();
+        builder.Property(t => t.LastUsedAt).IsRequired();
+        builder.Property(t => t.RevokedAt);
+        builder.Property(t => t.RevokedReason).HasMaxLength(50);
+
+        builder.Ignore(t => t.IsActive);
+
+        // Refresh resolves the user from the access token, then verifies the presented
+        // token against this user's rows one at a time — the salt is per-hash, so there is
+        // no equality lookup to index. Filtered to live rows because revoked ones
+        // accumulate and are only read when explaining a failure.
+        builder.HasIndex(t => t.UserId)
+            .HasFilter("[RevokedAt] IS NULL")
+            .HasDatabaseName("IX_UserRefreshTokens_UserId_Active");
+
+        builder.HasOne(t => t.User)
+            .WithMany(u => u.RefreshTokens)
+            .HasForeignKey(t => t.UserId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

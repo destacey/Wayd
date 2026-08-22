@@ -74,6 +74,14 @@ public sealed class WaydApiFactory : WebApplicationFactory<Program>
             // Both AddDbContext calls register their provider into the app service provider, so give the
             // in-memory context its own internal service provider to avoid the "multiple database
             // providers registered" conflict.
+            //
+            // Known limitation: an external service provider is frozen from EF's perspective, so ASP.NET
+            // Identity's ReplaceService call throws InvalidOperationException the moment anything resolves
+            // the Identity stack — surfacing as a 500 from the exception middleware, before the endpoint's
+            // own auth or handler logic runs. Identity-backed endpoints (all of /api/auth included) cannot
+            // be exercised through this factory; use WaydSqlServerApiFactory for those. Dropping
+            // UseInternalServiceProvider does not fix it — AddDbContextWithWolverineIntegration re-registers
+            // the SQL Server provider past RemoveAll, and the provider conflict returns instead.
             services.RemoveAll(typeof(DbContextOptions<WaydDbContext>));
             services.RemoveAll(typeof(DbContextOptions));
             services.RemoveAll<WaydDbContext>();

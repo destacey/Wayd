@@ -357,6 +357,35 @@ axiosClient.interceptors.request.use(
 )
 
 // API Clients
+
+// Logout is the one AuthClient call that is [Authorize]d, so it needs a bearer token —
+// but it must NOT go through axiosClient, whose interceptors are both wrong here:
+//
+//   - the request interceptor refreshes proactively near expiry, minting a new token
+//     pair moments before logout revokes it;
+//   - the 401 response interceptor calls clearAuth() and redirects with a stashed return
+//     URL, which can land the user back on the page they just signed out of. A caller's
+//     try/catch cannot undo that — the navigation has already happened.
+//
+// Its own instance keeps sign-out a plain fire-and-forget revoke. The token is read at
+// call time and attached verbatim: an expired one is exactly what we want the server to
+// reject, not something to refresh.
+const logoutAxiosClient = axios.create({
+  baseURL: apiUrl,
+  timeout: 30000,
+})
+
+logoutAxiosClient.interceptors.request.use((config) => {
+  const token = getAuthToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+export const getAuthenticatedAuthClient = () =>
+  new AuthClient('', logoutAxiosClient)
+
 export const getConnectionsClient = () => new ConnectionsClient('', axiosClient)
 
 export const getAzureDevOpsConnectionsClient = () =>

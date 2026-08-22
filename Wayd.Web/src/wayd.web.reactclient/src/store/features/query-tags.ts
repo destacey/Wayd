@@ -146,6 +146,7 @@ export enum QueryTags {
   Profile = 'UserManagement.Profile',
   UserPreferences = 'UserManagement.UserPreferences',
   PersonalAccessTokens = 'UserManagement.PersonalAccessTokens',
+  UserSessions = 'UserManagement.UserSessions',
 
   // WORK MANAGEMENT
   WorkItem = 'Work.WorkItem',

@@ -57,9 +57,46 @@ Only use `theme.useToken()` when you need token values in JavaScript logic.
 
 ## State Management
 
-- **Redux Toolkit** for global application state
-- **React Context** for auth, theme, and messaging
-- **Local state** (`useState`) for component-specific state
+Where a value lives is decided by **how long it should survive**, applied in this order:
+
+1. **Would I share this?** → URL query param
+2. **Should it outlive the browser?** → `localStorage`, owned by a Context or slice
+3. **Should it survive leaving the page and coming back?** → Redux slice, keyed by record id
+4. **Otherwise** → `useState`
+
+Most state is (4). Every persisted value has exactly **one owner** — a Context or a slice — never a component calling `useLocalStorageState` directly.
+
+See **[Record Pages](./record-pages.mdx#where-page-state-lives)** for the full rules, including how to model dialogs and what not to put in Redux.
+
+## Responsive
+
+**Every page must work at every width** — this is a requirement, checked before opening a PR, not an enhancement.
+
+Use Ant Design's `useBreakpoint`. The app's conventions:
+
+- `!screens.md` (&lt;768px) is the mobile cut — `AppSideNav` returns `null` and navigation moves to the header Drawer
+- `!screens.sm` (&lt;576px) is the extra-small cut used by `PageTitle` for stacking
+- `ResponsiveFlex` handles the common "stack on small screens" case
+
+Three rules that apply to every page:
+
+- **Horizontal scroll belongs to the element, never the page.** Wide grids, timelines and tables scroll inside their own container; the page body never scrolls sideways.
+- **Hit targets ≥44px** on anything tappable.
+- **Virtualized content needs a measurable height.** `WaydGrid` renders zero rows in an unconstrained `<Flex vertical>` parent — keep it a block-level child.
+
+### Testing
+
+Use the browser device toolbar (`Ctrl/Cmd+Shift+M`). In development a **breakpoint chip** in the bottom-right corner shows the active Ant Design breakpoint — mounted from the root layout behind a `NODE_ENV` check.
+
+Test at **1440 / 1100 / 834 / 390**, and at the boundaries either side of any rule you rely on — bugs live at 767/768 and 991/992, not at 390.
+
+See **[Record Pages](./record-pages.mdx#responsive)** for the full per-slot behaviour and checklist.
+
+## Record & List Pages
+
+Every entity's list and detail page follows one structure — identity slot, section rail, record facts, URL-addressable sections, and nested error boundaries.
+
+See **[Record Pages](./record-pages.mdx)** before building a page for a new entity.
 
 ## Data Grids
 

@@ -1,0 +1,56 @@
+/*
+ * Record pages run edge-to-edge: the section rail sits flush against the app
+ * sider and the identity bar spans the full width.
+ *
+ * No negative margins — pages rendering this live under `app/(records)/`,
+ * whose layout adds no padding of its own. A child cannot reliably un-pad its
+ * parent, so the route group owns that decision instead.
+ */
+.shell {
+  display: flex;
+  flex-direction: column;
+  /* Fill the scrollable content area so the rail's border reaches the bottom. */
+  min-height: calc(100vh - 50px);
+}
+
+/* The identity bar spans the full width, above the rail. */
+.header {
+  padding: 16px 24px;
+  background: var(--ant-color-bg-container);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+}
+
+.header > :last-child {
+  margin-bottom: 0;
+}
+
+.body {
+  display: flex;
+  align-items: stretch;
+  flex-grow: 1;
+  min-height: 0;
+}
+
+.content {
+  flex-grow: 1;
+  min-width: 0;
+  padding: 24px;
+}
+
+/*
+ * Below `md` the rail becomes a Select, so the page reverts to ordinary
+ * stacked flow — no side-by-side columns to keep flush.
+ */
+@media (max-width: 767px) {
+  .body {
+    flex-direction: column;
+  }
+
+  .content {
+    padding: 16px;
+  }
+
+  .header {
+    padding: 12px 16px;
+  }
+}

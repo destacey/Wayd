@@ -1,4 +1,4 @@
-import styles from '@/src/app/logout/page.module.css'
+import styles from '@/src/app/(legacy)/logout/page.module.css'
 import { FC } from 'react'
 
 interface LoadingAccountProps {

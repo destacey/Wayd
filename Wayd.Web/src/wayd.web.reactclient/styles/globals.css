@@ -46,11 +46,17 @@ body {
 .app-main-content {
   flex: 1; /* Allows the content to grow and occupy remaining space */
   overflow-x: hidden; /* Prevent horizontal scroll from negative-margin children (e.g. docs layout) */
-  overflow-y: auto; /* Enable vertical scrolling for breadcrumb and content */
-  padding: 0 24px 24px; /* 0 top, 24px left/right/bottom */
+  overflow-y: auto; /* Enable vertical scrolling */
+  /* No padding here: the route group decides. app/(legacy)/layout.tsx supplies
+     it for pages still on the old chrome; record pages render edge-to-edge. */
 }
 
-.app-main-content > .app-breadcrumb {
+/* Padding and breadcrumb spacing for pages that have not adopted RecordLayout. */
+.legacy-page-chrome {
+  padding: 0 24px 24px;
+}
+
+.legacy-page-chrome > .app-breadcrumb {
   margin: 16px 0;
 }
 

@@ -13,16 +13,15 @@ import { App, Grid, Layout } from 'antd'
 import { store } from '../store'
 import AppHeader from './_components/app-header'
 import AppSideNav from './_components/menu/app-side-nav'
-import AppBreadcrumb from './_components/app-breadcrumb'
 import { ThemeProvider } from '../components/contexts/theme'
 import useTheme from '../components/contexts/theme'
 import { MenuToggleProvider } from '../components/contexts/menu-toggle'
 import { AntdRegistry } from '@ant-design/nextjs-registry'
 import { AuthProvider } from '../components/contexts/auth'
 import { MessageProvider } from '../components/contexts/messaging'
-import LoginPage from './login/page'
-import LogoutPage from './logout/page'
-import SetupPage from './setup/page'
+import LoginPage from './(legacy)/login/page'
+import LogoutPage from './(legacy)/logout/page'
+import SetupPage from './(legacy)/setup/page'
 import { usePathname, useRouter } from 'next/navigation'
 import { isAuthActive } from '../services/clients'
 import ReleaseCleanup from '../components/release-cleanup'
@@ -55,10 +54,10 @@ const AppContent = memo(({ children }: PropsWithChildren) => {
       <AppHeader />
       <Layout hasSider className="app-main-layout">
         <AppSideNav isMobile={isMobile} />
-        <Content className="app-main-content">
-          <AppBreadcrumb />
-          {children}
-        </Content>
+        {/* Page padding and the breadcrumb are supplied by the route group
+            (see app/(legacy)/layout.tsx), not here — a page cannot un-pad its
+            parent, so the shell stays out of that decision. */}
+        <Content className="app-main-content">{children}</Content>
       </Layout>
     </Layout>
   )

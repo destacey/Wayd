@@ -18,6 +18,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import useAuth from '@/src/components/contexts/auth'
 import { ItemType } from 'antd/es/menu/interface'
 import DeleteEmployeeForm from '@/src/app/(legacy)/organizations/employees/_components/delete-employee-form'
+import EmployeeOverview from './_components/employee-overview'
 import EmployeeTeamsGrid from './_components/employee-teams-grid'
 import EmployeeWorkItems from './_components/employee-work-items'
 import dynamic from 'next/dynamic'
@@ -31,6 +32,7 @@ const EmployeeCycleTimeReport = dynamic(
 )
 
 enum EmployeeTabs {
+  Overview = 'overview',
   Details = 'details',
   Teams = 'teams',
   WorkItems = 'work-items',
@@ -65,8 +67,19 @@ const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       : 'Employee Details',
   )
 
+  // Overview's metric tiles link through to the section each one summarises.
+  const goToSection = (sectionId: string) =>
+    router.replace(`${pathname}?section=${sectionId}`, { scroll: false })
+
   const renderSectionContent = (activeTab: EmployeeTabs) => {
     switch (activeTab) {
+      case EmployeeTabs.Overview:
+        return (
+          <EmployeeOverview
+            employee={employeeData!}
+            onNavigateToSection={goToSection}
+          />
+        )
       case EmployeeTabs.Details:
         return <EmployeeDetails employee={employeeData!} />
       case EmployeeTabs.Teams:
@@ -81,6 +94,7 @@ const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   }
 
   const sections: RecordSection[] = [
+    { id: EmployeeTabs.Overview, label: 'Overview' },
     { id: EmployeeTabs.Details, label: 'Details' },
     { id: EmployeeTabs.Teams, label: 'Teams' },
     { id: EmployeeTabs.WorkItems, label: 'Assigned Work Items' },
@@ -144,7 +158,7 @@ const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       <RecordLayout
         sections={sections}
         reports={reports}
-        defaultSection={EmployeeTabs.Details}
+        defaultSection={EmployeeTabs.Overview}
         header={
           <PageTitle
             title={employeeData.displayName}

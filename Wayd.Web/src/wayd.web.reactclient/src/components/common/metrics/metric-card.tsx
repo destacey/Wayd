@@ -23,6 +23,17 @@ export interface MetricCardProps extends Omit<StatisticProps, 'valueStyle'> {
    */
   embedded?: boolean
   hoverable?: boolean
+  /**
+   * Makes the card a link to where the metric comes from — typically the
+   * section that lists what it counts.
+   *
+   * Sets the hover affordance automatically, and gives the card a button role
+   * with Enter/Space handling, since a click target that only responds to a
+   * mouse is unreachable by keyboard.
+   */
+  onClick?: () => void
+  /** Accessible name for the link. Falls back to the title when it is a string. */
+  ariaLabel?: string
 }
 
 const MetricCard: FC<MetricCardProps> = ({
@@ -35,9 +46,27 @@ const MetricCard: FC<MetricCardProps> = ({
   styles,
   embedded = false,
   hoverable = false,
+  onClick,
+  ariaLabel,
   title,
   ...statisticProps
 }) => {
+  const interactiveProps = onClick
+    ? {
+        onClick,
+        onKeyDown: (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onClick()
+          }
+        },
+        role: 'button' as const,
+        tabIndex: 0,
+        'aria-label':
+          ariaLabel ?? (typeof title === 'string' ? title : undefined),
+      }
+    : {}
+
   const defaultCardStyle = cardStyle ?? { height: '100%' }
   const defaultStatisticStyle = statisticStyle ?? { whiteSpace: 'nowrap' }
 
@@ -71,7 +100,12 @@ const MetricCard: FC<MetricCardProps> = ({
       )}
     </Flex>
   ) : (
-    <Card style={defaultCardStyle} size="small" hoverable={hoverable}>
+    <Card
+      style={defaultCardStyle}
+      size="small"
+      hoverable={hoverable || !!onClick}
+      {...interactiveProps}
+    >
       <Statistic
         {...statisticProps}
         title={titleNode}

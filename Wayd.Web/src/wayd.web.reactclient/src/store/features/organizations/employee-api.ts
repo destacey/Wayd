@@ -43,6 +43,22 @@ export const employeeApi = apiSlice.injectEndpoints({
         { type: QueryTags.Employee, id: arg },
       ],
     }),
+    getDirectReports: builder.query<EmployeeListDto[], string>({
+      queryFn: async (employeeId) => {
+        try {
+          const data = await getEmployeesClient().getDirectReports(employeeId)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // Tagged against the manager's own record: a reporting-line change
+      // invalidates the employee it was made on, which refreshes this list.
+      providesTags: (result, error, arg) => [
+        { type: QueryTags.Employee, id: `${arg}-direct-reports` },
+      ],
+    }),
     getEmployeeWorkItems: builder.query<
       WorkItemListDto[],
       {
@@ -114,6 +130,7 @@ export const employeeApi = apiSlice.injectEndpoints({
 export const {
   useGetEmployeesQuery,
   useGetEmployeeQuery,
+  useGetDirectReportsQuery,
   useGetEmployeeWorkItemsQuery,
   useGetEmployeeOptionsQuery,
   useDeleteEmployeeMutation,

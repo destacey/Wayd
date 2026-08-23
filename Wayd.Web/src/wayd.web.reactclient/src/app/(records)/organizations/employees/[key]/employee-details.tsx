@@ -3,7 +3,6 @@ import { EmployeeDetailsDto } from '@/src/services/wayd-api'
 import { Card, Col, Divider, Flex, Row, Typography } from 'antd'
 import dayjs from 'dayjs'
 import Link from 'next/link'
-import EmployeeTeamsSummary from './_components/employee-teams-summary'
 
 const { Text } = Typography
 
@@ -99,9 +98,6 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
         </Card>
       </Col>
 
-      <Col xs={24} md={15} xxl={18}>
-        <EmployeeTeamsSummary employeeId={employee.id} />
-      </Col>
     </Row>
   )
 }

@@ -255,6 +255,24 @@ export class RecordLayoutConstants {
 A value used in a single place is an inline style or a CSS module rule, not a token. Tokens are for values that must stay in agreement across many places — adding one for a single element means eight theme edits for no benefit.
 :::
 
+## Overview metrics
+
+An Overview section's metric tiles use `MetricCard` (or a specific metric like `CycleTimeMetric`) from `components/common/metrics` — never a raw antd `Statistic`. They carry `height: 100%`, so tiles in a row match heights even when only one has a secondary value, and `secondaryValue` renders bottom-right for qualifiers like the window an average covers.
+
+**A tile that summarises a section links to it.** Pass `onClick`, which sets the hover affordance and gives the card a button role with Enter/Space handling. A tile with no corresponding section — one whose content is shown inline below — stays unlinked, so the affordance always means something.
+
+```tsx
+<MetricCard
+  title="Assigned Work Items"
+  value={count}
+  onClick={() => goToSection('work-items')}
+/>
+```
+
+**Count from the same query the section uses**, not a separate aggregate, unless an aggregate endpoint genuinely exists. A count that disagrees with the list beside it is worse than no count.
+
+**Omit a tile that would only ever read zero.** An overview should carry facts, not absences — a "Direct Reports: 0" card is noise on the majority of employee records.
+
 ## Grids inside sections
 
 Not every grid is a data-exploration surface. A section showing a record's four active projects needs a readable table; the Projects list page needs filtering, search, export and column management. Both are **`WaydGrid`** — they differ by `variant`.

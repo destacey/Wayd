@@ -44488,8 +44488,7 @@
             "type": "object",
             "additionalProperties": false,
             "required": [
-              "organization",
-              "personalAccessToken"
+              "organization"
             ],
             "properties": {
               "organization": {
@@ -44498,7 +44497,8 @@
               },
               "personalAccessToken": {
                 "type": "string",
-                "description": "The personal access token that enables access to Azure DevOps data."
+                "description": "The personal access token that enables access to Azure DevOps data.",
+                "nullable": true
               }
             }
           }
@@ -44514,7 +44514,6 @@
             "additionalProperties": false,
             "required": [
               "baseUrl",
-              "apiKey",
               "deploymentName"
             ],
             "properties": {
@@ -44524,7 +44523,8 @@
               },
               "apiKey": {
                 "type": "string",
-                "description": "The API key for Azure OpenAI resource."
+                "description": "The API key for Azure OpenAI resource.",
+                "nullable": true
               },
               "deploymentName": {
                 "type": "string",
@@ -44544,8 +44544,7 @@
             "additionalProperties": false,
             "required": [
               "tenantId",
-              "clientId",
-              "clientSecret"
+              "clientId"
             ],
             "properties": {
               "tenantId": {
@@ -44558,7 +44557,8 @@
               },
               "clientSecret": {
                 "type": "string",
-                "description": "The client secret for the Entra app registration."
+                "description": "The client secret for the Entra app registration.",
+                "nullable": true
               },
               "allUsersGroupObjectId": {
                 "type": "string",
@@ -44595,8 +44595,7 @@
             "additionalProperties": false,
             "required": [
               "wsdlUrl",
-              "isuUsername",
-              "isuPassword"
+              "isuUsername"
             ],
             "properties": {
               "wsdlUrl": {
@@ -44609,7 +44608,8 @@
               },
               "isuPassword": {
                 "type": "string",
-                "description": "The Integration System User password."
+                "description": "The Integration System User password.",
+                "nullable": true
               },
               "workerKey": {
                 "description": "Which Workday worker identifier maps onto Employee.EmployeeNumber.",

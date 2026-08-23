@@ -18,7 +18,7 @@ public sealed record EntraConnectionConfigurationDto : IMapFrom<EntraConnectionC
     /// <summary>
     /// The client secret for the Entra app registration.
     /// </summary>
-    /// <remarks>This will be masked when returned from the API.</remarks>
+    /// <remarks>Masked to a fixed-width placeholder when returned from the API.</remarks>
     public required string ClientSecret { get; set; }
 
     /// <summary>
@@ -40,16 +40,7 @@ public sealed record EntraConnectionConfigurationDto : IMapFrom<EntraConnectionC
     /// </summary>
     public bool NormalizeNameCasing { get; set; }
 
-    /// <summary>
-    /// Replaces the ClientSecret with a masked form that preserves the first 4 characters
-    /// and the original length. This matches the AzDO PAT masking pattern so the
-    /// <c>UpdateEntraConnectionCommand</c> handler can detect "user posted back the masked
-    /// value unchanged" by comparing the first 4 characters and length — without that, an
-    /// unchanged edit would overwrite the stored secret with the masked placeholder.
-    /// </summary>
+    /// <summary>Replaces the client secret with the fixed-width placeholder. See <see cref="ConnectionSecret"/>.</summary>
     public void MaskClientSecret()
-    {
-        if (!string.IsNullOrWhiteSpace(ClientSecret) && ClientSecret.Length > 4)
-            ClientSecret = string.Concat(ClientSecret.AsSpan(0, 4), new string('*', ClientSecret.Length - 4));
-    }
+        => ClientSecret = ConnectionSecret.Masked(ClientSecret);
 }

@@ -12,7 +12,11 @@ public sealed record UpdateAzureOpenAIConnectionRequest : UpdateConnectionReques
     /// <summary>
     /// The API key for Azure OpenAI resource.
     /// </summary>
-    public required string ApiKey { get; set; }
+    /// <remarks>
+    /// Leave blank to keep the stored value. There is no way to clear it: the connection
+    /// cannot function without a credential, so removal means deleting the connection.
+    /// </remarks>
+    public string? ApiKey { get; set; }
 
     /// <summary>
     /// The OpenAI model deployment name to use for this connection (e.g. "gpt-4o")
@@ -36,7 +40,6 @@ public sealed class UpdateAzureOpenAIConnectionRequestValidator : CustomValidato
             .MaximumLength(256);
 
         RuleFor(x => x.ApiKey)
-            .NotEmpty()
             .MaximumLength(256);
 
         RuleFor(x => x.DeploymentName)

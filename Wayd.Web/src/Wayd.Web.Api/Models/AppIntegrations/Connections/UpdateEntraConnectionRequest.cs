@@ -18,7 +18,11 @@ public sealed record UpdateEntraConnectionRequest : UpdateConnectionRequest
     /// <summary>
     /// The client secret for the Entra app registration.
     /// </summary>
-    public required string ClientSecret { get; set; }
+    /// <remarks>
+    /// Leave blank to keep the stored value. There is no way to clear it: the connection
+    /// cannot function without a credential, so removal means deleting the connection.
+    /// </remarks>
+    public string? ClientSecret { get; set; }
 
     /// <summary>
     /// Optional Entra group object ID to scope the user query to. When null, all member users in
@@ -63,7 +67,6 @@ public sealed class UpdateEntraConnectionRequestValidator : CustomValidator<Upda
             .MaximumLength(64);
 
         RuleFor(x => x.ClientSecret)
-            .NotEmpty()
             .MaximumLength(512);
 
         RuleFor(x => x.AllUsersGroupObjectId)

@@ -37625,14 +37625,14 @@ export interface UpdateAzureDevOpsConnectionRequest extends UpdateConnectionRequ
     /** The Azure DevOps Organization name. */
     organization: string;
     /** The personal access token that enables access to Azure DevOps data. */
-    personalAccessToken: string;
+    personalAccessToken?: string | undefined;
 }
 
 export interface UpdateAzureOpenAIConnectionRequest extends UpdateConnectionRequest {
     /** Azure OpenAI resource URL. */
     baseUrl: string;
     /** The API key for Azure OpenAI resource. */
-    apiKey: string;
+    apiKey?: string | undefined;
     /** The OpenAI model deployment name to use for this connection (e.g. "gpt-4o") */
     deploymentName: string;
 }
@@ -37643,7 +37643,7 @@ export interface UpdateEntraConnectionRequest extends UpdateConnectionRequest {
     /** The application (client) identifier for the Entra app registration used to call Microsoft Graph. */
     clientId: string;
     /** The client secret for the Entra app registration. */
-    clientSecret: string;
+    clientSecret?: string | undefined;
     /** Optional Entra group object ID to scope the user query to. When null, all member users in
 the tenant are queried. */
     allUsersGroupObjectId?: string | undefined;
@@ -37662,7 +37662,7 @@ export interface UpdateWorkdayConnectionRequest extends UpdateConnectionRequest 
     /** The Integration System User username. */
     isuUsername: string;
     /** The Integration System User password. */
-    isuPassword: string;
+    isuPassword?: string | undefined;
     /** Which Workday worker identifier maps onto Employee.EmployeeNumber. */
     workerKey?: WorkdayWorkerKey;
     /** When true, terminated/inactive workers are also returned by the sync. */

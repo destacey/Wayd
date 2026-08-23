@@ -6,7 +6,8 @@ using Wayd.Common.Domain.Enums.AppIntegrations;
 
 namespace Wayd.AppIntegration.Application.Connections.Commands.AzureDevOps;
 
-public sealed record UpdateAzureDevOpsConnectionCommand(Guid Id, string Name, string? Description, string Organization, string PersonalAccessToken) : ICommand<Guid>;
+/// <param name="PersonalAccessToken">Blank or masked keeps the stored token — see <see cref="ConnectionSecret.Resolve"/>.</param>
+public sealed record UpdateAzureDevOpsConnectionCommand(Guid Id, string Name, string? Description, string Organization, string? PersonalAccessToken) : ICommand<Guid>;
 
 public sealed class UpdateAzureDevOpsConnectionCommandValidator : CustomValidator<UpdateAzureDevOpsConnectionCommand>
 {
@@ -30,8 +31,8 @@ public sealed class UpdateAzureDevOpsConnectionCommandValidator : CustomValidato
             .MaximumLength(128)
             .MustAsync(async (cmd, organization, cancellationToken) => await BeUniqueOrganization(cmd.Id, organization, cancellationToken)).WithMessage("The organization for this connection already exists in an existing connection.");
 
+        // Deliberately not NotEmpty: a blank token means "keep the stored one".
         RuleFor(c => c.PersonalAccessToken)
-            .NotEmpty()
             .MaximumLength(128);
     }
 
@@ -64,12 +65,7 @@ public sealed class UpdateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbC
             if (connection is null)
                 return Result.Failure<Guid>("Azure DevOps connection not found.");
 
-            // do the first four characters of the PersonalAccessToken match the existing one?
-            var pat = connection.Configuration!.PersonalAccessToken.Length == request.PersonalAccessToken.Length
-                && connection.Configuration!.PersonalAccessToken?[..4] == request.PersonalAccessToken[..4]
-                    ? connection.Configuration.PersonalAccessToken
-                    : request.PersonalAccessToken;
-
+            var pat = ConnectionSecret.Resolve(request.PersonalAccessToken, connection.Configuration!.PersonalAccessToken);
 
             var config = new AzureDevOpsBoardsConnectionConfiguration(request.Organization, pat);
 

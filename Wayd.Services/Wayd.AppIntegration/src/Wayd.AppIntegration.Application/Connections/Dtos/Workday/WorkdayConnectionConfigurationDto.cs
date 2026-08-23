@@ -23,7 +23,7 @@ public sealed record WorkdayConnectionConfigurationDto : IMapFrom<WorkdayConnect
     /// <summary>
     /// The Integration System User password.
     /// </summary>
-    /// <remarks>This will be masked when returned from the API.</remarks>
+    /// <remarks>Masked to a fixed-width placeholder when returned from the API.</remarks>
     public required string IsuPassword { get; set; }
 
     /// <summary>Which Workday worker identifier is used as the upsert key.</summary>
@@ -87,12 +87,9 @@ public sealed record WorkdayConnectionConfigurationDto : IMapFrom<WorkdayConnect
     /// <summary>Authentication error from the most recent probe, if applicable.</summary>
     public string? LastInitAuthError { get; set; }
 
-    /// <summary>Same masking pattern as Entra's MaskClientSecret — preserves first 4 chars and length.</summary>
+    /// <summary>Replaces the ISU password with the fixed-width placeholder. See <see cref="ConnectionSecret"/>.</summary>
     public void MaskIsuPassword()
-    {
-        if (!string.IsNullOrWhiteSpace(IsuPassword) && IsuPassword.Length > 4)
-            IsuPassword = string.Concat(IsuPassword.AsSpan(0, 4), new string('*', IsuPassword.Length - 4));
-    }
+        => IsuPassword = ConnectionSecret.Masked(IsuPassword);
 }
 
 /// <summary>One entry in the org-type catalog discovered by the init probe.</summary>

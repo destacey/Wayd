@@ -13,7 +13,7 @@ public sealed record UpdateWorkdayConnectionCommand(
     string? Description,
     string WsdlUrl,
     string IsuUsername,
-    string IsuPassword,
+    string? IsuPassword,
     WorkdayWorkerKey WorkerKey,
     bool IncludeInactive,
     EmployeeMatchProperty MatchBy,
@@ -37,7 +37,8 @@ public sealed class UpdateWorkdayConnectionCommandValidator : CustomValidator<Up
             .MaximumLength(1024)
             .Must(BeParseable).WithMessage("WsdlUrl must be a Workday Staffing endpoint URL of the form https://{host}/ccx/service/{tenant}/Staffing/{version}.");
         RuleFor(c => c.IsuUsername).NotEmpty().MaximumLength(256);
-        RuleFor(c => c.IsuPassword).NotEmpty().MaximumLength(512);
+        // Deliberately not NotEmpty: a blank password means "keep the stored one".
+        RuleFor(c => c.IsuPassword).MaximumLength(512);
     }
 
     private static bool BeParseable(string url) => WorkdayConnectionConfiguration.TryParse(url, out _);
@@ -66,14 +67,7 @@ public sealed class UpdateWorkdayConnectionCommandHandler(
             if (connection is null)
                 return Result.Failure<Guid>("Workday connection not found.");
 
-            // If the first four characters of the IsuPassword match the existing one, preserve the
-            // existing value (the API masks the secret on read and the client posts back the masked
-            // value when the user didn't change it).
-            var isuPassword = connection.Configuration!.IsuPassword.Length == request.IsuPassword.Length
-                && connection.Configuration!.IsuPassword[..Math.Min(4, connection.Configuration.IsuPassword.Length)]
-                    == request.IsuPassword[..Math.Min(4, request.IsuPassword.Length)]
-                    ? connection.Configuration.IsuPassword
-                    : request.IsuPassword;
+            var isuPassword = ConnectionSecret.Resolve(request.IsuPassword, connection.Configuration!.IsuPassword);
 
             // Map the API-level input list to the domain WorkdayOrgExclusion. Fully qualified
             // because Common.Application also exports a WorkdayOrgExclusion record (the runtime

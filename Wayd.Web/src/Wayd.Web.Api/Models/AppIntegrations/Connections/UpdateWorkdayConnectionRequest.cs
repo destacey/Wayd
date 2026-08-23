@@ -12,7 +12,11 @@ public sealed record UpdateWorkdayConnectionRequest : UpdateConnectionRequest
     public required string IsuUsername { get; set; }
 
     /// <summary>The Integration System User password.</summary>
-    public required string IsuPassword { get; set; }
+    /// <remarks>
+    /// Leave blank to keep the stored value. There is no way to clear it: the connection
+    /// cannot function without a credential, so removal means deleting the connection.
+    /// </remarks>
+    public string? IsuPassword { get; set; }
 
     /// <summary>Which Workday worker identifier maps onto <c>Employee.EmployeeNumber</c>.</summary>
     public WorkdayWorkerKey WorkerKey { get; set; } = WorkdayWorkerKey.EmployeeId;
@@ -70,6 +74,6 @@ public sealed class UpdateWorkdayConnectionRequestValidator : CustomValidator<Up
 
         RuleFor(x => x.WsdlUrl).NotEmpty().MaximumLength(1024);
         RuleFor(x => x.IsuUsername).NotEmpty().MaximumLength(256);
-        RuleFor(x => x.IsuPassword).NotEmpty().MaximumLength(512);
+        RuleFor(x => x.IsuPassword).MaximumLength(512);
     }
 }

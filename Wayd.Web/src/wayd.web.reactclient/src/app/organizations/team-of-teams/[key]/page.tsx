@@ -1,6 +1,7 @@
 'use client'
 
 import PageTitle from '@/src/components/common/page-title'
+import { ClusterOutlined } from '@ant-design/icons'
 import { Card, MenuProps } from 'antd'
 import {
   createElement,
@@ -245,6 +246,9 @@ const TeamOfTeamsDetailsPage = (props: {
       <PageTitle
         title={teamName}
         subtitle="Team of Teams Details"
+        // The code, not the numeric key — see the teams page.
+        recordKey={team?.code}
+        avatar={{ kind: 'record', icon: <ClusterOutlined /> }}
         tags={<InactiveTag isActive={team?.isActive ?? false} />}
         actions={<PageActions actionItems={actionsMenuItems} />}
       />

@@ -2,7 +2,7 @@
 
 import PageTitle from '@/src/components/common/page-title'
 import { Card, MenuProps, Spin } from 'antd'
-import { CloseOutlined } from '@ant-design/icons'
+import { CloseOutlined, TeamOutlined } from '@ant-design/icons'
 import {
   createElement,
   use,
@@ -456,6 +456,10 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       <PageTitle
         title={team?.name}
         subtitle="Team Details"
+        // The code, not the numeric key — it is what people say out loud, and
+        // the numeric key is already available in the details tab.
+        recordKey={team?.code}
+        avatar={{ kind: 'record', icon: <TeamOutlined /> }}
         tags={<InactiveTag isActive={team?.isActive ?? false} />}
         actions={<PageActions actionItems={actionsMenuItems} />}
       />

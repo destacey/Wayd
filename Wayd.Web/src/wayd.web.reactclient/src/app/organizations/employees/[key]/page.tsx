@@ -10,6 +10,7 @@ import { notFound, usePathname, useRouter } from 'next/navigation'
 import { useAppDispatch } from '@/src/hooks'
 import { setBreadcrumbTitle } from '@/src/store/breadcrumbs'
 import { InactiveTag, PageActions } from '@/src/components/common'
+import { personInitials } from '@/src/components/common/record-initials'
 import { useGetEmployeeQuery } from '@/src/store/features/organizations/employee-api'
 import EmployeeDetailsLoading from './loading'
 import { useMessage } from '@/src/components/contexts/messaging'
@@ -196,8 +197,17 @@ const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   return (
     <>
       <PageTitle
-        title={`${employeeData?.key} - ${employeeData?.displayName}`}
-        subtitle="Employee Details"
+        title={employeeData.displayName}
+        subtitle={employeeData.title ?? 'Employee Details'}
+        recordKey={String(employeeData.key)}
+        avatar={{
+          kind: 'person',
+          initials: personInitials(
+            employeeData.firstName,
+            employeeData.lastName,
+            employeeData.displayName,
+          ),
+        }}
         tags={<InactiveTag isActive={employeeData?.isActive} />}
         actions={<PageActions actionItems={actionsMenuItems} />}
       />

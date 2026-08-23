@@ -11,7 +11,9 @@ The governing question for every test:
 
 > **Would this test fail if the function body were emptied, or if it returned a default?**
 
-If not, it is not a test. It is coverage theatre — it makes the number go up and catches nothing.
+Treat a "no" as a strong smell of weak assertions, and look again — most such tests are coverage theatre, making the number go up while catching nothing.
+
+It is a heuristic, not a validity test. A few legitimate tests answer "no" honestly: an idempotence check, a guard asserting that nothing happened, a regression test pinning a deliberate no-op. What makes those valid is that they assert a real observable invariant — `SaveChangesCallCount.Should().Be(0)`, state unchanged, no event raised. Keep those; strengthen anything that answers "no" without such an assertion. Never delete a test solely because it fails this question.
 
 ---
 
@@ -77,7 +79,10 @@ Handlers return `Result<T>`; assert on `IsSuccess`/`IsFailure`, not on thrown ex
 
 ### Fakers
 
-- Fakers live in **the domain's own test project**, under `Data/` — e.g. `Wayd.Common.Domain.Tests/Data/`. Not in a shared project.
+- Domain fakers live in **the domain's own test project**, under `Data/` — e.g. `Wayd.Common.Domain.Tests/Data/`. Default here; do not invent a new shared project for them.
+- **Two intentional exceptions — reuse these, do not duplicate or relocate them:**
+  - **Cross-cutting fakers** for types owned by no single domain live in `Wayd.Tests.Shared/Data/` — `FeatureFlagFaker`, `OidcProviderFaker`, `PersonalAccessTokenFaker`.
+  - **Organization** publishes its fakers from a dedicated `Wayd.Organization.TestData` project (`TeamFaker`, `TeamMembershipFaker`, …), because several test projects consume them.
 - Only the `PrivateConstructorFaker<T>` base lives centrally, in `Wayd.TestData.Core` (`Wayd.Common/tests/Wayd.TestData.Core/`, namespace `Wayd.TestData.Core`). Test projects reach it transitively via their `Wayd.Tests.Shared` reference — no extra project reference needed.
 - **Per-property `With{Property}` extensions**, one `RuleFor` each, returning the faker for chaining. Not a single `WithData(...)` with optional parameters.
 - **`With{Property}` means "set exactly this value"** — including null. `WithDescription(null)` must produce a null description, not skip the assignment.
@@ -100,14 +105,19 @@ Never hand-tag `Category`. It is derived, and a hand-tag can drift from what the
 
 ### PPM authorization — the blind spot mutation testing cannot see
 
-Mutating a project, program, or portfolio requires **delivery leadership** (Owner/Manager on the record or an ancestor), not just a permission claim. Handlers must load ancestor roles in the query:
+A **human mutating an existing** project, program, or portfolio requires **delivery leadership** (Owner/Manager on the record or an ancestor), not just a permission claim. Handlers must load the record's own roles **and** its ancestors' in the query:
 
 ```csharp
+.Include(p => p.Roles)                                 // the record's own leadership
 .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
-.Include(p => p.Program).ThenInclude(p => p!.Roles)   // projects only
+.Include(p => p.Program).ThenInclude(p => p!.Roles)    // projects only
 ```
 
-**A missing `.Include` silently empties the ancestry and denies a legitimately authorized user.** The compiler cannot catch it — every mutating aggregate method requires a `PpmActor`, but none require the ancestry to be populated.
+Omitting `.Include(p => p.Roles)` denies an Owner/Manager on the record itself. See `UpdateProjectCommand.cs` for the full chain (it also uses `.AsSplitQuery()`).
+
+**Creation and import paths are deliberately exempt** — they pass `PpmActor.System` under the caller's Create/Import permission, because nobody can hold a role on a record that does not exist yet. Those commands are not `IRequireLinkedEmployee`, and no ancestry is expected. Do not add leadership assertions to them; `grep PpmActor.System` audits every bypass.
+
+**On the paths where it does apply, a missing `.Include` silently empties the ancestry and denies a legitimately authorized user.** The compiler cannot catch it — every mutating aggregate method requires a `PpmActor`, but none require the ancestry to be populated.
 
 **Neither can any test using a fake DbContext, because `.Include` is a no-op in memory.** Mutation analysis is blind here too: deleting the `.Include` changes no in-memory assertion, so the mutation "survives" for a reason that has nothing to do with assertion strength.
 
@@ -137,10 +147,10 @@ See [CLAUDE.md](../../CLAUDE.md) and [docs/contributing/architecture.mdx](../../
 ### Assertion rules
 
 - **Concrete values, not existence.** `.Should().NotBeNull()` alone is not an assertion — it passes when the method returns an empty object. Assert the value.
-- **No tautologies.** Never assert that a value you just wrote reads back unchanged. Assert the *transformation*, not that storage works.
+- **No tautologies.** Do not assert that a value you just wrote reads back unchanged **from the same in-memory object or fake** — that asserts the test's own setup. This does not forbid genuine round-trips: a real database or API round-trip in an integration test is legitimate behaviour under test, and catches mapping, conversion, and serialization bugs a fake never will.
 - **Behaviour radius.** When an operation touches more than its return value, assert at least one secondary observable — related state, a neighbouring field, an event raised, `SaveChangesCallCount`.
 - **Property intersections.** When code handles independent properties, add at least one test combining several at once. Bugs live at intersections, not on single axes.
-- **Fixture realism.** Never set the parameter under test to a degenerate value — no testing ordering with one element, or paging with a page size of zero.
+- **Fixture realism.** Do not let a degenerate fixture hide the dimension you meant to exercise — ordering with one element, or paging with a page size of zero, proves nothing about ordering or paging. This applies to *incidental* setup only: when the degenerate value **is** the boundary or guard under test (page size 0 rejected, empty collection returns empty, negative quantity refused), it is exactly the right input.
 - **Parameterize.** Prefer `[Theory]` with `[InlineData]` over near-identical `[Fact]`s. Never write several tests whose only difference is an input value.
 
 ### Scenario fidelity
@@ -185,6 +195,15 @@ Run this **before reporting any test work complete**.
 
 **Applies when:** five or more tests were added or changed, **or** the request enumerated specific behaviours to verify. Below that threshold, the self-review checklist alone is enough.
 
+**Scope — the mutation loop (Step 2) is for .NET code covered by a unit project.** Every command below is `dotnet`, and mutating against a container-backed suite is prohibited. Two cases therefore skip Step 2 and run Steps 1, 3, 4 and 5 only:
+
+| Change | What to run instead of Step 2 |
+|---|---|
+| **Integration-only** (Testcontainers suite) | Baseline green, the self-review checklist, and the CI-discovery check. Note in the summary that mutation verification was not applicable. |
+| **React client** (Jest) | The Jest equivalent below, then the checklist and CI check. |
+
+For a React change, the loop still works — only the commands differ. Baseline with `npm run test:ci`, mutate the component or hook under test, re-run the narrowest suite (`npx jest <path>`), and revert. The mutation catalogue's boundary, logic, and return-value rows apply unchanged; the .NET-specific rows (`SaveChanges`, status enums) do not.
+
 ### Step 1 — Baseline green
 
 Run the narrowest project that covers the change and confirm it passes:
@@ -225,9 +244,10 @@ Verdicts:
 
 1. One mutation at a time.
 2. **Revert immediately after each check** — never leave a mutation in the working tree.
-3. Confirm the suite is green again before finishing.
-4. Run the narrowest covering test, not the full suite. Never mutate against an integration project — each run starts a container.
-5. Never mutate to "fix" a failing test. The mutation is a probe; production behaviour is not being changed.
+3. **Revert only the mutation, never the file.** Undo the exact edit you made — the inverse edit, or a targeted revert of that hunk. **Never `git checkout -- <file>`, `git restore`, `git stash`, or any whole-file reset**: the working tree may hold unrelated uncommitted work, and a whole-file revert destroys it. Assume it does.
+4. Confirm the suite is green again before finishing, and that `git diff` shows only the changes you intended to keep.
+5. Run the narrowest covering test, not the full suite. Never mutate against an integration project — each run starts a container.
+6. Never mutate to "fix" a failing test. The mutation is a probe; production behaviour is not being changed.
 
 ### Step 3 — Report honestly, and under-claim
 
@@ -313,13 +333,18 @@ Once it points at a method, the rest of this skill applies unchanged: write test
 Jest with React Testing Library, in `Wayd.Web/src/wayd.web.reactclient`:
 
 ```bash
+cd Wayd.Web/src/wayd.web.reactclient
+
 npm test               # local watch-friendly run
 npm run test:ci        # what CI runs on a PR
+npx jest <path>        # a single suite, for the mutation loop
 ```
+
+The `cd` matters: there is no `package.json` at the repository root, so these fail from there.
 
 The same value rules apply: assert rendered output and behaviour, not implementation detail. Querying by role or visible text survives refactors that querying by class name does not.
 
-Note `'use no memo'` components (WaydGrid/TanStack consumers) — see [CLAUDE.md](../../CLAUDE.md).
+**WaydGrid and other TanStack consumers carry a `'use no memo'` directive**, which opts them out of React Compiler memoization — so manual `useMemo`/`useCallback` in those components is deliberate, not a leftover to clean up. Grid tests also depend on `src/jest.setup.ts`, which mocks the `data-grid-body-viewport` rect to 800×600 — jsdom has no layout, and the virtualizer renders zero rows at zero height. With a 28px row estimate that yields a **32-row window** (22 visible + 10 overscan), so a grid test asserting on rendered rows sees that window, not the full data set.
 
 ---
 

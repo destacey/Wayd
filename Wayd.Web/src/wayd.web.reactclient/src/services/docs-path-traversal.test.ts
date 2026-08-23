@@ -22,8 +22,10 @@ describe('resolveDocPath containment', () => {
     )
 
     // Assert
-    // Guards against the traversal assertions passing simply because there is nothing to reach.
-    expect(present.length).toBeGreaterThan(0)
+    // Every target must be present, not merely one of them: the hostile slugs below name
+    // specific files, so losing README.md while CLAUDE.md survives would leave those cases
+    // asserting against nothing while this guard still passed.
+    expect(present).toEqual(OUTSIDE_TARGETS)
   })
 
   describe('rejects slugs that escape the docs root', () => {
@@ -163,5 +165,26 @@ describe('resolveDocPath still resolves legitimate docs', () => {
 
     // Assert
     expect(resolved).toBeNull()
+  })
+
+  it('ignores a directory whose name looks like a doc file', () => {
+    // Arrange
+    // A directory called `foo.md` satisfies existsSync, so returning it would hand
+    // getDocBySlug a path that readFileSync rejects with EISDIR.
+    const dirName = 'eisdir-guard.md'
+    const dirPath = path.join(DOCS_ROOT, dirName)
+    fs.mkdirSync(dirPath, { recursive: true })
+
+    try {
+      // Act
+      const resolved = resolveDocPath(['eisdir-guard'])
+      const doc = getDocBySlug(['eisdir-guard'])
+
+      // Assert
+      expect(resolved).toBeNull()
+      expect(doc).toBeNull()
+    } finally {
+      fs.rmSync(dirPath, { recursive: true, force: true })
+    }
   })
 })

@@ -60,7 +60,11 @@ function containedPath(candidate: string): string | null {
 
   if (resolved !== root && !resolved.startsWith(root + path.sep)) return null
 
-  return fs.existsSync(resolved) ? resolved : null
+  // isFile(), not existsSync(): a directory named `foo.md` or `index.md` would otherwise be
+  // returned here and blow up in getDocBySlug's readFileSync with EISDIR.
+  return fs.statSync(resolved, { throwIfNoEntry: false })?.isFile()
+    ? resolved
+    : null
 }
 
 /**

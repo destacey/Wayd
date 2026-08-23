@@ -19,6 +19,7 @@ import {
 } from 'antd'
 import { useCallback, useState } from 'react'
 import { ConfigSectionProps } from './azdo-configuration-section'
+import { SecretFormItem } from './secret-form-item'
 
 const { Item } = Form
 const { Text } = Typography
@@ -48,6 +49,7 @@ const buildOrgLabelParts = (o: {
 
 export const WorkdayConfigurationSection: React.FC<ConfigSectionProps> = ({
   connection,
+  mode,
 }) => {
   // Pull the discovered catalog from the connection (only present on edit, only populated by a
   // successful init probe). When empty, the AutoComplete renders with no suggestions and the
@@ -86,13 +88,12 @@ export const WorkdayConfigurationSection: React.FC<ConfigSectionProps> = ({
         <Input maxLength={256} placeholder="wayd_isu@acme_corp1" />
       </Item>
 
-      <Item
+      <SecretFormItem
         label="ISU Password"
         name="isuPassword"
-        rules={[{ required: true }]}
-      >
-        <Input.Password maxLength={512} />
-      </Item>
+        maxLength={512}
+        mode={mode}
+      />
 
       <Item
         label="Worker Key"

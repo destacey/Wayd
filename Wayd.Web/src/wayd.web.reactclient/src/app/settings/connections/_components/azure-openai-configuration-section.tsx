@@ -1,4 +1,5 @@
 import { Form, FormInstance, Input } from 'antd'
+import { SecretFormItem } from './secret-form-item'
 
 const { Item } = Form
 
@@ -8,6 +9,7 @@ export interface ConfigSectionProps {
 }
 
 export const AzureOpenAIConfigurationSection: React.FC<ConfigSectionProps> = ({
+  mode,
 }) => {
   return (
     <>
@@ -18,9 +20,12 @@ export const AzureOpenAIConfigurationSection: React.FC<ConfigSectionProps> = ({
         />
       </Item>
 
-      <Item label="API Key" name="apiKey" rules={[{ required: true }]}>
-        <Input.Password maxLength={256} />
-      </Item>
+      <SecretFormItem
+        label="API Key"
+        name="apiKey"
+        maxLength={256}
+        mode={mode}
+      />
 
       <Item
         label="Deployment Name"

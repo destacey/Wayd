@@ -72275,8 +72275,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// The personal access token that enables access to Azure DevOps data.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("personalAccessToken")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string PersonalAccessToken { get; set; } = default!;
+        public string? PersonalAccessToken { get; set; } = default!;
 
     }
 
@@ -72295,8 +72294,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// The API key for Azure OpenAI resource.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("apiKey")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string ApiKey { get; set; } = default!;
+        public string? ApiKey { get; set; } = default!;
 
         /// <summary>
         /// The OpenAI model deployment name to use for this connection (e.g. "gpt-4o")
@@ -72329,8 +72327,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// The client secret for the Entra app registration.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("clientSecret")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string ClientSecret { get; set; } = default!;
+        public string? ClientSecret { get; set; } = default!;
 
         /// <summary>
         /// Optional Entra group object ID to scope the user query to. When null, all member users in
@@ -72383,8 +72380,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// The Integration System User password.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isuPassword")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string IsuPassword { get; set; } = default!;
+        public string? IsuPassword { get; set; } = default!;
 
         /// <summary>
         /// Which Workday worker identifier maps onto Employee.EmployeeNumber.

@@ -10,6 +10,7 @@ public sealed record AzureDevOpsConnectionConfigurationDto : IMapFrom<AzureDevOp
 
     /// <summary>Gets the personal access token.</summary>
     /// <value>The personal access token that enables access to Azure DevOps data.</value>
+    /// <remarks>Masked to a fixed-width placeholder when returned from the API.</remarks>
     public required string PersonalAccessToken { get; set; }
 
     /// <summary>Gets the organization URL.</summary>
@@ -26,9 +27,7 @@ public sealed record AzureDevOpsConnectionConfigurationDto : IMapFrom<AzureDevOp
     /// </summary>
     public required List<AzureDevOpsWorkspaceDto> Workspaces { get; set; }
 
+    /// <summary>Replaces the token with the fixed-width placeholder. See <see cref="ConnectionSecret"/>.</summary>
     public void MaskPersonalAccessToken()
-    {
-        if (!string.IsNullOrWhiteSpace(PersonalAccessToken) && PersonalAccessToken.Length > 4)
-            PersonalAccessToken = string.Concat(PersonalAccessToken.AsSpan(0, 4), new string('*', PersonalAccessToken.Length - 4));
-    }
+        => PersonalAccessToken = ConnectionSecret.Masked(PersonalAccessToken);
 }

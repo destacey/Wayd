@@ -31,14 +31,34 @@ public sealed class GetConnectionQueryHandler(IAppIntegrationDbContext appIntegr
         // configuration block and the $type discriminator both survive serialization. Every concrete
         // connection type must have an arm here — falling through to the base DTO would silently drop
         // the configuration, so throw instead.
-        return connection switch
+        //
+        // Secrets are masked here rather than at the call site, so a new caller cannot leak one by
+        // forgetting to. Callers needing the real credential use the connector-specific queries.
+        switch (connection)
         {
-            AzureDevOpsBoardsConnection => connection.Adapt<AzureDevOpsConnectionDetailsDto>(),
-            AzureOpenAIConnection => connection.Adapt<AzureOpenAIConnectionDetailsDto>(),
-            EntraConnection => connection.Adapt<EntraConnectionDetailsDto>(),
-            WorkdayConnection => connection.Adapt<WorkdayConnectionDetailsDto>(),
-            _ => throw new InvalidOperationException(
-                $"No details DTO mapping is registered for connection type '{connection.GetType().Name}'."),
-        };
+            case AzureDevOpsBoardsConnection:
+                var azdo = connection.Adapt<AzureDevOpsConnectionDetailsDto>();
+                azdo.Configuration.MaskPersonalAccessToken();
+                return azdo;
+
+            case AzureOpenAIConnection:
+                var aoai = connection.Adapt<AzureOpenAIConnectionDetailsDto>();
+                aoai.Configuration.MaskApiKey();
+                return aoai;
+
+            case EntraConnection:
+                var entra = connection.Adapt<EntraConnectionDetailsDto>();
+                entra.Configuration.MaskClientSecret();
+                return entra;
+
+            case WorkdayConnection:
+                var workday = connection.Adapt<WorkdayConnectionDetailsDto>();
+                workday.Configuration.MaskIsuPassword();
+                return workday;
+
+            default:
+                throw new InvalidOperationException(
+                    $"No details DTO mapping is registered for connection type '{connection.GetType().Name}'.");
+        }
     }
 }

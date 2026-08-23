@@ -12,7 +12,11 @@ public sealed record UpdateAzureDevOpsConnectionRequest : UpdateConnectionReques
     /// <summary>
     /// The personal access token that enables access to Azure DevOps data.
     /// </summary>
-    public required string PersonalAccessToken { get; set; }
+    /// <remarks>
+    /// Leave blank to keep the stored value. There is no way to clear it: the connection
+    /// cannot function without a credential, so removal means deleting the connection.
+    /// </remarks>
+    public string? PersonalAccessToken { get; set; }
 
     public UpdateAzureDevOpsConnectionCommand ToCommand()
         => new(Id, Name, Description, Organization, PersonalAccessToken);
@@ -31,7 +35,6 @@ public sealed class UpdateAzureDevOpsConnectionRequestValidator : CustomValidato
             .MaximumLength(128);
 
         RuleFor(c => c.PersonalAccessToken)
-            .NotEmpty()
             .MaximumLength(128);
     }
 }

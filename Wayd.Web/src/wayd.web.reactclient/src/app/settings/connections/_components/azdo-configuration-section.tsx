@@ -5,6 +5,7 @@ import {
 import { useTestAzdoConfigurationMutation } from '@/src/store/features/app-integration/azdo-integration-api'
 import { Button, Form, FormInstance, Input, Typography } from 'antd'
 import { useState } from 'react'
+import { SecretFormItem } from './secret-form-item'
 
 const { Item } = Form
 const { Text } = Typography
@@ -22,6 +23,7 @@ export interface ConfigSectionProps {
 
 export const AzureDevOpsConfigurationSection: React.FC<ConfigSectionProps> = ({
   form,
+  mode,
 }) => {
   const [testConfigurationResult, setTestConfigurationResult] =
     useState<string>()
@@ -44,13 +46,13 @@ export const AzureDevOpsConfigurationSection: React.FC<ConfigSectionProps> = ({
       <Item label="Organization" name="organization" rules={[{ required: true }]}>
         <Input showCount maxLength={128} />
       </Item>
-      <Item
+      <SecretFormItem
         label="Personal Access Token"
         name="personalAccessToken"
-        rules={[{ required: true }]}
-      >
-        <Input showCount maxLength={128} />
-      </Item>
+        maxLength={128}
+        mode={mode}
+        extra="Testing the configuration requires a token — the stored one is never sent back to the browser."
+      />
 
       <Item>
         <Button

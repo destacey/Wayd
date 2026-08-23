@@ -5,7 +5,8 @@ using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 
 namespace Wayd.AppIntegration.Application.Connections.Commands.AzureOpenAI;
 
-public sealed record UpdateAzureOpenAIConnectionCommand(Guid Id, string Name, string BaseUrl, string? Description, string DeploymentName, string ApiKey) : ICommand<Guid>;
+/// <param name="ApiKey">Blank or masked keeps the stored key — see <see cref="ConnectionSecret.Resolve"/>.</param>
+public sealed record UpdateAzureOpenAIConnectionCommand(Guid Id, string Name, string BaseUrl, string? Description, string DeploymentName, string? ApiKey) : ICommand<Guid>;
 
 public sealed class UpdateAzureOpenAIConnectionCommandValidator : CustomValidator<UpdateAzureOpenAIConnectionCommand>
 {
@@ -29,8 +30,8 @@ public sealed class UpdateAzureOpenAIConnectionCommandValidator : CustomValidato
             .MaximumLength(128)
             .MustAsync(async (cmd, deploymentName, cancellationToken) => await BeUniqueAzureAIDeployment(cmd.BaseUrl, deploymentName, cancellationToken)).WithMessage("The deployment name for this connection already exists in an existing connection.");
 
+        // Deliberately not NotEmpty: a blank key means "keep the stored one".
         RuleFor(c => c.ApiKey)
-            .NotEmpty()
             .MaximumLength(128);
     }
 
@@ -65,11 +66,7 @@ public sealed class UpdateAzureOpenAIConnectionCommandHandler(IAppIntegrationDbC
             if (connection is null)
                 return Result.Failure<Guid>("Azure OpenAI connection not found.");
 
-            // do the first four characters of the ApiKey match the existing one?
-            var apiKey = connection.Configuration!.ApiKey.Length == request.ApiKey.Length
-                && connection.Configuration!.ApiKey?[..4] == request.ApiKey[..4]
-                    ? connection.Configuration.ApiKey
-                    : request.ApiKey;
+            var apiKey = ConnectionSecret.Resolve(request.ApiKey, connection.Configuration!.ApiKey);
 
             var config = new AzureOpenAIConnectionConfiguration(request.BaseUrl, request.DeploymentName, apiKey);
 

@@ -12,7 +12,7 @@ public sealed record UpdateEntraConnectionCommand(
     string? Description,
     string TenantId,
     string ClientId,
-    string ClientSecret,
+    string? ClientSecret,
     string? AllUsersGroupObjectId,
     bool IncludeDisabledUsers,
     EmployeeMatchProperty MatchBy,
@@ -42,8 +42,8 @@ public sealed class UpdateEntraConnectionCommandValidator : CustomValidator<Upda
             .NotEmpty()
             .MaximumLength(64);
 
+        // Deliberately not NotEmpty: a blank secret means "keep the stored one".
         RuleFor(c => c.ClientSecret)
-            .NotEmpty()
             .MaximumLength(512);
 
         RuleFor(c => c.AllUsersGroupObjectId)
@@ -72,13 +72,7 @@ public sealed class UpdateEntraConnectionCommandHandler(
             if (connection is null)
                 return Result.Failure<Guid>("Entra connection not found.");
 
-            // If the first four characters of the ClientSecret match the existing one, preserve the existing
-            // value (the API masks the secret on read and the client may post the masked or partially shown value).
-            var clientSecret = connection.Configuration!.ClientSecret.Length == request.ClientSecret.Length
-                && connection.Configuration!.ClientSecret[..Math.Min(4, connection.Configuration.ClientSecret.Length)]
-                    == request.ClientSecret[..Math.Min(4, request.ClientSecret.Length)]
-                    ? connection.Configuration.ClientSecret
-                    : request.ClientSecret;
+            var clientSecret = ConnectionSecret.Resolve(request.ClientSecret, connection.Configuration!.ClientSecret);
 
             // TODO: Validate credentials with Graph and reflect in IsValidConfiguration.
             var configurationIsValid = true;

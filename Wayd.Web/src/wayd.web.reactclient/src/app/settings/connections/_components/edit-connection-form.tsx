@@ -36,7 +36,7 @@ export interface EditConnectionFormProps {
   onFormCancel: () => void
 }
 
-interface EditConnectionFormValues {
+export interface EditConnectionFormValues {
   id: string
   name: string
   description?: string | null
@@ -85,10 +85,16 @@ const connectorTypeFromName = (
   }
 }
 
+// A blank secret input means "keep the stored credential" — the API reads an omitted secret
+// that way. Sending '' instead would be a value the server has to interpret, so normalise to
+// undefined here and keep the contract in one place.
+const keepIfBlank = (value: string | null | undefined): string | undefined =>
+  value?.trim() ? value : undefined
+
 // Connection id comes from the loaded connection prop, not the form: Form.validateFields()
 // only returns values for registered Form.Items, so a hidden id seeded via setFieldsValue
 // is silently dropped on submit.
-const buildRequest = (
+export const buildRequest = (
   connection: ConnectionDetailsDto,
   values: EditConnectionFormValues,
 ): UpdateConnectionRequest | null => {
@@ -100,7 +106,7 @@ const buildRequest = (
         name: values.name,
         description: values.description ?? undefined,
         organization: values.organization ?? '',
-        personalAccessToken: values.personalAccessToken ?? '',
+        personalAccessToken: keepIfBlank(values.personalAccessToken),
       } as UpdateAzureDevOpsConnectionRequest
     case 'Azure OpenAI':
       return {
@@ -109,7 +115,7 @@ const buildRequest = (
         name: values.name,
         description: values.description ?? undefined,
         baseUrl: values.baseUrl ?? '',
-        apiKey: values.apiKey ?? '',
+        apiKey: keepIfBlank(values.apiKey),
         deploymentName: values.deploymentName ?? '',
       } as UpdateAzureOpenAIConnectionRequest
     case 'Entra':
@@ -120,7 +126,7 @@ const buildRequest = (
         description: values.description ?? undefined,
         tenantId: values.tenantId ?? '',
         clientId: values.clientId ?? '',
-        clientSecret: values.clientSecret ?? '',
+        clientSecret: keepIfBlank(values.clientSecret),
         allUsersGroupObjectId: values.allUsersGroupObjectId ?? undefined,
         includeDisabledUsers: values.includeDisabledUsers ?? false,
         matchBy: values.matchBy ?? EmployeeMatchProperty.Email,
@@ -134,7 +140,7 @@ const buildRequest = (
         description: values.description ?? undefined,
         wsdlUrl: values.wsdlUrl ?? '',
         isuUsername: values.isuUsername ?? '',
-        isuPassword: values.isuPassword ?? '',
+        isuPassword: keepIfBlank(values.isuPassword),
         workerKey: values.workerKey ?? WorkdayWorkerKey.EmployeeId,
         includeInactive: values.includeInactive ?? false,
         matchBy: values.matchBy ?? EmployeeMatchProperty.Email,
@@ -155,7 +161,9 @@ const buildRequest = (
   }
 }
 
-const seedFormValues = (
+// Secrets are deliberately absent from the seed: the API returns a mask, and seeding it would
+// submit that placeholder back as the new credential. Blank means keep — see keepIfBlank.
+export const seedFormValues = (
   connection: ConnectionDetailsDto,
 ): EditConnectionFormValues => {
   const base: EditConnectionFormValues = {
@@ -169,7 +177,6 @@ const seedFormValues = (
       return {
         ...base,
         organization: c.configuration?.organization,
-        personalAccessToken: c.configuration?.personalAccessToken,
       }
     }
     case 'Azure OpenAI': {
@@ -177,7 +184,6 @@ const seedFormValues = (
       return {
         ...base,
         baseUrl: c.configuration?.baseUrl,
-        apiKey: c.configuration?.apiKey,
         deploymentName: c.configuration?.deploymentName,
       }
     }
@@ -187,7 +193,6 @@ const seedFormValues = (
         ...base,
         tenantId: c.configuration?.tenantId,
         clientId: c.configuration?.clientId,
-        clientSecret: c.configuration?.clientSecret,
         allUsersGroupObjectId: c.configuration?.allUsersGroupObjectId,
         includeDisabledUsers: c.configuration?.includeDisabledUsers ?? false,
         matchBy: c.configuration?.matchBy ?? EmployeeMatchProperty.Email,
@@ -200,7 +205,6 @@ const seedFormValues = (
         ...base,
         wsdlUrl: c.configuration?.wsdlUrl,
         isuUsername: c.configuration?.isuUsername,
-        isuPassword: c.configuration?.isuPassword,
         workerKey: c.configuration?.workerKey ?? WorkdayWorkerKey.EmployeeId,
         includeInactive: c.configuration?.includeInactive ?? false,
         matchBy: c.configuration?.matchBy ?? EmployeeMatchProperty.Email,

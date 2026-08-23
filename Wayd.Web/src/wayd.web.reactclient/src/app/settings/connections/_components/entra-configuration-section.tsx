@@ -1,5 +1,6 @@
 import { EmployeeMatchProperty } from '@/src/services/wayd-api'
 import { Form, FormInstance, Input, Radio, Switch } from 'antd'
+import { SecretFormItem } from './secret-form-item'
 
 const { Item } = Form
 
@@ -8,7 +9,9 @@ export interface ConfigSectionProps {
   mode: 'create' | 'edit'
 }
 
-export const EntraConfigurationSection: React.FC<ConfigSectionProps> = () => {
+export const EntraConfigurationSection: React.FC<ConfigSectionProps> = ({
+  mode,
+}) => {
   return (
     <>
       <Item label="Tenant ID" name="tenantId" rules={[{ required: true }]}>
@@ -19,9 +22,12 @@ export const EntraConfigurationSection: React.FC<ConfigSectionProps> = () => {
         <Input maxLength={64} placeholder="00000000-0000-0000-0000-000000000000" />
       </Item>
 
-      <Item label="Client Secret" name="clientSecret" rules={[{ required: true }]}>
-        <Input.Password maxLength={512} />
-      </Item>
+      <SecretFormItem
+        label="Client Secret"
+        name="clientSecret"
+        maxLength={512}
+        mode={mode}
+      />
 
       <Item
         label="All Users Group Object ID"

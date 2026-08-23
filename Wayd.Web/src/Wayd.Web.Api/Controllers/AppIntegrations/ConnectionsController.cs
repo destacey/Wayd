@@ -65,24 +65,7 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
         if (connection is null)
             return NotFound();
 
-        // Mask sensitive fields
-        if (connection is AzureDevOpsConnectionDetailsDto azdo)
-        {
-            azdo.Configuration.MaskPersonalAccessToken();
-        }
-        else if (connection is AzureOpenAIConnectionDetailsDto aoai)
-        {
-            aoai.Configuration.MaskApiKey();
-        }
-        else if (connection is EntraConnectionDetailsDto entra)
-        {
-            entra.Configuration.MaskClientSecret();
-        }
-        else if (connection is WorkdayConnectionDetailsDto workday)
-        {
-            workday.Configuration.MaskIsuPassword();
-        }
-
+        // Secrets are masked by GetConnectionQueryHandler, not here.
         return this.OkPolymorphic(connection);
     }
 

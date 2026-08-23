@@ -17,10 +17,15 @@ Test projects mirror the source structure:
 
 ### Unit vs integration
 
-A project is an **integration** project if it references `Testcontainers.MsSql`, and a **unit** project
-otherwise. That one dependency is the source of truth for everything else: CI splits its two test jobs
-on it, and each test assembly is stamped with a matching `Category` trait automatically. Nothing needs
+A project is an **integration** project if it references any `Testcontainers*` package, and a **unit**
+project otherwise. That one dependency is the source of truth for everything else: CI splits its two test
+jobs on it, and each test assembly is stamped with a matching `Category` trait automatically. Nothing needs
 tagging by hand, and the trait cannot drift from what a project actually requires.
+
+The match is on the `Testcontainers` **prefix**, not on `Testcontainers.MsSql` specifically: a suite
+reaching for a different module (`Testcontainers.PostgreSql`, `.Redis`, `.RabbitMq`) still needs Docker and
+still belongs in the integration job. `Directory.Build.targets` and `.github/scripts/dotnet-test-projects.sh`
+must stay in step on this.
 
 Integration tests need Docker running. Unit tests never do — including
 `Wayd.Integrations.AzureDevOps.IntegrationTests`, which despite its name needs a live Azure DevOps org
@@ -103,7 +108,12 @@ Pass `TestContext.Current.CancellationToken` to **every** method that accepts a 
 
 ## Fake Data
 
-Domain fakers generate realistic test data with Bogus. They live in **each model's own test project**, under a `Data/` folder — not in `Wayd.Tests.Shared`. Only the `PrivateConstructorFaker<T>` base class lives in `Wayd.Tests.Shared`.
+Domain fakers generate realistic test data with Bogus. They live in **each model's own test project**, under a `Data/` folder. Only the `PrivateConstructorFaker<T>` base class lives centrally, in `Wayd.TestData.Core` (namespace `Wayd.TestData.Core`). Test projects reach it transitively through their `Wayd.Tests.Shared` reference, so no extra project reference is needed.
+
+Two intentional exceptions to the colocation rule — reuse these rather than duplicating or relocating them:
+
+- **Cross-cutting fakers** for types no single domain owns live in `Wayd.Tests.Shared/Data/`: `FeatureFlagFaker`, `OidcProviderFaker`, `PersonalAccessTokenFaker`.
+- **Organization** publishes its fakers from a dedicated `Wayd.Organization.TestData` project (`TeamFaker`, `TeamMembershipFaker`, and the rest), because several test projects consume them.
 
 ```csharp
 var faker = new ScoringModelFaker();

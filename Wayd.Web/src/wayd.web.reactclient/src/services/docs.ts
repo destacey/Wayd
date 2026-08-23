@@ -29,27 +29,69 @@ export interface DocNavItem {
   position: number
 }
 
+// Slug segments arrive straight from the URL. Next.js percent-decodes them before the
+// handler sees them, so `/docs/..%2fREADME` yields the single segment `../README` — the
+// separator is already decoded by the time it reaches here, and no amount of URL-level
+// normalisation upstream has removed it.
+const REJECTED_SEGMENT = /^$|^\.\.$|[/\\]/
+
+/**
+ * Reject slug segments that could steer resolution outside the docs tree before any
+ * filesystem access happens. Empty, `..`, or separator-bearing segments are never
+ * legitimate: real slugs come from file and directory names.
+ */
+function hasUnsafeSegment(slug: string[]): boolean {
+  return slug.some((segment) => REJECTED_SEGMENT.test(segment))
+}
+
+/**
+ * The single chokepoint for turning a candidate path into a usable one.
+ *
+ * The containment check is NOT redundant with the segment rejection above, and it is not
+ * redundant with `path.join`: `path.join` *collapses* `..` rather than rejecting it, so it
+ * resolves happily to a location outside DOCS_ROOT. Every candidate must pass through here.
+ *
+ * The trailing `path.sep` matters — without it a sibling directory such as `docs-site`
+ * would satisfy a naive `startsWith(DOCS_ROOT)`.
+ */
+function containedPath(candidate: string): string | null {
+  const resolved = path.resolve(candidate)
+  const root = path.resolve(DOCS_ROOT)
+
+  if (resolved !== root && !resolved.startsWith(root + path.sep)) return null
+
+  // isFile(), not existsSync(): a directory named `foo.md` or `index.md` would otherwise be
+  // returned here and blow up in getDocBySlug's readFileSync with EISDIR.
+  return fs.statSync(resolved, { throwIfNoEntry: false })?.isFile()
+    ? resolved
+    : null
+}
+
 /**
  * Get the absolute path to a doc file from its slug segments.
  * Tries slug as a file first, then as a directory with index.
+ *
+ * Returns null for anything that does not resolve to a real file inside DOCS_ROOT.
  */
-function resolveDocPath(slug: string[]): string | null {
+export function resolveDocPath(slug: string[]): string | null {
+  if (hasUnsafeSegment(slug)) return null
+
   const relativePath = slug.join('/')
 
-  // Try exact .mdx match
-  const mdxPath = path.join(DOCS_ROOT, `${relativePath}.mdx`)
-  if (fs.existsSync(mdxPath)) return mdxPath
+  // Ordered by preference: exact file match first, then the directory-index forms.
+  // Add new candidates to this list only — containedPath() is the sole gate, so a
+  // candidate added anywhere else would bypass the containment check.
+  const candidates = [
+    path.join(DOCS_ROOT, `${relativePath}.mdx`),
+    path.join(DOCS_ROOT, `${relativePath}.md`),
+    path.join(DOCS_ROOT, relativePath, 'index.mdx'),
+    path.join(DOCS_ROOT, relativePath, 'index.md'),
+  ]
 
-  // Try exact .md match
-  const mdPath = path.join(DOCS_ROOT, `${relativePath}.md`)
-  if (fs.existsSync(mdPath)) return mdPath
-
-  // Try as directory with index
-  const indexMdxPath = path.join(DOCS_ROOT, relativePath, 'index.mdx')
-  if (fs.existsSync(indexMdxPath)) return indexMdxPath
-
-  const indexMdPath = path.join(DOCS_ROOT, relativePath, 'index.md')
-  if (fs.existsSync(indexMdPath)) return indexMdPath
+  for (const candidate of candidates) {
+    const safe = containedPath(candidate)
+    if (safe) return safe
+  }
 
   return null
 }

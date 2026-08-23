@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Wayd.AppIntegration.Application.Connections;
 
 namespace Wayd.AppIntegration.Application.Tests.Sut.Connections;
@@ -51,33 +51,53 @@ public class ConnectionSecretTests
         masked.Should().BeEmpty("a fixed-width mask must still distinguish 'set' from 'not set'");
     }
 
-    [Theory]
-    [InlineData("********")]          // the placeholder this class emits
-    [InlineData("abcd****")]          // legacy length-preserving mask
-    [InlineData("abcd************")]
-    public void IsMasked_RecognisesMaskedValues(string value)
+    [Fact]
+    public void Resolve_KeepsStoredSecret_WhenTheLegacyMaskCameFromASecretWhosePrefixHeldAnAsterisk()
     {
+        // Arrange - the superseded masker copied the first 4 characters verbatim, asterisks and
+        // all, so a shape test on the prefix would reject a mask this API really did emit.
+        var stored = "a*cdEFGH";
+        var legacyMask = "a*cd****";
+
         // Act
-        var isMasked = ConnectionSecret.IsMasked(value);
+        var resolved = ConnectionSecret.Resolve(legacyMask, stored);
 
         // Assert
-        isMasked.Should().BeTrue();
+        resolved.Should().Be(stored);
     }
 
     [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("abcdEFGH1234")]
-    [InlineData("abcd")]
-    [InlineData("pa**word")]          // asterisks inside the first 4 chars are not a mask shape
-    [InlineData("*abc****")]
-    public void IsMasked_RejectsValuesThatAreNotMasks(string? value)
+    [InlineData("P@ss*")]
+    [InlineData("abcd****")]
+    [InlineData("****")]
+    [InlineData("*******")]
+    public void Resolve_StoresTheNewSecret_WhenAMaskShapedValueCouldNotHaveComeFromTheStoredOne(string submitted)
     {
+        // Arrange - these secrets have no charset rule, so an admin may legitimately pick one made
+        // of asterisks. Discarding it would leave the old credential live behind a success
+        // response, which is the failure this class exists to prevent.
+        var stored = "wxyzSTUV0000";
+
         // Act
-        var isMasked = ConnectionSecret.IsMasked(value);
+        var resolved = ConnectionSecret.Resolve(submitted, stored);
 
         // Assert
-        isMasked.Should().BeFalse();
+        resolved.Should().Be(submitted,
+            "a value that the masker could not have produced from the stored secret is a real credential");
+    }
+
+    [Fact]
+    public void Resolve_StoresTheNewSecret_WhenItMatchesTheLegacyMaskShapeButNotTheStoredPrefix()
+    {
+        // Arrange - same length and mask shape as a legacy mask of `stored`, different prefix.
+        var stored = "abcdEFGH";
+        var submitted = "P@ss****";
+
+        // Act
+        var resolved = ConnectionSecret.Resolve(submitted, stored);
+
+        // Assert
+        resolved.Should().Be(submitted);
     }
 
     [Theory]
@@ -94,8 +114,8 @@ public class ConnectionSecretTests
     }
 
     [Theory]
-    [InlineData("********")]
-    [InlineData("stor******************")]
+    [InlineData("********")]                        // the fixed placeholder this class emits
+    [InlineData("stor*******************")]         // the superseded mask of StoredSecret
     public void Resolve_KeepsStoredSecret_WhenSubmittedValueIsMasked(string submitted)
     {
         // Act

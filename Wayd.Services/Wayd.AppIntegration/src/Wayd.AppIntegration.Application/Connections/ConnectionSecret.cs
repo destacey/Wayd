@@ -20,24 +20,6 @@ public static class ConnectionSecret
     public static string Masked(string? secret) => string.IsNullOrWhiteSpace(secret) ? string.Empty : Mask;
 
     /// <summary>
-    /// True for the placeholder above, and for the length-preserving mask the API used to emit
-    /// (a 4-character prefix followed only by asterisks) — a client cached before this change can
-    /// still post that form back.
-    /// </summary>
-    public static bool IsMasked(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return false;
-
-        if (value == Mask)
-            return true;
-
-        return value.Length > 4
-            && !value.AsSpan(0, 4).Contains('*')
-            && value.AsSpan(4).TrimEnd('*').Length == 0;
-    }
-
-    /// <summary>
     /// Resolves the secret to persist for an update.
     /// </summary>
     /// <remarks>
@@ -49,15 +31,40 @@ public static class ConnectionSecret
     /// secret, so removal means deleting the connection.
     /// </para>
     /// <para>
-    /// A masked value is kept for the same reason, as defence in depth against callers that do not
-    /// go through the edit form: a prefix followed only by asterisks is never a real credential, so
-    /// storing it could only break the connection.
+    /// A masked value is kept too, as defence in depth against callers that do not go through the
+    /// edit form and post the response straight back.
+    /// </para>
+    /// <para>
+    /// Both mask checks are deliberately narrow, because these secrets have no charset restriction:
+    /// an admin may legitimately choose a credential made of asterisks, and discarding it would
+    /// leave the old one live behind a success response — the exact failure this class exists to
+    /// prevent. The fixed placeholder is matched exactly, and the superseded length-preserving mask
+    /// only when it could actually have been produced from <paramref name="stored"/>.
     /// </para>
     /// </remarks>
     /// <param name="submitted">The caller's value. Blank (or absent, which deserializes to null) or masked means "keep".</param>
     /// <param name="stored">The secret currently persisted on the connection.</param>
     public static string Resolve(string? submitted, string stored)
-        => string.IsNullOrWhiteSpace(submitted) || IsMasked(submitted)
+        => string.IsNullOrWhiteSpace(submitted) || IsMaskOf(submitted, stored)
             ? stored
             : submitted;
+
+    /// <summary>
+    /// True when <paramref name="submitted"/> is a mask this API could have emitted for
+    /// <paramref name="stored"/>, rather than a credential that merely looks like one.
+    /// </summary>
+    private static bool IsMaskOf(string submitted, string stored)
+    {
+        if (submitted == Mask)
+            return true;
+
+        // Superseded mask: the first 4 characters of the secret, padded with asterisks to its
+        // original length. Reproducing it from `stored` and comparing is exact — it accepts a
+        // prefix that itself contained an asterisk, and rejects a same-shaped value that could not
+        // have come from this secret.
+        return stored.Length > 4
+            && submitted.Length == stored.Length
+            && submitted.AsSpan(0, 4).SequenceEqual(stored.AsSpan(0, 4))
+            && submitted.AsSpan(4).TrimEnd('*').IsEmpty;
+    }
 }

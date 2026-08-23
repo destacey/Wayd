@@ -9,4 +9,12 @@ export interface RecordSection {
   label: string
   /** Optional count shown beside the label in the rail. */
   count?: number
+  /**
+   * Suppresses the content heading for this section.
+   *
+   * For sections that render their own title — typically because it carries
+   * controls, like the cycle time report's date and percentile pickers — where
+   * the layout's heading would stack a duplicate above it.
+   */
+  hideHeading?: boolean
 }

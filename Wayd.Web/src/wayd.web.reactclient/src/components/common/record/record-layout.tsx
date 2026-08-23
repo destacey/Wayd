@@ -1,6 +1,6 @@
 'use client'
 
-import { Flex, Grid, Skeleton } from 'antd'
+import { Flex, Grid, Skeleton, Typography } from 'antd'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { ReactNode, Suspense, useCallback, useMemo } from 'react'
 import styles from './record-layout.module.css'
@@ -9,6 +9,7 @@ import SectionBoundary from './section-boundary'
 import { RecordSection } from './types'
 
 const { useBreakpoint } = Grid
+const { Title } = Typography
 
 export interface RecordLayoutProps {
   sections: RecordSection[]
@@ -21,6 +22,8 @@ export interface RecordLayoutProps {
    * rail rather than by the page, so the rail sits flush against the app sider.
    */
   header?: ReactNode
+  /** Actions for the active section, shown beside its heading. */
+  sectionActions?: ReactNode
   children: (activeSection: string) => ReactNode
 }
 
@@ -33,6 +36,7 @@ const RecordLayoutInner = ({
   reports = [],
   defaultSection,
   header,
+  sectionActions,
   children,
 }: RecordLayoutProps) => {
   const screens = useBreakpoint()
@@ -67,7 +71,8 @@ const RecordLayoutInner = ({
     [defaultSection, pathname, router],
   )
 
-  const activeLabel = all.find((s) => s.id === activeSection)?.label
+  const active = all.find((s) => s.id === activeSection)
+  const activeLabel = active?.label
 
   const nav = (
     <RecordSectionNav
@@ -77,6 +82,26 @@ const RecordLayoutInner = ({
       onChange={goTo}
       compact={compact}
     />
+  )
+
+  // The rail marks where you are, but the content needs its own heading —
+  // without it a section opens as an unlabelled grid under the identity bar.
+  //
+  // Level 5 (16px), not 4: the record name above is already 30px, and a 20px
+  // heading competes with it rather than sitting under it. Sections that hold
+  // their own sub-headings use level 4 beneath this.
+  const sectionHeading = active?.hideHeading ? null : (
+    <Flex align="center" gap="small" className={styles.sectionHeading}>
+      <Title level={5} style={{ margin: 0 }}>
+        {activeLabel}
+      </Title>
+      {sectionActions && (
+        <>
+          <div style={{ flexGrow: 1 }} />
+          {sectionActions}
+        </>
+      )}
+    </Flex>
   )
 
   const body = (
@@ -102,13 +127,19 @@ const RecordLayoutInner = ({
           <div className={styles.content}>
             <Flex vertical gap="middle">
               {nav}
-              {body}
+              <div>
+                {sectionHeading}
+                {body}
+              </div>
             </Flex>
           </div>
         ) : (
           <>
             {nav}
-            <div className={styles.content}>{body}</div>
+            <div className={styles.content}>
+              {sectionHeading}
+              {body}
+            </div>
           </>
         )}
       </div>

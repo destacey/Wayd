@@ -119,6 +119,61 @@ describe('RecordLayout', () => {
     )
   })
 
+  it('heads the content with the active section label', () => {
+    // Arrange
+    mockParams = new URLSearchParams('section=backlog')
+
+    // Act
+    renderLayout()
+
+    // Assert — the rail marks position; the content needs its own heading, or
+    // a section opens as an unlabelled grid under the identity bar.
+    expect(screen.getByRole('heading', { name: 'Backlog' })).toBeInTheDocument()
+  })
+
+  it('places section actions beside that heading', () => {
+    // Arrange / Act
+    render(
+      <RecordLayout
+        sections={SECTIONS}
+        defaultSection="overview"
+        sectionActions={<button>Add item</button>}
+      >
+        {() => <div>content</div>}
+      </RecordLayout>,
+    )
+
+    // Assert
+    expect(
+      screen.getByRole('button', { name: 'Add item' }),
+    ).toBeInTheDocument()
+  })
+
+  it('omits the heading for a section that renders its own', () => {
+    // Arrange — the cycle time report titles itself alongside its controls, so
+    // the layout heading would stack a duplicate above it.
+    mockParams = new URLSearchParams('section=cycle-time')
+
+    // Act
+    render(
+      <RecordLayout
+        sections={SECTIONS}
+        reports={[
+          { id: 'cycle-time', label: 'Cycle Time', hideHeading: true },
+        ]}
+        defaultSection="overview"
+      >
+        {() => <div>report content</div>}
+      </RecordLayout>,
+    )
+
+    // Assert — still reachable in the rail, just not repeated in the content
+    expect(
+      screen.queryByRole('heading', { name: 'Cycle Time' }),
+    ).toBeNull()
+    expect(screen.getByRole('tab', { name: /Cycle Time/ })).toBeInTheDocument()
+  })
+
   it('shows counts in the rail', () => {
     // Arrange / Act
     renderLayout()

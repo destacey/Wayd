@@ -38,6 +38,15 @@
 }
 
 /*
+ * Tight to the content below it. Section bodies bring their own leading space
+ * (a grid's toolbar, a card's padding), so a margin here stacks with theirs
+ * and reads as a gap rather than a heading attached to what it labels.
+ */
+.sectionHeading {
+  margin-bottom: 4px;
+}
+
+/*
  * Below `md` the rail becomes a Select, so the page reverts to ordinary
  * stacked flow — no side-by-side columns to keep flush.
  */

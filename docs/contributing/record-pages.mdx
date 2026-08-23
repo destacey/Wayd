@@ -76,6 +76,10 @@ Sections are the named content areas of a record. They render as a **vertical ra
 
 Reports (cycle time, history views) are rail entries in a **Reports** group below a divider — never appended tabs.
 
+`RecordLayout` heads the content with the active section's label, so a section never opens as an unlabelled grid. That heading is `Title level={5}` (16px): the record name above it is already 30px, and a larger heading competes with it instead of sitting under it. Sections with their own sub-blocks use `level={4}` beneath it.
+
+**Section labels name what the section holds**, from the reader's point of view — "Assigned Work Items", not "Work Items", which reads like everything on the record. The `id` is a URL contract and does not change when a label is reworded.
+
 ```tsx
 <RecordLayout
   sections={[

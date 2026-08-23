@@ -3,13 +3,7 @@
 import PageTitle from '@/src/components/common/page-title'
 import { MenuProps, Spin } from 'antd'
 import { TeamOutlined } from '@ant-design/icons'
-import {
-  createElement,
-  use,
-  useEffect,
-
-  useState,
-} from 'react'
+import { createElement, use, useEffect, useState } from 'react'
 import TeamDetails from '@/src/app/(legacy)/organizations/teams/_components/team-details'
 import RisksGrid, {
   RisksGridProps,
@@ -147,16 +141,6 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     setIncludeClosedRisks(includeClosed)
   }
 
-  // Reports are permanent entries in the rail's Reports group, so opening one
-  // is navigation rather than tab bookkeeping.
-  const goToSection = (section: TeamTabs) =>
-    router.replace(`${pathname}?section=${section}`, { scroll: false })
-
-  const openCycleTimeReport = () => goToSection(TeamTabs.CycleTimeReport)
-
-  const openOperatingModelHistory = () =>
-    goToSection(TeamTabs.OperatingModelHistory)
-
   const actionsMenuItems: MenuProps['items'] = (() => {
     const items: ItemType[] = []
 
@@ -230,24 +214,8 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       })
     }
 
-    items.push({ type: 'divider', key: 'divider-reports' })
-
-    items.push({
-      type: 'group',
-      label: 'Reports',
-      children: [
-        {
-          key: 'cycle-time-report',
-          label: 'Cycle Time Report',
-          onClick: openCycleTimeReport,
-        },
-        {
-          key: 'operating-model-history',
-          label: 'Operating Model History',
-          onClick: openOperatingModelHistory,
-        },
-      ],
-    })
+    // Reports are permanent entries in the rail's Reports group, so they are
+    // not repeated here — the menu is for actions, not navigation.
 
     return items
   })()
@@ -333,7 +301,12 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   // Reports were closable tabs appended to the strip; in the rail they are a
   // named group, addressable by URL like any other section.
   const reports: RecordSection[] = [
-    { id: TeamTabs.CycleTimeReport, label: 'Cycle Time' },
+    {
+      id: TeamTabs.CycleTimeReport,
+      label: 'Cycle Time',
+      // The report renders its own title alongside its controls.
+      hideHeading: true,
+    },
     { id: TeamTabs.OperatingModelHistory, label: 'Operating Model History' },
   ]
 

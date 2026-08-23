@@ -1,6 +1,11 @@
 ﻿using FluentAssertions;
 using NodaTime;
+using Wayd.AppIntegration.Application.Connections;
 using Wayd.AppIntegration.Application.Connections.Dtos;
+using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
+using Wayd.AppIntegration.Application.Connections.Dtos.AzureOpenAI;
+using Wayd.AppIntegration.Application.Connections.Dtos.Entra;
+using Wayd.AppIntegration.Application.Connections.Dtos.Workday;
 using Wayd.AppIntegration.Application.Connections.Queries;
 using Wayd.AppIntegration.Application.Tests.Infrastructure;
 using Wayd.AppIntegration.Domain.Models;
@@ -80,6 +85,56 @@ public class GetConnectionQueryHandlerTests
         // Assert
         dto.Should().BeNull();
     }
+
+    [Fact]
+    public async Task Handle_MasksEveryConnectorSecret()
+    {
+        // Arrange
+        _db.AddConnections(CreateOneOfEachConcreteConnectionType());
+
+        // Act
+        var dtos = await Task.WhenAll(_db.Connections
+            .Select(c => _sut.Handle(new GetConnectionQuery(c.Id), TestContext.Current.CancellationToken)));
+
+        // Assert
+        SecretsOf(dtos).Should().OnlyContain(s => s == ConnectionSecret.Mask,
+            "masking belongs to the projection, so no caller can leak a secret by forgetting to mask");
+    }
+
+    [Fact]
+    public async Task Handle_MaskDoesNotRevealTheSecretsLength()
+    {
+        // Arrange
+        var shortSecret = "ab";
+        var longSecret = new string('x', 120);
+        var withShort = AzureDevOpsBoardsConnection.Create(
+            "Short", null, null, new AzureDevOpsBoardsConnectionConfiguration("org-short", shortSecret), true, null, _now);
+        var withLong = AzureDevOpsBoardsConnection.Create(
+            "Long", null, null, new AzureDevOpsBoardsConnectionConfiguration("org-long", longSecret), true, null, _now);
+        _db.AddConnections([withShort, withLong]);
+
+        // Act
+        var shortDto = (AzureDevOpsConnectionDetailsDto)(await _sut.Handle(
+            new GetConnectionQuery(withShort.Id), TestContext.Current.CancellationToken))!;
+        var longDto = (AzureDevOpsConnectionDetailsDto)(await _sut.Handle(
+            new GetConnectionQuery(withLong.Id), TestContext.Current.CancellationToken))!;
+
+        // Assert
+        shortDto.Configuration.PersonalAccessToken.Should()
+            .Be(longDto.Configuration.PersonalAccessToken,
+                "a length-preserving mask discloses the credential's length to any Connections.View holder");
+        longDto.Configuration.PersonalAccessToken.Should().NotContain(longSecret[..4]);
+    }
+
+    private static IEnumerable<string> SecretsOf(IEnumerable<ConnectionDetailsDto?> dtos) =>
+        dtos.Select(dto => dto switch
+        {
+            AzureDevOpsConnectionDetailsDto azdo => azdo.Configuration.PersonalAccessToken,
+            AzureOpenAIConnectionDetailsDto aoai => aoai.Configuration.ApiKey,
+            EntraConnectionDetailsDto entra => entra.Configuration.ClientSecret,
+            WorkdayConnectionDetailsDto workday => workday.Configuration.IsuPassword,
+            _ => throw new InvalidOperationException($"No secret accessor for '{dto?.GetType().Name}'."),
+        });
 
     private static List<Connection> CreateOneOfEachConcreteConnectionType() =>
     [

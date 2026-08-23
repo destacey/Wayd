@@ -93,6 +93,10 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
     public void AddAzureDevOpsBoardsConnection(AzureDevOpsBoardsConnection connection) => _azureDevOpsBoardsConnections.Add(connection);
     public void AddAzureDevOpsBoardsConnections(IEnumerable<AzureDevOpsBoardsConnection> connections) => _azureDevOpsBoardsConnections.AddRange(connections);
 
+    // AzureOpenAIConnection
+    public void AddAzureOpenAIConnection(AzureOpenAIConnection connection) => _azureOpenAIConnections.Add(connection);
+    public void AddAzureOpenAIConnections(IEnumerable<AzureOpenAIConnection> connections) => _azureOpenAIConnections.AddRange(connections);
+
     // EntraConnection
     public void AddEntraConnection(EntraConnection connection) => _entraConnections.Add(connection);
     public void AddEntraConnections(IEnumerable<EntraConnection> connections) => _entraConnections.AddRange(connections);

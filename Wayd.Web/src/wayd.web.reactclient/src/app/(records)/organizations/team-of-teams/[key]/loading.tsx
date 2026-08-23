@@ -1,13 +1,7 @@
 'use client'
 
-import PageTitle from '@/src/components/common/page-title'
-import { Skeleton } from 'antd'
+import { RecordLoading } from '@/src/components/common/record'
 
 export default function TeamOfTeamDetailsLoading() {
-  return (
-    <>
-      <PageTitle title="Team of Teams Details" />
-      <Skeleton active />
-    </>
-  )
+  return <RecordLoading title="Team of Teams Details" />
 }

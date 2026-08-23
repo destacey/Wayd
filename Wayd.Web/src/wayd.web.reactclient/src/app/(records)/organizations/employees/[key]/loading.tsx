@@ -1,13 +1,7 @@
 'use client'
 
-import PageTitle from '@/src/components/common/page-title'
-import { Skeleton } from 'antd'
+import { RecordLoading } from '@/src/components/common/record'
 
 export default function EmployeeDetailsLoading() {
-  return (
-    <>
-      <PageTitle title="Employee Details" />
-      <Skeleton active />
-    </>
-  )
+  return <RecordLoading title="Employee Details" />
 }

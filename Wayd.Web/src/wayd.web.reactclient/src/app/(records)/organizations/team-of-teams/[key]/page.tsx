@@ -2,21 +2,21 @@
 
 import PageTitle from '@/src/components/common/page-title'
 import { ClusterOutlined } from '@ant-design/icons'
-import { Card, MenuProps } from 'antd'
+import { MenuProps } from 'antd'
 import {
   createElement,
   use,
   useEffect,
   useState,
 } from 'react'
-import TeamOfTeamsDetails from '../_components/team-of-teams-details'
+import TeamOfTeamsDetails from '@/src/app/(legacy)/organizations/team-of-teams/_components/team-of-teams-details'
 import RisksGrid, {
   RisksGridProps,
 } from '@/src/components/common/planning/risks-grid'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
-import { EditTeamForm, TeamMembershipsGrid } from '../../_components'
-import TeamMembersGrid from '../../teams/_components/team-members-grid'
-import AddTeamMemberForm from '../../teams/_components/add-team-member-form'
+import { EditTeamForm, TeamMembershipsGrid } from '@/src/app/(legacy)/organizations/_components'
+import TeamMembersGrid from '@/src/app/(legacy)/organizations/teams/_components/team-members-grid'
+import AddTeamMemberForm from '@/src/app/(legacy)/organizations/teams/_components/add-team-member-form'
 import useAuth from '@/src/components/contexts/auth'
 import {
   useGetTeamOfTeamsDetailsQuery,
@@ -24,13 +24,15 @@ import {
   useGetTeamOfTeamsRisksQuery,
 } from '@/src/store/features/organizations/team-api'
 import { authorizePage } from '@/src/components/hoc'
-import { notFound, usePathname } from 'next/navigation'
+import { notFound, usePathname, useSearchParams } from 'next/navigation'
+import TeamOfTeamDetailsLoading from './loading'
 import { useAppDispatch } from '@/src/hooks'
 import { setBreadcrumbTitle } from '@/src/store/breadcrumbs'
-import { CreateTeamMembershipForm } from '../../_components'
+import { CreateTeamMembershipForm } from '@/src/app/(legacy)/organizations/_components'
 import { InactiveTag, PageActions } from '@/src/components/common'
+import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import { ItemType } from 'antd/es/menu/interface'
-import DeactivateTeamOfTeamsForm from '../../_components/deactivate-team-of-teams-form'
+import DeactivateTeamOfTeamsForm from '@/src/app/(legacy)/organizations/_components/deactivate-team-of-teams-form'
 
 enum TeamOfTeamsTabs {
   Details = 'details',
@@ -66,15 +68,22 @@ const TeamOfTeamsDetailsPage = (props: {
 
   useDocumentTitle('Team of Teams Details')
 
-  const [activeTab, setActiveTab] = useState(TeamOfTeamsTabs.Details)
+  // The active section lives in the URL (?section=), owned by RecordLayout.
+  // Read here only to gate the queries that load lazily.
+  const searchParams = useSearchParams()
+  const activeTab = (searchParams.get('section') ??
+    TeamOfTeamsTabs.Details) as TeamOfTeamsTabs
   const [openCreateTeamMembershipForm, setOpenCreateTeamMembershipForm] =
     useState<boolean>(false)
   const [openAddMemberForm, setOpenAddMemberForm] = useState<boolean>(false)
   const [openDeactivateTeamForm, setOpenDeactivateTeamForm] =
     useState<boolean>(false)
-  const [teamMembershipsQueryEnabled, setTeamMembershipsQueryEnabled] =
-    useState<boolean>(false)
-  const [risksQueryEnabled, setRisksQueryEnabled] = useState<boolean>(false)
+  // Expensive sections do not fetch until open — including on arrival via a
+  // deep link, since this reads the URL. No visited-latch: RTK Query caches by
+  // args, so returning to a section serves the cached result.
+  const risksQueryEnabled = activeTab === TeamOfTeamsTabs.RiskManagement
+  const teamMembershipsQueryEnabled =
+    activeTab === TeamOfTeamsTabs.TeamMemberships
   const [includeClosedRisks, setIncludeClosedRisks] = useState<boolean>(false)
 
   const { hasClaim } = useAuth()
@@ -159,7 +168,7 @@ const TeamOfTeamsDetailsPage = (props: {
 
     return items
   })()
-  const renderTabContent = () => {
+  const renderSectionContent = (activeTab: TeamOfTeamsTabs) => {
     switch (activeTab) {
       case TeamOfTeamsTabs.Details:
         return <TeamOfTeamsDetails team={team!} />
@@ -202,20 +211,12 @@ const TeamOfTeamsDetailsPage = (props: {
     error && console.error(error)
   }, [error])
 
-  // doesn't trigger on first render
-  const onTabChange = (tabKey: string) => {
-    setActiveTab(tabKey as TeamOfTeamsTabs)
-
-    // enables the query for the tab on first render if it hasn't been enabled yet
-    if (tabKey == TeamOfTeamsTabs.RiskManagement && !risksQueryEnabled) {
-      setRisksQueryEnabled(true)
-    } else if (
-      tabKey == TeamOfTeamsTabs.TeamMemberships &&
-      !teamMembershipsQueryEnabled
-    ) {
-      setTeamMembershipsQueryEnabled(true)
-    }
-  }
+  const sections: RecordSection[] = [
+    { id: TeamOfTeamsTabs.Details, label: 'Details' },
+    { id: TeamOfTeamsTabs.RiskManagement, label: 'Risks' },
+    { id: TeamOfTeamsTabs.Members, label: 'Members' },
+    { id: TeamOfTeamsTabs.TeamMemberships, label: 'Team Memberships' },
+  ]
 
   const onCreateTeamMembershipFormClosed = (wasSaved: boolean) => {
     setOpenCreateTeamMembershipForm(false)
@@ -235,6 +236,14 @@ const TeamOfTeamsDetailsPage = (props: {
     return notFound()
   }
 
+  // Sections dereference `team` directly, and RecordLayout renders the active
+  // section immediately — including on a deep link straight into one, which
+  // arrives before the query resolves. Hold the page until the record loads
+  // rather than making every section null-safe.
+  if (!team) {
+    return <TeamOfTeamDetailsLoading />
+  }
+
   const teamName = !team
     ? undefined
     : team.isActive
@@ -243,23 +252,27 @@ const TeamOfTeamsDetailsPage = (props: {
 
   return (
     <>
-      <PageTitle
-        title={teamName}
-        subtitle="Team of Teams Details"
-        // The code, not the numeric key — see the teams page.
-        recordKey={team?.code}
-        avatar={{ kind: 'record', icon: <ClusterOutlined /> }}
-        tags={<InactiveTag isActive={team?.isActive ?? false} />}
-        actions={<PageActions actionItems={actionsMenuItems} />}
-      />
-      <Card
-        style={{ width: '100%' }}
-        tabList={tabs}
-        activeTabKey={activeTab}
-        onTabChange={onTabChange}
+      <RecordLayout
+        sections={sections}
+        defaultSection={TeamOfTeamsTabs.Details}
+        header={
+          <PageTitle
+            title={teamName}
+            subtitle="Team of Teams Details"
+            parent={{
+              label: 'Team of Teams',
+              href: '/organizations/team-of-teams',
+            }}
+            // The code, not the numeric key — see the teams page.
+            recordKey={team?.code}
+            avatar={{ kind: 'record', icon: <ClusterOutlined /> }}
+            tags={<InactiveTag isActive={team?.isActive ?? false} />}
+            actions={<PageActions actionItems={actionsMenuItems} />}
+          />
+        }
       >
-        {renderTabContent()}
-      </Card>
+        {(section) => renderSectionContent(section as TeamOfTeamsTabs)}
+      </RecordLayout>
       {isEditOpen && team && canUpdateTeam && (
         <EditTeamForm
           team={team}

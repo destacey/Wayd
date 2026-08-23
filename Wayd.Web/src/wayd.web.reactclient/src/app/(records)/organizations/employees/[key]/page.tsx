@@ -3,22 +3,23 @@
 import PageTitle from '@/src/components/common/page-title'
 import { use, useEffect, useState } from 'react'
 import EmployeeDetails from './employee-details'
-import { Card, MenuProps, Spin } from 'antd'
+import { MenuProps, Spin } from 'antd'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 import { authorizePage } from '@/src/components/hoc'
 import { notFound, usePathname, useRouter } from 'next/navigation'
 import { useAppDispatch } from '@/src/hooks'
 import { setBreadcrumbTitle } from '@/src/store/breadcrumbs'
 import { InactiveTag, PageActions } from '@/src/components/common'
+import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import { personInitials } from '@/src/components/common/record-initials'
 import { useGetEmployeeQuery } from '@/src/store/features/organizations/employee-api'
 import EmployeeDetailsLoading from './loading'
 import { useMessage } from '@/src/components/contexts/messaging'
 import useAuth from '@/src/components/contexts/auth'
 import { ItemType } from 'antd/es/menu/interface'
-import DeleteEmployeeForm from '../_components/delete-employee-form'
+import DeleteEmployeeForm from '@/src/app/(legacy)/organizations/employees/_components/delete-employee-form'
 import EmployeeTeamsGrid from './_components/employee-teams-grid'
-import { CloseOutlined } from '@ant-design/icons'
+import EmployeeWorkItems from './_components/employee-work-items'
 import dynamic from 'next/dynamic'
 
 const EmployeeCycleTimeReport = dynamic(
@@ -32,30 +33,16 @@ const EmployeeCycleTimeReport = dynamic(
 enum EmployeeTabs {
   Details = 'details',
   Teams = 'teams',
+  WorkItems = 'work-items',
   CycleTimeReport = 'cycle-time-report',
 }
-
-const tabs = [
-  {
-    key: EmployeeTabs.Details,
-    tab: 'Details',
-  },
-  {
-    key: EmployeeTabs.Teams,
-    tab: 'Teams',
-  },
-]
 
 const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { key } = use(props.params)
   const employeeKey = Number(key)
 
-  const [activeTab, setActiveTab] = useState(EmployeeTabs.Details)
   const [openDeleteEmployeeForm, setOpenDeleteEmployeeForm] =
     useState<boolean>(false)
-  const [dynamicTabs, setDynamicTabs] = useState<
-    Array<{ key: string; tab: string; closable: boolean }>
-  >([])
 
   const messageApi = useMessage()
   const pathname = usePathname()
@@ -78,12 +65,14 @@ const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       : 'Employee Details',
   )
 
-  const renderTabContent = () => {
+  const renderSectionContent = (activeTab: EmployeeTabs) => {
     switch (activeTab) {
       case EmployeeTabs.Details:
         return <EmployeeDetails employee={employeeData!} />
       case EmployeeTabs.Teams:
         return <EmployeeTeamsGrid employeeId={employeeData!.id} />
+      case EmployeeTabs.WorkItems:
+        return <EmployeeWorkItems employeeId={employeeData!.id} />
       case EmployeeTabs.CycleTimeReport:
         return <EmployeeCycleTimeReport employeeId={employeeData!.id} />
       default:
@@ -91,37 +80,23 @@ const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     }
   }
 
-  const openCycleTimeReport = () => {
-    const cycleTimeTabExists = dynamicTabs.some(
-      (tab) => tab.key === EmployeeTabs.CycleTimeReport,
-    )
+  const sections: RecordSection[] = [
+    { id: EmployeeTabs.Details, label: 'Details' },
+    { id: EmployeeTabs.Teams, label: 'Teams' },
+    { id: EmployeeTabs.WorkItems, label: 'Assigned Work Items' },
+  ]
 
-    if (!cycleTimeTabExists) {
-      setDynamicTabs((prevTabs) => [
-        ...prevTabs,
-        {
-          key: EmployeeTabs.CycleTimeReport,
-          tab: 'Cycle Time Report',
-          closable: true,
-        },
-      ])
-    }
-
-    setActiveTab(EmployeeTabs.CycleTimeReport)
-  }
-
-  const onTabChange = (tabKey: string) => {
-    setActiveTab(tabKey as EmployeeTabs)
-  }
-
-  const closeTab = (tabKey: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    setDynamicTabs((prevTabs) => prevTabs.filter((tab) => tab.key !== tabKey))
-
-    if (activeTab === tabKey) {
-      setActiveTab(EmployeeTabs.Details)
-    }
-  }
+  // Reports are permanent entries in the rail's Reports group rather than
+  // closable tabs, so they are addressable by URL like any other section.
+  const reports: RecordSection[] = [
+    {
+      id: EmployeeTabs.CycleTimeReport,
+      label: 'Cycle Time',
+      // The report renders its own title alongside its date and percentile
+      // controls, so the layout heading would stack a duplicate above it.
+      hideHeading: true,
+    },
+  ]
 
   useEffect(() => {
     dispatch(setBreadcrumbTitle({ title: 'Details', pathname }))
@@ -143,40 +118,10 @@ const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       })
     }
 
-    if (items.length > 0) {
-      items.push({ type: 'divider', key: 'divider-reports' })
-    }
-
-    items.push({
-      type: 'group',
-      label: 'Reports',
-      children: [
-        {
-          key: 'cycle-time-report',
-          label: 'Cycle Time Report',
-          onClick: openCycleTimeReport,
-        },
-      ],
-    })
+    // Reports are permanent entries in the rail's Reports group, so they are
+    // not repeated here — the menu is for actions, not navigation.
 
     return items
-  })()
-
-  const allTabs = (() => {
-    const closableTabs = dynamicTabs.map((tab) => ({
-      key: tab.key,
-      tab: (
-        <span>
-          {tab.tab}
-          <CloseOutlined
-            style={{ marginLeft: 8 }}
-            onClick={(e) => closeTab(tab.key, e)}
-          />
-        </span>
-      ),
-    }))
-
-    return [...tabs, ...closableTabs]
   })()
 
   const onDeleteFormClosed = (wasDeleted: boolean) => {
@@ -196,29 +141,34 @@ const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   return (
     <>
-      <PageTitle
-        title={employeeData.displayName}
-        subtitle={employeeData.title ?? 'Employee Details'}
-        recordKey={String(employeeData.key)}
-        avatar={{
-          kind: 'person',
-          initials: personInitials(
-            employeeData.firstName,
-            employeeData.lastName,
-            employeeData.displayName,
-          ),
-        }}
-        tags={<InactiveTag isActive={employeeData?.isActive} />}
-        actions={<PageActions actionItems={actionsMenuItems} />}
-      />
-      <Card
-        style={{ width: '100%' }}
-        tabList={allTabs}
-        activeTabKey={activeTab}
-        onTabChange={onTabChange}
+      <RecordLayout
+        sections={sections}
+        reports={reports}
+        defaultSection={EmployeeTabs.Details}
+        header={
+          <PageTitle
+            title={employeeData.displayName}
+            subtitle={employeeData.title ?? 'Employee Details'}
+            parent={{
+              label: 'Employees',
+              href: '/organizations/employees',
+            }}
+            recordKey={String(employeeData.key)}
+            avatar={{
+              kind: 'person',
+              initials: personInitials(
+                employeeData.firstName,
+                employeeData.lastName,
+                employeeData.displayName,
+              ),
+            }}
+            tags={<InactiveTag isActive={employeeData?.isActive} />}
+            actions={<PageActions actionItems={actionsMenuItems} />}
+          />
+        }
       >
-        {renderTabContent()}
-      </Card>
+        {(section) => renderSectionContent(section as EmployeeTabs)}
+      </RecordLayout>
 
       {/* Delete Employee Form */}
       {openDeleteEmployeeForm && (

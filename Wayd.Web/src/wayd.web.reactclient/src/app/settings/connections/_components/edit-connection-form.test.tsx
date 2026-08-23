@@ -85,7 +85,10 @@ describe('edit-connection-form', () => {
     it.each(cases)(
       'does not seed the $label secret from the API response',
       ({ connection, secretField }) => {
-        const values = seedFormValues(connection) as Record<string, unknown>
+        const values = seedFormValues(connection) as unknown as Record<
+          string,
+          unknown
+        >
 
         // Seeding would put the mask in the input, which the admin would then submit
         // back as the new credential.

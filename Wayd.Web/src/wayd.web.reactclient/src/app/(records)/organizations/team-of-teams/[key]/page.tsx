@@ -24,8 +24,14 @@ import {
   useGetTeamOfTeamsRisksQuery,
 } from '@/src/store/features/organizations/team-api'
 import { authorizePage } from '@/src/components/hoc'
-import { notFound, usePathname, useSearchParams } from 'next/navigation'
+import {
+  notFound,
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from 'next/navigation'
 import TeamOfTeamDetailsLoading from './loading'
+import TeamOfTeamsOverview from './_components/team-of-teams-overview'
 import { useAppDispatch } from '@/src/hooks'
 import { setBreadcrumbTitle } from '@/src/store/breadcrumbs'
 import { CreateTeamMembershipForm } from '@/src/app/(legacy)/organizations/_components'
@@ -35,30 +41,12 @@ import { ItemType } from 'antd/es/menu/interface'
 import DeactivateTeamOfTeamsForm from '@/src/app/(legacy)/organizations/_components/deactivate-team-of-teams-form'
 
 enum TeamOfTeamsTabs {
+  Overview = 'overview',
   Details = 'details',
   RiskManagement = 'risk-management',
   TeamMemberships = 'team-memberships',
   Members = 'members',
 }
-
-const tabs = [
-  {
-    key: TeamOfTeamsTabs.Details,
-    tab: 'Details',
-  },
-  {
-    key: TeamOfTeamsTabs.RiskManagement,
-    tab: 'Risk Management',
-  },
-  {
-    key: TeamOfTeamsTabs.Members,
-    tab: 'Members',
-  },
-  {
-    key: TeamOfTeamsTabs.TeamMemberships,
-    tab: 'Team Memberships',
-  },
-]
 
 const TeamOfTeamsDetailsPage = (props: {
   params: Promise<{ key: string }>
@@ -72,7 +60,7 @@ const TeamOfTeamsDetailsPage = (props: {
   // Read here only to gate the queries that load lazily.
   const searchParams = useSearchParams()
   const activeTab = (searchParams.get('section') ??
-    TeamOfTeamsTabs.Details) as TeamOfTeamsTabs
+    TeamOfTeamsTabs.Overview) as TeamOfTeamsTabs
   const [openCreateTeamMembershipForm, setOpenCreateTeamMembershipForm] =
     useState<boolean>(false)
   const [openAddMemberForm, setOpenAddMemberForm] = useState<boolean>(false)
@@ -102,6 +90,12 @@ const TeamOfTeamsDetailsPage = (props: {
   const teamNotFound = (error as any)?.status === 404
   const dispatch = useAppDispatch()
   const pathname = usePathname()
+  const router = useRouter()
+
+  // Overview's metric tiles link through to the section each one summarises.
+  const goToSection = (sectionId: string) =>
+    router.replace(`${pathname}?section=${sectionId}`, { scroll: false })
+
   const teamMembershipsQuery = useGetTeamOfTeamsMembershipsQuery(
     { teamId: team?.id ?? '', enabled: teamMembershipsQueryEnabled },
     { skip: !team?.id || !teamMembershipsQueryEnabled },
@@ -170,6 +164,10 @@ const TeamOfTeamsDetailsPage = (props: {
   })()
   const renderSectionContent = (activeTab: TeamOfTeamsTabs) => {
     switch (activeTab) {
+      case TeamOfTeamsTabs.Overview:
+        return (
+          <TeamOfTeamsOverview team={team!} onNavigateToSection={goToSection} />
+        )
       case TeamOfTeamsTabs.Details:
         return <TeamOfTeamsDetails team={team!} />
       case TeamOfTeamsTabs.RiskManagement:
@@ -212,6 +210,7 @@ const TeamOfTeamsDetailsPage = (props: {
   }, [error])
 
   const sections: RecordSection[] = [
+    { id: TeamOfTeamsTabs.Overview, label: 'Overview' },
     { id: TeamOfTeamsTabs.Details, label: 'Details' },
     { id: TeamOfTeamsTabs.RiskManagement, label: 'Risks' },
     { id: TeamOfTeamsTabs.Members, label: 'Members' },
@@ -254,7 +253,7 @@ const TeamOfTeamsDetailsPage = (props: {
     <>
       <RecordLayout
         sections={sections}
-        defaultSection={TeamOfTeamsTabs.Details}
+        defaultSection={TeamOfTeamsTabs.Overview}
         header={
           <PageTitle
             title={teamName}

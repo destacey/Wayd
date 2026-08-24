@@ -146,6 +146,9 @@ const restrictToHorizontalAxis: Modifier = ({ transform }) => ({
  * fixed estimate avoids per-row measurement; positions stay self-consistent
  * because the spacer rows use the same estimates. */
 const ROW_HEIGHT_ESTIMATE = 28
+
+/** Column-header row height, for sizing a `variant="simple"` grid to its rows. */
+const SIMPLE_HEADER_HEIGHT = 39
 /** Rows rendered beyond the visible window on each side. Also what keeps
  * jsdom tests rendering rows at all: with no layout the viewport measures
  * 0px, so the virtualizer renders indexes 0..overscan. */
@@ -680,10 +683,11 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
     csvFileName = 'grid-export',
     height,
     initialSorting,
-    includeGlobalSearch = true,
-    includeExportButton = true,
-    includeColumnFilters = true,
-    includeFloatingFilters = true,
+    variant = 'advanced',
+    includeGlobalSearch = variant === 'advanced',
+    includeExportButton = variant === 'advanced',
+    includeColumnFilters = variant === 'advanced',
+    includeFloatingFilters = variant === 'advanced',
     getRowId,
     persistStateKey,
     onDisplayedRowsChange,
@@ -714,7 +718,16 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
 
   // ─── Auto-height ─────────────────────────────────────────
   const [gridContainerRef, autoHeight] = useRemainingHeight()
-  const resolvedHeight = height ?? autoHeight
+  // A simple grid sits inside a section, so it fits its rows rather than
+  // filling the remaining viewport — otherwise a four-row table runs to the
+  // bottom of the page with empty space under it.
+  const isSimple = variant === 'simple'
+  // Sized from `data` rather than the table's row model, which is built later
+  // in this component. Equivalent for a simple grid: filtering is off, so no
+  // row is ever hidden.
+  const simpleHeight =
+    SIMPLE_HEADER_HEIGHT + (data?.length ?? 0) * ROW_HEIGHT_ESTIMATE + 2
+  const resolvedHeight = height ?? (isSimple ? simpleHeight : autoHeight)
 
   // ─── Split header/body viewports ─────────────────────────
   // The header lives in its own clipped viewport above the scrolling body, so
@@ -2135,6 +2148,10 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
       className={styles.grid}
       style={{ height: resolvedHeight }}
     >
+      {/* A simple grid has a section heading above it already saying what it
+          is, so a toolbar — including its row count — would repeat that and
+          compete with the page's own chrome. */}
+      {!isSimple && (
       <GridToolbar
         displayedRowCount={displayedRowCount}
         totalRowCount={totalRowCount}
@@ -2151,6 +2168,7 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
         actionsSlot={actionsSlot}
         rightSlot={rightSlot}
       />
+      )}
 
       {dndEnabled ? (
         <DndContext

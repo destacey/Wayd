@@ -45,6 +45,7 @@ import {
 } from '@/src/app/(legacy)/organizations/_components'
 import TeamMembersGrid from '@/src/app/(legacy)/organizations/teams/_components/team-members-grid'
 import TeamDetailsLoading from './loading'
+import TeamOverview from './_components/team-overview'
 import AddTeamMemberForm from '@/src/app/(legacy)/organizations/teams/_components/add-team-member-form'
 
 const CycleTimeReport = dynamic(
@@ -61,6 +62,7 @@ const TeamBacklog = dynamic(() => import('@/src/app/(legacy)/organizations/teams
 })
 
 enum TeamTabs {
+  Overview = 'overview',
   Details = 'details',
   Backlog = 'backlog',
   Sprints = 'sprints',
@@ -79,7 +81,8 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   // The active section lives in the URL (?section=), owned by RecordLayout.
   // Read here only to enable the queries that load lazily on first visit.
   const searchParams = useSearchParams()
-  const activeTab = (searchParams.get('section') ?? TeamTabs.Details) as TeamTabs
+  const activeTab = (searchParams.get('section') ??
+    TeamTabs.Overview) as TeamTabs
 
   const [openCreateTeamMembershipForm, setOpenCreateTeamMembershipForm] =
     useState<boolean>(false)
@@ -219,8 +222,16 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
     return items
   })()
+  // Overview's metric tiles link through to the section each one summarises.
+  const goToSection = (sectionId: string) =>
+    router.replace(`${pathname}?section=${sectionId}`, { scroll: false })
+
   const renderSectionContent = (activeTab: TeamTabs) => {
     switch (activeTab) {
+      case TeamTabs.Overview:
+        return (
+          <TeamOverview team={team!} onNavigateToSection={goToSection} />
+        )
       case TeamTabs.Details:
         return <TeamDetails team={team!} />
       case TeamTabs.Backlog:
@@ -283,6 +294,7 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const sections: RecordSection[] = (() => {
     const items: RecordSection[] = [
+      { id: TeamTabs.Overview, label: 'Overview' },
       { id: TeamTabs.Details, label: 'Details' },
       { id: TeamTabs.Backlog, label: 'Backlog' },
     ]
@@ -355,7 +367,7 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       <RecordLayout
         sections={sections}
         reports={reports}
-        defaultSection={TeamTabs.Details}
+        defaultSection={TeamTabs.Overview}
         header={
           <PageTitle
             title={team?.name}

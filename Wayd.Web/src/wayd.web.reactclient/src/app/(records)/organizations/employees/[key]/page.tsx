@@ -1,6 +1,5 @@
 'use client'
 
-import PageTitle from '@/src/components/common/page-title'
 import { use, useEffect, useState } from 'react'
 import EmployeeDetails from './employee-details'
 import { MenuProps, Spin } from 'antd'
@@ -159,27 +158,22 @@ const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         sections={sections}
         reports={reports}
         defaultSection={EmployeeTabs.Overview}
-        header={
-          <PageTitle
-            title={employeeData.displayName}
-            subtitle={employeeData.title ?? 'Employee Details'}
-            parent={{
-              label: 'Employees',
-              href: '/organizations/employees',
-            }}
-            recordKey={String(employeeData.key)}
-            avatar={{
-              kind: 'person',
-              initials: personInitials(
-                employeeData.firstName,
-                employeeData.lastName,
-                employeeData.displayName,
-              ),
-            }}
-            tags={<InactiveTag isActive={employeeData?.isActive} />}
-            actions={<PageActions actionItems={actionsMenuItems} />}
-          />
-        }
+        record={{
+          name: employeeData.displayName,
+          subtitle: employeeData.title ?? 'Employee Details',
+          parent: { label: 'Employees', href: '/organizations/employees' },
+          recordKey: String(employeeData.key),
+          avatar: {
+            kind: 'person',
+            initials: personInitials(
+              employeeData.firstName,
+              employeeData.lastName,
+              employeeData.displayName,
+            ),
+          },
+          tags: <InactiveTag isActive={employeeData?.isActive} />,
+          actions: <PageActions actionItems={actionsMenuItems} />,
+        }}
       >
         {(section) => renderSectionContent(section as EmployeeTabs)}
       </RecordLayout>

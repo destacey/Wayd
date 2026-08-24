@@ -81,10 +81,9 @@ describe('EmployeeOverview', () => {
     // would only take up space.
     renderOverview()
 
-    // Assert — the tile keeps its title, so scope to the block's own heading
-    expect(
-      screen.queryByRole('heading', { name: 'Teams' }),
-    ).toBeNull()
+    // Assert — the tile keeps its title, so count how many 'Teams' appear:
+    // one (the tile) means the block is absent.
+    expect(screen.getAllByText('Teams')).toHaveLength(1)
   })
 
   it('shows the teams block once the employee is on a team', () => {
@@ -103,9 +102,8 @@ describe('EmployeeOverview', () => {
     renderOverview()
 
     // Assert
-    expect(
-      screen.getByRole('heading', { name: 'Teams' }),
-    ).toBeInTheDocument()
+    // Two now: the metric tile and the block heading below it.
+    expect(screen.getAllByText('Teams')).toHaveLength(2)
   })
 
   it('omits the assigned work items tile when there is no open work', () => {

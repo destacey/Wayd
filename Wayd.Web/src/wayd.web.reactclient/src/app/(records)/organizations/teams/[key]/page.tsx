@@ -1,6 +1,5 @@
 'use client'
 
-import PageTitle from '@/src/components/common/page-title'
 import { MenuProps, Spin } from 'antd'
 import { TeamOutlined } from '@ant-design/icons'
 import { createElement, use, useEffect, useState } from 'react'
@@ -368,19 +367,17 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         sections={sections}
         reports={reports}
         defaultSection={TeamTabs.Overview}
-        header={
-          <PageTitle
-            title={team?.name}
-            subtitle="Team Details"
-            parent={{ label: 'Teams', href: '/organizations/teams' }}
-            // The code, not the numeric key — it is what people say out loud,
-            // and the numeric key is already available in the details section.
-            recordKey={team?.code}
-            avatar={{ kind: 'record', icon: <TeamOutlined /> }}
-            tags={<InactiveTag isActive={team?.isActive ?? false} />}
-            actions={<PageActions actionItems={actionsMenuItems} />}
-          />
-        }
+        record={{
+          name: team.name,
+          subtitle: 'Team Details',
+          parent: { label: 'Teams', href: '/organizations/teams' },
+          // The code, not the numeric key — it is what people say out loud,
+          // and the numeric key is already available in the details section.
+          recordKey: team.code,
+          avatar: { kind: 'record', icon: <TeamOutlined /> },
+          tags: <InactiveTag isActive={team.isActive ?? false} />,
+          actions: <PageActions actionItems={actionsMenuItems} />,
+        }}
       >
         {(section) => renderSectionContent(section as TeamTabs)}
       </RecordLayout>

@@ -29,20 +29,30 @@ Slots 1, 2, 3 and 5 are present on **every** record page. Only slot 4 varies —
 
 ## Identity
 
+A record page's header is **`RecordHeader`**, not `PageTitle`. They are separate components on purpose: `PageTitle` heads a list page, where the title is the largest thing on screen; `RecordHeader` is an identity bar, where the name shares a tight row with an avatar, key chip, status and actions. Keeping them apart means neither carries branching for the other.
+
+Pages do not render it directly — `RecordLayout` takes a `record` prop and renders the bar itself, so a page supplies data rather than layout:
+
+```tsx
+<RecordLayout
+  record={{
+    name: team.name,
+    recordKey: team.code,
+    avatar: { kind: 'record', icon: <TeamOutlined /> },
+    parent: { label: 'Teams', href: '/organizations/teams' },
+    subtitle: 'Team Details',
+    tags: <InactiveTag isActive={team.isActive} />,
+    actions: <PageActions actionItems={items} />,
+  }}
+  sections={sections}
+  defaultSection="overview"
+>
+```
+
 The identity bar answers two different questions with two different elements. Do not conflate them.
 
 - **The glyph** says *what kind of thing this is*. A **circle with initials** for a person — employees are the only person entity. A **rounded square with the entity icon** for everything else, using the same icon as the sider and global search.
 - **The key chip** says *which one*. Always present, monospace, tabular, immediately before the name.
-
-```tsx
-<PageTitle
-  title={record.name}
-  recordKey="PLAT-CORE"
-  avatar={{ kind: 'record', icon: <TeamIcon /> }}
-  tags={<StatusTag status={record.status} />}
-  actions={<PageActions actionItems={items} />}
-/>
-```
 
 ### Which value fills the key chip
 
@@ -76,7 +86,17 @@ Sections are the named content areas of a record. They render as a **vertical ra
 
 Reports (cycle time, history views) are rail entries in a **Reports** group below a divider — never appended tabs.
 
-`RecordLayout` heads the content with the active section's label, so a section never opens as an unlabelled grid. That heading is `Title level={5}` (16px): the record name above it is already 30px, and a larger heading competes with it instead of sitting under it. Sections with their own sub-blocks use `level={4}` beneath it.
+`RecordLayout` heads the content with the active section's label, so a section never opens as an unlabelled grid.
+
+The type scale runs downward in three steps:
+
+| Level | Renders as | Size |
+| --- | --- | --- |
+| Record name | `RecordHeader` — `Title level={4}`, weight 600 | 20px |
+| Section heading | `RecordLayout` — `Title level={5}` | 16px |
+| Block heading inside a section | `Text strong` at `fontSize: 14` | 14px |
+
+The record name's weight, not its size, is what makes it read first — 600 against the section heading's default. A list page's `PageTitle` keeps its 30px heading; a record name is not the largest thing on its page.
 
 **Section labels name what the section holds**, from the reader's point of view — "Assigned Work Items", not "Work Items", which reads like everything on the record. The `id` is a URL contract and does not change when a label is reworded.
 
@@ -377,17 +397,16 @@ Emulated widths catch layout; they do not catch touch ergonomics or real-device 
 
 ## Adoption
 
-Nothing forces a big-bang migration. `PageTitle` gains **optional** props, and `RecordLayout` is a new component pages opt into — an unmigrated page renders exactly as it does today.
+Nothing forces a big-bang migration. `RecordLayout` and `RecordHeader` are new components pages opt into, and `PageTitle` is untouched — an unmigrated page renders exactly as it does today.
 
 Recommended order for an area:
 
-1. **Key chip + avatar** — `PageTitle` only. Ships alone, independently valuable.
-2. **Record facts rail** — move flat `Descriptions` grids into `LabeledContent`.
-3. **`RecordLayout` + section rail** — prove it on the area's largest record first.
-4. **Responsive** — drawer and section `Select`, checked on a real device.
-5. **List page** — identity column and filter chips.
+1. **Record facts rail** — move flat `Descriptions` grids into `LabeledContent`. Ships alone, independently valuable.
+2. **`RecordLayout` + section rail** — prove it on the area's largest record first; the header comes with it.
+3. **Responsive** — drawer and section `Select`, checked at real widths.
+4. **List page** — identity column and filter chips.
 
-Steps 1 and 2 commit you to nothing further and leave the app better than before.
+`PageTitle` is the legacy component. When `(legacy)` is empty and nothing renders it, `RecordHeader` can take the name.
 
 ## Reference
 

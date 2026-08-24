@@ -15,7 +15,7 @@ import { Card, Col, Flex, Row, Skeleton, Tag, Typography } from 'antd'
 import Link from 'next/link'
 import { useMemo } from 'react'
 
-const { Text, Title } = Typography
+const { Text } = Typography
 
 export interface TeamOverviewProps {
   team: TeamDetailsDto
@@ -106,9 +106,9 @@ const TeamOverview = ({ team, onNavigateToSection }: TeamOverviewProps) => {
       {/* Only Scrum teams run sprints, so a Kanban team gets no empty card. */}
       {isScrum && team.operatingModel && (
         <Flex vertical gap="small">
-          <Title level={5} style={{ margin: 0 }}>
+          <Text strong style={{ fontSize: 14 }}>
             Current Sprint
-          </Title>
+          </Text>
           <ActiveTeamSprint
             teamId={team.id}
             sizingMethod={team.operatingModel.sizingMethod}
@@ -117,9 +117,9 @@ const TeamOverview = ({ team, onNavigateToSection }: TeamOverviewProps) => {
       )}
 
       <Flex vertical gap="small">
-        <Title level={5} style={{ margin: 0 }}>
+        <Text strong style={{ fontSize: 14 }}>
           Members
-        </Title>
+        </Text>
         <Card size="small">
           {membersLoading ? (
             <Skeleton active paragraph={{ rows: 2 }} title={false} />

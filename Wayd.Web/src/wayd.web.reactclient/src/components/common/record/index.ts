@@ -1,3 +1,5 @@
+export { default as RecordHeader } from './record-header'
+export type { RecordHeaderProps } from './record-header'
 export { default as RecordLayout } from './record-layout'
 export type { RecordLayoutProps } from './record-layout'
 export { default as RecordLoading } from './record-loading'

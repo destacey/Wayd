@@ -13,7 +13,7 @@ import { Card, Col, Flex, Row, Skeleton, Tag, Typography } from 'antd'
 import Link from 'next/link'
 import { useMemo } from 'react'
 
-const { Text, Title } = Typography
+const { Text } = Typography
 
 /** Matches the cycle time report's own default window. */
 const CYCLE_TIME_DAYS = 90
@@ -44,9 +44,9 @@ const SectionCard = ({
   children: React.ReactNode
 }) => (
   <Flex vertical gap="small">
-    <Title level={5} style={{ margin: 0 }}>
+    <Text strong style={{ fontSize: 14 }}>
       {title}
-    </Title>
+    </Text>
     <Card size="small">
       {isLoading ? (
         <Skeleton active paragraph={{ rows: 2 }} title={false} />

@@ -23,7 +23,7 @@ import { Card, Col, Flex, Row, Skeleton, Tag, Typography } from 'antd'
 import Link from 'next/link'
 import { useMemo } from 'react'
 
-const { Text, Title } = Typography
+const { Text } = Typography
 
 export interface TeamOfTeamsOverviewProps {
   team: TeamOfTeamsDetailsDto
@@ -150,9 +150,9 @@ const TeamOfTeamsOverview = ({
       </Row>
 
       <Flex vertical gap="small">
-        <Title level={5} style={{ margin: 0 }}>
+        <Text strong style={{ fontSize: 14 }}>
           Teams
-        </Title>
+        </Text>
         {membershipsLoading ? (
           <Card size="small">
             <Skeleton active paragraph={{ rows: 2 }} title={false} />
@@ -172,9 +172,9 @@ const TeamOfTeamsOverview = ({
       </Flex>
 
       <Flex vertical gap="small">
-        <Title level={5} style={{ margin: 0 }}>
+        <Text strong style={{ fontSize: 14 }}>
           Members
-        </Title>
+        </Text>
         <Card size="small">
           {membersLoading ? (
             <Skeleton active paragraph={{ rows: 2 }} title={false} />

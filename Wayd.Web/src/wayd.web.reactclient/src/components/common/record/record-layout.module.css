@@ -13,16 +13,26 @@
   min-height: calc(100vh - 50px);
 }
 
-/* The identity bar spans the full width, above the rail. */
+/*
+ * The identity bar spans the full width, above the rail.
+ *
+ * Tighter than a legacy page header: this one carries only the record's
+ * identity, and the section heading below repeats none of it. PageTitle drops
+ * its own margin and row gutter under `compact`, which RecordLayout sets, so
+ * the padding here is the whole of the bar's spacing.
+ */
 .header {
-  padding: 16px 24px;
+  padding: 12px 24px;
   background: var(--ant-color-bg-container);
   border-bottom: 1px solid var(--ant-color-border-secondary);
 }
 
-.header > :last-child {
-  margin-bottom: 0;
+/* The bar itself: RecordHeader owns no outer spacing, so the padding above
+   is the whole of it. */
+.headerBar {
+  min-height: 44px;
 }
+
 
 .body {
   display: flex;

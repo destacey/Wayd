@@ -1,7 +1,7 @@
 'use client'
 
 import { Skeleton } from 'antd'
-import PageTitle from '../page-title'
+import RecordHeader from './record-header'
 import styles from './record-layout.module.css'
 
 export interface RecordLoadingProps {
@@ -20,7 +20,7 @@ export interface RecordLoadingProps {
 const RecordLoading = ({ title }: RecordLoadingProps) => (
   <div className={styles.shell}>
     <div className={styles.header}>
-      <PageTitle title={title} />
+      <RecordHeader name={title} />
     </div>
     <div className={styles.content}>
       <Skeleton active />

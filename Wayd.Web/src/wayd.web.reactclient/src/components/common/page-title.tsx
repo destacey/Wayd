@@ -1,8 +1,5 @@
 import { Col, Flex, Grid, Row, Typography } from 'antd'
-import Link from 'next/link'
 import { ReactNode } from 'react'
-import RecordAvatar, { RecordAvatarProps } from './record-avatar'
-import RecordKey from './record-key'
 
 const { Title, Text } = Typography
 const { useBreakpoint } = Grid
@@ -13,26 +10,6 @@ export interface PageTitleProps {
   tags?: ReactNode | null
   actions?: ReactNode | null
   extra?: ReactNode | null
-  /**
-   * The record's identifier, rendered as its own chip before the title.
-   * Pass this rather than building `${key} - ${name}` — a concatenated key
-   * cannot be styled, copied cleanly, or aligned across records whose keys
-   * differ in length.
-   *
-   * For teams and team-of-teams this is the `code`, which is what people say
-   * out loud; the numeric key belongs in the record's facts instead.
-   */
-  recordKey?: string
-  /** Leading glyph. A circle for people, a rounded square for everything else. */
-  avatar?: RecordAvatarProps
-  /**
-   * Link back to this record's list, shown inline before the name.
-   *
-   * Replaces the separate breadcrumb row on record pages: for a detail page the
-   * breadcrumb only ever said "Area / List / Details", which the identity bar
-   * already conveys — so this reclaims a row without losing the way back.
-   */
-  parent?: { label: string; href: string }
 }
 
 // TODO: align actions to the right/end when not the xs or sm breakpoint
@@ -42,9 +19,6 @@ const PageTitle = ({
   tags,
   actions,
   extra,
-  recordKey,
-  avatar,
-  parent,
 }: PageTitleProps) => {
   const screens = useBreakpoint()
   const isSuperSmall = !screens.sm // xs screens (< 576px)
@@ -56,24 +30,12 @@ const PageTitle = ({
         <Row align={'middle'} gutter={[0, 8]}>
           <Col xs={24} sm={24} md={titleMdSize}>
             <Flex vertical={isSuperSmall} gap={isSuperSmall ? 8 : 12} align={isSuperSmall ? 'flex-start' : 'center'}>
-              <Flex gap={10} align="center" style={{ minWidth: 0 }}>
-                {parent && (
-                  <Link
-                    href={parent.href}
-                    style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
-                  >
-                    <Text type="secondary">{parent.label}</Text>
-                  </Link>
-                )}
-                {avatar && <RecordAvatar {...avatar} />}
-                {recordKey && <RecordKey value={recordKey} />}
-                <div style={{ minWidth: 0 }}>
-                  <Title level={2} style={{ margin: '0px', fontWeight: '400' }}>
-                    {title}
-                  </Title>
-                  {subtitle && <Text>{subtitle}</Text>}
-                </div>
-              </Flex>
+              <div>
+                <Title level={2} style={{ margin: '0px', fontWeight: '400' }}>
+                  {title}
+                </Title>
+                {subtitle && <Text>{subtitle}</Text>}
+              </div>
               {tags && <div>{tags}</div>}
             </Flex>
           </Col>

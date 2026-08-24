@@ -4,6 +4,7 @@ import { Flex, Grid, Skeleton, Typography } from 'antd'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { ReactNode, Suspense, useCallback, useMemo } from 'react'
 import styles from './record-layout.module.css'
+import RecordHeader, { RecordHeaderProps } from './record-header'
 import RecordSectionNav from './record-section-nav'
 import SectionBoundary from './section-boundary'
 import { RecordSection } from './types'
@@ -18,10 +19,10 @@ export interface RecordLayoutProps {
   /** The section shown when the URL carries no `?section=`. */
   defaultSection: string
   /**
-   * The identity bar — normally a `PageTitle`. Rendered full-bleed above the
-   * rail rather than by the page, so the rail sits flush against the app sider.
+   * The record this page is about. Rendered as the identity bar above the
+   * rail, full-bleed, so the rail sits flush against the app sider.
    */
-  header?: ReactNode
+  record?: RecordHeaderProps
   /** Actions for the active section, shown beside its heading. */
   sectionActions?: ReactNode
   children: (activeSection: string) => ReactNode
@@ -35,7 +36,7 @@ const RecordLayoutInner = ({
   sections,
   reports = [],
   defaultSection,
-  header,
+  record,
   sectionActions,
   children,
 }: RecordLayoutProps) => {
@@ -87,12 +88,11 @@ const RecordLayoutInner = ({
   // The rail marks where you are, but the content needs its own heading —
   // without it a section opens as an unlabelled grid under the identity bar.
   //
-  // Level 4 (20px) sits below the record name's level 2 (30px) and leaves
-  // level 5 (16px) for sub-headings inside a section, so the ladder reads
-  // downward: record → section → block.
+  // Level 5 (16px) under the record name's 20px, leaving 14px for blocks
+  // inside a section — so the ladder reads downward: record, section, block.
   const sectionHeading = active?.hideHeading ? null : (
     <Flex align="center" gap="small" className={styles.sectionHeading}>
-      <Title level={4} style={{ margin: 0 }}>
+      <Title level={5} style={{ margin: 0 }}>
         {activeLabel}
       </Title>
       {sectionActions && (
@@ -121,7 +121,11 @@ const RecordLayoutInner = ({
 
   return (
     <div className={styles.shell}>
-      {header && <div className={styles.header}>{header}</div>}
+      {record && (
+        <div className={styles.header}>
+          <RecordHeader {...record} />
+        </div>
+      )}
       <div className={styles.body}>
         {compact ? (
           <div className={styles.content}>

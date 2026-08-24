@@ -1,6 +1,5 @@
 'use client'
 
-import PageTitle from '@/src/components/common/page-title'
 import { ClusterOutlined } from '@ant-design/icons'
 import { MenuProps } from 'antd'
 import {
@@ -254,21 +253,19 @@ const TeamOfTeamsDetailsPage = (props: {
       <RecordLayout
         sections={sections}
         defaultSection={TeamOfTeamsTabs.Overview}
-        header={
-          <PageTitle
-            title={teamName}
-            subtitle="Team of Teams Details"
-            parent={{
-              label: 'Team of Teams',
-              href: '/organizations/team-of-teams',
-            }}
-            // The code, not the numeric key — see the teams page.
-            recordKey={team?.code}
-            avatar={{ kind: 'record', icon: <ClusterOutlined /> }}
-            tags={<InactiveTag isActive={team?.isActive ?? false} />}
-            actions={<PageActions actionItems={actionsMenuItems} />}
-          />
-        }
+        record={{
+          name: teamName,
+          subtitle: 'Team of Teams Details',
+          // Teams and teams-of-teams share one list — getTeams merges both
+          // and the grid has a Type column. There is no
+          // /organizations/team-of-teams route to link back to.
+          parent: { label: 'Teams', href: '/organizations/teams' },
+          // The code, not the numeric key — see the teams page.
+          recordKey: team.code,
+          avatar: { kind: 'record', icon: <ClusterOutlined /> },
+          tags: <InactiveTag isActive={team.isActive ?? false} />,
+          actions: <PageActions actionItems={actionsMenuItems} />,
+        }}
       >
         {(section) => renderSectionContent(section as TeamOfTeamsTabs)}
       </RecordLayout>

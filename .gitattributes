@@ -1,0 +1,5 @@
+# Shell scripts must keep LF in the working tree regardless of core.autocrlf.
+# A CRLF checkout turns the `#!/bin/sh` shebang into `/bin/sh\r`, and the kernel
+# fails the exec with a "no such file or directory" that names a file which
+# plainly exists — notably for the client image's ENTRYPOINT.
+*.sh text eol=lf

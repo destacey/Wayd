@@ -3,6 +3,7 @@
 import { WaydEmpty } from '@/src/components/common'
 import { MetricCard } from '@/src/components/common/metrics'
 import ActiveTeamSprint from '@/src/components/common/planning/active-team-sprint'
+import TeamMemberCard from '@/src/app/(legacy)/organizations/teams/_components/team-member-card'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { Methodology, TeamDetailsDto } from '@/src/services/wayd-api'
 import {
@@ -11,8 +12,7 @@ import {
   useGetTeamRisksQuery,
 } from '@/src/store/features/organizations/team-api'
 import { useGetTeamMembersQuery } from '@/src/store/features/organization/team-members-api'
-import { Card, Col, Flex, Row, Skeleton, Tag, Typography } from 'antd'
-import Link from 'next/link'
+import { Card, Col, Flex, Row, Skeleton, Typography } from 'antd'
 import { useMemo } from 'react'
 
 const { Text } = Typography
@@ -120,45 +120,25 @@ const TeamOverview = ({ team, onNavigateToSection }: TeamOverviewProps) => {
         <Text strong style={{ fontSize: 14 }}>
           Members
         </Text>
-        <Card size="small">
-          {membersLoading ? (
+        {membersLoading ? (
+          <Card size="small">
             <Skeleton active paragraph={{ rows: 2 }} title={false} />
-          ) : sortedMembers.length === 0 ? (
+          </Card>
+        ) : sortedMembers.length === 0 ? (
+          <Card size="small">
             <WaydEmpty message="No members assigned." />
-          ) : (
-            <Flex vertical gap={10}>
-              {sortedMembers.map((m) => (
-                <Flex
-                  key={m.employee.id}
-                  align="center"
-                  gap="small"
-                  wrap
-                  justify="space-between"
-                >
-                  {/* Job title identifies the person, so it sits beside the
-                      name; the roles are team-specific and align right. */}
-                  <Flex align="center" gap={8} wrap>
-                    <Link href={`/organizations/employees/${m.employee.key}`}>
-                      {m.employee.name}
-                    </Link>
-                    {m.employee.jobTitle && (
-                      <Text type="secondary">{m.employee.jobTitle}</Text>
-                    )}
-                  </Flex>
-                  <Flex gap={4} wrap>
-                    {m.roles.length > 0 ? (
-                      [...m.roles]
-                        .sort((a, b) => caseInsensitiveCompare(a.name, b.name))
-                        .map((r) => <Tag key={r.id}>{r.name}</Tag>)
-                    ) : (
-                      <Text type="secondary">Member</Text>
-                    )}
-                  </Flex>
-                </Flex>
-              ))}
-            </Flex>
-          )}
-        </Card>
+          </Card>
+        ) : (
+          // Cards rather than rows: a person is scanned by face and name, and
+          // the card carries the avatar, job title and roles together.
+          <Row gutter={[12, 12]}>
+            {sortedMembers.map((m) => (
+              <Col key={m.employee.id} xs={24} sm={12} lg={8} xxl={6}>
+                <TeamMemberCard member={m} />
+              </Col>
+            ))}
+          </Row>
+        )}
       </Flex>
     </Flex>
   )

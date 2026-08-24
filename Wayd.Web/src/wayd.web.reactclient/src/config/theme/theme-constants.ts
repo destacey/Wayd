@@ -15,6 +15,12 @@ export class RecordLayoutConstants {
   /** Section rail width — fits "Dependency Management" on one line. */
   static readonly SECTION_RAIL_WIDTH = 190
 
-  /** Record facts rail width — fits a full email address at 14px unbroken. */
+  /** Record facts panel default width — fits a full email address at 14px unbroken. */
   static readonly FACTS_RAIL_WIDTH = 296
+
+  /** Narrow enough to still show a label and its value on separate lines. */
+  static readonly FACTS_RAIL_MIN_WIDTH = 220
+
+  /** Past this the panel starts competing with the section content it flanks. */
+  static readonly FACTS_RAIL_MAX_WIDTH = 560
 }

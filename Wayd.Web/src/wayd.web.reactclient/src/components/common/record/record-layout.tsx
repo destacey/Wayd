@@ -6,7 +6,9 @@ import { ReactNode, Suspense, useCallback, useMemo } from 'react'
 import styles from './record-layout.module.css'
 import RecordHeader, { RecordHeaderProps } from './record-header'
 import RecordSectionNav from './record-section-nav'
+import RecordFactsRail from './record-facts-rail'
 import SectionBoundary from './section-boundary'
+import { useFactsRail } from './use-facts-rail'
 import { RecordSection } from './types'
 
 const { useBreakpoint } = Grid
@@ -23,6 +25,12 @@ export interface RecordLayoutProps {
    * rail, full-bleed, so the rail sits flush against the app sider.
    */
   record?: RecordHeaderProps
+  /**
+   * The record's stable facts — a stack of `LabeledContent`. Rendered as a
+   * closeable panel beside the content, moving inline below `md`. Omit it and
+   * no panel appears.
+   */
+  facts?: ReactNode
   /** Actions for the active section, shown beside its heading. */
   sectionActions?: ReactNode
   children: (activeSection: string) => ReactNode
@@ -37,6 +45,7 @@ const RecordLayoutInner = ({
   reports = [],
   defaultSection,
   record,
+  facts,
   sectionActions,
   children,
 }: RecordLayoutProps) => {
@@ -44,6 +53,7 @@ const RecordLayoutInner = ({
   const params = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
+  const factsRail = useFactsRail(!!facts)
 
   const compact = !screens.md
 
@@ -119,11 +129,30 @@ const RecordLayoutInner = ({
     </SectionBoundary>
   )
 
+  const factsPanel =
+    facts && factsRail.mode === 'panel' ? (
+      <RecordFactsRail
+        open={factsRail.open}
+        onOpenChange={factsRail.setOpen}
+        width={factsRail.width}
+        onWidthChange={factsRail.setWidth}
+      >
+        {facts}
+      </RecordFactsRail>
+    ) : null
+
   return (
     <div className={styles.shell}>
       {record && (
         <div className={styles.header}>
-          <RecordHeader {...record} />
+          <RecordHeader
+            {...record}
+            factsToggle={
+              factsRail.showToggle
+                ? { open: factsRail.open, onToggle: factsRail.setOpen }
+                : undefined
+            }
+          />
         </div>
       )}
       <div className={styles.body}>
@@ -135,6 +164,14 @@ const RecordLayoutInner = ({
                 {sectionHeading}
                 {body}
               </div>
+              {/* After the section, as the panel is on desktop. Placing the
+                  facts between the nav and the content pushed the content off
+                  screen on a record with a long panel. */}
+              {factsRail.mode === 'inline' && facts && (
+                <Flex vertical gap={10}>
+                  {facts}
+                </Flex>
+              )}
             </Flex>
           </div>
         ) : (
@@ -144,6 +181,7 @@ const RecordLayoutInner = ({
               {sectionHeading}
               {body}
             </div>
+            {factsPanel}
           </>
         )}
       </div>

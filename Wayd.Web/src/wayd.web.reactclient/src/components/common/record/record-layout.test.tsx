@@ -29,12 +29,13 @@ const SECTIONS = [
 ]
 const REPORTS = [{ id: 'cycle-time', label: 'Cycle Time' }]
 
-const renderLayout = () =>
+const renderLayout = (props?: Partial<React.ComponentProps<typeof RecordLayout>>) =>
   render(
     <RecordLayout
       sections={SECTIONS}
       reports={REPORTS}
       defaultSection="overview"
+      {...props}
     >
       {(section) => <div>section: {section}</div>}
     </RecordLayout>,
@@ -215,5 +216,95 @@ describe('RecordLayout', () => {
     expect(screen.getByRole('tab', { name: /Backlog/ })).toBeInTheDocument()
 
     spy.mockRestore()
+  })
+})
+
+describe('RecordLayout record facts', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockParams = new URLSearchParams()
+  })
+
+  const FACTS = <div>fact: code PLAT</div>
+
+  it('renders no facts panel when the page passes none', () => {
+    // Arrange
+    mockBreakpoint.mockReturnValue({ md: true, lg: true, xl: true })
+
+    // Act
+    renderLayout()
+
+    // Assert
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Details/ })).toBeNull()
+  })
+
+  it('keeps the panel closed until asked for, so content keeps the width', () => {
+    // Arrange
+    mockBreakpoint.mockReturnValue({ md: true, lg: true, xl: true })
+
+    // Act
+    renderLayout({ facts: FACTS })
+
+    // Assert
+    expect(screen.queryByText('fact: code PLAT')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Show Details panel' })).toBeInTheDocument()
+  })
+
+  it('opens the panel beside the content from the edge handle', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    mockBreakpoint.mockReturnValue({ md: true, lg: true, xl: true })
+    renderLayout({ facts: FACTS })
+
+    // Act
+    await user.click(screen.getByRole('button', { name: 'Show Details panel' }))
+
+    // Assert — a real column in the row, not an overlay
+    expect(screen.getByText('fact: code PLAT')).toBeInTheDocument()
+    expect(
+      screen.getByRole('complementary', { name: 'Details' }),
+    ).toBeInTheDocument()
+  })
+
+  it('closes the panel again from inside it', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    mockBreakpoint.mockReturnValue({ md: true, lg: true, xl: true })
+    renderLayout({ facts: FACTS })
+    await user.click(screen.getByRole('button', { name: 'Show Details panel' }))
+
+    // Act
+    await user.click(screen.getByRole('button', { name: 'Hide Details panel' }))
+
+    // Assert
+    expect(screen.queryByText('fact: code PLAT')).not.toBeInTheDocument()
+  })
+
+  it('puts the facts after the section content on mobile', () => {
+    // Arrange — a long facts block between the nav and the section pushed the
+    // content off screen, which is what the panel exists to avoid.
+    mockBreakpoint.mockReturnValue({})
+
+    // Act
+    const { container } = renderLayout({ facts: FACTS })
+
+    // Assert
+    const text = container.textContent ?? ''
+    expect(text.indexOf('section: overview')).toBeLessThan(
+      text.indexOf('fact: code PLAT'),
+    )
+  })
+
+  it('renders the facts inline below md, not behind a control', () => {
+    // Arrange — nothing is dropped on mobile, it only moves.
+    mockBreakpoint.mockReturnValue({})
+
+    // Act
+    renderLayout({ facts: FACTS })
+
+    // Assert
+    expect(screen.getByText('fact: code PLAT')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Details/ })).not.toBeInTheDocument()
   })
 })

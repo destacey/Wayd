@@ -1,7 +1,6 @@
 'use client'
 
 import { use, useEffect, useState } from 'react'
-import EmployeeDetails from './employee-details'
 import { MenuProps, Spin } from 'antd'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 import { authorizePage } from '@/src/components/hoc'
@@ -18,6 +17,7 @@ import useAuth from '@/src/components/contexts/auth'
 import { ItemType } from 'antd/es/menu/interface'
 import DeleteEmployeeForm from '@/src/app/(legacy)/organizations/employees/_components/delete-employee-form'
 import EmployeeOverview from './_components/employee-overview'
+import EmployeeFacts from './_components/employee-facts'
 import EmployeeTeamsGrid from './_components/employee-teams-grid'
 import EmployeeWorkItems from './_components/employee-work-items'
 import dynamic from 'next/dynamic'
@@ -32,7 +32,6 @@ const EmployeeCycleTimeReport = dynamic(
 
 enum EmployeeTabs {
   Overview = 'overview',
-  Details = 'details',
   Teams = 'teams',
   WorkItems = 'work-items',
   CycleTimeReport = 'cycle-time-report',
@@ -79,8 +78,6 @@ const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             onNavigateToSection={goToSection}
           />
         )
-      case EmployeeTabs.Details:
-        return <EmployeeDetails employee={employeeData!} />
       case EmployeeTabs.Teams:
         return <EmployeeTeamsGrid employeeId={employeeData!.id} />
       case EmployeeTabs.WorkItems:
@@ -92,9 +89,10 @@ const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     }
   }
 
+  // No Details section: every fact it held now lives in the record facts rail,
+  // so a section would repeat the rail beside it verbatim.
   const sections: RecordSection[] = [
     { id: EmployeeTabs.Overview, label: 'Overview' },
-    { id: EmployeeTabs.Details, label: 'Details' },
     { id: EmployeeTabs.Teams, label: 'Teams' },
     { id: EmployeeTabs.WorkItems, label: 'Assigned Work Items' },
   ]
@@ -160,7 +158,12 @@ const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         defaultSection={EmployeeTabs.Overview}
         record={{
           name: employeeData.displayName,
-          subtitle: employeeData.title ?? 'Employee Details',
+          // `title` is the honorific (Mr, Dr), not the job title — it has no
+          // place naming the page. The job title is a descriptor instead.
+          subtitle: 'Employee Details',
+          descriptor: [employeeData.jobTitle, employeeData.department]
+            .filter(Boolean)
+            .join(', '),
           parent: { label: 'Employees', href: '/organizations/employees' },
           recordKey: String(employeeData.key),
           avatar: {
@@ -174,6 +177,7 @@ const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           tags: <InactiveTag isActive={employeeData?.isActive} />,
           actions: <PageActions actionItems={actionsMenuItems} />,
         }}
+        facts={<EmployeeFacts employee={employeeData} />}
       >
         {(section) => renderSectionContent(section as EmployeeTabs)}
       </RecordLayout>

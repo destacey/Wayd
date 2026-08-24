@@ -1,9 +1,7 @@
 'use client'
 
 import { MenuProps, Spin } from 'antd'
-import { TeamOutlined } from '@ant-design/icons'
 import { createElement, use, useEffect, useState } from 'react'
-import TeamDetails from '@/src/app/(legacy)/organizations/teams/_components/team-details'
 import RisksGrid, {
   RisksGridProps,
 } from '@/src/components/common/planning/risks-grid'
@@ -45,6 +43,7 @@ import {
 import TeamMembersGrid from '@/src/app/(legacy)/organizations/teams/_components/team-members-grid'
 import TeamDetailsLoading from './loading'
 import TeamOverview from './_components/team-overview'
+import TeamFacts from '@/src/app/(records)/organizations/teams/[key]/_components/team-facts'
 import AddTeamMemberForm from '@/src/app/(legacy)/organizations/teams/_components/add-team-member-form'
 
 const CycleTimeReport = dynamic(
@@ -62,7 +61,6 @@ const TeamBacklog = dynamic(() => import('@/src/app/(legacy)/organizations/teams
 
 enum TeamTabs {
   Overview = 'overview',
-  Details = 'details',
   Backlog = 'backlog',
   Sprints = 'sprints',
   DependencyManagement = 'dependency-management',
@@ -231,8 +229,6 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return (
           <TeamOverview team={team!} onNavigateToSection={goToSection} />
         )
-      case TeamTabs.Details:
-        return <TeamDetails team={team!} />
       case TeamTabs.Backlog:
         return <TeamBacklog teamId={team!.id!} />
       case TeamTabs.Sprints:
@@ -294,8 +290,7 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const sections: RecordSection[] = (() => {
     const items: RecordSection[] = [
       { id: TeamTabs.Overview, label: 'Overview' },
-      { id: TeamTabs.Details, label: 'Details' },
-      { id: TeamTabs.Backlog, label: 'Backlog' },
+        { id: TeamTabs.Backlog, label: 'Backlog' },
     ]
     if (hasEverBeenScrum === true) {
       items.push({ id: TeamTabs.Sprints, label: 'Sprints' })
@@ -372,12 +367,14 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           subtitle: 'Team Details',
           parent: { label: 'Teams', href: '/organizations/teams' },
           // The code, not the numeric key — it is what people say out loud,
-          // and the numeric key is already available in the details section.
+          // and the numeric key is carried in the record facts rail.
           recordKey: team.code,
-          avatar: { kind: 'record', icon: <TeamOutlined /> },
           tags: <InactiveTag isActive={team.isActive ?? false} />,
           actions: <PageActions actionItems={actionsMenuItems} />,
         }}
+        facts={
+          <TeamFacts team={team} operatingModel={team.operatingModel} />
+        }
       >
         {(section) => renderSectionContent(section as TeamTabs)}
       </RecordLayout>

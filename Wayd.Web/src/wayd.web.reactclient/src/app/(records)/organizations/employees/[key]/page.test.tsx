@@ -8,6 +8,9 @@ const employee = {
   key: 42,
   displayName: 'Ada Lovelace',
   isActive: true,
+  email: 'ada.lovelace@acme.example',
+  employeeNumber: 'E-0042',
+  jobTitle: 'Principal Engineer',
 }
 
 jest.mock('next/dynamic', () => {
@@ -28,12 +31,16 @@ const mockReplace = jest.fn((url: string) => {
 })
 
 // jsdom has no matchMedia, so useBreakpoint reports no md and RecordLayout
-// renders its compact Select. Pin a desktop viewport so the rail is asserted.
+// renders its compact Select. Pin a wide viewport so both the section rail and
+// the record facts rail are asserted — facts auto-collapse below xl.
 jest.mock('antd', () => {
   const actual = jest.requireActual('antd')
   return {
     ...actual,
-    Grid: { ...actual.Grid, useBreakpoint: () => ({ md: true, lg: true }) },
+    Grid: {
+      ...actual.Grid,
+      useBreakpoint: () => ({ md: true, lg: true, xl: true }),
+    },
   }
 })
 
@@ -102,6 +109,10 @@ jest.mock('@/src/hooks/use-document-title', () => ({
 
 jest.mock('@/src/hooks', () => ({
   useAppDispatch: () => jest.fn(),
+  // The facts rail remembers whether it is hidden. The global localStorage
+  // stub has no backing store, so stand in a plain state hook.
+  useLocalStorageState: (_key: string, initial: unknown) =>
+    jest.requireActual('react').useState(initial),
 }))
 
 jest.mock('@/src/store/features/organizations/employee-api', () => ({
@@ -110,12 +121,11 @@ jest.mock('@/src/store/features/organizations/employee-api', () => ({
     isLoading: false,
     error: undefined,
   })),
+  useGetDirectReportsQuery: jest.fn(() => ({
+    data: [],
+    isLoading: false,
+  })),
 }))
-
-jest.mock('./employee-details', () => {
-  const EmployeeDetails = () => <div>Employee Details Content</div>
-  return EmployeeDetails
-})
 
 jest.mock('./_components/employee-teams-grid', () => {
   const EmployeeTeamsGrid = () => <div>Employee Teams Grid</div>
@@ -179,5 +189,33 @@ describe('EmployeeDetailsPage', () => {
     expect(
       await screen.findByTestId('employee-cycle-time-report'),
     ).toHaveTextContent(employee.id)
+  })
+
+  it('carries the employee facts in the record panel, not a Details section', async () => {
+    // Arrange — the facts belong to the record, not to a section, so start on
+    // the default one rather than inheriting the previous test's deep link.
+    mockSearchParams = new URLSearchParams()
+    const user = userEvent.setup()
+    const params = Promise.resolve({ key: '42' }) as Promise<{ key: string }> & {
+      status: string
+      value: { key: string }
+    }
+    params.status = 'fulfilled'
+    params.value = { key: '42' }
+
+    render(
+      <Suspense fallback={<div>Loading employee page</div>}>
+        <EmployeeDetailsPage params={params} />
+      </Suspense>,
+    )
+
+    // Act — the panel is closed by default, so the content keeps the width.
+    await user.click(await screen.findByRole('button', { name: 'Show Details' }))
+
+    // Assert — the facts are in the panel...
+    expect(screen.getByText(employee.email)).toBeInTheDocument()
+    expect(screen.getByText(employee.employeeNumber)).toBeInTheDocument()
+    // ...and no Details section duplicates them in the rail beside it.
+    expect(screen.queryByRole('tab', { name: /Details/ })).toBeNull()
   })
 })

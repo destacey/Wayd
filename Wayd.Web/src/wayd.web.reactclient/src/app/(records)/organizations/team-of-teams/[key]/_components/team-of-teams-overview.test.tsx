@@ -113,7 +113,7 @@ describe('TeamOfTeamsOverview', () => {
     expect(screen.getByText('Kanban')).toBeInTheDocument()
   })
 
-  it('shows each member job title beside their name', () => {
+  it('renders each member as a card carrying their job title and roles', () => {
     // Arrange
     mockMembers.mockReturnValue({
       data: [
@@ -124,7 +124,7 @@ describe('TeamOfTeamsOverview', () => {
             name: 'Ada Lovelace',
             jobTitle: 'Principal Engineer',
           },
-          roles: [],
+          roles: [{ id: 'r1', name: 'Scrum Master' }],
         },
       ],
       isLoading: false,
@@ -134,7 +134,12 @@ describe('TeamOfTeamsOverview', () => {
     renderOverview()
 
     // Assert
+    expect(screen.getByText('Ada Lovelace')).toBeInTheDocument()
     expect(screen.getByText('Principal Engineer')).toBeInTheDocument()
+    expect(screen.getByText('Scrum Master')).toBeInTheDocument()
+    // Initials come from the card's avatar, so a regression to a plain row
+    // list would fail here rather than passing on the name alone.
+    expect(screen.getByText('AL')).toBeInTheDocument()
   })
 
   it('excludes memberships where this record is the child, not the parent', () => {

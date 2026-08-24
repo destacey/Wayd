@@ -33,12 +33,45 @@
   min-height: 44px;
 }
 
+/*
+ * The trail's parent link. Muted at rest so it sits back behind the record
+ * name, but it must still say it is clickable — the cursor alone is not an
+ * affordance, since it only appears once you are already on the target.
+ */
+/*
+ * Matches how antd styles a Breadcrumb link, which is what the legacy
+ * breadcrumb uses: muted at rest, brightening to the body text color over a
+ * faint background pill on hover. No blue — the link color token is tuned for
+ * a light background and reads as low contrast on the dark themes.
+ */
+.parentLink {
+  /* Inherits the bar's font size so it matches the separator and subtitle
+     beside it, which are plain antd Text. */
+  color: var(--ant-color-text-secondary);
+  text-decoration: none;
+  padding: 0 4px;
+  margin: 0 -4px;
+  border-radius: var(--ant-border-radius-sm);
+  transition:
+    color 0.2s,
+    background-color 0.2s;
+}
+
+.parentLink:hover,
+.parentLink:focus-visible {
+  color: var(--ant-color-text);
+  background: var(--ant-color-bg-text-hover);
+}
+
 
 .body {
   display: flex;
   align-items: stretch;
   flex-grow: 1;
   min-height: 0;
+  /* Anchors the closed panel's knob, which is positioned out of the flow so it
+     reserves no width. */
+  position: relative;
 }
 
 .content {
@@ -48,12 +81,141 @@
 }
 
 /*
+ * The knob floats clear of the content rather than insetting it: reserving a
+ * gutter for a control this small gives back exactly the width the floating
+ * knob was meant to save. It sits above the section heading's line, where
+ * section content does not reach.
+ */
+
+/*
  * Tight to the content below it. Section bodies bring their own leading space
  * (a grid's toolbar, a card's padding), so a margin here stacks with theirs
  * and reads as a gap rather than a heading attached to what it labels.
  */
 .sectionHeading {
   margin-bottom: 4px;
+}
+
+/*
+ * The record facts, sharing the row with the content. Mirrors the section
+ * rail's border treatment on the opposite edge, so the content sits between
+ * two rules.
+ *
+ * `flex-shrink: 0` because the width is a fixed token — the content column is
+ * the one that gives, since it is the part that benefits from more room.
+ */
+.factsRail {
+  flex-shrink: 0;
+  /* 24px top matches the content column, so the panel's title and the section
+     heading sit on the same line. */
+  padding: 24px 16px;
+  border-left: 1px solid var(--ant-color-border-secondary);
+  background: var(--ant-color-bg-container);
+  overflow-y: auto;
+  /* Anchors the resize handle to the panel's left edge. */
+  position: relative;
+}
+
+/*
+ * The drag target for resizing. Wider than the 1px border it sits on so it is
+ * actually hittable, and centred over it so the cursor change lines up with
+ * the rule the user is aiming at.
+ */
+.factsResizer {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  cursor: col-resize;
+  z-index: 1;
+}
+
+/*
+ * A grip mark at the vertical centre, so the edge reads as draggable before
+ * anyone hovers it. Drawn on the ::after rather than the target itself — the
+ * target spans the full height to stay easy to hit, but a full-height bar
+ * would look like a second border rather than a handle.
+ */
+.factsResizer::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 2px;
+  height: 24px;
+  transform: translateY(-50%);
+  border-radius: 1px;
+  background: var(--ant-color-border);
+  transition:
+    background-color 0.2s,
+    height 0.2s;
+}
+
+.factsResizer:hover::after,
+.factsResizerActive::after {
+  background: var(--ant-color-primary);
+  height: 40px;
+}
+
+.factsResizer:hover,
+.factsResizerActive {
+  background: var(--ant-color-fill-quaternary);
+}
+
+.factsResizer:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: -2px;
+}
+
+.factsBody {
+  margin-top: 12px;
+}
+
+/*
+ * Group headings inside the panel. Smaller and wider-tracked than a field
+ * label so the two never read as the same level.
+ */
+.factsGroupLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/*
+ * What is left of the panel when closed: a knob at the top edge, not a strip.
+ *
+ * Absolutely positioned so a closed panel reserves no width at all — as a flex
+ * child it held a column open the full height of the page, which is the space
+ * the content should get back when the facts are put away.
+ */
+.factsHandle {
+  position: absolute;
+  right: 0;
+  /* Level with the section heading, whose row is empty on the right — below
+     this the grid toolbar reaches the edge. */
+  top: 16px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  width: 20px;
+  background: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-right: none;
+  border-radius: var(--ant-border-radius) 0 0 var(--ant-border-radius);
+}
+
+/*
+ * The button fills the knob rather than sizing itself: antd's small text button
+ * is 24px wide, which would overflow a 20px knob and clip its rounded corner.
+ * Taller than wide so it reads as an edge affordance, not a stray icon.
+ */
+.factsHandle button {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0;
 }
 
 /*

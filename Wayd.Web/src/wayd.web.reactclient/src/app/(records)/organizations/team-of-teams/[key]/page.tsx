@@ -1,6 +1,5 @@
 'use client'
 
-import { ClusterOutlined } from '@ant-design/icons'
 import { MenuProps } from 'antd'
 import {
   createElement,
@@ -8,7 +7,6 @@ import {
   useEffect,
   useState,
 } from 'react'
-import TeamOfTeamsDetails from '@/src/app/(legacy)/organizations/team-of-teams/_components/team-of-teams-details'
 import RisksGrid, {
   RisksGridProps,
 } from '@/src/components/common/planning/risks-grid'
@@ -31,6 +29,7 @@ import {
 } from 'next/navigation'
 import TeamOfTeamDetailsLoading from './loading'
 import TeamOfTeamsOverview from './_components/team-of-teams-overview'
+import TeamFacts from '@/src/app/(records)/organizations/teams/[key]/_components/team-facts'
 import { useAppDispatch } from '@/src/hooks'
 import { setBreadcrumbTitle } from '@/src/store/breadcrumbs'
 import { CreateTeamMembershipForm } from '@/src/app/(legacy)/organizations/_components'
@@ -41,7 +40,6 @@ import DeactivateTeamOfTeamsForm from '@/src/app/(legacy)/organizations/_compone
 
 enum TeamOfTeamsTabs {
   Overview = 'overview',
-  Details = 'details',
   RiskManagement = 'risk-management',
   TeamMemberships = 'team-memberships',
   Members = 'members',
@@ -167,8 +165,6 @@ const TeamOfTeamsDetailsPage = (props: {
         return (
           <TeamOfTeamsOverview team={team!} onNavigateToSection={goToSection} />
         )
-      case TeamOfTeamsTabs.Details:
-        return <TeamOfTeamsDetails team={team!} />
       case TeamOfTeamsTabs.RiskManagement:
         return createElement(RisksGrid, {
           risks: risksQuery.data ?? [],
@@ -210,7 +206,6 @@ const TeamOfTeamsDetailsPage = (props: {
 
   const sections: RecordSection[] = [
     { id: TeamOfTeamsTabs.Overview, label: 'Overview' },
-    { id: TeamOfTeamsTabs.Details, label: 'Details' },
     { id: TeamOfTeamsTabs.RiskManagement, label: 'Risks' },
     { id: TeamOfTeamsTabs.Members, label: 'Members' },
     { id: TeamOfTeamsTabs.TeamMemberships, label: 'Team Memberships' },
@@ -262,10 +257,10 @@ const TeamOfTeamsDetailsPage = (props: {
           parent: { label: 'Teams', href: '/organizations/teams' },
           // The code, not the numeric key — see the teams page.
           recordKey: team.code,
-          avatar: { kind: 'record', icon: <ClusterOutlined /> },
           tags: <InactiveTag isActive={team.isActive ?? false} />,
           actions: <PageActions actionItems={actionsMenuItems} />,
         }}
+        facts={<TeamFacts team={team} hasChildTeams />}
       >
         {(section) => renderSectionContent(section as TeamOfTeamsTabs)}
       </RecordLayout>

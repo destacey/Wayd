@@ -1,0 +1,415 @@
+---
+title: Record Pages
+description: The standard structure for every list and detail page — identity, sections, record facts, URL state, boundaries, and where page state lives.
+sidebar_position: 7.5
+audience: [developer, agent]
+---
+
+# Record Pages
+
+Every entity in Wayd — a project, a team, an employee, a program — gets a **list page** and a **record page** (detail page). This document defines the structure both follow, so that a developer or agent building a page for a new entity does not have to invent one, and a user moving between areas sees one product.
+
+:::info Status
+This is the target pattern. Existing pages are migrating to it area by area (see [Adoption](#adoption)). When adding a **new** record page, follow this document rather than copying an older page.
+:::
+
+## The five slots
+
+A record page is made of five slots. Each area fills them with its own content — that is where per-entity difference belongs, not in the layout.
+
+| Slot | Holds | Employee | Team | Project |
+| --- | --- | --- | --- | --- |
+| **1 · Identity** | Glyph, key, name, status tags, subtitle | Avatar, `1042`, job title | Icon, `PLAT-CORE`, methodology | Icon, `PLT-4`, portfolio |
+| **2 · Actions** | One primary action; rest in `PageActions` | View Teams | Add Member | Status transition |
+| **3 · Record facts** | `LabeledContent` rail — the stable facts | Email, number, hire date | Code, type, sizing | Dates, lifecycle, category |
+| **4 · Sections** | Named content areas + reports | Teams, Projects, Work | Backlog, Sprints, Risks… | Team, Plan, Work Items |
+| **5 · Relationships** | Links out of this record | Manager, direct reports | Parent team, scrum master | Portfolio, program |
+
+Slots 1, 2, 3 and 5 are present on **every** record page. Only slot 4 varies — see [Sections](#sections).
+
+## Identity
+
+A record page's header is **`RecordHeader`**, not `PageTitle`. They are separate components on purpose: `PageTitle` heads a list page, where the title is the largest thing on screen; `RecordHeader` is an identity bar, where the name shares a tight row with an avatar, key chip, status and actions. Keeping them apart means neither carries branching for the other.
+
+Pages do not render it directly — `RecordLayout` takes a `record` prop and renders the bar itself, so a page supplies data rather than layout:
+
+```tsx
+<RecordLayout
+  record={{
+    name: team.name,
+    recordKey: team.code,
+    avatar: { kind: 'record', icon: <TeamOutlined /> },
+    parent: { label: 'Teams', href: '/organizations/teams' },
+    subtitle: 'Team Details',
+    tags: <InactiveTag isActive={team.isActive} />,
+    actions: <PageActions actionItems={items} />,
+  }}
+  sections={sections}
+  defaultSection="overview"
+>
+```
+
+The identity bar answers two different questions with two different elements. Do not conflate them.
+
+- **The glyph** says *what kind of thing this is*. A **circle with initials** for a person — employees are the only person entity. A **rounded square with the entity icon** for everything else, using the same icon as the sider and global search.
+- **The key chip** says *which one*. Always present, monospace, tabular, immediately before the name.
+
+### Which value fills the key chip
+
+| Entity has | Chip shows | Numeric key goes |
+| --- | --- | --- |
+| String key (`PLT-4`) | The key | — |
+| Numeric key only (`7`) | The key | — |
+| Numeric key **and** a `code` | The **code** | Record facts rail |
+
+Teams and Team of Teams are the only entities with a `code`. The route still resolves on the numeric key; the code wins the chip because it is what people say out loud.
+
+:::warning Never build the title by concatenation
+Do not write `` title={`${key} - ${name}`} ``. A concatenated key cannot be styled, copied cleanly, or aligned across records of differing key lengths. Pass `recordKey` instead.
+:::
+
+### Never use initials for a non-person
+
+Initials on a record read as a person, and collide immediately — "Identity Platform" and "Infrastructure Program" are both `IP`. Uniqueness lives in the key chip.
+
+## Sections
+
+Sections are the named content areas of a record. They render as a **vertical rail**, not a horizontal tab strip.
+
+**Show the rail only when there is more than one section.** A rail holding one item spends 190px telling the user there is nowhere to go.
+
+| Sections | Renders as |
+| --- | --- |
+| 0 or 1 | **No rail.** Content starts at the identity bar |
+| 2–3 | Judgement — rail if the record will grow sections or holds wide grids |
+| 4+ | **Rail.** Always |
+
+Reports (cycle time, history views) are rail entries in a **Reports** group below a divider — never appended tabs.
+
+`RecordLayout` heads the content with the active section's label, so a section never opens as an unlabelled grid.
+
+The type scale runs downward in three steps:
+
+| Level | Renders as | Size |
+| --- | --- | --- |
+| Record name | `RecordHeader` — `Title level={4}`, weight 600 | 20px |
+| Section heading | `RecordLayout` — `Title level={5}` | 16px |
+| Block heading inside a section | `Text strong` at `fontSize: 14` | 14px |
+
+The record name's weight, not its size, is what makes it read first — 600 against the section heading's default. A list page's `PageTitle` keeps its 30px heading; a record name is not the largest thing on its page.
+
+**Section labels name what the section holds**, from the reader's point of view — "Assigned Work Items", not "Work Items", which reads like everything on the record. The `id` is a URL contract and does not change when a label is reworded.
+
+```tsx
+<RecordLayout
+  sections={[
+    { id: 'overview', label: 'Overview' },
+    { id: 'backlog', label: 'Backlog', count: 42 },
+    { id: 'team-memberships', label: 'Team Memberships', count: 4 },
+  ]}
+  reports={[{ id: 'cycle-time', label: 'Cycle Time' }]}
+  defaultSection="overview"
+>
+  {(section) => renderSection(section)}
+</RecordLayout>
+```
+
+:::danger Do not invent sections to qualify for a rail
+Splitting a record into "Details" and "Projects" so it looks consistent with other pages makes it worse — one scroll becomes two clicks. Let the record's real shape decide, and accept that some pages have no rail.
+:::
+
+## URL state
+
+Sections are addressable. `RecordLayout` owns this; pages do not implement it.
+
+```
+/organizations/teams/14                    ← default section, no param
+/organizations/teams/14?section=backlog
+/organizations/teams/14?section=cycle-time
+```
+
+**Use a query param, not a hash.** Query params are correct on first render, restore on back/forward without a listener, reach the server, and compose with other state (`?section=risks&status=open`). A fragment does none of these.
+
+```tsx
+const params = useSearchParams()
+const requested = params.get('section')
+const active = sections.some((s) => s.id === requested) ? requested : defaultSection
+
+// replace, not push — Back returns to the list, not through six sections
+router.replace(id === defaultSection ? pathname : `${pathname}?section=${id}`, {
+  scroll: false,
+})
+```
+
+Rules:
+
+- **The default section writes a bare URL.** The canonical link to a record stays clean.
+- **`scroll: false` is required.** Without it the router scrolls to top on every section change.
+- **Validate against the sections the current viewer can see**, not the full list — sections are permission-gated, and a shared link can reach someone without access. Fall back to the default rather than rendering an empty panel.
+
+:::warning Section ids are a public contract
+Ids appear in URLs people paste into tickets and Slack. Renaming one breaks existing links. Treat ids as stable, let `label` change freely, and use kebab-case (`work-items`, `cycle-time`).
+:::
+
+## Boundaries
+
+Three nested boundaries, so that **a failure costs the smallest useful thing**. `RecordLayout` provides the section boundary; the other two are route files.
+
+| Boundary | File / owner | Survives |
+| --- | --- | --- |
+| **Section** | `RecordLayout` | Rail, identity, context rail all keep working |
+| **Record** | `error.tsx` | App shell and navigation |
+| **App shell** | `global-error.tsx` | Last resort — must render its own `<html>`/`<body>` |
+
+The section boundary is **keyed by section id**, so switching sections clears a caught error automatically. It also carries the `Suspense` boundary that `useSearchParams` requires.
+
+```tsx
+<SectionBoundary key={activeSection}>
+  <Suspense fallback={<SectionSkeleton />}>{children(activeSection)}</Suspense>
+</SectionBoundary>
+```
+
+Distinguish the two failure kinds: a **render error** is a bug — say so and offer a reset. A **query error** is usually transient — name what failed and offer a retry. Collapsing both into "Something went wrong" trains people to reload for problems a retry would fix.
+
+## Loading states
+
+**If you know the shape of what is coming, draw the shape. If you do not, spin.**
+
+| Situation | Use |
+| --- | --- |
+| Route transition (`loading.tsx`) | Skeleton |
+| Section body | Skeleton |
+| Grid or list rows | Skeleton (row-shaped) |
+| Form submit, status change | Spinner on the button |
+| Modal or drawer fetching | Spinner |
+| Chart, timeline, org chart | Spinner — shape is data-dependent |
+| Refetch of visible content | **Neither** — keep the stale data |
+
+:::warning Drive skeletons off `isLoading`, not `isFetching`
+`isLoading` is the first load; `isFetching` is any load. Replacing content the user is already reading with a skeleton on refetch is worse than showing slightly stale data.
+:::
+
+A skeleton that lies is worse than a spinner. If it shows three rows and twenty arrive, the page lurches — when you cannot predict the shape, spin honestly.
+
+## Where page state lives
+
+Decided by **how long the value should survive**, applied in this order:
+
+1. **Would I share this?** → URL query param
+2. **Should it outlive the browser?** → `localStorage`, via a Context or slice
+3. **Should it survive leaving and coming back?** → Redux slice, keyed by record id
+4. **Otherwise** → `useState`
+
+Most state is (4), and that is fine. Reach for anything heavier only when a specific behaviour demands it.
+
+:::tip Every persisted value has exactly one owner
+A Context or a slice — never a component calling `useLocalStorageState` directly. Which of the two matters less than the single-owner rule; pick a Context when there is one consumer and no interaction with other state, a slice when several features read it.
+:::
+
+### Model dialogs as one value
+
+A page with many actions should hold **one** `activeDialog`, not one boolean per dialog:
+
+```tsx
+// Do this
+const [dialog, setDialog] = useState<DialogId | null>(null)
+
+// Not this — 13 booleans that are one value, and nothing prevents two being open
+const [openEditForm, setOpenEditForm] = useState(false)
+const [openDeleteForm, setOpenDeleteForm] = useState(false)
+// …
+```
+
+### Do not
+
+- **Persist the whole Redux store.** It holds the RTK Query cache — you would ship stale server data across restarts.
+- **Move dialogs into Redux.** A dialog open on a page you have left is a bug.
+- **Create a generic `uiState[pageKey]` slice.** It becomes an untyped bag nobody can safely delete from. Use named slices with named fields.
+
+## Data fetching
+
+- **Section counts come from one query on the record**, not one query per section. The rail renders complete on first paint; sections still load their own data lazily when opened.
+- **Prefetch on rail hover** with RTK Query's `usePrefetch` — people hover before they click.
+- **Do not keep sections mounted** to make switching fast. It defeats the section-keyed error boundary and holds grid virtualizers alive off-screen; the query cache already makes remounting cheap.
+
+:::danger Counts must share invalidation tags with the data they count
+Add a risk and the Risks count must move. If the counts query does not carry the same tags, the rail quietly disagrees with the section beside it — and a wrong number is worse than no number.
+:::
+
+## Styling tokens
+
+**Use Ant Design's tokens; add new ones only where none fits.** There are eight themes in the registry, each redefining the same token names — a raw hex value works in one and breaks in the other seven, and breaks again when a ninth theme is added.
+
+Prefer `var(--ant-*)` in CSS modules over `theme.useToken()`; reach for the hook only when a value is needed in JavaScript logic.
+
+Everything in this document maps to an existing token:
+
+| Element | Token |
+| --- | --- |
+| Facts label (12px, muted) | `--ant-font-size-sm`, `--ant-color-text-tertiary` |
+| Facts value | `--ant-font-size`, `--ant-color-text` |
+| Rail / panel background | `--ant-color-bg-container` |
+| Section rail active item | `--ant-color-primary-bg`, `--ant-color-primary` |
+| Rail hover | `--ant-color-bg-text-hover` |
+| Dividers, table borders | `--ant-color-border-secondary` |
+| Table header background | `--ant-color-fill-quaternary` |
+| Key chip background | `--ant-color-fill-tertiary` |
+| Skeleton blocks | `--ant-color-fill-quaternary` |
+| Status tags | `--ant-color-{success,warning,error,info}-{bg,border,text}` |
+
+### The two genuine gaps
+
+These are **layout constants**, not colors — they have no antd equivalent because they describe this pattern specifically. Put them in `theme-constants.ts` beside `COLOR_PRIMARY` so they are defined once rather than repeated per page:
+
+```ts
+export class RecordLayoutConstants {
+  /** Section rail width. Fits "Dependency Management" without wrapping. */
+  static readonly SECTION_RAIL_WIDTH = 190
+
+  /** Record facts rail width. Fits a full email address at 14px without breaking. */
+  static readonly FACTS_RAIL_WIDTH = 296
+}
+```
+
+:::warning Do not add a token for a one-off color
+A value used in a single place is an inline style or a CSS module rule, not a token. Tokens are for values that must stay in agreement across many places — adding one for a single element means eight theme edits for no benefit.
+:::
+
+## Overview metrics
+
+An Overview section's metric tiles use `MetricCard` (or a specific metric like `CycleTimeMetric`) from `components/common/metrics` — never a raw antd `Statistic`. They carry `height: 100%`, so tiles in a row match heights even when only one has a secondary value, and `secondaryValue` renders bottom-right for qualifiers like the window an average covers.
+
+**A tile that summarises a section links to it.** Pass `onClick`, which sets the hover affordance and gives the card a button role with Enter/Space handling. A tile with no corresponding section — one whose content is shown inline below — stays unlinked, so the affordance always means something.
+
+```tsx
+<MetricCard
+  title="Assigned Work Items"
+  value={count}
+  onClick={() => goToSection('work-items')}
+/>
+```
+
+**Count from the same query the section uses**, not a separate aggregate, unless an aggregate endpoint genuinely exists. A count that disagrees with the list beside it is worse than no count.
+
+**Omit a tile that would only ever read zero.** An overview should carry facts, not absences — a "Direct Reports: 0" card is noise on the majority of employee records.
+
+## Grids inside sections
+
+Not every grid is a data-exploration surface. A section showing a record's four active projects needs a readable table; the Projects list page needs filtering, search, export and column management. Both are **`WaydGrid`** — they differ by `variant`.
+
+```tsx
+// Inside a record section — read-and-click
+<WaydGrid variant="simple" columns={columns} data={projects} />
+
+// A list page — explore, filter, export
+<WaydGrid
+  variant="advanced"
+  columns={columns}
+  data={projects}
+  persistStateKey="ppm-projects"
+/>
+```
+
+| | `simple` | `advanced` |
+| --- | --- | --- |
+| Toolbar | Hidden | Search, refresh, export, column menu |
+| Column filters | Off | Popup + floating filter row |
+| Column menu (sort/pin/resize) | Off | On |
+| Layout persistence | Never | Opt-in via `persistStateKey` |
+| Row virtualization | On | On |
+| Typical size | Under ~25 rows | Unbounded |
+
+**Choose by the question the user is asking.** *"What is on this record?"* → `simple`. *"Which of these do I want?"* → `advanced`.
+
+A section grid that grows past roughly 25 rows is a signal the section should link to a filtered list page rather than become one — see the `View all` affordance in section headers.
+
+:::tip `variant` is a preset, not a new mode
+It sets the existing `include*` flags together. Individual props still override it, so `variant="simple"` with `includeExportButton` is valid for the rare section that needs one thing back. Prefer the plain variant where you can — a section grid carrying a full toolbar competes with the page's own chrome.
+:::
+
+## List pages
+
+The record page's counterpart, and always `variant="advanced"`. Two rules carry across every list:
+
+- **A primary identity column** — glyph + name + one secondary line — absorbing what would otherwise be two or three columns. Key and other identifiers become opt-in columns, not defaults.
+- **Common filters are visible**, as a chip bar above the grid. The most-used toggle for a list should never be hidden inside a menu.
+
+Everything else follows [WaydGrid](./wayd-grid.mdx).
+
+## Responsive
+
+**Every page must work at every width.** This is a requirement, not an enhancement — check a phone width before opening a PR.
+
+Use Ant Design's `useBreakpoint` and the existing conventions: `!screens.md` (&lt;768px) is the app's mobile cut, matching `AppSideNav` (which returns `null` and hands nav to the header Drawer) and `PageTitle`. `ResponsiveFlex` handles the common stack-on-small case.
+
+### Rails
+
+| Breakpoint | Section rail | Record facts rail |
+| --- | --- | --- |
+| `xl`+ (≥1200) | Visible | Visible — user can hide |
+| `lg` (992–1199) | Visible | Auto-hidden, edge handle |
+| `md` (768–991) | Visible | Drawer |
+| `sm`/`xs` (&lt;768) | Section `Select` | First section in content |
+
+The degradation order is fixed: **the record facts rail goes first** (it is reference material), **the section rail last** (it is navigation). Losing navigation first would strand the user with no way to move between sections.
+
+Nothing is dropped on mobile — it only moves. The record facts panel keeps the same fields in the same order as the desktop rail.
+
+### Grids
+
+`variant="simple"` **collapses to stacked rows** below `md`: the `meta.primary` column becomes the row title, `meta.secondary` columns fold into one line beneath it, everything else is dropped rather than crammed.
+
+`variant="advanced"` **keeps the table** — filtering is the point of it — but the toolbar collapses to search plus a filter button showing an active-filter count, the floating filter row is dropped, and low-priority columns hide via `meta.hide`.
+
+### Rules that apply everywhere
+
+- **Hit targets ≥44px.** Rows, `Select` options, buttons, and rail entries.
+- **Horizontal scroll belongs to the element, never the page.** A wide grid or timeline scrolls inside its own `overflow-x: auto` container; the page body never scrolls sideways.
+- **Give virtualized content a real height.** WaydGrid renders zero rows in an unconstrained `<Flex vertical>` parent — a known trap. Keep it a block-level child with a measurable height.
+- **Do not draw device chrome.** No fake status bars or keyboards in mobile views.
+
+### Testing it
+
+Use the browser's device toolbar (`Ctrl/Cmd+Shift+M` in Chrome or Edge DevTools) — this is the expected check before opening a PR, not an optional extra. In development, the **breakpoint chip** in the bottom-right corner shows which Ant Design breakpoint is active, so you can confirm you are actually testing the boundary you think you are.
+
+Check each page at four widths, and at the boundaries either side of each rule above:
+
+| Width | Represents | What must be true |
+| --- | --- | --- |
+| **1440** | Desktop | Both rails visible; nothing clipped |
+| **1100** | Small laptop | Record facts rail auto-hidden with an edge handle; section rail intact |
+| **834** | Tablet (`md`) | App sider gone to Drawer; facts rail is a Drawer; content still usable |
+| **390** | Phone (`xs`) | Section `Select` with all sections; facts panel in content; grids collapsed |
+
+At every width:
+
+- [ ] The page body does not scroll horizontally — only the wide element does
+- [ ] No grid renders zero rows (the virtualizer has a measurable height)
+- [ ] Hit targets are ≥44px
+- [ ] Text does not wrap into overlap in the identity bar — long record names truncate
+- [ ] No content is unreachable — dropped columns are genuinely low priority, not the only copy of a value
+
+:::tip Test the boundaries, not just the middles
+Bugs live at 767/768 and 991/992, not at 390. The chip tells you which side you are on.
+:::
+
+Emulated widths catch layout; they do not catch touch ergonomics or real-device font rendering. Worth one pass on an actual phone before rolling the pattern across areas — but DevTools is enough for day-to-day work.
+
+## Adoption
+
+Nothing forces a big-bang migration. `RecordLayout` and `RecordHeader` are new components pages opt into, and `PageTitle` is untouched — an unmigrated page renders exactly as it does today.
+
+Recommended order for an area:
+
+1. **Record facts rail** — move flat `Descriptions` grids into `LabeledContent`. Ships alone, independently valuable.
+2. **`RecordLayout` + section rail** — prove it on the area's largest record first; the header comes with it.
+3. **Responsive** — drawer and section `Select`, checked at real widths.
+4. **List page** — identity column and filter chips.
+
+`PageTitle` is the legacy component. When `(legacy)` is empty and nothing renders it, `RecordHeader` can take the name.
+
+## Reference
+
+- [WaydGrid](./wayd-grid.mdx) — data grids, column meta, persistence
+- [Frontend Development](./frontend.mdx) — API calls, theming, project structure
+- [Coding Standards](./coding-standards.mdx) — naming and conventions

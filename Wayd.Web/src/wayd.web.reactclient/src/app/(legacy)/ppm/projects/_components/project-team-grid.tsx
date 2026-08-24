@@ -1,0 +1,73 @@
+'use client'
+
+import { WaydGrid, createCsvColumn } from '@/src/components/common/wayd-grid'
+import { ProjectTeamMemberDto } from '@/src/services/wayd-api'
+import { useGetProjectTeamQuery } from '@/src/store/features/ppm/projects-api'
+import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
+import Link from 'next/link'
+import { FC } from 'react'
+
+const columns: ColumnDef<ProjectTeamMemberDto, any>[] = [
+  {
+    id: 'person',
+    accessorKey: 'employee.name',
+    header: 'Person',
+    size: 250,
+    cell: ({ row }) => (
+      <Link
+        href={`/organizations/employees/${row.original.employee.key}`}
+        prefetch={false}
+      >
+        {row.original.employee.name}
+      </Link>
+    ),
+  },
+  createCsvColumn<ProjectTeamMemberDto>({
+    id: 'roles',
+    header: 'Roles',
+    size: 250,
+    getValues: (row) => row.roles ?? [],
+  }),
+  createCsvColumn<ProjectTeamMemberDto>({
+    id: 'assignedStages',
+    header: 'Assigned Stages',
+    size: 250,
+    getValues: (row) => row.assignedStages ?? [],
+  }),
+  {
+    id: 'activeWorkItemCount',
+    accessorKey: 'activeWorkItemCount',
+    header: 'Active Tasks',
+    size: 130,
+  },
+]
+
+interface ProjectTeamGridProps {
+  projectIdOrKey: string
+}
+
+const ProjectTeamGrid: FC<ProjectTeamGridProps> = ({ projectIdOrKey }) => {
+  const {
+    data: teamData,
+    isLoading,
+    refetch,
+  } = useGetProjectTeamQuery(projectIdOrKey)
+
+  const refresh = async () => {
+    refetch()
+  }
+
+  return (
+    <WaydGrid
+      columns={columns}
+      data={teamData ?? []}
+      onRefresh={refresh}
+      isLoading={isLoading}
+      persistStateKey="project-team"
+      csvFileName="project-team"
+      emptyMessage="No team members assigned."
+    />
+  )
+}
+
+export default ProjectTeamGrid

@@ -1,7 +1,0 @@
-export { default as SetTeamOperatingModelForm } from './set-team-operating-model-form'
-export { default as TeamBacklog } from './team-backlog'
-export { default as TeamDependencyManagement } from './team-dependency-management'
-export { default as TeamDetails } from './team-details'
-export { default as TeamOperatingModelsGrid } from './team-operating-models-grid'
-export { default as TeamSprints } from './team-sprints'
-export { default as EditTeamOperatingModelForm } from './edit-team-operating-model-form'

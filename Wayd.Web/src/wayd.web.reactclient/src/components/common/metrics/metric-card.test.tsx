@@ -243,6 +243,35 @@ describe('MetricCard', () => {
     expect(screen.getByText('25%')).toBeInTheDocument()
   })
 
+  it('gives cards a matching floor whether or not they have a secondary value', () => {
+    // Arrange — antd stretches Cols within a line but not across a wrap, so
+    // without a floor a card with a qualifier is taller than its neighbours.
+    const { container: plain } = render(
+      <MetricCard title="Plain" value={1} />,
+    )
+    const { container: withSecondary } = render(
+      <MetricCard title="Qualified" value={1} secondaryValue="Last 90 days" />,
+    )
+
+    // Assert
+    const plainCard = plain.querySelector('.ant-card') as HTMLElement
+    const qualifiedCard = withSecondary.querySelector(
+      '.ant-card',
+    ) as HTMLElement
+    expect(plainCard.style.minHeight).toBe(qualifiedCard.style.minHeight)
+    expect(plainCard.style.minHeight).not.toBe('')
+  })
+
+  it('leaves an embedded metric unconstrained — it is nested in another card', () => {
+    // Arrange / Act
+    const { container } = render(
+      <MetricCard title="Nested" value={1} embedded />,
+    )
+
+    // Assert
+    expect(container.querySelector('.ant-card')).toBeNull()
+  })
+
   it('renders secondary value with tooltip', () => {
     render(
       <MetricCard

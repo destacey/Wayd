@@ -160,6 +160,18 @@ export interface WaydGridProps<T extends RowData> {
    * the user's sorting.
    */
   initialSorting?: SortingState
+  /**
+   * Preset for the two situations grids are used in.
+   *
+   * `'advanced'` (default) is the data-exploration surface: toolbar, filters,
+   * column menu, and a body that fills the remaining viewport height.
+   *
+   * `'simple'` is a grid inside a record section — read-and-click over a small,
+   * bounded set. No toolbar or filters (the section heading above already says
+   * what it is), and the height fits the rows rather than running to the bottom
+   * of the page. Individual flags still override the preset.
+   */
+  variant?: 'simple' | 'advanced'
   /** Whether to show the global search input. Default: true. */
   includeGlobalSearch?: boolean
   /** Whether to show the CSV export button. Default: true. */

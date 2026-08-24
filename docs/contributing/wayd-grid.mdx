@@ -35,9 +35,43 @@ const columns: ColumnDef<Widget, any>[] = [
 
 `data` may be `undefined` while a query is loading — the grid treats it as empty (no crash). Provide `isLoading` to show the spinner.
 
+## Variants
+
+Start by picking a variant — it presets the toolbar and filtering flags below for the two situations grids are actually used in.
+
+| | `simple` | `advanced` (default) |
+| --- | --- | --- |
+| Toolbar | Hidden | Search, refresh, export, column menu |
+| Column filters | Off | Popup + floating filter row |
+| Column menu (sort/pin/resize) | Off | On |
+| Layout persistence | Never | Opt-in via `persistStateKey` |
+| Row virtualization | On | On |
+| Use for | A record's own data, under ~25 rows | List pages and exploration |
+
+**Choose by the question the user is asking.** *"What is on this record?"* → `simple`. *"Which of these do I want?"* → `advanced`.
+
+```tsx
+<WaydGrid variant="simple" columns={columns} data={projects} />
+```
+
+Individual flags still override the variant, so `variant="simple"` plus `includeExportButton` is valid for the rare section that needs one thing back. Prefer the plain variant where you can — a section grid carrying a full toolbar competes with the page's own chrome.
+
+See **[Record Pages](./record-pages.mdx#grids-inside-sections)** for how this fits the record page structure.
+
+### On small screens
+
+Below `md` (&lt;768px) the variants diverge:
+
+- **`simple` collapses to stacked rows.** The `meta.primary` column becomes the row title, `meta.secondary` columns fold into a single line beneath it, and everything else is dropped rather than crammed. Rows stay ≥44px.
+- **`advanced` keeps the table** — filtering is its purpose — but the toolbar collapses to search plus a filter button with an active-filter count, the floating filter row is dropped, and low-priority columns hide via `meta.hide`.
+
+Two traps either way: a wide grid must scroll inside **its own** container, never the page body; and the grid needs a measurable height — it renders zero rows in an unconstrained `<Flex vertical>` parent.
+
 ## Feature flags at a glance
 
 Most functionality is **on by default**; you turn things _off_ with a prop, or turn opt-in behaviour _on_ by supplying its handler. This table is the quick reference for "how do I enable/disable X".
+
+Where a variant sets a flag, that is the starting point — the defaults below describe `variant="advanced"`.
 
 | Capability | Default | How to change it |
 | --- | --- | --- |

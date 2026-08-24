@@ -4,6 +4,13 @@ import { FC, ReactNode } from 'react'
 
 const { Meta } = Card
 
+/**
+ * Floor for a metric card, sized to one carrying a `secondaryValue` — the
+ * tallest variant. Without it, cards in a row differ by whether they have a
+ * qualifier line, and a wrapped row sizes independently of the one above.
+ */
+const METRIC_CARD_MIN_HEIGHT = 102
+
 export interface MetricCardProps extends Omit<StatisticProps, 'valueStyle'> {
   cardStyle?: React.CSSProperties
   statisticStyle?: React.CSSProperties
@@ -23,6 +30,17 @@ export interface MetricCardProps extends Omit<StatisticProps, 'valueStyle'> {
    */
   embedded?: boolean
   hoverable?: boolean
+  /**
+   * Makes the card a link to where the metric comes from — typically the
+   * section that lists what it counts.
+   *
+   * Sets the hover affordance automatically, and gives the card a button role
+   * with Enter/Space handling, since a click target that only responds to a
+   * mouse is unreachable by keyboard.
+   */
+  onClick?: () => void
+  /** Accessible name for the link. Falls back to the title when it is a string. */
+  ariaLabel?: string
 }
 
 const MetricCard: FC<MetricCardProps> = ({
@@ -35,10 +53,34 @@ const MetricCard: FC<MetricCardProps> = ({
   styles,
   embedded = false,
   hoverable = false,
+  onClick,
+  ariaLabel,
   title,
   ...statisticProps
 }) => {
-  const defaultCardStyle = cardStyle ?? { height: '100%' }
+  const interactiveProps = onClick
+    ? {
+        onClick,
+        onKeyDown: (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onClick()
+          }
+        },
+        role: 'button' as const,
+        tabIndex: 0,
+        'aria-label':
+          ariaLabel ?? (typeof title === 'string' ? title : undefined),
+      }
+    : {}
+
+  // `height: 100%` only fills the Col it sits in, and antd stretches Cols
+  // within a line — not across a wrap. A minimum height keeps cards matching
+  // whether or not they carry a secondaryValue, and across wrapped rows.
+  const defaultCardStyle = cardStyle ?? {
+    height: '100%',
+    minHeight: METRIC_CARD_MIN_HEIGHT,
+  }
   const defaultStatisticStyle = statisticStyle ?? { whiteSpace: 'nowrap' }
 
   // Migrate deprecated valueStyle to new styles.content format
@@ -71,7 +113,12 @@ const MetricCard: FC<MetricCardProps> = ({
       )}
     </Flex>
   ) : (
-    <Card style={defaultCardStyle} size="small" hoverable={hoverable}>
+    <Card
+      style={defaultCardStyle}
+      size="small"
+      hoverable={hoverable || !!onClick}
+      {...interactiveProps}
+    >
       <Statistic
         {...statisticProps}
         title={titleNode}

@@ -1,3 +1,5 @@
+'use client'
+
 import { Avatar, theme } from 'antd'
 import { ReactNode } from 'react'
 

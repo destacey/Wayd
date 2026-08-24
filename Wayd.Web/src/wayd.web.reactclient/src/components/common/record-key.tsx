@@ -1,3 +1,5 @@
+'use client'
+
 import { theme, Typography } from 'antd'
 
 const { Text } = Typography

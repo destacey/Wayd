@@ -47,6 +47,28 @@
 }
 
 /*
+ * Rail items are click targets, so they need to say so on hover — the same
+ * token the global search results use. The active item keeps its own tint
+ * rather than shifting under the cursor.
+ */
+.railItem {
+  cursor: pointer;
+}
+
+.railItem:hover {
+  background: var(--ant-color-bg-text-hover);
+}
+
+.railItem:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: -2px;
+}
+
+.railItemActive:hover {
+  background: var(--ant-color-primary-bg);
+}
+
+/*
  * Below `md` the rail becomes a Select, so the page reverts to ordinary
  * stacked flow — no side-by-side columns to keep flush.
  */

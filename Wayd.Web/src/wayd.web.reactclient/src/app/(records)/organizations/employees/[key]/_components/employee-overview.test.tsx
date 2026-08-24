@@ -76,6 +76,38 @@ describe('EmployeeOverview', () => {
     )
   })
 
+  it('omits the teams block when the employee is on no teams', () => {
+    // Arrange / Act — the tile still reports 0; a large empty card below it
+    // would only take up space.
+    renderOverview()
+
+    // Assert — the tile keeps its title, so scope to the block's own heading
+    expect(
+      screen.queryByRole('heading', { name: 'Teams' }),
+    ).toBeNull()
+  })
+
+  it('shows the teams block once the employee is on a team', () => {
+    // Arrange
+    mockTeams.mockReturnValue({
+      data: [
+        {
+          team: { id: 't1', key: 14, name: 'Platform Core' },
+          roles: [],
+        },
+      ],
+      isLoading: false,
+    })
+
+    // Act
+    renderOverview()
+
+    // Assert
+    expect(
+      screen.getByRole('heading', { name: 'Teams' }),
+    ).toBeInTheDocument()
+  })
+
   it('omits the assigned work items tile when there is no open work', () => {
     // Arrange / Act
     renderOverview()

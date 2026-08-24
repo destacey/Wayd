@@ -1,6 +1,5 @@
 'use client'
 
-import { WaydEmpty } from '@/src/components/common'
 import { CycleTimeMetric, MetricCard } from '@/src/components/common/metrics'
 import { getCycleTimeWorkItems } from '@/src/components/common/work/cycle-time-report.filtering'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
@@ -28,29 +27,29 @@ export interface EmployeeOverviewProps {
   onNavigateToSection: (sectionId: string) => void
 }
 
+/**
+ * A titled block on the overview.
+ *
+ * No empty state: every block here is rendered only when it has content, since
+ * the metric tile above already reports a zero. Callers guard, so this just
+ * shows a skeleton while loading.
+ */
 const SectionCard = ({
   title,
   isLoading,
-  isEmpty,
-  emptyMessage,
   children,
 }: {
   title: string
   isLoading: boolean
-  /** Omit for blocks the caller only renders when they have content. */
-  isEmpty?: boolean
-  emptyMessage?: string
   children: React.ReactNode
 }) => (
   <Flex vertical gap="small">
-    <Title level={4} style={{ margin: 0 }}>
+    <Title level={5} style={{ margin: 0 }}>
       {title}
     </Title>
     <Card size="small">
       {isLoading ? (
         <Skeleton active paragraph={{ rows: 2 }} title={false} />
-      ) : isEmpty ? (
-        <WaydEmpty message={emptyMessage} />
       ) : (
         children
       )}
@@ -146,7 +145,7 @@ const EmployeeOverview = ({
           MetricCard sets height: 100%, so tiles in a row match heights even
           when only one carries a secondary value. */}
       <Row gutter={[16, 16]} align="stretch">
-        <Col xs={12} md={8}>
+        <Col xs={12} sm={12} md={6}>
           <MetricCard
             title="Teams"
             value={teamsLoading ? '—' : sortedTeams.length}
@@ -154,7 +153,7 @@ const EmployeeOverview = ({
           />
         </Col>
         {(workLoading || openWorkItemCount > 0) && (
-          <Col xs={12} md={8}>
+          <Col xs={12} sm={12} md={6}>
             <MetricCard
               title="Assigned Work Items"
               value={workLoading ? '—' : openWorkItemCount}
@@ -163,7 +162,7 @@ const EmployeeOverview = ({
           </Col>
         )}
         {(cycleTimeLoading || averageCycleTime !== null) && (
-          <Col xs={12} md={8}>
+          <Col xs={12} sm={12} md={6}>
             <CycleTimeMetric
               value={averageCycleTime ?? 0}
               secondaryValue={
@@ -174,7 +173,7 @@ const EmployeeOverview = ({
           </Col>
         )}
         {(reportsLoading || sortedReports.length > 0) && (
-          <Col xs={12} md={8}>
+          <Col xs={12} sm={12} md={6}>
             <MetricCard
               title="Direct Reports"
               value={reportsLoading ? '—' : sortedReports.length}
@@ -183,12 +182,10 @@ const EmployeeOverview = ({
         )}
       </Row>
 
-      <SectionCard
-        title="Teams"
-        isLoading={teamsLoading}
-        isEmpty={sortedTeams.length === 0}
-        emptyMessage="Not a member of any team."
-      >
+      {/* The tile above already says zero; an empty-state card here would only
+          take up space. Same rule as Direct Reports. */}
+      {(teamsLoading || sortedTeams.length > 0) && (
+      <SectionCard title="Teams" isLoading={teamsLoading}>
         <Flex vertical gap={10}>
           {sortedTeams.map((m) => (
             <Flex
@@ -214,6 +211,7 @@ const EmployeeOverview = ({
           ))}
         </Flex>
       </SectionCard>
+      )}
 
       {/* Most people manage nobody, so an empty-state card here would be noise
           on the majority of records rather than useful information. */}

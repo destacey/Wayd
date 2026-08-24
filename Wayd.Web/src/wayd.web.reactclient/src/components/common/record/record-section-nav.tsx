@@ -2,6 +2,7 @@
 
 import { RecordLayoutConstants } from '@/src/config/theme/theme-constants'
 import { Flex, Select, theme, Typography } from 'antd'
+import styles from './record-layout.module.css'
 import { RecordSection } from './types'
 
 const { Text } = Typography
@@ -31,6 +32,9 @@ const RailItem = ({
       role="tab"
       aria-selected={isActive}
       tabIndex={0}
+      className={[styles.railItem, isActive && styles.railItemActive]
+        .filter(Boolean)
+        .join(' ')}
       onClick={() => onChange(section.id)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -45,7 +49,6 @@ const RailItem = ({
         // 44px minimum touch target, per the responsive rules.
         minHeight: 44,
         padding: `${token.paddingXXS}px ${token.padding}px`,
-        cursor: 'pointer',
         borderLeft: `2px solid ${isActive ? token.colorPrimary : 'transparent'}`,
         background: isActive ? token.colorPrimaryBg : undefined,
         color: isActive ? token.colorPrimaryText : token.colorText,

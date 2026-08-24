@@ -87,12 +87,12 @@ const RecordLayoutInner = ({
   // The rail marks where you are, but the content needs its own heading —
   // without it a section opens as an unlabelled grid under the identity bar.
   //
-  // Level 5 (16px), not 4: the record name above is already 30px, and a 20px
-  // heading competes with it rather than sitting under it. Sections that hold
-  // their own sub-headings use level 4 beneath this.
+  // Level 4 (20px) sits below the record name's level 2 (30px) and leaves
+  // level 5 (16px) for sub-headings inside a section, so the ladder reads
+  // downward: record → section → block.
   const sectionHeading = active?.hideHeading ? null : (
     <Flex align="center" gap="small" className={styles.sectionHeading}>
-      <Title level={5} style={{ margin: 0 }}>
+      <Title level={4} style={{ margin: 0 }}>
         {activeLabel}
       </Title>
       {sectionActions && (

@@ -4,6 +4,13 @@ import { FC, ReactNode } from 'react'
 
 const { Meta } = Card
 
+/**
+ * Floor for a metric card, sized to one carrying a `secondaryValue` — the
+ * tallest variant. Without it, cards in a row differ by whether they have a
+ * qualifier line, and a wrapped row sizes independently of the one above.
+ */
+const METRIC_CARD_MIN_HEIGHT = 102
+
 export interface MetricCardProps extends Omit<StatisticProps, 'valueStyle'> {
   cardStyle?: React.CSSProperties
   statisticStyle?: React.CSSProperties
@@ -67,7 +74,13 @@ const MetricCard: FC<MetricCardProps> = ({
       }
     : {}
 
-  const defaultCardStyle = cardStyle ?? { height: '100%' }
+  // `height: 100%` only fills the Col it sits in, and antd stretches Cols
+  // within a line — not across a wrap. A minimum height keeps cards matching
+  // whether or not they carry a secondaryValue, and across wrapped rows.
+  const defaultCardStyle = cardStyle ?? {
+    height: '100%',
+    minHeight: METRIC_CARD_MIN_HEIGHT,
+  }
   const defaultStatisticStyle = statisticStyle ?? { whiteSpace: 'nowrap' }
 
   // Migrate deprecated valueStyle to new styles.content format

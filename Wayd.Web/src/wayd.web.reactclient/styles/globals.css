@@ -47,6 +47,9 @@ body {
   flex: 1; /* Allows the content to grow and occupy remaining space */
   overflow-x: hidden; /* Prevent horizontal scroll from negative-margin children (e.g. docs layout) */
   overflow-y: auto; /* Enable vertical scrolling */
+  /* Reserves the scrollbar gutter so content does not shift sideways when
+     navigating between a page that overflows and one that does not. */
+  scrollbar-gutter: stable;
   /* No padding here: the route group decides. app/(legacy)/layout.tsx supplies
      it for pages still on the old chrome; record pages render edge-to-edge. */
 }
@@ -252,8 +255,13 @@ body {
   .app-side-nav {
     display: none;
   }
-  .ant-layout-content {
-    padding: 0 16px 16px; /* Reduce padding for smaller screens */
+
+  /* Tighter gutters on small screens. This lives on the legacy chrome, not on
+     `.ant-layout-content`: padding there inset every page including record
+     pages, whose identity bar is meant to run edge to edge like the app
+     header above it. */
+  .legacy-page-chrome {
+    padding: 0 16px 16px;
   }
 }
 

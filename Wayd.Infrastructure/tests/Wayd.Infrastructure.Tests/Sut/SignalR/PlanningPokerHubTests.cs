@@ -5,16 +5,18 @@ using Wayd.Infrastructure.SignalR;
 namespace Wayd.Infrastructure.Tests.Sut.SignalR;
 
 /// <summary>
-/// Covers the display-name claim-resolution fallback in <see cref="PlanningPokerHub.JoinSession"/>.
-/// The hub supports both Entra-shaped tokens (lowercase "name" claim) and Wayd-JWT-shaped tokens
-/// (ClaimTypes.Name URI form), with email as a final fallback. Anonymous/userless connections
-/// must not be registered as participants.
+/// Covers how <see cref="PlanningPokerHub.JoinSession"/> resolves a participant from their claims.
+/// The display name is composed from the first-name and surname claims, which both Entra and the
+/// Wayd JWT emit, with email as a final fallback; the employee id rides along so clients can open
+/// the person's record. Anonymous/userless connections must not be registered as participants.
 /// </summary>
 public class PlanningPokerHubTests
 {
     private const string TestUserId = "user-123";
     private const string EntraDisplayName = "Jane Smith";
     private const string WaydFirstName = "Jane";
+    private const string WaydSurname = "Smith";
+    private const string TestEmployeeId = "8f2c1b40-0000-4000-a000-000000000001";
     private const string TestEmail = "jane@example.com";
 
     private static (PlanningPokerHub Hub, Mock<ISingleClientProxy> CallerProxy) BuildHub(
@@ -82,6 +84,33 @@ public class PlanningPokerHubTests
             Times.Once);
     }
 
+    private static void AssertParticipantBroadcastWithEmployeeId(
+        Mock<ISingleClientProxy> callerProxy,
+        string? expectedEmployeeId)
+    {
+        callerProxy.Verify(
+            p => p.SendCoreAsync(
+                "ParticipantList",
+                It.Is<object?[]>(args =>
+                    args.Length == 1 && ContainsParticipantWithEmployeeId(args[0], expectedEmployeeId)),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    private static bool ContainsParticipantWithEmployeeId(
+        object? participantsArg,
+        string? expectedEmployeeId)
+    {
+        if (participantsArg is not System.Collections.IEnumerable enumerable) return false;
+        foreach (var p in enumerable)
+        {
+            if (p is null) continue;
+            var prop = p.GetType().GetProperty("EmployeeId");
+            if (prop?.GetValue(p) as string == expectedEmployeeId) return true;
+        }
+        return false;
+    }
+
     private static bool ContainsParticipantWithName(object? participantsArg, string expectedName)
     {
         if (participantsArg is not System.Collections.IEnumerable enumerable) return false;
@@ -95,13 +124,43 @@ public class PlanningPokerHubTests
     }
 
     [Fact]
-    public async Task JoinSession_WithEntraStyleNameClaim_UsesLowercaseNameClaim()
+    public async Task JoinSession_IncludesTheEmployeeId_SoClientsCanOpenThePersonsRecord()
     {
-        // Entra tokens carry the OIDC standard "name" claim with the full display name.
         var user = Principal(
             (ClaimTypes.NameIdentifier, TestUserId),
-            ("name", EntraDisplayName),
-            (ClaimTypes.Name, WaydFirstName)); // both present — "name" must win
+            (ClaimTypes.Name, WaydFirstName),
+            ("EmployeeId", TestEmployeeId));
+        var (hub, callerProxy) = BuildHub(user);
+
+        await hub.JoinSession(Guid.NewGuid());
+
+        AssertParticipantBroadcastWithEmployeeId(callerProxy, TestEmployeeId);
+    }
+
+    [Fact]
+    public async Task JoinSession_WithNoEmployeeLink_SendsANullEmployeeId()
+    {
+        // An account need not be linked to an employee; clients drop the affordance rather
+        // than linking to a record that does not exist.
+        var user = Principal(
+            (ClaimTypes.NameIdentifier, TestUserId),
+            (ClaimTypes.Name, WaydFirstName));
+        var (hub, callerProxy) = BuildHub(user);
+
+        await hub.JoinSession(Guid.NewGuid());
+
+        AssertParticipantBroadcastWithEmployeeId(callerProxy, null);
+    }
+
+    [Fact]
+    public async Task JoinSession_ComposesTheNameFromFirstNameAndSurname()
+    {
+        // Both Entra and the Wayd JWT emit these two claims, so presence composes the display
+        // name rather than depending on a single claim only one provider supplies.
+        var user = Principal(
+            (ClaimTypes.NameIdentifier, TestUserId),
+            (ClaimTypes.Name, WaydFirstName),
+            (ClaimTypes.Surname, WaydSurname));
         var (hub, callerProxy) = BuildHub(user);
 
         await hub.JoinSession(Guid.NewGuid());
@@ -110,11 +169,10 @@ public class PlanningPokerHubTests
     }
 
     [Fact]
-    public async Task JoinSession_WithWaydJwtNameClaim_FallsBackToClaimTypesName()
+    public async Task JoinSession_WithNoSurname_UsesTheFirstNameAlone()
     {
-        // Wayd-issued JWTs put the user's first name in the schemas.xmlsoap.org URI form,
-        // not lowercase "name". Without the ClaimTypes.Name fallback in the hub, local-auth
-        // users would be displayed by email.
+        // A user whose surname is unset is still displayable — better a first name than an
+        // email address.
         var user = Principal(
             (ClaimTypes.NameIdentifier, TestUserId),
             (ClaimTypes.Name, WaydFirstName),
@@ -124,6 +182,21 @@ public class PlanningPokerHubTests
         await hub.JoinSession(Guid.NewGuid());
 
         AssertParticipantBroadcastWithName(callerProxy, WaydFirstName);
+    }
+
+    [Fact]
+    public async Task JoinSession_WithOnlyASurname_FallsBackToEmail()
+    {
+        // A lone surname would render as a name missing its start, so it is ignored.
+        var user = Principal(
+            (ClaimTypes.NameIdentifier, TestUserId),
+            (ClaimTypes.Surname, WaydSurname),
+            (ClaimTypes.Email, TestEmail));
+        var (hub, callerProxy) = BuildHub(user);
+
+        await hub.JoinSession(Guid.NewGuid());
+
+        AssertParticipantBroadcastWithName(callerProxy, TestEmail);
     }
 
     [Theory]

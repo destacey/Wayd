@@ -17,6 +17,32 @@ public static class ClaimsPrincipalExtensions
     public static string? GetSurname(this ClaimsPrincipal principal)
         => principal?.FindFirst(ClaimTypes.Surname)?.Value;
 
+    /// <summary>
+    /// Composes "First Last" from the first-name and surname claims, both of which Entra and the
+    /// Wayd JWT emit. Distinct from <see cref="GetFullName"/>, which reads a single fullname claim
+    /// that only some providers supply.
+    /// <para>
+    /// Deliberately not named GetDisplayName: Microsoft.Identity.Web ships an extension of that
+    /// name, and matching it makes every call site ambiguous.
+    /// </para>
+    /// </summary>
+    /// <returns>
+    /// The composed name, the first name alone when there is no surname, or <c>null</c> when there
+    /// is no first name — a lone surname is ignored rather than rendered as a name missing its
+    /// start.
+    /// </returns>
+    public static string? GetComposedName(this ClaimsPrincipal? principal)
+    {
+        var firstName = principal?.GetFirstName();
+        if (string.IsNullOrWhiteSpace(firstName))
+            return null;
+
+        var surname = principal?.GetSurname();
+        return string.IsNullOrWhiteSpace(surname)
+            ? firstName.Trim()
+            : $"{firstName.Trim()} {surname.Trim()}";
+    }
+
     public static string? GetPhoneNumber(this ClaimsPrincipal principal)
         => principal.FindFirstValue(ClaimTypes.MobilePhone);
 

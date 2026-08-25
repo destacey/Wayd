@@ -27,7 +27,7 @@ const PiPredictabilityCard: FC<PiPredictabilityCardProps> = ({ pi, teamId }) => 
 
   if (!teamMetrics || !hasTeamObjectives) return null
 
-  const href = `/planning/planning-intervals/${pi.key}/plan-review#${teamMetrics.teamCode.toLowerCase()}`
+  const href = `/planning/planning-intervals/${pi.key}/plan-review?team=${teamMetrics.teamCode.toLowerCase()}`
 
   return (
     <Link href={href} style={{ display: 'block' }}>

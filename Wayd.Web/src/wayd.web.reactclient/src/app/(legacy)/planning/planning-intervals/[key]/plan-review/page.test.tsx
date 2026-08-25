@@ -21,6 +21,18 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
+let mockSearchParams = new URLSearchParams()
+const mockReplace = jest.fn((url: string) => {
+  mockSearchParams = new URLSearchParams(url.split('?')[1] ?? '')
+})
+
+jest.mock('next/navigation', () => ({
+  notFound: jest.fn(),
+  usePathname: () => '/planning/planning-intervals/7/plan-review',
+  useRouter: () => ({ replace: mockReplace, push: jest.fn() }),
+  useSearchParams: () => mockSearchParams,
+}))
+
 jest.mock('@/src/components/contexts/auth', () => ({
   __esModule: true,
   default: () => ({
@@ -35,7 +47,7 @@ jest.mock('@/src/store/features/planning/planning-interval-api', () => ({
 }))
 
 // TeamPlanReview pulls many sibling RTK queries that aren't relevant to what
-// we're testing here (which tab is active for a given URL hash). Stub it.
+// we're testing here (which team is active for a given URL). Stub it.
 jest.mock('./team-plan-review', () => ({
   __esModule: true,
   default: ({ team }: { team: { code: string } | null }) => (
@@ -54,12 +66,8 @@ import PlanningIntervalPlanReviewPage from './page'
 const mockPiQuery = useGetPlanningIntervalQuery as unknown as jest.Mock
 const mockTeamsQuery = useGetPlanningIntervalTeamsQuery as unknown as jest.Mock
 
-const setHash = (hash: string) => {
-  window.history.replaceState(
-    null,
-    '',
-    `${window.location.pathname}${window.location.search}${hash}`,
-  )
+const setTeamParam = (code?: string) => {
+  mockSearchParams = new URLSearchParams(code ? `team=${code}` : '')
 }
 
 // react's `use()` suspends on a Promise even if it's already resolved at
@@ -86,7 +94,7 @@ const renderPage = async () => {
 describe('PlanningIntervalPlanReviewPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    setHash('')
+    setTeamParam()
     mockPiQuery.mockReturnValue({
       data: { id: 'pi-1', key: 7, name: '2026 PI 1', predictability: 50 },
       isLoading: false,
@@ -103,82 +111,70 @@ describe('PlanningIntervalPlanReviewPage', () => {
     })
   })
 
-  it('falls back to the first team when no hash is present', async () => {
-    await renderPage()
-
-    expect(await screen.findByTestId('team-plan-review-stub')).toHaveTextContent(
-      'team:CORE',
-    )
+  it('falls back to the first team when the URL names none', () => {
+    // Arrange / Act — teams are seeded unsorted, so CORE winning proves the
+    // page sorted by code rather than taking whatever arrived first.
+    return renderPage().then(async () => {
+      // Assert
+      expect(
+        await screen.findByTestId('team-plan-review-stub'),
+      ).toHaveTextContent('team:CORE')
+    })
   })
 
-  it('honors the URL hash and selects the matching team on first render', async () => {
-    setHash('#data')
+  it('shows the team the URL names on the first paint', async () => {
+    // Arrange — a search param is readable during render, unlike a hash, so
+    // there is no frame showing the wrong team before it corrects itself.
+    setTeamParam('data')
 
+    // Act
     await renderPage()
 
+    // Assert
     expect(await screen.findByTestId('team-plan-review-stub')).toHaveTextContent(
       'team:DATA',
     )
-    // And critically, doesn't rewrite the hash to the first team.
-    expect(window.location.hash).toBe('#data')
   })
 
-  it('does not append a second hash segment when navigating in via a hash link', async () => {
-    setHash('#data')
+  it('does not rewrite the URL when arriving with a team already named', async () => {
+    // Arrange — the page used to overwrite the incoming selection with its
+    // first-team fallback, because it could not read the hash during render.
+    setTeamParam('data')
 
+    // Act
     await renderPage()
 
-    // After the page settles, the URL should have exactly one fragment.
-    expect(window.location.hash).toBe('#data')
-    expect(window.location.href).not.toMatch(/#.*#/)
+    // Assert
+    expect(mockReplace).not.toHaveBeenCalled()
   })
 
-  // Regression: the page used to read window.location.hash during render and
-  // mirror activeTab to the URL via an effect. In Next.js's client router,
-  // the destination page renders BEFORE window.location.hash reflects the
-  // incoming hash — so the render-phase read returned "", the page fell back
-  // to the first team alphabetically, and the mirror effect overwrote the
-  // user-supplied hash with that fallback. The fix reads the hash in an
-  // effect (post-commit) and gates the mirror effect on that read, so the
-  // URL is never rewritten before we know the user's intent.
-  //
-  // This regression test asserts the page's *behavior* — that it does not
-  // clobber the URL or render the wrong team when arriving with a hash —
-  // rather than the buggy implementation detail. A stronger end-to-end
-  // assertion of the original race would require Playwright; jsdom always
-  // exposes window.location.hash synchronously and so can't faithfully
-  // simulate it.
-  it('honors the hash even when teams are already cached on first render', async () => {
-    // Cached state — both queries return data synchronously, mirroring the
-    // common flow of arriving from the overview where teamsQuery is warm.
-    setHash('#data')
-
+  it('names the chosen team in the URL rather than in component state', async () => {
+    // Arrange
+    setTeamParam('core')
     await renderPage()
 
-    expect(
-      await screen.findByTestId('team-plan-review-stub'),
-    ).toHaveTextContent('team:DATA')
-    // Critically: the URL hash is still what the user clicked, not the
-    // first-team fallback ("#core").
-    expect(window.location.hash).toBe('#data')
-  })
-
-  it('reflects manual hashchange events into the active team', async () => {
-    setHash('#core')
-
-    await renderPage()
-
-    expect(await screen.findByTestId('team-plan-review-stub')).toHaveTextContent(
-      'team:CORE',
-    )
-
-    setHash('#data')
+    // Act
     await act(async () => {
-      window.dispatchEvent(new HashChangeEvent('hashchange'))
+      screen.getByRole('tab', { name: 'DATA' }).click()
     })
 
-    expect(await screen.findByTestId('team-plan-review-stub')).toHaveTextContent(
-      'team:DATA',
+    // Assert — replace, not push: Back returns where the user came from
+    // rather than stepping through every team they looked at.
+    expect(mockReplace).toHaveBeenCalledWith(
+      '/planning/planning-intervals/7/plan-review?team=data',
+      { scroll: false },
     )
+  })
+
+  it('warns rather than guessing when the URL names a team the PI does not have', async () => {
+    // Arrange — a stale link, or a team since removed from the PI.
+    setTeamParam('gone')
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(await screen.findByText('Please select a valid team.')).toBeInTheDocument()
+    expect(screen.queryByTestId('team-plan-review-stub')).toBeNull()
   })
 })

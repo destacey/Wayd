@@ -70,7 +70,7 @@ describe('getSearchResultUrl', () => {
 
     it('returns PI team plan review url with team code hash', () => {
       expect(getSearchResultUrl(item('PiTeam', 'JUICE', '3|juice'))).toBe(
-        '/planning/planning-intervals/3/plan-review#juice',
+        '/planning/planning-intervals/3/plan-review?team=juice',
       )
     })
 

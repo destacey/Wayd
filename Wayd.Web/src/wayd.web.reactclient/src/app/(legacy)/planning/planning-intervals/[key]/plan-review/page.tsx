@@ -2,10 +2,15 @@
 
 import { useDocumentTitle } from '@/src/hooks'
 import { PlanningIntervalTeamResponse } from '@/src/services/wayd-api'
-import { use, useEffect, useMemo, useState } from 'react'
+import { Suspense, use, useMemo } from 'react'
 import { Alert, Card, Tag } from 'antd'
 import TeamPlanReview from './team-plan-review'
-import { notFound } from 'next/navigation'
+import {
+  notFound,
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from 'next/navigation'
 import { WaydEmpty, PageTitle } from '@/src/components/common'
 import PlanningIntervalPlanReviewLoading from './loading'
 import { authorizePage } from '@/src/components/hoc'
@@ -44,59 +49,26 @@ const PlanningIntervalPlanReviewPage = (props: {
     [teamData],
   )
 
-  // Tab the user/URL has selected. `undefined` is the "haven't checked yet"
-  // sentinel — important because Next.js's client-side navigation commits the
-  // URL hash AFTER the first render phase, so window.location.hash returns ""
-  // during render even when the URL bar shows "/plan-review#juice". We read
-  // the hash in an effect (post-commit) and gate the URL-mirroring effect
-  // until that read has happened, otherwise mirror would clobber the incoming
-  // hash with the first-team fallback on render 1.
-  const [selectedTab, setSelectedTab] = useState<string | null | undefined>(
-    undefined,
-  )
-  useEffect(() => {
-    // Legitimate mount-time read of window.location.hash. Lint flags this as
-    // "setState in effect" but it's the documented pattern for reading
-    // external state on mount when render-phase reads aren't available
-    // (see comment above on Next.js's hash-commit timing).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSelectedTab(window.location.hash.slice(1) || null)
-  }, [])
+  // The selected team lives in the URL as ?team=, not a hash. A search param is
+  // readable during render, so the first paint already shows the right team —
+  // a hash is committed after render, which previously needed a sentinel, a
+  // mount effect, a mirror effect and a hashchange listener to work around.
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const router = useRouter()
 
-  // Derive activeTab: hash/user selection wins; otherwise the first team.
-  // While selectedTab is undefined (pre-mount-effect), keep activeTab empty
-  // so the mirror effect doesn't write the wrong hash.
+  const requestedTeam = searchParams.get('team')
   const activeTab =
-    selectedTab === undefined
-      ? ''
-      : selectedTab || (teams.length > 0 ? teams[0]?.code.toLowerCase() : '')
+    requestedTeam ?? (teams.length > 0 ? teams[0]?.code.toLowerCase() : '')
 
-  // Mirror activeTab back into the URL hash whenever it changes. We use
-  // history.replaceState rather than router.push/replace('#hash') because
-  // next/navigation's bare-hash forms append instead of replacing the
-  // fragment, producing doubled hashes like ".../plan-review#data#core".
-  useEffect(() => {
-    if (selectedTab === undefined) return
-    if (!activeTab || teams.length === 0) return
-    const currentHash = window.location.hash.slice(1)
-    if (currentHash === activeTab) return
-
-    const newUrl = `${window.location.pathname}${window.location.search}#${activeTab}`
-    window.history.replaceState(null, '', newUrl)
-  }, [activeTab, teams, selectedTab])
-
-  // Handle hash change events (back/forward navigation, manual edits)
-  useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.slice(1)
-      setSelectedTab(hash || null)
-    }
-    window.addEventListener('hashchange', handleHashChange)
-
-    return () => {
-      window.removeEventListener('hashchange', handleHashChange)
-    }
-  }, [])
+  const selectTeam = (code: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('team', code)
+    // replace, not push: Back returns to where the user came from rather than
+    // stepping back through every team they looked at. scroll:false or the
+    // router jumps to the top on each switch.
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+  }
 
   const tabs = teams?.map((team) => ({
     key: team.code.toLowerCase(),
@@ -132,7 +104,7 @@ const PlanningIntervalPlanReviewPage = (props: {
         style={{ width: '100%' }}
         tabList={tabs}
         activeTabKey={activeTab}
-        onTabChange={(key) => setSelectedTab(key)}
+        onTabChange={selectTeam}
       >
         {!tabExists ? (
           <Alert title="Please select a valid team." type="error" />
@@ -148,8 +120,19 @@ const PlanningIntervalPlanReviewPage = (props: {
   )
 }
 
+// useSearchParams suspends a prerendered route up to the nearest boundary. In
+// development routes render on demand, so a missing one only fails the
+// production build.
+const PlanningIntervalPlanReviewPageWithSuspense = (props: {
+  params: Promise<{ key: string }>
+}) => (
+  <Suspense fallback={<PlanningIntervalPlanReviewLoading />}>
+    <PlanningIntervalPlanReviewPage {...props} />
+  </Suspense>
+)
+
 const PlanningIntervalPlanReviewPageWithAuthorization = authorizePage(
-  PlanningIntervalPlanReviewPage,
+  PlanningIntervalPlanReviewPageWithSuspense,
   'Permission',
   'Permissions.PlanningIntervals.View',
 )

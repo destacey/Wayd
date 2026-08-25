@@ -31,7 +31,7 @@ export function getSearchResultUrl(item: GlobalSearchResultItemDto): string {
       const parts = auxKey?.split('|')
       if (!parts || parts.length !== 2 || !parts[0] || !parts[1])
         return '/planning/planning-intervals'
-      return `/planning/planning-intervals/${parts[0]}/plan-review#${parts[1]}`
+      return `/planning/planning-intervals/${parts[0]}/plan-review?team=${parts[1]}`
     }
 
     // Planning - Roadmaps

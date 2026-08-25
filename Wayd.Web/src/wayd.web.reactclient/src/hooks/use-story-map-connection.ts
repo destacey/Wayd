@@ -14,6 +14,8 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? ''
 export interface PresenceParticipant {
   id: string
   name: string
+  /** Absent when the account is not linked to an employee. */
+  employeeId?: string
 }
 
 /**
@@ -132,10 +134,14 @@ export function useStoryMapConnection(
         // Presence events
         connection.on(
           'ParticipantList',
-          (participants: { id: string; name: string }[]) => {
+          (participants: { id: string; name: string; employeeId?: string }[]) => {
             presenceMapRef.current.clear()
             for (const p of participants) {
-              presenceMapRef.current.set(p.id, { id: p.id, name: p.name })
+              presenceMapRef.current.set(p.id, {
+                id: p.id,
+                name: p.name,
+                employeeId: p.employeeId,
+              })
             }
             emitPresence()
           },
@@ -143,10 +149,11 @@ export function useStoryMapConnection(
 
         connection.on(
           'ParticipantJoined',
-          (participant: { id: string; name: string }) => {
+          (participant: { id: string; name: string; employeeId?: string }) => {
             presenceMapRef.current.set(participant.id, {
               id: participant.id,
               name: participant.name,
+              employeeId: participant.employeeId,
             })
             emitPresence()
           },

@@ -43,6 +43,23 @@ export const employeeApi = apiSlice.injectEndpoints({
         { type: QueryTags.Employee, id: arg },
       ],
     }),
+    // The endpoint takes an id or a key; this is the id-keyed sibling of
+    // getEmployee, for callers holding a Guid — SignalR presence and the
+    // navigation DTOs carry ids rather than keys.
+    getEmployeeById: builder.query<EmployeeDetailsDto, string>({
+      queryFn: async (id) => {
+        try {
+          const data = await getEmployeesClient().getEmployee(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, arg) => [
+        { type: QueryTags.Employee, id: arg },
+      ],
+    }),
     getDirectReports: builder.query<EmployeeListDto[], string>({
       queryFn: async (employeeId) => {
         try {
@@ -130,6 +147,7 @@ export const employeeApi = apiSlice.injectEndpoints({
 export const {
   useGetEmployeesQuery,
   useGetEmployeeQuery,
+  useGetEmployeeByIdQuery,
   useGetDirectReportsQuery,
   useGetEmployeeWorkItemsQuery,
   useGetEmployeeOptionsQuery,

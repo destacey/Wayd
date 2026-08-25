@@ -1,10 +1,9 @@
 'use client'
 
-import { getAvatarColor } from '@/src/utils'
 import { Avatar } from 'antd'
-import { WaydTooltip } from '@/src/components/common'
+import { PersonPopover } from '@/src/components/common'
 import { FC } from 'react'
-import { getInitials, TeamMemberWithRoles } from './project-card-helpers'
+import { TeamMemberWithRoles } from './project-card-helpers'
 
 const { Group: AvatarGroup } = Avatar
 
@@ -17,21 +16,16 @@ const TeamAvatars: FC<{ members: TeamMemberWithRoles[] }> = ({ members }) => {
   return (
     <AvatarGroup size="small">
       {visible.map(({ employee, roles }) => (
-        <WaydTooltip
+        // The roles ride on the popover's own tooltip rather than a second one
+        // over it — the roles are why this list exists, and they would
+        // otherwise be lost behind the card.
+        <PersonPopover
           key={employee.id}
-          title={`${employee.name} (${roles.join(', ')})`}
-        >
-          <Avatar
-            size="small"
-            style={{
-              backgroundColor: getAvatarColor(employee.id),
-              fontSize: 10,
-              fontWeight: 600,
-            }}
-          >
-            {getInitials(employee.name)}
-          </Avatar>
-        </WaydTooltip>
+          name={employee.name}
+          tooltip={`${employee.name} (${roles.join(', ')})`}
+          employeeId={employee.id}
+          colorKey={employee.id}
+        />
       ))}
       {overflow > 0 && (
         <Avatar

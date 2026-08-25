@@ -1,0 +1,12 @@
+/* Wide enough for an email address without wrapping, which is the longest
+   thing the card carries. */
+.card {
+  width: 260px;
+}
+
+/* The avatar says it is clickable; the wrapper is only here to give Popover a
+   DOM node it can anchor to. */
+.trigger {
+  display: inline-flex;
+  cursor: pointer;
+}

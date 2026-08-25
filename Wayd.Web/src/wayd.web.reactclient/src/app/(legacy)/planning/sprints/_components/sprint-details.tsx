@@ -2,13 +2,10 @@
 
 import { IterationState } from '@/src/components/types'
 import { SizingMethod, SprintDetailsDto } from '@/src/services/wayd-api'
-import { Descriptions, Flex } from 'antd'
-import Link from 'next/link'
+import { Flex } from 'antd'
 import SprintMetrics from './sprint-metrics'
 import TimelineProgress from '@/src/components/common/planning/timeline-progress'
 import { FC, ReactNode } from 'react'
-
-const { Item: DescriptionItem } = Descriptions
 
 export interface SprintDetailsProps {
   sprint: SprintDetailsDto
@@ -30,13 +27,8 @@ const SprintDetails: FC<SprintDetailsProps> = ({
 
   return (
     <Flex vertical gap={16}>
-      <Descriptions column={4}>
-        <DescriptionItem label="Team">
-          <Link href={`/organizations/teams/${sprint.team?.key}`}>
-            {sprint.team?.name}
-          </Link>
-        </DescriptionItem>
-      </Descriptions>
+      {/* Team and dates live in the record's details panel — repeating them
+          here would duplicate the panel beside it. */}
       <TimelineProgress
         start={sprint.start}
         end={sprint.end}

@@ -286,4 +286,27 @@ describe('MetricCard', () => {
     expect(screen.getByText('100')).toBeInTheDocument()
     expect(screen.getByText('100%')).toBeInTheDocument()
   })
+
+  it('merges cardStyle over the defaults rather than replacing them', () => {
+    // Arrange / Act — a caller passing sizing must not silently lose the height
+    // floor that keeps cards matching across a wrapped row.
+    const { container } = render(
+      <MetricCard title="Total" value={23} cardStyle={{ minWidth: 150 }} />,
+    )
+
+    // Assert
+    const card = container.querySelector('.ant-card') as HTMLElement
+    expect(card).toHaveStyle({ minWidth: '150px', height: '100%' })
+    expect(card.style.minHeight).not.toBe('')
+  })
+
+  it('lets cardStyle win where it overlaps a default', () => {
+    // Arrange / Act
+    const { container } = render(
+      <MetricCard title="Total" value={23} cardStyle={{ height: '40px' }} />,
+    )
+
+    // Assert
+    expect(container.querySelector('.ant-card')).toHaveStyle({ height: '40px' })
+  })
 })

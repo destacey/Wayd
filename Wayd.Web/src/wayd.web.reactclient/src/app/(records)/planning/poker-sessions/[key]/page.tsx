@@ -20,11 +20,11 @@ import { EditOutlined, LinkOutlined } from '@ant-design/icons'
 import { notFound, useParams, usePathname } from 'next/navigation'
 import { CSSProperties, FC, useEffect, useState } from 'react'
 import { PresenceParticipant } from '@/src/hooks/use-poker-session-connection'
+import { PresenceAvatars } from '@/src/components/common'
 import { RecordShell } from '@/src/components/common/record'
 import { setBreadcrumbTitle } from '@/src/store/breadcrumbs'
 import styles from './_components/poker-session.module.css'
 import {
-  ConnectedParticipants,
   EditPokerSessionForm,
   EstimationCardDeck,
   LobbyParticipants,
@@ -291,7 +291,7 @@ const PokerSessionDetailPage: FC = () => {
     >
       <div className={styles.pageContainer} style={cssVars}>
         <div className={styles.presenceRow}>
-          <ConnectedParticipants participants={connectedParticipants} />
+          <PresenceAvatars participants={connectedParticipants} />
         </div>
         <div
           className={`${styles.pageLayout} ${isMobile ? styles.pageLayoutMobile : ''}`}

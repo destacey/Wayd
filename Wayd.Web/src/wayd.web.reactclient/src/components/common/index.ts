@@ -17,6 +17,11 @@ export { default as PersonAvatar } from './person-avatar'
 export type { PersonAvatarProps } from './person-avatar'
 export { default as PersonPopover } from './person-popover'
 export type { PersonPopoverProps } from './person-popover'
+export { default as PresenceAvatars } from './presence-avatars'
+export type {
+  PresenceAvatarsProps,
+  PresenceParticipantSummary,
+} from './presence-avatars'
 export { default as RecordKey } from './record-key'
 export { default as PageActions } from './page-actions'
 export { default as ResponsiveFlex } from './responsive-flex'

@@ -37,9 +37,9 @@ import {
   useSetTaskPersonasMutation,
 } from '@/src/store/features/planning/story-maps-api'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { Avatar, Button, Dropdown, Flex, Grid, Tag, Tour } from 'antd'
+import { Button, Dropdown, Flex, Grid, Tag, Tour } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import { PersonPopover, WaydTooltip } from '@/src/components/common'
+import { PresenceAvatars, WaydTooltip } from '@/src/components/common'
 import {
   MoreOutlined,
   PlusOutlined,
@@ -79,7 +79,6 @@ import {
 import StoryMapDetailsLoading from './loading'
 import styles from '@/src/app/(legacy)/planning/story-maps/_components/story-map.module.css'
 
-const { Group: AvatarGroup } = Avatar
 const { useBreakpoint } = Grid
 
 /** Names the moved node in the failure toast. */
@@ -643,24 +642,6 @@ const StoryMapDetailPage: FC = () => {
 
   const pageTitleActions = (
     <Flex align="center" gap={8} wrap>
-      {presence.length > 0 && (
-        <AvatarGroup
-          max={{
-            count: 5,
-            style: { backgroundColor: token.colorPrimary, fontSize: 12 },
-          }}
-          size="small"
-        >
-          {presence.map((p) => (
-            <PersonPopover
-              key={p.id}
-              name={p.name}
-              employeeId={p.employeeId}
-              colorKey={p.id}
-            />
-          ))}
-        </AvatarGroup>
-      )}
       {canEdit && (
         <WaydTooltip title="Take a tour">
           <Button
@@ -734,6 +715,7 @@ const StoryMapDetailPage: FC = () => {
       }}
     >
       <div className={styles.pageContainer} style={cssVars}>
+        <PresenceAvatars participants={presence} />
         <PersonaFilterBar
           storyMapId={map.id}
           storyMapKey={key}

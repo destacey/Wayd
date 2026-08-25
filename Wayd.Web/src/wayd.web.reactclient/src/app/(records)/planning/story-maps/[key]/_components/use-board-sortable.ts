@@ -3,7 +3,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSSProperties } from 'react'
 import { DropSide } from './board-drag'
-import styles from '../../_components/story-map.module.css'
+import styles from '@/src/app/(legacy)/planning/story-maps/_components/story-map.module.css'
 
 export interface BoardSortableOptions {
   /** Which side of the hovered node a drop lands on, from the board's pointer tracking. */

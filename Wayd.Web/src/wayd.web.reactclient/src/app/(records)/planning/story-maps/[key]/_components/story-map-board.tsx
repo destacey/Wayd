@@ -43,7 +43,7 @@ import StepHeaderCell from './step-header-cell'
 import SwimLaneHeader from './swim-lane-header'
 import TaskCell from './task-cell'
 import { useGoalRowHeight } from './use-goal-row-height'
-import styles from '../../_components/story-map.module.css'
+import styles from '@/src/app/(legacy)/planning/story-maps/_components/story-map.module.css'
 
 export interface StoryMapBoardProps {
   map: StoryMapDetailsDto

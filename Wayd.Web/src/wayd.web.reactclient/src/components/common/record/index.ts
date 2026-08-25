@@ -15,6 +15,8 @@ export type { RecordHeaderProps } from './record-header'
 export { default as RecordLayout } from './record-layout'
 export type { RecordLayoutProps } from './record-layout'
 export { default as RecordLoading } from './record-loading'
+export { default as RecordShell } from './record-shell'
+export type { RecordShellProps } from './record-shell'
 export { default as SectionBoundary } from './section-boundary'
 export type { RecordSection } from './types'
 export {

@@ -1,3 +1,4 @@
+export { default as ConnectedParticipants } from './connected-participants'
 export { default as EditPokerSessionForm } from './edit-poker-session-form'
 export { default as EstimationCardDeck } from './estimation-card-deck'
 export { default as LobbyParticipants } from './lobby-participants'

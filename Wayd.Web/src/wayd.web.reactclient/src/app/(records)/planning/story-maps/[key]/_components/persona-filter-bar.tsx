@@ -8,7 +8,7 @@ import { PlusOutlined, SettingOutlined, TeamOutlined } from '@ant-design/icons'
 import { Button, Flex, Input, InputRef } from 'antd'
 import { FC, KeyboardEvent, useMemo, useRef, useState } from 'react'
 import { countBoard } from './board-counts'
-import styles from '../../_components/story-map.module.css'
+import styles from '@/src/app/(legacy)/planning/story-maps/_components/story-map.module.css'
 import { WaydTooltip } from '@/src/components/common'
 
 export interface PersonaFilterBarProps {

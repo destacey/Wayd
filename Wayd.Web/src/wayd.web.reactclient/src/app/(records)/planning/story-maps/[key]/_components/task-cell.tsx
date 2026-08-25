@@ -8,7 +8,7 @@ import { CSSProperties, FC } from 'react'
 import { BoardActions } from './board-actions'
 import { DropSide } from './board-drag'
 import TaskCard from './task-card'
-import styles from '../../_components/story-map.module.css'
+import styles from '@/src/app/(legacy)/planning/story-maps/_components/story-map.module.css'
 
 export interface TaskCellProps {
   tasks: StoryMapTaskDto[]

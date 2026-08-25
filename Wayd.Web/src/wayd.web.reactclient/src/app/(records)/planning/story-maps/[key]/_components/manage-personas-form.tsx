@@ -47,7 +47,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import styles from '../../_components/story-map.module.css'
+import styles from '@/src/app/(legacy)/planning/story-maps/_components/story-map.module.css'
 
 const { Text } = Typography
 

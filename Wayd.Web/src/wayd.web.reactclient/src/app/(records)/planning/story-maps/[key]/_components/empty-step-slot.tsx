@@ -5,7 +5,7 @@ import { PlusOutlined } from '@ant-design/icons'
 import { CSSProperties, FC } from 'react'
 import { emptyStepSlotId } from './board-drag'
 import { STEP_ROW } from './board-layout'
-import styles from '../../_components/story-map.module.css'
+import styles from '@/src/app/(legacy)/planning/story-maps/_components/story-map.module.css'
 
 export interface EmptyStepSlotProps {
   goalId: string

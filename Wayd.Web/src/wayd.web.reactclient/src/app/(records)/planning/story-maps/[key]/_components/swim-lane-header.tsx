@@ -14,7 +14,7 @@ import { FC, useState } from 'react'
 import { BoardActions } from './board-actions'
 import InlineEditText from './inline-edit-text'
 import { useBoardSortable } from './use-board-sortable'
-import styles from '../../_components/story-map.module.css'
+import styles from '@/src/app/(legacy)/planning/story-maps/_components/story-map.module.css'
 
 const { RangePicker } = DatePicker
 

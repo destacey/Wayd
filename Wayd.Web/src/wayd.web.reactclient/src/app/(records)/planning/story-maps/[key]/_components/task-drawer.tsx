@@ -36,7 +36,7 @@ import {
   Typography,
 } from 'antd'
 import { FC, KeyboardEvent, useState } from 'react'
-import styles from '../../_components/story-map.module.css'
+import styles from '@/src/app/(legacy)/planning/story-maps/_components/story-map.module.css'
 
 const { TextArea } = Input
 const { Text } = Typography

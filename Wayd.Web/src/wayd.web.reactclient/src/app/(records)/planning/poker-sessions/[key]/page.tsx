@@ -1,7 +1,6 @@
 'use client'
 
 import { useAppDispatch, useDocumentTitle } from '@/src/hooks'
-import { getAvatarColor } from '@/src/utils'
 import { usePokerSessionConnection } from '@/src/hooks/use-poker-session-connection'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import useAuth from '@/src/components/contexts/auth'
@@ -16,21 +15,16 @@ import {
   useWithdrawPokerVoteMutation,
 } from '@/src/store/features/planning/poker-sessions-api'
 import { useGetProfileQuery } from '@/src/store/features/user-management/profile-api'
-import { Avatar, Button, Divider, Drawer, Flex, Grid, Tag } from 'antd'
-import { WaydTooltip } from '@/src/components/common'
+import { Button, Divider, Drawer, Flex, Grid, Tag } from 'antd'
 import { EditOutlined, LinkOutlined } from '@ant-design/icons'
 import { notFound, useParams, usePathname } from 'next/navigation'
-import {
-  CSSProperties,
-  FC,
-  useEffect,
-  useState,
-} from 'react'
+import { CSSProperties, FC, useEffect, useState } from 'react'
 import { PresenceParticipant } from '@/src/hooks/use-poker-session-connection'
-import PageTitle from '@/src/components/common/page-title'
+import { RecordShell } from '@/src/components/common/record'
 import { setBreadcrumbTitle } from '@/src/store/breadcrumbs'
 import styles from './_components/poker-session.module.css'
 import {
+  ConnectedParticipants,
   EditPokerSessionForm,
   EstimationCardDeck,
   LobbyParticipants,
@@ -44,7 +38,6 @@ import {
 } from './_components'
 import PokerSessionDetailsLoading from './loading'
 
-const { Group: AvatarGroup } = Avatar
 const { useBreakpoint } = Grid
 
 interface PokerCssVars extends CSSProperties {
@@ -280,195 +273,188 @@ const PokerSessionDetailPage: FC = () => {
           Copy Invite Link
         </Button>
       )}
-      {connectedParticipants.length > 0 && (
-        <AvatarGroup
-          max={{
-            count: 5,
-            style: { backgroundColor: token.colorPrimary, fontSize: 12 },
-          }}
-          size="small"
-        >
-          {connectedParticipants.map((p) => (
-            <WaydTooltip key={p.id} title={p.name}>
-              <Avatar
-                size="small"
-                style={{ backgroundColor: getAvatarColor(p.id) }}
-              >
-                {p.name.charAt(0).toUpperCase()}
-              </Avatar>
-            </WaydTooltip>
-          ))}
-        </AvatarGroup>
-      )}
+      {/* Presence lives above the session sidebar, not here — see
+          ConnectedParticipants. */}
     </Flex>
   )
 
   return (
-    <div className={styles.pageContainer} style={cssVars}>
-      <PageTitle
-        title={session.name}
-        subtitle="Planning Poker"
-        tags={pageTitleTags}
-        actions={pageTitleActions}
-      />
+    <RecordShell
+      record={{
+        name: session.name,
+        recordKey: String(session.key),
+        subtitle: 'Planning Poker',
+        parent: { label: 'Planning Poker', href: '/planning/poker-sessions' },
+        tags: pageTitleTags,
+        actions: pageTitleActions,
+      }}
+    >
+      <div className={styles.pageContainer} style={cssVars}>
+        <div className={styles.presenceRow}>
+          <ConnectedParticipants participants={connectedParticipants} />
+        </div>
+        <div
+          className={`${styles.pageLayout} ${isMobile ? styles.pageLayoutMobile : ''}`}
+        >
+          <div className={styles.centerColumn}>
+            {centerViewMode === 'lobby' && (
+              <PokerLobbyState
+                isActive={isActive}
+                canManage={canManage}
+                sessionId={session.id}
+                sessionKey={session.key}
+              />
+            )}
 
-      <div
-        className={`${styles.pageLayout} ${isMobile ? styles.pageLayoutMobile : ''}`}
-      >
-        <div className={styles.centerColumn}>
-          {centerViewMode === 'lobby' && (
-            <PokerLobbyState
-              isActive={isActive}
-              canManage={canManage}
-              sessionId={session.id}
-              sessionKey={session.key}
-            />
-          )}
+            {centerViewMode === 'active' && activeRound && (
+              <Flex
+                vertical
+                gap={16}
+                align="center"
+                // Bottom only: RecordShell frames the page and the presence row
+                // sits above, so top padding here just doubles the gap.
+                style={{ paddingBottom: isMobile ? 12 : 24 }}
+              >
+                <RoundLabelHeader
+                  round={activeRound}
+                  sessionId={session.id}
+                  sessionKey={session.key}
+                  canManage={canManage && isActive}
+                />
 
-          {centerViewMode === 'active' && activeRound && (
-            <Flex
-              vertical
-              gap={16}
-              align="center"
-              style={{ padding: isMobile ? '12px 0' : '24px 0' }}
-            >
-              <RoundLabelHeader
+                <div className={styles.votingCardPanel}>
+                  <ParticipantCards
+                    participants={roundParticipants}
+                    votes={activeRound.votes}
+                    isRevealed={
+                      activeRound.status === 'Revealed' ||
+                      activeRound.status === 'Accepted'
+                    }
+                  />
+
+                  <VotingActions
+                    round={activeRound}
+                    sessionId={session.id}
+                    sessionKey={session.key}
+                    estimationScaleValues={
+                      session.estimationScale?.values ?? []
+                    }
+                    canManage={canManage && isActive}
+                    onConsensusSet={handleConsensusSet}
+                  />
+                </div>
+
+                {(activeRound.status === 'Revealed' ||
+                  activeRound.status === 'Accepted') && (
+                  <ResultsPanel votes={activeRound.votes} />
+                )}
+
+                {activeRound.status === 'Voting' && (
+                  <>
+                    <Divider style={{ margin: '8px 0' }}>
+                      <span className={styles.yourEstimateLabel}>
+                        Your Estimate
+                      </span>
+                    </Divider>
+                    <EstimationCardDeck
+                      values={session.estimationScale?.values ?? []}
+                      selectedValue={selectedVote}
+                      onSelect={handleVote}
+                      disabled={isSubmitting || isWithdrawing}
+                    />
+                  </>
+                )}
+              </Flex>
+            )}
+
+            {centerViewMode === 'review' && activeRound && (
+              <PokerReviewView
                 round={activeRound}
                 sessionId={session.id}
                 sessionKey={session.key}
                 canManage={canManage && isActive}
+                participants={roundParticipants}
               />
+            )}
 
-              <div className={styles.votingCardPanel}>
-                <ParticipantCards
-                  participants={roundParticipants}
-                  votes={activeRound.votes}
-                  isRevealed={
-                    activeRound.status === 'Revealed' ||
-                    activeRound.status === 'Accepted'
-                  }
-                />
-
-                <VotingActions
-                  round={activeRound}
-                  sessionId={session.id}
-                  sessionKey={session.key}
-                  estimationScaleValues={session.estimationScale?.values ?? []}
-                  canManage={canManage && isActive}
-                  onConsensusSet={handleConsensusSet}
-                />
+            {isMobile && centerViewMode !== 'lobby' && (
+              <div style={{ padding: '12px 0' }}>
+                <Button block onClick={() => setMobileSidebarOpen(true)}>
+                  Session Timeline
+                </Button>
               </div>
+            )}
+          </div>
 
-              {(activeRound.status === 'Revealed' ||
-                activeRound.status === 'Accepted') && (
-                <ResultsPanel votes={activeRound.votes} />
+          {isMobile ? (
+            <>
+              {centerViewMode === 'lobby' && isActive && (
+                <LobbyParticipants
+                  participants={connectedParticipants}
+                  canManage={canManage}
+                  isActive={isActive}
+                  onComplete={handleComplete}
+                  isCompleting={isCompleting}
+                />
               )}
-
-              {activeRound.status === 'Voting' && (
-                <>
-                  <Divider style={{ margin: '8px 0' }}>
-                    <span className={styles.yourEstimateLabel}>
-                      Your Estimate
-                    </span>
-                  </Divider>
-                  <EstimationCardDeck
-                    values={session.estimationScale?.values ?? []}
-                    selectedValue={selectedVote}
-                    onSelect={handleVote}
-                    disabled={isSubmitting || isWithdrawing}
-                  />
-                </>
-              )}
-            </Flex>
-          )}
-
-          {centerViewMode === 'review' && activeRound && (
-            <PokerReviewView
-              round={activeRound}
-              sessionId={session.id}
-              sessionKey={session.key}
-              canManage={canManage && isActive}
-              participants={roundParticipants}
-            />
-          )}
-
-          {isMobile && centerViewMode !== 'lobby' && (
-            <div style={{ padding: '12px 0' }}>
-              <Button block onClick={() => setMobileSidebarOpen(true)}>
-                Session Timeline
-              </Button>
+              <Drawer
+                title="Session Timeline"
+                placement="bottom"
+                size="70vh"
+                onClose={() => setMobileSidebarOpen(false)}
+                open={mobileSidebarOpen}
+                styles={{ body: { padding: 0 } }}
+              >
+                <SessionSidebar
+                  session={session}
+                  selectedRoundId={activeRound?.id}
+                  onSelectRound={(roundId) => {
+                    setSelectedRoundId(roundId)
+                    setMobileSidebarOpen(false)
+                  }}
+                  onRemoveRound={handleRemoveRound}
+                  onComplete={handleComplete}
+                  isCompleting={isCompleting}
+                  canManage={canManage}
+                  isActive={isActive}
+                  inline
+                />
+              </Drawer>
+            </>
+          ) : (
+            <div className={styles.sidebarColumn}>
+              {centerViewMode === 'lobby' && isActive ? (
+                <LobbyParticipants
+                  participants={connectedParticipants}
+                  canManage={canManage}
+                  isActive={isActive}
+                  onComplete={handleComplete}
+                  isCompleting={isCompleting}
+                />
+              ) : centerViewMode !== 'lobby' ? (
+                <SessionSidebar
+                  session={session}
+                  selectedRoundId={activeRound?.id}
+                  onSelectRound={setSelectedRoundId}
+                  onRemoveRound={handleRemoveRound}
+                  onComplete={handleComplete}
+                  isCompleting={isCompleting}
+                  canManage={canManage}
+                  isActive={isActive}
+                />
+              ) : null}
             </div>
           )}
         </div>
-
-        {isMobile ? (
-          <>
-            {centerViewMode === 'lobby' && isActive && (
-              <LobbyParticipants
-                participants={connectedParticipants}
-                canManage={canManage}
-                isActive={isActive}
-                onComplete={handleComplete}
-                isCompleting={isCompleting}
-              />
-            )}
-            <Drawer
-              title="Session Timeline"
-              placement="bottom"
-              size="70vh"
-              onClose={() => setMobileSidebarOpen(false)}
-              open={mobileSidebarOpen}
-              styles={{ body: { padding: 0 } }}
-            >
-              <SessionSidebar
-                session={session}
-                selectedRoundId={activeRound?.id}
-                onSelectRound={(roundId) => {
-                  setSelectedRoundId(roundId)
-                  setMobileSidebarOpen(false)
-                }}
-                onRemoveRound={handleRemoveRound}
-                onComplete={handleComplete}
-                isCompleting={isCompleting}
-                canManage={canManage}
-                isActive={isActive}
-                inline
-              />
-            </Drawer>
-          </>
-        ) : (
-          <>
-            {centerViewMode === 'lobby' && isActive ? (
-              <LobbyParticipants
-                participants={connectedParticipants}
-                canManage={canManage}
-                isActive={isActive}
-                onComplete={handleComplete}
-                isCompleting={isCompleting}
-              />
-            ) : centerViewMode !== 'lobby' ? (
-              <SessionSidebar
-                session={session}
-                selectedRoundId={activeRound?.id}
-                onSelectRound={setSelectedRoundId}
-                onRemoveRound={handleRemoveRound}
-                onComplete={handleComplete}
-                isCompleting={isCompleting}
-                canManage={canManage}
-                isActive={isActive}
-              />
-            ) : null}
-          </>
+        {openEditForm && (
+          <EditPokerSessionForm
+            sessionKey={session.key}
+            onFormUpdate={() => setOpenEditForm(false)}
+            onFormCancel={() => setOpenEditForm(false)}
+          />
         )}
       </div>
-      {openEditForm && (
-        <EditPokerSessionForm
-          sessionKey={session.key}
-          onFormUpdate={() => setOpenEditForm(false)}
-          onFormCancel={() => setOpenEditForm(false)}
-        />
-      )}
-    </div>
+    </RecordShell>
   )
 }
 

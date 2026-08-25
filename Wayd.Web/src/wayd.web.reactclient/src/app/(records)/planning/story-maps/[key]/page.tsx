@@ -5,7 +5,6 @@ import {
   useDocumentTitle,
   useRemainingHeight,
 } from '@/src/hooks'
-import { getAvatarColor } from '@/src/utils'
 import {
   useStoryMapConnection,
   PresenceParticipant,
@@ -40,7 +39,7 @@ import {
 import { useMessage } from '@/src/components/contexts/messaging'
 import { Avatar, Button, Dropdown, Flex, Grid, Tag, Tour } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import { WaydTooltip } from '@/src/components/common'
+import { PersonPopover, WaydTooltip } from '@/src/components/common'
 import {
   MoreOutlined,
   PlusOutlined,
@@ -56,7 +55,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import PageTitle from '@/src/components/common/page-title'
+import { RecordShell } from '@/src/components/common/record'
 import { setBreadcrumbTitle } from '@/src/store/breadcrumbs'
 import { StoryMapTaskDto } from '@/src/services/wayd-api'
 import { togglePersonaId } from '@/src/store/features/planning/story-map-patches'
@@ -73,9 +72,12 @@ import {
   TaskPanel,
 } from './_components'
 import { useStoryMapTour } from './_components/use-story-map-tour'
-import { ArchiveStoryMapForm, DeleteStoryMapForm } from '../_components'
+import {
+  ArchiveStoryMapForm,
+  DeleteStoryMapForm,
+} from '@/src/app/(legacy)/planning/story-maps/_components'
 import StoryMapDetailsLoading from './loading'
-import styles from '../_components/story-map.module.css'
+import styles from '@/src/app/(legacy)/planning/story-maps/_components/story-map.module.css'
 
 const { Group: AvatarGroup } = Avatar
 const { useBreakpoint } = Grid
@@ -650,14 +652,12 @@ const StoryMapDetailPage: FC = () => {
           size="small"
         >
           {presence.map((p) => (
-            <WaydTooltip key={p.id} title={p.name}>
-              <Avatar
-                size="small"
-                style={{ backgroundColor: getAvatarColor(p.id) }}
-              >
-                {p.name.charAt(0).toUpperCase()}
-              </Avatar>
-            </WaydTooltip>
+            <PersonPopover
+              key={p.id}
+              name={p.name}
+              employeeId={p.employeeId}
+              colorKey={p.id}
+            />
           ))}
         </AvatarGroup>
       )}
@@ -723,148 +723,152 @@ const StoryMapDetailPage: FC = () => {
   }
 
   return (
-    <div className={styles.pageContainer} style={cssVars}>
-      <PageTitle
-        title={map.name}
-        subtitle="Story Map"
-        tags={pageTitleTags}
-        actions={pageTitleActions}
-      />
-
-      <PersonaFilterBar
-        storyMapId={map.id}
-        storyMapKey={key}
-        map={map}
-        personas={map.personas}
-        selectedPersonaId={selectedPersonaId}
-        onSelectPersona={setSelectedPersonaId}
-        canUpdate={canEdit}
-        onManage={() => setOpenManagePersonas(true)}
-      />
-
-      {map.goals.length === 0 ? (
-        <div className={styles.emptyBoard}>
-          <div className={styles.emptyBoardTile} aria-hidden>
-            <PlusOutlined />
-          </div>
-          <span className={styles.emptyBoardTitle}>Start with a goal</span>
-          <span className={styles.emptyBoardText}>
-            Goals are what your users are trying to accomplish. Add the first
-            one to begin mapping the journey.
-          </span>
-          {canEdit && (
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              data-tour="add-goal-empty"
-              onClick={handleAddGoal}
-            >
-              Add goal
-            </Button>
-          )}
-        </div>
-      ) : (
-        // A row so the panel is a sibling of the board rather than an overlay: the board's grid
-        // takes the width that is left, keeping every column reachable.
-        //
-        // The row is measured, not stretched. The board sets its own scrollport height inline, so
-        // there is no natural height for the panel to stretch against — without this a long
-        // checklist grows the panel past the viewport with nothing to scroll it back.
-        <div
-          ref={boardRowRef}
-          className={styles.boardRow}
-          style={{ height: boardRowHeight }}
-        >
-          <div className={styles.boardRowMain}>
-            <StoryMapBoard
-              map={map}
-              selectedPersonaId={selectedPersonaId}
-              actions={actions}
-              onAddStep={handleAddStep}
-              onAddSwimLane={handleAddSwimLane}
-              collapsedSwimLaneIds={collapsedSwimLaneIds}
-              onToggleSwimLaneCollapsed={handleToggleSwimLaneCollapsed}
-              collapsedGoalIds={collapsedGoalIds}
-              onToggleGoalCollapsed={handleToggleGoalCollapsed}
-            />
-          </div>
-
-          {showTaskPanel && (
-            <TaskPanel
-              map={map}
-              storyMapKey={key}
-              task={selectedTask}
-              canUpdate={canEdit}
-              onClose={() => setSelectedTaskId(null)}
-              onRenameTask={handleRenameTask}
-              onSetTaskDescription={handleSetTaskDescription}
-              onDeleteTask={handleDeleteTask}
-              onToggleTaskPersona={handleToggleTaskPersona}
-              onMoveTaskToLane={handleMoveTaskToLane}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Narrow viewports cannot spare the width for a sider, so they overlay instead. */}
-      {!showTaskPanel && (
-        <TaskDrawer
-          map={map}
+    <RecordShell
+      record={{
+        name: map.name,
+        recordKey: String(map.key),
+        subtitle: 'Story Map',
+        parent: { label: 'Story Maps', href: '/planning/story-maps' },
+        tags: pageTitleTags,
+        actions: pageTitleActions,
+      }}
+    >
+      <div className={styles.pageContainer} style={cssVars}>
+        <PersonaFilterBar
+          storyMapId={map.id}
           storyMapKey={key}
-          task={selectedTask}
+          map={map}
+          personas={map.personas}
+          selectedPersonaId={selectedPersonaId}
+          onSelectPersona={setSelectedPersonaId}
           canUpdate={canEdit}
-          onClose={() => setSelectedTaskId(null)}
-          onRenameTask={handleRenameTask}
-          onSetTaskDescription={handleSetTaskDescription}
-          onDeleteTask={handleDeleteTask}
-          onToggleTaskPersona={handleToggleTaskPersona}
-          onMoveTaskToLane={handleMoveTaskToLane}
+          onManage={() => setOpenManagePersonas(true)}
         />
-      )}
 
-      {openEditForm && (
-        <EditStoryMapForm
-          storyMapKey={key}
-          onFormUpdate={() => setOpenEditForm(false)}
-          onFormCancel={() => setOpenEditForm(false)}
-        />
-      )}
-      {openManagePersonas && (
-        <ManagePersonasForm
-          map={map}
-          storyMapKey={key}
-          onClose={() => setOpenManagePersonas(false)}
-        />
-      )}
-      {openArchiveMap && (
-        <ArchiveStoryMapForm
-          storyMap={{ id: map.id, key: map.key, name: map.name }}
-          onFormComplete={() => setOpenArchiveMap(false)}
-          onFormCancel={() => setOpenArchiveMap(false)}
-        />
-      )}
-      {openDeleteMap && (
-        <DeleteStoryMapForm
-          storyMap={{ id: map.id, key: map.key, name: map.name }}
-          onFormComplete={() => {
-            deletedHereRef.current = true
-            setOpenDeleteMap(false)
-            router.push('/planning/story-maps')
-          }}
-          onFormCancel={() => setOpenDeleteMap(false)}
-        />
-      )}
+        {map.goals.length === 0 ? (
+          <div className={styles.emptyBoard}>
+            <div className={styles.emptyBoardTile} aria-hidden>
+              <PlusOutlined />
+            </div>
+            <span className={styles.emptyBoardTitle}>Start with a goal</span>
+            <span className={styles.emptyBoardText}>
+              Goals are what your users are trying to accomplish. Add the first
+              one to begin mapping the journey.
+            </span>
+            {canEdit && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                data-tour="add-goal-empty"
+                onClick={handleAddGoal}
+              >
+                Add goal
+              </Button>
+            )}
+          </div>
+        ) : (
+          // A row so the panel is a sibling of the board rather than an overlay: the board's grid
+          // takes the width that is left, keeping every column reachable.
+          //
+          // The row is measured, not stretched. The board sets its own scrollport height inline, so
+          // there is no natural height for the panel to stretch against — without this a long
+          // checklist grows the panel past the viewport with nothing to scroll it back.
+          <div
+            ref={boardRowRef}
+            className={styles.boardRow}
+            style={{ height: boardRowHeight }}
+          >
+            <div className={styles.boardRowMain}>
+              <StoryMapBoard
+                map={map}
+                selectedPersonaId={selectedPersonaId}
+                actions={actions}
+                onAddStep={handleAddStep}
+                onAddSwimLane={handleAddSwimLane}
+                collapsedSwimLaneIds={collapsedSwimLaneIds}
+                onToggleSwimLaneCollapsed={handleToggleSwimLaneCollapsed}
+                collapsedGoalIds={collapsedGoalIds}
+                onToggleGoalCollapsed={handleToggleGoalCollapsed}
+              />
+            </div>
 
-      <Tour
-        open={tourOpen}
-        current={tourCurrent}
-        steps={tourSteps}
-        actionsRender={tourActionsRender}
-        onChange={onTourChange}
-        onClose={onTourClose}
-        onFinish={onTourClose}
-      />
-    </div>
+            {showTaskPanel && (
+              <TaskPanel
+                map={map}
+                storyMapKey={key}
+                task={selectedTask}
+                canUpdate={canEdit}
+                onClose={() => setSelectedTaskId(null)}
+                onRenameTask={handleRenameTask}
+                onSetTaskDescription={handleSetTaskDescription}
+                onDeleteTask={handleDeleteTask}
+                onToggleTaskPersona={handleToggleTaskPersona}
+                onMoveTaskToLane={handleMoveTaskToLane}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Narrow viewports cannot spare the width for a sider, so they overlay instead. */}
+        {!showTaskPanel && (
+          <TaskDrawer
+            map={map}
+            storyMapKey={key}
+            task={selectedTask}
+            canUpdate={canEdit}
+            onClose={() => setSelectedTaskId(null)}
+            onRenameTask={handleRenameTask}
+            onSetTaskDescription={handleSetTaskDescription}
+            onDeleteTask={handleDeleteTask}
+            onToggleTaskPersona={handleToggleTaskPersona}
+            onMoveTaskToLane={handleMoveTaskToLane}
+          />
+        )}
+
+        {openEditForm && (
+          <EditStoryMapForm
+            storyMapKey={key}
+            onFormUpdate={() => setOpenEditForm(false)}
+            onFormCancel={() => setOpenEditForm(false)}
+          />
+        )}
+        {openManagePersonas && (
+          <ManagePersonasForm
+            map={map}
+            storyMapKey={key}
+            onClose={() => setOpenManagePersonas(false)}
+          />
+        )}
+        {openArchiveMap && (
+          <ArchiveStoryMapForm
+            storyMap={{ id: map.id, key: map.key, name: map.name }}
+            onFormComplete={() => setOpenArchiveMap(false)}
+            onFormCancel={() => setOpenArchiveMap(false)}
+          />
+        )}
+        {openDeleteMap && (
+          <DeleteStoryMapForm
+            storyMap={{ id: map.id, key: map.key, name: map.name }}
+            onFormComplete={() => {
+              deletedHereRef.current = true
+              setOpenDeleteMap(false)
+              router.push('/planning/story-maps')
+            }}
+            onFormCancel={() => setOpenDeleteMap(false)}
+          />
+        )}
+
+        <Tour
+          open={tourOpen}
+          current={tourCurrent}
+          steps={tourSteps}
+          actionsRender={tourActionsRender}
+          onChange={onTourChange}
+          onClose={onTourClose}
+          onFinish={onTourClose}
+        />
+      </div>
+    </RecordShell>
   )
 }
 

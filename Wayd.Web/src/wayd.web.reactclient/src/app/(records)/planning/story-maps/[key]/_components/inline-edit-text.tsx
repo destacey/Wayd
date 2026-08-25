@@ -3,7 +3,7 @@
 import { Input, InputRef } from 'antd'
 import type { TextAreaRef } from 'antd/es/input/TextArea'
 import { FC, KeyboardEvent, Ref, useEffect, useRef, useState } from 'react'
-import styles from '../../_components/story-map.module.css'
+import styles from '@/src/app/(legacy)/planning/story-maps/_components/story-map.module.css'
 
 const { TextArea } = Input
 

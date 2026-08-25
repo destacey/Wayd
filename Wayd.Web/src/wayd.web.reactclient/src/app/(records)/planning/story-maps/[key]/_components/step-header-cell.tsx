@@ -8,7 +8,7 @@ import { StepPlacement, STEP_ROW } from './board-layout'
 import InlineEditText from './inline-edit-text'
 import PersonaToggleDots from './persona-toggle-dots'
 import { useBoardSortable } from './use-board-sortable'
-import styles from '../../_components/story-map.module.css'
+import styles from '@/src/app/(legacy)/planning/story-maps/_components/story-map.module.css'
 
 export interface StepHeaderCellProps {
   placement: StepPlacement

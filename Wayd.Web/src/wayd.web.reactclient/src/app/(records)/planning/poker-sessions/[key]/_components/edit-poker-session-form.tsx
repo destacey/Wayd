@@ -13,7 +13,7 @@ import {
 } from '@/src/store/features/planning/poker-sessions-api'
 import { useGetEstimationScalesQuery } from '@/src/store/features/planning/estimation-scales-api'
 import { useModalForm } from '@/src/hooks'
-import createStyles from '../../_components/poker-sessions.module.css'
+import createStyles from '@/src/app/(legacy)/planning/poker-sessions/_components/poker-sessions.module.css'
 
 const { Item } = Form
 const { TextArea } = Input

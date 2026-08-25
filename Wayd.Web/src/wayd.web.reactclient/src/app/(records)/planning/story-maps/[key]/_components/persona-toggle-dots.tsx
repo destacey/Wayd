@@ -3,7 +3,7 @@
 import { StoryMapPersonaDto } from '@/src/services/wayd-api'
 import { WaydTooltip } from '@/src/components/common'
 import { FC, MouseEvent } from 'react'
-import styles from '../../_components/story-map.module.css'
+import styles from '@/src/app/(legacy)/planning/story-maps/_components/story-map.module.css'
 
 export interface PersonaToggleDotsProps {
   /** Every persona on the map — an unlinked one renders hollow so it can be clicked to link. */

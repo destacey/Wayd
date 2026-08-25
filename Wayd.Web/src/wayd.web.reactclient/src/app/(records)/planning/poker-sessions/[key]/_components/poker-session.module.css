@@ -1,13 +1,22 @@
 /* ─── Layout ───────────────────────────────────────────────────────────────── */
 
+/* No padding of its own: RecordShell frames the page. This element remains to
+   carry the theme CSS custom properties the session reads. */
 .pageContainer {
-  padding-top: 16px;
+  display: contents;
 }
 
+/* No top margin: it separated this from PageTitle's own margin, and
+   RecordShell's content padding now supplies that gap. */
 .pageLayout {
   display: flex;
   gap: 16px;
-  margin-top: 16px;
+}
+
+/* Spans the content width above both columns, so it costs the page one row
+   rather than pushing the sidebar down past the centre column. */
+.presenceRow {
+  margin-bottom: 12px;
 }
 
 .centerColumn {
@@ -19,6 +28,14 @@
   width: 300px;
   flex-shrink: 0;
 }
+
+/* Matches `.sidebar`, which its child also carries, so the column keeps its
+   width whichever sidebar is showing. */
+.sidebarColumn {
+  width: 300px;
+  flex-shrink: 0;
+}
+
 
 .sidebarInner {
   border: 1px solid var(--poker-border);

@@ -1,13 +1,7 @@
 'use client'
 
-import PageTitle from '@/src/components/common/page-title'
-import { Skeleton } from 'antd'
+import { RecordLoading } from '@/src/components/common/record'
 
 export default function StoryMapDetailsLoading() {
-  return (
-    <>
-      <PageTitle title="Story Map" />
-      <Skeleton active />
-    </>
-  )
+  return <RecordLoading title="Story Map" />
 }

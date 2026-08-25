@@ -47,25 +47,12 @@ public abstract class PresenceHub : Hub
     /// Moves the connection out of any group it is already in. Set where one connection may only be
     /// in one group at a time; without it a stale entry is left behind on the previous group.
     /// </param>
-    protected async Task JoinPresenceGroup(string groupKey, bool leaveOtherGroups = false)
+    protected async Task JoinPresenceGroup(
+        string groupKey,
+        bool leaveOtherGroups = false)
     {
         var connectionId = Context.ConnectionId;
         var presenceKey = Qualify(groupKey);
-
-        var userId = Context.User?.GetUserId();
-        // Fall back to email: GetComposedName returns null when there is no first-name claim, and a
-        // participant with no name at all is dropped from presence entirely by the guard below.
-        var name = FirstNonBlank(
-            Context.User.GetComposedName(),
-            Context.User?.GetEmail());
-        // Nullable: an account need not be linked to an employee. Clients use it to open the
-        // person's employee record, and omit that affordance when it is absent.
-        var employeeId = Context.User?.GetEmployeeId();
-
-        // Before joining the group: a connection added and then abandoned here would keep receiving
-        // broadcasts while being invisible to presence.
-        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(name))
-            return;
 
         if (leaveOtherGroups
             && _connections.TryGetValue(connectionId, out var existingKey)
@@ -74,6 +61,21 @@ public abstract class PresenceHub : Hub
             await Groups.RemoveFromGroupAsync(connectionId, Unqualify(existingKey));
             await RemovePresence(connectionId, existingKey);
         }
+
+        var userId = Context.User?.GetUserId();
+        // Fall back to email: GetComposedName returns null when there is no first-name claim.
+        var name = FirstNonBlank(
+            Context.User.GetComposedName(),
+            Context.User?.GetEmail());
+        // Nullable: an account need not be linked to an employee. Clients use it to open the
+        // person's employee record, and omit that affordance when it is absent.
+        var employeeId = Context.User?.GetEmployeeId();
+
+        // Refused the group, not merely the roster: group membership is what delivers a record's
+        // content, and a participant nobody else can see is its own problem in a live session.
+        // Reachable only for an authenticated account with no name and no email.
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(name))
+            return;
 
         await Groups.AddToGroupAsync(connectionId, groupKey);
 

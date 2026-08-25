@@ -19,7 +19,7 @@ public class PlanningPokerHubTests
     private const string TestEmployeeId = "8f2c1b40-0000-4000-a000-000000000001";
     private const string TestEmail = "jane@example.com";
 
-    private static (PlanningPokerHub Hub, Mock<ISingleClientProxy> CallerProxy) BuildHub(
+    private static (PlanningPokerHub Hub, Mock<ISingleClientProxy> CallerProxy, Mock<IGroupManager> Groups) BuildHub(
         ClaimsPrincipal user,
         string? connectionId = null)
     {
@@ -58,7 +58,7 @@ public class PlanningPokerHubTests
             Clients = mockClients.Object,
         };
 
-        return (hub, callerProxy);
+        return (hub, callerProxy, mockGroups);
     }
 
     private static ClaimsPrincipal Principal(params (string Type, string Value)[] claims)
@@ -124,13 +124,32 @@ public class PlanningPokerHubTests
     }
 
     [Fact]
+    public async Task JoinSession_WithUnresolvableIdentity_DoesNotJoinTheGroup()
+    {
+        // Group membership is what delivers the session's broadcasts, and a participant nobody
+        // else can see is its own problem in a live estimation session.
+        var sessionId = Guid.NewGuid();
+        var user = Principal((ClaimTypes.NameIdentifier, TestUserId));
+        var (hub, callerProxy, groups) = BuildHub(user, connectionId: "conn-1");
+
+        await hub.JoinSession(sessionId);
+
+        groups.Verify(
+            g => g.AddToGroupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        callerProxy.Verify(
+            p => p.SendCoreAsync("ParticipantList", It.IsAny<object?[]>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task JoinSession_IncludesTheEmployeeId_SoClientsCanOpenThePersonsRecord()
     {
         var user = Principal(
             (ClaimTypes.NameIdentifier, TestUserId),
             (ClaimTypes.Name, WaydFirstName),
             ("EmployeeId", TestEmployeeId));
-        var (hub, callerProxy) = BuildHub(user);
+        var (hub, callerProxy, _) = BuildHub(user);
 
         await hub.JoinSession(Guid.NewGuid());
 
@@ -145,7 +164,7 @@ public class PlanningPokerHubTests
         var user = Principal(
             (ClaimTypes.NameIdentifier, TestUserId),
             (ClaimTypes.Name, WaydFirstName));
-        var (hub, callerProxy) = BuildHub(user);
+        var (hub, callerProxy, _) = BuildHub(user);
 
         await hub.JoinSession(Guid.NewGuid());
 
@@ -161,7 +180,7 @@ public class PlanningPokerHubTests
             (ClaimTypes.NameIdentifier, TestUserId),
             (ClaimTypes.Name, WaydFirstName),
             (ClaimTypes.Surname, WaydSurname));
-        var (hub, callerProxy) = BuildHub(user);
+        var (hub, callerProxy, _) = BuildHub(user);
 
         await hub.JoinSession(Guid.NewGuid());
 
@@ -177,7 +196,7 @@ public class PlanningPokerHubTests
             (ClaimTypes.NameIdentifier, TestUserId),
             (ClaimTypes.Name, WaydFirstName),
             (ClaimTypes.Email, TestEmail));
-        var (hub, callerProxy) = BuildHub(user);
+        var (hub, callerProxy, _) = BuildHub(user);
 
         await hub.JoinSession(Guid.NewGuid());
 
@@ -192,7 +211,7 @@ public class PlanningPokerHubTests
             (ClaimTypes.NameIdentifier, TestUserId),
             (ClaimTypes.Surname, WaydSurname),
             (ClaimTypes.Email, TestEmail));
-        var (hub, callerProxy) = BuildHub(user);
+        var (hub, callerProxy, _) = BuildHub(user);
 
         await hub.JoinSession(Guid.NewGuid());
 
@@ -212,7 +231,7 @@ public class PlanningPokerHubTests
             (ClaimTypes.NameIdentifier, TestUserId),
             (ClaimTypes.Name, blankFirstName),
             (ClaimTypes.Email, TestEmail));
-        var (hub, callerProxy) = BuildHub(user);
+        var (hub, callerProxy, _) = BuildHub(user);
 
         await hub.JoinSession(Guid.NewGuid());
 
@@ -227,7 +246,7 @@ public class PlanningPokerHubTests
         var user = Principal(
             (ClaimTypes.NameIdentifier, TestUserId),
             (ClaimTypes.Email, TestEmail));
-        var (hub, callerProxy) = BuildHub(user);
+        var (hub, callerProxy, _) = BuildHub(user);
 
         await hub.JoinSession(Guid.NewGuid());
 
@@ -243,7 +262,7 @@ public class PlanningPokerHubTests
         var user = Principal(
             ("name", EntraDisplayName),
             (ClaimTypes.Email, TestEmail));
-        var (hub, callerProxy) = BuildHub(user);
+        var (hub, callerProxy, _) = BuildHub(user);
 
         await hub.JoinSession(Guid.NewGuid());
 
@@ -258,7 +277,7 @@ public class PlanningPokerHubTests
         // userId present but every display-name source is empty → bail before participant
         // tracking. The hub treats this as an unauthenticated-ish edge case.
         var user = Principal((ClaimTypes.NameIdentifier, TestUserId));
-        var (hub, callerProxy) = BuildHub(user);
+        var (hub, callerProxy, _) = BuildHub(user);
 
         await hub.JoinSession(Guid.NewGuid());
 

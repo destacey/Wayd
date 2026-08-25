@@ -1,20 +1,19 @@
 'use client'
 
-import { WaydDateRange, PageActions, PageTitle } from '@/src/components/common'
+import { PageActions, WaydTooltip } from '@/src/components/common'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
-import { useAppDispatch, useDocumentTitle } from '@/src/hooks'
+import { useDocumentTitle } from '@/src/hooks'
 import {
   ROADMAP_STATE,
   useGetRoadmapItemsQuery,
   useGetRoadmapQuery,
 } from '@/src/store/features/planning/roadmaps-api'
-import { notFound, usePathname, useRouter } from 'next/navigation'
+import { notFound, useRouter } from 'next/navigation'
 import RoadmapDetailsLoading from './loading'
-import { use, useEffect, useState } from 'react'
-import { BreadcrumbItem, setBreadcrumbRoute } from '@/src/store/breadcrumbs'
+import { use, useState } from 'react'
 import { LockOutlined, UnlockOutlined } from '@ant-design/icons'
-import { Descriptions, Divider, MenuProps, Space, Tag } from 'antd'
+import { MenuProps, Space, Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import {
   ChangeRoadmapStateForm,
@@ -24,16 +23,15 @@ import {
   EditRoadmapForm,
   RoadmapItemDrawer,
   RoadmapViewManager,
-} from '../_components'
-import { RoadmapStateAction } from '../_components/change-roadmap-state-form'
-import { MarkdownRenderer } from '@/src/components/common/markdown'
-import CreateRoadmapActivityForm from '../_components/create-roadmap-activity-form'
-import CreateRoadmapTimeboxForm from '../_components/create-roadmap-timebox-form'
+} from '@/src/app/(legacy)/planning/roadmaps/_components'
+import { RoadmapStateAction } from '@/src/app/(legacy)/planning/roadmaps/_components/change-roadmap-state-form'
+import CreateRoadmapActivityForm from '@/src/app/(legacy)/planning/roadmaps/_components/create-roadmap-activity-form'
+import CreateRoadmapTimeboxForm from '@/src/app/(legacy)/planning/roadmaps/_components/create-roadmap-timebox-form'
+import { RecordLayout, RecordSection } from '@/src/components/common/record'
+import RoadmapFacts from './_components/roadmap-facts'
 
-const { Item } = Descriptions
-
-const visibilityTitle = (visibility: string, managersInfo: string) => {
-  return `This roadmap is set to ${visibility}.\n\nThe roadmap managers are: ${managersInfo}`
+enum RoadmapSections {
+  Plan = 'plan',
 }
 
 const RoadmapDetailsPage = (props: { params: Promise<{ key: string }> }) => {
@@ -55,9 +53,6 @@ const RoadmapDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
 
-  const pathname = usePathname()
-  const dispatch = useAppDispatch()
-
   const router = useRouter()
 
   const { user, hasPermissionClaim } = useAuth()
@@ -72,58 +67,27 @@ const RoadmapDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     !!currentUserInternalEmployeeId
 
   const {
-    data: roadmapData,
+    data: roadmap,
     isLoading,
-    error,
     refetch: refetchRoadmap,
   } = useGetRoadmapQuery(roadmapKey.toString())
 
-  useDocumentTitle(`${roadmapData?.name ?? roadmapKey} - Roadmap Details`)
+  useDocumentTitle(`${roadmap?.name ?? roadmapKey} - Roadmap Details`)
 
   const {
     data: roadmapItems,
     isLoading: isRoadmapItemsLoading,
     refetch: refetchRoadmapItems,
-  } = useGetRoadmapItemsQuery(roadmapData?.id ?? '', {
-    skip: !roadmapData,
+  } = useGetRoadmapItemsQuery(roadmap?.id ?? '', {
+    skip: !roadmap,
   })
 
-  const managersInfo = !roadmapData
-    ? 'Unknown'
-    : roadmapData.roadmapManagers
-        .slice()
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((m) => m.name)
-        .join(', ')
-
   const isRoadmapManager =
-    !!roadmapData &&
+    !!roadmap &&
     !!currentUserInternalEmployeeId &&
-    roadmapData.roadmapManagers.some(
-      (rm) => rm.id === currentUserInternalEmployeeId,
-    )
+    roadmap.roadmapManagers.some((rm) => rm.id === currentUserInternalEmployeeId)
 
-  const isArchived = roadmapData?.state?.id === ROADMAP_STATE.Archived
-
-  useEffect(() => {
-    if (!roadmapData) return
-
-    const breadcrumbRoute: BreadcrumbItem[] = [
-      {
-        title: 'Planning',
-      },
-      {
-        href: `/planning/roadmaps`,
-        title: 'Roadmaps',
-      },
-    ]
-
-    breadcrumbRoute.push({
-      title: 'Details',
-    })
-
-    dispatch(setBreadcrumbRoute({ route: breadcrumbRoute, pathname }))
-  }, [dispatch, pathname, roadmapData])
+  const isArchived = roadmap?.state?.id === ROADMAP_STATE.Archived
 
   const actionsMenuItems: MenuProps['items'] = (() => {
     const items: ItemType[] = []
@@ -253,24 +217,6 @@ const RoadmapDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     }
   }
 
-  const visibilityTag =
-    roadmapData?.visibility?.name === 'Public' ? (
-      <UnlockOutlined title={visibilityTitle('Public', managersInfo)} />
-    ) : (
-      <LockOutlined title={visibilityTitle('Private', managersInfo)} />
-    )
-
-  const headerTags = (
-    <Space>
-      {visibilityTag}
-      {isArchived && <Tag>Archived</Tag>}
-    </Space>
-  )
-
-  const showDrawer = () => {
-    setDrawerOpen(true)
-  }
-
   const onDrawerClose = () => {
     setDrawerOpen(false)
     setSelectedItemId(null)
@@ -278,50 +224,68 @@ const RoadmapDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const openRoadmapItemDrawer = (itemId: string) => {
     setSelectedItemId(itemId)
-    showDrawer()
+    setDrawerOpen(true)
   }
 
   if (isLoading) {
     return <RoadmapDetailsLoading />
   }
 
-  if (!roadmapData) {
+  if (!roadmap) {
     return notFound()
   }
 
+  // The managers are the panel's Relationships group; the icon says which of
+  // the two visibilities is set without spending a row on it.
+  const visibilityTag = (
+    <WaydTooltip title={`This roadmap is ${roadmap.visibility?.name}`}>
+      {roadmap.visibility?.name === 'Public' ? (
+        <UnlockOutlined />
+      ) : (
+        <LockOutlined />
+      )}
+    </WaydTooltip>
+  )
+
+  // One section: the plan is the roadmap, and RoadmapViewManager already owns
+  // the Gantt/Timeline/Grid switch inside it.
+  const sections: RecordSection[] = [
+    { id: RoadmapSections.Plan, label: 'Plan' },
+  ]
+
   return (
     <>
-      <PageTitle
-        title={`${roadmapData?.key} - ${roadmapData?.name}`}
-        subtitle="Roadmap Details"
-        actions={<PageActions actionItems={actionsMenuItems} />}
-        tags={headerTags}
-      />
-      {roadmapData && (
-        <>
-          <Descriptions>
-            <Item label="Dates">
-              <WaydDateRange
-                dateRange={{ start: roadmapData.start, end: roadmapData.end }}
-              />
-            </Item>
-          </Descriptions>
-          <Descriptions>
-            <Item>
-              <MarkdownRenderer markdown={roadmapData.description} />
-            </Item>
-          </Descriptions>
-        </>
-      )}
-      <Divider />
-      <RoadmapViewManager
-        roadmap={roadmapData}
-        roadmapItems={roadmapItems ?? []}
-        isRoadmapItemsLoading={isRoadmapItemsLoading}
-        refreshRoadmapItems={refetchRoadmapItems}
-        canUpdateRoadmap={canUpdateRoadmap && isRoadmapManager && !isArchived}
-        openRoadmapItemDrawer={openRoadmapItemDrawer}
-      />
+      <RecordLayout
+        sections={sections}
+        defaultSection={RoadmapSections.Plan}
+        record={{
+          name: roadmap.name,
+          recordKey: String(roadmap.key),
+          subtitle: 'Roadmap Details',
+          parent: { label: 'Roadmaps', href: '/planning/roadmaps' },
+          tags: (
+            <Space>
+              {visibilityTag}
+              {isArchived && <Tag>Archived</Tag>}
+            </Space>
+          ),
+          actions: <PageActions actionItems={actionsMenuItems} />,
+        }}
+        facts={<RoadmapFacts roadmap={roadmap} />}
+      >
+        {() => (
+          <RoadmapViewManager
+            roadmap={roadmap}
+            roadmapItems={roadmapItems ?? []}
+            isRoadmapItemsLoading={isRoadmapItemsLoading}
+            refreshRoadmapItems={refetchRoadmapItems}
+            canUpdateRoadmap={
+              canUpdateRoadmap && isRoadmapManager && !isArchived
+            }
+            openRoadmapItemDrawer={openRoadmapItemDrawer}
+          />
+        )}
+      </RecordLayout>
       {openEditRoadmapForm && (
         <EditRoadmapForm
           roadmapKey={roadmapKey}
@@ -331,51 +295,51 @@ const RoadmapDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       )}
       {openConfigureColorsForm && (
         <ConfigureRoadmapColorsForm
-          roadmap={roadmapData}
+          roadmap={roadmap}
           onFormComplete={() => onConfigureColorsFormClosed(true)}
           onFormCancel={() => onConfigureColorsFormClosed(false)}
         />
       )}
       {openCopyRoadmapForm && (
         <CopyRoadmapForm
-          sourceRoadmapId={roadmapData?.id}
-          sourceRoadmapName={roadmapData?.name}
+          sourceRoadmapId={roadmap.id}
+          sourceRoadmapName={roadmap.name}
           onFormComplete={onCopyRoadmapFormClosed}
           onFormCancel={onCopyRoadmapFormClosed}
         />
       )}
       {openDeleteRoadmapForm && (
         <DeleteRoadmapForm
-          roadmap={roadmapData}
+          roadmap={roadmap}
           onFormComplete={() => onDeleteFormClosed(true)}
           onFormCancel={() => onDeleteFormClosed(false)}
         />
       )}
       {openCreateActivityForm && (
         <CreateRoadmapActivityForm
-          roadmapId={roadmapData?.id}
+          roadmapId={roadmap.id}
           onFormComplete={() => onCreateRoadmapActivityFormClosed(true)}
           onFormCancel={() => onCreateRoadmapActivityFormClosed(false)}
         />
       )}
       {openCreateTimeboxForm && (
         <CreateRoadmapTimeboxForm
-          roadmapId={roadmapData?.id}
+          roadmapId={roadmap.id}
           onFormComplete={() => onCreateRoadmapTimeboxFormClosed(true)}
           onFormCancel={() => onCreateRoadmapTimeboxFormClosed(false)}
         />
       )}
       {openChangeStateForm && (
         <ChangeRoadmapStateForm
-          roadmap={roadmapData}
+          roadmap={roadmap}
           stateAction={openChangeStateForm}
           onFormComplete={() => onChangeStateFormClosed(true)}
           onFormCancel={() => onChangeStateFormClosed(false)}
         />
       )}
-      {roadmapData?.id && selectedItemId && (
+      {selectedItemId && (
         <RoadmapItemDrawer
-          roadmapId={roadmapData.id}
+          roadmapId={roadmap.id}
           roadmapItemId={selectedItemId}
           drawerOpen={drawerOpen}
           onDrawerClose={onDrawerClose}

@@ -8,7 +8,7 @@ import {
   DeletePokerSessionForm,
   PokerSessionsGrid,
 } from './_components'
-import EditPokerSessionForm from './[key]/_components/edit-poker-session-form'
+import EditPokerSessionForm from '@/src/app/(records)/planning/poker-sessions/[key]/_components/edit-poker-session-form'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { Button } from 'antd'

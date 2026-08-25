@@ -30,9 +30,11 @@ export interface DaysCountdownMetricProps {
   }
 
   /**
-   * Optional style to apply to the card
+   * Optional style to apply to the card. Named to match the other metrics —
+   * as `style` it was passed to a `MetricCard` prop that does not exist and
+   * silently dropped, leaving this card sized differently from its row.
    */
-  style?: React.CSSProperties
+  cardStyle?: React.CSSProperties
 }
 
 const DaysCountdownMetric: FC<DaysCountdownMetricProps> = ({
@@ -40,7 +42,7 @@ const DaysCountdownMetric: FC<DaysCountdownMetricProps> = ({
   startDate,
   endDate,
   labels = {},
-  style,
+  cardStyle,
 }) => {
   const metric = (() => {
     switch (state) {
@@ -76,7 +78,7 @@ const DaysCountdownMetric: FC<DaysCountdownMetricProps> = ({
       value={metric.value}
       suffix={suffix}
       secondaryValue={metric.secondaryValue ?? undefined}
-      style={style}
+      cardStyle={cardStyle}
       tooltip={
         state === IterationState.Active
           ? 'Days remaining until the iteration ends. Percentage shows how much time has elapsed.'

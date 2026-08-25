@@ -1,0 +1,22 @@
+/*
+ * Two initials need a smaller face than antd's default at these sizes, which
+ * are set for a single character.
+ */
+.avatar {
+  font-size: 0.8em;
+  /* Positioned so a hovered avatar can rise above the ones overlapping it in a
+     group — z-index does nothing on a static element. */
+  position: relative;
+  transition: transform 0.15s ease;
+}
+
+.avatar:hover {
+  transform: translateY(-2px) scale(1.12);
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar {
+    transition: none;
+  }
+}

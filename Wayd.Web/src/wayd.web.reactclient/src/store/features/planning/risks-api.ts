@@ -3,6 +3,7 @@ import { apiSlice } from '../apiSlice'
 import {
   CreateRiskRequest,
   ObjectIdAndKey,
+  RiskCategoryDto,
   RiskDetailsDto,
   RiskListDto,
   UpdateRiskRequest,
@@ -100,6 +101,21 @@ export const risksApi = apiSlice.injectEndpoints({
       },
       providesTags: () => [{ type: QueryTags.RiskStatusOptions, id: 'LIST' }],
     }),
+    // The option-shaped query above drops the description, which is the ROAM
+    // definition — worth keeping where the four categories are shown together
+    // and a reader may not recall what Accepted means next to Mitigated.
+    getRiskCategories: builder.query<RiskCategoryDto[], void>({
+      queryFn: async () => {
+        try {
+          const categories = await getRisksClient().getCategories()
+          return { data: _.sortBy(categories, ['order']) }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: () => [{ type: QueryTags.RiskCategoryOptions, id: 'LIST' }],
+    }),
     getRiskCategoryOptions: builder.query<OptionModel<number>[], void>({
       queryFn: async () => {
         try {
@@ -147,6 +163,7 @@ export const {
   useCreateRiskMutation,
   useUpdateRiskMutation,
   useGetRiskStatusOptionsQuery,
+  useGetRiskCategoriesQuery,
   useGetRiskCategoryOptionsQuery,
   useGetRiskGradeOptionsQuery,
 } = risksApi

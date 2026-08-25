@@ -51,8 +51,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 RUN chown -R nextjs:nodejs /app/.next
 
 # Must follow the standalone COPY above: output tracing sweeps the project root into
-# .next/standalone, so it carries its own 0644 entrypoint.sh that lands on /app and
-# clobbers this one. Copying and chmodding last is what keeps the exec bit.
+# .next/standalone, so that copy of entrypoint.sh lands on /app and overwrites whatever
+# was there. Copying last is what puts the intended script in the final image; the chmod
+# holds the exec bit regardless of the mode the traced copy arrives with.
 COPY --from=builder /app/entrypoint.sh ./
 RUN chmod +x /app/entrypoint.sh && chown nextjs:nodejs /app/entrypoint.sh
 

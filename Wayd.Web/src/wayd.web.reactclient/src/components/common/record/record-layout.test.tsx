@@ -219,6 +219,75 @@ describe('RecordLayout', () => {
   })
 })
 
+describe('RecordLayout with a single section', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockParams = new URLSearchParams()
+    mockBreakpoint.mockReturnValue({ md: true, lg: true, xl: true })
+  })
+
+  const ONE = [{ id: 'narrative', label: 'Risk' }]
+
+  const renderOne = () =>
+    render(
+      <RecordLayout sections={ONE} defaultSection="narrative">
+        {(section) => <div>section: {section}</div>}
+      </RecordLayout>,
+    )
+
+  it('renders no rail, which would only say there is nowhere to go', () => {
+    // Arrange / Act
+    renderOne()
+
+    // Assert
+    expect(screen.queryByRole('tablist')).toBeNull()
+    expect(screen.getByText('section: narrative')).toBeInTheDocument()
+  })
+
+  it('drops the heading, which would only echo the identity bar', () => {
+    // Arrange / Act
+    renderOne()
+
+    // Assert
+    expect(screen.queryByRole('heading', { name: 'Risk' })).toBeNull()
+  })
+
+  it('keeps the heading when the section has actions to place', () => {
+    // Arrange / Act — the actions need a row, and a bare row of buttons
+    // reads as detached.
+    render(
+      <RecordLayout
+        sections={ONE}
+        defaultSection="narrative"
+        sectionActions={<button>Add check</button>}
+      >
+        {() => <div>content</div>}
+      </RecordLayout>,
+    )
+
+    // Assert
+    expect(screen.getByRole('heading', { name: 'Risk' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add check' })).toBeInTheDocument()
+  })
+
+  it('still shows a rail once a report joins the single section', () => {
+    // Arrange / Act — reports count toward the rail, so a record with one
+    // section and one report can still be navigated.
+    render(
+      <RecordLayout
+        sections={ONE}
+        reports={[{ id: 'health', label: 'Health Report' }]}
+        defaultSection="narrative"
+      >
+        {() => <div>content</div>}
+      </RecordLayout>,
+    )
+
+    // Assert
+    expect(screen.getByRole('tablist')).toBeInTheDocument()
+  })
+})
+
 describe('RecordLayout record facts', () => {
   beforeEach(() => {
     jest.clearAllMocks()

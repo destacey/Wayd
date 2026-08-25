@@ -274,4 +274,22 @@ describe('DaysCountdownMetric', () => {
       expect(screen.getByText('50%')).toBeInTheDocument()
     })
   })
+
+  it('applies cardStyle to the card, like the other metrics', () => {
+    // Arrange / Act — it forwarded a `style` prop that MetricCard does not
+    // have, so sizing was silently dropped and this card came out narrower
+    // than the rest of its row.
+    const { container } = render(
+      <DaysCountdownMetric
+        state={IterationState.Active}
+        startDate={new Date('2026-08-17')}
+        endDate={new Date('2026-08-30')}
+        cardStyle={{ minWidth: 150 }}
+      />,
+    )
+
+    // Assert
+    const card = container.querySelector('.ant-card') as HTMLElement
+    expect(card).toHaveStyle({ minWidth: '150px' })
+  })
 })

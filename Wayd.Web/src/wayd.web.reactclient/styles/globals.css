@@ -47,9 +47,11 @@ body {
   flex: 1; /* Allows the content to grow and occupy remaining space */
   overflow-x: hidden; /* Prevent horizontal scroll from negative-margin children (e.g. docs layout) */
   overflow-y: auto; /* Enable vertical scrolling */
-  /* Reserves the scrollbar gutter so content does not shift sideways when
-     navigating between a page that overflows and one that does not. */
-  scrollbar-gutter: stable;
+  /* No `scrollbar-gutter: stable` here. It removes the 15px shift between a
+     page that scrolls and one that does not, but reserves that strip on every
+     page — so a short record page showed a blank gutter with the details knob
+     stranded beside it, and its identity bar stopped short of the edge. The
+     shift is the lesser of the two, and is what the app did before. */
   /* No padding here: the route group decides. app/(legacy)/layout.tsx supplies
      it for pages still on the old chrome; record pages render edge-to-edge. */
 }

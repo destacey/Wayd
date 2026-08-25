@@ -5,6 +5,7 @@ import {
   CycleTimeMetric,
   DaysCountdownMetric,
   HealthMetric,
+  METRIC_CARD_FLEX,
   MetricCard,
   StatusMetric,
   VelocityMetric,
@@ -14,7 +15,7 @@ import useTheme from '@/src/components/contexts/theme'
 import { IterationState } from '@/src/components/types'
 import { SizingMethod, SprintDetailsDto } from '@/src/services/wayd-api'
 import { useGetSprintMetricsQuery } from '@/src/store/features/planning/sprints-api'
-import { Col, Flex, Row, Segmented, Skeleton } from 'antd'
+import { Flex, Segmented, Skeleton } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
 import { FC, ReactNode, useEffect, useState } from 'react'
 
@@ -55,7 +56,9 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
         notStarted: 0,
       }
     : {
-        total: useStoryPoints ? metrics.totalStoryPoints : metrics.totalWorkItems,
+        total: useStoryPoints
+          ? metrics.totalStoryPoints
+          : metrics.totalWorkItems,
         completed: useStoryPoints
           ? metrics.completedStoryPoints
           : metrics.completedWorkItems,
@@ -110,83 +113,80 @@ const SprintMetrics: FC<SprintMetricsProps> = ({
           />
         </WaydTooltip>
       </Flex>
-      <Row gutter={[8, 8]}>
+      {/*
+        A wrapping flex row rather than Row/Col: the 24-column grid splits the
+        available width into fixed fractions whichever way the labels fall, so
+        in a record page's narrower content column the same span clipped
+        "Avg Cycle Time" and "Days Remaining". Here each card states the width
+        it needs and the row wraps when they no longer fit.
+      */}
+      <Flex wrap gap={8}>
         {sprint.state.id !== IterationState.Completed && (
-          <Col xs={12} sm={8} md={6} lg={4} xxl={3}>
-            <DaysCountdownMetric
-              state={sprint.state.id as IterationState}
-              startDate={sprint.start}
-              endDate={sprint.end}
-              style={{ height: '100%' }}
-            />
-          </Col>
+          <DaysCountdownMetric
+            state={sprint.state.id as IterationState}
+            startDate={sprint.start}
+            endDate={sprint.end}
+            cardStyle={METRIC_CARD_FLEX}
+          />
         )}
-        <Col xs={12} sm={8} md={6} lg={4} xxl={3}>
-          <CompletionRateMetric
-            completed={displayValues.completed}
-            total={displayValues.total}
-            tooltip={sizingMethodState}
-          />
-        </Col>
-        <Col xs={12} sm={8} md={6} lg={4} xxl={3}>
-          <MetricCard
-            title="Total"
-            value={displayValues.total}
-            tooltip="Total number of story points or items currently in the sprint."
-          />
-        </Col>
-        <Col xs={12} sm={8} md={6} lg={4} xxl={3}>
-          <VelocityMetric
-            completed={displayValues.completed}
-            total={displayValues.total}
-            tooltip={sizingMethodState}
-          />
-        </Col>
-        <Col xs={12} sm={8} md={6} lg={4} xxl={3}>
-          <StatusMetric
-            title="In Progress"
-            value={displayValues.inProgress}
-            total={displayValues.total}
-            color={token.colorInfo}
-            tooltip="Total number of story points or items currently in the sprint that are in progress (Status Category: Active). Percentage shown represents the portion of total sprint work that is in progress."
-          />
-        </Col>
-        <Col xs={12} sm={8} md={6} lg={4} xxl={3}>
-          <StatusMetric
-            title="Not Started"
-            value={displayValues.notStarted}
-            total={displayValues.total}
-            tooltip="Total number of story points or items currently in the sprint that are not started (Status Category: Proposed). Percentage shown represents the portion of total sprint work that has not been started."
-          />
-        </Col>
+        <CompletionRateMetric
+          completed={displayValues.completed}
+          total={displayValues.total}
+          tooltip={sizingMethodState}
+          cardStyle={METRIC_CARD_FLEX}
+        />
+        <MetricCard
+          title="Total"
+          value={displayValues.total}
+          tooltip="Total number of story points or items currently in the sprint."
+          cardStyle={METRIC_CARD_FLEX}
+        />
+        <VelocityMetric
+          completed={displayValues.completed}
+          total={displayValues.total}
+          tooltip={sizingMethodState}
+          cardStyle={METRIC_CARD_FLEX}
+        />
+        <StatusMetric
+          title="In Progress"
+          value={displayValues.inProgress}
+          total={displayValues.total}
+          color={token.colorInfo}
+          tooltip="Total number of story points or items currently in the sprint that are in progress (Status Category: Active). Percentage shown represents the portion of total sprint work that is in progress."
+          cardStyle={METRIC_CARD_FLEX}
+        />
+        <StatusMetric
+          title="Not Started"
+          value={displayValues.notStarted}
+          total={displayValues.total}
+          tooltip="Total number of story points or items currently in the sprint that are not started (Status Category: Proposed). Percentage shown represents the portion of total sprint work that has not been started."
+          cardStyle={METRIC_CARD_FLEX}
+        />
         {sprint.state.id === IterationState.Active && metrics && (
-          <Col xs={12} sm={8} md={6} lg={4} xxl={3}>
-            <StatusMetric
-              title="WIP"
-              value={metrics.inProgressWorkItems}
-              total={displayValues.total}
-              tooltip="Work In Progress - Count of active work items (Status Category: Active). Percentage shown represents the portion of total sprint work that is currently in progress."
-            />
-          </Col>
+          <StatusMetric
+            title="WIP"
+            value={metrics.inProgressWorkItems}
+            total={displayValues.total}
+            tooltip="Work In Progress - Count of active work items (Status Category: Active). Percentage shown represents the portion of total sprint work that is currently in progress."
+            cardStyle={METRIC_CARD_FLEX}
+          />
         )}
         {metrics?.cycleTime && metrics.cycleTime.workItemsCount > 0 && (
-          <Col xs={12} sm={8} md={6} lg={4} xxl={3}>
-            <CycleTimeMetric
-              value={metrics.cycleTime.averageCycleTimeDays ?? 0}
-              tooltip="The average cycle time of done work items in the sprint (in days). Cycle time measures the time from when work starts (Activated) to when it's completed (Done)."
-            />
-          </Col>
+          <CycleTimeMetric
+            value={metrics.cycleTime.averageCycleTimeDays ?? 0}
+            tooltip="The average cycle time of done work items in the sprint (in days). Cycle time measures the time from when work starts (Activated) to when it's completed (Done)."
+            cardStyle={METRIC_CARD_FLEX}
+          />
         )}
         {useStoryPoints && metrics && (
-          <Col xs={12} sm={8} md={6} lg={4} xxl={3}>
-            <HealthMetric
-              title="Missing SPs"
-              value={metrics.missingStoryPointsCount}
-              tooltip="Number of work items in the sprint that don't have story points assigned."
-            />
-          </Col>
+          <HealthMetric
+            title="Missing SPs"
+            value={metrics.missingStoryPointsCount}
+            tooltip="Number of work items in the sprint that don't have story points assigned."
+            cardStyle={METRIC_CARD_FLEX}
+          />
         )}
-      </Row>
+      </Flex>
     </Flex>
   )
 }

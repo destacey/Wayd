@@ -1,6 +1,6 @@
 import { Card, Flex, Statistic, StatisticProps } from 'antd'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
-import { FC, ReactNode } from 'react'
+import { CSSProperties, FC, ReactNode } from 'react'
 
 const { Meta } = Card
 
@@ -10,6 +10,27 @@ const { Meta } = Card
  * qualifier line, and a wrapped row sizes independently of the one above.
  */
 const METRIC_CARD_MIN_HEIGHT = 102
+
+/**
+ * Sizing for a metric card in a wrapping flex row, passed as `cardStyle`.
+ *
+ * Cards share the row evenly and wrap once they would fall below the minimum,
+ * which fits the longest labels in use — "Avg Cycle Time", "Days Remaining".
+ *
+ * Do not use inside a `Col`: the 24-column grid sets each card's width
+ * regardless of content, so a minimum there makes the card overflow its
+ * column rather than wrap.
+ */
+export const METRIC_CARD_FLEX: CSSProperties = {
+  // A zero basis divides the row evenly instead of handing each card its
+  // content width plus a share of the surplus, which left cards in a row
+  // differing by how long their label happened to be.
+  flex: '1 1 0',
+  minWidth: 150,
+  // Without a ceiling the last card on a row stretches across whatever is
+  // left — a full-width card holding a single digit.
+  maxWidth: 320,
+}
 
 export interface MetricCardProps extends Omit<StatisticProps, 'valueStyle'> {
   cardStyle?: React.CSSProperties
@@ -77,9 +98,13 @@ const MetricCard: FC<MetricCardProps> = ({
   // `height: 100%` only fills the Col it sits in, and antd stretches Cols
   // within a line — not across a wrap. A minimum height keeps cards matching
   // whether or not they carry a secondaryValue, and across wrapped rows.
-  const defaultCardStyle = cardStyle ?? {
+  //
+  // Merged rather than replaced, so a caller passing sizing (METRIC_CARD_FLEX)
+  // does not silently drop the height floor along with it.
+  const defaultCardStyle = {
     height: '100%',
     minHeight: METRIC_CARD_MIN_HEIGHT,
+    ...cardStyle,
   }
   const defaultStatisticStyle = statisticStyle ?? { whiteSpace: 'nowrap' }
 

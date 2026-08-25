@@ -85,7 +85,11 @@ const RecordLayoutInner = ({
   const active = all.find((s) => s.id === activeSection)
   const activeLabel = active?.label
 
-  const nav = (
+  // A rail holding one item spends its width saying there is nowhere to go, so
+  // a record with a single section renders its content full width instead.
+  const hasRail = all.length > 1
+
+  const nav = hasRail ? (
     <RecordSectionNav
       sections={sections}
       reports={reports}
@@ -93,26 +97,30 @@ const RecordLayoutInner = ({
       onChange={goTo}
       compact={compact}
     />
-  )
+  ) : null
 
   // The rail marks where you are, but the content needs its own heading —
   // without it a section opens as an unlabelled grid under the identity bar.
   //
   // Level 5 (16px) under the record name's 20px, leaving 14px for blocks
   // inside a section — so the ladder reads downward: record, section, block.
-  const sectionHeading = active?.hideHeading ? null : (
-    <Flex align="center" gap="small" className={styles.sectionHeading}>
-      <Title level={5} style={{ margin: 0 }}>
-        {activeLabel}
-      </Title>
-      {sectionActions && (
-        <>
-          <div style={{ flexGrow: 1 }} />
-          {sectionActions}
-        </>
-      )}
-    </Flex>
-  )
+  //
+  // With no rail there is nothing to echo, so a lone section skips the heading
+  // unless it has actions that need a row to sit in.
+  const sectionHeading =
+    active?.hideHeading || (!hasRail && !sectionActions) ? null : (
+      <Flex align="center" gap="small" className={styles.sectionHeading}>
+        <Title level={5} style={{ margin: 0 }}>
+          {activeLabel}
+        </Title>
+        {sectionActions && (
+          <>
+            <div style={{ flexGrow: 1 }} />
+            {sectionActions}
+          </>
+        )}
+      </Flex>
+    )
 
   const body = (
     <SectionBoundary

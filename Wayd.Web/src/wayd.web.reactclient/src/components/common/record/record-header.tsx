@@ -3,7 +3,6 @@
 import { PicRightOutlined } from '@ant-design/icons'
 import { Breadcrumb, Button, Flex, Typography } from 'antd'
 import type { BreadcrumbItemType } from 'antd/es/breadcrumb/Breadcrumb'
-import type { AnyObject } from 'antd/es/_util/type'
 import Link from 'next/link'
 import { ReactNode } from 'react'
 import RecordAvatar, { RecordAvatarProps } from '../record-avatar'
@@ -24,7 +23,7 @@ export interface RecordParentLink {
  */
 const renderTrailItem = (
   route: Partial<BreadcrumbItemType>,
-  _params: AnyObject,
+  _params: unknown,
   routes: Partial<BreadcrumbItemType>[],
 ) => {
   const isLast = routes.indexOf(route) === routes.length - 1

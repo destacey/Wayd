@@ -100,7 +100,7 @@ public sealed class PlanningIntervalsControllerBacklogTests
     }
 
     [Fact]
-    public async Task GetBacklog_ForAPiWithNoMappedSprints_ReturnsAnEmptyBacklog()
+    public async Task GetBacklog_ForAPlanningIntervalWithNoMappedSprints_ReturnsAnEmptyBacklog()
     {
         // Arrange — a PI whose teams have not mapped their sprints yet.
         SetupIterations(Iteration("Iteration 1"));

@@ -54,6 +54,7 @@ export enum QueryTags {
   PlanningInterval = 'Planning.PlanningInterval',
   PlanningIntervalMetrics = 'Planning.PlanningInterval.Metrics',
   PlanningIntervalCalendar = 'Planning.PlanningInterval.Calendar',
+  PlanningIntervalBacklog = 'Planning.PlanningInterval.Backlog',
   PlanningIntervalIteration = 'Planning.PlanningInterval.Iteration',
   PlanningIntervalIterationSprints = 'Planning.PlanningInterval.Iteration.Sprints',
   PlanningIntervalIterationMetrics = 'Planning.PlanningInterval.Iteration.Metrics',

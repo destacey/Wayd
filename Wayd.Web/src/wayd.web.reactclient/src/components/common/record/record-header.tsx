@@ -1,7 +1,9 @@
 'use client'
 
 import { PicRightOutlined } from '@ant-design/icons'
-import { Button, Flex, Typography } from 'antd'
+import { Breadcrumb, Button, Flex, Typography } from 'antd'
+import type { BreadcrumbItemType } from 'antd/es/breadcrumb/Breadcrumb'
+import type { AnyObject } from 'antd/es/_util/type'
 import Link from 'next/link'
 import { ReactNode } from 'react'
 import RecordAvatar, { RecordAvatarProps } from '../record-avatar'
@@ -10,6 +12,28 @@ import WaydTooltip from '../wayd-tooltip'
 import styles from './record-layout.module.css'
 
 const { Text, Title } = Typography
+
+export interface RecordParentLink {
+  label: string
+  href: string
+}
+
+/**
+ * antd points breadcrumb links at `#`, so routing goes through Next's Link.
+ * The final item is where you already are, so it renders unlinked.
+ */
+const renderTrailItem = (
+  route: Partial<BreadcrumbItemType>,
+  _params: AnyObject,
+  routes: Partial<BreadcrumbItemType>[],
+) => {
+  const isLast = routes.indexOf(route) === routes.length - 1
+  return isLast || !route.href ? (
+    <Text type="secondary">{route.title}</Text>
+  ) : (
+    <Link href={route.href}>{route.title}</Link>
+  )
+}
 
 export interface RecordHeaderProps {
   /** The record's name — what people call it. */
@@ -23,8 +47,14 @@ export interface RecordHeaderProps {
   recordKey?: string
   /** Leading glyph. Circle initials for people; no glyph on other records. */
   avatar?: RecordAvatarProps
-  /** Link back to this record's list, opening the trail beneath the name. */
-  parent?: { label: string; href: string }
+  /**
+   * Links back up, opening the trail beneath the name.
+   *
+   * An array walks outermost-first, for a record reached through more than one
+   * hop — a PI objective sits under its PI *and* under that PI's plan review
+   * for its team.
+   */
+  parent?: RecordParentLink | RecordParentLink[]
   /** What kind of page this is, closing the trail. */
   subtitle?: string
   /** Status and other qualifiers, beside the name. */
@@ -65,7 +95,17 @@ const RecordHeader = ({
   descriptor,
   actions,
   factsToggle,
-}: RecordHeaderProps) => (
+}: RecordHeaderProps) => {
+  const parents = !parent ? [] : Array.isArray(parent) ? parent : [parent]
+
+  // The subtitle closes the trail as its final, unlinked item — it names the
+  // kind of page rather than a place, so it is where you already are.
+  const trail: BreadcrumbItemType[] = [
+    ...parents.map((hop) => ({ href: hop.href, title: hop.label })),
+    ...(subtitle ? [{ title: subtitle }] : []),
+  ]
+
+  return (
   <Flex align="center" gap={12} wrap className={styles.headerBar}>
     <Flex align="center" gap={10} style={{ minWidth: 0 }}>
       {avatar && <RecordAvatar {...avatar} />}
@@ -81,26 +121,8 @@ const RecordHeader = ({
         >
           {name}
         </Title>
-        {(parent || subtitle) && (
-          <Flex align="center" gap={6} wrap>
-            {parent && (
-              <>
-                {/* Not a `Text type="secondary"` inside the Link — antd's Text
-                    sets its own color, which overrode the link styling and
-                    left the trail looking like plain muted text. The class
-                    starts muted and turns into a link on hover. */}
-                <Link href={parent.href} className={styles.parentLink}>
-                  {parent.label}
-                </Link>
-                {subtitle && (
-                  <Text type="secondary" aria-hidden>
-                    /
-                  </Text>
-                )}
-              </>
-            )}
-            {subtitle && <Text type="secondary">{subtitle}</Text>}
-          </Flex>
+        {trail.length > 0 && (
+          <Breadcrumb items={trail} itemRender={renderTrailItem} />
         )}
       </div>
     </Flex>
@@ -143,7 +165,8 @@ const RecordHeader = ({
         </Flex>
       </>
     )}
-  </Flex>
-)
+    </Flex>
+  )
+}
 
 export default RecordHeader

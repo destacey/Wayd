@@ -33,37 +33,6 @@
   min-height: 44px;
 }
 
-/*
- * The trail's parent link. Muted at rest so it sits back behind the record
- * name, but it must still say it is clickable — the cursor alone is not an
- * affordance, since it only appears once you are already on the target.
- */
-/*
- * Matches how antd styles a Breadcrumb link, which is what the legacy
- * breadcrumb uses: muted at rest, brightening to the body text color over a
- * faint background pill on hover. No blue — the link color token is tuned for
- * a light background and reads as low contrast on the dark themes.
- */
-.parentLink {
-  /* Inherits the bar's font size so it matches the separator and subtitle
-     beside it, which are plain antd Text. */
-  color: var(--ant-color-text-secondary);
-  text-decoration: none;
-  padding: 0 4px;
-  margin: 0 -4px;
-  border-radius: var(--ant-border-radius-sm);
-  transition:
-    color 0.2s,
-    background-color 0.2s;
-}
-
-.parentLink:hover,
-.parentLink:focus-visible {
-  color: var(--ant-color-text);
-  background: var(--ant-color-bg-text-hover);
-}
-
-
 .body {
   display: flex;
   align-items: stretch;

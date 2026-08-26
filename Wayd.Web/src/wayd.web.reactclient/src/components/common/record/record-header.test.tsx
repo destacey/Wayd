@@ -68,6 +68,54 @@ describe('RecordHeader', () => {
     expect(screen.getByText('Employee Details')).toBeInTheDocument()
   })
 
+  it('walks every hop when a record is reached through more than one', () => {
+    // Arrange — a PI objective sits under its PI and under that PI's plan
+    // review for its own team.
+    render(
+      <RecordHeader
+        name="Ship the importer"
+        subtitle="PI Objective"
+        parent={[
+          { label: '2026 PI 1', href: '/planning/planning-intervals/7' },
+          {
+            label: 'Plan Review',
+            href: '/planning/planning-intervals/7?section=plan-review&team=core',
+          },
+        ]}
+      />,
+    )
+
+    // Assert — every hop is a link, in outermost-first order.
+    expect(screen.getByRole('link', { name: '2026 PI 1' })).toHaveAttribute(
+      'href',
+      '/planning/planning-intervals/7',
+    )
+    expect(screen.getByRole('link', { name: 'Plan Review' })).toHaveAttribute(
+      'href',
+      '/planning/planning-intervals/7?section=plan-review&team=core',
+    )
+    expect(screen.getByText('PI Objective')).toBeInTheDocument()
+  })
+
+  it('leaves the last hop unlinked when there is no subtitle to close the trail', () => {
+    // Arrange — the trail's final item is where you already are, so linking it
+    // would point at the current page.
+    render(
+      <RecordHeader
+        name="Ship the importer"
+        parent={[
+          { label: '2026 PI 1', href: '/planning/planning-intervals/7' },
+          { label: 'Plan Review', href: '/planning/planning-intervals/7?x=1' },
+        ]}
+      />,
+    )
+
+    // Assert
+    expect(screen.getByRole('link', { name: '2026 PI 1' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Plan Review' })).toBeNull()
+    expect(screen.getByText('Plan Review')).toBeInTheDocument()
+  })
+
   it('renders a subtitle alone when there is no parent', () => {
     // Arrange / Act
     render(<RecordHeader name="Platform Core" subtitle="Team Details" />)

@@ -508,6 +508,39 @@ public class PlanningIntervalsController : ControllerBase
 
     #endregion Iterations
 
+    #region Backlog
+
+    [HttpGet("{idOrKey}/backlog")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
+    [OpenApiOperation("Get the combined backlog for a PI from every sprint mapped to any of its iterations.", "")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<List<SprintBacklogItemDto>>> GetBacklog(string idOrKey, CancellationToken cancellationToken)
+    {
+        var iterationSprints = await _dispatcher.Send(
+            new GetPlanningIntervalIterationSprintsQuery(idOrKey, null),
+            cancellationToken);
+
+        if (iterationSprints is null)
+            return NotFound();
+
+        // A sprint maps to one iteration, so no item can arrive twice; Distinct
+        // guards the mapping rather than the query.
+        var sprintIds = iterationSprints
+            .SelectMany(i => i.Sprints.Select(s => s.Id))
+            .Distinct()
+            .ToList();
+
+        var backlog = await _dispatcher.Send(
+            new GetSprintsBacklogQuery(sprintIds),
+            cancellationToken);
+
+        return Ok(backlog);
+    }
+
+    #endregion Backlog
+
     #region Objectives
 
     [HttpGet("{idOrKey}/objectives")]

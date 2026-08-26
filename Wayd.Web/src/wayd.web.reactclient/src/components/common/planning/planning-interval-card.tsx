@@ -32,13 +32,6 @@ const DaysCountdownLabel = ({
 const PlanningIntervalCard = ({
   planningInterval,
 }: PlanningIntervalCardProps) => {
-  const isFuture =
-    (planningInterval.state.id as IterationState) === IterationState.Future
-  const primaryLinkHref = isFuture
-    ? `/planning/planning-intervals/${planningInterval.key}/details`
-    : `/planning/planning-intervals/${planningInterval.key}/overview`
-  const primaryLinkLabel = isFuture ? 'Details' : 'Overview'
-
   const { data: iterationsData } = useGetPlanningIntervalIterationsQuery(
     planningInterval.key,
     {
@@ -62,10 +55,12 @@ const PlanningIntervalCard = ({
           <DaysCountdownLabel planningInterval={planningInterval} />
         </Space>
         <Space>
-          <Link href={primaryLinkHref}>{primaryLinkLabel}</Link>
+          <Link href={`/planning/planning-intervals/${planningInterval.key}`}>
+            Overview
+          </Link>
           <Text type="secondary"> | </Text>
           <Link
-            href={`/planning/planning-intervals/${planningInterval.key}/plan-review`}
+            href={`/planning/planning-intervals/${planningInterval.key}?section=plan-review`}
           >
             Plan Review
           </Link>

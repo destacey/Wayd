@@ -101,10 +101,18 @@ export const PlanningIntervalTeamSprintMappings = ({
   const { data: teamsData, isLoading: teamsLoading } =
     useGetPlanningIntervalTeamsQuery(planningInterval.key)
 
-  const { data: iterationSprintsData, isLoading: sprintsLoading } =
+  const { data: iterationSprintsResponse, isLoading: sprintsLoading } =
     useGetIterationSprintsQuery({
       idOrKey: planningInterval.key.toString(),
     })
+
+  // Iterations become columns, so they have to read left to right in the order
+  // the PI runs them. The API returns them unordered.
+  const iterationSprintsData = !iterationSprintsResponse
+    ? undefined
+    : [...iterationSprintsResponse].sort(
+        (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
+      )
 
   const isLoading = teamsLoading || sprintsLoading
 

@@ -46,7 +46,7 @@ const TeamMetricsCard = ({ piKey, teamMetrics }: TeamMetricsCardProps) => {
 
   return (
     <Link
-      href={`/planning/planning-intervals/${piKey}/plan-review#${teamMetrics.teamCode.toLowerCase()}`}
+      href={`/planning/planning-intervals/${piKey}?section=plan-review&team=${teamMetrics.teamCode.toLowerCase()}`}
       style={{ display: 'block', height: '100%', color: 'inherit' }}
     >
       <Card size="small" hoverable style={{ height: '100%' }}>

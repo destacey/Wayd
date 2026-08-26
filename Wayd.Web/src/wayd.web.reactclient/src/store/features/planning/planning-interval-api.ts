@@ -274,6 +274,22 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
         },
       ],
     }),
+    getPlanningIntervalBacklog: builder.query<SprintBacklogItemDto[], number>({
+      queryFn: async (planningIntervalKey) => {
+        try {
+          const data = await getPlanningIntervalsClient().getBacklog(
+            planningIntervalKey.toString(),
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, arg) => [
+        { type: QueryTags.PlanningIntervalBacklog, id: arg },
+      ],
+    }),
     getPlanningIntervalIterationBacklog: builder.query<
       SprintBacklogItemDto[],
       { planningIntervalKey: number; iterationKey: number }
@@ -762,6 +778,7 @@ export const {
   useGetPlanningIntervalIterationsQuery,
   useGetPlanningIntervalIterationQuery,
   useGetPlanningIntervalIterationMetricsQuery,
+  useGetPlanningIntervalBacklogQuery,
   useGetPlanningIntervalIterationBacklogQuery,
   useGetIterationSprintsQuery,
   useGetPlanningIntervalIterationCategoryOptionsQuery,

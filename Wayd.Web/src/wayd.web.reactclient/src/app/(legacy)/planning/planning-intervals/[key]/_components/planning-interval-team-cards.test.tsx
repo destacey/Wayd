@@ -136,7 +136,7 @@ describe('PlanningIntervalTeamCards', () => {
     const alphaLink = findTeamLink('Alpha')
     expect(alphaLink).toHaveAttribute(
       'href',
-      '/planning/planning-intervals/7/plan-review?team=alpha',
+      '/planning/planning-intervals/7?section=plan-review&team=alpha',
     )
     expect(alphaLink.textContent).toMatch(/80\s*%/)
     expect(alphaLink.textContent).toMatch(/3\.10\s*days/)
@@ -144,7 +144,7 @@ describe('PlanningIntervalTeamCards', () => {
     const betaLink = findTeamLink('Beta')
     expect(betaLink).toHaveAttribute(
       'href',
-      '/planning/planning-intervals/7/plan-review?team=beta',
+      '/planning/planning-intervals/7?section=plan-review&team=beta',
     )
     expect(betaLink.textContent).toMatch(/50\s*%/)
     expect(betaLink.textContent).toMatch(/5\.60\s*days/)

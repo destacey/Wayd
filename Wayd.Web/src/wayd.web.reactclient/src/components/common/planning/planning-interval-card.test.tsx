@@ -40,23 +40,32 @@ describe('PlanningIntervalCard', () => {
     mockIterationsQuery.mockReturnValue({ data: [] })
   })
 
-  it('shows a Details link for Future planning intervals', () => {
+  // Every state lands on Overview now. The card used to send a Future PI to a
+  // separate Details page instead, duplicating a rule the record page owned.
+  it.each([
+    ['Future', IterationState.Future],
+    ['Active', IterationState.Active],
+    ['Completed', IterationState.Completed],
+  ])('links %s planning intervals to the record', (name, id) => {
+    // Arrange / Act
     render(
       <PlanningIntervalCard
-        planningInterval={createPlanningInterval({
-          state: { id: IterationState.Future, name: 'Future' },
-        })}
+        planningInterval={createPlanningInterval({ state: { id, name } })}
       />,
     )
 
-    expect(screen.getByRole('link', { name: 'Details' })).toHaveAttribute(
+    // Assert
+    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
       'href',
-      '/planning/planning-intervals/42/details',
+      '/planning/planning-intervals/42',
     )
-    expect(screen.queryByRole('link', { name: 'Overview' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: 'Details' }),
+    ).not.toBeInTheDocument()
   })
 
-  it('shows an Overview link for non-future planning intervals', () => {
+  it('links Plan Review to the section rather than a page', () => {
+    // Arrange / Act
     render(
       <PlanningIntervalCard
         planningInterval={createPlanningInterval({
@@ -65,11 +74,11 @@ describe('PlanningIntervalCard', () => {
       />,
     )
 
-    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
+    // Assert
+    expect(screen.getByRole('link', { name: 'Plan Review' })).toHaveAttribute(
       'href',
-      '/planning/planning-intervals/42/overview',
+      '/planning/planning-intervals/42?section=plan-review',
     )
-    expect(screen.queryByRole('link', { name: 'Details' })).not.toBeInTheDocument()
   })
 })
 

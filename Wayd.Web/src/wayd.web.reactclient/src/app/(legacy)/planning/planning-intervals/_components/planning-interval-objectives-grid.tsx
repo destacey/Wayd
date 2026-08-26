@@ -113,7 +113,7 @@ const PlanningIntervalObjectivesGrid = ({
             key: 'healthReport',
             label: (
               <Link
-                href={`/planning/planning-intervals/${planningIntervalKey}/objectives/${obj.key}/health-report`}
+                href={`/planning/planning-intervals/${planningIntervalKey}/objectives/${obj.key}?section=health-report`}
               >
                 Health Report
               </Link>

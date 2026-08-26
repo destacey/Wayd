@@ -161,7 +161,7 @@ const PlanningIntervalObjectiveCard = ({
           onClick: (info) => info.domEvent.stopPropagation(),
           label: (
             <Link
-              href={`/planning/planning-intervals/${objective.planningInterval.key}/objectives/${objective.key}/health-report`}
+              href={`/planning/planning-intervals/${objective.planningInterval.key}/objectives/${objective.key}?section=health-report`}
             >
               Health Report
             </Link>

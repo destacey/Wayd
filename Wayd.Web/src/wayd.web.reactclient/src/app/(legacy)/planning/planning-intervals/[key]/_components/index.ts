@@ -4,5 +4,3 @@ export { default as PlanningIntervalAtAGlance } from './planning-interval-at-a-g
 export { default as PlanningIntervalNeedsAttentionCard } from './planning-interval-needs-attention-card'
 export { default as PlanningIntervalObjectiveCard } from './planning-interval-objective-card'
 export { default as PlanningIntervalTeamCards } from './planning-interval-team-cards'
-export { default as PlanningIntervalNav } from './planning-interval-nav'
-export { default as PlanningIntervalSwitcher } from './planning-interval-switcher'

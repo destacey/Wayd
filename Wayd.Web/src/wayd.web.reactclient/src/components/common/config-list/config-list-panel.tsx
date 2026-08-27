@@ -77,8 +77,13 @@ const PanelContents = ({
  * stages, a permission matrix — is not this. That is a record page; see
  * `docs/contributing/record-pages.mdx`.
  *
- * Below `md` the panel becomes a Drawer over the list, matching how the record
- * facts rail degrades and how the feature flags list already behaves.
+ * The panel is a plain region sharing the row with the list, **not** an antd
+ * `Drawer`: it is non-modal, so the grid stays live beside it and clicking
+ * down a list swaps the panel's contents with no dismiss step in between.
+ * That is the whole reason this shape beats a drawer for comparing sibling
+ * records. Only below `md`, where there is no room for two columns, does it
+ * fall back to a real `Drawer` over the list — matching how the record facts
+ * rail degrades and how the feature flags list already behaves.
  */
 const ConfigListPanel = ({
   children,

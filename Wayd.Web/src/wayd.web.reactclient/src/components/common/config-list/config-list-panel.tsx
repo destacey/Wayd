@@ -1,10 +1,20 @@
 'use client'
 
-import { CloseOutlined } from '@ant-design/icons'
-import { Button, Drawer, Flex, Grid, Skeleton, Typography } from 'antd'
+import { CloseOutlined, MoreOutlined } from '@ant-design/icons'
+import {
+  Button,
+  Drawer,
+  Dropdown,
+  Flex,
+  Grid,
+  MenuProps,
+  Skeleton,
+  Typography,
+} from 'antd'
 import { ReactNode, useEffect, useState } from 'react'
 import { ConfigListConstants } from '@/src/config/theme/theme-constants'
 import { useLocalStorageState } from '@/src/hooks'
+import { getDrawerWidthPixels } from '@/src/utils'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
 import styles from './config-list-panel.module.css'
 
@@ -17,6 +27,13 @@ export const CONFIG_PANEL_WIDTH_KEY = 'wayd-config-list:panel-width'
 /** Keyboard resize step, matching how a scrollbar arrow key behaves. */
 const KEYBOARD_STEP = 16
 
+/**
+ * How far the resize handle sits left of the panel's edge, matching its `left`
+ * in the stylesheet. Kept in step by hand — the drag reads pointer position in
+ * page coordinates, which CSS cannot tell it.
+ */
+const RESIZER_OFFSET = 12
+
 export interface ConfigListPanelProps {
   /** The list itself — a `WaydGrid` wired to `onRowActivate`. */
   children: ReactNode
@@ -28,23 +45,23 @@ export interface ConfigListPanelProps {
   title?: string
   /** The record's fields — a stack of `LabeledContent`. */
   details: ReactNode
-  /** Actions for the open record, pinned to the panel's foot. */
-  actions?: ReactNode
+  /**
+   * Menu items for the open record, shown behind a `⋯` in the panel header
+   * beside its name — where the record's identity is, and where the feature
+   * flags drawer already puts them.
+   */
+  actionItems?: MenuProps['items']
   /** Shows a skeleton in place of the details while the record loads. */
   isLoading?: boolean
 }
 
 const PanelContents = ({
   details,
-  actions,
   isLoading,
-}: Pick<ConfigListPanelProps, 'details' | 'actions' | 'isLoading'>) => (
-  <>
-    <div className={styles.panelBody}>
-      {isLoading ? <Skeleton active paragraph={{ rows: 4 }} /> : details}
-    </div>
-    {actions && <div className={styles.panelActions}>{actions}</div>}
-  </>
+}: Pick<ConfigListPanelProps, 'details' | 'isLoading'>) => (
+  <div className={styles.panelBody}>
+    {isLoading ? <Skeleton active paragraph={{ rows: 4 }} /> : details}
+  </div>
 )
 
 /**
@@ -69,12 +86,17 @@ const ConfigListPanel = ({
   onClose,
   title,
   details,
-  actions,
+  actionItems,
   isLoading,
 }: ConfigListPanelProps) => {
   const screens = useBreakpoint()
   const compact = !screens.md
   const [dragging, setDragging] = useState(false)
+  // Lazy, because it reads window.innerWidth — matching how the other drawers
+  // in settings size themselves.
+  const [drawerSize, setDrawerSize] = useState(() =>
+    typeof window === 'undefined' ? undefined : getDrawerWidthPixels(),
+  )
   const [width, setWidth] = useLocalStorageState<number>(
     CONFIG_PANEL_WIDTH_KEY,
     ConfigListConstants.PANEL_WIDTH,
@@ -98,7 +120,9 @@ const ConfigListPanel = ({
 
     const onMove = (e: MouseEvent) => {
       // The panel is right-anchored, so it widens as the pointer moves left.
-      setWidth(clamp(window.innerWidth - e.clientX))
+      // The handle sits in the gap beside the panel, so its offset comes off
+      // the width or the grip drifts away from the cursor mid-drag.
+      setWidth(clamp(window.innerWidth - e.clientX - RESIZER_OFFSET))
     }
     const onUp = () => setDragging(false)
 
@@ -123,6 +147,19 @@ const ConfigListPanel = ({
     setWidth(clamp(boundedWidth + delta))
   }
 
+  // Nothing rather than an empty dropdown, so a read-only viewer gets no
+  // affordance that opens onto an empty menu.
+  const actionsMenu = actionItems?.length ? (
+    <Dropdown menu={{ items: actionItems }} trigger={['click']}>
+      <Button
+        type="text"
+        size="small"
+        aria-label="Record actions"
+        icon={<MoreOutlined />}
+      />
+    </Dropdown>
+  ) : null
+
   if (compact) {
     return (
       <div className={styles.layout}>
@@ -133,15 +170,11 @@ const ConfigListPanel = ({
           open={open}
           onClose={onClose}
           destroyOnHidden
-          width="80%"
+          size={drawerSize}
+          resizable={{ onResize: setDrawerSize }}
+          extra={actionsMenu}
         >
-          <Flex vertical gap={12} style={{ height: '100%' }}>
-            <PanelContents
-              details={details}
-              actions={actions}
-              isLoading={isLoading}
-            />
-          </Flex>
+          <PanelContents details={details} isLoading={isLoading} />
         </Drawer>
       </div>
     )
@@ -175,21 +208,20 @@ const ConfigListPanel = ({
             <Title level={5} style={{ margin: 0, fontSize: 14 }}>
               {title}
             </Title>
-            <WaydTooltip title="Close">
-              <Button
-                type="text"
-                size="small"
-                aria-label="Close details panel"
-                icon={<CloseOutlined />}
-                onClick={onClose}
-              />
-            </WaydTooltip>
+            <Flex align="center" gap={4}>
+              {actionsMenu}
+              <WaydTooltip title="Close">
+                <Button
+                  type="text"
+                  size="small"
+                  aria-label="Close details panel"
+                  icon={<CloseOutlined />}
+                  onClick={onClose}
+                />
+              </WaydTooltip>
+            </Flex>
           </div>
-          <PanelContents
-            details={details}
-            actions={actions}
-            isLoading={isLoading}
-          />
+          <PanelContents details={details} isLoading={isLoading} />
         </aside>
       )}
     </div>

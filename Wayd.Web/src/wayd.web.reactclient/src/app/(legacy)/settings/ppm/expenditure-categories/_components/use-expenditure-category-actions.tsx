@@ -1,8 +1,6 @@
 'use client'
 
-import { PageActions } from '@/src/components/common'
 import useAuth from '@/src/components/contexts/auth'
-import { ExpenditureCategoryDetailsDto } from '@/src/services/wayd-api'
 import { ItemType } from 'antd/es/menu/interface'
 import { ReactNode, useState } from 'react'
 import ChangeExpenditureCategoryStateForm, {
@@ -10,39 +8,47 @@ import ChangeExpenditureCategoryStateForm, {
 } from './change-expenditure-category-state-form'
 import DeleteExpenditureCategoryForm from './delete-expenditure-category-form'
 import EditExpenditureCategoryForm from './edit-expenditure-category-form'
+import { ExpenditureCategoryActionTarget } from './types'
 
-/** The dialogs this record can open. One value, not one boolean each. */
+/** The dialogs a category can open. One value, not one boolean each. */
 type DialogId = 'edit' | 'activate' | 'archive' | 'delete'
 
 export interface ExpenditureCategoryActions {
-  /** The actions menu, or null when the viewer can do nothing. */
-  actions: ReactNode
-  /** The open dialog, if any. Render alongside the panel. */
+  /**
+   * The menu items for one category. Empty when the viewer can do nothing to
+   * it, which both the row and the panel read as "render no ⋯".
+   */
+  getActionItems: (category: ExpenditureCategoryActionTarget) => ItemType[]
+  /** The open dialog, if any. Render once, beside the list. */
   dialogs: ReactNode
 }
 
 export interface UseExpenditureCategoryActionsOptions {
-  expenditureCategory: ExpenditureCategoryDetailsDto | undefined
   /** Called after a change that leaves the record in place. */
   onChanged: () => void
-  /** Called after a delete — the record is gone, so the panel must close. */
-  onDeleted: () => void
+  /** Called after a delete, with the id that went — the panel closes if it
+   *  was showing that record. */
+  onDeleted: (id: number) => void
 }
 
 /**
- * The actions available on one expenditure category, and the dialogs they
- * open.
+ * The actions available on an expenditure category, and the dialogs they open.
  *
  * Which actions exist depends on the record's state as well as the viewer's
  * permissions: a Proposed category can be deleted or activated, an Active one
  * archived, and an Archived one neither.
+ *
+ * The dialogs are rendered once for the whole list rather than per row — the
+ * target travels with the open dialog, so a fifty-row grid mounts one set.
  */
 export const useExpenditureCategoryActions = ({
-  expenditureCategory,
   onChanged,
   onDeleted,
 }: UseExpenditureCategoryActionsOptions): ExpenditureCategoryActions => {
-  const [dialog, setDialog] = useState<DialogId | null>(null)
+  const [active, setActive] = useState<{
+    dialog: DialogId
+    target: ExpenditureCategoryActionTarget
+  } | null>(null)
   const { hasPermissionClaim } = useAuth()
 
   const canUpdate = hasPermissionClaim(
@@ -52,36 +58,41 @@ export const useExpenditureCategoryActions = ({
     'Permissions.ExpenditureCategories.Delete',
   )
 
-  const close = (changed: boolean, wasDelete = false) => {
-    setDialog(null)
+  const open = (dialog: DialogId, target: ExpenditureCategoryActionTarget) =>
+    setActive({ dialog, target })
+
+  const close = (changed: boolean, deletedId?: number) => {
+    setActive(null)
     if (!changed) return
-    if (wasDelete) {
-      onDeleted()
+    if (deletedId !== undefined) {
+      onDeleted(deletedId)
     } else {
       onChanged()
     }
   }
 
-  const state = expenditureCategory?.state.name
-  const canBeDeleted = state === 'Proposed'
-  const canBeActivated = state === 'Proposed'
-  const canBeArchived = state === 'Active'
+  const getActionItems = (
+    category: ExpenditureCategoryActionTarget,
+  ): ItemType[] => {
+    const state = category.state.name
+    const canBeDeleted = state === 'Proposed'
+    const canBeActivated = state === 'Proposed'
+    const canBeArchived = state === 'Active'
 
-  const items: ItemType[] = []
+    const items: ItemType[] = []
 
-  if (expenditureCategory) {
     if (canUpdate) {
       items.push({
         key: 'edit',
         label: 'Edit',
-        onClick: () => setDialog('edit'),
+        onClick: () => open('edit', category),
       })
     }
     if (canDelete && canBeDeleted) {
       items.push({
         key: 'delete',
         label: 'Delete',
-        onClick: () => setDialog('delete'),
+        onClick: () => open('delete', category),
       })
     }
     if (canUpdate && (canBeActivated || canBeArchived)) {
@@ -91,29 +102,27 @@ export const useExpenditureCategoryActions = ({
       items.push({
         key: canBeActivated ? 'activate' : 'archive',
         label: canBeActivated ? 'Activate' : 'Archive',
-        onClick: () => setDialog(canBeActivated ? 'activate' : 'archive'),
+        onClick: () => open(canBeActivated ? 'activate' : 'archive', category),
       })
     }
+
+    return items
   }
 
-  // Null rather than an empty PageActions: the panel draws a bordered actions
-  // strip whenever this is truthy, so a read-only viewer would get an empty one.
-  const actions = items.length > 0 ? <PageActions actionItems={items} /> : null
-
-  const dialogs = !expenditureCategory ? null : (
+  const dialogs = !active ? null : (
     <>
-      {dialog === 'edit' && (
+      {active.dialog === 'edit' && (
         <EditExpenditureCategoryForm
-          expenditureCategoryId={expenditureCategory.id}
+          expenditureCategoryId={active.target.id}
           onFormComplete={() => close(true)}
           onFormCancel={() => close(false)}
         />
       )}
-      {(dialog === 'activate' || dialog === 'archive') && (
+      {(active.dialog === 'activate' || active.dialog === 'archive') && (
         <ChangeExpenditureCategoryStateForm
-          expenditureCategory={expenditureCategory}
+          expenditureCategory={active.target}
           stateAction={
-            dialog === 'activate'
+            active.dialog === 'activate'
               ? ExpenditureCategoryStateAction.Activate
               : ExpenditureCategoryStateAction.Archive
           }
@@ -121,17 +130,17 @@ export const useExpenditureCategoryActions = ({
           onFormCancel={() => close(false)}
         />
       )}
-      {dialog === 'delete' && (
+      {active.dialog === 'delete' && (
         <DeleteExpenditureCategoryForm
-          expenditureCategory={expenditureCategory}
-          onFormComplete={() => close(true, true)}
+          expenditureCategory={active.target}
+          onFormComplete={() => close(true, active.target.id)}
           onFormCancel={() => close(false)}
         />
       )}
     </>
   )
 
-  return { actions, dialogs }
+  return { getActionItems, dialogs }
 }
 
 export default useExpenditureCategoryActions

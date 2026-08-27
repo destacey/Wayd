@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { ExpenditureCategoryDetailsDto } from '@/src/services/wayd-api'
+import { ExpenditureCategoryActionTarget } from './types'
 import {
   useActivateExpenditureCategoryMutation,
   useArchiveExpenditureCategoryMutation,
@@ -16,7 +16,7 @@ export enum ExpenditureCategoryStateAction {
 }
 
 export interface ChangeExpenditureCategoryStateFormProps {
-  expenditureCategory: ExpenditureCategoryDetailsDto
+  expenditureCategory: ExpenditureCategoryActionTarget
   stateAction: ExpenditureCategoryStateAction
   onFormComplete: () => void
   onFormCancel: () => void

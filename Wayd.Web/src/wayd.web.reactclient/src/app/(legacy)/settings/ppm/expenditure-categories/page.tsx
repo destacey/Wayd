@@ -14,9 +14,12 @@ import {
   useGetExpenditureCategoriesQuery,
   useGetExpenditureCategoryQuery,
 } from '@/src/store/features/ppm/expenditure-categories-api'
-import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
+import {
+  createActionsColumn,
+  type ColumnDef,
+} from '@/src/components/common/wayd-grid-core'
 import { Button } from 'antd'
-import { Suspense, useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import {
   CreateExpenditureCategoryForm,
   ExpenditureCategoryPanel,
@@ -58,14 +61,17 @@ const ExpenditureCategoriesPage = () => {
     'Permissions.ExpenditureCategories.Create',
   )
 
-  const { actions: recordActions, dialogs } = useExpenditureCategoryActions({
-    expenditureCategory: selectedCategory,
+  const { getActionItems, dialogs } = useExpenditureCategoryActions({
     onChanged: () => {
       refetch()
       refetchSelected()
     },
-    onDeleted: () => {
-      clear()
+    onDeleted: (deletedId) => {
+      // Only close the panel if it was showing the record that went — deleting
+      // a different row from its own ⋯ should leave the panel alone.
+      if (String(deletedId) === selectedId) {
+        clear()
+      }
       refetch()
     },
   })
@@ -90,43 +96,48 @@ const ExpenditureCategoriesPage = () => {
     }
   }, [selectedError, messageApi])
 
-  const columns = useMemo<ColumnDef<ExpenditureCategoryListDto, any>[]>(
-    () => [
-      {
-        id: 'name',
-        accessorKey: 'name',
-        header: 'Name',
-      },
-      {
-        id: 'state',
-        accessorKey: 'state.name',
-        header: 'State',
-        size: 100,
-        meta: { filterType: 'set' },
-      },
-      {
-        id: 'isCapitalizable',
-        accessorKey: 'isCapitalizable',
-        header: 'Capitalizable',
-        size: 120,
-        meta: { columnType: 'yesNo' },
-      },
-      {
-        id: 'requiresDepreciation',
-        accessorKey: 'requiresDepreciation',
-        header: 'Requires Depreciation',
-        size: 170,
-        meta: { columnType: 'yesNo' },
-      },
-      {
-        id: 'accountingCode',
-        accessorKey: 'accountingCode',
-        header: 'Accounting Code',
-        size: 150,
-      },
-    ],
-    [],
-  )
+  const columns: ColumnDef<ExpenditureCategoryListDto, any>[] = [
+    // First, so it stays put as columns are shown, hidden or reordered around
+    // it — the ⋯ is always in the same place regardless of the grid's layout.
+    // Its button is excluded from row activation, so opening the menu does not
+    // also open the record.
+    createActionsColumn<ExpenditureCategoryListDto>({
+      getItems: getActionItems,
+      ariaLabel: 'Expenditure category actions',
+    }),
+    {
+      id: 'name',
+      accessorKey: 'name',
+      header: 'Name',
+    },
+    {
+      id: 'state',
+      accessorKey: 'state.name',
+      header: 'State',
+      size: 100,
+      meta: { filterType: 'set' },
+    },
+    {
+      id: 'isCapitalizable',
+      accessorKey: 'isCapitalizable',
+      header: 'Capitalizable',
+      size: 120,
+      meta: { columnType: 'yesNo' },
+    },
+    {
+      id: 'requiresDepreciation',
+      accessorKey: 'requiresDepreciation',
+      header: 'Requires Depreciation',
+      size: 170,
+      meta: { columnType: 'yesNo' },
+    },
+    {
+      id: 'accountingCode',
+      accessorKey: 'accountingCode',
+      header: 'Accounting Code',
+      size: 150,
+    },
+  ]
 
   const refresh = async () => {
     refetch()
@@ -156,7 +167,7 @@ const ExpenditureCategoriesPage = () => {
         details={
           <ExpenditureCategoryPanel expenditureCategory={selectedCategory} />
         }
-        actions={recordActions}
+        actionItems={selectedCategory && getActionItems(selectedCategory)}
         isLoading={isLoadingSelected}
       >
         <WaydGrid

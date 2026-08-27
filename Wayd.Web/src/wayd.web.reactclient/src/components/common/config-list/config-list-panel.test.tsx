@@ -3,6 +3,8 @@ import { ConfigListConstants } from '@/src/config/theme/theme-constants'
 import ConfigListPanel, { CONFIG_PANEL_WIDTH_KEY } from './config-list-panel'
 
 const mockBreakpoint = jest.fn()
+/** Captures the props the Drawer was given, so deprecated ones are catchable. */
+const mockDrawerProps = jest.fn()
 
 // Two stubs, both narrow:
 //
@@ -14,13 +16,15 @@ const mockBreakpoint = jest.fn()
 // factory. Everything else stays real.
 jest.mock('antd', () => {
   const actual = jest.requireActual('antd')
-  const MockDrawer = ({ title, open, children }: any) =>
-    open ? (
+  const MockDrawer = ({ title, open, children, ...rest }: any) => {
+    mockDrawerProps(rest)
+    return open ? (
       <div data-testid="drawer">
         <div>{title}</div>
         {children}
       </div>
     ) : null
+  }
   MockDrawer.displayName = 'MockDrawer'
   return {
     ...actual,
@@ -124,20 +128,48 @@ describe('ConfigListPanel', () => {
       expect(screen.queryByText('Accounting Code 4100')).not.toBeInTheDocument()
     })
 
-    it('renders record actions when given', () => {
-      // Arrange / Act
-      renderPanel({ actions: <button>Edit</button> })
+    it('puts record actions behind a ⋯ in the header', () => {
+      // Arrange / Act — beside the name, where the record's identity is
+      renderPanel({ actionItems: [{ key: 'edit', label: 'Edit' }] })
 
       // Assert
-      expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+      const menu = screen.getByRole('button', { name: 'Record actions' })
+      expect(menu).toBeInTheDocument()
+      expect(menu.closest(`.${'panelHeader'}`)).toBeInTheDocument()
     })
 
-    it('omits the actions area entirely when there are none', () => {
-      // Arrange / Act — a read-only viewer must not get an empty bordered strip
-      const { container } = renderPanel()
+    it('opens the action items from the ⋯', () => {
+      // Arrange
+      const onClick = jest.fn()
+      renderPanel({ actionItems: [{ key: 'edit', label: 'Edit', onClick }] })
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: 'Record actions' }))
+      fireEvent.click(screen.getByText('Edit'))
 
       // Assert
-      expect(container.querySelector('.panelActions')).not.toBeInTheDocument()
+      expect(onClick).toHaveBeenCalledTimes(1)
+    })
+
+    it('shows no ⋯ when the viewer can do nothing', () => {
+      // Arrange / Act — an affordance opening onto an empty menu is worse
+      // than none.
+      renderPanel({ actionItems: [] })
+
+      // Assert
+      expect(
+        screen.queryByRole('button', { name: 'Record actions' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('shows no ⋯ when no action items are given at all', () => {
+      // Arrange / Act
+      renderPanel()
+
+      // Assert
+      expect(
+        screen.queryByRole('button', { name: 'Record actions' }),
+      ).not.toBeInTheDocument()
     })
   })
 
@@ -261,15 +293,31 @@ describe('ConfigListPanel', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('still renders record actions', () => {
+    it('still offers record actions, in the drawer header', () => {
       // Arrange — nothing is dropped on mobile, it only moves
       narrow()
 
       // Act
-      renderPanel({ actions: <button>Edit</button> })
+      renderPanel({ actionItems: [{ key: 'edit', label: 'Edit' }] })
+
+      // Assert — the drawer's `extra` slot, which the stub captures
+      const props = mockDrawerProps.mock.calls.at(-1)![0]
+      expect(props.extra).not.toBeNull()
+    })
+
+    it('sizes the drawer without the deprecated width prop', () => {
+      // Arrange — the stub renders no real Drawer, so antd's own deprecation
+      // warning never fires here. Assert on the props instead, or the next
+      // deprecated prop is again only findable in a browser.
+      narrow()
+
+      // Act
+      renderPanel()
 
       // Assert
-      expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+      const props = mockDrawerProps.mock.calls.at(-1)![0]
+      expect(props).not.toHaveProperty('width')
+      expect(props.size).toEqual(expect.any(Number))
     })
   })
 })

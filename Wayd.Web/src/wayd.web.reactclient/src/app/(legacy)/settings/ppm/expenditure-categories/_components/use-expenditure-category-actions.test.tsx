@@ -1,8 +1,11 @@
 import { render, screen, fireEvent } from '@testing-library/react'
+import { Dropdown } from 'antd'
 import { ExpenditureCategoryDetailsDto } from '@/src/services/wayd-api'
 import useExpenditureCategoryActions from './use-expenditure-category-actions'
 
 const mockHasPermissionClaim = jest.fn()
+/** Captures which record the delete dialog was aimed at. */
+const mockDeleteTarget = jest.fn()
 
 jest.mock('@/src/components/contexts/auth', () => ({
   __esModule: true,
@@ -17,7 +20,10 @@ jest.mock('./edit-expenditure-category-form', () => ({
 }))
 jest.mock('./delete-expenditure-category-form', () => ({
   __esModule: true,
-  default: () => <div>delete dialog</div>,
+  default: ({ expenditureCategory }: { expenditureCategory: unknown }) => {
+    mockDeleteTarget(expenditureCategory)
+    return <div>delete dialog</div>
+  },
 }))
 jest.mock('./change-expenditure-category-state-form', () => ({
   __esModule: true,
@@ -49,16 +55,24 @@ const Harness = ({
 }: {
   expenditureCategory: ExpenditureCategoryDetailsDto | undefined
   onChanged?: () => void
-  onDeleted?: () => void
+  onDeleted?: (id: number) => void
 }) => {
-  const { actions, dialogs } = useExpenditureCategoryActions({
-    expenditureCategory,
+  const { getActionItems, dialogs } = useExpenditureCategoryActions({
     onChanged,
     onDeleted,
   })
+  const actionItems = expenditureCategory
+    ? getActionItems(expenditureCategory)
+    : []
+  // The panel renders these behind its own ⋯; here a plain Dropdown stands in
+  // so the items can be opened and clicked.
   return (
     <>
-      {actions}
+      {actionItems.length > 0 && (
+        <Dropdown menu={{ items: actionItems }} trigger={['click']}>
+          <button>Actions</button>
+        </Dropdown>
+      )}
       {dialogs}
     </>
   )
@@ -206,6 +220,45 @@ describe('useExpenditureCategoryActions', () => {
 
       // Assert
       expect(screen.getByText('delete dialog')).toBeInTheDocument()
+    })
+
+    it('targets the record whose menu was used, not a fixed one', () => {
+      // Arrange — the grid builds a ⋯ per row from the same hook, so the
+      // dialog has to open against whichever row was clicked.
+      const onDeleted = jest.fn()
+      const rowA = category('Proposed', { id: 1, name: 'Capital' })
+      const rowB = category('Proposed', { id: 2, name: 'Operating' })
+      const Rows = () => {
+        const { getActionItems, dialogs } = useExpenditureCategoryActions({
+          onChanged: jest.fn(),
+          onDeleted,
+        })
+        return (
+          <>
+            {[rowA, rowB].map((row) => (
+              <Dropdown
+                key={row.id}
+                menu={{ items: getActionItems(row) }}
+                trigger={['click']}
+              >
+                <button>{`Actions ${row.name}`}</button>
+              </Dropdown>
+            ))}
+            {dialogs}
+          </>
+        )
+      }
+      render(<Rows />)
+
+      // Act — the second row's menu
+      fireEvent.click(screen.getByRole('button', { name: 'Actions Operating' }))
+      fireEvent.click(screen.getByText('Delete'))
+
+      // Assert — one set of dialogs is mounted, aimed at row B
+      expect(screen.getByText('delete dialog')).toBeInTheDocument()
+      expect(mockDeleteTarget).toHaveBeenLastCalledWith(
+        expect.objectContaining({ id: 2, name: 'Operating' }),
+      )
     })
 
     it('holds one dialog at a time', () => {

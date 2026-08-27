@@ -1,33 +1,45 @@
 'use client'
 
-import {
-  LifecycleStatusTag,
-  PageActions,
-  PageTitle,
-} from '@/src/components/common'
+import { LifecycleStatusTag, PageActions } from '@/src/components/common'
+import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
-import { useAppDispatch, useDocumentTitle } from '@/src/hooks'
+import { useDocumentTitle } from '@/src/hooks'
 import {
-  useGetProgramQuery,
   useGetProgramProjectsQuery,
+  useGetProgramQuery,
 } from '@/src/store/features/ppm/programs-api'
-import { Alert, Badge, Col, Flex, MenuProps, Row, Typography } from 'antd'
-
-const { Text } = Typography
-import { notFound, usePathname, useRouter } from 'next/navigation'
-import { use, useEffect, useState } from 'react'
-import ProgramDetailsLoading from './loading'
+import { Alert, Flex, MenuProps } from 'antd'
+import { ItemType } from 'antd/es/menu/interface'
+import { notFound, useRouter, useSearchParams } from 'next/navigation'
+import { Suspense, use, useState } from 'react'
 import {
   ChangeProgramStatusForm,
   DeleteProgramForm,
   EditProgramForm,
-  ProgramDetails,
-} from '../_components'
-import { BreadcrumbItem, setBreadcrumbRoute } from '@/src/store/breadcrumbs'
-import { ItemType } from 'antd/es/menu/interface'
-import { ProgramStatusAction } from '../_components/change-program-status-form'
-import { ProjectViewManager } from '@/src/app/(legacy)/ppm/_components'
+} from '@/src/app/(legacy)/ppm/programs/_components'
+import { ProgramStatusAction } from '@/src/app/(legacy)/ppm/programs/_components/change-program-status-form'
+import {
+  ProjectsFilterBar,
+  ProjectViewManager,
+} from '@/src/app/(legacy)/ppm/_components'
+import { useStatusFilter } from '../../_components/use-status-filter'
+import ProgramDetailsLoading from './loading'
+import ProgramFacts from './_components/program-facts'
+import ProgramOverview from './_components/program-overview'
+
+enum ProgramSections {
+  Overview = 'overview',
+  Projects = 'projects',
+}
+
+const sections: RecordSection[] = [
+  { id: ProgramSections.Overview, label: 'Overview' },
+  { id: ProgramSections.Projects, label: 'Projects' },
+]
+
+/** Approved(5), Active(2) — what a program's delivery is usually about. */
+const DEFAULT_PROJECT_STATUSES = [5, 2]
 
 enum ProgramAction {
   Edit = 'Edit',
@@ -51,14 +63,21 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [openDeleteProgramForm, setOpenDeleteProgramForm] =
     useState<boolean>(false)
 
-  const pathname = usePathname()
-  const dispatch = useAppDispatch()
-
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateProgram = hasPermissionClaim('Permissions.Programs.Update')
   const canDeleteProgram = hasPermissionClaim('Permissions.Programs.Delete')
+
+  // Shared by the overview's tiles and charts and by the Projects section, so
+  // a count and the list it links to can never disagree. Keyed by program, so
+  // filtering one does not change what another opens on.
+  const { selected: projectStatuses, setSelected: setProjectStatuses } =
+    useStatusFilter(
+      `program:${programKey}:projectStatus`,
+      DEFAULT_PROJECT_STATUSES,
+    )
 
   const {
     data: programData,
@@ -73,6 +92,7 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   } = useGetProgramProjectsQuery(
     {
       programIdOrKey: programKey.toString(),
+      status: projectStatuses.length > 0 ? projectStatuses : undefined,
     },
     { skip: !programData },
   )
@@ -83,26 +103,6 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   // portfolio Owner/Manager, or the PPM administrator grant. The server computes the membership half
   // (canManageProgram) so the UI cannot drift from the rule the aggregate enforces.
   const canManageProgram = canUpdateProgram && !!programData?.canManageProgram
-
-  useEffect(() => {
-    if (!programData) return
-
-    const breadcrumbRoute: BreadcrumbItem[] = [
-      {
-        title: 'PPM',
-      },
-      {
-        href: `/ppm/programs`,
-        title: 'Programs',
-      },
-    ]
-
-    breadcrumbRoute.push({
-      title: 'Details',
-    })
-
-    dispatch(setBreadcrumbRoute({ route: breadcrumbRoute, pathname }))
-  }, [dispatch, pathname, programData])
 
   const missingDates = programData?.start === null || programData?.end === null
 
@@ -220,58 +220,94 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     return notFound()
   }
 
+  // Carries the rest of the query across, so following a tile to its section
+  // does not reset the filter the tile was counting under.
+  const goToSection = (sectionId: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (sectionId === ProgramSections.Overview) {
+      params.delete('section')
+    } else {
+      params.set('section', sectionId)
+    }
+    const query = params.toString()
+    router.replace(
+      query
+        ? `/ppm/programs/${programKey}?${query}`
+        : `/ppm/programs/${programKey}`,
+      { scroll: false },
+    )
+  }
+
+  const statusFilter = (
+    <ProjectsFilterBar
+      selectedStatuses={projectStatuses}
+      onStatusChange={setProjectStatuses}
+      showPortfolioFilter={false}
+      showRoleFilter={false}
+      onReset={() => setProjectStatuses(DEFAULT_PROJECT_STATUSES)}
+    />
+  )
+
+  const renderSection = (section: ProgramSections) => {
+    switch (section) {
+      case ProgramSections.Projects:
+        return (
+          <>
+            {statusFilter}
+            <ProjectViewManager
+              projects={projectsData ?? []}
+              isLoading={projectsDataIsLoading}
+              refetch={refetchProjectsData}
+              hidePortfolio={true}
+              hideProgram={true}
+              defaultView="Card"
+              persistStateKey="program-projects"
+            />
+          </>
+        )
+      default:
+        return (
+          <Flex vertical gap="middle">
+            {missingDates && (
+              <Alert
+                title="Program Dates are required before activating."
+                type="warning"
+                showIcon
+              />
+            )}
+            {statusFilter}
+            <ProgramOverview
+              program={programData}
+              projects={projectsData ?? []}
+              projectsLoading={projectsDataIsLoading}
+              onNavigateToSection={goToSection}
+            />
+          </Flex>
+        )
+    }
+  }
+
   return (
     <>
-      <PageTitle
-        title={`${programData?.key} - ${programData?.name}`}
-        subtitle="Program Details"
-        tags={<LifecycleStatusTag status={programData?.status} />}
-        actions={<PageActions actionItems={actionsMenuItems} />}
-      />
-
-      {missingDates === true && (
-        <>
-          <Alert
-            title="Program Dates are required before activating."
-            type="warning"
-            showIcon
-          />
-          <br />
-        </>
-      )}
-
-      <Row gutter={16}>
-        <Col xs={24} md={9} xxl={6}>
-          <ProgramDetails program={programData!} />
-        </Col>
-        <Col xs={24} md={15} xxl={18}>
-          <Flex vertical gap="large">
-            <Flex vertical>
-              <Flex align="center" gap={8}>
-                <Text strong>Projects</Text>
-                <Badge
-                  count={projectsData?.length ?? 0}
-                  showZero
-                  color="blue"
-                />
-              </Flex>
-              <ProjectViewManager
-                projects={projectsData ?? []}
-                isLoading={projectsDataIsLoading}
-                refetch={refetchProjectsData}
-                hidePortfolio={true}
-                hideProgram={true}
-                defaultView="Card"
-                persistStateKey="program-projects"
-              />
-            </Flex>
-          </Flex>
-        </Col>
-      </Row>
+      <RecordLayout
+        sections={sections}
+        defaultSection={ProgramSections.Overview}
+        record={{
+          name: programData.name,
+          recordKey: String(programData.key),
+          parent: { label: 'Programs', href: '/ppm/programs' },
+          subtitle: 'Program Details',
+          tags: <LifecycleStatusTag status={programData.status} />,
+          actions: <PageActions actionItems={actionsMenuItems} />,
+        }}
+        facts={<ProgramFacts program={programData} />}
+      >
+        {(section) => renderSection(section as ProgramSections)}
+      </RecordLayout>
 
       {openEditProgramForm && (
         <EditProgramForm
-          programKey={programData?.key}
+          programKey={programData.key}
           onFormComplete={() => onEditProgramFormClosed(true)}
           onFormCancel={() => onEditProgramFormClosed(false)}
         />
@@ -311,8 +347,19 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   )
 }
 
+// useSearchParams suspends a prerendered route up to the nearest boundary. In
+// development routes render on demand, so a missing one only fails the
+// production build.
+const ProgramDetailsPageWithSuspense = (props: {
+  params: Promise<{ key: string }>
+}) => (
+  <Suspense fallback={<ProgramDetailsLoading />}>
+    <ProgramDetailsPage {...props} />
+  </Suspense>
+)
+
 const ProgramDetailsPageWithAuthorization = authorizePage(
-  ProgramDetailsPage,
+  ProgramDetailsPageWithSuspense,
   'Permission',
   'Permissions.Programs.View',
 )

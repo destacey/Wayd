@@ -8,12 +8,15 @@ import {
 } from '@/src/components/common/content'
 import LinksCard from '@/src/components/common/links/links-card'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
+import { RecordFactsGroup } from '@/src/components/common/record'
+import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useGetProgramQuery } from '@/src/store/features/ppm/programs-api'
-import { getDrawerWidthPixels, getSortedNameList, isApiError} from '@/src/utils'
-import { Drawer, Flex } from 'antd'
+import { getDrawerWidthPixels, isApiError } from '@/src/utils'
+import { Divider, Drawer, Flex } from 'antd'
 import Link from 'next/link'
+import RecordRoleList from '@/src/app/(records)/ppm/_components/record-role-list'
 import { FC, useEffect, useState } from 'react'
 
 export interface ProgramDrawerProps {
@@ -51,13 +54,9 @@ const ProgramDrawer: FC<ProgramDrawerProps> = ({
     }
   }, [error, messageApi])
 
-  const sponsorNames = getSortedNameList(programData?.programSponsors ?? [])
-
-  const ownerNames = getSortedNameList(programData?.programOwners ?? [])
-
-  const managerNames = getSortedNameList(programData?.programManagers ?? [])
-
-  const strategicThemes = getSortedNameList(programData?.strategicThemes ?? [])
+  const strategicThemeNames = [...(programData?.strategicThemes ?? [])]
+    .sort((a, b) => caseInsensitiveCompare(a.name, b.name))
+    .map((t) => t.name)
 
   return (
     <Drawer
@@ -87,18 +86,9 @@ const ProgramDrawer: FC<ProgramDrawerProps> = ({
               dateRange={{ start: programData?.start, end: programData?.end }}
             />
           </LabeledContent>
-          <LabeledContent label="Sponsors">
-            <ContentList items={sponsorNames} emptyText="No sponsor assigned" />
-          </LabeledContent>
-          <LabeledContent label="Owners">
-            <ContentList items={ownerNames} emptyText="No owner assigned" />
-          </LabeledContent>
-          <LabeledContent label="PMs" tooltip="Program Managers">
-            <ContentList items={managerNames} emptyText="No PM assigned" />
-          </LabeledContent>
-          {strategicThemes.length > 0 && (
+          {strategicThemeNames.length > 0 && (
             <LabeledContent label="Strategic Themes">
-              {strategicThemes.join(', ')}
+              <ContentList items={strategicThemeNames} />
             </LabeledContent>
           )}
           {programData?.description && (
@@ -109,8 +99,48 @@ const ProgramDrawer: FC<ProgramDrawerProps> = ({
             </LabeledContent>
           )}
         </Flex>
+
+        <Divider size="small" style={{ margin: 0 }} />
+
+        <RecordFactsGroup label="Roles">
+          <LabeledContent label="Sponsors">
+            <RecordRoleList
+              people={programData?.programSponsors ?? []}
+              emptyText="No sponsor assigned"
+            />
+          </LabeledContent>
+          <LabeledContent label="Owners">
+            <RecordRoleList
+              people={programData?.programOwners ?? []}
+              emptyText="No owner assigned"
+            />
+          </LabeledContent>
+          <LabeledContent label="PMs" tooltip="Program Managers">
+            <RecordRoleList
+              people={programData?.programManagers ?? []}
+              emptyText="No PM assigned"
+            />
+          </LabeledContent>
+        </RecordFactsGroup>
+
+        {programData?.portfolio && (
+          <>
+            <Divider size="small" style={{ margin: 0 }} />
+            <RecordFactsGroup label="Relationships">
+              <LabeledContent label="Portfolio">
+                <Link href={`/ppm/portfolios/${programData.portfolio.key}`}>
+                  {programData.portfolio.name}
+                </Link>
+              </LabeledContent>
+            </RecordFactsGroup>
+          </>
+        )}
+
         {programData?.id && (
-          <LinksCard objectId={programData.id} width="100%" />
+          <>
+            <Divider size="small" style={{ margin: 0 }} />
+            <LinksCard objectId={programData.id} width="100%" />
+          </>
         )}
       </Flex>
     </Drawer>

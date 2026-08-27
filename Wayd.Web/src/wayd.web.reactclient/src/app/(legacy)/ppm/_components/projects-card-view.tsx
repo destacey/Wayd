@@ -30,13 +30,26 @@ const compareProjectRanks = (a: ProjectListDto, b: ProjectListDto) => {
   return compareProjectNames(a, b)
 }
 
-interface ProjectCardProps {
+export interface ProjectCardProps {
   project: ProjectListDto
   onCardClick: (key: string) => void
   hidePortfolio?: boolean
+  /** Hides the program row where every card on screen shares one. */
+  hideProgram?: boolean
 }
 
-const ProjectCard: FC<ProjectCardProps> = ({ project, onCardClick, hidePortfolio }) => {
+/**
+ * One project, as it appears in the portfolio's card view.
+ *
+ * Exported so the overview's Needs Attention list shows the same card as
+ * the Projects section rather than a near-copy that drifts from it.
+ */
+export const ProjectCard: FC<ProjectCardProps> = ({
+  project,
+  onCardClick,
+  hidePortfolio,
+  hideProgram,
+}) => {
   const managerNames = getSortedNames(project.projectManagers)
 
   const timelineFormat =
@@ -93,6 +106,20 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, onCardClick, hidePortfolio
               </Text>
             </Flex>
           )}
+          {!hideProgram && (
+            <Flex gap={6} align="center">
+              <Text type="secondary" style={{ fontSize: 11, minWidth: 60 }}>
+                Program
+              </Text>
+              <Text
+                type={project.program ? undefined : 'secondary'}
+                style={{ fontSize: 12 }}
+                ellipsis={{ tooltip: project.program?.name }}
+              >
+                {project.program?.name ?? 'None'}
+              </Text>
+            </Flex>
+          )}
           <Flex gap={6} align="center">
             <Text type="secondary" style={{ fontSize: 11, minWidth: 60 }}>
               Managers
@@ -134,6 +161,7 @@ export interface ProjectsCardViewProps {
   viewSelector?: ReactNode
   onCardClick: (key: string) => void
   hidePortfolio?: boolean
+  hideProgram?: boolean
 }
 
 const ProjectsCardView: FC<ProjectsCardViewProps> = ({
@@ -142,6 +170,7 @@ const ProjectsCardView: FC<ProjectsCardViewProps> = ({
   viewSelector,
   onCardClick,
   hidePortfolio,
+  hideProgram,
 }) => {
   const [sortMode, setSortMode] = useState<SortMode>('name')
 
@@ -194,6 +223,7 @@ const ProjectsCardView: FC<ProjectsCardViewProps> = ({
             project={project}
             onCardClick={onCardClick}
             hidePortfolio={hidePortfolio}
+            hideProgram={hideProgram}
           />
         ))}
       </div>

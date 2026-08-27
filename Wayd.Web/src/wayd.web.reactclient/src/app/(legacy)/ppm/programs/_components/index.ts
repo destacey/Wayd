@@ -2,4 +2,3 @@ export { default as ChangeProgramStatusForm } from './change-program-status-form
 export { default as CreateProgramForm } from './create-program-form'
 export { default as EditProgramForm } from './edit-program-form'
 export { default as DeleteProgramForm } from './delete-program-form'
-export { default as ProgramDetails } from './program-details'

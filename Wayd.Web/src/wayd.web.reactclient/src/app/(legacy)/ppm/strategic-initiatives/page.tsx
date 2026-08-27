@@ -63,6 +63,11 @@ const StrategicInitiativesPage: FC = () => {
     }
   }, [error, messageApi])
 
+  const handleResetFilters = () => {
+    setSelectedStatuses(DEFAULT_STATUSES)
+    setSelectedPortfolioId(null)
+  }
+
   const handleStatusChange = (statuses: number[]) => {
     setSelectedStatuses(statuses)
   }
@@ -92,6 +97,7 @@ const StrategicInitiativesPage: FC = () => {
         onStatusChange={handleStatusChange}
         selectedPortfolioId={selectedPortfolioId}
         onPortfolioChange={setSelectedPortfolioId}
+        onReset={handleResetFilters}
       />
       <StrategicInitiativesGrid
         strategicInitiatives={strategicInitiativeData ?? []}

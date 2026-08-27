@@ -13,7 +13,7 @@ import {
 } from '@/src/components/common/wayd-grid'
 import { useMessage } from '@/src/components/contexts/messaging'
 import ProjectDrawer from '@/src/app/(legacy)/ppm/_components/project-drawer'
-import RecordProjectScoreForm from '@/src/app/(legacy)/ppm/projects/[key]/_components/scoring/record-project-score-form'
+import RecordProjectScoreForm from '@/src/app/(legacy)/ppm/projects/_components/scoring/record-project-score-form'
 import {
   PortfolioRankingScoreboardDto,
   ProjectListDto,

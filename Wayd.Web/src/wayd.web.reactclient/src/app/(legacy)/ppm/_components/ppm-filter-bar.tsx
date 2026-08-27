@@ -83,7 +83,12 @@ const PpmFilterBar: FC<PpmFilterBarProps> = (props) => {
           <span className={styles.filterLabel}>Status:</span>
           <Flex gap={2}>
             {statusOptions?.map((status) => {
-              const isSelected = selectedStatuses.includes(status.value)
+              // An empty selection queries every status, so showing every
+              // button lit is what is actually being asked for — leaving them
+              // all dark says "none", which is the one thing it never means.
+              const isSelected =
+                selectedStatuses.length === 0 ||
+                selectedStatuses.includes(status.value)
               return (
                 <Button
                   key={status.value}
@@ -92,9 +97,16 @@ const PpmFilterBar: FC<PpmFilterBarProps> = (props) => {
                   color={isSelected ? 'primary' : 'default'}
                   variant="outlined"
                   onClick={() => {
-                    const next = isSelected
-                      ? selectedStatuses.filter((s) => s !== status.value)
-                      : [...selectedStatuses, status.value]
+                    // Turning one off while showing all narrows to the rest,
+                    // rather than starting again from an empty set that would
+                    // immediately read as all.
+                    const effective =
+                      selectedStatuses.length === 0
+                        ? statusOptions.map((option) => option.value)
+                        : selectedStatuses
+                    const next = effective.includes(status.value)
+                      ? effective.filter((s) => s !== status.value)
+                      : [...effective, status.value]
                     onStatusChange(next)
                   }}
                 >

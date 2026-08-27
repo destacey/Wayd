@@ -11,6 +11,7 @@ export interface ProgramsFilterBarProps {
   selectedPortfolioId?: string | null
   onPortfolioChange?: (portfolioId: string | null) => void
   showPortfolioFilter?: boolean
+  onReset?: () => void
 }
 
 const ProgramsFilterBar: FC<ProgramsFilterBarProps> = ({
@@ -19,6 +20,7 @@ const ProgramsFilterBar: FC<ProgramsFilterBarProps> = ({
   selectedPortfolioId,
   onPortfolioChange,
   showPortfolioFilter = true,
+  onReset,
 }) => {
   const { data: statusOptions, isLoading: statusOptionsLoading } =
     useGetProgramStatusOptionsQuery()
@@ -37,6 +39,7 @@ const ProgramsFilterBar: FC<ProgramsFilterBarProps> = ({
       portfolioOptions={showPortfolioFilter ? portfolioOptions : undefined}
       selectedPortfolioId={showPortfolioFilter ? selectedPortfolioId : undefined}
       onPortfolioChange={showPortfolioFilter ? onPortfolioChange : undefined}
+      onReset={onReset}
       loading={loading}
     />
   )

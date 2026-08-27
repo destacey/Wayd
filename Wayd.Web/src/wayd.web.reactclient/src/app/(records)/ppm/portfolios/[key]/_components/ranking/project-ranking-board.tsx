@@ -27,6 +27,7 @@ import {
   MoreOutlined,
 } from '@ant-design/icons'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
+import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { Button, Dropdown, Flex, Tag, theme } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
@@ -181,7 +182,7 @@ const ProjectRankingBoard = ({
       [...projects].sort((a, b) => {
         const rankComparison = a.rank - b.rank
         return rankComparison === 0
-          ? a.name.localeCompare(b.name)
+          ? caseInsensitiveCompare(a.name, b.name)
           : rankComparison
       }),
     [projects],

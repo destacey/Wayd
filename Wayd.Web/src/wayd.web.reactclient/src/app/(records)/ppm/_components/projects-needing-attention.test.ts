@@ -210,6 +210,43 @@ describe('getProjectsNeedingAttention', () => {
       // Assert
       expect(names(result)).toEqual(['Alpha', 'Bravo', 'Charlie'])
     })
+
+    it('falls back to the key when two projects share a name', () => {
+      // Arrange — names are not unique, so without a further tiebreaker these
+      // two would hold whatever order the API returned them in.
+      const projects = [
+        buildProject({ id: 'prj-2', name: 'Migration' }),
+        buildProject({ id: 'prj-1', name: 'Migration' }),
+      ]
+
+      // Act
+      const result = getProjectsNeedingAttention(projects, 'health')
+
+      // Assert
+      expect(result.map((p) => p.key)).toEqual(['PRJ-1', 'PRJ-2'])
+    })
+
+    it('orders keys numerically, so PRJ-3 comes before PRJ-10', () => {
+      // Arrange
+      const projects = [
+        buildProject({ id: 'prj-10', name: 'Migration' }),
+        buildProject({ id: 'prj-3', name: 'Migration' }),
+        buildProject({ id: 'prj-21', name: 'Migration' }),
+        buildProject({ id: 'prj-2', name: 'Migration' }),
+      ]
+
+      // Act
+      const result = getProjectsNeedingAttention(projects, 'health')
+
+      // Assert — a plain string compare sorts digit by digit, giving
+      // PRJ-10, PRJ-2, PRJ-21, PRJ-3.
+      expect(result.map((p) => p.key)).toEqual([
+        'PRJ-2',
+        'PRJ-3',
+        'PRJ-10',
+        'PRJ-21',
+      ])
+    })
   })
 
   it('returns nothing when no project needs attention', () => {

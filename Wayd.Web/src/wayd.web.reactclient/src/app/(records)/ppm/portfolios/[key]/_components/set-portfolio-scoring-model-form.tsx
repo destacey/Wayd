@@ -9,6 +9,7 @@ import {
 } from '@/src/store/features/ppm/portfolios-api'
 import { isApiError, type ApiError } from '@/src/utils'
 import { useModalForm } from '@/src/hooks'
+import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { Form, Modal, Select, Typography } from 'antd'
 import { useMemo } from 'react'
 
@@ -44,7 +45,7 @@ const SetPortfolioScoringModelForm = ({
   const options = useMemo(
     () =>
       [...models]
-        .sort((a, b) => a.name.localeCompare(b.name))
+        .sort((a, b) => caseInsensitiveCompare(a.name, b.name))
         .map((m) => ({
           value: m.id,
           label: m.name,

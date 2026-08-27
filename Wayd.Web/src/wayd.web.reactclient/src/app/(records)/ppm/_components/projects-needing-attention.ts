@@ -28,8 +28,8 @@ const healthRank = (project: ProjectListDto) =>
  *
  * Health is always the tiebreaker, whichever mode is chosen — within a program
  * or among names that sort together, the unhealthy one should still come
- * first. Sorting finally by key so the order is stable rather than dependent
- * on the order the API happened to return.
+ * first. Then name, then key: keys are unique, so the order is total and
+ * stable rather than dependent on the order the API happened to return.
  */
 export const getProjectsNeedingAttention = (
   projects: ProjectListDto[],
@@ -72,6 +72,11 @@ export const getProjectsNeedingAttention = (
     const byHealth = healthRank(a) - healthRank(b)
     if (byHealth !== 0) return byHealth
 
-    return caseInsensitiveCompare(a.name, b.name)
+    const byName = caseInsensitiveCompare(a.name, b.name)
+    if (byName !== 0) return byName
+
+    // Keys are unique, so this is what makes the order total. Compared with
+    // caseInsensitiveCompare for its numeric handling: PRJ-2 before PRJ-10.
+    return caseInsensitiveCompare(a.key, b.key)
   })
 }

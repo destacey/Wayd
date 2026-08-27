@@ -129,12 +129,15 @@ const CreateEstimationScaleForm = ({
           >
             {(fields, { add, remove }, { errors }) => (
               <>
-                {fields.map((field) => (
+                {fields.map(({ key, ...field }) => (
                   <Space
-                    key={field.key}
+                    key={key}
                     style={{ display: 'flex', marginBottom: 4 }}
                     align="baseline"
                   >
+                    {/* `key` is destructured off above: Form.List's field
+                        carries one, and spreading it into an element is a
+                        React warning rather than a working key. */}
                     <Item
                       {...field}
                       rules={[

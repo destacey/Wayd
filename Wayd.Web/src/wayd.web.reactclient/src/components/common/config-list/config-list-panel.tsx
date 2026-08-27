@@ -28,11 +28,12 @@ export const CONFIG_PANEL_WIDTH_KEY = 'wayd-config-list:panel-width'
 const KEYBOARD_STEP = 16
 
 /**
- * How far the resize handle sits left of the panel's edge, matching its `left`
- * in the stylesheet. Kept in step by hand — the drag reads pointer position in
- * page coordinates, which CSS cannot tell it.
+ * Half the gap the resize handle fills, so a drag measures from the handle's
+ * centre rather than its left edge. Matches `--config-list-gap` in the
+ * stylesheet, kept in step by hand — the drag reads pointer position in page
+ * coordinates, which CSS cannot tell it.
  */
-const RESIZER_OFFSET = 12
+const RESIZER_OFFSET = 8
 
 export interface ConfigListPanelProps {
   /** The list itself — a `WaydGrid` wired to `onRowActivate`. */
@@ -119,7 +120,7 @@ const ConfigListPanel = ({
   const boundedWidth = clamp(width)
 
   // Listeners go on the document, not the handle: the pointer routinely leaves
-  // a 7px target mid-drag, and a handle-bound move would drop the gesture.
+  // the handle mid-drag, and a handle-bound move would drop the gesture.
   useEffect(() => {
     if (!dragging) return
 
@@ -209,24 +210,26 @@ const ConfigListPanel = ({
             }}
             onKeyDown={onHandleKeyDown}
           />
-          <div className={styles.panelHeader}>
-            <Title level={5} style={{ margin: 0, fontSize: 14 }}>
-              {title}
-            </Title>
-            <Flex align="center" gap={4}>
-              {actionsMenu}
-              <WaydTooltip title="Close">
-                <Button
-                  type="text"
-                  size="small"
-                  aria-label="Close details panel"
-                  icon={<CloseOutlined />}
-                  onClick={onClose}
-                />
-              </WaydTooltip>
-            </Flex>
+          <div className={styles.panelScroll}>
+            <div className={styles.panelHeader}>
+              <Title level={5} style={{ margin: 0, fontSize: 14 }}>
+                {title}
+              </Title>
+              <Flex align="center" gap={4}>
+                {actionsMenu}
+                <WaydTooltip title="Close">
+                  <Button
+                    type="text"
+                    size="small"
+                    aria-label="Close details panel"
+                    icon={<CloseOutlined />}
+                    onClick={onClose}
+                  />
+                </WaydTooltip>
+              </Flex>
+            </div>
+            <PanelContents details={details} isLoading={isLoading} />
           </div>
-          <PanelContents details={details} isLoading={isLoading} />
         </aside>
       )}
     </div>

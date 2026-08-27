@@ -174,6 +174,20 @@ describe('ConfigListPanel', () => {
   })
 
   describe('resize', () => {
+    it('keeps the handle out of the scrolling container', () => {
+      // Arrange / Act — the handle is positioned in the gap OUTSIDE the panel
+      // box, so an `overflow` between it and the panel clips it: rendered, in
+      // the DOM, and invisible. That shipped once.
+      renderPanel()
+
+      // Assert — the scroll container is a sibling of the handle, not its
+      // ancestor
+      const handle = screen.getByRole('separator', {
+        name: 'Resize details panel',
+      })
+      expect(handle.closest(`.${'panelScroll'}`)).toBeNull()
+    })
+
     it('exposes the panel as a keyboard-operable separator', () => {
       // Arrange / Act
       renderPanel()

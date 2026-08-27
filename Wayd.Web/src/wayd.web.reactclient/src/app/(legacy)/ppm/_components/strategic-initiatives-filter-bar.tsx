@@ -11,6 +11,7 @@ export interface StrategicInitiativesFilterBarProps {
   selectedPortfolioId?: string | null
   onPortfolioChange?: (portfolioId: string | null) => void
   showPortfolioFilter?: boolean
+  onReset?: () => void
 }
 
 const StrategicInitiativesFilterBar: FC<
@@ -21,6 +22,7 @@ const StrategicInitiativesFilterBar: FC<
   selectedPortfolioId,
   onPortfolioChange,
   showPortfolioFilter = true,
+  onReset,
 }) => {
   const { data: statusOptions, isLoading: statusOptionsLoading } =
     useGetStrategicInitiativeStatusOptionsQuery()
@@ -39,6 +41,7 @@ const StrategicInitiativesFilterBar: FC<
       portfolioOptions={showPortfolioFilter ? portfolioOptions : undefined}
       selectedPortfolioId={showPortfolioFilter ? selectedPortfolioId : undefined}
       onPortfolioChange={showPortfolioFilter ? onPortfolioChange : undefined}
+      onReset={onReset}
       loading={loading}
     />
   )

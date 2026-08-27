@@ -71,15 +71,30 @@ const RecordLayoutInner = ({
       ? requested
       : defaultSection
 
+  // useSearchParams returns a fresh object every render, so depending on it
+  // directly would rebuild goTo each time. The string is stable by value.
+  const query = params.toString()
+
   const goTo = useCallback(
     (id: string) => {
-      const url =
-        id === defaultSection ? pathname : `${pathname}?section=${id}`
+      // Carry the rest of the query across. Sections are one axis of page
+      // state among several — a selected team, an overview tab — and rebuilding
+      // the URL from the section alone silently drops the others, resetting
+      // them every time the user changes section.
+      const next = new URLSearchParams(query)
+      if (id === defaultSection) {
+        next.delete('section')
+      } else {
+        next.set('section', id)
+      }
+      const nextQuery = next.toString()
       // replace, not push: Back returns to the list rather than stepping back
       // through every section visited. scroll:false or the router jumps to top.
-      router.replace(url, { scroll: false })
+      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+        scroll: false,
+      })
     },
-    [defaultSection, pathname, router],
+    [defaultSection, query, pathname, router],
   )
 
   const active = all.find((s) => s.id === activeSection)

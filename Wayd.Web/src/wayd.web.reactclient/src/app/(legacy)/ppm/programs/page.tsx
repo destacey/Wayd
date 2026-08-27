@@ -53,6 +53,11 @@ const ProgramsPage: FC = () => {
     }
   }, [error, messageApi])
 
+  const handleResetFilters = () => {
+    setSelectedStatuses(DEFAULT_STATUSES)
+    setSelectedPortfolioId(null)
+  }
+
   const handleStatusChange = (statuses: number[]) => {
     setSelectedStatuses(statuses)
   }
@@ -82,6 +87,7 @@ const ProgramsPage: FC = () => {
         onStatusChange={handleStatusChange}
         selectedPortfolioId={selectedPortfolioId}
         onPortfolioChange={setSelectedPortfolioId}
+        onReset={handleResetFilters}
       />
       <ProgramsGrid
         programs={programData ?? []}

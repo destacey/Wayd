@@ -7,17 +7,25 @@ import {
   LabeledContent,
 } from '@/src/components/common/content'
 import LinksCard from '@/src/components/common/links/links-card'
+import TimelineProgress from '@/src/components/common/planning/timeline-progress'
+import {
+  RecordFactsGroup,
+  RecordLinkList,
+} from '@/src/components/common/record'
+import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import StageTimeline from './stage-timeline'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useGetProjectQuery } from '@/src/store/features/ppm/projects-api'
-import { getDrawerWidthPixels, getSortedNameList, isApiError} from '@/src/utils'
+import { getDrawerWidthPixels, isApiError } from '@/src/utils'
 import { Divider, Drawer, Flex } from 'antd'
+import dayjs from 'dayjs'
 import { WaydTooltip } from '@/src/components/common'
 import { projectHelpText } from '../projects/_components/project-help-text'
 import ProjectHealthCheckTag from '../projects/_components/project-health-check-tag'
-import ProjectScoreCard from '../projects/[key]/_components/scoring/project-score-card'
+import ProjectScoreCard from '../projects/_components/scoring/project-score-card'
+import RecordRoleList from '@/src/app/(records)/ppm/_components/record-role-list'
 import Link from 'next/link'
 import { FC, useEffect, useState } from 'react'
 
@@ -56,19 +64,29 @@ const ProjectDrawer: FC<ProjectDrawerProps> = ({
     }
   }, [error, messageApi])
 
-  const sponsorNames = getSortedNameList(projectData?.projectSponsors ?? [])
-
-  const ownerNames = getSortedNameList(projectData?.projectOwners ?? [])
-
-  const managerNames = getSortedNameList(projectData?.projectManagers ?? [])
-
-  const memberNames = getSortedNameList(projectData?.projectMembers ?? [])
-
-  const strategicThemes = getSortedNameList(projectData?.strategicThemes ?? [])
+  const strategicThemeNames = [...(projectData?.strategicThemes ?? [])]
+    .sort((a, b) => caseInsensitiveCompare(a.name, b.name))
+    .map((t) => t.name)
 
   const sortedStrategicInitiatives = [
     ...(projectData?.strategicInitiatives ?? []),
-  ].sort((a, b) => a.name.localeCompare(b.name))
+  ].sort((a, b) => caseInsensitiveCompare(a.name, b.name))
+
+  const hasStarted =
+    projectData?.start && dayjs(projectData.start).isBefore(dayjs(), 'day')
+
+  const hasNarrative = !!(
+    projectData?.description ||
+    projectData?.businessCase ||
+    projectData?.expectedBenefits
+  )
+
+  const timelineFormat =
+    projectData?.start &&
+    projectData.end &&
+    new Date(projectData.start).getFullYear() === new Date().getFullYear()
+      ? 'MMM D'
+      : 'MMM D, YYYY'
 
   return (
     <Drawer
@@ -101,13 +119,6 @@ const ProjectDrawer: FC<ProjectDrawerProps> = ({
               />
             </LabeledContent>
           )}
-          {projectData?.program && (
-            <LabeledContent label="Program">
-              <Link href={`/ppm/programs/${projectData.program.key}`}>
-                {projectData.program.name}
-              </Link>
-            </LabeledContent>
-          )}
           <LabeledContent label="Dates">
             <WaydDateRange
               dateRange={{ start: projectData?.start, end: projectData?.end }}
@@ -126,43 +137,92 @@ const ProjectDrawer: FC<ProjectDrawerProps> = ({
             )}
           </LabeledContent>
 
-          {strategicThemes.length > 0 && (
+          {strategicThemeNames.length > 0 && (
             <LabeledContent label="Strategic Themes">
-              {strategicThemes.join(', ')}
+              <ContentList items={strategicThemeNames} />
+            </LabeledContent>
+          )}
+        </Flex>
+
+        <Divider size="small" style={{ margin: 0 }} />
+
+        <RecordFactsGroup label="Roles">
+          <LabeledContent label="Sponsors">
+            <RecordRoleList
+              people={projectData?.projectSponsors ?? []}
+              emptyText="No sponsor assigned"
+            />
+          </LabeledContent>
+          <LabeledContent label="Owners">
+            <RecordRoleList
+              people={projectData?.projectOwners ?? []}
+              emptyText="No owner assigned"
+            />
+          </LabeledContent>
+          <LabeledContent label="PMs" tooltip="Project Managers">
+            <RecordRoleList
+              people={projectData?.projectManagers ?? []}
+              emptyText="No PM assigned"
+            />
+          </LabeledContent>
+          <LabeledContent label="Members">
+            <RecordRoleList
+              people={projectData?.projectMembers ?? []}
+              emptyText="No members assigned"
+            />
+          </LabeledContent>
+        </RecordFactsGroup>
+
+        <Divider size="small" style={{ margin: 0 }} />
+
+        <RecordFactsGroup label="Relationships">
+          {projectData?.portfolio && (
+            <LabeledContent label="Portfolio">
+              <Link href={`/ppm/portfolios/${projectData.portfolio.key}`}>
+                {projectData.portfolio.name}
+              </Link>
+            </LabeledContent>
+          )}
+
+          {projectData?.program && (
+            <LabeledContent label="Program">
+              <Link href={`/ppm/programs/${projectData.program.key}`}>
+                {projectData.program.name}
+              </Link>
             </LabeledContent>
           )}
 
           {sortedStrategicInitiatives.length > 0 && (
             <LabeledContent label="Strategic Initiatives">
-              <ul style={{ margin: 0, paddingLeft: 16 }}>
-                {sortedStrategicInitiatives.map((si) => (
-                  <li key={si.id}>
-                    <Link href={`/ppm/strategic-initiatives/${si.key}`}>
-                      {si.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+              <RecordLinkList
+                items={sortedStrategicInitiatives.map((si) => ({
+                  id: si.id,
+                  name: si.name,
+                  href: `/ppm/strategic-initiatives/${si.key}`,
+                }))}
+              />
             </LabeledContent>
           )}
+        </RecordFactsGroup>
 
-          <Divider size="small" />
+        {hasStarted && (
+          <>
+            <Divider size="small" style={{ margin: 0 }} />
+            <TimelineProgress
+              start={projectData?.start ?? null}
+              end={projectData?.end ?? null}
+              variant="borderless"
+              style={{ width: '100%' }}
+              dateFormat={timelineFormat}
+            />
+          </>
+        )}
 
-          <LabeledContent label="Sponsors">
-            <ContentList items={sponsorNames} emptyText="No sponsor assigned" />
-          </LabeledContent>
-          <LabeledContent label="Owners">
-            <ContentList items={ownerNames} emptyText="No owner assigned" />
-          </LabeledContent>
-          <LabeledContent label="PMs" tooltip="Project Managers">
-            <ContentList items={managerNames} emptyText="No PM assigned" />
-          </LabeledContent>
-          <LabeledContent label="Members">
-            <ContentList items={memberNames} emptyText="No members assigned" />
-          </LabeledContent>
+        {hasNarrative && (
+          <Divider size="small" style={{ margin: 0 }} />
+        )}
 
-          <Divider size="small" />
-
+        <Flex vertical gap={10}>
           {projectData?.description && (
             <LabeledContent
               label="Description"

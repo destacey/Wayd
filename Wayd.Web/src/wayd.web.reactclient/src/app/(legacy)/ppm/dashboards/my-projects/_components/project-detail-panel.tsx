@@ -68,7 +68,7 @@ const ProjectDetailContent: FC<{ projectKey: string }> = ({ projectKey }) => {
           <Flex vertical gap={8}>
             <div>
               <EntityLink
-                href={`/ppm/projects/${project.key}#plan`}
+                href={`/ppm/projects/${project.key}?section=plan`}
                 style={{ fontSize: 13 }}
               >
                 Project Plan

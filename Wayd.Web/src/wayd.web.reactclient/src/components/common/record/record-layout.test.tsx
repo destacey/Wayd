@@ -106,6 +106,37 @@ describe('RecordLayout', () => {
     )
   })
 
+  it('keeps other query state when changing section', async () => {
+    // Arrange — a filter the page holds in the URL alongside the section.
+    mockParams = new URLSearchParams('programStatus=2,1')
+    renderLayout()
+
+    // Act
+    await userEvent.click(screen.getByRole('tab', { name: /Backlog/ }))
+
+    // Assert — rebuilding the URL from the section alone would drop the
+    // filter, resetting it to its default on every section change.
+    expect(mockReplace).toHaveBeenCalledWith(
+      '/organizations/teams/14?programStatus=2%2C1&section=backlog',
+      { scroll: false },
+    )
+  })
+
+  it('keeps other query state when returning to the default section', async () => {
+    // Arrange
+    mockParams = new URLSearchParams('section=backlog&programStatus=2,1')
+    renderLayout()
+
+    // Act
+    await userEvent.click(screen.getByRole('tab', { name: /Overview/ }))
+
+    // Assert — the section param goes, the filter stays.
+    expect(mockReplace).toHaveBeenCalledWith(
+      '/organizations/teams/14?programStatus=2%2C1',
+      { scroll: false },
+    )
+  })
+
   it('addresses reports the same way as sections', async () => {
     // Arrange
     renderLayout()

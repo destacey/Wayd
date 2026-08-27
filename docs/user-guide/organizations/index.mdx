@@ -103,7 +103,7 @@ Each team has an **Operating Model** that defines how it works. The operating mo
 Operating models have an effective date range, creating a history. When a team changes its methodology (e.g., moving from Kanban to Scrum), a new operating model is added and the previous one is automatically closed the day before the new one starts.
 
 The operating model affects what the team sees in the UI:
-- **Scrum teams** see a **Sprints** tab and an **Active Sprint** indicator on their detail page
+- **Scrum teams** see a **Sprints** section and an **Active Sprint** indicator on their detail page
 - **Kanban teams** do not see sprint-related UI
 - The **Sizing Method** determines how work is measured in backlog views and metrics
 
@@ -140,21 +140,31 @@ Membership rules:
 
 ## Team Detail Page
 
-The team detail page is the central hub for understanding and managing a team. It provides tabs for different aspects of the team's work and delivery.
+The team detail page is the central hub for understanding and managing a team. It has an identity bar naming the team, a **section rail** down the left, and a details panel holding the team's stable facts. Each section is addressable — the URL carries `?section=` so a link can point at the section you were reading.
 
-### Details Tab
+The team's **code** appears in the key chip beside the name, since that is what people say out loud; the numeric key lives in the facts panel.
 
-The **Details** tab shows the team's core properties:
-- Code, Type, and Parent Team (with link to parent Team of Teams)
-- Active and Inactive dates
+### Record facts panel
+
+The details panel shows the team's core properties:
+- Type and Key
 - Current Methodology and Sizing Method (from the operating model)
+- Active and Inactive dates
 - Description (rendered as Markdown)
+- **Relationships** — Parent Team of Teams and, for a Team of Teams, its child teams
+
+Toggle it from the button at the right of the identity bar; below tablet width it moves into the page content.
+
+### Overview
+
+The **Overview** section summarises the team at a glance:
+- Metric tiles for **Members**, **Backlog**, **Dependencies**, and **Open Risks**, each linking to the section it counts
 - **Active Team Sprint** — For Scrum teams, shows the current sprint with timeline progress, completion rate, velocity, in progress count, and average cycle time
 - **Members** — A card for each team member showing their name (links to their employee page) and roles. Cards are clickable and navigate to the employee's detail page.
 
-### Members Tab
+### Members
 
-The **Members** tab shows all current members of the team in a grid with columns:
+The **Members** section shows all current members of the team in a grid with columns:
 - Name (links to the employee's detail page)
 - Email
 - Title (job title)
@@ -165,23 +175,23 @@ Members are managed from the **Actions menu → Team Management**:
 - **Edit** (row menu) — Update the roles assigned to a member.
 - **Remove** (row menu) — Remove the employee from the team entirely (all role assignments).
 
-### Backlog Tab
+### Backlog
 
-The **Backlog** tab shows all work items assigned to the team across all workspaces. This gives the team a unified view of their work regardless of which workspace it lives in.
+The **Backlog** section shows all work items assigned to the team across all workspaces. This gives the team a unified view of their work regardless of which workspace it lives in.
 
 The backlog is displayed as a grid with sortable and filterable columns. It pulls work items where the team is assigned, providing a single-pane view of everything the team needs to work on.
 
-### Sprints Tab
+### Sprints
 
 > Only visible for teams that have ever used the Scrum methodology.
 
-The **Sprints** tab shows all sprints owned by the team — past, active, and future. Each sprint displays its name, date range, state (Future, Active, Completed), and type.
+The **Sprints** section shows all sprints owned by the team — past, active, and future. Each sprint displays its name, date range, state (Future, Active, Completed), and type.
 
 Sprints are the time-boxed delivery cadence for Scrum teams. They are created in the [Planning](../planning/index.mdx) domain and mapped to [PI iterations](../planning/planning-intervals.mdx#iterations-within-a-pi). See [Sprints](../planning/sprints.mdx) for details on how sprints work and [Sprint Metrics](../planning/sprints.mdx#sprint-metrics) for the metrics tracked per sprint.
 
-### Dependency Management Tab
+### Dependencies
 
-The **Dependency Management** tab shows all cross-work-item dependencies involving the team. Dependencies are predecessor/successor relationships between work items that help teams identify blockers and delivery risks.
+The **Dependencies** section shows all cross-work-item dependencies involving the team. Dependencies are predecessor/successor relationships between work items that help teams identify blockers and delivery risks.
 
 The dependency grid is organized into three column groups:
 
@@ -198,20 +208,20 @@ Dependencies are color-coded by health:
 
 See [Work Item Dependencies](../work-management/work-items.mdx#work-item-dependencies) for details on how dependency health is calculated.
 
-### Risk Management Tab
+### Risks
 
-The **Risk Management** tab shows risks associated with the team. Risks represent potential circumstances that could impact delivery.
+The **Risks** section shows risks associated with the team. Risks represent potential circumstances that could impact delivery.
 
 The risk grid supports:
 - Viewing all open risks for the team
 - Toggling **Include closed risks** to see historical risks
-- Creating new risks directly from the tab
+- Creating new risks directly from the section
 
 Each risk includes summary, status (Open/Closed), category (Resolved, Owned, Accepted, Mitigated), impact, likelihood, exposure, assignee, and follow-up date. See [Risks](../planning/risks.mdx) for details on the risk model.
 
-### Team Memberships Tab
+### Team Memberships
 
-The **Team Memberships** tab shows the team's position in the organizational hierarchy — both the parent Team of Teams it belongs to and any child team relationships.
+The **Team Memberships** section shows the team's position in the organizational hierarchy — both the parent Team of Teams it belongs to and any child team relationships.
 
 > The **Add Team Membership** action is available from the **Actions menu → Team Management** section.
 
@@ -220,11 +230,11 @@ Each membership displays:
 - Membership State (Past, Active, Future)
 - Start and End dates
 
-Memberships can be edited or deleted from this tab (with appropriate permissions).
+Memberships can be edited or deleted from this section (with appropriate permissions).
 
 ### Operating Model History (Report)
 
-Available from the **Reports** menu, this tab shows the full history of the team's operating model changes over time. Each entry shows:
+Listed under **Reports** at the bottom of the section rail, this shows the full history of the team's operating model changes over time. Each entry shows:
 - Start and End dates
 - Methodology (Scrum or Kanban)
 - Sizing Method (Story Points or Count)
@@ -254,14 +264,14 @@ Wayd renders a **Functional Organization Chart** that visualizes the complete te
 
 ### Editing a Team Member's Roles
 
-1. Navigate to the team's **Members** tab
+1. Navigate to the team's **Members** section
 2. Open the row menu for the member and click **Edit**
 3. Add or remove roles as needed
 4. Click **Save**
 
 ### Removing a Member from a Team
 
-1. Navigate to the team's **Members** tab
+1. Navigate to the team's **Members** section
 2. Open the row menu for the member and click **Remove**
 3. Confirm the removal — all role assignments for that employee are removed
 
@@ -284,7 +294,7 @@ Wayd renders a **Functional Organization Chart** that visualizes the complete te
 
 To add a team to a Team of Teams:
 1. Navigate to the team's detail page
-2. Go to the **Team Memberships** tab
+2. Go to the **Team Memberships** section
 3. From the **Actions menu**, click **Team Management > Add Team Membership**
 4. Select the parent Team of Teams
 5. Set the start date (required) and end date (optional for ongoing membership)
@@ -322,7 +332,7 @@ To update the current model without creating a new one:
 
 ## Employee Detail Page
 
-Each employee's detail page includes a **Teams** tab showing all teams the employee is currently a member of, with columns for Team name, Team type, and Roles. Team names link to their respective detail pages.
+Each employee's detail page includes a **Teams** section showing all teams the employee is currently a member of, with columns for Team name, Team type, and Roles. Team names link to their respective detail pages.
 
 The employee detail page also includes a **Reports > Cycle Time Report** action. This opens the same [Cycle Time Report](../work-management/cycle-time-report.mdx) used on team pages, scoped to Requirement-tier work items assigned to the employee.
 

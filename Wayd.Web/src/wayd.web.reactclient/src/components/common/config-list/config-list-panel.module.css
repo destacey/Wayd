@@ -1,0 +1,105 @@
+/*
+ * The list and its detail panel share one row, so the list reflows to fit
+ * rather than sitting behind the panel. Below `md` the panel becomes a Drawer
+ * and this row holds the list alone.
+ */
+.layout {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-height: 0;
+  /* The grid virtualizer needs a measurable height, and a flex row gives its
+     children `auto` by default — without this the list renders zero rows. */
+  flex: 1 1 auto;
+}
+
+.list {
+  flex: 1 1 auto;
+  /* A flex child defaults to min-width:auto, which lets a wide grid push the
+     panel off screen instead of scrolling inside itself. */
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel {
+  flex-shrink: 0;
+  padding: 16px;
+  border-left: 1px solid var(--ant-color-border-secondary);
+  background: var(--ant-color-bg-container);
+  overflow-y: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Matches the record facts rail's resizer, so the two panels behave alike. */
+.resizer {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  cursor: col-resize;
+  z-index: 1;
+}
+
+.resizer::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 2px;
+  height: 24px;
+  transform: translateY(-50%);
+  border-radius: 1px;
+  background: var(--ant-color-border);
+  transition:
+    background-color 0.2s,
+    height 0.2s;
+}
+
+.resizer:hover::after,
+.resizerActive::after {
+  background: var(--ant-color-primary);
+  height: 40px;
+}
+
+.resizer:hover,
+.resizerActive {
+  background: var(--ant-color-fill-quaternary);
+}
+
+.resizer:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: -2px;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.panelBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* Long values (a description, an accounting code) wrap rather than widening
+     the panel past the width the user set. */
+  overflow-wrap: anywhere;
+}
+
+.panelActions {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--ant-color-border-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resizer::after {
+    transition: none;
+  }
+}

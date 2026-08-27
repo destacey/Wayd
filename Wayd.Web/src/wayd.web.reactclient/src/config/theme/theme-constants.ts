@@ -24,3 +24,20 @@ export class RecordLayoutConstants {
   /** Past this the panel starts competing with the section content it flanks. */
   static readonly FACTS_RAIL_MAX_WIDTH = 560
 }
+
+/**
+ * Layout constants for `ConfigListPanel` — the settings counterpart to a
+ * record page, where the detail panel sits beside the list rather than on a
+ * page of its own.
+ */
+export class ConfigListConstants {
+  /** Default detail panel width. Wider than the facts rail: this panel is the
+   *  record, not reference material beside one. */
+  static readonly PANEL_WIDTH = 340
+
+  /** Narrow enough to still show a label and its value on separate lines. */
+  static readonly PANEL_MIN_WIDTH = 260
+
+  /** Past this the panel starts crowding out the list it is meant to serve. */
+  static readonly PANEL_MAX_WIDTH = 620
+}

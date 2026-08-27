@@ -247,6 +247,8 @@ const rowClasses: GridRowClasses = {
   trAlt: styles.trAlt,
   td: styles.td,
   tdNumeric: styles.tdNumeric,
+  trActivatable: styles.trActivatable,
+  trActivated: styles.trActivated,
   pinned: {
     pinned: styles.tdPinned,
     pinnedLeftEdge: styles.pinnedLeftEdge,
@@ -334,6 +336,10 @@ interface GridBodyProps<T extends RowData> {
   flatRowId: (row: Row<T>) => string
   onRowClick: (e: React.MouseEvent, rowId: string) => void
   onCellClick: (e: React.MouseEvent) => void
+  /** Flat-mode row activation; see WaydGridProps.onRowActivate. */
+  onRowActivate?: (row: T) => void
+  activatedRowId?: string | null
+  getRowActivateLabel?: (row: T) => string
 }
 
 /**
@@ -371,6 +377,9 @@ function GridBody<T extends RowData>({
   flatRowId,
   onRowClick,
   onCellClick,
+  onRowActivate,
+  activatedRowId,
+  getRowActivateLabel,
 }: GridBodyProps<T>) {
   // Owns virtualizer + TanStack row JSX — same staleness hazard as the grid.
 
@@ -548,6 +557,16 @@ function GridBody<T extends RowData>({
                     return rowElements
                   }
 
+                  // Both flat forms take the same activation set, resolved
+                  // once so the plain and sortable rows cannot disagree.
+                  const activation = onRowActivate
+                    ? {
+                        onActivate: () => onRowActivate(row.original),
+                        isActivated: flatRowId(row) === activatedRowId,
+                        activateLabel: getRowActivateLabel?.(row.original),
+                      }
+                    : undefined
+
                   if (flatDndEnabled) {
                     const nodeId = flatRowId(row)
                     return (
@@ -560,6 +579,7 @@ function GridBody<T extends RowData>({
                         nodeId={nodeId}
                         isDragging={draggedNodeId === nodeId}
                         isDragEnabled={isDragEnabled}
+                        {...activation}
                       />
                     )
                   }
@@ -571,6 +591,7 @@ function GridBody<T extends RowData>({
                       index={index}
                       classes={rowClasses}
                       numericColumnIds={numericColumnIds}
+                      {...activation}
                     />
                   )
                 })}
@@ -693,6 +714,9 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
     onDisplayedRowsChange,
     rowSelection,
     onRowSelectionChange,
+    onRowActivate,
+    activatedRowId,
+    getRowActivateLabel,
     onRowReorder,
     getSubRows,
     enableDragAndDrop = false,
@@ -2138,6 +2162,9 @@ function WaydGridInner<T extends RowData>(props: WaydGridProps<T>, ref: Ref<Wayd
         flatRowId={flatRowId}
         onRowClick={handleRowClickWithContext}
         onCellClick={handleCellClick}
+        onRowActivate={isTree ? undefined : onRowActivate}
+        activatedRowId={activatedRowId}
+        getRowActivateLabel={getRowActivateLabel}
       />
     </div>
   )

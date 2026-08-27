@@ -578,6 +578,38 @@
   pointer-events: none;
 }
 
+/* ─── Row activation (onRowActivate) ────────────────────── */
+
+.trActivatable {
+  cursor: pointer;
+}
+
+/*
+ * The activated row's highlight. Distinct from .trSelected, which marks the
+ * inline-edit row and deliberately reads as unstyled — this one has to be
+ * findable at a glance while the eye is on the panel beside it, so it wins
+ * over both the zebra band and hover.
+ */
+.trActivated .td,
+.trActivated:hover .td {
+  background-color: var(--ant-color-primary-bg);
+}
+
+.trActivated .td:first-child {
+  box-shadow: inset 2px 0 0 var(--ant-color-primary);
+}
+
+/* Pinned cells paint their own background, so the highlight needs restating
+   here or a pinned column would keep the plain container colour. */
+.trActivated .tdPinned,
+.trActivated:hover .tdPinned {
+  background: linear-gradient(
+      var(--ant-color-primary-bg),
+      var(--ant-color-primary-bg)
+    )
+    var(--ant-color-bg-container);
+}
+
 /* ─── Tree mode: inline editing ─────────────────────────── */
 
 .trEditable {

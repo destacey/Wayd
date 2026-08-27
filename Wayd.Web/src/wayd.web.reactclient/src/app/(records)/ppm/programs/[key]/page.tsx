@@ -24,6 +24,7 @@ import {
   ProjectViewManager,
 } from '@/src/app/(legacy)/ppm/_components'
 import { useStatusFilter } from '../../_components/use-status-filter'
+import { canActOnPpmRecord } from '../../_components/ppm-authorization'
 import ProgramDetailsLoading from './loading'
 import ProgramFacts from './_components/program-facts'
 import ProgramOverview from './_components/program-overview'
@@ -102,7 +103,17 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   // Managing a program needs the Update permission AND delivery leadership on it — program or parent
   // portfolio Owner/Manager, or the PPM administrator grant. The server computes the membership half
   // (canManageProgram) so the UI cannot drift from the rule the aggregate enforces.
-  const canManageProgram = canUpdateProgram && !!programData?.canManageProgram
+  const canManageProgram = canActOnPpmRecord(
+    canUpdateProgram,
+    programData?.canManageProgram,
+  )
+
+  // Deleting takes the same leadership, paired with its own claim rather than
+  // Update's.
+  const canDelete = canActOnPpmRecord(
+    canDeleteProgram,
+    programData?.canManageProgram,
+  )
 
   const missingDates = programData?.start === null || programData?.end === null
 
@@ -130,7 +141,7 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         onClick: () => setOpenEditProgramForm(true),
       })
     }
-    if (canDeleteProgram && availableActions.includes(ProgramAction.Delete)) {
+    if (canDelete && availableActions.includes(ProgramAction.Delete)) {
       items.push({
         key: 'delete',
         label: ProgramAction.Delete,

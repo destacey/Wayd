@@ -32,6 +32,7 @@ import ProjectDetailsLoading from './loading'
 import ProjectDefinition from './_components/project-definition'
 import ProjectFacts from './_components/project-facts'
 import ProjectOverview from './_components/project-overview'
+import { canActOnPpmRecord } from '../../_components/ppm-authorization'
 
 const ProjectPlan = dynamic(
   () => import('@/src/app/(legacy)/ppm/projects/_components/project-plan'),
@@ -131,7 +132,17 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   // Managing a project needs the Update permission AND delivery leadership on it — project, program, or
   // portfolio Owner/Manager, or the PPM administrator grant. The server computes the membership half
   // (canManageProject) so the UI cannot drift from the rule the aggregate enforces.
-  const canManageProject = canUpdateProject && !!projectData?.canManageProject
+  const canManageProject = canActOnPpmRecord(
+    canUpdateProject,
+    projectData?.canManageProject,
+  )
+
+  // Deleting takes the same leadership, paired with its own claim rather than
+  // Update's.
+  const canDelete = canActOnPpmRecord(
+    canDeleteProject,
+    projectData?.canManageProject,
+  )
 
   useDocumentTitle(`${projectData?.name ?? projectKey} - Project Details`)
 
@@ -212,7 +223,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       }
     }
 
-    if (canDeleteProject && availableActions.includes(ProjectAction.Delete)) {
+    if (canDelete && availableActions.includes(ProjectAction.Delete)) {
       items.push({
         key: 'delete',
         label: ProjectAction.Delete,

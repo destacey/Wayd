@@ -34,6 +34,7 @@ import {
   StrategicInitiativeViewManager,
 } from '@/src/app/(legacy)/ppm/_components'
 import { useStatusFilter } from '../../_components/use-status-filter'
+import { canActOnPpmRecord } from '../../_components/ppm-authorization'
 import PortfolioDetailsLoading from './loading'
 import PortfolioFacts from './_components/portfolio-facts'
 import PortfolioOverview, {
@@ -151,12 +152,17 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     refetch: refetchPortfolio,
   } = useGetPortfolioQuery(portfolioKey)
 
-  // Managing a portfolio needs the Update permission AND delivery leadership on it — portfolio
-  // Owner/Manager, or the PPM administrator grant. The server computes the membership half
-  // (canManagePortfolio) so the UI cannot drift from the rule the aggregate enforces; the permission
-  // half stays a claim check because it gates reaching the endpoint at all.
-  const canManagePortfolio =
-    canUpdatePortfolio && !!portfolioData?.canManagePortfolio
+  const canManagePortfolio = canActOnPpmRecord(
+    canUpdatePortfolio,
+    portfolioData?.canManagePortfolio,
+  )
+
+  // Deleting takes the same leadership, paired with its own claim rather than
+  // Update's.
+  const canDelete = canActOnPpmRecord(
+    canDeletePortfolio,
+    portfolioData?.canManagePortfolio,
+  )
 
   // Ranking is restricted to the same set (per the PPM docs — drag-to-rank is Owners/Managers only).
   const canManageRanking = canManagePortfolio
@@ -234,7 +240,7 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         onClick: () => setOpenEditPortfolioForm(true),
       })
     }
-    if (canDeletePortfolio && availableActions.includes(MenuActions.Delete)) {
+    if (canDelete && availableActions.includes(MenuActions.Delete)) {
       items.push({
         key: 'delete',
         label: MenuActions.Delete,

@@ -2,4 +2,5 @@ export { default as ChangeExpenditureCategoryStateForm } from './change-expendit
 export { default as CreateExpenditureCategoryForm } from './create-expenditure-category-form'
 export { default as DeleteExpenditureCategoryForm } from './delete-expenditure-category-form'
 export { default as EditExpenditureCategoryForm } from './edit-expenditure-category-form'
-export { default as ExpenditureCategoryDetails } from './expenditure-category-details'
+export { default as ExpenditureCategoryPanel } from './expenditure-category-panel'
+export { default as useExpenditureCategoryActions } from './use-expenditure-category-actions'

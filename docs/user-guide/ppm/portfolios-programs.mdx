@@ -71,30 +71,38 @@ Project scoring uses immutable snapshots: every recorded score stores the model 
 
 Every project has a **Rank** within its portfolio. Rank is a human-managed ordering used for prioritization and is independent of the calculated [Priority Score](./projects.mdx#project-priority-scores). A newly created project is placed at the bottom of the portfolio's ranking.
 
-Use the **Ranking** tab on the portfolio detail page to review and adjust the order of Proposed, Approved, and Active projects. The board shows:
+Use the **Ranking** section on the portfolio detail page to review and adjust the order of Proposed, Approved, and Active projects. The board shows:
 
 - Display position, project name, program, status, dates, project managers, and owners
 - Score columns from the portfolio's current scoring model, when one is assigned
 - Criterion ratings and output values from each project's current score, but only when that score was recorded with the portfolio's current scoring model
 - A score badge on the primary output column, which project managers can use to score or re-score a project
 
-Portfolio Owners and Managers — and [PPM administrators](../settings/permissions.mdx#ppm-administrator) — can drag one or more projects to reorder them. Dragging is available only when the board is in its natural rank order; clear sorting, filters, and search to enable ranking. Completed and Canceled projects are not shown on the Ranking tab, but they keep their underlying rank so historical order remains stable.
+Portfolio Owners and Managers — and [PPM administrators](../settings/permissions.mdx#ppm-administrator) — can drag one or more projects to reorder them. Dragging is available only when the board is in its natural rank order; clear sorting, filters, and search to enable ranking. Completed and Canceled projects are not shown in the Ranking section, but they keep their underlying rank so historical order remains stable.
 
 Wayd stores ranks as fractional sort keys so drag-and-drop can insert projects between existing rows without renumbering the whole portfolio every time. The **Portfolio Rank Rebalance** background job periodically re-spaces dense ranks back to clean whole-number gaps.
 
 ### Portfolio Detail Page
 
-The portfolio detail page has five tabs:
+The portfolio detail page has an identity bar naming the portfolio, a section rail down the left, and a details panel holding the portfolio's stable facts. Each section is addressable — the URL carries `?section=` so a link can point at the section you were reading.
 
-**Details Tab** — Shows sponsors, owners, managers (sorted alphabetically), scoring model, description (Markdown), and links to related entities.
+**Record facts panel** — Sponsors, owners, managers (sorted alphabetically), scoring model, description (Markdown), and links to related entities. Toggle it from the button at the right of the identity bar; below tablet width it moves into the page content.
 
-**Programs Tab** — Grid of [programs](#programs) with Key, Name, Status, Start/End dates, Managers, Owners, Sponsors, and [Strategic Themes](../strategic-management/index.mdx#strategic-themes). Supports List and Timeline views. Filtered to show Active programs by default.
+**Overview** — A tab per child collection: Programs, Projects, and Strategic Initiatives. Each tab carries its own status filter, a count tile, and charts breaking that collection down by status and — for programs and projects — by [strategic theme](../strategic-management/index.mdx#strategic-themes). Strategic initiatives carry no themes, so their tab shows the status chart alone.
 
-**Projects Tab** — Grid of [projects](./projects.mdx) with Key, Name, Status, Portfolio, Program, Start/End dates, Managers, Owners, Sponsors, Strategic Themes, Lifecycle, and Rank. Supports **Card**, **List**, and **Timeline** views. Card view can sort by name or rank. Filtered to show Approved and Active projects by default. The Timeline view groups projects by program.
+Each tab's filter is shared with the matching section below, so a count tile always agrees with the list it links to. Selecting a tile opens that section.
 
-**Ranking Tab** — Rank-ordered board for Proposed, Approved, and Active projects. Supports drag-to-rank for portfolio Owners/Managers (and [PPM administrators](../settings/permissions.mdx#ppm-administrator)) and includes score breakdown columns when a scoring model is assigned.
+The filters live in separate tabs because the three collections have **different status vocabularies** — a project can be Approved, a program cannot, and Approved means a different stage on a strategic initiative than on a project. A single shared filter could only ever be correct for one of them.
 
-**Strategic Initiatives Tab** — Grid of [strategic initiatives](./strategic-initiatives.mdx) with Key, Name, Status, Start/End dates, Managers, Owners, Sponsors, and Strategic Themes. Supports List and Timeline views. Filtered to show Approved and Active by default.
+Both the tab and the filters are held in the URL, so a filtered view can be shared or bookmarked.
+
+**Programs** — Grid of [programs](#programs) with Key, Name, Status, Start/End dates, Managers, Owners, Sponsors, and [Strategic Themes](../strategic-management/index.mdx#strategic-themes). Supports List and Timeline views. Filtered to show Active programs by default.
+
+**Projects** — Grid of [projects](./projects.mdx) with Key, Name, Status, Portfolio, Program, Start/End dates, Managers, Owners, Sponsors, Strategic Themes, Lifecycle, and Rank. Supports **Card**, **List**, and **Timeline** views. Card view can sort by name or rank. Filtered to show Approved and Active projects by default. The Timeline view groups projects by program.
+
+**Strategic Initiatives** — Grid of [strategic initiatives](./strategic-initiatives.mdx) with Key, Name, Status, Start/End dates, Managers, Owners, Sponsors, and Strategic Themes. Supports List and Timeline views. Filtered to show Approved and Active by default.
+
+**Ranking** — Rank-ordered board for Proposed, Approved, and Active projects. Supports drag-to-rank for portfolio Owners/Managers (and [PPM administrators](../settings/permissions.mdx#ppm-administrator)) and includes score breakdown columns when a scoring model is assigned. The board runs on its own fixed status set, so the Overview filter does not apply to it.
 
 ## Programs
 
@@ -125,17 +133,19 @@ Owners and Managers of the **parent portfolio** may also manage the program, and
 
 ### Program Detail Page
 
-The program detail page uses a two-column layout:
+The program detail page has an identity bar naming the program, a section rail down the left, and a details panel holding the program's stable facts.
 
-**Left sidebar** — Portfolio link, date range, timeline progress bar, sponsors/owners/managers, [strategic themes](../strategic-management/index.mdx#strategic-themes), description (Markdown), and links.
+**Record facts panel** — Portfolio link, date range, sponsors/owners/managers, [strategic themes](../strategic-management/index.mdx#strategic-themes), description (Markdown), and links.
 
-**Right content area** — Badge showing project count, with project cards that can be expanded or clicked to open a project drawer.
+**Overview** — A status filter, a Projects count tile, a timeline progress bar, and two charts breaking the program's projects down by strategic theme and by status. As on a portfolio, the filter is shared with the Projects section and held in the URL.
 
-A warning alert appears if dates are missing: *"Program Dates are required before activating."*
+**Projects** — Project cards that can be expanded or clicked to open a project drawer, filtered to Approved and Active projects by default.
+
+A warning alert appears on Overview if dates are missing: *"Program Dates are required before activating."*
 
 ## Timeline Views
 
-Programs, Projects, and Strategic Initiatives all support a **Timeline view** accessible via the view toggle in each tab. The timeline shows items as horizontal bars grouped by program (for projects) or as a flat list.
+Programs, Projects, and Strategic Initiatives all support a **Timeline view** accessible via the view toggle in each section. The timeline shows items as horizontal bars grouped by program (for projects) or as a flat list.
 
 ### Default Window
 
@@ -180,7 +190,7 @@ Click the **gear icon** in the toolbar to toggle:
 ### Ranking Projects
 
 1. Open the portfolio detail page.
-2. Select the **Ranking** tab.
+2. Select the **Ranking** section.
 3. Clear any sorting, filters, or search terms.
 4. Drag one or more projects to the desired position.
 5. Review the **Rank** column in list views, or sort card view by rank, to see the updated order.

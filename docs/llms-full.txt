@@ -54,7 +54,7 @@ Fixed timeframe (typically 8-12 weeks) for coordinated delivery. Properties:
 
 States based on current date: Future, Active, Completed.
 
-PI detail page navigation: Overview, Details (contains Teams and Sprint Mappings tabs), Plan Review, Objectives, Risks, Reports (Health Report).
+PI detail page section rail: Overview, Plan Review, Objectives, Risks, Backlog, and Objectives Health under Reports. Sections are addressable as `?section=`. Team setup is in the Actions menu rather than a section — Manage Teams and Team Sprints (sprint-to-iteration mapping). The record facts panel carries dates, length, predictability, objectives-locked, description, and links.
 
 #### PI Overview Page
 
@@ -69,7 +69,7 @@ Composed of four sections that adapt by PI state:
 
 **Iterations** — Clickable cards per iteration, sorted by start date. Active iteration shows current day/total days and a health flag (On Track/At Risk/Off Track based on completion progress vs. elapsed time). Cards are colour-coded: active = primary, Innovation and Planning = amber.
 
-**Teams** — Grid of team performance cards (hidden for Future PIs). Each links to the team's Plan Review tab and shows: Predictability with objective counts breakdown, Avg Cycle Time, Objective Status Chart, Objective Health Chart.
+**Teams** — Grid of team performance cards (hidden for Future PIs). Each links to the team's Plan Review view and shows: Predictability with objective counts breakdown, Avg Cycle Time, Objective Status Chart, Objective Health Chart.
 
 **Needs Attention — Objectives** — Active PIs only. Lists objectives with At Risk or Unhealthy health that are not yet completed. Sortable by health (Unhealthy first), progress, or team. Clicking an objective opens an inline details drawer.
 
@@ -298,7 +298,7 @@ Contains: Programs, Projects, Strategic Initiatives.
 
 Portfolio scoring rules: only Active scoring models can be assigned. Clearing or changing the assignment disables/changes future scoring only; existing project score snapshots remain intact.
 
-Portfolio ranking rules: projects are ranked from creation and new projects are placed at the bottom. Portfolio Owners/Managers (or a PPM administrator) can reorder Proposed, Approved, and Active projects from the portfolio Ranking tab; ranking uses the same leadership rule as every other portfolio management action. Ranking is human-managed and independent of computed priority score. Dragging is disabled while the board is sorted, filtered, or searched because drops must be expressed against the natural rank order. Completed/Canceled projects are hidden from the ranking board but keep ranks. Ranks use fractional values for cheap inserts; the PortfolioRankRebalance Hangfire maintenance job re-spaces dense ranks to clean whole-number gaps.
+Portfolio ranking rules: projects are ranked from creation and new projects are placed at the bottom. Portfolio Owners/Managers (or a PPM administrator) can reorder Proposed, Approved, and Active projects from the portfolio Ranking section; ranking uses the same leadership rule as every other portfolio management action. Ranking is human-managed and independent of computed priority score. Dragging is disabled while the board is sorted, filtered, or searched because drops must be expressed against the natural rank order. Completed/Canceled projects are hidden from the ranking board but keep ranks. Ranks use fractional values for cheap inserts; the PortfolioRankRebalance Hangfire maintenance job re-spaces dense ranks to clean whole-number gaps.
 
 ### Programs
 

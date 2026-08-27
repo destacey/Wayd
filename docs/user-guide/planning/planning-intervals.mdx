@@ -24,20 +24,27 @@ A PI has a state based on the current date:
 
 ## PI Detail Page
 
-The PI detail page is the command center for a planning interval. **Horizontal navigation** across the top provides quick access to:
+The PI detail page is the command center for a planning interval. It has an identity bar naming the PI, a **section rail** down the left, and a details panel holding the PI's stable facts. Each section is addressable — the URL carries `?section=` so a link can point at the section you were reading.
+
+The rail provides:
 
 - **Overview** — At-a-glance metrics, iteration cards, and team performance
-- **Details** — PI metadata, with tabs for Teams and Sprint Mappings:
-  - **Teams tab** — Grid of all [teams](../organizations/index.mdx#teams) assigned to the PI
-  - **Sprint Mappings tab** — Configuration grid mapping each team's [sprints](./sprints.mdx) to PI iterations
 - **[Plan Review](#plan-review)**
 - **[Objectives](#objectives)**
 - **[Risks](./risks.mdx)**
-- **Reports** (Health Report)
+- **Backlog** — Every work item across the PI's sprints
+- **Objectives Health** — under **Reports**, below the divider
 
-### Overview Tab
+**Record facts panel** — Start and end dates, length, [predictability](#predictability), whether objectives are locked, description, and links. Toggle it from the button at the right of the identity bar; below tablet width it moves into the page content.
 
-The Overview page composes four sections that adapt based on PI state.
+Team setup lives in the **Actions** menu rather than a section, since both are configuration rather than something to read:
+
+- **Manage Teams** — Choose which [teams](../organizations/index.mdx#teams) participate in the PI
+- **Team Sprints** — Map each team's [sprints](./sprints.mdx) to PI iterations
+
+### Overview
+
+The Overview section composes four blocks that adapt based on PI state.
 
 #### At a Glance
 
@@ -67,7 +74,7 @@ Click an iteration card to navigate to its detail page, where you can see the ag
 
 #### Teams
 
-A responsive grid of team performance cards, one per participating team. Each card links to that team's tab on the [Plan Review](#plan-review) page and shows:
+A responsive grid of team performance cards, one per participating team. Each card links to that team's view on the [Plan Review](#plan-review) section and shows:
 
 - **Predictability** for the PI with a breakdown of completed / regular (non-stretch) / stretch objective counts
 - **Avg Cycle Time** for the team's sprints
@@ -106,7 +113,7 @@ The active iteration's card on the Overview page shows a colour-coded health fla
 
 A PI iteration groups all matching [sprints](./sprints.mdx) from participating teams into a single aggregate view. When multiple teams participate in a PI, each team's sprint is mapped to the corresponding iteration (see [Sprint Mapping](#sprint-mapping)). The iteration detail page rolls up metrics from all mapped sprints, giving you a cross-team view of progress.
 
-**Summary Tab:**
+**Overview:**
 - **Timeline progress bar** — Visual indicator of time elapsed from start to end date
 - **Team Count** — Number of distinct teams with sprints mapped to this iteration
 - **Sprint Count** — Total number of sprints included in the aggregation
@@ -118,11 +125,11 @@ A PI iteration groups all matching [sprints](./sprints.mdx) from participating t
   - Missing Story Points count
 - Metrics can be toggled between **Story Points** and **Count** sizing methods
 
-**Backlog Tab:**
+**Backlog:**
 - Combined sprint backlog grid showing [work items](../work-management/work-items.mdx#work-items) from all mapped sprints
 - Columns: Rank, Key, Type, Title, Story Points, Status, Status Category, Team
 
-> **Tip:** Click on an iteration card on the Overview tab to navigate directly to its detail page.
+> **Tip:** Click on an iteration card on the Overview section to navigate directly to its detail page.
 
 **Business rules:**
 - Iteration names must be unique within a PI
@@ -223,11 +230,11 @@ Predictability can be calculated:
 - **Per-team** — How well did this team deliver on their commitments?
 - **Across the PI** — How well did all teams collectively deliver?
 
-Predictability is only calculated for Active or Completed PIs (not Future). It is shown on the Overview tab as a metric with a completed / regular / stretch breakdown, and visualized per-team in the **Team Predictability Radar Chart** and on each team's card in the Teams section.
+Predictability is only calculated for Active or Completed PIs (not Future). It is shown on the Overview section as a metric with a completed / regular / stretch breakdown, and visualized per-team in the **Team Predictability Radar Chart** and on each team's card in the Teams section.
 
 ## Plan Review
 
-The **Plan Review** page provides a team-by-team view of the PI, with one tab per participating team. This is designed for PI planning ceremonies and plan review sessions.
+The **Plan Review** section provides a team-by-team view of the PI, with one tab per participating team. This is designed for PI planning ceremonies and plan review sessions.
 
 Each team tab shows:
 - **Team Predictability** metric (if available from prior PIs)
@@ -235,7 +242,7 @@ Each team tab shows:
   - **List View** — Objective cards and [risk](./risks.mdx) cards for the team
   - **Timeline View** — Objectives displayed on a timeline
 
-The plan review only shows delivery teams (not Teams of Teams). URL hash navigation (`#team-code`) allows linking directly to a specific team's tab.
+The plan review only shows delivery teams (not Teams of Teams). The selected team is held in the URL as `?team=` (the team code, lowercased), alongside `?section=plan-review` — so a link can point directly at one team's plan.
 
 ## Common Tasks
 
@@ -258,7 +265,7 @@ The plan review only shows delivery teams (not Teams of Teams). URL hash navigat
 
 ### Reviewing PI Health at a Glance
 
-1. Navigate to the PI detail page — the **Overview** tab opens by default
+1. Navigate to the PI detail page — the **Overview** section opens by default
 2. Check the **At a Glance** section for timeline progress, predictability, and cycle time
 3. Scan the **Iterations** row for the active iteration's health flag
 4. Review the **Teams** section for per-team predictability and objective charts
@@ -268,5 +275,5 @@ The plan review only shows delivery teams (not Teams of Teams). URL hash navigat
 
 1. Navigate to the PI detail page
 2. Click **Plan Review** in the horizontal nav
-3. Review each team's objectives and [risks](./risks.mdx) tab-by-tab
+3. Review each team's objectives and [risks](./risks.mdx), team by team
 4. Switch between List and Timeline views for different perspectives

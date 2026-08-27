@@ -54,7 +54,7 @@ Projects move forward through these transitions, and can also be moved **backwar
 - Only projects that have never left Proposed can be deleted — a project that ran and was later reverted keeps its history and cannot be deleted
 - A project can belong to at most one [program](./portfolios-programs.mdx#programs) (or none)
 - The project key can be changed (cascades to all [task](#project-tasks) keys)
-- A project is ranked within its portfolio from creation; rank is changed from the portfolio [Ranking tab](./portfolios-programs.mdx#portfolio-project-ranking)
+- A project is ranked within its portfolio from creation; rank is changed from the portfolio [Ranking section](./portfolios-programs.mdx#portfolio-project-ranking)
 
 ## Reverting a Project Status
 
@@ -109,27 +109,25 @@ Two things worth knowing about older projects:
 
 ## Project Detail Page
 
-The project detail page adapts based on the project's status:
+The project detail page has an identity bar naming the project, a section rail down the left, and a details panel holding the project's stable facts. Each section is addressable — the URL carries `?section=` so a link can point at the section you were reading.
 
-**Details Tab** (two-column layout):
+**Record facts panel** — [Portfolio](./portfolios-programs.mdx#portfolios) link, [Program](./portfolios-programs.mdx#programs) link (if assigned), date range, [Expenditure Category](../settings/index.mdx#expenditure-categories), Lifecycle name with tooltip, [Strategic Themes](../strategic-management/index.mdx#strategic-themes), Sponsors/Owners/Managers/Members, timeline progress bar, Priority Score (when enabled), and links. Toggle it from the button at the right of the identity bar; below tablet width it moves into the page content.
 
-*Left sidebar* — [Portfolio](./portfolios-programs.mdx#portfolios) link, [Program](./portfolios-programs.mdx#programs) link (if assigned), date range, [Expenditure Category](../settings/index.mdx#expenditure-categories), Lifecycle name with tooltip, [Strategic Themes](../strategic-management/index.mdx#strategic-themes), Sponsors/Owners/Managers/Members, timeline progress bar, Priority Score (when enabled), and links.
+The identity bar also shows a **Health tag** when the project has an active health check. Hovering the tag shows details (status, reported by, reported on, expiration, and note). Clicking the **status tag** opens the project's [status history](#project-status-history).
 
-*Right content area* — Changes based on status:
-- **Pre-Execution** (Proposed/Approved): Shows **Project Definition** first (Description, Business Case, Expected Benefits as expandable Markdown sections), then [Stages](#project-stages)/[Tasks](#project-tasks)
-- **Execution** (Active+): Shows **[Stages](#project-stages)** first, then Project Definition
-
-The page header also shows a **Health tag** when the project has an active health check. Hovering the tag shows details (status, reported by, reported on, expiration, and note).
+**Overview** — [Stages](#project-stages) and, once tasks exist, a task summary.
 
 The **Stage Timeline** is a step-based visualization showing each stage's status (completed, in progress, not started, canceled), date range, and progress percentage. It automatically adjusts between horizontal and vertical layout based on available space.
 
-Warning alerts appear when requirements are missing:
+Warning alerts appear on Overview when requirements are missing:
 - *"Project Dates are required before activating"*
 - *"A Project Lifecycle is required before approving"*
 
-**Team Tab** — Grid of all [team](../organizations/index.mdx#teams) members with their roles, showing the people assigned across all project roles.
+**Definition** — Description, Business Case, and Expected Benefits, as expandable Markdown sections. Fields that have not been filled in read *Not provided* rather than being hidden, so a gap is visible on a project awaiting approval.
 
-**Plan Tab** (only visible if lifecycle is assigned) — This is the project's work breakdown structure:
+**Team** — Grid of all [team](../organizations/index.mdx#teams) members with their roles, showing the people assigned across all project roles.
+
+**Plan** (only visible if lifecycle is assigned) — This is the project's work breakdown structure:
 
 - **Tree grid** with hierarchical [tasks](#project-tasks) organized by [stage](#project-stages)
 - **Drag-and-drop** reordering (for users with update permission)
@@ -148,7 +146,9 @@ Common keyboard shortcuts in Plan:
 - **Tab / Shift+Tab**: Move between editable fields
 - **Esc**: Cancel current edit or drag operation
 
-**Work Items Tab** — Grid of [work items](../work-management/work-items.mdx#work-items) from Work Management that are associated with this project.
+**Work Items** — Grid of [work items](../work-management/work-items.mdx#work-items) from Work Management that are associated with this project.
+
+**Health Report** — A report rather than a section, so it sits below the divider at the bottom of the rail. See [View the Health Report](#view-the-health-report).
 
 ## Project Actions Menu
 
@@ -163,15 +163,15 @@ Typical actions include:
 - **Delete** (available for Proposed projects)
 - Status transitions such as **Approve**, **Activate**, **Complete**, and **Cancel**
 - **Revert Status** (when the project has an earlier status it can return to — see [Reverting a project status](#reverting-a-project-status))
-- **Create Health Check**
-- **Health Report**
 - **Status History**
+
+**Create Health Check** sits beside the menu as its own button, since recording health is the recurring action on a live project. It carries the same permission rule as the menu actions below. The **Health Report** is reached from the rail — see [View the Health Report](#view-the-health-report).
 
 ### Who can perform these actions
 
-Every action above except **Delete**, **Health Report**, and **Status History** requires **both** the `Permissions.Projects.Update` permission **and** delivery leadership on the project — you must be an Owner or Manager of the project, its program, or its portfolio. Sponsors and Members are not sufficient.
+Every action above except **Delete** and **Status History** — and the **Create Health Check** button — requires **both** the `Permissions.Projects.Update` permission **and** delivery leadership on the project — you must be an Owner or Manager of the project, its program, or its portfolio. Sponsors and Members are not sufficient.
 
-**Delete** requires `Permissions.Projects.Delete`. **Health Report** and **Status History** require only view access.
+**Delete** requires `Permissions.Projects.Delete`. **Status History** and the **Health Report** require only view access.
 
 If an action is missing from the menu, see [why an action might be unavailable](../settings/permissions.mdx#why-an-action-might-be-unavailable).
 
@@ -181,7 +181,7 @@ Project priority scores help portfolio and project leaders compare projects usin
 
 When scoring is enabled, the project details page shows a **Priority Score** panel. The panel shows the latest score, the scoring model name, who scored it, when it was scored, and a **View history** link when score history exists.
 
-The portfolio [Ranking tab](./portfolios-programs.mdx#portfolio-project-ranking) can also show the current scoring model's criterion and output columns for every ranked project. The primary output appears as the score badge. A blank score breakdown means the project is unscored or its current score was recorded with a different scoring model.
+The portfolio [Ranking section](./portfolios-programs.mdx#portfolio-project-ranking) can also show the current scoring model's criterion and output columns for every ranked project. The primary output appears as the score badge. A blank score breakdown means the project is unscored or its current score was recorded with a different scoring model.
 
 ### Record or Update a Score
 
@@ -208,12 +208,6 @@ Scores are immutable snapshots. If the portfolio changes scoring models later, e
 
 Users need project update rights and management access to record scores. Project Owner/Manager, portfolio Owner/Manager, or program Owner/Manager access is sufficient — this is the same [delivery-leadership rule](../settings/permissions.mdx#delivery-leadership-in-ppm) that governs every other project change. Users with project view access can view current scores and score history.
 
-## Health Report Tab Behavior
-
-- Opening **Actions > Health Report** adds a **closable** Health Report tab.
-- The Health Report tab can be deep-linked with `#health-report` in the URL.
-- Closing the Health Report tab returns focus to the Details tab.
-
 ## Project Health Checks
 
 Project health checks let teams record a current health signal for a project and track it over time.
@@ -221,7 +215,7 @@ Project health checks let teams record a current health signal for a project and
 ### Create a Health Check
 
 1. Open a project detail page.
-2. In the **Actions** menu, click **Create Health Check**.
+2. Click **Create Health Check**, beside the **Actions** menu.
 3. Select a status: **Healthy**, **At Risk**, or **Unhealthy**.
 4. Optionally add a Markdown note.
 5. Set an expiration (must be a future date/time), then click **Create**.
@@ -230,9 +224,9 @@ After creation, the current health appears as a flag/tag in project views.
 
 ### View the Health Report
 
-From the project detail page, open **Actions > Health Report**.
+From the project detail page, select **Health Report** in the section rail, under **Reports**.
 
-The Health Report opens as a tab and includes:
+The Health Report includes:
 - **Health Status History Chart** — Timeline distribution of health checks by status
 - **Health Checks Grid** — Status, Note, Reported By, Reported On, Expiration
 
@@ -334,7 +328,7 @@ graph TD
 
 ### Gantt Chart
 
-The **Plan** tab pairs the task grid with a Gantt chart on the right, sharing the same rows: each grid row draws its schedule on a common date axis. The chart is shown by default and can be hidden from the toolbar.
+The **Plan** section pairs the task grid with a Gantt chart on the right, sharing the same rows: each grid row draws its schedule on a common date axis. The chart is shown by default and can be hidden from the toolbar.
 
 | Row | Drawn as |
 |-----|----------|
@@ -386,7 +380,7 @@ Tasks support **Finish-to-Start** dependencies — a predecessor task must compl
 ### Managing Project Stages and Tasks
 
 1. Navigate to the project detail page
-2. Go to the **Plan** tab (visible once a [lifecycle](#project-lifecycles) is assigned)
+2. Go to the **Plan** section (visible once a [lifecycle](#project-lifecycles) is assigned)
 3. Create [tasks](#project-tasks) within each [stage](#project-stages) — choose Task or Milestone type
 4. Set priority, dates, assignees, and estimated effort
 5. Drag and drop to reorder tasks within stages
@@ -397,7 +391,7 @@ Tasks support **Finish-to-Start** dependencies — a predecessor task must compl
 ### Reporting Project Health
 
 1. Open the project detail page.
-2. Use **Actions > Create Health Check** to record current health.
+2. Use the **Create Health Check** button to record current health.
 3. Add a concise note explaining risk, impact, and next step.
 4. Set an expiration aligned to your next review cadence (for example, 1-2 weeks).
 5. Review **Actions > Health Report** during project reviews to track trend changes.

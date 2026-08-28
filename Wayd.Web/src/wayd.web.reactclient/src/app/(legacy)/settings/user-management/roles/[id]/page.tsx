@@ -1,16 +1,18 @@
 'use client'
 
-import { PageActions, PageTitle } from '@/src/components/common'
-import { Card, Flex, MenuProps, Spin, Tag, Typography } from 'antd'
-import { use, useState } from 'react'
+import { PageActions } from '@/src/components/common'
+import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
-import { notFound, useRouter } from 'next/navigation'
-import BasicBreadcrumb from '@/src/components/common/basic-breadcrumb'
+import { useDocumentTitle } from '@/src/hooks'
 import {
   useGetRoleQuery,
   useGetRoleUsersCountQuery,
 } from '@/src/store/features/user-management/roles-api'
+import { Tag } from 'antd'
+import { ItemType } from 'antd/es/menu/interface'
+import { notFound, useRouter } from 'next/navigation'
+import { use, useState } from 'react'
 import {
   DeleteRoleForm,
   EditRoleForm,
@@ -18,56 +20,39 @@ import {
   Permissions,
   RoleUsersGrid,
 } from '../_components'
-import { ItemType } from 'antd/es/menu/interface'
-import { useDocumentTitle } from '@/src/hooks'
-import { TeamOutlined } from '@ant-design/icons'
+import SettingsRecordShell from '../../../_components/settings-record-shell'
+import RoleDetailsLoading from './loading'
 
-const { Text } = Typography
-
-enum RoleDetailsTabs {
+enum RoleSections {
   Permissions = 'permissions',
   Users = 'users',
 }
 
-const getRoleTabs = () => [
-  {
-    key: RoleDetailsTabs.Permissions,
-    tab: 'Permissions',
-  },
-  {
-    key: RoleDetailsTabs.Users,
-    tab: 'Users',
-  },
-]
+/** The dialogs this record can open. One value, not one boolean each. */
+type DialogId = 'edit' | 'delete' | 'manage-users'
 
 const RoleDetailsPage = (props: { params: Promise<{ id: string }> }) => {
   const { id } = use(props.params)
 
-  const [activeTab, setActiveTab] = useState(RoleDetailsTabs.Permissions)
-  const [permissionsDirty, setPermissionsDirty] = useState(false)
-  const [openEditRoleForm, setOpenEditRoleForm] = useState<boolean>(false)
-  const [openDeleteRoleForm, setOpenDeleteRoleForm] = useState<boolean>(false)
-  const [openManageRoleUsersForm, setOpenManageRoleUsersForm] =
-    useState<boolean>(false)
+  const [dialog, setDialog] = useState<DialogId | null>(null)
 
   const router = useRouter()
-
   const { hasPermissionClaim } = useAuth()
 
   const {
-    data: roleData,
-    isLoading: isLoading,
-    error: error,
-    refetch: refetch,
+    data: role,
+    isLoading,
+    refetch,
   } = useGetRoleQuery(id)
 
-  const { data: countData } = useGetRoleUsersCountQuery(id)
+  const { data: userCount } = useGetRoleUsersCountQuery(id)
 
-  const title = roleData ? `${roleData.name} - Role Details` : 'Role Details'
-  useDocumentTitle(title)
+  useDocumentTitle(role ? `${role.name} - Role Details` : 'Role Details')
 
-  const isSystemRole = !!roleData && roleData.name === 'Admin'
-  const editableRole = !!roleData && !isSystemRole
+  // Admin is seeded and grants everything; editing or deleting it would lock
+  // the product's own administrators out.
+  const isSystemRole = !!role && role.name === 'Admin'
+  const editableRole = !!role && !isSystemRole
 
   const canUpdateRole =
     hasPermissionClaim('Permissions.Roles.Update') && editableRole
@@ -75,147 +60,121 @@ const RoleDetailsPage = (props: { params: Promise<{ id: string }> }) => {
     hasPermissionClaim('Permissions.Roles.Delete') && editableRole
   const canUpdateUserRoles = hasPermissionClaim('Permissions.UserRoles.Update')
 
-  const tabs = getRoleTabs()
+  const hasAssignedUsers = userCount !== undefined && userCount > 0
 
-  const actionsMenuItems: MenuProps['items'] = (() => {
-    let includesDetailsSection = false
+  const actionsMenuItems: ItemType[] = (() => {
     const items: ItemType[] = []
+
     if (canUpdateRole) {
       items.push({
         key: 'edit',
         label: 'Edit',
-        onClick: () => setOpenEditRoleForm(true),
+        onClick: () => setDialog('edit'),
       })
-      includesDetailsSection = true
     }
     if (canDeleteRole) {
       items.push({
         key: 'delete',
         label: 'Delete',
-        onClick: () => setOpenDeleteRoleForm(true),
-        disabled: countData !== undefined && countData > 0,
-        title:
-          countData !== undefined && countData > 0
-            ? 'This role is assigned to users and cannot be deleted.'
-            : undefined,
+        onClick: () => setDialog('delete'),
+        disabled: hasAssignedUsers,
+        title: hasAssignedUsers
+          ? 'This role is assigned to users and cannot be deleted.'
+          : undefined,
       })
-      includesDetailsSection = true
     }
     if (canUpdateUserRoles) {
-      if (includesDetailsSection) {
-        items.push({
-          key: 'manage-divider',
-          type: 'divider',
-        })
+      if (items.length > 0) {
+        items.push({ key: 'manage-divider', type: 'divider' })
       }
       items.push({
         key: 'manage-users',
         label: 'Manage Users',
-        onClick: () => setOpenManageRoleUsersForm(true),
+        onClick: () => setDialog('manage-users'),
       })
     }
+
     return items
   })()
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case RoleDetailsTabs.Permissions:
-        return (
-          <Permissions
-            role={roleData!}
-            permissions={roleData?.permissions ?? []}
-            isSystemRole={isSystemRole}
-            onDirtyChange={setPermissionsDirty}
-          />
-        )
-      case RoleDetailsTabs.Users:
-        return <RoleUsersGrid roleId={id} />
-      default:
-        return null
-    }
-  }
+  // Both sections are substantial — a permission matrix and a user grid — so
+  // this record keeps its rail, unlike the thinner settings records.
+  const sections: RecordSection[] = [
+    { id: RoleSections.Permissions, label: 'Permissions' },
+    { id: RoleSections.Users, label: 'Users', count: userCount },
+  ]
 
-  const onTabChange = (tabKey: string) => {
-    if (
-      permissionsDirty &&
-      !window.confirm(
-        'You have unsaved permission changes. Are you sure you want to leave?',
-      )
+  const renderSection = (section: string) =>
+    section === RoleSections.Users ? (
+      <RoleUsersGrid roleId={id} />
+    ) : (
+      <Permissions
+        role={role!}
+        permissions={role?.permissions ?? []}
+        isSystemRole={isSystemRole}
+      />
     )
-      return
-    setPermissionsDirty(false)
-    setActiveTab(tabKey as RoleDetailsTabs)
+
+  if (isLoading) {
+    return <RoleDetailsLoading />
   }
 
-  const onDeleteRoleFormClosed = (wasDeleted: boolean) => {
-    setOpenDeleteRoleForm(false)
-    if (wasDeleted) {
-      router.push('/settings/user-management/roles')
-    }
-  }
-
-  if (!isLoading && !roleData) {
+  if (!role) {
     return notFound()
   }
 
   return (
-    <>
-      <BasicBreadcrumb
-        items={[
-          { title: 'Settings' },
-          { title: 'User Management' },
-          { title: 'Roles', href: './' },
-          { title: 'Details' },
-        ]}
-      />
-      <PageTitle
-        title={roleData?.name}
-        subtitle="Role Details"
-        tags={isSystemRole ? <Tag color="warning">System Role</Tag> : undefined}
-        actions={<PageActions actionItems={actionsMenuItems} />}
-        extra={
-          <Flex vertical gap="small">
-            {roleData?.description && (
-              <Text type="secondary">{roleData?.description}</Text>
-            )}
-            {countData !== undefined && (
-              <Text type="secondary">
-                <TeamOutlined style={{ marginRight: 4 }} />
-                {countData} user{countData !== 1 ? 's' : ''} assigned
-              </Text>
-            )}
-          </Flex>
-        }
-      />
-      <Card tabList={tabs} activeTabKey={activeTab} onTabChange={onTabChange}>
-        <Spin spinning={isLoading}>{!isLoading && renderTabContent()}</Spin>
-      </Card>
-      {openEditRoleForm && (
+    <SettingsRecordShell>
+      <RecordLayout
+        sections={sections}
+        defaultSection={RoleSections.Permissions}
+        record={{
+          name: role.name,
+          parent: {
+            label: 'Roles',
+            href: '/settings/user-management/roles',
+          },
+          subtitle: 'Role Details',
+          descriptor: role.description,
+          tags: isSystemRole ? <Tag color="warning">System Role</Tag> : undefined,
+          actions:
+            actionsMenuItems.length > 0 ? (
+              <PageActions actionItems={actionsMenuItems} />
+            ) : undefined,
+        }}
+      >
+        {(section) => renderSection(section)}
+      </RecordLayout>
+
+      {dialog === 'edit' && (
         <EditRoleForm
-          role={roleData!}
+          role={role}
           onFormComplete={() => {
-            setOpenEditRoleForm(false)
+            setDialog(null)
             refetch()
           }}
-          onFormCancel={() => setOpenEditRoleForm(false)}
+          onFormCancel={() => setDialog(null)}
         />
       )}
-      {openManageRoleUsersForm && roleData && (
+      {dialog === 'manage-users' && (
         <ManageRoleUsersForm
           roleId={id}
-          roleName={roleData.name}
-          onFormComplete={() => setOpenManageRoleUsersForm(false)}
-          onFormCancel={() => setOpenManageRoleUsersForm(false)}
+          roleName={role.name}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
         />
       )}
-      {openDeleteRoleForm && (
+      {dialog === 'delete' && (
         <DeleteRoleForm
-          role={roleData!}
-          onFormComplete={() => onDeleteRoleFormClosed(true)}
-          onFormCancel={() => onDeleteRoleFormClosed(false)}
+          role={role}
+          onFormComplete={() => {
+            setDialog(null)
+            router.push('/settings/user-management/roles')
+          }}
+          onFormCancel={() => setDialog(null)}
         />
       )}
-    </>
+    </SettingsRecordShell>
   )
 }
 
@@ -226,4 +185,3 @@ const RoleDetailsPageWithAuthorization = authorizePage(
 )
 
 export default RoleDetailsPageWithAuthorization
-

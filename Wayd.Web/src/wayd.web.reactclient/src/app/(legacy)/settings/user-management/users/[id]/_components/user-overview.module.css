@@ -1,0 +1,15 @@
+/*
+ * Reflows to whatever width the card gets: two columns beside the Roles card,
+ * one when it wraps below. The 150px floor is wide enough for a phone number
+ * or a formatted timestamp without breaking.
+ */
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px 24px;
+}
+
+/* Separates who the person is from how they sign in. */
+.divider {
+  margin: 0;
+}

@@ -5,10 +5,11 @@ import { RecordPersonLink } from '@/src/components/common/record'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { UserDetailsDto } from '@/src/services/wayd-api'
 import { InfoCircleOutlined } from '@ant-design/icons'
-import { Card, Flex, Tag, Typography } from 'antd'
+import { Alert, Card, Divider, Flex, Typography } from 'antd'
 import dayjs from 'dayjs'
 import Link from 'next/link'
 import UserIdentityHistory from '../../_components/user-identity-history'
+import styles from './user-overview.module.css'
 
 const { Text } = Typography
 
@@ -38,51 +39,63 @@ const UserOverview = ({ user }: UserOverviewProps) => {
   return (
     <Flex vertical gap="middle">
       <Flex gap="middle" wrap align="flex-start">
-        <Card size="small" title="Account" style={{ flex: '1 1 320px' }}>
-          <Flex vertical gap={12}>
-            <Flex gap={32} wrap>
-              <LabeledContent label="User Name">{user.userName}</LabeledContent>
-              <LabeledContent label="Email">{user.email}</LabeledContent>
-            </Flex>
-            <Flex gap={32} wrap>
+        <Card size="small" title="Account" style={{ flex: '1 1 380px' }}>
+          <Flex vertical gap={16}>
+            {isLockedOut && (
+              <Alert
+                type="error"
+                showIcon
+                title="Account locked"
+                description={`Locked until ${dayjs(user.lockoutEnd).format('MMM D, YYYY h:mm A')}.`}
+              />
+            )}
+
+            {/*
+              A responsive grid rather than fixed pairs: the card sits beside
+              Roles at full width and alone below it, so a hard two-column
+              layout leaves one ragged column at the narrow end. `auto-fit`
+              with a floor lets the fields reflow to whatever the card gets.
+            */}
+            <div className={styles.fieldGrid}>
               <LabeledContent label="First Name">
                 {user.firstName}
               </LabeledContent>
               <LabeledContent label="Last Name">{user.lastName}</LabeledContent>
-            </Flex>
-            <Flex gap={32} wrap>
+              <LabeledContent label="User Name">{user.userName}</LabeledContent>
               <LabeledContent label="Phone Number">
                 {user.phoneNumber || <Text type="secondary">Not set</Text>}
               </LabeledContent>
+            </div>
+
+            {/* Email is its own row: it is the longest value here, and pairing
+                it would force the column beside it narrow for every record. */}
+            <LabeledContent label="Email">{user.email}</LabeledContent>
+
+            <Divider className={styles.divider} />
+
+            <div className={styles.fieldGrid}>
               <LabeledContent label="Login Provider">
                 {providerName(user.loginProvider)}
               </LabeledContent>
-            </Flex>
-            <Flex gap={32} wrap>
               <LabeledContent label="Last Activity">
-                {user.lastActivityAt
-                  ? dayjs(user.lastActivityAt).format('MMM D, YYYY h:mm A')
-                  : 'Never'}
-              </LabeledContent>
-              <LabeledContent label="Employee">
-                {user.employee ? (
-                  <RecordPersonLink
-                    name={user.employee.name}
-                    href={`/organizations/employees/${user.employee.key}`}
-                  />
+                {user.lastActivityAt ? (
+                  dayjs(user.lastActivityAt).format('MMM D, YYYY h:mm A')
                 ) : (
-                  <Text type="secondary">Not linked</Text>
+                  <Text type="secondary">Never</Text>
                 )}
               </LabeledContent>
-            </Flex>
-            {isLockedOut && (
-              <LabeledContent label="Account Status">
-                <Tag color="error">
-                  Locked until{' '}
-                  {dayjs(user.lockoutEnd).format('MMM D, YYYY h:mm A')}
-                </Tag>
-              </LabeledContent>
-            )}
+            </div>
+
+            <LabeledContent label="Employee">
+              {user.employee ? (
+                <RecordPersonLink
+                  name={user.employee.name}
+                  href={`/organizations/employees/${user.employee.key}`}
+                />
+              ) : (
+                <Text type="secondary">Not linked</Text>
+              )}
+            </LabeledContent>
           </Flex>
         </Card>
 

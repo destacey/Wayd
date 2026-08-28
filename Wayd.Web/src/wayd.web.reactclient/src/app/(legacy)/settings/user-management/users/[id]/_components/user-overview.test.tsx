@@ -73,15 +73,17 @@ describe('UserOverview', () => {
       expect(valueFor('Phone Number')).toBe('Not set')
     })
 
-    it('shows a lockout that is still in effect', () => {
-      // Arrange
+    it('leads with a lockout that is still in effect', () => {
+      // Arrange — a locked account is the first thing an admin needs to see,
+      // so it is an alert at the top of the card rather than a tag among the
+      // fields.
       const future = new Date(Date.now() + 60 * 60 * 1000)
 
       // Act
       render(<UserOverview user={user({ lockoutEnd: future })} />)
 
       // Assert
-      expect(screen.getByText('Account Status')).toBeInTheDocument()
+      expect(screen.getByText('Account locked')).toBeInTheDocument()
     })
 
     it('ignores a lockout that has expired', () => {
@@ -92,7 +94,7 @@ describe('UserOverview', () => {
       render(<UserOverview user={user({ lockoutEnd: past })} />)
 
       // Assert
-      expect(screen.queryByText('Account Status')).not.toBeInTheDocument()
+      expect(screen.queryByText('Account locked')).not.toBeInTheDocument()
     })
 
     it('links the employee the account belongs to', () => {

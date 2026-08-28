@@ -25,7 +25,6 @@ interface PermissionsProps {
   role: RoleDto
   permissions: string[]
   isSystemRole: boolean
-  onDirtyChange?: (isDirty: boolean) => void
 }
 
 interface PermissionItem {
@@ -51,7 +50,6 @@ const Permissions = (props: PermissionsProps) => {
   const [isEditMode, setIsEditMode] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
-  const { onDirtyChange } = props
 
   const { hasPermissionClaim } = useAuth()
   const messageApi = useMessage()
@@ -73,10 +71,6 @@ const Permissions = (props: PermissionsProps) => {
   })()
 
   useEffect(() => {
-    onDirtyChange?.(isDirty)
-  }, [isDirty, onDirtyChange])
-
-  useEffect(() => {
     if (!isDirty) return
 
     const message =
@@ -88,9 +82,26 @@ const Permissions = (props: PermissionsProps) => {
       e.returnValue = message
     }
 
-    // Client-side navigation (capture phase to intercept before Next.js)
+    // Client-side navigation (capture phase to intercept before Next.js).
+    //
+    // Two kinds of target: real links, and the record section rail, whose
+    // entries are `role="tab"` buttons rather than anchors — changing section
+    // swaps the whole page body, so it loses unsaved edits exactly as a link
+    // would, but `closest('a')` never sees it.
     const handleClick = (e: MouseEvent) => {
-      const anchor = (e.target as HTMLElement).closest('a')
+      const target = e.target as HTMLElement
+      const tab = target.closest('[role="tab"]')
+      if (tab) {
+        // Re-selecting the open section changes nothing, so it needs no guard.
+        if (tab.getAttribute('aria-selected') === 'true') return
+        if (!window.confirm(message)) {
+          e.preventDefault()
+          e.stopPropagation()
+        }
+        return
+      }
+
+      const anchor = target.closest('a')
       if (!anchor) return
       const href = anchor.getAttribute('href')
       if (!href || href === '#') return
@@ -106,11 +117,25 @@ const Permissions = (props: PermissionsProps) => {
       }
     }
 
+    // The rail is keyboard-operable too, and Enter/Space there changes section
+    // without ever producing a click.
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      const tab = (e.target as HTMLElement).closest('[role="tab"]')
+      if (!tab || tab.getAttribute('aria-selected') === 'true') return
+      if (!window.confirm(message)) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+
     window.addEventListener('beforeunload', handleBeforeUnload)
     document.addEventListener('click', handleClick, true)
+    document.addEventListener('keydown', handleKeyDown, true)
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
       document.removeEventListener('click', handleClick, true)
+      document.removeEventListener('keydown', handleKeyDown, true)
     }
   }, [isDirty])
 
@@ -268,7 +293,6 @@ const Permissions = (props: PermissionsProps) => {
 
       messageApi.success('Permissions saved successfully')
       setIsEditMode(false)
-      onDirtyChange?.(false)
     } catch (error) {
       messageApi.error('Failed to save permissions')
     } finally {
@@ -279,7 +303,6 @@ const Permissions = (props: PermissionsProps) => {
   const handleCancelEdit = () => {
     setIsEditMode(false)
     setPermissions(sourcePermissions)
-    onDirtyChange?.(false)
   }
 
   if (isLoading) return <Spin size="small" />

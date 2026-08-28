@@ -1,84 +1,51 @@
 'use client'
 
-import { PageActions, PageTitle } from '@/src/components/common'
-import BasicBreadcrumb from '@/src/components/common/basic-breadcrumb'
+import { PageActions } from '@/src/components/common'
+import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
-import { authorizePage } from '@/src/components/hoc'
-import { Card, MenuProps } from 'antd'
-import { use, useEffect, useState } from 'react'
-import ScoringModelDetailsLoading from './loading'
-import { notFound, useRouter } from 'next/navigation'
-import ScoringModelDetails from '../_components/scoring-model-details'
-import { useGetScoringModelQuery } from '@/src/store/features/scoring/scoring-models-api'
-import { ItemType } from 'antd/es/menu/interface'
 import { useMessage } from '@/src/components/contexts/messaging'
-import EditScoringModelForm from '../_components/edit-scoring-model-form'
-import DeleteScoringModelForm from '../_components/delete-scoring-model-form'
+import { authorizePage } from '@/src/components/hoc'
+import { useDocumentTitle } from '@/src/hooks/use-document-title'
+import { useGetScoringModelQuery } from '@/src/store/features/scoring/scoring-models-api'
+import { isApiError } from '@/src/utils'
+import { ItemType } from 'antd/es/menu/interface'
+import { notFound, useRouter } from 'next/navigation'
+import { use, useEffect, useState } from 'react'
 import ChangeScoringModelStateForm, {
   ScoringModelStateAction,
 } from '../_components/change-scoring-model-state-form'
+import DeleteScoringModelForm from '../_components/delete-scoring-model-form'
+import EditScoringModelForm from '../_components/edit-scoring-model-form'
 import ScoringModelCriteriaList from '../_components/scoring-model-criteria-list'
-import ScoringScalesList from '../_components/scoring-scales-list'
 import ScoringModelOutputsList from '../_components/scoring-model-outputs-list'
 import ScoringModelTestPanel from '../_components/scoring-model-test-panel'
-import { useDocumentTitle } from '@/src/hooks/use-document-title'
-import { isApiError } from '@/src/utils'
+import ScoringScalesList from '../_components/scoring-scales-list'
+import SettingsRecordShell from '../../../_components/settings-record-shell'
+import ScoringModelDetailsLoading from './loading'
+import { ScoringModelFacts } from './_components'
 
-enum ScoringModelTabs {
-  Details = 'details',
+enum ScoringModelSections {
   Criteria = 'criteria',
   RatingScale = 'rating-scale',
   Outputs = 'outputs',
   Test = 'test',
 }
 
-const tabs = [
-  {
-    key: ScoringModelTabs.Details,
-    tab: 'Details',
-  },
-  {
-    key: ScoringModelTabs.Criteria,
-    tab: 'Criteria',
-  },
-  {
-    key: ScoringModelTabs.RatingScale,
-    tab: 'Rating Scales',
-  },
-  {
-    key: ScoringModelTabs.Outputs,
-    tab: 'Outputs',
-  },
-  {
-    key: ScoringModelTabs.Test,
-    tab: 'Test',
-  },
-]
-
-enum MenuActions {
-  Edit = 'Edit',
-  Delete = 'Delete',
-  Activate = 'Activate',
-  Archive = 'Archive',
-}
+/** The dialogs this record can open. One value, not one boolean each. */
+type DialogId = 'edit' | 'activate' | 'archive' | 'delete'
 
 const ScoringModelDetailsPage = (props: {
   params: Promise<{ key: number }>
 }) => {
   const { key } = use(props.params)
 
-  const [activeTab, setActiveTab] = useState(ScoringModelTabs.Details)
-  const [openEditForm, setOpenEditForm] = useState<boolean>(false)
-  const [openActivateForm, setOpenActivateForm] = useState<boolean>(false)
-  const [openArchiveForm, setOpenArchiveForm] = useState<boolean>(false)
-  const [openDeleteForm, setOpenDeleteForm] = useState<boolean>(false)
+  const [dialog, setDialog] = useState<DialogId | null>(null)
 
   const messageApi = useMessage()
-
   const router = useRouter()
 
   const {
-    data: scoringModelData,
+    data: scoringModel,
     isLoading,
     error,
     refetch,
@@ -88,107 +55,16 @@ const ScoringModelDetailsPage = (props: {
   const canUpdate = hasPermissionClaim('Permissions.ScoringModels.Update')
   const canDelete = hasPermissionClaim('Permissions.ScoringModels.Delete')
 
-  const isProposed = scoringModelData?.state?.name === 'Proposed'
+  // A model's shape is only editable while it is Proposed — once it is in use
+  // for scoring, changing its criteria would silently rewrite past scores.
+  const isProposed = scoringModel?.state?.name === 'Proposed'
   const canManage = canUpdate && isProposed
 
-  const title = scoringModelData
-    ? `${scoringModelData.name} - Scoring Model Details`
-    : 'Scoring Model Details'
-  useDocumentTitle(title)
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case ScoringModelTabs.Details:
-        return <ScoringModelDetails scoringModel={scoringModelData!} />
-      case ScoringModelTabs.Criteria:
-        return (
-          <ScoringModelCriteriaList
-            scoringModel={scoringModelData!}
-            canManage={canManage}
-            loadData={refetch}
-          />
-        )
-      case ScoringModelTabs.RatingScale:
-        return (
-          <ScoringScalesList
-            scoringModel={scoringModelData!}
-            canManage={canManage}
-            loadData={refetch}
-          />
-        )
-      case ScoringModelTabs.Outputs:
-        return (
-          <ScoringModelOutputsList
-            scoringModel={scoringModelData!}
-            canManage={canManage}
-            loadData={refetch}
-          />
-        )
-      case ScoringModelTabs.Test:
-        return <ScoringModelTestPanel scoringModel={scoringModelData!} />
-      default:
-        return null
-    }
-  }
-
-  const onTabChange = (tabKey: string) => {
-    setActiveTab(tabKey as ScoringModelTabs)
-  }
-
-  const actionsMenuItems: MenuProps['items'] = (() => {
-    const currentState = scoringModelData?.state?.name
-    const availableActions =
-      currentState === 'Proposed'
-        ? [MenuActions.Delete, MenuActions.Activate]
-        : currentState === 'Active'
-          ? [MenuActions.Archive]
-          : []
-
-    const items: ItemType[] = []
-    if (canUpdate && currentState === 'Proposed') {
-      items.push({
-        key: 'edit',
-        label: MenuActions.Edit,
-        onClick: () => setOpenEditForm(true),
-      })
-    }
-    if (canDelete && availableActions.includes(MenuActions.Delete)) {
-      items.push({
-        key: 'delete',
-        label: MenuActions.Delete,
-        onClick: () => setOpenDeleteForm(true),
-      })
-    }
-
-    const hasStateActions =
-      (canUpdate && availableActions.includes(MenuActions.Activate)) ||
-      (canUpdate && availableActions.includes(MenuActions.Archive))
-
-    if (hasStateActions && items.length > 0) {
-      items.push({
-        key: 'manage-divider',
-        type: 'divider',
-      })
-    }
-
-    if (canUpdate && availableActions.includes(MenuActions.Activate)) {
-      items.push({
-        key: 'activate',
-        label: MenuActions.Activate,
-        onClick: () => setOpenActivateForm(true),
-      })
-    }
-
-    if (canUpdate && availableActions.includes(MenuActions.Archive)) {
-      items.push({
-        key: 'archive',
-        label: MenuActions.Archive,
-        onClick: () => setOpenArchiveForm(true),
-      })
-    }
-
-    return items
-  })()
+  useDocumentTitle(
+    scoringModel
+      ? `${scoringModel.name} - Scoring Model Details`
+      : 'Scoring Model Details',
+  )
 
   useEffect(() => {
     if (error) {
@@ -200,31 +76,105 @@ const ScoringModelDetailsPage = (props: {
     }
   }, [error, messageApi])
 
-  const onEditFormClosed = (wasSaved: boolean) => {
-    setOpenEditForm(false)
-    if (wasSaved) {
-      refetch()
+  const actionsMenuItems: ItemType[] = (() => {
+    const state = scoringModel?.state?.name
+    const canBeDeleted = state === 'Proposed'
+    const canBeActivated = state === 'Proposed'
+    const canBeArchived = state === 'Active'
+
+    const items: ItemType[] = []
+
+    if (canUpdate && isProposed) {
+      items.push({
+        key: 'edit',
+        label: 'Edit',
+        onClick: () => setDialog('edit'),
+      })
     }
+    if (canDelete && canBeDeleted) {
+      items.push({
+        key: 'delete',
+        label: 'Delete',
+        onClick: () => setDialog('delete'),
+      })
+    }
+    if (canUpdate && (canBeActivated || canBeArchived)) {
+      if (items.length > 0) {
+        items.push({ key: 'manage-divider', type: 'divider' })
+      }
+      items.push({
+        key: canBeActivated ? 'activate' : 'archive',
+        label: canBeActivated ? 'Activate' : 'Archive',
+        onClick: () => setDialog(canBeActivated ? 'activate' : 'archive'),
+      })
+    }
+
+    return items
+  })()
+
+  const closeDialog = (changed: boolean) => {
+    setDialog(null)
+    if (changed) refetch()
   }
 
-  const onActivateFormClosed = (wasSaved: boolean) => {
-    setOpenActivateForm(false)
-    if (wasSaved) {
-      refetch()
-    }
-  }
+  // Counts come from the record's own query rather than one per section, so
+  // the rail renders complete on first paint and cannot disagree with the
+  // section beside it.
+  const sections: RecordSection[] = [
+    {
+      id: ScoringModelSections.Criteria,
+      label: 'Criteria',
+      count: scoringModel?.criteria?.length,
+    },
+    {
+      id: ScoringModelSections.RatingScale,
+      label: 'Rating Scales',
+      count: scoringModel?.scales?.length,
+    },
+    {
+      id: ScoringModelSections.Outputs,
+      label: 'Outputs',
+      count: scoringModel?.outputs?.length,
+    },
+  ]
 
-  const onArchiveFormClosed = (wasSaved: boolean) => {
-    setOpenArchiveForm(false)
-    if (wasSaved) {
-      refetch()
-    }
-  }
+  // Test is a tool rather than record content — it previews what the model
+  // would produce without saving anything — so it sits in the rail's Reports
+  // group below the divider rather than among the sections.
+  const reports: RecordSection[] = [
+    { id: ScoringModelSections.Test, label: 'Test' },
+  ]
 
-  const onDeleteFormClosed = (wasDeleted: boolean) => {
-    setOpenDeleteForm(false)
-    if (wasDeleted) {
-      router.push('/settings/scoring/scoring-models')
+  const renderSection = (section: string) => {
+    switch (section as ScoringModelSections) {
+      case ScoringModelSections.Criteria:
+        return (
+          <ScoringModelCriteriaList
+            scoringModel={scoringModel!}
+            canManage={canManage}
+            loadData={refetch}
+          />
+        )
+      case ScoringModelSections.RatingScale:
+        return (
+          <ScoringScalesList
+            scoringModel={scoringModel!}
+            canManage={canManage}
+            loadData={refetch}
+          />
+        )
+      case ScoringModelSections.Outputs:
+        return (
+          <ScoringModelOutputsList
+            scoringModel={scoringModel!}
+            canManage={canManage}
+            loadData={refetch}
+          />
+        )
+      case ScoringModelSections.Test:
+        return <ScoringModelTestPanel scoringModel={scoringModel!} />
+      default:
+        return null
     }
   }
 
@@ -232,65 +182,64 @@ const ScoringModelDetailsPage = (props: {
     return <ScoringModelDetailsLoading />
   }
 
-  if (!scoringModelData) {
+  if (!scoringModel) {
     return notFound()
   }
 
   return (
-    <>
-      <BasicBreadcrumb
-        items={[
-          { title: 'Settings' },
-          { title: 'Scoring' },
-          { title: 'Scoring Models', href: './' },
-          { title: 'Details' },
-        ]}
-      />
-      <PageTitle
-        title={`${scoringModelData?.key} - ${scoringModelData?.name}`}
-        subtitle="Scoring Model Details"
-        actions={<PageActions actionItems={actionsMenuItems} />}
-      />
-      <Card
-        style={{ width: '100%' }}
-        tabList={tabs}
-        activeTabKey={activeTab}
-        onTabChange={onTabChange}
+    <SettingsRecordShell>
+      <RecordLayout
+        sections={sections}
+        reports={reports}
+        defaultSection={ScoringModelSections.Criteria}
+        record={{
+          name: scoringModel.name,
+          recordKey: String(scoringModel.key),
+          parent: {
+            label: 'Scoring Models',
+            href: '/settings/scoring/scoring-models',
+          },
+          subtitle: 'Scoring Model Details',
+          actions:
+            actionsMenuItems.length > 0 ? (
+              <PageActions actionItems={actionsMenuItems} />
+            ) : undefined,
+        }}
+        facts={<ScoringModelFacts scoringModel={scoringModel} />}
       >
-        {renderTabContent()}
-      </Card>
+        {(section) => renderSection(section)}
+      </RecordLayout>
 
-      {openEditForm && (
+      {dialog === 'edit' && (
         <EditScoringModelForm
-          scoringModelId={scoringModelData?.id}
-          onFormComplete={() => onEditFormClosed(true)}
-          onFormCancel={() => onEditFormClosed(false)}
+          scoringModelId={scoringModel.id}
+          onFormComplete={() => closeDialog(true)}
+          onFormCancel={() => closeDialog(false)}
         />
       )}
-      {openActivateForm && (
+      {(dialog === 'activate' || dialog === 'archive') && (
         <ChangeScoringModelStateForm
-          scoringModel={scoringModelData}
-          stateAction={ScoringModelStateAction.Activate}
-          onFormComplete={() => onActivateFormClosed(true)}
-          onFormCancel={() => onActivateFormClosed(false)}
+          scoringModel={scoringModel}
+          stateAction={
+            dialog === 'activate'
+              ? ScoringModelStateAction.Activate
+              : ScoringModelStateAction.Archive
+          }
+          onFormComplete={() => closeDialog(true)}
+          onFormCancel={() => closeDialog(false)}
         />
       )}
-      {openArchiveForm && (
-        <ChangeScoringModelStateForm
-          scoringModel={scoringModelData}
-          stateAction={ScoringModelStateAction.Archive}
-          onFormComplete={() => onArchiveFormClosed(true)}
-          onFormCancel={() => onArchiveFormClosed(false)}
-        />
-      )}
-      {openDeleteForm && (
+      {dialog === 'delete' && (
         <DeleteScoringModelForm
-          scoringModel={scoringModelData}
-          onFormComplete={() => onDeleteFormClosed(true)}
-          onFormCancel={() => onDeleteFormClosed(false)}
+          scoringModel={scoringModel}
+          onFormComplete={() => {
+            setDialog(null)
+            router.push('/settings/scoring/scoring-models')
+          }}
+          onFormCancel={() => closeDialog(false)}
         />
       )}
-    </>
+    </SettingsRecordShell>
   )
 }
 
@@ -301,4 +250,3 @@ const ScoringModelDetailsPageWithAuthorization = authorizePage(
 )
 
 export default ScoringModelDetailsPageWithAuthorization
-

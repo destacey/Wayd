@@ -1,13 +1,12 @@
 'use client'
 
-import PageTitle from '@/src/components/common/page-title'
-import { Skeleton } from 'antd'
+import { RecordLoading } from '@/src/components/common/record'
+import SettingsRecordShell from '../../../_components/settings-record-shell'
 
 export default function ScoringModelDetailsLoading() {
   return (
-    <>
-      <PageTitle title="Scoring Model" />
-      <Skeleton active />
-    </>
+    <SettingsRecordShell>
+      <RecordLoading title="Scoring Model Details" />
+    </SettingsRecordShell>
   )
 }

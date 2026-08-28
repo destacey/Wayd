@@ -236,7 +236,6 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
         record={{
           name: fullName,
           avatar: {
-            kind: 'person',
             initials: personInitials(user.firstName, user.lastName),
           },
           parent: {

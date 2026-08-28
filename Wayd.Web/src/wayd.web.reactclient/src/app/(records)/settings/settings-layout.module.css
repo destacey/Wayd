@@ -1,11 +1,10 @@
 /*
- * Settings renders inside `LegacyPageChrome`, which supplies the page's 24px
- * padding. The rail is an edge of the app, not a card floating in the page, so
- * the layout negates that padding on the left and bottom to sit flush — the
- * same thing the docs sidebar does one route over.
+ * Settings supplies its own chrome. The `(records)` group adds nothing above
+ * it — no padding, no breadcrumb — so the rail sits flush against the app
+ * sider without anything to negate, and the identity bar on a record page
+ * spans its column the way it does everywhere else.
  */
 .layout {
-  margin: 0 -24px -24px;
   background: transparent;
   min-height: calc(100vh - 50px);
 }
@@ -22,13 +21,9 @@
 }
 
 /*
- * Restores the page padding the layout negated, so content keeps the spacing
- * every other page has while the rail stays flush against the app sider.
- *
- * The top padding is settings' own: `.legacy-page-chrome` sets none, relying
- * on the breadcrumb's 16px margin for the gap under the app header — and
- * settings has no breadcrumb, so without this the page title sits hard against
- * the header.
+ * The page padding every list page expects. Record pages inside settings
+ * negate it again via `SettingsRecordShell`, because `RecordLayout` runs
+ * edge-to-edge.
  */
 .content {
   padding: 16px 24px 24px;

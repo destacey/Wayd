@@ -1,7 +1,6 @@
 'use client'
 
-import { PageTitle } from '@/src/components/common'
-import BasicBreadcrumb from '@/src/components/common/basic-breadcrumb'
+import { RecordShell } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
@@ -9,6 +8,7 @@ import { useGetWorkTypeLevelsQuery } from '@/src/store/features/work-management/
 import { useGetWorkTypeTiersQuery } from '@/src/store/features/work-management/work-type-tier-api'
 import { Space, Spin } from 'antd'
 import { WorkTypeTierCard } from '../_components'
+import SettingsRecordShell from '../../../_components/settings-record-shell'
 
 const HierarchyPage = () => {
   useDocumentTitle('Work Management - Work Type Hierarchy')
@@ -32,37 +32,39 @@ const HierarchyPage = () => {
   )
 
   return (
-    <>
-      <BasicBreadcrumb
-        items={[
-          { title: 'Settings' },
-          { title: 'Work Management' },
-          { title: 'Work Types', href: './' },
-          { title: 'Hierarchy' },
-        ]}
-      />
-      <PageTitle title="Work Type Hierarchy" />
-
-      <Spin
-        spinning={workTiersIsLoading || workLevelsIsLoading}
-        description="Loading work type tiers and levels..."
-        size="large"
-        style={{ paddingTop: 50 }}
+    <SettingsRecordShell>
+      <RecordShell
+        record={{
+          name: 'Work Type Hierarchy',
+          parent: {
+            label: 'Work Types',
+            href: '/settings/work-management/work-types',
+          },
+        }}
       >
-        <Space vertical>
-          {workTiers?.map((tier) => (
-            <WorkTypeTierCard
-              key={tier.id}
-              tier={tier}
-              levels={workLevels?.filter((level) => level.tier.id === tier.id) ?? []}
-              refreshLevels={refetchLevels}
-              canCreateWorkTypeLevels={canCreateWorkTypeLevels}
-              canUpdateWorkTypeLevels={canUpdateWorkTypeLevels}
-            />
-          ))}
-        </Space>
-      </Spin>
-    </>
+        <Spin
+          spinning={workTiersIsLoading || workLevelsIsLoading}
+          description="Loading work type tiers and levels..."
+          size="large"
+          style={{ paddingTop: 50 }}
+        >
+          <Space vertical>
+            {workTiers?.map((tier) => (
+              <WorkTypeTierCard
+                key={tier.id}
+                tier={tier}
+                levels={
+                  workLevels?.filter((level) => level.tier.id === tier.id) ?? []
+                }
+                refreshLevels={refetchLevels}
+                canCreateWorkTypeLevels={canCreateWorkTypeLevels}
+                canUpdateWorkTypeLevels={canUpdateWorkTypeLevels}
+              />
+            ))}
+          </Space>
+        </Spin>
+      </RecordShell>
+    </SettingsRecordShell>
   )
 }
 

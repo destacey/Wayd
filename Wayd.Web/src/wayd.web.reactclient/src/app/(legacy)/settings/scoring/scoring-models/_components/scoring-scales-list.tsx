@@ -15,7 +15,7 @@ import {
   useRemoveScoringScaleLevelMutation,
   useReorderScoringScaleLevelsMutation,
 } from '@/src/store/features/scoring/scoring-models-api'
-import { App, Button, Collapse, Empty, Space, Typography } from 'antd'
+import { App, Button, Card, Empty, Flex, Space, Typography } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { useMemo, useState } from 'react'
@@ -204,58 +204,77 @@ const ScoringScalesList = ({
     ]
   }
 
-  const collapseItems = sortedScales.map((scale) => {
+  /**
+   * One card per scale, holding that scale's levels.
+   *
+   * A card rather than a collapsible panel: every panel opened by default, so
+   * the fold affordance never folded anything — it was a card header wearing a
+   * caret. The section heading above already names what these are, so a panel
+   * that could hide them only added a way to lose them.
+   */
+  const scaleCards = sortedScales.map((scale) => {
     const sortedLevels = [...scale.levels].sort((a, b) => a.order - b.order)
-    return {
-      key: scale.id,
-      label: (
-        <Space>
-          <Text strong>{scale.name}</Text>
-          <Text type="secondary">
-            ({scale.levels.length} level{scale.levels.length === 1 ? '' : 's'})
-          </Text>
-        </Space>
-      ),
-      extra: canManage ? (
-        <Space onClick={(e) => e.stopPropagation()}>
-          <Button size="small" onClick={() => setAddLevelScaleId(scale.id)}>
-            Add Level
-          </Button>
-          <Button size="small" onClick={() => setEditingScale(scale)}>
-            Rename
-          </Button>
-          <Button size="small" danger onClick={() => handleDeleteScale(scale)}>
-            Delete
-          </Button>
-        </Space>
-      ) : undefined,
-      children: (
+    return (
+      <Card
+        key={scale.id}
+        size="small"
+        title={
+          <Space>
+            <Text strong>{scale.name}</Text>
+            <Text type="secondary">
+              ({scale.levels.length} level{scale.levels.length === 1 ? '' : 's'})
+            </Text>
+          </Space>
+        }
+        extra={
+          canManage ? (
+            <Space>
+              <Button size="small" onClick={() => setAddLevelScaleId(scale.id)}>
+                Add Level
+              </Button>
+              <Button size="small" onClick={() => setEditingScale(scale)}>
+                Rename
+              </Button>
+              <Button
+                size="small"
+                danger
+                onClick={() => handleDeleteScale(scale)}
+              >
+                Delete
+              </Button>
+            </Space>
+          ) : undefined
+        }
+      >
         <WaydGrid
-          height={220}
+          variant="simple"
           columns={makeLevelColumns(scale, sortedLevels)}
           data={sortedLevels}
           onRefresh={loadData}
-          persistStateKey="settings-scoring-scale-levels"
-          csvFileName="scoring-scale-levels"
         />
-      ),
-    }
+      </Card>
+    )
   })
 
   return (
     <>
-      <Space orientation="vertical" style={{ width: '100%' }}>
+      <Flex vertical gap="small" align="stretch">
         {canManage && (
-          <Button type="primary" size="small" onClick={() => setOpenAddScale(true)}>
+          <Button
+            type="primary"
+            size="small"
+            style={{ alignSelf: 'flex-start' }}
+            onClick={() => setOpenAddScale(true)}
+          >
             Add Scale
           </Button>
         )}
         {sortedScales.length === 0 ? (
           <Empty description="No scales. Criteria without a scale are rated by free numeric entry." />
         ) : (
-          <Collapse items={collapseItems} defaultActiveKey={sortedScales.map((s) => s.id)} />
+          scaleCards
         )}
-      </Space>
+      </Flex>
 
       {openAddScale && (
         <AddScoringScaleForm

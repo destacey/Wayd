@@ -21,7 +21,7 @@ A record page is made of five slots. Each area fills them with its own content �
 
 | Slot | Holds | Employee | Team | Project |
 | --- | --- | --- | --- | --- |
-| **1 · Identity** | Glyph, key, name, status tags, subtitle | Avatar, `1042`, job title | Icon, `PLAT-CORE`, methodology | Icon, `PLT-4`, portfolio |
+| **1 · Identity** | Glyph (people only), key, name, status tags, subtitle | Avatar, `1042`, job title | `PLAT-CORE`, methodology | `PLT-4`, portfolio |
 | **2 · Actions** | One primary action; rest in `PageActions` | View Teams | Add Member | Status transition |
 | **3 · Record facts** | `LabeledContent` rail — the stable facts | Email, number, hire date | Code, type, sizing | Dates, lifecycle, category |
 | **4 · Sections** | Named content areas + reports | Teams, Projects, Work | Backlog, Sprints, Risks… | Team, Plan, Work Items |
@@ -40,7 +40,6 @@ Pages do not render it directly — `RecordLayout` takes a `record` prop and ren
   record={{
     name: team.name,
     recordKey: team.code,
-    avatar: { kind: 'record', icon: <TeamOutlined /> },
     parent: { label: 'Teams', href: '/organizations/teams' },
     subtitle: 'Team Details',
     tags: <InactiveTag isActive={team.isActive} />,

@@ -26,7 +26,7 @@ describe('RecordHeader', () => {
     render(
       <RecordHeader
         name="Priya Raghunathan"
-        avatar={{ kind: 'person', initials: 'PR' }}
+        avatar={{ initials: 'PR' }}
       />,
     )
 
@@ -35,18 +35,14 @@ describe('RecordHeader', () => {
     expect(screen.getByText('PR')).toBeInTheDocument()
   })
 
-  it('renders a square avatar carrying the entity icon for a record', () => {
-    // Arrange / Act
-    render(
-      <RecordHeader
-        name="Platform Core"
-        avatar={{ kind: 'record', icon: <span>icon</span> }}
-      />,
-    )
+  it('renders no glyph for a record that is not a person', () => {
+    // Arrange / Act — an entity icon identifies the type the page has already
+    // named rather than the record, so non-people carry none.
+    render(<RecordHeader name="Platform Core" recordKey="PLAT-CORE" />)
 
     // Assert
-    expect(screen.getByTestId('record-avatar-record')).toBeInTheDocument()
     expect(screen.queryByTestId('record-avatar-person')).toBeNull()
+    expect(screen.getByText('PLAT-CORE')).toBeInTheDocument()
   })
 
   it('renders the parent link and subtitle as one trail under the name', () => {
@@ -131,7 +127,6 @@ describe('RecordHeader', () => {
       <RecordHeader
         name="Platform Core"
         recordKey="PLAT-CORE"
-        avatar={{ kind: 'record', icon: <span>icon</span> }}
         tags={<span>Active</span>}
         actions={<button>Actions</button>}
       />,

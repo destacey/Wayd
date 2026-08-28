@@ -1,267 +1,113 @@
 'use client'
 
-import {
-  ItemType,
-  MenuItemGroupType,
-  MenuItemType,
-  SubMenuType,
-} from 'antd/es/menu/interface'
-import useAuth from '@/src/components/contexts/auth'
-import { Menu } from 'antd'
-import Link from 'next/link'
-import { useFeatureFlag } from '@/src/hooks'
+import { Input, Menu } from 'antd'
+import { ItemType, MenuItemType } from 'antd/es/menu/interface'
+import { usePathname } from 'next/navigation'
+import { useMemo, useState } from 'react'
+import { findMenuKeysByPathname } from '@/src/app/_components/menu/menu-helper'
+import useSettingsMenuItems from './use-settings-menu-items'
+import styles from './settings-menu.module.css'
 
-enum SettingsTab {
-  // user-management
-  Users = 'users',
-  Roles = 'roles',
-  IdentityProviders = 'identity-providers',
-
-  // feature management
-  FeatureFlags = 'feature-flags',
-
-  // planning
-  EstimationScales = 'estimation-scales',
-
-  // project portfolio management
-  ExpenditureCategories = 'expenditure-categories',
-  ProjectLifecycles = 'project-lifecycles',
-  ScoringModels = 'scoring-models',
-
-  // work-management
-  WorkTypes = 'work-types',
-  WorkStatuses = 'work-statuses',
-  WorkProcesses = 'work-processes',
-
-  // organization
-  TeamMemberRoles = 'team-member-roles',
-
-  // integrations
-  Connections = 'connections',
-
-  // other
-  BackgroundJobs = 'background-jobs',
-  Messaging = 'messaging',
+/**
+ * An item's display text.
+ *
+ * A group's label is the plain string; a leaf's is a `<Link>` wrapping it, so
+ * the text has to be read through the element. Reading only strings silently
+ * matched nothing but group names.
+ */
+const labelText = (item: ItemType<MenuItemType>): string => {
+  const label = (item as { label?: unknown }).label
+  if (typeof label === 'string') return label
+  const child = (label as { props?: { children?: unknown } })?.props?.children
+  return typeof child === 'string' ? child : ''
 }
 
-type RestrictedMenuItem = SubMenuType & {
-  claimValue: string
-}
+/**
+ * Keeps groups whose own name matches, and groups with a matching child —
+ * narrowed to just those children, so a filtered group shows only what matched
+ * rather than everything under a group whose name happened to hit.
+ */
+const filterMenu = (
+  items: ItemType<MenuItemType>[],
+  query: string,
+): ItemType<MenuItemType>[] => {
+  const needle = query.trim().toLowerCase()
+  if (!needle) return items
 
-interface SectionMenuItem extends MenuItemGroupType {}
+  const matches = (item: ItemType<MenuItemType>) =>
+    labelText(item).toLowerCase().includes(needle)
 
-const authorizeMenuItems = (
-  acc: ItemType<MenuItemType>[],
-  item: SectionMenuItem | RestrictedMenuItem | SubMenuType,
-  claimCheck: (claimValue: string) => boolean,
-) => {
-  if ('type' in item) {
-    const children = item.children
-      ? (item.children as (RestrictedMenuItem | SubMenuType)[]).reduce(
-          (acc, item) =>
-            authorizeMenuItems(acc, item, claimCheck),
-          [] as ItemType<MenuItemType>[],
-        )
-      : undefined
-    if (item.type === 'group' && Array.isArray(children) && children.length > 0) {
-      acc.push({ ...item, children } as unknown as ItemType<MenuItemType>)
+  return items.reduce((acc: ItemType<MenuItemType>[], item) => {
+    if (item == null) return acc
+    const children = (item as { children?: ItemType<MenuItemType>[] }).children
+    if (!children) {
+      if (matches(item)) acc.push(item)
+      return acc
     }
-  } else if ('claimValue' in item) {
-    if (claimCheck(item.claimValue)) {
-      // Filter out claimValue before pushing the item
-      const { claimValue, ...rest } = item
-      acc.push(rest)
+    if (matches(item)) {
+      acc.push(item)
+      return acc
     }
-  } else {
-    acc.push(item)
-  }
-  return acc
+    const hits = children.filter((child) => child != null && matches(child))
+    if (hits.length > 0) {
+      acc.push({ ...item, children: hits } as ItemType<MenuItemType>)
+    }
+    return acc
+  }, [])
 }
 
-const getSectionMenuItem = (
-  label: React.ReactNode,
-  key: React.Key,
-  children?: SubMenuType[],
-): SectionMenuItem => {
-  return {
-    label,
-    key,
-    children,
-    type: 'group',
-  } as SectionMenuItem
-}
+/**
+ * The settings navigation.
+ *
+ * Built from the same helpers as the app sider, so settings reads as part of
+ * the product rather than a separate one — but with flat, always-open group
+ * headings rather than the sider's collapsible submenus. Fifteen items across
+ * six groups fits a laptop viewport, and always-open saves a click on every
+ * move between groups, which is the common way people work in settings.
+ *
+ * The filter box covers the long-list case that collapsing would have. It
+ * filters the rail in place rather than searching the app — the global search
+ * (Ctrl+K) already does that, and a second search surface would compete.
+ */
+const SettingsMenu = () => {
+  const { menuItems, routeKeyMap } = useSettingsMenuItems()
+  const pathname = usePathname()
+  const [query, setQuery] = useState('')
 
-const getRestrictedMenuItem = (
-  claimValue: string,
-  label: string,
-  key: string,
-  route?: string,
-  children?: SubMenuType[],
-): RestrictedMenuItem => {
-  return {
-    label: route ? <Link href={route}>{label}</Link> : label,
-    key,
-    route,
-    children,
-    claimValue,
-  } as RestrictedMenuItem
-}
+  const { selectedKeys } = findMenuKeysByPathname(pathname, routeKeyMap)
 
-const getRegularMenuItem = (
-  label: React.ReactNode,
-  key: string,
-  route?: string,
-  children?: SubMenuType[],
-): SubMenuType => {
-  return {
-    label: route ? <Link href={route}>{label}</Link> : label,
-    key,
-    route,
-    children,
-  } as SubMenuType
-}
+  const visibleItems = useMemo(
+    () => filterMenu(menuItems, query),
+    [menuItems, query],
+  )
 
-const buildSettingsMenuItems = (featureFlags: {
-  planningPoker: boolean
-}): ItemType[] => [
-  getSectionMenuItem('User Management', 'user-management', [
-    getRestrictedMenuItem(
-      'Permissions.Users.View',
-      'Users',
-      SettingsTab.Users,
-      '/settings/user-management/users',
-    ),
-    getRestrictedMenuItem(
-      'Permissions.Roles.View',
-      'Roles',
-      SettingsTab.Roles,
-      '/settings/user-management/roles',
-    ),
-    getRestrictedMenuItem(
-      'Permissions.OidcProviders.View',
-      'Identity Providers',
-      SettingsTab.IdentityProviders,
-      '/settings/auth/providers',
-    ),
-  ]),
-
-  getSectionMenuItem('Feature Management', 'feature-management', [
-    getRestrictedMenuItem(
-      'Permissions.FeatureFlags.View',
-      'Feature Flags',
-      SettingsTab.FeatureFlags,
-      '/settings/feature-management/feature-flags',
-    ),
-  ]),
-
-  getSectionMenuItem('Organization', 'organization', [
-    getRestrictedMenuItem(
-      'Permissions.TeamMemberRoles.View',
-      'Team Member Roles',
-      SettingsTab.TeamMemberRoles,
-      '/settings/organization/team-member-roles',
-    ),
-  ]),
-
-  ...(featureFlags.planningPoker
-    ? [
-        getSectionMenuItem('Planning', 'planning', [
-          getRestrictedMenuItem(
-            'Permissions.EstimationScales.View',
-            'Estimation Scales',
-            SettingsTab.EstimationScales,
-            '/settings/planning/estimation-scales',
-          ),
-        ]),
-      ]
-    : []),
-
-  getSectionMenuItem('Work Management', 'work-management', [
-    getRegularMenuItem(
-      'Work Types',
-      SettingsTab.WorkTypes,
-      '/settings/work-management/work-types',
-    ),
-    getRegularMenuItem(
-      'Work Statuses',
-      SettingsTab.WorkStatuses,
-      '/settings/work-management/work-statuses',
-    ),
-    getRegularMenuItem(
-      'Work Processes',
-      SettingsTab.WorkProcesses,
-      '/settings/work-management/work-processes',
-    ),
-  ]),
-
-  getSectionMenuItem('PPM', 'ppm', [
-    getRestrictedMenuItem(
-      'Permissions.ExpenditureCategories.View',
-      'Expenditure Categories',
-      SettingsTab.ExpenditureCategories,
-      '/settings/ppm/expenditure-categories',
-    ),
-    getRestrictedMenuItem(
-      'Permissions.ProjectLifecycles.View',
-      'Project Lifecycles',
-      SettingsTab.ProjectLifecycles,
-      '/settings/ppm/project-lifecycles',
-    ),
-  ]),
-
-  getSectionMenuItem('Scoring', 'scoring', [
-    getRestrictedMenuItem(
-      'Permissions.ScoringModels.View',
-      'Scoring Models',
-      SettingsTab.ScoringModels,
-      '/settings/scoring/scoring-models',
-    ),
-  ]),
-
-  getSectionMenuItem('Integrations', 'integration-management', [
-    getRestrictedMenuItem(
-      'Permissions.Connections.View',
-      'Connections',
-      SettingsTab.Connections,
-      '/settings/connections',
-    ),
-  ]),
-
-  getSectionMenuItem('Other', 'other', [
-    getRestrictedMenuItem(
-      'Permissions.BackgroundJobs.View',
-      'Background Jobs',
-      SettingsTab.BackgroundJobs,
-      '/settings/background-jobs',
-    ),
-    getRestrictedMenuItem(
-      'Permissions.Messaging.View',
-      'Messaging',
-      SettingsTab.Messaging,
-      '/settings/messaging',
-    ),
-  ]),
-]
-
-// TODO: improve style and layout for smaller screens
-export default function SettingsMenu() {
-  const { hasPermissionClaim } = useAuth()
-  const { isEnabled: planningPoker } = useFeatureFlag('planning-poker')
-
-  // Derive menu items based on user's permissions and feature flags
-  const menuItems = (buildSettingsMenuItems({ planningPoker }) as SectionMenuItem[]).reduce(
-      (acc: ItemType<MenuItemType>[], item: SectionMenuItem) =>
-        authorizeMenuItems(acc, item, hasPermissionClaim),
-      [] as ItemType<MenuItemType>[],
-    )
+  const searching = query.trim().length > 0
 
   return (
-    <Menu
-      mode="inline"
-      style={{
-        borderRight: 0,
-      }}
-      items={menuItems as unknown as ItemType[]}
-    />
+    <div className={styles.nav}>
+      <div className={styles.header}>
+        <Input
+          allowClear
+          size="small"
+          placeholder="Find a setting"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          aria-label="Find a setting"
+        />
+      </div>
+
+      <Menu
+        mode="inline"
+        items={visibleItems}
+        selectedKeys={selectedKeys}
+        className={styles.menu}
+      />
+
+      {searching && visibleItems.length === 0 && (
+        <p className={styles.empty}>No settings match “{query}”.</p>
+      )}
+    </div>
   )
 }
+
+export default SettingsMenu

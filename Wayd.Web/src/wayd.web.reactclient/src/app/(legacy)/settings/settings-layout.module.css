@@ -1,0 +1,43 @@
+/*
+ * Settings renders inside `LegacyPageChrome`, which supplies the page's 24px
+ * padding. The rail is an edge of the app, not a card floating in the page, so
+ * the layout negates that padding on the left and bottom to sit flush — the
+ * same thing the docs sidebar does one route over.
+ */
+.layout {
+  margin: 0 -24px -24px;
+  background: transparent;
+  min-height: calc(100vh - 50px);
+}
+
+.sider {
+  background: var(--ant-color-bg-container);
+  border-right: 1px solid var(--ant-color-border-secondary);
+  /* Sticks to the viewport and scrolls independently, so a long rail never
+     drags the content's scroll position with it. */
+  position: sticky !important;
+  top: 0;
+  height: calc(100vh - 50px);
+  overflow-y: auto;
+}
+
+/*
+ * Restores the page padding the layout negated, so content keeps the spacing
+ * every other page has while the rail stays flush against the app sider.
+ *
+ * The top padding is settings' own: `.legacy-page-chrome` sets none, relying
+ * on the breadcrumb's 16px margin for the gap under the app header — and
+ * settings has no breadcrumb, so without this the page title sits hard against
+ * the header.
+ */
+.content {
+  padding: 16px 24px 24px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  /* A flex child defaults to min-height:auto, which lets a tall grid grow the
+     column instead of scrolling inside it — and takes the details panel with
+     it, past the bottom of the grid. */
+  min-height: 0;
+}

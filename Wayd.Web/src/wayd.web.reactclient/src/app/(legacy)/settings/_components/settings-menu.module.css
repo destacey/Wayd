@@ -1,0 +1,28 @@
+.nav {
+  display: flex;
+  flex-direction: column;
+  /* Fills the sider so the menu's background runs the rail's full height
+     rather than stopping under the last item. */
+  min-height: 100%;
+}
+
+/* The filter box sits at the top of the rail, above the groups it narrows. */
+.header {
+  padding: 8px;
+}
+
+/*
+ * antd's inline Menu draws its own right border, which would double up with
+ * the sider's. The rail's edge belongs to the layout, not the menu.
+ */
+.menu {
+  border-inline-end: none !important;
+  background: transparent;
+}
+
+.empty {
+  margin: 0;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--ant-color-text-tertiary);
+}

@@ -3,7 +3,7 @@
 import PageTitle from '@/src/components/common/page-title'
 import MetricCard from '@/src/components/common/metrics/metric-card'
 import { useState } from 'react'
-import { Flex, MenuProps, Segmented, Typography } from 'antd'
+import { Flex, MenuProps, Tabs, Typography } from 'antd'
 import Link from 'next/link'
 import { ItemType } from 'antd/es/menu/interface'
 import { authorizePage } from '@/src/components/hoc'
@@ -189,7 +189,7 @@ const BackgroundJobsListPage = () => {
           title="Recurring"
           value={current?.recurring ?? 0}
           loading={statisticsLoading}
-          tooltip="Registered cron schedules. Manage them under Recurring."
+          tooltip="Registered cron schedules. Manage them on the Recurring tab."
         />
         <MetricCard
           title="Servers"
@@ -216,24 +216,24 @@ const BackgroundJobsListPage = () => {
         />
       </Flex>
       {/*
-        A Segmented rather than Tabs: these three are peer views of the same
-        scheduler, not sections of a record, which is what a rail would imply —
-        background jobs is an operational page and has no record to section.
+        Tabs, not a record's section rail: these are three peer views of the
+        scheduler rather than sections of an entity, and this page has no
+        record for a rail to belong to. The record pattern drops tabs; an
+        operational page is not a record.
       */}
-      <Flex vertical gap="middle">
-        <Segmented
-          value={view}
-          onChange={(next) => setView(next as JobsView)}
-          options={[
-            { value: 'jobs', label: 'Jobs' },
-            { value: 'recurring', label: 'Recurring' },
-            { value: 'servers', label: 'Servers' },
-          ]}
-        />
-        {view === 'jobs' && <JobsTab />}
-        {view === 'recurring' && <RecurringJobsTab />}
-        {view === 'servers' && <JobServersTab />}
-      </Flex>
+      <Tabs
+        activeKey={view}
+        onChange={(next) => setView(next as JobsView)}
+        items={[
+          { key: 'jobs', label: 'Jobs', children: <JobsTab /> },
+          {
+            key: 'recurring',
+            label: 'Recurring',
+            children: <RecurringJobsTab />,
+          },
+          { key: 'servers', label: 'Servers', children: <JobServersTab /> },
+        ]}
+      />
       {openCreateRecurringJobForm && (
         <CreateRecurringJobForm
           jobTypes={jobTypeData}

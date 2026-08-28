@@ -332,16 +332,16 @@ Wayd runs recurring and on-demand work — syncs, replication, maintenance — a
 
 Counts are split into two rows, because they answer different questions:
 
-- **Current** — jobs that exist right now. Each tile agrees with the matching view: Processing, Enqueued, Scheduled, Failed, Succeeded, plus Recurring schedules and Servers.
+- **Current** — jobs that exist right now. Each tile agrees with the matching tab: Processing, Enqueued, Scheduled, Failed, Succeeded, plus Recurring schedules and Servers.
 - **All time** — running totals of everything that has ever succeeded or been deleted. These keep climbing after the job records themselves are purged, so they are normally far higher than the Current figures.
 
 :::note Succeeded appears in both rows, with different meanings
 Succeeded jobs are retained only briefly before being purged. **Current → Succeeded** counts the ones still on record — often a handful, or none. **All time → Succeeded** counts every job that has ever completed. A large gap between them is expected, not a fault.
 :::
 
-Three views sit below the tiles:
+Three tabs sit below the tiles:
 
-| View | What it is for |
+| Tab | What it is for |
 |---|---|
 | **Jobs** | Browse jobs by state — Processing, Scheduled, Enqueued, Failed, Succeeded, Deleted. Select a job to open its detail panel. |
 | **Recurring** | Every registered schedule, with its cron expression, next and last run, and the outcome of the last run. Remove a schedule here. |
@@ -349,7 +349,7 @@ Three views sit below the tiles:
 
 ### Diagnosing a failure
 
-Open the **Failed** state under **Jobs** and select the job. The detail panel carries the exception type and message, the **full stack trace**, the arguments the job ran with, and its state history — every transition and why.
+Open the **Failed** state on the Jobs tab and select the job. The detail panel carries the exception type and message, the **full stack trace**, the arguments the job ran with, and its state history — every transition and why.
 
 From there you can **Requeue** the job to try again, or **Delete** it.
 

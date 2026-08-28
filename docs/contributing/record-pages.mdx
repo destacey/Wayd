@@ -85,6 +85,8 @@ Ask one question: **does the record have content that is not a flat list of its 
 | A child collection, a matrix, a sequence, an editor | **Record page** — `RecordLayout` | Work process (its work-type→workflow schemes), scoring model (criteria, scales, outputs) |
 | Neither — it is a dashboard or a tool | **Neither.** `PageTitle` and content | Background jobs, messaging |
 
+An operational page is not a record, so none of the section rules below apply to it — including the one against tab strips. Background jobs shows three peer views of the scheduler, and `Tabs` is still the right control for that: there is no record for a rail to belong to.
+
 A **config list** keeps the list on screen and renders the selected record's fields in a panel beside it. Selecting a row changes the panel rather than navigating, so comparing three categories costs three clicks instead of six. The open record lives in `?selected=`, because which record you are looking at is a place worth sharing — where a filter is a working preference and stays in local storage.
 
 :::warning A child collection is content, even a small one

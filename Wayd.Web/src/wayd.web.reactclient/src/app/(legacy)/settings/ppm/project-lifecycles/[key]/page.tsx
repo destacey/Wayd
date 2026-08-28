@@ -1,66 +1,45 @@
 'use client'
 
-import { PageActions, PageTitle } from '@/src/components/common'
-import BasicBreadcrumb from '@/src/components/common/basic-breadcrumb'
+import { PageActions } from '@/src/components/common'
+import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
-import { authorizePage } from '@/src/components/hoc'
-import { Card, MenuProps } from 'antd'
-import { use, useEffect, useState } from 'react'
-import ProjectLifecycleDetailsLoading from './loading'
-import { notFound, useRouter } from 'next/navigation'
-import ProjectLifecycleDetails from '../_components/project-lifecycle-details'
-import { useGetProjectLifecycleQuery } from '@/src/store/features/ppm/project-lifecycles-api'
-import { ItemType } from 'antd/es/menu/interface'
 import { useMessage } from '@/src/components/contexts/messaging'
-import EditProjectLifecycleForm from '../_components/edit-project-lifecycle-form'
-import DeleteProjectLifecycleForm from '../_components/delete-project-lifecycle-form'
+import { authorizePage } from '@/src/components/hoc'
+import { useDocumentTitle } from '@/src/hooks/use-document-title'
+import { useGetProjectLifecycleQuery } from '@/src/store/features/ppm/project-lifecycles-api'
+import { isApiError } from '@/src/utils'
+import { ItemType } from 'antd/es/menu/interface'
+import { notFound, useRouter } from 'next/navigation'
+import { use, useEffect, useState } from 'react'
 import ChangeProjectLifecycleStateForm, {
   ProjectLifecycleStateAction,
 } from '../_components/change-project-lifecycle-state-form'
+import DeleteProjectLifecycleForm from '../_components/delete-project-lifecycle-form'
+import EditProjectLifecycleForm from '../_components/edit-project-lifecycle-form'
 import ProjectLifecycleStagesList from '../_components/project-lifecycle-stages-list'
-import { useDocumentTitle } from '@/src/hooks/use-document-title'
-import { isApiError } from '@/src/utils'
+import SettingsRecordShell from '../../../_components/settings-record-shell'
+import ProjectLifecycleDetailsLoading from './loading'
+import { ProjectLifecycleFacts } from './_components'
 
-enum ProjectLifecycleTabs {
-  Details = 'details',
+enum ProjectLifecycleSections {
   Stages = 'stages',
 }
 
-const tabs = [
-  {
-    key: ProjectLifecycleTabs.Details,
-    tab: 'Details',
-  },
-  {
-    key: ProjectLifecycleTabs.Stages,
-    tab: 'Stages',
-  },
-]
-
-enum MenuActions {
-  Edit = 'Edit',
-  Delete = 'Delete',
-  Activate = 'Activate',
-  Archive = 'Archive',
-}
+/** The dialogs this record can open. One value, not one boolean each. */
+type DialogId = 'edit' | 'activate' | 'archive' | 'delete'
 
 const ProjectLifecycleDetailsPage = (props: {
   params: Promise<{ key: number }>
 }) => {
   const { key } = use(props.params)
 
-  const [activeTab, setActiveTab] = useState(ProjectLifecycleTabs.Details)
-  const [openEditForm, setOpenEditForm] = useState<boolean>(false)
-  const [openActivateForm, setOpenActivateForm] = useState<boolean>(false)
-  const [openArchiveForm, setOpenArchiveForm] = useState<boolean>(false)
-  const [openDeleteForm, setOpenDeleteForm] = useState<boolean>(false)
+  const [dialog, setDialog] = useState<DialogId | null>(null)
 
   const messageApi = useMessage()
-
   const router = useRouter()
 
   const {
-    data: lifecycleData,
+    data: lifecycle,
     isLoading,
     error,
     refetch,
@@ -70,88 +49,15 @@ const ProjectLifecycleDetailsPage = (props: {
   const canUpdate = hasPermissionClaim('Permissions.ProjectLifecycles.Update')
   const canDelete = hasPermissionClaim('Permissions.ProjectLifecycles.Delete')
 
-  const title = lifecycleData
-    ? `${lifecycleData.name} - Project Lifecycle Details`
-    : 'Project Lifecycle Details'
-  useDocumentTitle(title)
+  // Stages are only editable while the lifecycle is Proposed — once projects
+  // are running against it, changing its stages would rewrite their history.
+  const canManageStages = canUpdate && lifecycle?.state?.name === 'Proposed'
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case ProjectLifecycleTabs.Details:
-        return <ProjectLifecycleDetails lifecycle={lifecycleData!} />
-      case ProjectLifecycleTabs.Stages:
-        return (
-          <ProjectLifecycleStagesList
-            lifecycle={lifecycleData!}
-            canManageStages={
-              canUpdate && lifecycleData?.state?.name === 'Proposed'
-            }
-            loadData={refetch}
-          />
-        )
-      default:
-        return null
-    }
-  }
-
-  const onTabChange = (tabKey: string) => {
-    setActiveTab(tabKey as ProjectLifecycleTabs)
-  }
-
-  const actionsMenuItems: MenuProps['items'] = (() => {
-    const currentState = lifecycleData?.state?.name
-    const availableActions =
-      currentState === 'Proposed'
-        ? [MenuActions.Delete, MenuActions.Activate]
-        : currentState === 'Active'
-          ? [MenuActions.Archive]
-          : []
-
-    const items: ItemType[] = []
-    if (canUpdate && currentState === 'Proposed') {
-      items.push({
-        key: 'edit',
-        label: MenuActions.Edit,
-        onClick: () => setOpenEditForm(true),
-      })
-    }
-    if (canDelete && availableActions.includes(MenuActions.Delete)) {
-      items.push({
-        key: 'delete',
-        label: MenuActions.Delete,
-        onClick: () => setOpenDeleteForm(true),
-      })
-    }
-
-    const hasStateActions =
-      (canUpdate && availableActions.includes(MenuActions.Activate)) ||
-      (canUpdate && availableActions.includes(MenuActions.Archive))
-
-    if (hasStateActions && items.length > 0) {
-      items.push({
-        key: 'manage-divider',
-        type: 'divider',
-      })
-    }
-
-    if (canUpdate && availableActions.includes(MenuActions.Activate)) {
-      items.push({
-        key: 'activate',
-        label: MenuActions.Activate,
-        onClick: () => setOpenActivateForm(true),
-      })
-    }
-
-    if (canUpdate && availableActions.includes(MenuActions.Archive)) {
-      items.push({
-        key: 'archive',
-        label: MenuActions.Archive,
-        onClick: () => setOpenArchiveForm(true),
-      })
-    }
-
-    return items
-  })()
+  useDocumentTitle(
+    lifecycle
+      ? `${lifecycle.name} - Project Lifecycle Details`
+      : 'Project Lifecycle Details',
+  )
 
   useEffect(() => {
     if (error) {
@@ -163,97 +69,124 @@ const ProjectLifecycleDetailsPage = (props: {
     }
   }, [error, messageApi])
 
-  const onEditFormClosed = (wasSaved: boolean) => {
-    setOpenEditForm(false)
-    if (wasSaved) {
-      refetch()
+  const actionsMenuItems: ItemType[] = (() => {
+    const state = lifecycle?.state?.name
+    const canBeDeleted = state === 'Proposed'
+    const canBeActivated = state === 'Proposed'
+    const canBeArchived = state === 'Active'
+
+    const items: ItemType[] = []
+
+    if (canUpdate) {
+      items.push({
+        key: 'edit',
+        label: 'Edit',
+        onClick: () => setDialog('edit'),
+      })
     }
+    if (canDelete && canBeDeleted) {
+      items.push({
+        key: 'delete',
+        label: 'Delete',
+        onClick: () => setDialog('delete'),
+      })
+    }
+    if (canUpdate && (canBeActivated || canBeArchived)) {
+      if (items.length > 0) {
+        items.push({ key: 'manage-divider', type: 'divider' })
+      }
+      items.push({
+        key: canBeActivated ? 'activate' : 'archive',
+        label: canBeActivated ? 'Activate' : 'Archive',
+        onClick: () => setDialog(canBeActivated ? 'activate' : 'archive'),
+      })
+    }
+
+    return items
+  })()
+
+  const closeDialog = (changed: boolean) => {
+    setDialog(null)
+    if (changed) refetch()
   }
 
-  const onActivateFormClosed = (wasSaved: boolean) => {
-    setOpenActivateForm(false)
-    if (wasSaved) {
-      refetch()
-    }
-  }
-
-  const onArchiveFormClosed = (wasSaved: boolean) => {
-    setOpenArchiveForm(false)
-    if (wasSaved) {
-      refetch()
-    }
-  }
-
-  const onDeleteFormClosed = (wasDeleted: boolean) => {
-    setOpenDeleteForm(false)
-    if (wasDeleted) {
-      router.push('/settings/ppm/project-lifecycles')
-    }
-  }
+  // One section, so `RecordLayout` renders no rail — the stages are the whole
+  // of the record's content, and the two-line Details tab is now the facts.
+  const sections: RecordSection[] = [
+    {
+      id: ProjectLifecycleSections.Stages,
+      label: 'Stages',
+      count: lifecycle?.stages?.length,
+    },
+  ]
 
   if (isLoading) {
     return <ProjectLifecycleDetailsLoading />
   }
 
-  if (!lifecycleData) {
+  if (!lifecycle) {
     return notFound()
   }
 
   return (
-    <>
-      <BasicBreadcrumb
-        items={[
-          { title: 'Settings' },
-          { title: 'PPM' },
-          { title: 'Project Lifecycles', href: './' },
-          { title: 'Details' },
-        ]}
-      />
-      <PageTitle
-        title={`${lifecycleData?.key} - ${lifecycleData?.name}`}
-        subtitle="Project Lifecycle Details"
-        actions={<PageActions actionItems={actionsMenuItems} />}
-      />
-      <Card
-        style={{ width: '100%' }}
-        tabList={tabs}
-        activeTabKey={activeTab}
-        onTabChange={onTabChange}
+    <SettingsRecordShell>
+      <RecordLayout
+        sections={sections}
+        defaultSection={ProjectLifecycleSections.Stages}
+        record={{
+          name: lifecycle.name,
+          recordKey: String(lifecycle.key),
+          parent: {
+            label: 'Project Lifecycles',
+            href: '/settings/ppm/project-lifecycles',
+          },
+          subtitle: 'Project Lifecycle Details',
+          actions:
+            actionsMenuItems.length > 0 ? (
+              <PageActions actionItems={actionsMenuItems} />
+            ) : undefined,
+        }}
+        facts={<ProjectLifecycleFacts lifecycle={lifecycle} />}
       >
-        {renderTabContent()}
-      </Card>
+        {() => (
+          <ProjectLifecycleStagesList
+            lifecycle={lifecycle}
+            canManageStages={canManageStages}
+            loadData={refetch}
+          />
+        )}
+      </RecordLayout>
 
-      {openEditForm && (
+      {dialog === 'edit' && (
         <EditProjectLifecycleForm
-          lifecycleId={lifecycleData?.id}
-          onFormComplete={() => onEditFormClosed(true)}
-          onFormCancel={() => onEditFormClosed(false)}
+          lifecycleId={lifecycle.id}
+          onFormComplete={() => closeDialog(true)}
+          onFormCancel={() => closeDialog(false)}
         />
       )}
-      {openActivateForm && (
+      {(dialog === 'activate' || dialog === 'archive') && (
         <ChangeProjectLifecycleStateForm
-          lifecycle={lifecycleData}
-          stateAction={ProjectLifecycleStateAction.Activate}
-          onFormComplete={() => onActivateFormClosed(true)}
-          onFormCancel={() => onActivateFormClosed(false)}
+          lifecycle={lifecycle}
+          stateAction={
+            dialog === 'activate'
+              ? ProjectLifecycleStateAction.Activate
+              : ProjectLifecycleStateAction.Archive
+          }
+          onFormComplete={() => closeDialog(true)}
+          onFormCancel={() => closeDialog(false)}
         />
       )}
-      {openArchiveForm && (
-        <ChangeProjectLifecycleStateForm
-          lifecycle={lifecycleData}
-          stateAction={ProjectLifecycleStateAction.Archive}
-          onFormComplete={() => onArchiveFormClosed(true)}
-          onFormCancel={() => onArchiveFormClosed(false)}
-        />
-      )}
-      {openDeleteForm && (
+      {dialog === 'delete' && (
         <DeleteProjectLifecycleForm
-          lifecycle={lifecycleData}
-          onFormComplete={() => onDeleteFormClosed(true)}
-          onFormCancel={() => onDeleteFormClosed(false)}
+          lifecycle={lifecycle}
+          onFormComplete={() => {
+            setDialog(null)
+            router.push('/settings/ppm/project-lifecycles')
+          }}
+          onFormCancel={() => closeDialog(false)}
         />
       )}
-    </>
+    </SettingsRecordShell>
   )
 }
 

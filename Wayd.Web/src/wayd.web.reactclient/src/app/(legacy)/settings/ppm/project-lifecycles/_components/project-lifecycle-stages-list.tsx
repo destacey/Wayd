@@ -200,8 +200,10 @@ const ProjectLifecycleStagesList = ({
 
   return (
     <>
+      {/* No fixed height: as the record's only section this fills the area
+          below the identity bar, rather than sitting in a 300px pane with
+          empty space beneath it. */}
       <WaydGrid
-        height={300}
         columns={columns}
         data={sortedStages}
         leftSlot={actions}

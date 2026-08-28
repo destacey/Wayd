@@ -1,41 +1,29 @@
 'use client'
 
-import PageTitle from '@/src/components/common/page-title'
-import { authorizePage } from '@/src/components/hoc'
-import { notFound } from 'next/navigation'
-import { use, useEffect, useState } from 'react'
-import { Card } from 'antd'
-import BasicBreadcrumb from '@/src/components/common/basic-breadcrumb'
-import WorkProcessDetailsLoading from './loading'
-import { PageActions } from '@/src/components/common'
+import { InactiveTag, PageActions } from '@/src/components/common'
+import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
-import ChangeWorkProcessIsActiveForm from '../_components/change-work-process-isactive-form'
+import { authorizePage } from '@/src/components/hoc'
+import { useDocumentTitle } from '@/src/hooks'
 import { useGetWorkProcessQuery } from '@/src/store/features/work-management/work-process-api'
 import { ItemType } from 'antd/es/menu/interface'
-import { WorkProcessDetails } from '../_components'
+import { notFound } from 'next/navigation'
+import { use, useEffect, useState } from 'react'
+import ChangeWorkProcessIsActiveForm from '../_components/change-work-process-isactive-form'
+import SettingsRecordShell from '../../../_components/settings-record-shell'
+import WorkProcessDetailsLoading from './loading'
+import { WorkProcessFacts, WorkProcessSchemes } from './_components'
 
-enum WorkProcessDetailsTabs {
-  Details = 'details',
+enum WorkProcessSections {
+  Schemes = 'schemes',
 }
-
-const tabs = [
-  {
-    key: 'details',
-    tab: 'Details',
-  },
-]
 
 const WorkProcessDetailsPage = (props: {
   params: Promise<{ key: string }>
 }) => {
   const { key } = use(props.params)
-  const workProcessKey = Number(key)
 
-  const [activeTab, setActiveTab] = useState(WorkProcessDetailsTabs.Details)
-  const [
-    openChangeWorkProcessIsActiveForm,
-    setOpenChangeWorkProcessIsActiveForm,
-  ] = useState<boolean>(false)
+  const [openChangeIsActiveForm, setOpenChangeIsActiveForm] = useState(false)
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateWorkProcess = hasPermissionClaim(
@@ -43,94 +31,84 @@ const WorkProcessDetailsPage = (props: {
   )
 
   const {
-    data: workProcessData,
+    data: workProcess,
     isLoading,
     error,
     refetch,
-  } = useGetWorkProcessQuery(workProcessKey.toString())
+  } = useGetWorkProcessQuery(key)
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case WorkProcessDetailsTabs.Details:
-        return <WorkProcessDetails workProcess={workProcessData!} />
-      default:
-        return null
-    }
-  }
-
-  const onTabChange = (tabKey: string) => {
-    setActiveTab(tabKey as WorkProcessDetailsTabs)
-  }
+  useDocumentTitle(`${workProcess?.key ?? key} - Work Process Details`)
 
   useEffect(() => {
     error && console.error(error)
   }, [error])
 
-  const actionsMenuItems = (() => {
-    if (workProcessData?.isActive === undefined) return [] as ItemType[]
-
-    const items = [] as ItemType[]
-    if (canUpdateWorkProcess) {
-      const activationManagementLabel = workProcessData?.isActive
-        ? 'Deactivate'
-        : 'Activate'
-      items.push({
-        key: 'activate-menu-item',
-        label: activationManagementLabel,
-        onClick: () => setOpenChangeWorkProcessIsActiveForm(true),
-      })
-    }
-    return items
+  const actionsMenuItems: ItemType[] = (() => {
+    if (!canUpdateWorkProcess || workProcess?.isActive === undefined) return []
+    return [
+      {
+        key: 'toggle-active',
+        label: workProcess.isActive ? 'Deactivate' : 'Activate',
+        onClick: () => setOpenChangeIsActiveForm(true),
+      },
+    ]
   })()
+
+  // One section, so `RecordLayout` renders no rail — a rail holding a single
+  // item spends its width saying there is nowhere to go.
+  const sections: RecordSection[] = [
+    { id: WorkProcessSections.Schemes, label: 'Work Types and Workflows' },
+  ]
+
+  const onChangeIsActiveFormClosed = (wasSaved: boolean) => {
+    setOpenChangeIsActiveForm(false)
+    if (wasSaved) {
+      refetch()
+    }
+  }
 
   if (isLoading) {
     return <WorkProcessDetailsLoading />
   }
 
-  if (!workProcessData) {
+  if (!workProcess) {
     return notFound()
   }
 
-  const onChangeWorkProcessIsActiveFormClosed = (wasSaved: boolean) => {
-    if (wasSaved) {
-      refetch()
-    }
-    setOpenChangeWorkProcessIsActiveForm(false)
-  }
-
   return (
-    <>
-      <BasicBreadcrumb
-        items={[
-          { title: 'Settings' },
-          { title: 'Work Management' },
-          { title: 'Work Processes', href: './' },
-          { title: 'Details' },
-        ]}
-      />
-      <PageTitle
-        title={`${workProcessData?.key} - ${workProcessData?.name}`}
-        subtitle="Work Process Details"
-        actions={<PageActions actionItems={actionsMenuItems} />}
-      />
-      <Card
-        style={{ width: '100%' }}
-        tabList={tabs}
-        activeTabKey={activeTab}
-        onTabChange={onTabChange}
+    <SettingsRecordShell>
+      <RecordLayout
+        sections={sections}
+        defaultSection={WorkProcessSections.Schemes}
+        record={{
+          name: workProcess.name,
+          recordKey: String(workProcess.key),
+          parent: {
+            label: 'Work Processes',
+            href: '/settings/work-management/work-processes',
+          },
+          subtitle: 'Work Process Details',
+          tags: <InactiveTag isActive={workProcess.isActive ?? false} />,
+          actions:
+            actionsMenuItems.length > 0 ? (
+              <PageActions actionItems={actionsMenuItems} />
+            ) : undefined,
+        }}
+        facts={<WorkProcessFacts workProcess={workProcess} />}
       >
-        {renderTabContent()}
-      </Card>
-      {openChangeWorkProcessIsActiveForm && (
+        {() => <WorkProcessSchemes workProcessId={workProcess.id} />}
+      </RecordLayout>
+
+      {openChangeIsActiveForm && (
         <ChangeWorkProcessIsActiveForm
-          workProcessId={workProcessData?.id}
-          workProcessName={workProcessData?.name}
-          isActive={!!workProcessData?.isActive}
-          onFormSave={() => onChangeWorkProcessIsActiveFormClosed(true)}
-          onFormCancel={() => onChangeWorkProcessIsActiveFormClosed(false)}
+          workProcessId={workProcess.id}
+          workProcessName={workProcess.name}
+          isActive={!!workProcess.isActive}
+          onFormSave={() => onChangeIsActiveFormClosed(true)}
+          onFormCancel={() => onChangeIsActiveFormClosed(false)}
         />
       )}
-    </>
+    </SettingsRecordShell>
   )
 }
 

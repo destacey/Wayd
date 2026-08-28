@@ -13,7 +13,10 @@
   --config-list-gap: 16px;
 
   display: flex;
-  align-items: stretch;
+  /* Not `stretch`: the panel takes an explicit height matching the grid's own
+     computed one, so stretching would fight it. The grid sizes itself to the
+     remaining viewport, which is taller than the row's natural height. */
+  align-items: flex-start;
   gap: var(--config-list-gap);
   min-height: 0;
   /* The grid virtualizer needs a measurable height, and a flex row gives its

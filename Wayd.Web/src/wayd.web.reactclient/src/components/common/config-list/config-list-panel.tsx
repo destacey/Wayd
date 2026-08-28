@@ -13,7 +13,7 @@ import {
 } from 'antd'
 import { ReactNode, useEffect, useState } from 'react'
 import { ConfigListConstants } from '@/src/config/theme/theme-constants'
-import { useLocalStorageState } from '@/src/hooks'
+import { useLocalStorageState, useRemainingHeight } from '@/src/hooks'
 import { getDrawerWidthPixels } from '@/src/utils'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
 import styles from './config-list-panel.module.css'
@@ -98,6 +98,11 @@ const ConfigListPanel = ({
   const screens = useBreakpoint()
   const compact = !screens.md
   const [dragging, setDragging] = useState(false)
+  // The grid inside sizes itself with this same hook, filling to the bottom of
+  // the viewport. Measuring the row here gives the panel the identical height,
+  // so the two line up top and bottom instead of the panel running past the
+  // grid it sits beside.
+  const [rowRef, rowHeight] = useRemainingHeight()
   // Lazy, because it reads window.innerWidth — matching how the other drawers
   // in settings size themselves.
   const [drawerSize, setDrawerSize] = useState(() =>
@@ -156,7 +161,14 @@ const ConfigListPanel = ({
   // Nothing rather than an empty dropdown, so a read-only viewer gets no
   // affordance that opens onto an empty menu.
   const actionsMenu = actionItems?.length ? (
-    <Dropdown menu={{ items: actionItems }} trigger={['click']}>
+    <Dropdown
+      menu={{ items: actionItems }}
+      trigger={['click']}
+      // The ⋯ sits at the panel's right edge, so a left-aligned menu would
+      // hang out over the content beside it. Aligning the menu's right edge
+      // under the trigger keeps it inside the panel.
+      placement="bottomRight"
+    >
       <Button
         type="text"
         size="small"
@@ -187,12 +199,12 @@ const ConfigListPanel = ({
   }
 
   return (
-    <div className={styles.layout}>
+    <div className={styles.layout} ref={rowRef}>
       <div className={styles.list}>{children}</div>
       {open && (
         <aside
           className={styles.panel}
-          style={{ width: boundedWidth }}
+          style={{ width: boundedWidth, height: rowHeight }}
           aria-label={title ? `${title} details` : 'Details'}
         >
           <div

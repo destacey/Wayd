@@ -113,7 +113,7 @@ const AzdoExtraActions = ({
 export const azureDevOpsDetailEntry: DetailEntry = {
   Details,
   Wrapper: AzdoWrapper,
-  extraTabs: [
+  extraSections: [
     {
       key: 'organization-configuration',
       label: 'Organization Configuration',

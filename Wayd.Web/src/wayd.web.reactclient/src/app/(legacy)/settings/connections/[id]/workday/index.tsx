@@ -304,7 +304,7 @@ const ExtraActions = ({
 export const workdayDetailEntry: DetailEntry = {
   Details,
   ExtraActions,
-  extraTabs: [
+  extraSections: [
     {
       key: 'sync-history',
       label: 'Sync History',

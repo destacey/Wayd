@@ -9,11 +9,15 @@ import { azureOpenAIDetailEntry } from '../azure-openai'
 import { entraDetailEntry } from '../entra'
 import { workdayDetailEntry } from '../workday'
 
-export interface ConnectionTabDefinition {
+export interface ConnectionSectionDefinition {
+  /**
+   * Stable identifier. This appears in the URL as `?section={key}`, so it is a
+   * public contract — renaming one breaks links people have already shared.
+   */
   key: string
   label: string
   /**
-   * Render the tab body. `connection` is the typed connection DTO returned
+   * Render the section body. `connection` is the typed connection DTO returned
    * from the registry's narrowing helper, but at runtime the registry uses
    * `ConnectionDetailsDto` to stay open to future connectors.
    */
@@ -28,10 +32,13 @@ export interface ConnectionActionContext {
 }
 
 export interface DetailEntry {
-  /** Component that renders the "Details" tab body. */
+  /** Component that renders the Overview section — the connector's own config. */
   Details: ComponentType<{ connection: ConnectionDetailsDto }>
-  /** Optional additional tabs (e.g. AzDO Organization Configuration). */
-  extraTabs?: ConnectionTabDefinition[]
+  /**
+   * Sections beyond Overview (e.g. AzDO Organization Configuration). A
+   * connector with none renders a record page with no rail.
+   */
+  extraSections?: ConnectionSectionDefinition[]
   /**
    * Optional component that emits connector-specific menu actions
    * (sync toggle, etc.) by calling `setItems` once per render.

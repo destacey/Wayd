@@ -48,7 +48,7 @@ const Details = ({ connection }: { connection: ConnectionDetailsDto }) => {
 
 export const entraDetailEntry: DetailEntry = {
   Details,
-  extraTabs: [
+  extraSections: [
     {
       key: 'sync-history',
       label: 'Sync History',

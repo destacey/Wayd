@@ -71,7 +71,7 @@ This lives on the provider's detail page (**Settings → Identity Providers → 
 1. On the provider detail page, open the **Actions** menu and pick **Migrate Users to New Tenant**.
 2. In the dialog, choose a **source** tenant and a **target** tenant (both from the provider's allowed-tenant list). Wayd lists the users currently on the source tenant who don't already have a migration in progress.
 3. Select the ones to move (up to 500 at a time) and click **Stage migration**. Wayd reports how many were staged and, if any selected users no longer qualify, how many were skipped.
-4. The **Active Migrations** tab on the provider page lists everyone with a staged-but-incomplete migration, showing their source and target tenant and when it was staged.
+4. The **Active Migrations** section on the provider page lists everyone with a staged-but-incomplete migration, showing their source and target tenant and when it was staged.
 5. Nothing else changes until each user signs in. Sign-ins from the *old* tenant continue to work normally.
 6. When a user next signs in from the new tenant, Wayd detects the staged migration and atomically swaps their identity binding. The user notices nothing; afterward their **Identity History** shows the old binding (Inactive, reason: Tenant Migration) alongside the new active one.
 
@@ -80,7 +80,7 @@ This lives on the provider's detail page (**Settings → Identity Providers → 
 - **Stage before the user signs in from the new tenant.** If you skip staging and the user signs in from the new tenant first, Wayd creates a brand-new account with a separate user ID — there's no in-app way to merge it back with the original; it requires manual database work to recover.
 - Tenant migration is **Microsoft Entra ID only**. For moving a user between different OIDC providers, use **Change Identity Provider** instead.
 - The selectable list excludes users who already have a migration pending. To retarget such a user, cancel their pending migration first (below).
-- The **Active Migrations** tab is read-only. To cancel a single user's pending migration, open that user's detail page (**Settings → User Management → Users → \[user]**) and pick **Cancel Pending Migration** from the **Actions** menu. There is no bulk-cancel.
+- The **Active Migrations** section is read-only. To cancel a single user's pending migration, open that user's detail page (**Settings → User Management → Users → \[user]**) and pick **Cancel Pending Migration** from the **Actions** menu. There is no bulk-cancel.
 
 #### Change Identity Provider
 
@@ -94,7 +94,7 @@ This action is available for any user (including local accounts) when at least o
 2. Select the target provider from the dropdown of enabled OIDC providers and confirm.
 3. The user's current login continues to work as normal.
 4. When the user next signs in via the target provider, Wayd matches them by email, atomically deactivates their old identity, inserts the new one, and updates their login provider. The user notices nothing.
-5. The **Identity History** tab records the old binding as Inactive (reason: Provider Relinked).
+5. The **Identity History** grid on the user's page records the old binding as Inactive (reason: Provider Relinked).
 
 **Things to know:**
 
@@ -239,7 +239,7 @@ Managing roles:
 
 ## Scoring Models
 
-**Scoring Models** define formula-driven ways to score and rank work consistently — for example, prioritizing a backlog or portfolio projects by WSJF. Each model combines rated **criteria** with named **output formulas**, designating one as the primary score, and includes a **Test** tab for previewing results without saving. Active models can be assigned to [PPM portfolios](../ppm/portfolios-programs.mdx#portfolio-project-scoring). See [Scoring Models](./scoring-models.mdx) for the full guide. Configured in **Settings → Scoring → Scoring Models**.
+**Scoring Models** define formula-driven ways to score and rank work consistently — for example, prioritizing a backlog or portfolio projects by WSJF. Each model combines rated **criteria** with named **output formulas**, designating one as the primary score, and includes a **Test** report for previewing results without saving. Active models can be assigned to [PPM portfolios](../ppm/portfolios-programs.mdx#portfolio-project-scoring). See [Scoring Models](./scoring-models.mdx) for the full guide. Configured in **Settings → Scoring → Scoring Models**.
 
 ## Integrations
 

@@ -7,7 +7,9 @@ audience: [developer, agent]
 
 # Record Pages
 
-Every entity in Wayd — a project, a team, an employee, a program — gets a **list page** and a **record page** (detail page). This document defines the structure both follow, so that a developer or agent building a page for a new entity does not have to invent one, and a user moving between areas sees one product.
+Every entity in Wayd — a project, a team, an employee, a program — gets a **list page**, and most get a **record page** (detail page) as well. This document defines the structure they follow, so that a developer or agent building a page for a new entity does not have to invent one, and a user moving between areas sees one product.
+
+Start with [Does it get a record page at all?](#does-it-get-a-record-page-at-all) — a record with nothing but its own fields is better served by a panel beside its list than by a page of its own.
 
 :::info Status
 This is the target pattern. Existing pages are migrating to it area by area (see [Adoption](#adoption)). When adding a **new** record page, follow this document rather than copying an older page.
@@ -71,6 +73,35 @@ Do not write `` title={`${key} - ${name}`} ``. A concatenated key cannot be styl
 ### Never give a non-person a glyph
 
 Initials on a record read as a person, and collide immediately — "Identity Platform" and "Infrastructure Program" are both `IP`. An entity icon avoids the collision but earns nothing: every project carries the same one, so it identifies the *type* the page has already named rather than the record. Leave `avatar` unset on anything that is not an employee, and let the key chip carry uniqueness.
+
+## Does it get a record page at all?
+
+Not every entity earns one. Some records have nothing to say beyond their own fields, and giving those a page spends a navigation round trip on one block of labels — when the real task is scanning and editing sibling rows.
+
+Ask one question: **does the record have content that is not a flat list of its own fields?**
+
+| The record holds | Shape | Example |
+| --- | --- | --- |
+| Fields only | **Config list** — `ConfigListPanel` | Expenditure category, estimation scale |
+| A child collection, a matrix, a sequence, an editor | **Record page** — `RecordLayout` | Work process (its work-type→workflow schemes), scoring model (criteria, scales, outputs) |
+| Neither — it is a dashboard or a tool | **Neither.** `PageTitle` and content | Background jobs, messaging |
+
+A **config list** keeps the list on screen and renders the selected record's fields in a panel beside it. Selecting a row changes the panel rather than navigating, so comparing three categories costs three clicks instead of six. The open record lives in `?selected=`, because which record you are looking at is a place worth sharing — where a filter is a working preference and stays in local storage.
+
+:::warning A child collection is content, even a small one
+A work process's schemes list looked like "just one more field" and is not: it has its own query, its own row count, and grows independently of the record. That is a record page. The test is the shape of the data, not how much of it there happens to be today.
+:::
+
+### Facts panel, or an Overview section?
+
+Both hold a record's fields, and choosing wrong is the easiest mistake on this page. **The facts panel is closed by default.** So a record whose fields are the *content* opens showing everything except the point.
+
+- **Facts panel** — the fields are *reference material* you consult while working in a section. A scoring model's state and description sit beside its criteria; the criteria are why you came.
+- **Overview section** — the fields *are* the record. A user account, an identity provider: there is no other content the fields would sit beside, so they lead.
+
+A useful proxy: if you removed the fields entirely, would the page still have a reason to exist? Scoring models, yes — the criteria remain. A user account, no.
+
+An Overview section also has the full content width, so its fields lay out in cards and columns rather than a 296px stack.
 
 ## Sections
 
@@ -407,6 +438,14 @@ Recommended order for an area:
 4. **List page** — identity column and filter chips.
 
 `PageTitle` is the legacy component. When `(legacy)` is empty and nothing renders it, `RecordHeader` can take the name.
+
+### A record page inside another area's chrome
+
+`RecordLayout` expects to own its whole area: the identity bar supplies its own padding and spans the full width, which is why `(records)/layout.tsx` deliberately adds nothing.
+
+Settings is the exception — it keeps its navigation rail on record pages, so a settings record renders inside the settings layout's padded content column. Wrap it in **`SettingsRecordShell`**, which negates that padding so the identity bar spans properly and the section rail sits flush. The `loading.tsx` needs the same wrapper, since it renders instead of the layout rather than inside it.
+
+Any future area that keeps its own chrome needs the same treatment. A record page cannot un-pad its parent, so the negation belongs to the area, once — not repeated in each of its pages.
 
 ## Reference
 

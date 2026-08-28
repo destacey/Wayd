@@ -1,15 +1,13 @@
 'use client'
 
 import { PageActions } from '@/src/components/common'
-import PageTitle from '@/src/components/common/page-title'
-import BasicBreadcrumb from '@/src/components/common/basic-breadcrumb'
-import { authorizePage } from '@/src/components/hoc'
+import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
+import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import { useGetOidcProviderQuery } from '@/src/store/features/user-management/oidc-providers-api'
-import { OidcProviderType } from '@/src/services/wayd-api'
+import { Tag } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import { Card, MenuProps, Skeleton, Tag } from 'antd'
 import { notFound, useRouter } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import {
@@ -19,11 +17,17 @@ import {
   OidcProviderDetails,
   StageTenantMigrationForm,
 } from '../_components'
+import SettingsRecordShell from '../../../_components/settings-record-shell'
+import OidcProviderDetailsLoading from './loading'
+import getTenantMigrationAccess from './_components/tenant-migration-access'
 
-enum ProviderDetailsTabs {
-  Details = 'details',
+enum ProviderSections {
+  Overview = 'overview',
   ActiveMigrations = 'active-migrations',
 }
+
+/** The dialogs this record can open. One value, not one boolean each. */
+type DialogId = 'edit' | 'delete' | 'stage-migration'
 
 const OidcProviderDetailsPage = (props: {
   params: Promise<{ id: string }>
@@ -31,10 +35,7 @@ const OidcProviderDetailsPage = (props: {
   const { id } = use(props.params)
   const router = useRouter()
 
-  const [openEditForm, setOpenEditForm] = useState(false)
-  const [openDeleteForm, setOpenDeleteForm] = useState(false)
-  const [openStageMigrationForm, setOpenStageMigrationForm] = useState(false)
-  const [activeTab, setActiveTab] = useState(ProviderDetailsTabs.Details)
+  const [dialog, setDialog] = useState<DialogId | null>(null)
 
   const { data: provider, isLoading, error } = useGetOidcProviderQuery(id)
 
@@ -44,41 +45,36 @@ const OidcProviderDetailsPage = (props: {
   const canViewUsers = hasPermissionClaim('Permissions.Users.View')
   const canStageMigration = hasPermissionClaim('Permissions.Users.Update')
 
-  // Tenant migration only applies to a multi-tenant Entra provider — there must be
-  // at least two allowed tenants to move users between.
-  const isMultiTenantEntra =
-    provider?.providerType === OidcProviderType.MicrosoftEntraId &&
-    (provider?.allowedTenantIds?.length ?? 0) >= 2
+  const { canMigrateUsers, showActiveMigrations } = getTenantMigrationAccess({
+    provider,
+    canViewUsers,
+    canStageMigration,
+  })
 
-  // The "Migrate" action stages a migration (Users.Update); the Active Migrations tab
-  // is a read-only view (Users.View).
-  const canMigrateUsers = isMultiTenantEntra && canStageMigration
-  const showActiveMigrationsTab = isMultiTenantEntra && canViewUsers
-
-  const title = provider
-    ? `${provider.displayName} - Identity Provider`
-    : 'Identity Provider'
-  useDocumentTitle(title)
+  useDocumentTitle(
+    provider ? `${provider.displayName} - Identity Provider` : 'Identity Provider',
+  )
 
   useEffect(() => {
     error && console.error(error)
   }, [error])
 
-  const actionsMenuItems: MenuProps['items'] = (() => {
+  const actionsMenuItems: ItemType[] = (() => {
     if (!provider) return []
+
     const items: ItemType[] = []
     if (canUpdate) {
       items.push({
         key: 'edit',
         label: 'Edit',
-        onClick: () => setOpenEditForm(true),
+        onClick: () => setDialog('edit'),
       })
     }
     if (canMigrateUsers) {
       items.push({
         key: 'migrate-tenant',
         label: 'Migrate Users to New Tenant',
-        onClick: () => setOpenStageMigrationForm(true),
+        onClick: () => setDialog('stage-migration'),
       })
     }
     if (canDelete) {
@@ -86,18 +82,29 @@ const OidcProviderDetailsPage = (props: {
         key: 'delete',
         label: 'Delete',
         danger: true,
-        onClick: () => setOpenDeleteForm(true),
+        onClick: () => setDialog('delete'),
       })
     }
     return items
   })()
 
+  // Active Migrations exists only for a multi-tenant Entra provider the viewer
+  // can see users on. Everywhere else that leaves one section, and
+  // `RecordLayout` drops the rail rather than spending 190px on it.
+  const sections: RecordSection[] = [
+    { id: ProviderSections.Overview, label: 'Overview' },
+    ...(showActiveMigrations
+      ? [
+          {
+            id: ProviderSections.ActiveMigrations,
+            label: 'Active Migrations',
+          },
+        ]
+      : []),
+  ]
+
   if (isLoading) {
-    return (
-      <Card style={{ width: '100%' }}>
-        <Skeleton active />
-      </Card>
-    )
+    return <OidcProviderDetailsLoading />
   }
 
   if (!provider) {
@@ -105,77 +112,63 @@ const OidcProviderDetailsPage = (props: {
   }
 
   return (
-    <>
-      <BasicBreadcrumb
-        items={[
-          { title: 'Settings' },
-          { title: 'Identity Providers', href: './' },
-          { title: 'Details' },
-        ]}
-      />
-      <PageTitle
-        title={provider.displayName}
-        subtitle="Identity Provider"
-        tags={
-          provider.isEnabled ? (
+    <SettingsRecordShell>
+      <RecordLayout
+        sections={sections}
+        defaultSection={ProviderSections.Overview}
+        record={{
+          name: provider.displayName,
+          parent: {
+            label: 'Identity Providers',
+            href: '/settings/auth/providers',
+          },
+          subtitle: 'Identity Provider',
+          tags: provider.isEnabled ? (
             <Tag color="success">Enabled</Tag>
           ) : (
             <Tag color="default">Disabled</Tag>
+          ),
+          actions:
+            actionsMenuItems.length > 0 ? (
+              <PageActions actionItems={actionsMenuItems} />
+            ) : undefined,
+        }}
+      >
+        {(section) =>
+          section === ProviderSections.ActiveMigrations ? (
+            <ActiveTenantMigrations providerId={provider.id} />
+          ) : (
+            <OidcProviderDetails provider={provider} />
           )
         }
-        actions={<PageActions actionItems={actionsMenuItems} />}
-      />
-      {showActiveMigrationsTab ? (
-        <Card
-          style={{ width: '100%' }}
-          tabList={[
-            { key: ProviderDetailsTabs.Details, tab: 'Details' },
-            {
-              key: ProviderDetailsTabs.ActiveMigrations,
-              tab: 'Active Migrations',
-            },
-          ]}
-          activeTabKey={activeTab}
-          onTabChange={(key) => setActiveTab(key as ProviderDetailsTabs)}
-        >
-          {activeTab === ProviderDetailsTabs.Details ? (
-            <OidcProviderDetails provider={provider} />
-          ) : (
-            <ActiveTenantMigrations providerId={provider.id} />
-          )}
-        </Card>
-      ) : (
-        <Card style={{ width: '100%' }}>
-          <OidcProviderDetails provider={provider} />
-        </Card>
-      )}
+      </RecordLayout>
 
-      {openEditForm && (
+      {dialog === 'edit' && (
         <EditOidcProviderForm
           providerId={provider.id}
-          onFormComplete={() => setOpenEditForm(false)}
-          onFormCancel={() => setOpenEditForm(false)}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
         />
       )}
-      {openDeleteForm && (
+      {dialog === 'delete' && (
         <DeleteOidcProviderForm
           provider={provider}
           onFormComplete={() => {
-            setOpenDeleteForm(false)
+            setDialog(null)
             router.push('/settings/auth/providers')
           }}
-          onFormCancel={() => setOpenDeleteForm(false)}
+          onFormCancel={() => setDialog(null)}
         />
       )}
-      {openStageMigrationForm && (
+      {dialog === 'stage-migration' && (
         <StageTenantMigrationForm
           providerId={provider.id}
           allowedTenantIds={provider.allowedTenantIds ?? []}
-          onFormComplete={() => setOpenStageMigrationForm(false)}
-          onFormCancel={() => setOpenStageMigrationForm(false)}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
         />
       )}
-    </>
+    </SettingsRecordShell>
   )
 }
 

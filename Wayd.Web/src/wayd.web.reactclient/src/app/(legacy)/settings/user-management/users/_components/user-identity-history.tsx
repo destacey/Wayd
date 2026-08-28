@@ -1,10 +1,11 @@
 'use client'
 
-import { Alert, Empty, Spin, Table, Tag, Tooltip, Typography } from 'antd'
-import type { ColumnsType } from 'antd/es/table'
-import dayjs from 'dayjs'
+import { WaydGrid } from '@/src/components/common/wayd-grid'
+import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { UserIdentityDto } from '@/src/services/wayd-api'
 import { useGetUserIdentityHistoryQuery } from '@/src/store/features/user-management/users-api'
+import { Alert, Tag, Tooltip, Typography } from 'antd'
+import dayjs from 'dayjs'
 
 const { Text } = Typography
 
@@ -24,102 +25,108 @@ const PROVIDER_LABELS: Record<string, string> = {
   Wayd: 'Wayd (Local)',
 }
 
-const formatDate = (value?: string | null) =>
+const formatDate = (value?: string | Date | null) =>
   value ? dayjs(value).format('MMM D, YYYY h:mm A') : '—'
 
-const columns: ColumnsType<UserIdentityDto> = [
+const columns: ColumnDef<UserIdentityDto, any>[] = [
   {
-    title: 'Status',
-    dataIndex: 'isActive',
-    key: 'isActive',
-    width: 100,
-    render: (isActive: boolean) =>
-      isActive ? (
+    id: 'isActive',
+    accessorKey: 'isActive',
+    header: 'Status',
+    size: 100,
+    cell: ({ row }) =>
+      row.original.isActive ? (
         <Tag color="success">Active</Tag>
       ) : (
         <Tag>Inactive</Tag>
       ),
   },
   {
-    title: 'Provider',
-    dataIndex: 'provider',
-    key: 'provider',
-    render: (provider: string) => PROVIDER_LABELS[provider] ?? provider,
+    id: 'provider',
+    accessorFn: (row) => PROVIDER_LABELS[row.provider] ?? row.provider,
+    header: 'Provider',
+    size: 160,
+    meta: { filterType: 'set' },
   },
   {
-    title: 'Tenant',
-    dataIndex: 'providerTenantId',
-    key: 'providerTenantId',
-    render: (tenantId?: string | null) =>
-      tenantId ? (
-        <Text code copyable={{ text: tenantId }}>
-          {tenantId}
+    id: 'providerTenantId',
+    accessorKey: 'providerTenantId',
+    header: 'Tenant',
+    size: 260,
+    cell: ({ row }) =>
+      row.original.providerTenantId ? (
+        <Text code copyable={{ text: row.original.providerTenantId }}>
+          {row.original.providerTenantId}
         </Text>
       ) : (
         <Text type="secondary">—</Text>
       ),
   },
   {
-    title: 'Subject',
-    dataIndex: 'providerSubject',
-    key: 'providerSubject',
-    render: (subject: string) => (
-      <Tooltip title={subject}>
-        <Text code copyable={{ text: subject }}>
-          {subject.length > 12 ? `${subject.slice(0, 8)}…` : subject}
-        </Text>
-      </Tooltip>
-    ),
+    id: 'providerSubject',
+    accessorKey: 'providerSubject',
+    header: 'Subject',
+    size: 140,
+    cell: ({ row }) => {
+      const subject = row.original.providerSubject
+      return (
+        // Truncated with the full value behind a tooltip and on the clipboard:
+        // a provider subject is long, opaque, and only ever needed verbatim.
+        <Tooltip title={subject}>
+          <Text code copyable={{ text: subject }}>
+            {subject.length > 12 ? `${subject.slice(0, 8)}…` : subject}
+          </Text>
+        </Tooltip>
+      )
+    },
   },
   {
-    title: 'Linked',
-    dataIndex: 'linkedAt',
-    key: 'linkedAt',
-    render: formatDate,
+    id: 'linkedAt',
+    accessorKey: 'linkedAt',
+    header: 'Linked',
+    size: 190,
+    cell: ({ row }) => formatDate(row.original.linkedAt),
   },
   {
-    title: 'Unlinked',
-    dataIndex: 'unlinkedAt',
-    key: 'unlinkedAt',
-    render: formatDate,
+    id: 'unlinkedAt',
+    accessorKey: 'unlinkedAt',
+    header: 'Unlinked',
+    size: 190,
+    cell: ({ row }) => formatDate(row.original.unlinkedAt),
   },
   {
-    title: 'Reason',
-    dataIndex: 'unlinkReason',
-    key: 'unlinkReason',
-    render: (reason?: string | null) =>
-      reason ? UNLINK_REASON_LABELS[reason] ?? reason : '—',
+    id: 'unlinkReason',
+    accessorFn: (row) =>
+      row.unlinkReason
+        ? (UNLINK_REASON_LABELS[row.unlinkReason] ?? row.unlinkReason)
+        : '—',
+    header: 'Reason',
+    size: 160,
+    meta: { filterType: 'set' },
   },
 ]
 
+/**
+ * Every provider identity this account has been bound to, current and past.
+ *
+ * A `WaydGrid` rather than a bare antd `Table`, so it sorts, filters and
+ * exports like every other table in the product — an audit trail is exactly
+ * the sort of thing someone needs to search.
+ */
 const UserIdentityHistory = ({ userId }: UserIdentityHistoryProps) => {
   const { data, isLoading, error } = useGetUserIdentityHistoryQuery(userId)
 
-  if (isLoading) {
-    return <Spin />
-  }
-
   if (error) {
-    return (
-      <Alert
-        type="error"
-        showIcon
-        title="Failed to load identity history."
-      />
-    )
-  }
-
-  if (!data || data.length === 0) {
-    return <Empty description="No identity history available." />
+    return <Alert type="error" showIcon title="Failed to load identity history." />
   }
 
   return (
-    <Table<UserIdentityDto>
-      rowKey="id"
-      size="small"
+    <WaydGrid
+      variant="simple"
       columns={columns}
-      dataSource={data}
-      pagination={false}
+      data={data ?? []}
+      isLoading={isLoading}
+      emptyMessage="No identity history available."
     />
   )
 }

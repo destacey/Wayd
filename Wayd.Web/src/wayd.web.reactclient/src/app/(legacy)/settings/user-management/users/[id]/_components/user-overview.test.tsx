@@ -8,6 +8,13 @@ jest.mock('next/link', () => {
   return MockLink
 })
 
+// The identity history grid has its own tests; here it only needs to not reach
+// for the API.
+jest.mock('../../_components/user-identity-history', () => ({
+  __esModule: true,
+  default: () => <div>identity history</div>,
+}))
+
 const user = (overrides: Partial<UserDetailsDto> = {}): UserDetailsDto =>
   ({
     id: 'e1a7b300-0000-0000-0000-000000000001',

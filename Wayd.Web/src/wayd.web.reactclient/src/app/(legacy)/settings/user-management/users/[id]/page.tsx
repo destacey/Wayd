@@ -24,7 +24,6 @@ import {
   ResetPasswordForm,
   StageProviderMigrationForm,
   useUserAccountActions,
-  UserIdentityHistory,
 } from '../_components'
 import SettingsRecordShell from '../../../_components/settings-record-shell'
 import UserDetailsLoading from './loading'
@@ -32,7 +31,6 @@ import { UserOverview } from './_components'
 
 enum UserSections {
   Overview = 'overview',
-  IdentityHistory = 'identity-history',
 }
 
 /** The dialogs this record can open. One value, not one boolean each. */
@@ -201,12 +199,11 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
     return items
   })()
 
-  // No facts panel: it is closed by default and holds reference material, but
-  // an account's own fields are what the page is for. They lead as Overview
-  // instead, with the sign-in history behind it.
+  // One section, so no rail — and no facts panel, which is closed by default
+  // and holds reference material beside content. An account's own fields are
+  // what the page is for, so they and its history stack on the one page.
   const sections: RecordSection[] = [
     { id: UserSections.Overview, label: 'Overview' },
-    { id: UserSections.IdentityHistory, label: 'Identity History' },
   ]
 
   if (isLoading) {
@@ -254,13 +251,7 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
             ) : undefined,
         }}
       >
-        {(section) =>
-          section === UserSections.Overview ? (
-            <UserOverview user={user} />
-          ) : (
-            <UserIdentityHistory userId={user.id} />
-          )
-        }
+        {() => <UserOverview user={user} />}
       </RecordLayout>
 
       {dialog === 'edit' && (

@@ -183,6 +183,32 @@ const asGroups = (
   )
 
 /**
+ * The first page the viewer can actually open, for `/settings` to land on.
+ *
+ * Read off the filtered menu rather than hardcoded, so it follows the same
+ * permission and feature-flag rules the rail does — a viewer who cannot see
+ * Users is sent to whatever their first group holds instead of bounced.
+ *
+ * Undefined when the whole rail is empty.
+ */
+export const firstSettingsRoute = (
+  items: ItemType<MenuItemType>[],
+): string | undefined => {
+  for (const item of items) {
+    if (item == null) continue
+    const children = (item as { children?: ItemType<MenuItemType>[] }).children
+    if (children) {
+      const nested = firstSettingsRoute(children)
+      if (nested) return nested
+      continue
+    }
+    const route = (item as { route?: string }).route
+    if (route) return route
+  }
+  return undefined
+}
+
+/**
  * The settings menu's items and its route→key map, built from the same helpers
  * as the app sider's so the two navs stay one kind of object rather than two.
  */

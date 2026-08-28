@@ -3,7 +3,7 @@
 import PageTitle from '@/src/components/common/page-title'
 import MetricCard from '@/src/components/common/metrics/metric-card'
 import { useState } from 'react'
-import { Flex, MenuProps, Tabs, Typography } from 'antd'
+import { Flex, MenuProps, Segmented, Typography } from 'antd'
 import Link from 'next/link'
 import { ItemType } from 'antd/es/menu/interface'
 import { authorizePage } from '@/src/components/hoc'
@@ -23,10 +23,14 @@ import JobsTab from './_components/jobs-tab'
 import RecurringJobsTab from './_components/recurring-jobs-tab'
 import JobServersTab from './_components/job-servers-tab'
 
+/** The scheduler's three peer views. */
+type JobsView = 'jobs' | 'recurring' | 'servers'
+
 const BackgroundJobsListPage = () => {
   useDocumentTitle('Background Jobs')
   const [openCreateRecurringJobForm, setOpenCreateRecurringJobForm] =
     useState(false)
+  const [view, setView] = useState<JobsView>('jobs')
 
   const messageApi = useMessage()
   const { hasPermissionClaim } = useAuth()
@@ -185,7 +189,7 @@ const BackgroundJobsListPage = () => {
           title="Recurring"
           value={current?.recurring ?? 0}
           loading={statisticsLoading}
-          tooltip="Registered cron schedules. Manage them on the Recurring tab."
+          tooltip="Registered cron schedules. Manage them under Recurring."
         />
         <MetricCard
           title="Servers"
@@ -211,18 +215,25 @@ const BackgroundJobsListPage = () => {
           tooltip="Every job that has ever been deleted, whether manually or by exhausting its retries."
         />
       </Flex>
-      <Tabs
-        defaultActiveKey="jobs"
-        items={[
-          { key: 'jobs', label: 'Jobs', children: <JobsTab /> },
-          {
-            key: 'recurring',
-            label: 'Recurring',
-            children: <RecurringJobsTab />,
-          },
-          { key: 'servers', label: 'Servers', children: <JobServersTab /> },
-        ]}
-      />
+      {/*
+        A Segmented rather than Tabs: these three are peer views of the same
+        scheduler, not sections of a record, which is what a rail would imply —
+        background jobs is an operational page and has no record to section.
+      */}
+      <Flex vertical gap="middle">
+        <Segmented
+          value={view}
+          onChange={(next) => setView(next as JobsView)}
+          options={[
+            { value: 'jobs', label: 'Jobs' },
+            { value: 'recurring', label: 'Recurring' },
+            { value: 'servers', label: 'Servers' },
+          ]}
+        />
+        {view === 'jobs' && <JobsTab />}
+        {view === 'recurring' && <RecurringJobsTab />}
+        {view === 'servers' && <JobServersTab />}
+      </Flex>
       {openCreateRecurringJobForm && (
         <CreateRecurringJobForm
           jobTypes={jobTypeData}

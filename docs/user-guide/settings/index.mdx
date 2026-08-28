@@ -267,7 +267,7 @@ A **Connector** is a configurable integration type that lets a specific external
 - **Edit** — Update name, description, or credentials. The masked secret can be left as-is to keep the existing value.
 - **Activate / Deactivate** — Toggle whether the connection participates in sync runs. Inactive connections are excluded from every runner (work-sync, people-sync) and from "Sync Now" — the API rejects sync attempts on an inactive connection.
 - **Sync Now** — Triggers a manual sync for that connection only. Available on Work Sync and People Sync connectors. Routes to the right runner based on the connector's category.
-- **Sync History** — Tab on the connection detail page showing past runs with their status, duration, and per-run details (workspaces and work items for Work Sync; employees fetched and upserted for People Sync).
+- **Sync History** — A section on the connection detail page showing past runs with their status, duration, and per-run details (workspaces and work items for Work Sync; employees fetched and upserted for People Sync).
 - **Delete** — Removes the connection. Past sync history rows are preserved by design.
 
 ### Azure DevOps Boards
@@ -332,16 +332,16 @@ Wayd runs recurring and on-demand work — syncs, replication, maintenance — a
 
 Counts are split into two rows, because they answer different questions:
 
-- **Current** — jobs that exist right now. Each tile agrees with the matching tab: Processing, Enqueued, Scheduled, Failed, Succeeded, plus Recurring schedules and Servers.
+- **Current** — jobs that exist right now. Each tile agrees with the matching view: Processing, Enqueued, Scheduled, Failed, Succeeded, plus Recurring schedules and Servers.
 - **All time** — running totals of everything that has ever succeeded or been deleted. These keep climbing after the job records themselves are purged, so they are normally far higher than the Current figures.
 
 :::note Succeeded appears in both rows, with different meanings
 Succeeded jobs are retained only briefly before being purged. **Current → Succeeded** counts the ones still on record — often a handful, or none. **All time → Succeeded** counts every job that has ever completed. A large gap between them is expected, not a fault.
 :::
 
-Three tabs sit below the tiles:
+Three views sit below the tiles:
 
-| Tab | What it is for |
+| View | What it is for |
 |---|---|
 | **Jobs** | Browse jobs by state — Processing, Scheduled, Enqueued, Failed, Succeeded, Deleted. Select a job to open its detail panel. |
 | **Recurring** | Every registered schedule, with its cron expression, next and last run, and the outcome of the last run. Remove a schedule here. |
@@ -349,7 +349,7 @@ Three tabs sit below the tiles:
 
 ### Diagnosing a failure
 
-Open the **Failed** state on the Jobs tab and select the job. The detail panel carries the exception type and message, the **full stack trace**, the arguments the job ran with, and its state history — every transition and why.
+Open the **Failed** state under **Jobs** and select the job. The detail panel carries the exception type and message, the **full stack trace**, the arguments the job ran with, and its state history — every transition and why.
 
 From there you can **Requeue** the job to try again, or **Delete** it.
 

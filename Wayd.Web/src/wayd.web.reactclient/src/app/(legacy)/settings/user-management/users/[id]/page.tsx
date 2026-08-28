@@ -1,21 +1,22 @@
 'use client'
 
-import { PageActions } from '@/src/components/common'
-import PageTitle from '@/src/components/common/page-title'
-import { authorizePage } from '@/src/components/hoc'
-import { notFound } from 'next/navigation'
-import UserDetailsLoading from './loading'
-import { use, useEffect, useState } from 'react'
-import { App, Card, MenuProps } from 'antd'
-import BasicBreadcrumb from '@/src/components/common/basic-breadcrumb'
+import { InactiveTag, PageActions } from '@/src/components/common'
+import { personInitials } from '@/src/components/common/record-initials'
+import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
+import { useMessage } from '@/src/components/contexts/messaging'
+import { authorizePage } from '@/src/components/hoc'
+import { useDocumentTitle } from '@/src/hooks'
+import { useGetAuthProvidersQuery } from '@/src/store/features/common/auth-providers-api'
 import {
   useCancelProviderMigrationMutation,
   useCancelTenantMigrationMutation,
   useGetUserQuery,
 } from '@/src/store/features/user-management/users-api'
-import { useGetAuthProvidersQuery } from '@/src/store/features/common/auth-providers-api'
-import { useMessage } from '@/src/components/contexts/messaging'
+import { App, Space, Tag } from 'antd'
+import { ItemType } from 'antd/es/menu/interface'
+import { notFound } from 'next/navigation'
+import { use, useEffect, useState } from 'react'
 import {
   ConvertToLocalAccountForm,
   EditUserForm,
@@ -23,34 +24,36 @@ import {
   ResetPasswordForm,
   StageProviderMigrationForm,
   useUserAccountActions,
-  UserDetails,
   UserIdentityHistory,
 } from '../_components'
-import { ItemType } from 'antd/es/menu/interface'
-import { useDocumentTitle } from '@/src/hooks'
+import SettingsRecordShell from '../../../_components/settings-record-shell'
+import UserDetailsLoading from './loading'
+import { UserOverview } from './_components'
 
-enum UserDetailsTabs {
-  Details = 'details',
+enum UserSections {
+  Overview = 'overview',
   IdentityHistory = 'identity-history',
 }
+
+/** The dialogs this record can open. One value, not one boolean each. */
+type DialogId =
+  | 'edit'
+  | 'manage-roles'
+  | 'reset-password'
+  | 'stage-provider-migration'
+  | 'convert-to-local'
 
 const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
   const { id } = use(props.params)
 
-  const [activeTab, setActiveTab] = useState(UserDetailsTabs.Details)
-  const [openEditUserForm, setOpenEditUserForm] = useState(false)
-  const [openManageUserRolesForm, setOpenManageUserRolesForm] = useState(false)
-  const [openResetPasswordForm, setOpenResetPasswordForm] = useState(false)
-  const [openStageProviderMigrationForm, setOpenStageProviderMigrationForm] =
-    useState(false)
-  const [openConvertToLocalForm, setOpenConvertToLocalForm] = useState(false)
+  const [dialog, setDialog] = useState<DialogId | null>(null)
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateUser = hasPermissionClaim('Permissions.Users.Update')
   const canUpdateUserRoles = hasPermissionClaim('Permissions.UserRoles.Update')
 
   const { getAccountActionMenuItems } = useUserAccountActions()
-  const { data: userData, isLoading, error } = useGetUserQuery(id)
+  const { data: user, isLoading, error } = useGetUserQuery(id)
   const [cancelTenantMigration] = useCancelTenantMigrationMutation()
   const [cancelProviderMigration] = useCancelProviderMigrationMutation()
   const { data: authProviders } = useGetAuthProvidersQuery()
@@ -58,61 +61,59 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
   const { modal } = App.useApp()
   const messageApi = useMessage()
 
-  const isLocalUser = userData?.loginProvider === 'Wayd'
-  const isEntraUser = userData?.loginProvider === 'MicrosoftEntraId'
+  const isLocalUser = user?.loginProvider === 'Wayd'
+  const isEntraUser = user?.loginProvider === 'MicrosoftEntraId'
   const isOidcUser = !isLocalUser
-  const hasPendingMigration = !!userData?.pendingMigrationTenantId
-  const hasPendingProviderMigration = !!userData?.pendingMigrationProviderId
-  // Only show "Change Identity Provider" when at least one enabled OIDC provider
-  // exists that is different from the user's current provider. The public
-  // auth/providers endpoint only returns enabled providers, so no extra filter needed.
+  const hasPendingMigration = !!user?.pendingMigrationTenantId
+  const hasPendingProviderMigration = !!user?.pendingMigrationProviderId
+  // Only offer "Change Identity Provider" when an enabled OIDC provider exists
+  // that differs from the user's current one. The public auth/providers
+  // endpoint returns only enabled providers, so no extra filter is needed.
   const canChangeProvider =
     oidcProviders.length > 0 &&
-    oidcProviders.some((p) => p.name !== userData?.loginProvider)
+    oidcProviders.some((p) => p.name !== user?.loginProvider)
 
-  const tabs = [
-    { key: UserDetailsTabs.Details, tab: 'Details' },
-    { key: UserDetailsTabs.IdentityHistory, tab: 'Identity History' },
-  ]
+  const fullName = user ? `${user.firstName} ${user.lastName}` : ''
+  useDocumentTitle(user ? `${fullName} - User Details` : 'User Details')
 
-  const fullName = userData
-    ? `${userData?.firstName} ${userData?.lastName}`
-    : ''
-  const title = userData ? `${fullName} - User Details` : 'User Details'
-  useDocumentTitle(title)
+  useEffect(() => {
+    error && console.error(error)
+  }, [error])
 
-  const actionsMenuItems: MenuProps['items'] = (() => {
-    if (!userData) return []
+  const actionsMenuItems: ItemType[] = (() => {
+    if (!user) return []
 
     const items: ItemType[] = []
     if (canUpdateUser) {
       items.push({
         key: 'edit',
         label: 'Edit',
-        onClick: () => setOpenEditUserForm(true),
+        onClick: () => setDialog('edit'),
       })
       items.push(
         ...getAccountActionMenuItems({
-          id: userData.id,
-          userName: userData.userName!,
-          firstName: userData.firstName!,
-          lastName: userData.lastName!,
-          isActive: userData.isActive,
+          id: user.id,
+          userName: user.userName!,
+          firstName: user.firstName!,
+          lastName: user.lastName!,
+          isActive: user.isActive,
           isLockedOut:
-            !!userData.lockoutEnd && new Date(userData.lockoutEnd) > new Date(),
+            !!user.lockoutEnd && new Date(user.lockoutEnd) > new Date(),
         }),
       )
     }
+
     const secondaryItems: ItemType[] = []
     if (canUpdateUser && isLocalUser) {
       secondaryItems.push({
         key: 'reset-password',
         label: 'Reset Password',
-        onClick: () => setOpenResetPasswordForm(true),
+        onClick: () => setDialog('reset-password'),
       })
     }
-    // Staging a tenant migration is a bulk action on the provider page. Cancelling a
-    // single user's pending migration stays here, where the pending state is visible.
+    // Staging a tenant migration is a bulk action on the provider page.
+    // Cancelling one user's pending migration stays here, where the pending
+    // state is visible.
     if (canUpdateUser && isEntraUser && hasPendingMigration) {
       secondaryItems.push({
         key: 'cancel-migration',
@@ -126,15 +127,14 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
             cancelText: 'Keep Pending',
             onOk: async () => {
               try {
-                const result = await cancelTenantMigration(userData.id)
+                const result = await cancelTenantMigration(user.id)
                 if ('error' in result) {
                   throw result.error
                 }
                 messageApi.success('Pending migration canceled.')
               } catch (err: any) {
                 messageApi.error(
-                  err?.data?.detail ??
-                    'Failed to cancel the pending migration.',
+                  err?.data?.detail ?? 'Failed to cancel the pending migration.',
                 )
               }
             },
@@ -148,7 +148,7 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
         label: hasPendingProviderMigration
           ? 'Replace Pending Provider Migration'
           : 'Change Identity Provider',
-        onClick: () => setOpenStageProviderMigrationForm(true),
+        onClick: () => setDialog('stage-provider-migration'),
       })
       if (hasPendingProviderMigration) {
         secondaryItems.push({
@@ -163,7 +163,7 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
               cancelText: 'Keep Pending',
               onOk: async () => {
                 try {
-                  const result = await cancelProviderMigration(userData.id)
+                  const result = await cancelProviderMigration(user.id)
                   if ('error' in result) {
                     throw result.error
                   }
@@ -184,14 +184,14 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
       secondaryItems.push({
         key: 'convert-to-local',
         label: 'Convert to Local Account',
-        onClick: () => setOpenConvertToLocalForm(true),
+        onClick: () => setDialog('convert-to-local'),
       })
     }
     if (canUpdateUserRoles) {
       secondaryItems.push({
         key: 'manage-roles',
         label: 'Manage Roles',
-        onClick: () => setOpenManageUserRolesForm(true),
+        onClick: () => setDialog('manage-roles'),
       })
     }
     if (secondaryItems.length > 0 && items.length > 0) {
@@ -201,97 +201,109 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
     return items
   })()
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case UserDetailsTabs.Details:
-        return <UserDetails user={userData!} />
-      case UserDetailsTabs.IdentityHistory:
-        return <UserIdentityHistory userId={userData!.id} />
-      default:
-        return null
-    }
-  }
-
-  const onTabChange = (tabKey: string) => {
-    setActiveTab(tabKey as UserDetailsTabs)
-  }
-
-  useEffect(() => {
-    error && console.error(error)
-  }, [error])
+  // No facts panel: it is closed by default and holds reference material, but
+  // an account's own fields are what the page is for. They lead as Overview
+  // instead, with the sign-in history behind it.
+  const sections: RecordSection[] = [
+    { id: UserSections.Overview, label: 'Overview' },
+    { id: UserSections.IdentityHistory, label: 'Identity History' },
+  ]
 
   if (isLoading) {
     return <UserDetailsLoading />
   }
 
-  if (!userData) {
+  if (!user) {
     return notFound()
   }
 
+  // A staged migration is a state of the account, so it reads in the identity
+  // bar beside the active tag rather than as a banner one section owns — it
+  // stays visible whichever section is open, and disappears when the rebind
+  // completes on the user's next sign-in.
+  const tags = (
+    <Space size={4} wrap>
+      <InactiveTag isActive={user.isActive} />
+      {hasPendingMigration && <Tag color="processing">Tenant migration pending</Tag>}
+      {hasPendingProviderMigration && (
+        <Tag color="processing">Provider migration pending</Tag>
+      )}
+    </Space>
+  )
+
   return (
-    <>
-      <BasicBreadcrumb
-        items={[
-          { title: 'Settings' },
-          { title: 'User Management' },
-          { title: 'Users', href: './' },
-          { title: 'Details' },
-        ]}
-      />
-      <PageTitle
-        title={fullName}
-        subtitle="User Details"
-        actions={<PageActions actionItems={actionsMenuItems} />}
-      />
-      <Card
-        style={{ width: '100%' }}
-        tabList={tabs}
-        activeTabKey={activeTab}
-        onTabChange={onTabChange}
+    <SettingsRecordShell>
+      <RecordLayout
+        sections={sections}
+        defaultSection={UserSections.Overview}
+        record={{
+          name: fullName,
+          avatar: {
+            kind: 'person',
+            initials: personInitials(user.firstName, user.lastName),
+          },
+          parent: {
+            label: 'Users',
+            href: '/settings/user-management/users',
+          },
+          subtitle: 'User Details',
+          tags,
+          actions:
+            actionsMenuItems.length > 0 ? (
+              <PageActions actionItems={actionsMenuItems} />
+            ) : undefined,
+        }}
       >
-        {renderTabContent()}
-      </Card>
-      {openEditUserForm && (
+        {(section) =>
+          section === UserSections.Overview ? (
+            <UserOverview user={user} />
+          ) : (
+            <UserIdentityHistory userId={user.id} />
+          )
+        }
+      </RecordLayout>
+
+      {dialog === 'edit' && (
         <EditUserForm
-          user={userData}
-          onFormUpdate={() => setOpenEditUserForm(false)}
-          onFormCancel={() => setOpenEditUserForm(false)}
+          user={user}
+          onFormUpdate={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
         />
       )}
-      {openManageUserRolesForm && (
+      {dialog === 'manage-roles' && (
         <ManageUserRolesForm
-          userId={userData.id}
-          onFormComplete={() => setOpenManageUserRolesForm(false)}
-          onFormCancel={() => setOpenManageUserRolesForm(false)}
+          userId={user.id}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
         />
       )}
-      {openResetPasswordForm && (
+      {dialog === 'reset-password' && (
         <ResetPasswordForm
-          userId={userData.id}
+          userId={user.id}
           userName={fullName}
-          onFormComplete={() => setOpenResetPasswordForm(false)}
-          onFormCancel={() => setOpenResetPasswordForm(false)}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
         />
       )}
-      {openStageProviderMigrationForm && (
+      {dialog === 'stage-provider-migration' && (
         <StageProviderMigrationForm
-          userId={userData.id}
+          userId={user.id}
           userName={fullName}
-          currentLoginProvider={userData.loginProvider}
-          currentPendingProviderId={userData.pendingMigrationProviderId}
-          onFormComplete={() => setOpenStageProviderMigrationForm(false)}
-          onFormCancel={() => setOpenStageProviderMigrationForm(false)}
+          currentLoginProvider={user.loginProvider}
+          currentPendingProviderId={user.pendingMigrationProviderId}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
         />
       )}
-      {openConvertToLocalForm && (
+      {dialog === 'convert-to-local' && (
         <ConvertToLocalAccountForm
-          userId={userData.id}
+          userId={user.id}
           userName={fullName}
-          onFormComplete={() => setOpenConvertToLocalForm(false)}
-          onFormCancel={() => setOpenConvertToLocalForm(false)}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
         />
       )}
-    </>
+    </SettingsRecordShell>
   )
 }
 

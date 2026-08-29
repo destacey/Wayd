@@ -1,3 +1,5 @@
+'use client'
+
 import { Button, Dropdown } from 'antd'
 import type { MenuProps } from 'antd'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'

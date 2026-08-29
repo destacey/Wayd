@@ -1,3 +1,5 @@
+'use client'
+
 import useAuth from '@/src/components/contexts/auth'
 
 interface UseLinkedEmployeeResult {

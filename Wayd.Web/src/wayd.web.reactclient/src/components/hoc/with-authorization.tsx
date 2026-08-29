@@ -1,3 +1,5 @@
+'use client'
+
 import { ComponentType, FC } from 'react'
 import NotAuthorized from '../common/not-authorized'
 import useAuth from '../contexts/auth'

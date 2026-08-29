@@ -1,3 +1,5 @@
+'use client'
+
 import { FC, ComponentType, useRef } from 'react'
 import useTheme from '../../contexts/theme'
 import { OrganizationChart, OrganizationChartOptions } from '@ant-design/graphs'

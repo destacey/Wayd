@@ -1,3 +1,5 @@
+'use client'
+
 import { createContext, FC, ReactNode, useContext } from 'react'
 import { message } from 'antd'
 import { MessageInstance } from 'antd/es/message/interface'

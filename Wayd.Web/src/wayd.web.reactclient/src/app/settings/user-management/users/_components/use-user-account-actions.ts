@@ -1,3 +1,5 @@
+'use client'
+
 import { App } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import useAuth from '@/src/components/contexts/auth'

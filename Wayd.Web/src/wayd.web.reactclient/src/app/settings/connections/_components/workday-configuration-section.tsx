@@ -1,3 +1,5 @@
+'use client'
+
 import { getConnectionsClient } from '@/src/services/clients'
 import {
   DiscoveredOrg,

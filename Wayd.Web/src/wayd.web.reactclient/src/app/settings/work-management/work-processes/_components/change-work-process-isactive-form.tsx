@@ -1,3 +1,5 @@
+'use client'
+
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useChangeWorkProcessIsActiveMutation } from '@/src/store/features/work-management/work-process-api'
 import { Modal, Typography } from 'antd'

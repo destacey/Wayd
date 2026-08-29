@@ -1,3 +1,5 @@
+'use client'
+
 import { TeamMembershipDto } from '@/src/services/wayd-api'
 import { TeamTypeName } from '../types'
 import { Descriptions, Modal } from 'antd'

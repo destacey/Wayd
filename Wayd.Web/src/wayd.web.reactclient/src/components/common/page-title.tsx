@@ -1,3 +1,5 @@
+'use client'
+
 import { Col, Flex, Grid, Row, Typography } from 'antd'
 import { ReactNode } from 'react'
 

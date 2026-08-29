@@ -1,3 +1,5 @@
+'use client'
+
 import { ProjectPlanNodeDto } from '@/src/services/wayd-api'
 import {
   CaretDownOutlined,

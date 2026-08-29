@@ -1,3 +1,5 @@
+'use client'
+
 import { usePathname } from 'next/navigation'
 import { useGetClientFeatureFlagsQuery } from '@/src/store/features/feature-flags-api'
 

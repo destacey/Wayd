@@ -1,3 +1,5 @@
+'use client'
+
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
   EmployeeMatchProperty,

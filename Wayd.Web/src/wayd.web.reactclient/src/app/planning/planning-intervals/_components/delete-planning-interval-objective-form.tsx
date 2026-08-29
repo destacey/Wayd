@@ -1,3 +1,5 @@
+'use client'
+
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
 import { PlanningIntervalObjectiveDetailsDto } from '@/src/services/wayd-api'

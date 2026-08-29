@@ -1,3 +1,5 @@
+'use client'
+
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { UpdateWorkTypeLevelRequest } from '@/src/services/wayd-api'

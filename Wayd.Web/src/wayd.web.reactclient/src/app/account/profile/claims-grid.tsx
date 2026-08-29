@@ -1,3 +1,5 @@
+'use client'
+
 import { useMemo } from 'react'
 import { WaydGrid } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'

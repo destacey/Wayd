@@ -1,3 +1,5 @@
+'use client'
+
 import { useMessage } from '@/src/components/contexts/messaging'
 import { InitWorkspaceIntegrationRequest } from '@/src/services/wayd-api'
 import { useInitAzdoConnectionWorkspaceMutation } from '@/src/store/features/app-integration/azdo-integration-api'

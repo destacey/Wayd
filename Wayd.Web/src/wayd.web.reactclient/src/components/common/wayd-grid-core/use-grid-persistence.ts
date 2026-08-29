@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useRef, type MutableRefObject } from 'react'
 import type { ColumnOrderState, ColumnPinningState, ColumnSizingState, ColumnVisibilityState as VisibilityState } from '@tanstack/react-table'
 import type { GridState } from './use-grid-table'

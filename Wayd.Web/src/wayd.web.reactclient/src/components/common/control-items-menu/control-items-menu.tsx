@@ -1,3 +1,5 @@
+'use client'
+
 import { ControlOutlined } from '@ant-design/icons'
 import { Button, Dropdown, MenuProps } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'

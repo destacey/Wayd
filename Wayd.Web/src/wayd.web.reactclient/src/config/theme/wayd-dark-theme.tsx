@@ -1,3 +1,5 @@
+'use client'
+
 import { theme } from 'antd'
 import { useMemo } from 'react'
 import { AppThemeConfig } from './theme-preset'

@@ -1,3 +1,5 @@
+'use client'
+
 import {
   ConnectorType,
   CAPABILITY_CATEGORY_DESCRIPTIONS,

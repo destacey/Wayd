@@ -1,3 +1,5 @@
+'use client'
+
 import { useContext } from 'react'
 import { MenuToggleContextType } from './types'
 import { MenuToggleContext } from './menu-toggle-context'

@@ -1,3 +1,5 @@
+'use client'
+
 import { Alert, Button, Card, Flex, Spin } from 'antd'
 import useAuth from '../../contexts/auth'
 import { EditOutlined, EditTwoTone, PlusOutlined } from '@ant-design/icons'

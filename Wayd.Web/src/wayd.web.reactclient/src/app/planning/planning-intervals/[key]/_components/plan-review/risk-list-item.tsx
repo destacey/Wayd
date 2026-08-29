@@ -1,3 +1,5 @@
+'use client'
+
 import EditRiskForm from '@/src/components/common/planning/edit-risk-form'
 import { RiskListDto } from '@/src/services/wayd-api'
 import { EditOutlined } from '@ant-design/icons'

@@ -1,3 +1,5 @@
+'use client'
+
 import { WaydColorPicker } from '@/src/components/common'
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'

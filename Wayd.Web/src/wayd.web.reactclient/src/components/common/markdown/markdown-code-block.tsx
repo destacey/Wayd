@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useEffect, useRef } from 'react'
 import { GlobalToken } from 'antd'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'

@@ -70,7 +70,8 @@ const TeamOverview = ({ team, onNavigateToSection }: TeamOverviewProps) => {
         <Col xs={12} md={6}>
           <MetricCard
             title="Members"
-            value={membersLoading ? '—' : sortedMembers.length}
+            value={sortedMembers.length}
+            loading={membersLoading}
             onClick={() => onNavigateToSection('members')}
           />
         </Col>
@@ -78,7 +79,8 @@ const TeamOverview = ({ team, onNavigateToSection }: TeamOverviewProps) => {
           <Col xs={12} md={6}>
             <MetricCard
               title="Backlog"
-              value={backlogLoading ? '—' : backlogCount}
+              value={backlogCount}
+              loading={backlogLoading}
               onClick={() => onNavigateToSection('backlog')}
             />
           </Col>
@@ -87,7 +89,8 @@ const TeamOverview = ({ team, onNavigateToSection }: TeamOverviewProps) => {
           <Col xs={12} md={6}>
             <MetricCard
               title="Dependencies"
-              value={dependenciesLoading ? '—' : dependencyCount}
+              value={dependencyCount}
+              loading={dependenciesLoading}
               onClick={() => onNavigateToSection('dependency-management')}
             />
           </Col>
@@ -96,7 +99,8 @@ const TeamOverview = ({ team, onNavigateToSection }: TeamOverviewProps) => {
           <Col xs={12} md={6}>
             <MetricCard
               title="Open Risks"
-              value={risksLoading ? '—' : riskCount}
+              value={riskCount}
+              loading={risksLoading}
               onClick={() => onNavigateToSection('risk-management')}
             />
           </Col>

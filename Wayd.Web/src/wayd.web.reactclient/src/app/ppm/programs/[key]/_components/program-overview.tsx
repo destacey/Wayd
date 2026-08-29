@@ -56,7 +56,8 @@ const ProgramOverview = ({
         <Col xs={12} sm={12} md={6}>
           <MetricCard
             title="Projects"
-            value={projectsLoading ? '—' : projects.length}
+            value={projects.length}
+            loading={projectsLoading}
             onClick={() => onNavigateToSection('projects')}
           />
         </Col>

@@ -128,14 +128,16 @@ const TeamOfTeamsOverview = ({
         <Col xs={12} md={8}>
           <MetricCard
             title="Teams"
-            value={membershipsLoading ? '—' : childTeams.length}
+            value={childTeams.length}
+            loading={membershipsLoading}
             onClick={() => onNavigateToSection('team-memberships')}
           />
         </Col>
         <Col xs={12} md={8}>
           <MetricCard
             title="Members"
-            value={membersLoading ? '—' : sortedMembers.length}
+            value={sortedMembers.length}
+            loading={membersLoading}
             onClick={() => onNavigateToSection('members')}
           />
         </Col>
@@ -143,7 +145,8 @@ const TeamOfTeamsOverview = ({
           <Col xs={12} md={8}>
             <MetricCard
               title="Open Risks"
-              value={risksLoading ? '—' : riskCount}
+              value={riskCount}
+              loading={risksLoading}
               onClick={() => onNavigateToSection('risk-management')}
             />
           </Col>

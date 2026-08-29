@@ -137,7 +137,8 @@ const PortfolioOverview = ({
           <Col xs={12} sm={8} md={6}>
             <MetricCard
               title={tabContent.label}
-              value={tabContent.isLoading ? '—' : tabContent.count}
+              value={tabContent.count}
+              loading={tabContent.isLoading}
               onClick={() => onNavigateToSection(activeTab)}
             />
           </Col>

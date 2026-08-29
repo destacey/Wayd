@@ -148,7 +148,8 @@ const EmployeeOverview = ({
         <Col xs={12} sm={12} md={6}>
           <MetricCard
             title="Teams"
-            value={teamsLoading ? '—' : sortedTeams.length}
+            value={sortedTeams.length}
+            loading={teamsLoading}
             onClick={() => onNavigateToSection('teams')}
           />
         </Col>
@@ -156,7 +157,8 @@ const EmployeeOverview = ({
           <Col xs={12} sm={12} md={6}>
             <MetricCard
               title="Assigned Work Items"
-              value={workLoading ? '—' : openWorkItemCount}
+              value={openWorkItemCount}
+              loading={workLoading}
               onClick={() => onNavigateToSection('work-items')}
             />
           </Col>
@@ -176,7 +178,8 @@ const EmployeeOverview = ({
           <Col xs={12} sm={12} md={6}>
             <MetricCard
               title="Direct Reports"
-              value={reportsLoading ? '—' : sortedReports.length}
+              value={sortedReports.length}
+              loading={reportsLoading}
             />
           </Col>
         )}

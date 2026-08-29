@@ -9,6 +9,9 @@ using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Teams.Dtos;
 using Wayd.Organization.Application.Tests.Infrastructure;
 using Wayd.Tests.Shared;
+using Wayd.Common.Domain.Identity;
+using Wayd.Common.Application.Interfaces;
+using Moq;
 
 namespace Wayd.Organization.Application.Tests.Sut.Teams.Commands;
 
@@ -18,8 +21,13 @@ public class ImportTeamsCommandHandlerTests : IDisposable
     private readonly TestingDateTimeProvider _dateTimeProvider =
         new(new FakeClock(Instant.FromUtc(2026, 6, 2, 0, 0)));
 
-    private ImportTeamsCommandHandler CreateHandler() =>
-        new(_dbContext, _dateTimeProvider, NullLogger<ImportTeamsCommandHandler>.Instance);
+    private ImportTeamsCommandHandler CreateHandler()
+    {
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
+
+        return new(_dbContext, _dateTimeProvider, currentUser.Object, NullLogger<ImportTeamsCommandHandler>.Instance);
+    }
 
     private static ImportTeamDto Row(TeamType type, string name, string code) =>
         new(type, name, new TeamCode(code), Description: null, ActiveDate: new LocalDate(2026, 1, 1));

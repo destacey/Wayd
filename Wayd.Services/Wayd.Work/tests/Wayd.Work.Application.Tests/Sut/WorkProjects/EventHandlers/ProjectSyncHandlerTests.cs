@@ -8,6 +8,7 @@ using Wayd.Work.Application.WorkProjects.EventHandlers;
 using Wayd.Work.Domain.Tests.Data;
 using Moq;
 using Xunit;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Work.Application.Tests.Sut.WorkProjects.EventHandlers;
 
@@ -100,7 +101,7 @@ public sealed class ProjectSyncHandlerTests : IDisposable
         var id = Guid.CreateVersion7();
         _workDbContext.AddWorkProject(new WorkProjectFaker().WithId(id).Generate());
 
-        var @event = new ProjectDeletedEvent(id, Now);
+        var @event = new ProjectDeletedEvent(id, EventActor.System, Now);
 
         // Act
         await _handler.Handle(@event, TestContext.Current.CancellationToken);
@@ -114,7 +115,7 @@ public sealed class ProjectSyncHandlerTests : IDisposable
     public async Task Handle_Deleted_WhenProjectMissing_IsIdempotentNoOp()
     {
         // Arrange — a redelivery of a delete that already ran; the goal state (absent) already holds.
-        var @event = new ProjectDeletedEvent(Guid.CreateVersion7(), Now);
+        var @event = new ProjectDeletedEvent(Guid.CreateVersion7(), EventActor.System, Now);
 
         // Act
         await _handler.Handle(@event, TestContext.Current.CancellationToken);
@@ -136,6 +137,7 @@ public sealed class ProjectSyncHandlerTests : IDisposable
             programId: null,
             roles: null,
             strategicThemes: [],
+            actor: EventActor.System,
             timestamp: Now);
 
     private static ProjectDetailsUpdatedEvent UpdatedEvent(Guid id, string key, string name) =>
@@ -145,5 +147,6 @@ public sealed class ProjectSyncHandlerTests : IDisposable
             name: name,
             description: "desc",
             expenditureCategoryId: 1,
+            actor: EventActor.System,
             timestamp: Now);
 }

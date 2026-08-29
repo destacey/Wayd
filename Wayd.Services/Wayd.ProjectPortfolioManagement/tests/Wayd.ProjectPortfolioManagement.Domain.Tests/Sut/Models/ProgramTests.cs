@@ -8,6 +8,7 @@ using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions;
 using Wayd.Tests.Shared;
+using Wayd.Common.Domain.Events;
 using static Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions.PpmActorDataExtensions;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Sut.Models;
@@ -38,7 +39,7 @@ public class ProgramTests
         var portfolioId = Guid.NewGuid();
 
         // Act
-        var program = Program.Create(name, description, null, portfolioId, null, null, _dateTimeProvider.Now);
+        var program = Program.Create(name, description, null, portfolioId, null, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         program.Should().NotBeNull();

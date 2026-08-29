@@ -192,6 +192,7 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
             activeDate: new LocalDate(2026, 1, 1),
             inactiveDate: null,
             isActive: true,
+            EventActor.System,
             timestamp: Now);
 
         using (var scope = _factory.Services.CreateScope())

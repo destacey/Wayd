@@ -5,6 +5,7 @@ using Wayd.Common.Models;
 using Wayd.Infrastructure.Persistence.Context;
 using Wayd.Organization.Domain.Enums;
 using Wayd.Organization.Domain.Models;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Organization.IntegrationTests.Infrastructure;
 
@@ -23,6 +24,7 @@ internal static class OrganizationSeeder
             activeDate: SqlServerDbContextFixture.FixedNow.InUtc().Date,
             Methodology.Kanban,
             SizingMethod.Count,
+            EventActor.System,
             SqlServerDbContextFixture.FixedNow);
 
         await context.Teams.AddAsync(team, cancellationToken);

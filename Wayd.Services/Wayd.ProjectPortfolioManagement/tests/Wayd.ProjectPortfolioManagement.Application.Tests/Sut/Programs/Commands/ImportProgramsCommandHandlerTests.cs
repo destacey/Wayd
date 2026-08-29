@@ -15,6 +15,8 @@ using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
 
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+using Wayd.Common.Domain.Identity;
+using Wayd.Common.Application.Interfaces;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Programs.Commands;
 
@@ -38,7 +40,10 @@ public class ImportProgramsCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<ImportProgramsCommandHandler>>();
         _dateTimeProvider = new TestingDateTimeProvider(new FakeClock(DateTime.UtcNow.ToInstant()));
 
-        _handler = new ImportProgramsCommandHandler(_dbContext, _dateTimeProvider, _mockLogger.Object);
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
+
+        _handler = new ImportProgramsCommandHandler(_dbContext, _dateTimeProvider, currentUser.Object, _mockLogger.Object);
 
         // Programs can only be created inside an active portfolio.
         _portfolio = ProjectPortfolio.Create(PortfolioName, "Growth portfolio");

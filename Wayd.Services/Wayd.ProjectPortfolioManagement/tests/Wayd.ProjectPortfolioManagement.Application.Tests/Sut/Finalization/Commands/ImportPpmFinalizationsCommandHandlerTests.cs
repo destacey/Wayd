@@ -14,6 +14,7 @@ using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.Tests.Shared;
 
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Finalization.Commands;
 
@@ -189,7 +190,7 @@ public class ImportPpmFinalizationsCommandHandlerTests : IDisposable
 
     private Program CreateActiveProgram(string name)
     {
-        var program = _portfolio.CreateProgram(name, $"{name} program", new LocalDateRange(_start, _end), null, null, _dateTimeProvider.Now).Value;
+        var program = _portfolio.CreateProgram(name, $"{name} program", new LocalDateRange(_start, _end), null, null, EventActor.System, _dateTimeProvider.Now).Value;
         program.Activate(PpmActor.System, ProgramAncestryRoles.None);
 
         return program;

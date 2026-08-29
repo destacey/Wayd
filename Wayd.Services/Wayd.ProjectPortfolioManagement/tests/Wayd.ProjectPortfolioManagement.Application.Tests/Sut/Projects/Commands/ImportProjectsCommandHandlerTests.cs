@@ -16,6 +16,7 @@ using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
 
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Projects.Commands;
 
@@ -129,7 +130,7 @@ public class ImportProjectsCommandHandlerTests : IDisposable
     public async Task Handle_AttachesProjectToProgram_ResolvedWithinItsPortfolio()
     {
         // Arrange
-        var program = _portfolio.CreateProgram("Platform", "Platform program", new LocalDateRange(_start, _end), null, null, _dateTimeProvider.Now).Value;
+        var program = _portfolio.CreateProgram("Platform", "Platform program", new LocalDateRange(_start, _end), null, null, EventActor.System, _dateTimeProvider.Now).Value;
         program.Activate(PpmActor.System, ProgramAncestryRoles.None);
 
         var row = Row("APOLLO", ProjectStatus.Proposed, start: null) with { ProgramName = "Platform" };

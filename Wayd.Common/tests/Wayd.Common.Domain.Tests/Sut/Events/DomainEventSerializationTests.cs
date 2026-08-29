@@ -53,6 +53,7 @@ public sealed class DomainEventSerializationTests
             activeDate: new LocalDate(2026, 1, 15),
             inactiveDate: new LocalDate(2026, 12, 31),
             isActive: true,
+            EventActor.System,
             timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Act
@@ -92,6 +93,7 @@ public sealed class DomainEventSerializationTests
             programId: Guid.NewGuid(),
             roles: roles,
             strategicThemes: strategicThemes,
+            EventActor.System,
             timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Act
@@ -125,6 +127,7 @@ public sealed class DomainEventSerializationTests
             portfolioId: Guid.NewGuid(),
             roles: roles,
             strategicThemes: [Guid.NewGuid()],
+            EventActor.System,
             timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Act
@@ -156,6 +159,7 @@ public sealed class DomainEventSerializationTests
                 IterationState.Active,
                 new IterationDateRange(Instant.FromUtc(2026, 1, 1, 0, 0), Instant.FromUtc(2026, 1, 14, 0, 0)),
                 Guid.NewGuid()),
+            EventActor.System,
             timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Act
@@ -182,6 +186,7 @@ public sealed class DomainEventSerializationTests
         var original = new IntegrationStateChangedEvent<Guid>(
             SystemContext.WorkWorkProcess,
             state,
+            EventActor.System,
             Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Act
@@ -201,6 +206,7 @@ public sealed class DomainEventSerializationTests
         // primitives plus an enum State.
         var original = new StrategicThemeCreatedEvent(
             strategicTheme: new StrategicThemeDataStub(Guid.NewGuid(), 12, "Cloud Migration", "desc", StrategicThemeState.Active),
+            EventActor.System,
             timestamp: Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Act

@@ -5,6 +5,7 @@ using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Models;
 
@@ -166,7 +167,7 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
         Name = name;
         Description = description;
 
-        AddDomainEvent(new ProgramDetailsUpdatedEvent(this, timestamp));
+        AddDomainEvent(new ProgramDetailsUpdatedEvent(this, actor.ToEventActor(), timestamp));
 
         return Result.Success();
     }
@@ -454,9 +455,10 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     /// <param name="portfolioId"></param>
     /// <param name="roles"></param>
     /// <param name="strategicThemes"></param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp"></param>
     /// <returns></returns>
-    internal static Program Create(string name, string description, LocalDateRange? dateRange, Guid portfolioId, Dictionary<ProgramRole, HashSet<Guid>>? roles, HashSet<Guid>? strategicThemes, Instant timestamp)
+    internal static Program Create(string name, string description, LocalDateRange? dateRange, Guid portfolioId, Dictionary<ProgramRole, HashSet<Guid>>? roles, HashSet<Guid>? strategicThemes, EventActor actor, Instant timestamp)
     {
         var program = new Program(name, description, ProgramStatus.Proposed, dateRange, portfolioId, roles, strategicThemes);
 
@@ -469,6 +471,7 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
                     .GroupBy(x => (int)x.Role)
                     .ToDictionary(x => x.Key, x => x.Select(y => y.EmployeeId).ToArray()),
                 [.. program.StrategicThemeTags.Select(x => x.StrategicThemeId)],
+                actor,
                 timestamp
             )));
 

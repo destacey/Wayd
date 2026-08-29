@@ -11,11 +11,12 @@ public sealed class ActivateStrategicThemeCommandValidator : AbstractValidator<A
     }
 }
 
-public sealed class ActivateStrategicThemeCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<ActivateStrategicThemeCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ActivateStrategicThemeCommand>
+public sealed class ActivateStrategicThemeCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ICurrentUser currentUser, ILogger<ActivateStrategicThemeCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ActivateStrategicThemeCommand>
 {
     private const string AppRequestName = nameof(ActivateStrategicThemeCommand);
 
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<ActivateStrategicThemeCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -31,7 +32,7 @@ public sealed class ActivateStrategicThemeCommandHandler(IStrategicManagementDbC
                 return Result.Failure("Strategic Theme not found.");
             }
 
-            var activateResult = theme.Activate(_dateTimeProvider.Now);
+            var activateResult = theme.Activate(EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (activateResult.IsFailure)
             {
                 // Reset the entity

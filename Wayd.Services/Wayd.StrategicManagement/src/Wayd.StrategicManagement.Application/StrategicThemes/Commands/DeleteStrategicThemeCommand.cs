@@ -1,6 +1,7 @@
 ﻿using Wayd.Common.Application.Events;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Events.StrategicManagement;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.StrategicManagement.Application.StrategicThemes.Commands;
 
@@ -14,11 +15,12 @@ public sealed class DeleteStrategicThemeCommandValidator : AbstractValidator<Del
     }
 }
 
-public sealed class DeleteStrategicThemeCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<DeleteStrategicThemeCommandHandler> logger, IDateTimeProvider dateTimeProvider, IEventPublisher eventPublisher) : ICommandHandler<DeleteStrategicThemeCommand>
+public sealed class DeleteStrategicThemeCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ICurrentUser currentUser, ILogger<DeleteStrategicThemeCommandHandler> logger, IDateTimeProvider dateTimeProvider, IEventPublisher eventPublisher) : ICommandHandler<DeleteStrategicThemeCommand>
 {
     private const string AppRequestName = nameof(DeleteStrategicThemeCommand);
 
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<DeleteStrategicThemeCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IEventPublisher _eventPublisher = eventPublisher;
@@ -47,7 +49,7 @@ public sealed class DeleteStrategicThemeCommandHandler(IStrategicManagementDbCon
 
             _logger.LogInformation("Strategic Theme {StrategicThemeId} deleted.", request.Id);
 
-            var deleteEvent = new StrategicThemeDeletedEvent(request.Id, _dateTimeProvider.Now);
+            var deleteEvent = new StrategicThemeDeletedEvent(request.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             await _eventPublisher.PublishAsync(deleteEvent);
 
             return Result.Success();

@@ -1,3 +1,4 @@
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Identity;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
@@ -35,4 +36,19 @@ public sealed record PpmActor(Guid EmployeeId, bool IsPpmAdministrator, string U
     /// The acting employee, or null when this is the <see cref="System"/> actor, which has no employee.
     /// </summary>
     public Guid? EmployeeIdOrNull => EmployeeId == Guid.Empty ? null : EmployeeId;
+
+    /// <summary>
+    /// The event-envelope attribution for this actor, for stamping domain events raised by the action it
+    /// authorizes.
+    /// </summary>
+    /// <remarks>
+    /// Derived rather than passed separately so the two can never disagree: the actor that authorized a
+    /// change is by definition the actor that caused its events. <see cref="System"/> maps to
+    /// <see cref="EventActor.System"/>, so the importers and replication paths that already pass it (grep
+    /// <c>PpmActor.System</c>) attribute their events to the platform without any further change.
+    /// </remarks>
+    public EventActor ToEventActor() =>
+        string.Equals(UserId, SystemUser.Id, StringComparison.OrdinalIgnoreCase)
+            ? EventActor.System
+            : EventActor.User(UserId);
 }

@@ -7,6 +7,7 @@ using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Planning.Application.PlanningTeams.EventHandlers;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Tests.Data;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Planning.Application.Tests.Sut.PlanningTeams.EventHandlers;
 
@@ -68,7 +69,7 @@ public sealed class PlanningTeamChangeEventHandlerTests : IDisposable
         var id = Guid.CreateVersion7();
         _planningDbContext.AddPlanningTeam(new PlanningTeamFaker(TeamType.Team).WithId(id).Generate());
 
-        var @event = new TeamUpdatedEvent(id, new TeamCode("NEW01"), "New Name", "desc", Now);
+        var @event = new TeamUpdatedEvent(id, new TeamCode("NEW01"), "New Name", "desc", EventActor.System, Now);
 
         // Act
         await _handler.Handle(@event, TestContext.Current.CancellationToken);
@@ -82,7 +83,7 @@ public sealed class PlanningTeamChangeEventHandlerTests : IDisposable
     public async Task Handle_Updated_WhenTeamMissing_IsNoOp()
     {
         // Arrange — out-of-order delivery: the update arrives before the create was applied.
-        var @event = new TeamUpdatedEvent(Guid.CreateVersion7(), new TeamCode("NEW02"), "Whatever", "desc", Now);
+        var @event = new TeamUpdatedEvent(Guid.CreateVersion7(), new TeamCode("NEW02"), "Whatever", "desc", EventActor.System, Now);
 
         // Act
         await _handler.Handle(@event, TestContext.Current.CancellationToken);
@@ -99,7 +100,7 @@ public sealed class PlanningTeamChangeEventHandlerTests : IDisposable
         var id = Guid.CreateVersion7();
         _planningDbContext.AddPlanningTeam(new PlanningTeamFaker(TeamType.Team).WithId(id).Generate());
 
-        var @event = new TeamDeactivatedEvent(id, new LocalDate(2026, 12, 31), Now);
+        var @event = new TeamDeactivatedEvent(id, new LocalDate(2026, 12, 31), EventActor.System, Now);
 
         // Act
         await _handler.Handle(@event, TestContext.Current.CancellationToken);
@@ -116,7 +117,7 @@ public sealed class PlanningTeamChangeEventHandlerTests : IDisposable
         var id = Guid.CreateVersion7();
         _planningDbContext.AddPlanningTeam(new PlanningTeamFaker(TeamType.Team).WithId(id).Generate());
 
-        var @event = new TeamDeletedEvent(id, Now);
+        var @event = new TeamDeletedEvent(id, EventActor.System, Now);
 
         // Act
         await _handler.Handle(@event, TestContext.Current.CancellationToken);
@@ -130,7 +131,7 @@ public sealed class PlanningTeamChangeEventHandlerTests : IDisposable
     public async Task Handle_Deleted_WhenTeamMissing_IsIdempotentNoOp()
     {
         // Arrange — a redelivery of a delete that already ran.
-        var @event = new TeamDeletedEvent(Guid.CreateVersion7(), Now);
+        var @event = new TeamDeletedEvent(Guid.CreateVersion7(), EventActor.System, Now);
 
         // Act
         await _handler.Handle(@event, TestContext.Current.CancellationToken);
@@ -150,5 +151,6 @@ public sealed class PlanningTeamChangeEventHandlerTests : IDisposable
             activeDate: new LocalDate(2026, 1, 1),
             inactiveDate: null,
             isActive: true,
+            actor: EventActor.System,
             timestamp: Now);
 }

@@ -7,6 +7,7 @@ using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Organization.Application.Teams.Dtos;
 using Wayd.Organization.IntegrationTests.Infrastructure;
+using Wayd.Common.Domain.Identity;
 
 namespace Wayd.Organization.IntegrationTests.Sut;
 
@@ -33,7 +34,10 @@ public sealed class ImportTeamsCommandHandlerTests
         var dateTimeProvider = new Mock<IDateTimeProvider>();
         dateTimeProvider.SetupGet(d => d.Now).Returns(SqlServerDbContextFixture.FixedNow);
 
-        return new ImportTeamsCommandHandler(context, dateTimeProvider.Object, NullLogger<ImportTeamsCommandHandler>.Instance);
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
+
+        return new ImportTeamsCommandHandler(context, dateTimeProvider.Object, currentUser.Object, NullLogger<ImportTeamsCommandHandler>.Instance);
     }
 
     [Fact]

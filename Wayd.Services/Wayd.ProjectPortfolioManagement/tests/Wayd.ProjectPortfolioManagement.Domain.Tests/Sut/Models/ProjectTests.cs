@@ -13,6 +13,7 @@ using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Extensions;
+using Wayd.Common.Domain.Events;
 using static Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions.PpmActorDataExtensions;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Sut.Models;
@@ -1665,7 +1666,7 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.Generate();
-        var program = Program.Create("Test Program", "Description", null, project.PortfolioId, null, null, _dateTimeProvider.Now);
+        var program = Program.Create("Test Program", "Description", null, project.PortfolioId, null, null, EventActor.System, _dateTimeProvider.Now);
 
         // Act
         var result = project.UpdateProgram(program);
@@ -1681,7 +1682,7 @@ public class ProjectTests
         // Arrange
         var project = _projectFaker.Generate();
         var portfolioId = Guid.NewGuid();
-        var program = Program.Create("Test Program", "Description", null, portfolioId, null, null, _dateTimeProvider.Now);
+        var program = Program.Create("Test Program", "Description", null, portfolioId, null, null, EventActor.System, _dateTimeProvider.Now);
 
         // Act
         var result = project.UpdateProgram(program);

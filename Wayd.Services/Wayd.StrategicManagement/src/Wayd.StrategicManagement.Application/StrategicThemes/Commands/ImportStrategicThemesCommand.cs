@@ -1,6 +1,7 @@
 using Wayd.Common.Application.Validation;
 using Wayd.StrategicManagement.Application.StrategicThemes.Dtos;
 using Wayd.StrategicManagement.Domain.Models;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.StrategicManagement.Application.StrategicThemes.Commands;
 
@@ -40,17 +41,22 @@ public sealed class ImportStrategicThemesCommandValidator : CustomValidator<Impo
 public sealed class ImportStrategicThemesCommandHandler(
     IStrategicManagementDbContext strategicManagementDbContext,
     IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     ILogger<ImportStrategicThemesCommandHandler> logger) : ICommandHandler<ImportStrategicThemesCommand>
 {
     private const string RequestName = nameof(ImportStrategicThemesCommand);
 
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<ImportStrategicThemesCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ImportStrategicThemesCommand request, CancellationToken cancellationToken)
     {
         var timestamp = _dateTimeProvider.Now;
+        // One import run is one actor: the events say "the import", not "this person edited
+        // every row by hand", while still recording who set it running.
+        var actor = EventActor.Import(_currentUser.GetUserId());
 
         try
         {
@@ -73,7 +79,7 @@ public sealed class ImportStrategicThemesCommandHandler(
 
             foreach (var row in request.StrategicThemes)
             {
-                var theme = StrategicTheme.Create(Normalize(row.Name), row.Description.Trim(), row.State, timestamp);
+                var theme = StrategicTheme.Create(Normalize(row.Name), row.Description.Trim(), row.State, actor, timestamp);
 
                 await _strategicManagementDbContext.StrategicThemes.AddAsync(theme, cancellationToken);
             }

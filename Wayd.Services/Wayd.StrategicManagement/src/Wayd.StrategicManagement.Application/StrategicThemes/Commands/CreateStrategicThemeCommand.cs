@@ -1,6 +1,7 @@
 ﻿using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.StrategicManagement.Domain.Models;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.StrategicManagement.Application.StrategicThemes.Commands;
 
@@ -21,12 +22,14 @@ public sealed class CreateStrategicThemeCommandValidator : AbstractValidator<Cre
 
 public sealed class CreateStrategicThemeCommandHandler(
     IStrategicManagementDbContext strategicManagementDbContext,
+    ICurrentUser currentUser,
     ILogger<CreateStrategicThemeCommandHandler> logger,
     IDateTimeProvider dateTimeProvider) : ICommandHandler<CreateStrategicThemeCommand, ObjectIdAndKey>
 {
     private const string AppRequestName = nameof(CreateStrategicThemeCommand);
 
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<CreateStrategicThemeCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -38,6 +41,7 @@ public sealed class CreateStrategicThemeCommandHandler(
                 request.Name,
                 request.Description,
                 StrategicThemeState.Proposed,
+                EventActor.User(_currentUser.GetUserId()),
                 _dateTimeProvider.Now
                 );
 

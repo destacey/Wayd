@@ -1,4 +1,5 @@
-﻿
+﻿using Wayd.Common.Domain.Events;
+
 namespace Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
 
 public sealed record DeleteProgramCommand(Guid Id) : ICommand;
@@ -14,6 +15,7 @@ public sealed class DeleteProgramCommandValidator : AbstractValidator<DeleteProg
 
 public sealed class DeleteProgramCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
+    ICurrentUser currentUser,
     ILogger<DeleteProgramCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<DeleteProgramCommand>
@@ -21,6 +23,7 @@ public sealed class DeleteProgramCommandHandler(
     private const string AppRequestName = nameof(DeleteProgramCommand);
 
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<DeleteProgramCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -48,7 +51,7 @@ public sealed class DeleteProgramCommandHandler(
                 return Result.Failure("Portfolio not found.");
             }
 
-            var deleteResult = portfolio.DeleteProgram(program.Id, _dateTimeProvider.Now);
+            var deleteResult = portfolio.DeleteProgram(program.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (deleteResult.IsFailure)
             {
                 _logger.LogError("Error deleting program {ProgramId}. Error message: {Error}", request.Id, deleteResult.Error);

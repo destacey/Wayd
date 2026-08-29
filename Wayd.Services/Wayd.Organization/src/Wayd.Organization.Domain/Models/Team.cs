@@ -5,6 +5,7 @@ using Wayd.Common.Domain.Interfaces.Organization;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Domain.Enums;
 using NodaTime;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Organization.Domain.Models;
 
@@ -13,7 +14,7 @@ namespace Wayd.Organization.Domain.Models;
 /// </summary>
 /// <seealso cref="Wayd.Organization.Domain.Models.BaseTeam" />
 /// <seealso cref="Wayd.Common.Domain.Interfaces.Organization.IActivatable{NodaTime.Instant, Wayd.Organization.Domain.Models.TeamDeactivatableArgs}" />"/>
-public sealed class Team : BaseTeam, IActivatable<Instant, TeamDeactivatableArgs>, IHasTeamIdAndCode
+public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeactivatableArgs>, IHasTeamIdAndCode
 {
     private readonly List<TeamOperatingModel> _operatingModels = [];
 
@@ -34,16 +35,16 @@ public sealed class Team : BaseTeam, IActivatable<Instant, TeamDeactivatableArgs
     /// <summary>
     /// The process for activating an organization.
     /// </summary>
-    /// <param name="timestamp"></param>
+    /// <param name="args">The actor making the change and the timestamp of it.</param>
     /// <returns>Result that indicates success or a list of errors</returns>
-    public Result Activate(Instant timestamp)
+    public Result Activate(TeamActivatableArgs args)
     {
         if (!IsActive)
         {
             // TODO is there logic that would prevent activation?
             IsActive = true;
             InactiveDate = null;
-            AddDomainEvent(new TeamActivatedEvent(Id, timestamp));
+            AddDomainEvent(new TeamActivatedEvent(Id, args.Actor, args.Timestamp));
 
         }
 
@@ -79,7 +80,7 @@ public sealed class Team : BaseTeam, IActivatable<Instant, TeamDeactivatableArgs
         InactiveDate = args.AsOfDate;
         IsActive = false;  // TODO: this will be invalid if the InactiveDate is in the future
 
-        AddDomainEvent(new TeamDeactivatedEvent(Id, InactiveDate!.Value, args.Timestamp));
+        AddDomainEvent(new TeamDeactivatedEvent(Id, InactiveDate!.Value, args.Actor, args.Timestamp));
 
         return Result.Success();
     }
@@ -90,9 +91,10 @@ public sealed class Team : BaseTeam, IActivatable<Instant, TeamDeactivatableArgs
     /// <param name="name"></param>
     /// <param name="code"></param>
     /// <param name="description"></param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp"></param>
     /// <returns></returns>
-    public Result Update(string name, TeamCode code, string? description, Instant timestamp)
+    public Result Update(string name, TeamCode code, string? description, EventActor actor, Instant timestamp)
     {
         try
         {
@@ -101,7 +103,7 @@ public sealed class Team : BaseTeam, IActivatable<Instant, TeamDeactivatableArgs
             Description = description;
 
             // Publish specific TeamUpdatedEvent immediately; Id is already set prior to updates
-            AddDomainEvent(new TeamUpdatedEvent(Id, Code, Name, Description, timestamp));
+            AddDomainEvent(new TeamUpdatedEvent(Id, Code, Name, Description, actor, timestamp));
 
             return Result.Success();
         }
@@ -180,14 +182,15 @@ public sealed class Team : BaseTeam, IActivatable<Instant, TeamDeactivatableArgs
     /// <param name="activeDate">The active date.</param>
     /// <param name="methodology">The initial methodology for the team's operating model.</param>
     /// <param name="sizingMethod">The initial sizing method for the team's operating model.</param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp">The timestamp.</param>
     /// <returns>The new team.</returns>
-    public static Team Create(string name, TeamCode code, string? description, LocalDate activeDate, Methodology methodology, SizingMethod sizingMethod, Instant timestamp)
+    public static Team Create(string name, TeamCode code, string? description, LocalDate activeDate, Methodology methodology, SizingMethod sizingMethod, EventActor actor, Instant timestamp)
     {
         var team = new Team(name, code, description, activeDate);
 
         team.AddPostPersistenceAction(() =>
-            team.AddDomainEvent(new TeamCreatedEvent(team.Id, team.Key, team.Code, team.Name, team.Description, team.Type, team.ActiveDate, team.InactiveDate, team.IsActive, timestamp))
+            team.AddDomainEvent(new TeamCreatedEvent(team.Id, team.Key, team.Code, team.Name, team.Description, team.Type, team.ActiveDate, team.InactiveDate, team.IsActive, actor, timestamp))
         );
 
         team.SetOperatingModel(activeDate, methodology, sizingMethod);

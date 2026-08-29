@@ -1,6 +1,7 @@
 ﻿using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
 
@@ -41,11 +42,13 @@ public sealed class CreateProgramCommandValidator : AbstractValidator<CreateProg
 
 public sealed class CreateProgramCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
+    ICurrentUser currentUser,
     ILogger<CreateProgramCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<CreateProgramCommand, ObjectIdAndKey>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<CreateProgramCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -85,6 +88,7 @@ public sealed class CreateProgramCommandHandler(
                 request.DateRange,
                 roles,
                 [.. strategicThemes.Select(st => st.Id)],
+                EventActor.User(_currentUser.GetUserId()),
                 _dateTimeProvider.Now
                 );
         if (createResult.IsFailure)

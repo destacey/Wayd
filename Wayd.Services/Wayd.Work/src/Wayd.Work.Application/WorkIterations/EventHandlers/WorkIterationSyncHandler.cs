@@ -1,6 +1,7 @@
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Work.Application.Persistence;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Work.Application.WorkIterations.EventHandlers;
 
@@ -77,7 +78,7 @@ public sealed class WorkIterationSyncHandler(IWorkDbContext workDbContext, ILogg
             return;
         }
 
-        var result = iteration.Update(updatedEvent, updatedEvent.Timestamp);
+        var result = iteration.Update(updatedEvent, EventActor.System, updatedEvent.Timestamp);
         if (result.IsFailure)
         {
             // We loaded the iteration by this exact Id, so Update cannot legitimately reject it — a failure

@@ -13,3 +13,4 @@ global using Wayd.Organization.Application.Teams.Dtos;
 global using Wayd.Organization.Application.TeamsOfTeams.Dtos;
 global using Wayd.Organization.Application.Validators;
 global using Wayd.Organization.Domain.Models;
+global using Wayd.Common.Domain.Events;

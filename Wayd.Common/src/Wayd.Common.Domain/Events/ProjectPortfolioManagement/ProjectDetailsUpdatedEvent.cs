@@ -7,15 +7,16 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 
 public sealed record ProjectDetailsUpdatedEvent : DomainEvent, ISimpleProject
 {
-    public ProjectDetailsUpdatedEvent(ISimpleProject project, int expenditureCategoryId, Instant timestamp)
-        : this(project.Id, project.Key, project.Name, project.Description, expenditureCategoryId, timestamp)
+    public ProjectDetailsUpdatedEvent(ISimpleProject project, int expenditureCategoryId, EventActor actor, Instant timestamp)
+        : this(project.Id, project.Key, project.Name, project.Description, expenditureCategoryId, actor, timestamp)
     {
     }
 
     // Deserialization constructor for the Wolverine durable outbox (STJ binds parameters to properties by
     // name; the primary constructor's `project` parameter cannot be bound).
     [JsonConstructor]
-    public ProjectDetailsUpdatedEvent(Guid id, ProjectKey key, string name, string description, int expenditureCategoryId, Instant timestamp)
+    public ProjectDetailsUpdatedEvent(Guid id, ProjectKey key, string name, string description, int expenditureCategoryId, EventActor actor, Instant timestamp)
+        : base(actor)
     {
         Id = id;
         Key = key;

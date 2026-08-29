@@ -4,6 +4,7 @@ using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Events.StrategicManagement;
 using Wayd.Common.Domain.Interfaces.StrategicManagement;
 using NodaTime;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.StrategicManagement.Domain.Models;
 
@@ -54,14 +55,15 @@ public sealed class StrategicTheme : BaseAuditableEntity, IHasIdAndKey, IStrateg
     /// </summary>
     /// <param name="name"></param>
     /// <param name="description"></param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp"></param>
     /// <returns></returns>
-    public Result Update(string name, string description, Instant timestamp)
+    public Result Update(string name, string description, EventActor actor, Instant timestamp)
     {
         Name = name;
         Description = description;
 
-        AddDomainEvent(new StrategicThemeUpdatedEvent(this, timestamp));
+        AddDomainEvent(new StrategicThemeUpdatedEvent(this, actor, timestamp));
 
         return Result.Success();
     }
@@ -69,9 +71,10 @@ public sealed class StrategicTheme : BaseAuditableEntity, IHasIdAndKey, IStrateg
     /// <summary>
     /// Activates the Strategic Theme.
     /// </summary>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp"></param>
     /// <returns></returns>
-    public Result Activate(Instant timestamp)
+    public Result Activate(EventActor actor, Instant timestamp)
     {
         if (State != StrategicThemeState.Proposed)
         {
@@ -79,7 +82,7 @@ public sealed class StrategicTheme : BaseAuditableEntity, IHasIdAndKey, IStrateg
         }
 
         State = StrategicThemeState.Active;
-        AddDomainEvent(new StrategicThemeUpdatedEvent(this, timestamp));
+        AddDomainEvent(new StrategicThemeUpdatedEvent(this, actor, timestamp));
 
         return Result.Success();
     }
@@ -87,9 +90,10 @@ public sealed class StrategicTheme : BaseAuditableEntity, IHasIdAndKey, IStrateg
     /// <summary>
     /// Archives the Strategic Theme.
     /// </summary>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp"></param>
     /// <returns></returns>
-    public Result Archive(Instant timestamp)
+    public Result Archive(EventActor actor, Instant timestamp)
     {
         if (State != StrategicThemeState.Active)
         {
@@ -97,7 +101,7 @@ public sealed class StrategicTheme : BaseAuditableEntity, IHasIdAndKey, IStrateg
         }
 
         State = StrategicThemeState.Archived;
-        AddDomainEvent(new StrategicThemeUpdatedEvent(this, timestamp));
+        AddDomainEvent(new StrategicThemeUpdatedEvent(this, actor, timestamp));
 
         return Result.Success();
     }
@@ -114,13 +118,14 @@ public sealed class StrategicTheme : BaseAuditableEntity, IHasIdAndKey, IStrateg
     /// <param name="name"></param>
     /// <param name="description"></param>
     /// <param name="state"></param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp"></param>
     /// <returns></returns>
-    public static StrategicTheme Create(string name, string description, StrategicThemeState state, Instant timestamp)
+    public static StrategicTheme Create(string name, string description, StrategicThemeState state, EventActor actor, Instant timestamp)
     {
         var theme = new StrategicTheme(name, description, state);
 
-        theme.AddPostPersistenceAction(() => theme.AddDomainEvent(new StrategicThemeCreatedEvent(theme, timestamp)));
+        theme.AddPostPersistenceAction(() => theme.AddDomainEvent(new StrategicThemeCreatedEvent(theme, actor, timestamp)));
 
         return theme;
     }

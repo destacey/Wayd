@@ -10,6 +10,7 @@ using Wayd.Work.Application.WorkIterations.EventHandlers;
 using Wayd.Work.Domain.Tests.Data;
 using Moq;
 using Xunit;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Work.Application.Tests.Sut.WorkIterations.EventHandlers;
 
@@ -106,7 +107,7 @@ public sealed class WorkIterationSyncHandlerTests : IDisposable
         var id = Guid.CreateVersion7();
         _workDbContext.AddWorkIteration(new WorkIterationFaker().WithId(id).WithDateRange(Range).Generate());
 
-        var @event = new IterationDeletedEvent(id, Now);
+        var @event = new IterationDeletedEvent(id, EventActor.System, Now);
 
         // Act
         await _handler.Handle(@event, TestContext.Current.CancellationToken);
@@ -120,7 +121,7 @@ public sealed class WorkIterationSyncHandlerTests : IDisposable
     public async Task Handle_Deleted_WhenIterationMissing_IsIdempotentNoOp()
     {
         // Arrange — a redelivery of a delete that already ran; the goal state (absent) already holds.
-        var @event = new IterationDeletedEvent(Guid.CreateVersion7(), Now);
+        var @event = new IterationDeletedEvent(Guid.CreateVersion7(), EventActor.System, Now);
 
         // Act
         await _handler.Handle(@event, TestContext.Current.CancellationToken);
@@ -138,6 +139,7 @@ public sealed class WorkIterationSyncHandlerTests : IDisposable
             state: IterationState.Active,
             dateRange: Range,
             teamId: null,
+            actor: EventActor.System,
             timestamp: Now);
 
     private static IterationUpdatedEvent UpdatedEvent(Guid id, int key, string name) =>
@@ -149,5 +151,6 @@ public sealed class WorkIterationSyncHandlerTests : IDisposable
             state: IterationState.Active,
             dateRange: Range,
             teamId: null,
+            actor: EventActor.System,
             timestamp: Now);
 }

@@ -2,6 +2,7 @@
 using Wayd.Organization.Application.Teams.Models;
 using Wayd.Organization.Domain.Enums;
 using NodaTime;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Organization.Application.Teams.Commands;
 
@@ -45,17 +46,22 @@ public sealed class ImportTeamsCommandValidator : CustomValidator<ImportTeamsCom
 public sealed class ImportTeamsCommandHandler(
     IOrganizationDbContext organizationDbContext,
     IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     ILogger<ImportTeamsCommandHandler> logger) : ICommandHandler<ImportTeamsCommand>
 {
     private const string RequestName = nameof(ImportTeamsCommand);
 
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<ImportTeamsCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ImportTeamsCommand request, CancellationToken cancellationToken)
     {
         var timestamp = _dateTimeProvider.Now;
+        // One import run is one actor: the events say "the import", not "this person edited
+        // every row by hand", while still recording who set it running.
+        var actor = EventActor.Import(_currentUser.GetUserId());
 
         try
         {
@@ -67,14 +73,14 @@ public sealed class ImportTeamsCommandHandler(
 
                 if (row.Type == TeamType.TeamOfTeams)
                 {
-                    var teamOfTeams = TeamOfTeams.Create(row.Name, row.Code, row.Description, row.ActiveDate, timestamp);
+                    var teamOfTeams = TeamOfTeams.Create(row.Name, row.Code, row.Description, row.ActiveDate, actor, timestamp);
                     await _organizationDbContext.TeamOfTeams.AddAsync(teamOfTeams, cancellationToken);
                     team = teamOfTeams;
                 }
                 else
                 {
                     // Match the single-create default operating model (Kanban + Count).
-                    var newTeam = Team.Create(row.Name, row.Code, row.Description, row.ActiveDate, Methodology.Kanban, SizingMethod.Count, timestamp);
+                    var newTeam = Team.Create(row.Name, row.Code, row.Description, row.ActiveDate, Methodology.Kanban, SizingMethod.Count, actor, timestamp);
                     await _organizationDbContext.Teams.AddAsync(newTeam, cancellationToken);
                     team = newTeam;
                 }
@@ -85,7 +91,7 @@ public sealed class ImportTeamsCommandHandler(
                 // trip here is AsOfDate > ActiveDate, which the DTO validator has already enforced.
                 if (!row.IsActive)
                 {
-                    var deactivateResult = Deactivate(team, row.InactiveDate!.Value, timestamp);
+                    var deactivateResult = Deactivate(team, row.InactiveDate!.Value, actor, timestamp);
                     if (deactivateResult.IsFailure)
                     {
                         _logger.LogWarning("{RequestName}: failed to deactivate imported team {TeamCode}: {Error}", RequestName, row.Code.Value, deactivateResult.Error);
@@ -120,9 +126,9 @@ public sealed class ImportTeamsCommandHandler(
 
     // Team and TeamOfTeams each define their own Deactivate(TeamDeactivatableArgs); there is no shared
     // BaseTeam method, so dispatch on the concrete type.
-    private static Result Deactivate(BaseTeam team, LocalDate inactiveDate, Instant timestamp)
+    private static Result Deactivate(BaseTeam team, LocalDate inactiveDate, EventActor actor, Instant timestamp)
     {
-        var args = TeamDeactivatableArgs.Create(inactiveDate, timestamp);
+        var args = TeamDeactivatableArgs.Create(inactiveDate, actor, timestamp);
 
         return team switch
         {

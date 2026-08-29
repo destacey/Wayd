@@ -8,6 +8,7 @@ using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Moq;
 using Xunit;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.StrategicThemes.EventHandlers;
 
@@ -69,7 +70,7 @@ public sealed class StrategicThemeChangedHandlerTests : IDisposable
         var id = Guid.CreateVersion7();
         _ppmContext.AddPpmStrategicTheme(new StrategicThemeFaker().WithId(id).WithName("Old Name").Generate());
 
-        var @event = new StrategicThemeUpdatedEvent(id, "New Name", "desc", StrategicThemeState.Active, Now);
+        var @event = new StrategicThemeUpdatedEvent(id, "New Name", "desc", StrategicThemeState.Active, EventActor.System, Now);
 
         // Act
         await _handler.Handle(@event, TestContext.Current.CancellationToken);
@@ -83,7 +84,7 @@ public sealed class StrategicThemeChangedHandlerTests : IDisposable
     public async Task Handle_Updated_WhenThemeMissing_IsNoOp()
     {
         // Arrange — out-of-order delivery: the update arrives before the create was applied.
-        var @event = new StrategicThemeUpdatedEvent(Guid.CreateVersion7(), "Whatever", "desc", StrategicThemeState.Active, Now);
+        var @event = new StrategicThemeUpdatedEvent(Guid.CreateVersion7(), "Whatever", "desc", StrategicThemeState.Active, EventActor.System, Now);
 
         // Act
         await _handler.Handle(@event, TestContext.Current.CancellationToken);
@@ -100,7 +101,7 @@ public sealed class StrategicThemeChangedHandlerTests : IDisposable
         var id = Guid.CreateVersion7();
         _ppmContext.AddPpmStrategicTheme(new StrategicThemeFaker().WithId(id).Generate());
 
-        var @event = new StrategicThemeDeletedEvent(id, Now);
+        var @event = new StrategicThemeDeletedEvent(id, EventActor.System, Now);
 
         // Act
         await _handler.Handle(@event, TestContext.Current.CancellationToken);
@@ -114,7 +115,7 @@ public sealed class StrategicThemeChangedHandlerTests : IDisposable
     public async Task Handle_Deleted_WhenThemeMissing_IsIdempotentNoOp()
     {
         // Arrange — a redelivery of a delete that already ran; the goal state (absent) already holds.
-        var @event = new StrategicThemeDeletedEvent(Guid.CreateVersion7(), Now);
+        var @event = new StrategicThemeDeletedEvent(Guid.CreateVersion7(), EventActor.System, Now);
 
         // Act
         await _handler.Handle(@event, TestContext.Current.CancellationToken);
@@ -130,5 +131,6 @@ public sealed class StrategicThemeChangedHandlerTests : IDisposable
             name: name,
             description: "desc",
             state: StrategicThemeState.Active,
+            actor: EventActor.System,
             timestamp: Now);
 }

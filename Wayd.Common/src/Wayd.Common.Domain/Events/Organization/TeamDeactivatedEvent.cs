@@ -4,7 +4,8 @@ namespace Wayd.Common.Domain.Events.Organization;
 
 public sealed record TeamDeactivatedEvent : DomainEvent
 {
-    public TeamDeactivatedEvent(Guid id, LocalDate inactiveDate, Instant timestamp)
+    public TeamDeactivatedEvent(Guid id, LocalDate inactiveDate, EventActor actor, Instant timestamp)
+        : base(actor)
     {
         Id = id;
         InactiveDate = inactiveDate;

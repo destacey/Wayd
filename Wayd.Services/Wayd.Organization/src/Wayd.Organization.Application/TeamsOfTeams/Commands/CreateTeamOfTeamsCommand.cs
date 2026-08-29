@@ -2,6 +2,7 @@
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Application.Teams.Models;
 using NodaTime;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Organization.Application.TeamsOfTeams.Commands;
 
@@ -45,12 +46,14 @@ public sealed class CreateTeamOfTeamsCommandHandler : ICommandHandler<CreateTeam
 
     private readonly IOrganizationDbContext _organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ICurrentUser _currentUser;
     private readonly ILogger<CreateTeamOfTeamsCommandHandler> _logger;
 
-    public CreateTeamOfTeamsCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ILogger<CreateTeamOfTeamsCommandHandler> logger)
+    public CreateTeamOfTeamsCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, ILogger<CreateTeamOfTeamsCommandHandler> logger)
     {
         _organizationDbContext = organizationDbContext;
         _dateTimeProvider = dateTimeProvider;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -58,7 +61,7 @@ public sealed class CreateTeamOfTeamsCommandHandler : ICommandHandler<CreateTeam
     {
         try
         {
-            var team = TeamOfTeams.Create(request.Name, request.Code, request.Description, request.ActiveDate, _dateTimeProvider.Now);
+            var team = TeamOfTeams.Create(request.Name, request.Code, request.Description, request.ActiveDate, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             await _organizationDbContext.TeamOfTeams.AddAsync(team, cancellationToken);
 
             await _organizationDbContext.SaveChangesAsync(cancellationToken);

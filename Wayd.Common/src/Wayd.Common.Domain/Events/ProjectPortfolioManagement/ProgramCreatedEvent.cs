@@ -7,8 +7,8 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 
 public sealed record ProgramCreatedEvent : DomainEvent, ISimpleProgram
 {
-    public ProgramCreatedEvent(ISimpleProgram project, int statusId, LocalDateRange? dateRange, Guid portfolioId, Dictionary<int, Guid[]> roles, Guid[] strategicThemes, Instant timestamp)
-        : this(project.Id, project.Key, project.Name, project.Description, statusId, dateRange, portfolioId, roles, strategicThemes, timestamp)
+    public ProgramCreatedEvent(ISimpleProgram project, int statusId, LocalDateRange? dateRange, Guid portfolioId, Dictionary<int, Guid[]> roles, Guid[] strategicThemes, EventActor actor, Instant timestamp)
+        : this(project.Id, project.Key, project.Name, project.Description, statusId, dateRange, portfolioId, roles, strategicThemes, actor, timestamp)
     {
     }
 
@@ -17,7 +17,8 @@ public sealed record ProgramCreatedEvent : DomainEvent, ISimpleProgram
     // through here, so the defensive copy of the mutable collections lives here and applies regardless of
     // which constructor a caller uses.
     [JsonConstructor]
-    public ProgramCreatedEvent(Guid id, int key, string name, string description, int statusId, LocalDateRange? dateRange, Guid portfolioId, Dictionary<int, Guid[]>? roles, Guid[] strategicThemes, Instant timestamp)
+    public ProgramCreatedEvent(Guid id, int key, string name, string description, int statusId, LocalDateRange? dateRange, Guid portfolioId, Dictionary<int, Guid[]>? roles, Guid[] strategicThemes, EventActor actor, Instant timestamp)
+        : base(actor)
     {
         Id = id;
         Key = key;

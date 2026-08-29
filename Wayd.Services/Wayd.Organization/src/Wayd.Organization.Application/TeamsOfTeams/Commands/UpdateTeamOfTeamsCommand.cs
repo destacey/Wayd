@@ -1,5 +1,6 @@
 ﻿using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Application.Teams.Models;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Organization.Application.TeamsOfTeams.Commands;
 
@@ -43,12 +44,14 @@ public sealed class UpdateTeamOfTeamsCommandHandler : ICommandHandler<UpdateTeam
 
     private readonly IOrganizationDbContext _organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ICurrentUser _currentUser;
     private readonly ILogger<UpdateTeamOfTeamsCommandHandler> _logger;
 
-    public UpdateTeamOfTeamsCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ILogger<UpdateTeamOfTeamsCommandHandler> logger)
+    public UpdateTeamOfTeamsCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, ILogger<UpdateTeamOfTeamsCommandHandler> logger)
     {
         _organizationDbContext = organizationDbContext;
         _dateTimeProvider = dateTimeProvider;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -65,6 +68,7 @@ public sealed class UpdateTeamOfTeamsCommandHandler : ICommandHandler<UpdateTeam
                 request.Name,
                 request.Code,
                 request.Description,
+                EventActor.User(_currentUser.GetUserId()),
                 _dateTimeProvider.Now
                 );
 

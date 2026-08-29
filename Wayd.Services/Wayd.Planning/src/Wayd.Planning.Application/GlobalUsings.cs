@@ -7,6 +7,7 @@ global using Wayd.Common.Application.Exceptions;
 global using Wayd.Common.Application.Interfaces;
 global using Wayd.Common.Application.Persistence;
 global using Wayd.Common.Application.Validation;
+global using Wayd.Common.Domain.Events;
 global using Wayd.Common.Models;
 global using Wayd.Planning.Application.Persistence;
 global using Wayd.Planning.Domain.Models;

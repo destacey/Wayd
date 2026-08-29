@@ -69,7 +69,7 @@ internal partial class UserService
             throw new InternalServerException("Failed to add roles to user.");
         }
 
-        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, _dateTimeProvider.Now, true));
+        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now, true));
 
         return Result.Success();
     }
@@ -148,7 +148,7 @@ internal partial class UserService
         // PUBLISH EVENTS
         foreach (var userId in usersUpdated)
         {
-            await _events.PublishAsync(new ApplicationUserUpdatedEvent(userId, _dateTimeProvider.Now, true));
+            await _events.PublishAsync(new ApplicationUserUpdatedEvent(userId, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now, true));
         }
 
         return Result.Success();

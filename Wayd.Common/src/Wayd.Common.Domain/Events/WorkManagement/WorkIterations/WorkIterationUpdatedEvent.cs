@@ -8,15 +8,16 @@ namespace Wayd.Common.Domain.Events.WorkManagement.WorkIterations;
 
 public sealed record WorkIterationUpdatedEvent : DomainEvent
 {
-    public WorkIterationUpdatedEvent(ISimpleIteration iteration, Instant timestamp)
-        : this(iteration.Id, iteration.Name, iteration.Type, iteration.State, iteration.DateRange, iteration.TeamId, timestamp)
+    public WorkIterationUpdatedEvent(ISimpleIteration iteration, EventActor actor, Instant timestamp)
+        : this(iteration.Id, iteration.Name, iteration.Type, iteration.State, iteration.DateRange, iteration.TeamId, actor, timestamp)
     {
     }
 
     // Deserialization constructor for the Wolverine durable outbox (STJ binds parameters to properties by
     // name; the primary constructor's `iteration` parameter cannot be bound).
     [JsonConstructor]
-    public WorkIterationUpdatedEvent(Guid id, string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, Instant timestamp)
+    public WorkIterationUpdatedEvent(Guid id, string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, EventActor actor, Instant timestamp)
+        : base(actor)
     {
         Id = id;
         Name = name;

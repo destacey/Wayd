@@ -5,5 +5,6 @@ global using Microsoft.EntityFrameworkCore;
 global using Microsoft.Extensions.Logging;
 global using Wayd.Common.Application.Interfaces;
 global using Wayd.Common.Application.Persistence;
+global using Wayd.Common.Domain.Events;
 global using Wayd.Common.Models;
 global using NodaTime;

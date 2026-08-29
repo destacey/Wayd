@@ -11,6 +11,7 @@ using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 using NodaTime;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Models;
 
@@ -288,7 +289,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         ExpectedBenefits = expectedBenefits?.Trim();
         ExpenditureCategoryId = expenditureCategoryId;
 
-        AddDomainEvent(new ProjectDetailsUpdatedEvent(this, ExpenditureCategoryId, timestamp));
+        AddDomainEvent(new ProjectDetailsUpdatedEvent(this, ExpenditureCategoryId, actor.ToEventActor(), timestamp));
 
         return Result.Success();
     }
@@ -393,7 +394,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
         Key = key;
 
-        AddDomainEvent(new ProjectDetailsUpdatedEvent(this, ExpenditureCategoryId, timestamp));
+        AddDomainEvent(new ProjectDetailsUpdatedEvent(this, ExpenditureCategoryId, actor.ToEventActor(), timestamp));
 
         foreach (var task in _tasks)
         {
@@ -1796,6 +1797,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
                     .GroupBy(x => (int)x.Role)
                     .ToDictionary(x => x.Key, x => x.Select(y => y.EmployeeId).ToArray()),
                 [.. project.StrategicThemeTags.Select(x => x.StrategicThemeId)],
+                actor.ToEventActor(),
                 timestamp
             )));
 

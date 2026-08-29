@@ -8,8 +8,8 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 
 public sealed record ProjectCreatedEvent : DomainEvent, ISimpleProject
 {
-    public ProjectCreatedEvent(ISimpleProject project, int expenditureCategoryId, int statusId, LocalDateRange? dateRange, Guid portfolioId, Guid? programId, Dictionary<int, Guid[]> roles, Guid[] strategicThemes, Instant timestamp)
-        : this(project.Id, project.Key, project.Name, project.Description, expenditureCategoryId, statusId, dateRange, portfolioId, programId, roles, strategicThemes, timestamp)
+    public ProjectCreatedEvent(ISimpleProject project, int expenditureCategoryId, int statusId, LocalDateRange? dateRange, Guid portfolioId, Guid? programId, Dictionary<int, Guid[]> roles, Guid[] strategicThemes, EventActor actor, Instant timestamp)
+        : this(project.Id, project.Key, project.Name, project.Description, expenditureCategoryId, statusId, dateRange, portfolioId, programId, roles, strategicThemes, actor, timestamp)
     {
     }
 
@@ -19,7 +19,8 @@ public sealed record ProjectCreatedEvent : DomainEvent, ISimpleProject
     // Both constructors funnel through here, so the defensive copy of the mutable collections lives here
     // and applies regardless of which constructor a caller uses.
     [JsonConstructor]
-    public ProjectCreatedEvent(Guid id, ProjectKey key, string name, string description, int expenditureCategoryId, int statusId, LocalDateRange? dateRange, Guid portfolioId, Guid? programId, Dictionary<int, Guid[]>? roles, Guid[] strategicThemes, Instant timestamp)
+    public ProjectCreatedEvent(Guid id, ProjectKey key, string name, string description, int expenditureCategoryId, int statusId, LocalDateRange? dateRange, Guid portfolioId, Guid? programId, Dictionary<int, Guid[]>? roles, Guid[] strategicThemes, EventActor actor, Instant timestamp)
+        : base(actor)
     {
         Id = id;
         Key = key;

@@ -3,6 +3,7 @@ using Wayd.ProjectPortfolioManagement.Application.Programs.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
 
@@ -49,17 +50,22 @@ public sealed class ImportProgramsCommandValidator : CustomValidator<ImportProgr
 public sealed class ImportProgramsCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     ILogger<ImportProgramsCommandHandler> logger) : ICommandHandler<ImportProgramsCommand>
 {
     private const string RequestName = nameof(ImportProgramsCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<ImportProgramsCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ImportProgramsCommand request, CancellationToken cancellationToken)
     {
         var timestamp = _dateTimeProvider.Now;
+        // One import run is one actor: the events say "the import", not "this person edited
+        // every row by hand", while still recording who set it running.
+        var actor = EventActor.Import(_currentUser.GetUserId());
 
         try
         {
@@ -113,6 +119,7 @@ public sealed class ImportProgramsCommandHandler(
                     dateRange,
                     BuildRoles(row, employeeIdsByNumber),
                     themeIds,
+                    actor,
                     timestamp);
                 if (createResult.IsFailure)
                     return Fail($"Could not create program '{row.Name}' in portfolio '{row.PortfolioName}': {createResult.Error}");

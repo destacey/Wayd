@@ -7,6 +7,7 @@ using Wayd.Organization.TestData;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Extensions;
 using NodaTime;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Organization.Domain.Tests.Sut.Models;
 
@@ -36,7 +37,7 @@ public class TeamTests
         var sizingMethod = SizingMethod.StoryPoints;
 
         // Act
-        var sut = Team.Create(fakeTeam.Name, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, methodology, sizingMethod, _dateTimeProvider.Now);
+        var sut = Team.Create(fakeTeam.Name, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, methodology, sizingMethod, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         sut.Type.Should().Be(TeamType.Team);
@@ -85,7 +86,7 @@ public class TeamTests
         string? name = null;
 
         // Act
-        Action action = () => Team.Create(name!, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, _dateTimeProvider.Now);
+        Action action = () => Team.Create(name!, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         action.Should().Throw<ArgumentException>().WithMessage("Value cannot be null. (Parameter 'Name')");
@@ -100,7 +101,7 @@ public class TeamTests
         var fakeTeam = _teamFaker.Generate();
 
         // Act
-        Action action = () => Team.Create(name!, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, _dateTimeProvider.Now);
+        Action action = () => Team.Create(name!, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         action.Should().Throw<ArgumentException>().WithMessage("Required input Name was empty. (Parameter 'Name')");
@@ -114,7 +115,7 @@ public class TeamTests
         TeamCode code = null!;
 
         // Act
-        Action action = () => Team.Create(fakeTeam.Name, code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, _dateTimeProvider.Now);
+        Action action = () => Team.Create(fakeTeam.Name, code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         action.Should().Throw<ArgumentException>().WithMessage("Value cannot be null. (Parameter 'Code')");
@@ -130,7 +131,7 @@ public class TeamTests
         var fakeTeam = _teamFaker.Generate();
 
         // Act
-        var sut = Team.Create(fakeTeam.Name, fakeTeam.Code, description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, _dateTimeProvider.Now);
+        var sut = Team.Create(fakeTeam.Name, fakeTeam.Code, description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         sut.Description.Should().BeNull();
@@ -153,7 +154,7 @@ public class TeamTests
         var description = "New Description ";
 
         // Act
-        team.Update(name, code, description, _dateTimeProvider.Now);
+        team.Update(name, code, description, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         team.Type.Should().Be(TeamType.Team);
@@ -175,7 +176,7 @@ public class TeamTests
         string name = null!;
 
         // Act
-        var result = team.Update(name, team.Code, team.Description, _dateTimeProvider.Now);
+        var result = team.Update(name, team.Code, team.Description, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -193,7 +194,7 @@ public class TeamTests
         var team = _teamFaker.Generate();
 
         // Act
-        var result = team.Update(name, team.Code, team.Description, _dateTimeProvider.Now);
+        var result = team.Update(name, team.Code, team.Description, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -210,7 +211,7 @@ public class TeamTests
         TeamCode code = null!;
 
         // Act
-        var result = team.Update(team.Name, code, team.Description, _dateTimeProvider.Now);
+        var result = team.Update(team.Name, code, team.Description, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -229,7 +230,7 @@ public class TeamTests
         var team = _teamFaker.Generate();
 
         // Act
-        var result = team.Update(team.Name, team.Code, description, _dateTimeProvider.Now);
+        var result = team.Update(team.Name, team.Code, description, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -252,7 +253,7 @@ public class TeamTests
         var team = _teamFaker.AsInactive(inactiveDate).Generate();
 
         // Act
-        team.Activate(_dateTimeProvider.Now);
+        team.Activate(TeamActivatableArgs.Create(EventActor.System, _dateTimeProvider.Now));
 
         // Assert
         team.IsActive.Should().BeTrue();
@@ -267,7 +268,7 @@ public class TeamTests
         // Arrange
         var team = _teamFaker.Generate();
         var inactiveDate = team.ActiveDate.PlusDays(30);
-        var args = TeamDeactivatableArgs.Create(inactiveDate, _dateTimeProvider.Now);
+        var args = TeamDeactivatableArgs.Create(inactiveDate, EventActor.System, _dateTimeProvider.Now);
 
         // Act
         var result = team.Deactivate(args);
@@ -285,7 +286,7 @@ public class TeamTests
         // Arrange
         var inactiveDate = _dateTimeProvider.Now.Minus(Duration.FromDays(10)).InUtc().LocalDateTime.Date;
         var team = _teamFaker.AsInactive(inactiveDate).Generate();
-        var args = TeamDeactivatableArgs.Create(inactiveDate, _dateTimeProvider.Now);
+        var args = TeamDeactivatableArgs.Create(inactiveDate, EventActor.System, _dateTimeProvider.Now);
 
         // Act
         var result = team.Deactivate(args);
@@ -304,7 +305,7 @@ public class TeamTests
         // Arrange
         var team = _teamFaker.Generate();
         var inactiveDate = team.ActiveDate.PlusDays(-5);
-        var args = TeamDeactivatableArgs.Create(inactiveDate, _dateTimeProvider.Now);
+        var args = TeamDeactivatableArgs.Create(inactiveDate, EventActor.System, _dateTimeProvider.Now);
 
         // Act
         var result = team.Deactivate(args);
@@ -327,7 +328,7 @@ public class TeamTests
         team.AddTeamMembership(teamOfTeams, dateRange, _dateTimeProvider.Now);
 
         var inactiveDate = start.PlusDays(10);
-        var args = TeamDeactivatableArgs.Create(inactiveDate, _dateTimeProvider.Now);
+        var args = TeamDeactivatableArgs.Create(inactiveDate, EventActor.System, _dateTimeProvider.Now);
 
         // Act
         var result = team.Deactivate(args);
@@ -351,7 +352,7 @@ public class TeamTests
         team.AddTeamMembership(teamOfTeams, dateRange, _dateTimeProvider.Now);
 
         var inactiveDate = start.PlusDays(10);
-        var args = TeamDeactivatableArgs.Create(inactiveDate, _dateTimeProvider.Now);
+        var args = TeamDeactivatableArgs.Create(inactiveDate, EventActor.System, _dateTimeProvider.Now);
 
         // Act
         var result = team.Deactivate(args);
@@ -374,7 +375,7 @@ public class TeamTests
         MembershipDateRange dateRange = new(start, end);
         team.AddTeamMembership(teamOfTeams, dateRange, _dateTimeProvider.Now);
 
-        var args = TeamDeactivatableArgs.Create(end.Value, _dateTimeProvider.Now);
+        var args = TeamDeactivatableArgs.Create(end.Value, EventActor.System, _dateTimeProvider.Now);
 
         // Act
         var result = team.Deactivate(args);
@@ -397,7 +398,7 @@ public class TeamTests
         team.AddTeamMembership(teamOfTeams, dateRange, _dateTimeProvider.Now);
 
         var inactiveDate = start.PlusDays(100);
-        var args = TeamDeactivatableArgs.Create(inactiveDate, _dateTimeProvider.Now);
+        var args = TeamDeactivatableArgs.Create(inactiveDate, EventActor.System, _dateTimeProvider.Now);
 
         // Act
         var result = team.Deactivate(args);
@@ -913,7 +914,7 @@ public class TeamTests
     {
         // Arrange & Act
         var fakeTeam = _teamFaker.Generate();
-        var team = Team.Create(fakeTeam.Name, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, _dateTimeProvider.Now);
+        var team = Team.Create(fakeTeam.Name, fakeTeam.Code, fakeTeam.Description, fakeTeam.ActiveDate, Methodology.Kanban, SizingMethod.Count, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         team.OperatingModels.Should().NotBeNull();

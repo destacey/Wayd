@@ -137,7 +137,7 @@ internal partial class UserService(
 
         user.IsActive = true;
         await _userManager.UpdateAsync(user);
-        await _events.PublishAsync(new ApplicationUserActivatedEvent(user.Id, _dateTimeProvider.Now));
+        await _events.PublishAsync(new ApplicationUserActivatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
 
         _logger.LogInformation("User {UserId} activated.", command.UserId);
         return Result.Success();
@@ -157,7 +157,7 @@ internal partial class UserService(
 
         user.IsActive = false;
         await _userManager.UpdateAsync(user);
-        await _events.PublishAsync(new ApplicationUserDeactivatedEvent(user.Id, _dateTimeProvider.Now));
+        await _events.PublishAsync(new ApplicationUserDeactivatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
 
         _logger.LogInformation("User {UserId} deactivated.", command.UserId);
         return Result.Success();
@@ -187,7 +187,7 @@ internal partial class UserService(
             return Result.Failure(errors);
         }
 
-        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, _dateTimeProvider.Now));
+        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
 
         _logger.LogInformation("Tenant migration canceled for user {UserId}.", user.Id);
         return Result.Success();
@@ -278,7 +278,7 @@ internal partial class UserService(
         // Publish after commit so subscribers don't react to a rolled-back batch.
         foreach (var userId in staged)
         {
-            await _events.PublishAsync(new ApplicationUserUpdatedEvent(userId, now));
+            await _events.PublishAsync(new ApplicationUserUpdatedEvent(userId, EventActor.User(_currentUser.GetUserId()), now));
         }
 
         _logger.LogInformation(
@@ -401,7 +401,7 @@ internal partial class UserService(
             return Result.Failure(errors);
         }
 
-        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, _dateTimeProvider.Now));
+        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
 
         _logger.LogInformation(
             "Provider migration staged for user {UserId}: target provider {ProviderId}.",
@@ -430,7 +430,7 @@ internal partial class UserService(
             return Result.Failure(errors);
         }
 
-        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, _dateTimeProvider.Now));
+        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
 
         _logger.LogInformation("Provider migration canceled for user {UserId}.", userId);
         return Result.Success();
@@ -501,7 +501,7 @@ internal partial class UserService(
             }
         }, cancellationToken);
 
-        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, _dateTimeProvider.Now));
+        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
 
         _logger.LogInformation(
             "User {UserId} converted from {Provider} to a local account.",

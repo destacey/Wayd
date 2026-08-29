@@ -4,6 +4,7 @@ using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Domain.Enums;
 using NodaTime;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Organization.Domain.Models;
 
@@ -12,7 +13,7 @@ namespace Wayd.Organization.Domain.Models;
 /// </summary>
 /// <seealso cref="Wayd.Organization.Domain.Models.BaseTeam" />
 /// <seealso cref=""/>
-public sealed class TeamOfTeams : BaseTeam, IActivatable<Instant, TeamDeactivatableArgs>
+public sealed class TeamOfTeams : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeactivatableArgs>
 {
     private readonly List<TeamMembership> _childMemberships = [];
 
@@ -32,15 +33,15 @@ public sealed class TeamOfTeams : BaseTeam, IActivatable<Instant, TeamDeactivata
     /// <summary>
     /// The process for activating a team of teams.
     /// </summary>
-    /// <param name="timestamp"></param>
+    /// <param name="args">The actor making the change and the timestamp of it.</param>
     /// <returns>Result that indicates success or a list of errors</returns>
-    public Result Activate(Instant timestamp)
+    public Result Activate(TeamActivatableArgs args)
     {
         if (!IsActive)
         {
             IsActive = true;
             InactiveDate = null;
-            AddDomainEvent(new TeamActivatedEvent(Id, timestamp));
+            AddDomainEvent(new TeamActivatedEvent(Id, args.Actor, args.Timestamp));
         }
 
         return Result.Success();
@@ -86,7 +87,7 @@ public sealed class TeamOfTeams : BaseTeam, IActivatable<Instant, TeamDeactivata
         InactiveDate = args.AsOfDate;
         IsActive = false;  // TODO: this will be invalid if the InactiveDate is in the future
 
-        AddDomainEvent(new TeamDeactivatedEvent(Id, InactiveDate!.Value, args.Timestamp));
+        AddDomainEvent(new TeamDeactivatedEvent(Id, InactiveDate!.Value, args.Actor, args.Timestamp));
 
         return Result.Success();
     }
@@ -95,9 +96,10 @@ public sealed class TeamOfTeams : BaseTeam, IActivatable<Instant, TeamDeactivata
     /// <param name="name">The name.</param>
     /// <param name="code">The code.</param>
     /// <param name="description">The description.</param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp">The timestamp.</param>
     /// <returns></returns>
-    public Result Update(string name, TeamCode code, string? description, Instant timestamp)
+    public Result Update(string name, TeamCode code, string? description, EventActor actor, Instant timestamp)
     {
         try
         {
@@ -105,7 +107,7 @@ public sealed class TeamOfTeams : BaseTeam, IActivatable<Instant, TeamDeactivata
             Code = code;
             Description = description;
 
-            AddDomainEvent(new TeamUpdatedEvent(Id, Code, Name, Description, timestamp));
+            AddDomainEvent(new TeamUpdatedEvent(Id, Code, Name, Description, actor, timestamp));
 
             return Result.Success();
         }
@@ -146,14 +148,15 @@ public sealed class TeamOfTeams : BaseTeam, IActivatable<Instant, TeamDeactivata
     /// <param name="code">The code.</param>
     /// <param name="description">The description.</param>
     /// <param name="activeDate">The active date.</param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp">The timestamp.</param>
     /// <returns></returns>
-    public static TeamOfTeams Create(string name, TeamCode code, string? description, LocalDate activeDate, Instant timestamp)
+    public static TeamOfTeams Create(string name, TeamCode code, string? description, LocalDate activeDate, EventActor actor, Instant timestamp)
     {
         var team = new TeamOfTeams(name, code, description, activeDate);
 
         team.AddPostPersistenceAction(() =>
-            team.AddDomainEvent(new TeamCreatedEvent(team.Id, team.Key, team.Code, team.Name, team.Description, team.Type, team.ActiveDate, team.InactiveDate, team.IsActive, timestamp))
+            team.AddDomainEvent(new TeamCreatedEvent(team.Id, team.Key, team.Code, team.Name, team.Description, team.Type, team.ActiveDate, team.InactiveDate, team.IsActive, actor, timestamp))
         );
         return team;
     }

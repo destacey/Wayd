@@ -6,6 +6,7 @@ using Wayd.Common.Domain.Interfaces.Planning.Iterations;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Work.Domain.Interfaces;
 using NodaTime;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Work.Domain.Models;
 
@@ -41,7 +42,7 @@ public sealed class WorkIteration : BaseEntity<Guid>, ISimpleIteration, IHasIdAn
     /// <param name="iteration">The iteration containing the updated values. The <see cref="ISimpleIteration.Id"/> must match the current
     /// iteration's ID.</param>
     /// <exception cref="ArgumentException">Thrown if the <paramref name="iteration"/> ID does not match the current iteration's ID.</exception>
-    public Result Update(ISimpleIteration iteration, Instant timestamp)
+    public Result Update(ISimpleIteration iteration, EventActor actor, Instant timestamp)
     {
         if (iteration.Id != Id)
         {
@@ -59,7 +60,7 @@ public sealed class WorkIteration : BaseEntity<Guid>, ISimpleIteration, IHasIdAn
         DateRange = iteration.DateRange;
         TeamId = iteration.TeamId;
 
-        AddDomainEvent(new WorkIterationUpdatedEvent(this, timestamp));
+        AddDomainEvent(new WorkIterationUpdatedEvent(this, actor, timestamp));
 
         return Result.Success();
     }

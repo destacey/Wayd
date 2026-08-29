@@ -2,7 +2,7 @@
 
 import { LeftOutlined } from '@ant-design/icons'
 import { Button, Flex, Typography } from 'antd'
-import { ReactNode, useEffect, useState } from 'react'
+import { ReactNode, useEffect, useRef, useState } from 'react'
 import { RecordLayoutConstants } from '@/src/config/theme/theme-constants'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
 import styles from './record-layout.module.css'
@@ -41,6 +41,22 @@ const RecordFactsRail = ({
 }: RecordFactsRailProps) => {
   const [dragging, setDragging] = useState(false)
 
+  // The width being dragged, held locally until the gesture ends.
+  //
+  // `onWidthChange` persists to localStorage and re-renders the whole record,
+  // which is far too much to do per mousemove — it made the panel and every
+  // chart in the content flicker for seconds after a drag. Committing once on
+  // mouseup keeps the drag itself a cheap local update.
+  const [draftWidth, setDraftWidth] = useState<number | null>(null)
+  const liveWidth = draftWidth ?? width
+
+  // Seeds a drag without making `width` a dependency of the listener effect,
+  // which would tear down and re-bind the handlers mid-gesture.
+  const widthRef = useRef(width)
+  useEffect(() => {
+    widthRef.current = width
+  }, [width])
+
   const clamp = (w: number) =>
     Math.min(
       RecordLayoutConstants.FACTS_RAIL_MAX_WIDTH,
@@ -52,11 +68,18 @@ const RecordFactsRail = ({
   useEffect(() => {
     if (!dragging) return
 
+    let latest = clamp(widthRef.current)
+
     const onMove = (e: MouseEvent) => {
       // The panel is right-anchored, so it widens as the pointer moves left.
-      onWidthChange(clamp(window.innerWidth - e.clientX))
+      latest = clamp(window.innerWidth - e.clientX)
+      setDraftWidth(latest)
     }
-    const onUp = () => setDragging(false)
+    const onUp = () => {
+      setDragging(false)
+      setDraftWidth(null)
+      onWidthChange(latest)
+    }
 
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mouseup', onUp)
@@ -99,7 +122,7 @@ const RecordFactsRail = ({
   return (
     <aside
       className={styles.factsRail}
-      style={{ width }}
+      style={{ width: liveWidth }}
       aria-label={PANEL_TITLE}
     >
       <div
@@ -107,7 +130,7 @@ const RecordFactsRail = ({
         role="separator"
         aria-orientation="vertical"
         aria-label={`Resize ${PANEL_TITLE} panel`}
-        aria-valuenow={width}
+        aria-valuenow={liveWidth}
         aria-valuemin={RecordLayoutConstants.FACTS_RAIL_MIN_WIDTH}
         aria-valuemax={RecordLayoutConstants.FACTS_RAIL_MAX_WIDTH}
         tabIndex={0}

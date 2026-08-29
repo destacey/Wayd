@@ -63,6 +63,9 @@ public sealed class ImportProgramsCommandHandler(
     public async Task<Result> Handle(ImportProgramsCommand request, CancellationToken cancellationToken)
     {
         var timestamp = _dateTimeProvider.Now;
+        // One import run is one actor: the events say "the import", not "this person edited
+        // every row by hand", while still recording who set it running.
+        var actor = EventActor.Import(_currentUser.GetUserId());
 
         try
         {
@@ -116,7 +119,7 @@ public sealed class ImportProgramsCommandHandler(
                     dateRange,
                     BuildRoles(row, employeeIdsByNumber),
                     themeIds,
-                    EventActor.Import(_currentUser.GetUserId()),
+                    actor,
                     timestamp);
                 if (createResult.IsFailure)
                     return Fail($"Could not create program '{row.Name}' in portfolio '{row.PortfolioName}': {createResult.Error}");

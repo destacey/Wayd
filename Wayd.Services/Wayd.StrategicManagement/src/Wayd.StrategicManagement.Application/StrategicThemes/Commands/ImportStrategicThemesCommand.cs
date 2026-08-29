@@ -54,6 +54,9 @@ public sealed class ImportStrategicThemesCommandHandler(
     public async Task<Result> Handle(ImportStrategicThemesCommand request, CancellationToken cancellationToken)
     {
         var timestamp = _dateTimeProvider.Now;
+        // One import run is one actor: the events say "the import", not "this person edited
+        // every row by hand", while still recording who set it running.
+        var actor = EventActor.Import(_currentUser.GetUserId());
 
         try
         {
@@ -76,7 +79,7 @@ public sealed class ImportStrategicThemesCommandHandler(
 
             foreach (var row in request.StrategicThemes)
             {
-                var theme = StrategicTheme.Create(Normalize(row.Name), row.Description.Trim(), row.State, EventActor.Import(_currentUser.GetUserId()), timestamp);
+                var theme = StrategicTheme.Create(Normalize(row.Name), row.Description.Trim(), row.State, actor, timestamp);
 
                 await _strategicManagementDbContext.StrategicThemes.AddAsync(theme, cancellationToken);
             }

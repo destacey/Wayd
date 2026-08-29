@@ -43,12 +43,17 @@ export function useGridDragHandle() {
   return context
 }
 
-interface GridSortableRowProps {
+/**
+ * Extends the row's intrinsic attributes so callers can pass through the
+ * activation set (`role`, `tabIndex`, `onKeyDown`, `aria-label`) as one spread.
+ * Listing them individually meant a new attribute was silently dropped rather
+ * than failing to compile.
+ */
+interface GridSortableRowProps
+  extends React.HTMLAttributes<HTMLTableRowElement> {
   nodeId: string
   isDragEnabled: boolean
   isDragging?: boolean
-  className?: string
-  onClick?: (e: React.MouseEvent<HTMLTableRowElement>) => void
   children: ReactNode
 }
 
@@ -61,8 +66,8 @@ export function GridSortableRow({
   isDragEnabled,
   isDragging: parentIsDragging,
   className = '',
-  onClick,
   children,
+  ...rowProps
 }: GridSortableRowProps) {
   const {
     attributes,
@@ -95,9 +100,9 @@ export function GridSortableRow({
         ref={setNodeRef}
         style={style}
         className={className}
-        onClick={onClick}
         data-row-id={nodeId}
         data-dragging={isDragging}
+        {...rowProps}
       >
         {children}
       </tr>

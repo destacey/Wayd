@@ -1729,4 +1729,195 @@ describe('WaydGrid', () => {
       ).toHaveLength(1)
     })
   })
+
+  describe('row activation', () => {
+    /** The body rows, in display order. */
+    const bodyRows = () =>
+      Array.from(document.querySelectorAll('tbody tr[role="button"]'))
+
+    it('does not make rows buttons when onRowActivate is absent', () => {
+      // Arrange / Act
+      renderGrid()
+
+      // Assert — a row that cannot be activated must not claim a button role
+      // or take tab focus.
+      expect(bodyRows()).toHaveLength(0)
+    })
+
+    it('activates the clicked row', () => {
+      // Arrange
+      const onRowActivate = jest.fn()
+      renderGrid({ onRowActivate })
+
+      // Act
+      fireEvent.click(bodyCells('name')[1])
+
+      // Assert — the row's data, not the TanStack row wrapper
+      expect(onRowActivate).toHaveBeenCalledTimes(1)
+      expect(onRowActivate).toHaveBeenCalledWith(DATA[1])
+    })
+
+    it('activates on Enter and Space', () => {
+      // Arrange
+      const onRowActivate = jest.fn()
+      renderGrid({ onRowActivate })
+      const row = bodyRows()[0]
+
+      // Act
+      fireEvent.keyDown(row, { key: 'Enter' })
+      fireEvent.keyDown(row, { key: ' ' })
+
+      // Assert
+      expect(onRowActivate).toHaveBeenCalledTimes(2)
+      expect(onRowActivate).toHaveBeenNthCalledWith(1, DATA[0])
+      expect(onRowActivate).toHaveBeenNthCalledWith(2, DATA[0])
+    })
+
+    it('ignores other keys', () => {
+      // Arrange
+      const onRowActivate = jest.fn()
+      renderGrid({ onRowActivate })
+
+      // Act
+      fireEvent.keyDown(bodyRows()[0], { key: 'a' })
+
+      // Assert
+      expect(onRowActivate).not.toHaveBeenCalled()
+    })
+
+    it('makes every row focusable so the list is keyboard navigable', () => {
+      // Arrange / Act
+      renderGrid({ onRowActivate: jest.fn() })
+
+      // Assert
+      const rows = bodyRows()
+      expect(rows).toHaveLength(DATA.length)
+      rows.forEach((row) => expect(row).toHaveAttribute('tabindex', '0'))
+    })
+
+    it('names the row from getRowActivateLabel', () => {
+      // Arrange / Act — without a label the button role would announce the
+      // row's whole flattened text.
+      renderGrid({
+        onRowActivate: jest.fn(),
+        getRowActivateLabel: (flag) => `Open ${flag.name}`,
+      })
+
+      // Assert
+      expect(bodyRows()[0]).toHaveAttribute('aria-label', 'Open planning-poker')
+    })
+
+    it('leaves clicks on interactive cell content alone', () => {
+      // Arrange — an actions button inside an activatable row must open its
+      // own thing, not the row.
+      const onRowActivate = jest.fn()
+      const onButtonClick = jest.fn()
+      render(
+        <WaydGrid<Flag>
+          data={DATA}
+          columns={[
+            {
+              id: 'name',
+              accessorKey: 'name',
+              header: 'Name',
+              cell: ({ row }) => (
+                <button onClick={onButtonClick}>{row.original.name}</button>
+              ),
+            },
+          ]}
+          onRowActivate={onRowActivate}
+        />,
+      )
+
+      // Act — the row is a button too, so scope the query to the cell
+      fireEvent.click(
+        within(bodyCells('name')[0]).getByRole('button', {
+          name: 'planning-poker',
+        }),
+      )
+
+      // Assert
+      expect(onButtonClick).toHaveBeenCalledTimes(1)
+      expect(onRowActivate).not.toHaveBeenCalled()
+    })
+
+    it('leaves keyboard activation of interactive cell content alone', () => {
+      // Arrange — Enter on a focused in-cell button is that button's, and the
+      // event bubbles to the row, so the row has to decline it too.
+      const onRowActivate = jest.fn()
+      render(
+        <WaydGrid<Flag>
+          data={DATA}
+          columns={[
+            {
+              id: 'name',
+              accessorKey: 'name',
+              header: 'Name',
+              cell: ({ row }) => <button>{row.original.name}</button>,
+            },
+          ]}
+          onRowActivate={onRowActivate}
+        />,
+      )
+
+      // Act — scope to the cell; the row carries a button role as well
+      fireEvent.keyDown(
+        within(bodyCells('name')[1]).getByRole('button', { name: 'roadmap' }),
+        { key: 'Enter' },
+      )
+
+      // Assert
+      expect(onRowActivate).not.toHaveBeenCalled()
+    })
+
+    it('respects an explicit data-row-activate="ignore" opt-out', () => {
+      // Arrange — for non-semantic interactive content (a custom toggle) that
+      // the interactive-element selector would not otherwise catch.
+      const onRowActivate = jest.fn()
+      render(
+        <WaydGrid<Flag>
+          data={DATA}
+          columns={[
+            {
+              id: 'name',
+              accessorKey: 'name',
+              header: 'Name',
+              cell: ({ row }) => (
+                <span data-row-activate="ignore">{row.original.name}</span>
+              ),
+            },
+          ]}
+          onRowActivate={onRowActivate}
+        />,
+      )
+
+      // Act
+      fireEvent.click(screen.getByText('insights'))
+
+      // Assert
+      expect(onRowActivate).not.toHaveBeenCalled()
+    })
+
+    it('marks the activated row and only that row', () => {
+      // Arrange / Act — activatedRowId is matched against the row id, which
+      // falls back to row.original.id.
+      renderGrid({ onRowActivate: jest.fn(), activatedRowId: '2' })
+
+      // Assert — the highlight is a class on exactly one row
+      const activated = document.querySelectorAll(
+        `tbody tr.${'trActivated'}`,
+      )
+      expect(activated).toHaveLength(1)
+      expect(activated[0]).toHaveTextContent('roadmap')
+    })
+
+    it('marks no row when activatedRowId matches nothing', () => {
+      // Arrange / Act — a stale id from a URL must not highlight a row, and
+      // must not throw.
+      renderGrid({ onRowActivate: jest.fn(), activatedRowId: '999' })
+
+      // Assert
+      expect(document.querySelectorAll('tbody tr.trActivated')).toHaveLength(0)
+    })
+  })
 })

@@ -211,6 +211,31 @@ export interface WaydGridProps<T extends RowData> {
    */
   onDisplayedRowsChange?: (rows: T[]) => void
 
+  // -- Row activation (enabled when provided) --
+  /**
+   * Makes whole rows openable: click, or Enter/Space with the row focused.
+   * Supplying it turns each body row into a focusable `role="button"`, so the
+   * list is navigable by keyboard without a link in every primary cell.
+   *
+   * Clicks on interactive cell content (links, buttons, inputs, and anything
+   * marked `data-row-activate="ignore"`) are left alone — an actions dropdown
+   * inside an activatable row still just opens the dropdown.
+   *
+   * Flat mode only. Tree mode already spends the row click on inline editing.
+   */
+  onRowActivate?: (row: T) => void
+  /**
+   * The activated row's id, matched against {@link getRowId}. Drives the
+   * highlight; the grid does not track it, so the consumer owns the value and
+   * can keep it in the URL.
+   */
+  activatedRowId?: string | null
+  /**
+   * Accessible name for an activatable row, e.g. `(row) => row.name`. Without
+   * it the row's button role announces its whole flattened text.
+   */
+  getRowActivateLabel?: (row: T) => string
+
   /**
    * Controlled TanStack row-selection state (a map of row id -> selected).
    * Supplying it turns on the grid's selection APIs -- `row.getIsSelected()`

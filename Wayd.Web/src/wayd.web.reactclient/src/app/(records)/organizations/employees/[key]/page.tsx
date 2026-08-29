@@ -167,7 +167,6 @@ const EmployeeDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           parent: { label: 'Employees', href: '/organizations/employees' },
           recordKey: String(employeeData.key),
           avatar: {
-            kind: 'person',
             initials: personInitials(
               employeeData.firstName,
               employeeData.lastName,

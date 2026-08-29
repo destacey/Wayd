@@ -1,0 +1,17 @@
+/*
+ * Negates the settings layout's content padding so `RecordLayout` gets the
+ * edge-to-edge frame it is built for: its identity bar spans the full column
+ * and the section rail sits flush against the settings rail, exactly as a PPM
+ * record page's does against the app sider.
+ *
+ * A record page cannot un-pad its parent, so the negation lives here rather
+ * than in each settings record page — and the settings layout keeps its
+ * padding for the list pages, which do want it.
+ */
+.shell {
+  margin: -16px -24px -24px;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}

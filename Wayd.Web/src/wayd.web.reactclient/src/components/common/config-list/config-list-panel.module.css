@@ -1,0 +1,142 @@
+/*
+ * The list and its detail panel share one row, so the list reflows to fit
+ * rather than sitting behind the panel. Below `md` the panel becomes a Drawer
+ * and this row holds the list alone.
+ *
+ * The resize handle is ours rather than an antd `Splitter`: a Splitter's
+ * dragger is a thin divider between two flush panes, and the gap between the
+ * list and the panel is what makes the panel read as its own surface.
+ */
+.layout {
+  /* One definition for the row's gap and the handle that fills it. They
+     drifted apart once already, which put the handle outside the panel. */
+  --config-list-gap: 16px;
+
+  display: flex;
+  /* Not `stretch`: the panel takes an explicit height matching the grid's own
+     computed one, so stretching would fight it. The grid sizes itself to the
+     remaining viewport, which is taller than the row's natural height. */
+  align-items: flex-start;
+  gap: var(--config-list-gap);
+  min-height: 0;
+  /* The grid virtualizer needs a measurable height, and a flex row gives its
+     children `auto` by default — without this the list renders zero rows. */
+  flex: 1 1 auto;
+}
+
+.list {
+  flex: 1 1 auto;
+  /* A flex child defaults to min-width:auto, which lets a wide grid push the
+     panel off screen instead of scrolling inside itself. */
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * Set off from the list by the gap, so the panel reads as its own surface
+ * rather than a column the grid runs into. That makes it a bordered card on
+ * all four sides — a lone left border would float detached beside the gap.
+ */
+.panel {
+  flex-shrink: 0;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-lg);
+  background: var(--ant-color-bg-container);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * The scroll container is inside the panel, not the panel itself: the resize
+ * handle is positioned in the gap OUTSIDE the panel's box, and an `overflow`
+ * on the panel clips anything out there — which silently made the handle
+ * invisible and unreachable. Keep overflow off `.panel`.
+ */
+.panelScroll {
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/*
+ * Spans the whole gap, so the col-resize cursor appears anywhere in the space
+ * that looks draggable rather than over a strip the user has to hunt for.
+ */
+.resizer {
+  position: absolute;
+  left: calc(-1 * var(--config-list-gap));
+  top: 0;
+  bottom: 0;
+  width: var(--config-list-gap);
+  cursor: col-resize;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/*
+ * Drawn at rest, not only on hover: a handle nobody can see is a handle nobody
+ * uses. Muted enough to stay out of the way until the pointer reaches it.
+ */
+.resizer::after {
+  content: '';
+  width: 2px;
+  height: 28px;
+  border-radius: 1px;
+  background: var(--ant-color-border);
+  transition:
+    background-color 0.2s,
+    height 0.2s;
+}
+
+.resizer:hover::after,
+.resizerActive::after {
+  background: var(--ant-color-primary);
+  height: 48px;
+}
+
+.resizer:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: -2px;
+}
+
+/*
+ * The controls sit on the title's first line rather than centring against a
+ * wrapped two-line name, so the ⋯ stays where the eye expects it whatever the
+ * record is called.
+ */
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  /* Holds the row at the control height so a short title does not shrink it. */
+  min-height: 24px;
+}
+
+.panelHeader > :first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.panelBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* Long values (a description, an accounting code) wrap rather than widening
+     the panel past the width the user set. */
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resizer::after {
+    transition: none;
+  }
+}

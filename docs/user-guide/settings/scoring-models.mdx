@@ -13,7 +13,7 @@ Scoring models are managed under **Settings → Scoring → Scoring Models** and
 
 ## How a model is built
 
-A scoring model is assembled from four kinds of building blocks, each on its own tab of the model detail page.
+A scoring model is assembled from four kinds of building blocks. Criteria, rating scales and outputs each have their own section of the model detail page; the model's state and description sit in the details panel beside them.
 
 ### Criteria
 
@@ -74,9 +74,9 @@ Because `WSJF` references `CoD`, the *Cost of Delay* output must be ordered befo
 
 ## Testing a model
 
-The **Test** tab lets you preview the output formulas against sample inputs **without saving anything** — useful for sanity-checking a model before activating it, or for understanding how a change to a formula affects the score.
+The **Test** report lets you preview the output formulas against sample inputs **without saving anything** — useful for sanity-checking a model before activating it, or for understanding how a change to a formula affects the score.
 
-1. Open a scoring model and select the **Test** tab.
+1. Open a scoring model and select **Test**, under Reports in the section rail.
 2. Enter a value for each criterion. Criteria with a rating scale offer a dropdown of that scale's levels; criteria without one accept a raw number.
 3. Once every criterion has a value, click **Calculate**.
 4. The results show **every** output value (not just the primary), with the primary output tagged as the **Score**.
@@ -103,7 +103,7 @@ A scoring model moves through a simple lifecycle:
 - **Archive** — retire an Active model.
 - **Delete** — only available while a model is Proposed.
 
-Because activation freezes the definition, use the [Test tab](#testing-a-model) to validate the model thoroughly while it is still Proposed.
+Because activation freezes the definition, use the [Test report](#testing-a-model) to validate the model thoroughly while it is still Proposed.
 
 ## Using models in PPM
 

@@ -1,13 +1,20 @@
 import { Card, Flex } from 'antd'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
 import { FC, ReactNode } from 'react'
+import ChartSkeleton from './chart-skeleton'
 
 const { Meta } = Card
 
 export interface ChartCardProps {
   title?: ReactNode
   children: ReactNode
+  /** Draws a chart-shaped placeholder in the body, keeping the title. */
   loading?: boolean
+  /**
+   * Height for that placeholder. Pass the chart's own `height` so the card
+   * does not resize when the plot replaces it.
+   */
+  skeletonHeight?: number
   cardStyle?: React.CSSProperties
   contentStyle?: React.CSSProperties
   tooltip?: string
@@ -29,6 +36,7 @@ const ChartCard: FC<ChartCardProps> = ({
   title,
   children,
   loading = false,
+  skeletonHeight,
   cardStyle,
   contentStyle,
   tooltip,
@@ -63,7 +71,9 @@ const ChartCard: FC<ChartCardProps> = ({
           {titleNode}
         </div>
       )}
-      {children}
+      {/* The title stays put while the plot loads — it is already known, and
+          `Card loading` would blank it along with the body. */}
+      {loading ? <ChartSkeleton height={skeletonHeight} /> : children}
     </Flex>
   )
 
@@ -75,7 +85,7 @@ const ChartCard: FC<ChartCardProps> = ({
       )}
     </Flex>
   ) : (
-    <Card style={defaultCardStyle} size="small" loading={loading}>
+    <Card style={defaultCardStyle} size="small">
       {content}
       {secondaryValue !== undefined && (
         <Meta description={<Flex justify="flex-end">{secondaryValue}</Flex>} />

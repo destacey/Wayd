@@ -7,8 +7,8 @@ const Column = dynamic(
   { ssr: false },
 )
 import { ColumnConfig } from '@ant-design/charts'
-import { Flex, Skeleton } from 'antd'
-import { DotChartOutlined } from '@ant-design/icons'
+import { Flex } from 'antd'
+import { ChartSkeleton } from '@/src/components/common/metrics'
 import WaydEmpty from '../wayd-empty'
 import useTheme from '../../contexts/theme'
 import { WorkItemListDto } from '@/src/services/wayd-api'
@@ -147,13 +147,7 @@ export const CycleTimeAnalysisChart: FC<CycleTimeAnalysisChartProps> = ({
   } as ColumnConfig
 
   if (isLoading) {
-    return (
-      <Flex justify="center" align="center" style={{ height: '100%' }}>
-        <Skeleton.Node active={true}>
-          <DotChartOutlined style={{ fontSize: 40 }} />
-        </Skeleton.Node>
-      </Flex>
-    )
+    return <ChartSkeleton />
   }
 
   if (chartData.length === 0) {

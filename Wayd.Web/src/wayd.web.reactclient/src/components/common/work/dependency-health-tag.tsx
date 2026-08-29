@@ -10,7 +10,13 @@ export interface DependencyHealthTagProps {
   health: DependencyHealth
 }
 
-const getTagColor = (health: DependencyHealth): string => {
+/**
+ * The antd preset for a dependency health, shared with the charts that plot it
+ * so a slice and a tag for the same health are never different colors.
+ */
+export const getDependencyHealthTagColor = (
+  health: DependencyHealth,
+): string => {
   switch (health) {
     case DependencyHealth.Healthy:
       return 'success'
@@ -22,6 +28,8 @@ const getTagColor = (health: DependencyHealth): string => {
       return 'default'
   }
 }
+
+const getTagColor = getDependencyHealthTagColor
 
 const DependencyHealthTag: FC<DependencyHealthTagProps> = ({
   name,

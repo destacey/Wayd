@@ -3,6 +3,10 @@ export { default as WorkItemListItem } from './work-item-list-item'
 export { default as WorkItemsGrid } from './work-items-grid'
 export { default as WorkItemsBacklogGrid } from './work-items-backlog-grid'
 export { default as WorkItemsCumulativeFlowChart } from './work-items-cumulative-flow-chart'
+export {
+  WORK_STATUS_CATEGORIES,
+  getWorkStatusCategoryColorScale,
+} from './work-status-category-colors'
 export { default as WorkItemsDashboardModal } from './work-items-dashboard-modal'
 export { default as WorkItemDependenciesGrid } from './work-item-dependencies-grid'
 export { CycleTimeAnalysisChart } from './cycle-time-analysis-chart'

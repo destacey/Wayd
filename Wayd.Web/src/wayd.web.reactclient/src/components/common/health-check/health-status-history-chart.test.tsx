@@ -92,7 +92,9 @@ describe('HealthStatusHistoryChart', () => {
 
   it('should show card loading state', () => {
     const { container } = render(<HealthStatusHistoryChart isLoading />)
-    expect(container.querySelector('.ant-card-loading')).toBeInTheDocument()
+    // ChartCard draws a chart-shaped skeleton in the body rather than antd's
+    // paragraph placeholder, so the title survives the load.
+    expect(container.querySelector('.ant-skeleton')).toBeInTheDocument()
   })
 
   it('should show empty state when data is an empty array', () => {

@@ -30,6 +30,13 @@ const ChangeProjectLifecycleStateForm = ({
 }: ChangeProjectLifecycleStateFormProps) => {
   const messageApi = useMessage()
 
+  // `${stateAction}ing` would produce "Archiveing"; map to the correct
+  // gerund instead.
+  const gerund =
+    stateAction === ProjectLifecycleStateAction.Activate
+      ? 'activating'
+      : 'archiving'
+
   const [activateProjectLifecycleMutation] =
     useActivateProjectLifecycleMutation()
   const [archiveProjectLifecycleMutation] =
@@ -56,7 +63,6 @@ const ChangeProjectLifecycleStateForm = ({
         return true
       } catch (error) {
         const apiError: ApiError = isApiError(error) ? error : {}
-        const gerund = stateAction === ProjectLifecycleStateAction.Activate ? 'activating' : 'archiving'
         messageApi.error(
           apiError.detail ??
             `An unexpected error occurred while ${gerund} the project lifecycle.`,
@@ -67,7 +73,7 @@ const ChangeProjectLifecycleStateForm = ({
     },
     onComplete: onFormComplete,
     onCancel: onFormCancel,
-    errorMessage: `An unexpected error occurred while ${stateAction}ing the project lifecycle.`,
+    errorMessage: `An unexpected error occurred while ${gerund} the project lifecycle.`,
     permission: 'Permissions.ProjectLifecycles.Update',
   })
 

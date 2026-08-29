@@ -30,6 +30,13 @@ const ChangeExpenditureCategoryStateForm = ({
 }: ChangeExpenditureCategoryStateFormProps) => {
   const messageApi = useMessage()
 
+  // `${stateAction}ing` would produce "Archiveing"; map to the correct
+  // gerund instead.
+  const gerund =
+    stateAction === ExpenditureCategoryStateAction.Activate
+      ? 'activating'
+      : 'archiving'
+
   const [activateExpenditureCategoryMutation] =
     useActivateExpenditureCategoryMutation()
   const [archiveExpenditureCategoryMutation] =
@@ -57,7 +64,7 @@ const ChangeExpenditureCategoryStateForm = ({
         const apiError: ApiError = isApiError(error) ? error : {}
         messageApi.error(
           apiError.detail ??
-            `An unexpected error occurred while ${stateAction}ing the expenditure category.`,
+            `An unexpected error occurred while ${gerund} the expenditure category.`,
         )
         console.log(error)
         return false
@@ -65,7 +72,7 @@ const ChangeExpenditureCategoryStateForm = ({
     },
     onComplete: onFormComplete,
     onCancel: onFormCancel,
-    errorMessage: `An unexpected error occurred while ${stateAction}ing the expenditure category.`,
+    errorMessage: `An unexpected error occurred while ${gerund} the expenditure category.`,
     permission: 'Permissions.ExpenditureCategories.Update',
   })
 

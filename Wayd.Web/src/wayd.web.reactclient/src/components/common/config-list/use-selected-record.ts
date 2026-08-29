@@ -23,9 +23,10 @@ export interface SelectedRecordState {
  * reachable by Back, and paste into a ticket. A filter is a working preference
  * and stays in local storage — see `useStatusFilter` for that side of the rule.
  *
- * `replace`, not `push`: stepping through six config rows should leave Back
- * pointing at wherever the user came from, not at the fifth row. Closing the
- * panel is the one exception — see `clear`.
+ * `replace`, not `push`, throughout — closing the panel included. Stepping
+ * through six config rows should leave Back pointing at wherever the user came
+ * from, not at the fifth row, and a close that pushed would make Back reopen
+ * the record the user had just dismissed.
  */
 export const useSelectedRecord = (): SelectedRecordState => {
   const params = useSearchParams()

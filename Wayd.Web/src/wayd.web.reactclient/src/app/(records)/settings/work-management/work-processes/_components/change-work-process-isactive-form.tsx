@@ -25,6 +25,9 @@ const ChangeWorkProcessIsActiveForm = ({
 
   const action = isActive ? 'Deactivate' : 'Activate'
   const actionLowerCase = action.toLowerCase()
+  // `${actionLowerCase}ing` would produce "activateing"; map to the correct
+  // gerund instead.
+  const gerund = isActive ? 'deactivating' : 'activating'
 
   const [changeWorkProcessIsActive] = useChangeWorkProcessIsActiveMutation()
 
@@ -52,7 +55,7 @@ const ChangeWorkProcessIsActiveForm = ({
     },
     onComplete: onFormSave,
     onCancel: onFormCancel,
-    errorMessage: `An unexpected error occurred while ${actionLowerCase}ing the work process.`,
+    errorMessage: `An unexpected error occurred while ${gerund} the work process.`,
     permission: 'Permissions.WorkProcesses.Update',
   })
 

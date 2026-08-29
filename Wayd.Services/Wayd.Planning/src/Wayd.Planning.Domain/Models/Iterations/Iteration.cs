@@ -8,6 +8,7 @@ using Wayd.Common.Domain.Interfaces.Planning.Iterations;
 using Wayd.Common.Domain.Models;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using NodaTime;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Planning.Domain.Models.Iterations;
 
@@ -86,7 +87,7 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
     /// </summary>
     public IReadOnlyCollection<KeyValueObjectMetadata> ExternalMetadata => _externalMetadata.AsReadOnly();
 
-    public Result Update(string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, Instant timestamp)
+    public Result Update(string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, EventActor actor, Instant timestamp)
     {
         if (!ValuesChanged(name, type, state, dateRange, teamId))
             return Result.Success();
@@ -98,7 +99,7 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
         DateRange = dateRange;
         TeamId = teamId;
 
-        AddDomainEvent(new IterationUpdatedEvent(this, timestamp));
+        AddDomainEvent(new IterationUpdatedEvent(this, actor, timestamp));
 
         return Result.Success();
     }
@@ -120,13 +121,14 @@ public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIterat
     /// <param name="teamId"></param>
     /// <param name="ownershipInfo"></param>
     /// <param name="externalMetadata"></param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp"></param>
     /// <returns></returns>
-    public static Iteration Create(string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, OwnershipInfo ownershipInfo, List<KeyValueObjectMetadata> externalMetadata, Instant timestamp)
+    public static Iteration Create(string name, IterationType type, IterationState state, IterationDateRange dateRange, Guid? teamId, OwnershipInfo ownershipInfo, List<KeyValueObjectMetadata> externalMetadata, EventActor actor, Instant timestamp)
     {
         var iteration = new Iteration(name, type, state, dateRange, teamId, ownershipInfo, externalMetadata);
 
-        iteration.AddPostPersistenceAction(() => iteration.AddDomainEvent(new IterationCreatedEvent(iteration, timestamp)));
+        iteration.AddPostPersistenceAction(() => iteration.AddDomainEvent(new IterationCreatedEvent(iteration, actor, timestamp)));
 
         return iteration;
     }

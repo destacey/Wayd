@@ -80,7 +80,7 @@ internal class RoleService(
                 throw new InternalServerException("Register role failed");
             }
 
-            await _events.PublishAsync(new ApplicationRoleCreatedEvent(role.Id, role.Name!, _dateTimeProvider.Now));
+            await _events.PublishAsync(new ApplicationRoleCreatedEvent(role.Id, role.Name!, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
 
             _logger.LogInformation("Role {RoleName} ({RoleId}) created by user {UserId}.", role.Name, role.Id, _currentUser.GetUserId());
 
@@ -117,7 +117,7 @@ internal class RoleService(
                 throw new InternalServerException("Update role failed");
             }
 
-            await _events.PublishAsync(new ApplicationRoleUpdatedEvent(role.Id, role.Name!, _dateTimeProvider.Now));
+            await _events.PublishAsync(new ApplicationRoleUpdatedEvent(role.Id, role.Name!, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
 
             _logger.LogInformation("Role {RoleName} ({RoleId}) updated by user {UserId}.", role.Name, role.Id, _currentUser.GetUserId());
 
@@ -183,7 +183,7 @@ internal class RoleService(
             }
         }
 
-        await _events.PublishAsync(new ApplicationRoleUpdatedEvent(role.Id, role.Name!, _dateTimeProvider.Now, true));
+        await _events.PublishAsync(new ApplicationRoleUpdatedEvent(role.Id, role.Name!, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now, true));
 
         _logger.LogInformation("Role {RoleName} ({RoleId}) permissions updated by user {UserId}: {Added} added, {Removed} removed.",
             role.Name, role.Id, _currentUser.GetUserId(), added, removed);
@@ -233,7 +233,7 @@ internal class RoleService(
 
         await _roleManager.DeleteAsync(role);
 
-        await _events.PublishAsync(new ApplicationRoleDeletedEvent(role.Id, role.Name!, _dateTimeProvider.Now));
+        await _events.PublishAsync(new ApplicationRoleDeletedEvent(role.Id, role.Name!, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
 
         _logger.LogInformation("Role {RoleName} ({RoleId}) deleted by user {UserId}.", role.Name, role.Id, _currentUser.GetUserId());
 

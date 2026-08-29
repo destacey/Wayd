@@ -7,15 +7,16 @@ namespace Wayd.Common.Domain.Events.StrategicManagement;
 
 public sealed record StrategicThemeCreatedEvent : DomainEvent, IStrategicThemeData
 {
-    public StrategicThemeCreatedEvent(IStrategicThemeData strategicTheme, Instant timestamp)
-        : this(strategicTheme.Id, strategicTheme.Key, strategicTheme.Name, strategicTheme.Description, strategicTheme.State, timestamp)
+    public StrategicThemeCreatedEvent(IStrategicThemeData strategicTheme, EventActor actor, Instant timestamp)
+        : this(strategicTheme.Id, strategicTheme.Key, strategicTheme.Name, strategicTheme.Description, strategicTheme.State, actor, timestamp)
     {
     }
 
     // Deserialization constructor for the Wolverine durable outbox (STJ binds parameters to properties by
     // name; the primary constructor's `strategicTheme` parameter cannot be bound).
     [JsonConstructor]
-    public StrategicThemeCreatedEvent(Guid id, int key, string name, string description, StrategicThemeState state, Instant timestamp)
+    public StrategicThemeCreatedEvent(Guid id, int key, string name, string description, StrategicThemeState state, EventActor actor, Instant timestamp)
+        : base(actor)
     {
         Id = id;
         Key = key;

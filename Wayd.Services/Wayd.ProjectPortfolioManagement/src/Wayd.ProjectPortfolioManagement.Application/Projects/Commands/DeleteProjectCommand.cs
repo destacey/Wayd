@@ -1,4 +1,6 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
+﻿using Wayd.Common.Domain.Events;
+
+namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 
 public sealed record DeleteProjectCommand(Guid Id) : ICommand;
 
@@ -11,10 +13,11 @@ public sealed class DeleteProjectCommandValidator : AbstractValidator<DeleteProj
     }
 }
 
-public sealed class DeleteProjectCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<DeleteProjectCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<DeleteProjectCommand>
+public sealed class DeleteProjectCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ICurrentUser currentUser, ILogger<DeleteProjectCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<DeleteProjectCommand>
 {
     private const string AppRequestName = nameof(DeleteProjectCommand);
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<DeleteProjectCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -53,7 +56,7 @@ public sealed class DeleteProjectCommandHandler(IProjectPortfolioManagementDbCon
                 return Result.Failure("Portfolio not found.");
             }
 
-            var deleteResult = portfolio.DeleteProject(project.Id, _dateTimeProvider.Now);
+            var deleteResult = portfolio.DeleteProject(project.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (deleteResult.IsFailure)
             {
                 _logger.LogError("Error deleting project {ProjectId}. Error message: {Error}", request.Id, deleteResult.Error);

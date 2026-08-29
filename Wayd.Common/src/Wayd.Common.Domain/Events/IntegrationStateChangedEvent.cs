@@ -6,7 +6,8 @@ namespace Wayd.Common.Domain.Events;
 
 public record IntegrationStateChangedEvent<TId> : DomainEvent
 {
-    public IntegrationStateChangedEvent(SystemContext systemContext, IntegrationState<TId> integrationState, Instant timestamp)
+    public IntegrationStateChangedEvent(SystemContext systemContext, IntegrationState<TId> integrationState, EventActor actor, Instant timestamp)
+        : base(actor)
     {
         SystemContext = systemContext;
         IntegrationState = integrationState;

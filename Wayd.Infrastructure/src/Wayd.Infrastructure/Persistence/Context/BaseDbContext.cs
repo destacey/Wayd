@@ -543,12 +543,22 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
         var inlineEvents = new List<IEvent>();
         var enrolled = false;
 
+        // Resolved once per drain rather than per event, so every event raised by one save shares a
+        // correlation id — one save is one chain of consequences. Never throws or blocks on there being a
+        // signed-in user: CorrelationId falls back to the ambient trace id, then to a new Guid.
+        var correlationId = _requestCorrelationIdProvider.CorrelationId;
+
         foreach (var entity in entitiesWithEvents)
         {
             var domainEvents = entity.DomainEvents.ToArray();
             entity.ClearDomainEvents();
             foreach (var domainEvent in domainEvents)
             {
+                // Stamp BEFORE routing, so the durable and inline paths are stamped alike — the durable
+                // branch below serializes the event into an outbox row, and a value assigned after that
+                // point would not survive to the handler.
+                domainEvent.CorrelationId ??= correlationId;
+
                 if (DurableEventRoutes.IsDurable(domainEvent))
                 {
                     // Enroll THIS DbContext instance (not the outbox's own scoped context) exactly once, so the

@@ -12,3 +12,4 @@ global using Wayd.Work.Application.WorkStatusCategories.Dtos;
 global using Wayd.Work.Application.WorkTypeLevels.Dtos;
 global using Wayd.Work.Domain.Models;
 global using NodaTime;
+global using Wayd.Common.Domain.Events;

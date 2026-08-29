@@ -82,7 +82,7 @@ internal partial class UserService
         if (isFirstUser)
         {
             await _userManager.AddToRoleAsync(user, ApplicationRoles.Admin);
-            await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, _dateTimeProvider.Now, true));
+            await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.System, _dateTimeProvider.Now, true));
         }
         else
         {
@@ -90,7 +90,7 @@ internal partial class UserService
             if (roles is null || !roles.Any())
             {
                 await _userManager.AddToRoleAsync(user, await ResolveDefaultRoleName(policy));
-                await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, _dateTimeProvider.Now, true));
+                await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.System, _dateTimeProvider.Now, true));
             }
         }
 
@@ -313,7 +313,7 @@ internal partial class UserService
             "Tenant migration completed for user {UserId}: rebound to tenant {TenantId} (subject {ObjectId}).",
             candidate.Id, tenantId, objectId);
 
-        await _events.PublishAsync(new ApplicationUserUpdatedEvent(candidate.Id, _dateTimeProvider.Now));
+        await _events.PublishAsync(new ApplicationUserUpdatedEvent(candidate.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
 
         return candidate;
     }
@@ -454,7 +454,7 @@ internal partial class UserService
             "LocalPasswordCleared={LocalPasswordCleared}.",
             candidate.Id, providerName, subject, localPasswordCleared);
 
-        await _events.PublishAsync(new ApplicationUserUpdatedEvent(candidate.Id, _dateTimeProvider.Now));
+        await _events.PublishAsync(new ApplicationUserUpdatedEvent(candidate.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
 
         return candidate;
     }
@@ -663,7 +663,7 @@ internal partial class UserService
             throw new InternalServerException("Validation Errors Occurred.");
         }
 
-        await _events.PublishAsync(new ApplicationUserCreatedEvent(user.Id, _dateTimeProvider.Now));
+        await _events.PublishAsync(new ApplicationUserCreatedEvent(user.Id, EventActor.System, _dateTimeProvider.Now));
 
         await EnsureEntraIdentityRowAsync(user, principalTenantId, principalObjectId);
 
@@ -796,7 +796,7 @@ internal partial class UserService
         }
 
         // Publish after commit so subscribers don't see events for rolled-back users.
-        await _events.PublishAsync(new ApplicationUserCreatedEvent(user.Id, _dateTimeProvider.Now));
+        await _events.PublishAsync(new ApplicationUserCreatedEvent(user.Id, EventActor.System, _dateTimeProvider.Now));
 
         _logger.LogInformation("User {UserId} created successfully.", user.Id);
         return Result.Success(user.Id);
@@ -842,7 +842,7 @@ internal partial class UserService
 
         await _signInManager.RefreshSignInAsync(user);
 
-        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, _dateTimeProvider.Now));
+        await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
 
         if (!result.Succeeded)
         {
@@ -985,7 +985,7 @@ internal partial class UserService
             var result = await _userManager.UpdateAsync(user);
             if (result.Succeeded)
             {
-                await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, _dateTimeProvider.Now));
+                await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
             }
             else
             {
@@ -1034,7 +1034,7 @@ internal partial class UserService
             if (result.Succeeded)
             {
                 _logger.LogInformation("User {UserId} updated.", user.Id);
-                await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, _dateTimeProvider.Now));
+                await _events.PublishAsync(new ApplicationUserUpdatedEvent(user.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
             }
             else
             {

@@ -1,5 +1,6 @@
 ﻿using Wayd.Common.Domain.Interfaces.Planning.Iterations;
 using Wayd.Work.Application.Persistence;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Work.Application.WorkIterations.Commands;
 
@@ -65,7 +66,7 @@ public sealed class SyncWorkIterationsCommandHandler(
                     if (_logger.IsEnabled(LogLevel.Debug))
                         _logger.LogDebug("Updating existing Work iteration {IterationId}.", iteration.Id);
 
-                    var result = existingIteration.Update(iteration, now);
+                    var result = existingIteration.Update(iteration, EventActor.System, now);
                     if (result.IsFailure)
                     {
                         _logger.LogWarning("Failed to update Work iteration {IterationId}: {ErrorMessage}.", iteration.Id, result.Error);

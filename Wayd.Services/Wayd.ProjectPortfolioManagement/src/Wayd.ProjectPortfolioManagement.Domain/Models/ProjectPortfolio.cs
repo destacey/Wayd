@@ -8,6 +8,7 @@ using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 using NodaTime;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Models;
 
@@ -613,16 +614,17 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// <param name="dateRange">The date range of the program (optional).</param>
     /// <param name="roles">The roles associated with the program (optional).</param>
     /// <param name="strategicThemes">The strategic themes associated with the program (optional).</param>
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp"></param>
     /// <returns>A result containing the created program or an error.</returns>
-    public Result<Program> CreateProgram(string name, string description, LocalDateRange? dateRange, Dictionary<ProgramRole, HashSet<Guid>>? roles, HashSet<Guid>? strategicThemes, Instant timestamp)
+    public Result<Program> CreateProgram(string name, string description, LocalDateRange? dateRange, Dictionary<ProgramRole, HashSet<Guid>>? roles, HashSet<Guid>? strategicThemes, EventActor actor, Instant timestamp)
     {
         if (!IsActive)
         {
             return Result.Failure<Program>("Programs can only be created in active or on-hold portfolios.");
         }
 
-        var program = Program.Create(name, description, dateRange, Id, roles, strategicThemes, timestamp);
+        var program = Program.Create(name, description, dateRange, Id, roles, strategicThemes, actor, timestamp);
         _programs.Add(program);
 
         return Result.Success(program);
@@ -779,9 +781,10 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// </summary>
     /// <param name="programId"></param>
     /// 
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp"></param>
     /// <returns></returns>
-    public Result DeleteProgram(Guid programId, Instant timestamp)
+    public Result DeleteProgram(Guid programId, EventActor actor, Instant timestamp)
     {
         var program = _programs.SingleOrDefault(p => p.Id == programId);
         if (program is null)
@@ -806,7 +809,7 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
 
         _programs.Remove(program);
 
-        AddDomainEvent(new ProgramDeletedEvent(programId, timestamp));
+        AddDomainEvent(new ProgramDeletedEvent(programId, actor, timestamp));
 
         return Result.Success();
     }
@@ -816,9 +819,10 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     /// </summary>
     /// <param name="projectId"></param>
     /// 
+    /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp"></param>
     /// <returns></returns>
-    public Result DeleteProject(Guid projectId, Instant timestamp)
+    public Result DeleteProject(Guid projectId, EventActor actor, Instant timestamp)
     {
         var project = _projects.SingleOrDefault(p => p.Id == projectId);
         if (project is null)
@@ -853,7 +857,7 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
 
         _projects.Remove(project);
 
-        AddDomainEvent(new ProjectDeletedEvent(projectId, timestamp));
+        AddDomainEvent(new ProjectDeletedEvent(projectId, actor, timestamp));
 
         return Result.Success();
     }

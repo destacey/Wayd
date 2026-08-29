@@ -3,6 +3,7 @@ using Wayd.ProjectPortfolioManagement.Application.Programs.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
 
@@ -49,12 +50,14 @@ public sealed class ImportProgramsCommandValidator : CustomValidator<ImportProgr
 public sealed class ImportProgramsCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     IDateTimeProvider dateTimeProvider,
+    ICurrentUser currentUser,
     ILogger<ImportProgramsCommandHandler> logger) : ICommandHandler<ImportProgramsCommand>
 {
     private const string RequestName = nameof(ImportProgramsCommand);
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<ImportProgramsCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ImportProgramsCommand request, CancellationToken cancellationToken)
@@ -113,6 +116,7 @@ public sealed class ImportProgramsCommandHandler(
                     dateRange,
                     BuildRoles(row, employeeIdsByNumber),
                     themeIds,
+                    EventActor.Import(_currentUser.GetUserId()),
                     timestamp);
                 if (createResult.IsFailure)
                     return Fail($"Could not create program '{row.Name}' in portfolio '{row.PortfolioName}': {createResult.Error}");

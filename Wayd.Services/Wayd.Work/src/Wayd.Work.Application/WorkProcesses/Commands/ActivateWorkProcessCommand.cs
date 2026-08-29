@@ -1,14 +1,16 @@
 ﻿using Wayd.Work.Application.Persistence;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Work.Application.WorkProcesses.Commands;
 
 public sealed record ActivateWorkProcessCommand(Guid Id) : ICommand;
 
-public sealed class ActivateWorkProcessCommandHandler(IWorkDbContext workDbContext, ILogger<ActivateWorkProcessCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ActivateWorkProcessCommand>
+public sealed class ActivateWorkProcessCommandHandler(IWorkDbContext workDbContext, ICurrentUser currentUser, ILogger<ActivateWorkProcessCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ActivateWorkProcessCommand>
 {
     private const string AppRequestName = nameof(ActivateWorkProcessCommand);
 
     private readonly IWorkDbContext _workDbContext = workDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<ActivateWorkProcessCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -28,7 +30,7 @@ public sealed class ActivateWorkProcessCommandHandler(IWorkDbContext workDbConte
             return Result.Failure($"Work process {workProcess.Name} is already active.");
         }
 
-        workProcess.Activate(_dateTimeProvider.Now);
+        workProcess.Activate(WorkProcessActivationArgs.Create(EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now));
 
         await _workDbContext.SaveChangesAsync(cancellationToken);
 

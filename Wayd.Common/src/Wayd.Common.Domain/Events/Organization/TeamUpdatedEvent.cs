@@ -5,7 +5,8 @@ namespace Wayd.Common.Domain.Events.Organization;
 
 public sealed record TeamUpdatedEvent : DomainEvent
 {
-    public TeamUpdatedEvent(Guid id, TeamCode code, string name, string? description, Instant timestamp)
+    public TeamUpdatedEvent(Guid id, TeamCode code, string name, string? description, EventActor actor, Instant timestamp)
+        : base(actor)
     {
         Id = id;
         Code = code;

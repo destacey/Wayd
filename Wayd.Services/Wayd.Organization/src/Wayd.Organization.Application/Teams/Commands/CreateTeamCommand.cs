@@ -3,6 +3,7 @@ using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Application.Teams.Models;
 using Wayd.Organization.Domain.Enums;
 using NodaTime;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Organization.Application.Teams.Commands;
 
@@ -46,12 +47,14 @@ public sealed class CreateTeamCommandHandler : ICommandHandler<CreateTeamCommand
 
     private readonly IOrganizationDbContext _organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ICurrentUser _currentUser;
     private readonly ILogger<CreateTeamCommandHandler> _logger;
 
-    public CreateTeamCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ILogger<CreateTeamCommandHandler> logger)
+    public CreateTeamCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, ILogger<CreateTeamCommandHandler> logger)
     {
         _organizationDbContext = organizationDbContext;
         _dateTimeProvider = dateTimeProvider;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -67,6 +70,7 @@ public sealed class CreateTeamCommandHandler : ICommandHandler<CreateTeamCommand
                 request.ActiveDate,
                 Methodology.Kanban,
                 SizingMethod.Count,
+                EventActor.User(_currentUser.GetUserId()),
                 _dateTimeProvider.Now);
 
             await _organizationDbContext.Teams.AddAsync(team, cancellationToken);

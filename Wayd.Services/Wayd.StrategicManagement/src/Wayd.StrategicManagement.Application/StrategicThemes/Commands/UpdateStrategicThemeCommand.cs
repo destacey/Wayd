@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Application.Models;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.StrategicManagement.Application.StrategicThemes.Commands;
 
@@ -22,6 +23,7 @@ public sealed class UpdateStrategicThemeCommandValidator : AbstractValidator<Upd
 
 public sealed class UpdateStrategicThemeCommandHandler(
     IStrategicManagementDbContext strategicManagementDbContext,
+    ICurrentUser currentUser,
     ILogger<UpdateStrategicThemeCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UpdateStrategicThemeCommand>
@@ -29,6 +31,7 @@ public sealed class UpdateStrategicThemeCommandHandler(
     private const string AppRequestName = nameof(UpdateStrategicThemeCommand);
 
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<UpdateStrategicThemeCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -48,6 +51,7 @@ public sealed class UpdateStrategicThemeCommandHandler(
             var updateResult = strategicTheme.Update(
                 request.Name,
                 request.Description,
+                EventActor.User(_currentUser.GetUserId()),
                 _dateTimeProvider.Now
                 );
 

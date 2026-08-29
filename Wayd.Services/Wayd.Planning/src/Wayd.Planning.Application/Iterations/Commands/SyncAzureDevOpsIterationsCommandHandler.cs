@@ -9,6 +9,7 @@ using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Common.Domain.Models;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Planning.Domain.Models.Iterations;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Planning.Application.Iterations.Commands;
 
@@ -122,7 +123,7 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IPlanningDbContext p
         {
             foreach (var iteration in iterationsToDelete)
             {
-                var deleteEvent = new IterationDeletedEvent(iteration.Id, _dateTimeProvider.Now);
+                var deleteEvent = new IterationDeletedEvent(iteration.Id, EventActor.Sync(null), _dateTimeProvider.Now);
                 await _eventPublisher.PublishAsync(deleteEvent);
             }
         }
@@ -179,6 +180,7 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IPlanningDbContext p
                     externalIteration.State,
                     IterationDateRange.Create(externalIteration.Start, externalIteration.End),
                     teamId,
+                    EventActor.Sync(null),
                     _dateTimeProvider.Now
                 );
                 if (updateResult.IsFailure)
@@ -211,6 +213,7 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IPlanningDbContext p
                     teamId,
                     ownershipInfo,
                     externalMetadata,
+                    EventActor.Sync(null),
                     _dateTimeProvider.Now
                 );
 

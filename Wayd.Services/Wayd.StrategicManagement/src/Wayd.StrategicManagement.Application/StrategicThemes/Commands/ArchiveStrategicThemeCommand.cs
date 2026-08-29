@@ -11,11 +11,12 @@ public sealed class ArchiveStrategicThemeCommandValidator : AbstractValidator<Ar
     }
 }
 
-public sealed class ArchiveStrategicThemeCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<ArchiveStrategicThemeCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ArchiveStrategicThemeCommand>
+public sealed class ArchiveStrategicThemeCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ICurrentUser currentUser, ILogger<ArchiveStrategicThemeCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ArchiveStrategicThemeCommand>
 {
     private const string AppRequestName = nameof(ArchiveStrategicThemeCommand);
 
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<ArchiveStrategicThemeCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -31,7 +32,7 @@ public sealed class ArchiveStrategicThemeCommandHandler(IStrategicManagementDbCo
                 return Result.Failure("Strategic Theme not found.");
             }
 
-            var archiveResult = theme.Archive(_dateTimeProvider.Now);
+            var archiveResult = theme.Archive(EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (archiveResult.IsFailure)
             {
                 // Reset the entity

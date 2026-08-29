@@ -1,0 +1,130 @@
+.docs-layout {
+  /* No negative margin: docs is a self-chroming area, so it never opts into
+     `.page-gutters` and has nothing to cancel. The old negation compensated
+     for padding that used to sit on `.app-main-content`. */
+  /* Fill the full height of the scrollable app-main-content area */
+  min-height: calc(100vh - 50px);
+}
+
+.docs-layout .ant-layout-sider {
+  /* Stick to viewport and scroll independently */
+  position: sticky !important;
+  top: 0;
+  height: calc(100vh - 50px);
+  overflow-y: auto;
+}
+
+.docs-content {
+  line-height: 1.8;
+}
+
+.docs-content pre {
+  background: var(--ant-color-bg-layout);
+  border: 1px solid var(--ant-color-border);
+  border-radius: 6px;
+  padding: 16px;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+.docs-content code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.875em;
+}
+
+.docs-content :not(pre) > code {
+  background: var(--ant-color-bg-layout);
+  border: 1px solid var(--ant-color-border);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.docs-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+
+.docs-content th,
+.docs-content td {
+  border: 1px solid var(--ant-color-border);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.docs-content th {
+  background: var(--ant-color-bg-layout);
+  font-weight: 600;
+}
+
+.docs-content blockquote {
+  border-left: 4px solid var(--ant-color-primary);
+  margin: 16px 0;
+  padding: 8px 16px;
+  background: var(--ant-color-bg-layout);
+  border-radius: 0 6px 6px 0;
+}
+
+.docs-content a {
+  color: var(--ant-color-primary);
+}
+
+.docs-content a:hover {
+  color: var(--ant-color-primary-hover);
+}
+
+.docs-content ul,
+.docs-content ol {
+  padding-left: 24px;
+  margin: 8px 0;
+}
+
+.docs-content li {
+  margin: 4px 0;
+}
+
+.docs-content hr {
+  border: none;
+  border-top: 1px solid var(--ant-color-border);
+  margin: 24px 0;
+}
+
+.docs-content img {
+  max-width: 100%;
+  border-radius: 6px;
+}
+
+/* Mobile docs layout */
+.docs-layout-mobile {
+  flex-direction: column !important;
+}
+
+/* Spans the full width, as it did when it was negating the app's old gutters. */
+.docs-mobile-menu-bar {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--ant-color-border);
+  background: var(--ant-color-bg-container);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Horizontal padding is the area's own now — it used to come from the app
+   shell, which no longer pads anything. */
+.docs-mobile-content {
+  padding: 16px;
+}
+
+.docs-mobile-content .docs-content pre {
+  font-size: 0.8em;
+}
+
+.docs-mobile-content .docs-content table {
+  display: block;
+  overflow-x: auto;
+}
+
+.docs-mobile-content .docs-content th,
+.docs-mobile-content .docs-content td {
+  white-space: nowrap;
+}

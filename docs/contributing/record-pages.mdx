@@ -438,15 +438,26 @@ Recommended order for an area:
 3. **Responsive** — drawer and section `Select`, checked at real widths.
 4. **List page** — identity column and filter chips.
 
-`PageTitle` is the legacy component. When `(legacy)` is empty and nothing renders it, `RecordHeader` can take the name.
+`PageTitle` and `RecordHeader` are **peers, not predecessor and successor**. `PageTitle` heads a list page, where the title is the largest thing on screen; `RecordHeader` is a record's identity bar. Every list page in the app renders `PageTitle` and will continue to — retiring it would leave list pages with no heading component, and `RecordHeader` cannot stand in for one without growing the branching the two were split apart to avoid.
 
-### A record page inside another area's chrome
+### Page padding
 
-`RecordLayout` expects to own its whole area: the identity bar supplies its own padding and spans the full width, which is why `(records)/layout.tsx` deliberately adds nothing.
+**`.app-main-content` has no padding, permanently.** It is a scroll container and nothing else. Padding is *opted into* by whatever owns a page's frame:
 
-Settings is the exception — it keeps its navigation rail on record pages, so a settings record renders inside the settings layout's padded content column. Wrap it in **`SettingsRecordShell`**, which negates that padding so the identity bar spans properly and the section rail sits flush. The `loading.tsx` needs the same wrapper, since it renders instead of the layout rather than inside it.
+| The page is | Frame | Gutters |
+| --- | --- | --- |
+| A record | `RecordLayout` / `RecordShell` | Supplied by the component — runs edge-to-edge |
+| A list, dashboard, or tool | its own root element | `className="page-gutters"` |
+| An area with its own chrome (docs) | that area's layout | Whatever the area draws |
+| Full-viewport (login, logout, setup) | the page itself | None — it paints its own background |
 
-Any future area that keeps its own chrome needs the same treatment. A record page cannot un-pad its parent, so the negation belongs to the area, once — not repeated in each of its pages.
+`.page-gutters` (in `styles/globals.css`) holds the measurement once: `16px 24px 24px`, tightening below `768px`.
+
+:::danger Never pad a parent and negate it in the child
+A child cannot reliably un-pad its parent — negative margins work until something clips, which is what `.app-main-content`'s `overflow-x: hidden` was there to hide. This rule is why `SettingsRecordShell` no longer exists: settings used to pad its content column, so its record pages each had to cancel it again. The padding moved onto the settings *list* pages instead, and the negation went away.
+
+An area holding both list and record pages — settings does, and so does the top level — cannot pick one frame for all of them. Keep the gutters on the pages that want them.
+:::
 
 ## Reference
 

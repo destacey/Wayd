@@ -2,7 +2,7 @@
 //
 // Consumers supply accessors for their own tree node shape and wire the result
 // into WaydGrid's rightPane slot. See use-gantt-pane.tsx for the engine and
-// app/(legacy)/planning/roadmaps/_components/roadmap-gantt.tsx for a reference adapter.
+// app/planning/roadmaps/_components/roadmap-gantt.tsx for a reference adapter.
 
 export {
   useGanttPane,

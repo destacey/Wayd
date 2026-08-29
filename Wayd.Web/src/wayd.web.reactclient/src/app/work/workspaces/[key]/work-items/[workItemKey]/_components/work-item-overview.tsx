@@ -101,6 +101,7 @@ const WorkItemOverview = ({
     isPortfolioTier && (childWorkItemsLoading || childTypes.length > 0)
   const showDependencyHealth =
     dependenciesLoading || dependencyHealth.length > 0
+  const showProgress = isPortfolioTier && (isLoading || !!progress)
 
   const charts = [
     showChildTypes && {
@@ -113,7 +114,7 @@ const WorkItemOverview = ({
         />
       ),
     },
-    progress && {
+    showProgress && {
       id: 'progress',
       chart: (
         <WorkItemProgressPieChart progress={progress} isLoading={isLoading} />

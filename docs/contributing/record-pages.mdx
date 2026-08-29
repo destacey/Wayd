@@ -214,7 +214,9 @@ Distinguish the two failure kinds: a **render error** is a bug — say so and of
 | Grid or list rows | Skeleton (row-shaped) |
 | Form submit, status change | Spinner on the button |
 | Modal or drawer fetching | Spinner |
-| Chart, timeline, org chart | Spinner — shape is data-dependent |
+| Metric tile | Skeleton — `MetricCard`'s `loading`, two lines for a label and a number |
+| Chart | Skeleton — `ChartSkeleton`, or `ChartCard`'s `loading`, which draws it |
+| Timeline, org chart | Spinner — shape is data-dependent |
 | Refetch of visible content | **Neither** — keep the stale data |
 
 :::warning Drive skeletons off `isLoading`, not `isFetching`
@@ -222,6 +224,12 @@ Distinguish the two failure kinds: a **render error** is a bug — say so and of
 :::
 
 A skeleton that lies is worse than a spinner. If it shows three rows and twenty arrive, the page lurches — when you cannot predict the shape, spin honestly.
+
+A chart is the case where that rule is easy to misread. Its *data* is unpredictable, but its *frame* is not: a plot area of known height, in a card of known width. `ChartSkeleton` draws that frame with a chart glyph in it, which is honest — nothing about it implies how many series are coming. A timeline or org chart has no fixed frame, so it still spins.
+
+:::warning Never use a placeholder value as a loading state
+`value={isLoading ? '—' : count}` reads as a real measurement — "not applicable" — rather than saying a number is on its way, and the tile then jumps as the dash is replaced. Pass `loading` instead and let the card draw its skeleton.
+:::
 
 ## Where page state lives
 
@@ -324,6 +332,24 @@ An Overview section's metric tiles use `MetricCard` (or a specific metric like `
 **Count from the same query the section uses**, not a separate aggregate, unless an aggregate endpoint genuinely exists. A count that disagrees with the list beside it is worse than no count.
 
 **Omit a tile that would only ever read zero.** An overview should carry facts, not absences — a "Direct Reports: 0" card is noise on the majority of employee records.
+
+**Hide a tile only once its query has resolved.** Gating on the count alone (`count > 0 && <MetricCard/>`) hides the tile during the load and pops it in when data lands, shifting the row under the reader — and makes "none" indistinguishable from "not loaded yet". Gate on `isLoading || count > 0` and pass `loading`.
+
+## Charts on an Overview
+
+Charts come from `@ant-design/charts` (G2 v5), wrapped in **`ChartCard`** so the title, skeleton and card chrome match the metric tiles beside them. Never pass `title` into the chart config — G2 would draw a second heading inside the canvas.
+
+:::danger `autoFit` is not enough on its own
+`autoFit: true` sizes a chart when it mounts and afterwards re-fits **only on the window's `resize` event**. Anything else that changes its width — opening or dragging the record facts rail, collapsing the app sider, a `Col` settling after first paint — never reaches it, so the canvas keeps its old size and overflows its card, or renders at zero width and appears blank.
+
+Every chart needs `autoFit: true` **and** `useChartRemountOnResize()`: attach its `ref` to a wrapper div, pass `renderKey` as the chart's `key`. This has been missed three times; if a chart is blank or overflowing, check this first.
+:::
+
+**A closed vocabulary gets a fixed colour scale.** Where the categories are a known set — work status, dependency health — pass a `scale.color` with the full domain, resolved from the same mapping the matching tags use. Two things follow: a category is the same colour on every chart, and dropping an empty category cannot re-index the palette and hand one category another's colour. `BreakdownPie` takes this as `colorScale`, and supplying it also switches the chart to a legend naming every value, so a chart showing a single slice still says what the alternatives were.
+
+Open-ended breakdowns — work types, strategic themes — cannot do this: their vocabulary is whatever the data holds. They carry the category name in the slice label instead.
+
+**Drop zero-count entries before plotting.** A zero slice draws no arc but still renders its label, stacking "0 (0%)" over the real one at the centre of the circle.
 
 ## Grids inside sections
 

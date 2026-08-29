@@ -18,9 +18,12 @@ const Pie = dynamic(
 )
 
 export interface WorkItemProgressPieChartProps {
-  progress: WorkItemProgressDailyRollupDto
+  progress?: WorkItemProgressDailyRollupDto | null
   isLoading: boolean
 }
+
+export const PROGRESS_TOOLTIP =
+  'Every requirement-tier work item beneath this one, however deep — not just its direct children.'
 
 const WorkItemProgressPieChart = ({
   progress,
@@ -31,9 +34,12 @@ const WorkItemProgressPieChart = ({
   // Before the early return: hooks cannot be conditional.
   const { ref, renderKey } = useChartRemountOnResize()
 
+  // Nothing to plot once loaded. While loading there is nothing to plot either,
+  // but the card still renders so its skeleton is what the reader sees.
   if (
-    !progress ||
-    (progress.proposed === 0 && progress.active === 0 && progress.done === 0)
+    !isLoading &&
+    (!progress ||
+      (progress.proposed === 0 && progress.active === 0 && progress.done === 0))
   )
     return null
 
@@ -42,9 +48,9 @@ const WorkItemProgressPieChart = ({
   // one at the centre of the circle. The scale's fixed domain keeps them in
   // the legend regardless.
   const data = [
-    { type: 'Proposed', count: progress.proposed },
-    { type: 'Active', count: progress.active },
-    { type: 'Done', count: progress.done },
+    { type: 'Proposed', count: progress?.proposed ?? 0 },
+    { type: 'Active', count: progress?.active ?? 0 },
+    { type: 'Done', count: progress?.done ?? 0 },
   ].filter((d) => d.count > 0)
 
   const config = {
@@ -65,7 +71,8 @@ const WorkItemProgressPieChart = ({
     autoFit: true,
     label: {
       text: (datum: any) => {
-        return `${datum.count} (${((datum.count / progress.total) * 100).toFixed(0)}%)`
+        const total = progress?.total || 1
+        return `${datum.count} (${((datum.count / total) * 100).toFixed(0)}%)`
       },
     },
     tooltip: {
@@ -87,6 +94,7 @@ const WorkItemProgressPieChart = ({
   return (
     <ChartCard
       title="Progress"
+      tooltip={PROGRESS_TOOLTIP}
       loading={isLoading}
       skeletonHeight={BREAKDOWN_CHART_HEIGHT}
     >

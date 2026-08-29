@@ -1,3 +1,5 @@
+'use client'
+
 import { Button, Card, Space } from 'antd'
 import useTheme from '../../components/contexts/theme'
 

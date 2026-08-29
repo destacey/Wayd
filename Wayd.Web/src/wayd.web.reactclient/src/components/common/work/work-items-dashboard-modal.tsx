@@ -40,9 +40,13 @@ const WorkItemsDashboardModal = (props: WorkItemsDashboardModalProps) => {
         confirmLoading={isLoading}
         destroyOnHidden={true}
       >
+        {/* Embedded: the modal's own title already names the chart, so a
+            bordered card with a second heading beneath it reads as doubled
+            chrome. */}
         <WorkItemsCumulativeFlowChart
           workItems={workItemsData ?? []}
           isLoading={isLoading}
+          embedded
         />
       </Modal>
     </>

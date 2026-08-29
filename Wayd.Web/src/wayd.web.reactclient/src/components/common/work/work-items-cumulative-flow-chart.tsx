@@ -7,22 +7,30 @@ const Area = dynamic(
 )
 import { AreaConfig } from '@ant-design/charts'
 import useTheme from '../../contexts/theme'
+import { ChartCard } from '../metrics'
+import { useChartRemountOnResize } from '@/src/hooks'
 import { WorkItemProgressDailyRollupDto } from '@/src/services/wayd-api'
 import WaydEmpty from '../wayd-empty'
-import { Spin, Typography } from 'antd'
+import { getWorkStatusCategoryColorScale } from './work-status-category-colors'
+import { theme } from 'antd'
 import dayjs from 'dayjs'
-
-const { Title } = Typography
 
 export interface WorkItemsCumulativeFlowChartProps {
   workItems: WorkItemProgressDailyRollupDto[]
   isLoading: boolean
+  /**
+   * Drops the card border and title — for a container that already names the
+   * chart, such as a modal whose own title says the same thing.
+   */
+  embedded?: boolean
 }
 
 const WorkItemsCumulativeFlowChart = (
   props: WorkItemsCumulativeFlowChartProps,
 ) => {
   const { antDesignChartsTheme } = useTheme()
+  const { token } = theme.useToken()
+  const { ref, renderKey } = useChartRemountOnResize()
 
   // Derive chart data from work items
   const data = (() => {
@@ -52,13 +60,19 @@ const WorkItemsCumulativeFlowChart = (
   })()
 
   const config = {
-    title: 'Cumulative Flow',
+    // No `title`: `ChartCard` heads the chart, and G2 would draw a second one.
     theme: antDesignChartsTheme,
+    // Without this the chart keeps G2's fixed default width and overflows its
+    // card. Pairs with `useChartRemountOnResize` — see that hook for why
+    // `autoFit` alone is not enough.
+    autoFit: true,
     data: data,
     xField: 'date',
     yField: 'value',
     //seriesField: 'category', // not sure when to use seriesField vs colorField
     colorField: 'category',
+    // Shared with the progress pie, so a category means the same color on both.
+    scale: { color: getWorkStatusCategoryColorScale(token) },
     legend: {
       color: { layout: { justifyContent: 'center' }, itemMarker: 'square' },
     },
@@ -95,17 +109,23 @@ const WorkItemsCumulativeFlowChart = (
     // update the tooltip to show the date with this format 'MMM D, YYYY'
   } as AreaConfig
 
-  if (props.isLoading) return <Spin />
-
-  if (data.length === 0)
-    return (
-      <>
-        <Title level={5}>Cumulative Flow</Title>
-        <WaydEmpty message="No work item data to display" />
-      </>
-    )
-
-  return <Area {...config} />
+  // The ref must stay on one wrapper across every state, or the observer
+  // re-attaches mid-load and first measures a spinner's width.
+  return (
+    <ChartCard
+      title={props.embedded ? undefined : 'Cumulative Flow'}
+      loading={props.isLoading}
+      embedded={props.embedded}
+    >
+      <div ref={ref}>
+        {data.length === 0 ? (
+          <WaydEmpty message="No work item data to display" />
+        ) : (
+          <Area key={renderKey} {...config} />
+        )}
+      </div>
+    </ChartCard>
+  )
 }
 
 export default WorkItemsCumulativeFlowChart

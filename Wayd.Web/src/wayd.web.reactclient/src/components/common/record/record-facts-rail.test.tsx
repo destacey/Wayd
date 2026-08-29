@@ -30,8 +30,30 @@ describe('RecordFactsRail resizing', () => {
     // Act
     fireEvent.mouseDown(resizer)
     fireEvent.mouseMove(document, { clientX: window.innerWidth - 400 })
+    fireEvent.mouseUp(document)
 
     // Assert
+    expect(onWidthChange).toHaveBeenLastCalledWith(400)
+  })
+
+  it('reports the width once the drag ends, not on every move', () => {
+    // Arrange
+    const { onWidthChange } = renderRail()
+
+    // Act
+    fireEvent.mouseDown(screen.getByRole('separator'))
+    fireEvent.mouseMove(document, { clientX: window.innerWidth - 350 })
+    fireEvent.mouseMove(document, { clientX: window.innerWidth - 400 })
+
+    // Assert — persisting per move re-rendered the whole record, which made
+    // the panel and the charts beside it flicker for seconds after a drag.
+    expect(onWidthChange).not.toHaveBeenCalled()
+
+    // Act
+    fireEvent.mouseUp(document)
+
+    // Assert
+    expect(onWidthChange).toHaveBeenCalledTimes(1)
     expect(onWidthChange).toHaveBeenLastCalledWith(400)
   })
 
@@ -42,6 +64,7 @@ describe('RecordFactsRail resizing', () => {
     // Act — drag far past the left edge of the screen
     fireEvent.mouseDown(screen.getByRole('separator'))
     fireEvent.mouseMove(document, { clientX: -5000 })
+    fireEvent.mouseUp(document)
 
     // Assert
     expect(onWidthChange).toHaveBeenLastCalledWith(
@@ -56,6 +79,7 @@ describe('RecordFactsRail resizing', () => {
     // Act
     fireEvent.mouseDown(screen.getByRole('separator'))
     fireEvent.mouseMove(document, { clientX: window.innerWidth + 5000 })
+    fireEvent.mouseUp(document)
 
     // Assert
     expect(onWidthChange).toHaveBeenLastCalledWith(

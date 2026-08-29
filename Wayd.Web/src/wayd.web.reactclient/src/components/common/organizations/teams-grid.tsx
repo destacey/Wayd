@@ -1,3 +1,5 @@
+'use client'
+
 import { FC, useMemo } from 'react'
 import { WaydGrid, renderTeamLink } from '../wayd-grid'
 import { PlanningIntervalTeamResponse } from '@/src/services/wayd-api'

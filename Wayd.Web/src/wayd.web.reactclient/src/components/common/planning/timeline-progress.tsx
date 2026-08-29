@@ -1,3 +1,5 @@
+'use client'
+
 import dayjs from 'dayjs'
 import { CSSProperties, FC } from 'react'
 import { Card, Flex, Grid, Progress, Typography } from 'antd'

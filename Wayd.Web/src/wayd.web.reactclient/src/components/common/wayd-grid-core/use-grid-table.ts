@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, type ChangeEvent } from 'react'
 import type {
   ColumnFiltersState,

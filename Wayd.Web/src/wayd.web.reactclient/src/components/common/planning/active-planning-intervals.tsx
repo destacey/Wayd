@@ -1,3 +1,5 @@
+'use client'
+
 import { Col, Row, Space, Typography } from 'antd'
 import PlanningIntervalCard from './planning-interval-card'
 import dayjs from 'dayjs'

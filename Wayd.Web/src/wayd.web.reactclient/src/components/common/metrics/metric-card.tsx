@@ -1,4 +1,4 @@
-import { Card, Flex, Statistic, StatisticProps } from 'antd'
+import { Card, Flex, Skeleton, Statistic, StatisticProps } from 'antd'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
 import { CSSProperties, FC, ReactNode } from 'react'
 
@@ -35,6 +35,16 @@ export const METRIC_CARD_FLEX: CSSProperties = {
 export interface MetricCardProps extends Omit<StatisticProps, 'valueStyle'> {
   cardStyle?: React.CSSProperties
   statisticStyle?: React.CSSProperties
+  /**
+   * Draws the card's skeleton instead of the metric.
+   *
+   * Preferred over passing a placeholder as the `value`: a dash reads as a
+   * real reading — "not applicable" — where a skeleton says the number is on
+   * its way. A metric's shape is known, so it can be drawn rather than spun.
+   *
+   * Ignored in `embedded` mode, which has no card to draw.
+   */
+  loading?: boolean
   tooltip?: string
   /**
    * Where the `tooltip` is anchored. Defaults to `'title'` so metric
@@ -74,6 +84,7 @@ const MetricCard: FC<MetricCardProps> = ({
   styles,
   embedded = false,
   hoverable = false,
+  loading = false,
   onClick,
   ariaLabel,
   title,
@@ -144,14 +155,29 @@ const MetricCard: FC<MetricCardProps> = ({
       hoverable={hoverable || !!onClick}
       {...interactiveProps}
     >
-      <Statistic
-        {...statisticProps}
-        title={titleNode}
-        style={defaultStatisticStyle}
-        styles={statisticStyles}
-      />
-      {secondaryValue !== undefined && (
-        <Meta description={<Flex justify="flex-end">{secondaryValue}</Flex>} />
+      {loading ? (
+        // Two lines, not antd's default title-plus-three: a metric is a label
+        // and a number, and a taller placeholder collapses when the value
+        // lands.
+        <Skeleton
+          active
+          title={false}
+          paragraph={{ rows: 2, width: ['60%', '40%'] }}
+        />
+      ) : (
+        <>
+          <Statistic
+            {...statisticProps}
+            title={titleNode}
+            style={defaultStatisticStyle}
+            styles={statisticStyles}
+          />
+          {secondaryValue !== undefined && (
+            <Meta
+              description={<Flex justify="flex-end">{secondaryValue}</Flex>}
+            />
+          )}
+        </>
       )}
     </Card>
   )

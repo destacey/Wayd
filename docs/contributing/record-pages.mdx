@@ -214,7 +214,9 @@ Distinguish the two failure kinds: a **render error** is a bug — say so and of
 | Grid or list rows | Skeleton (row-shaped) |
 | Form submit, status change | Spinner on the button |
 | Modal or drawer fetching | Spinner |
-| Chart, timeline, org chart | Spinner — shape is data-dependent |
+| Metric tile | Skeleton — `MetricCard`'s `loading`, two lines for a label and a number |
+| Chart | Skeleton — `ChartSkeleton`, or `ChartCard`'s `loading`, which draws it |
+| Timeline, org chart | Spinner — shape is data-dependent |
 | Refetch of visible content | **Neither** — keep the stale data |
 
 :::warning Drive skeletons off `isLoading`, not `isFetching`
@@ -222,6 +224,12 @@ Distinguish the two failure kinds: a **render error** is a bug — say so and of
 :::
 
 A skeleton that lies is worse than a spinner. If it shows three rows and twenty arrive, the page lurches — when you cannot predict the shape, spin honestly.
+
+A chart is the case where that rule is easy to misread. Its *data* is unpredictable, but its *frame* is not: a plot area of known height, in a card of known width. `ChartSkeleton` draws that frame with a chart glyph in it, which is honest — nothing about it implies how many series are coming. A timeline or org chart has no fixed frame, so it still spins.
+
+:::warning Never use a placeholder value as a loading state
+`value={isLoading ? '—' : count}` reads as a real measurement — "not applicable" — rather than saying a number is on its way, and the tile then jumps as the dash is replaced. Pass `loading` instead and let the card draw its skeleton.
+:::
 
 ## Where page state lives
 
@@ -324,6 +332,24 @@ An Overview section's metric tiles use `MetricCard` (or a specific metric like `
 **Count from the same query the section uses**, not a separate aggregate, unless an aggregate endpoint genuinely exists. A count that disagrees with the list beside it is worse than no count.
 
 **Omit a tile that would only ever read zero.** An overview should carry facts, not absences — a "Direct Reports: 0" card is noise on the majority of employee records.
+
+**Hide a tile only once its query has resolved.** Gating on the count alone (`count > 0 && <MetricCard/>`) hides the tile during the load and pops it in when data lands, shifting the row under the reader — and makes "none" indistinguishable from "not loaded yet". Gate on `isLoading || count > 0` and pass `loading`.
+
+## Charts on an Overview
+
+Charts come from `@ant-design/charts` (G2 v5), wrapped in **`ChartCard`** so the title, skeleton and card chrome match the metric tiles beside them. Never pass `title` into the chart config — G2 would draw a second heading inside the canvas.
+
+:::danger `autoFit` is not enough on its own
+`autoFit: true` sizes a chart when it mounts and afterwards re-fits **only on the window's `resize` event**. Anything else that changes its width — opening or dragging the record facts rail, collapsing the app sider, a `Col` settling after first paint — never reaches it, so the canvas keeps its old size and overflows its card, or renders at zero width and appears blank.
+
+Every chart needs `autoFit: true` **and** `useChartRemountOnResize()`: attach its `ref` to a wrapper div, pass `renderKey` as the chart's `key`. This has been missed three times; if a chart is blank or overflowing, check this first.
+:::
+
+**A closed vocabulary gets a fixed colour scale.** Where the categories are a known set — work status, dependency health — pass a `scale.color` with the full domain, resolved from the same mapping the matching tags use. Two things follow: a category is the same colour on every chart, and dropping an empty category cannot re-index the palette and hand one category another's colour. `BreakdownPie` takes this as `colorScale`, and supplying it also switches the chart to a legend naming every value, so a chart showing a single slice still says what the alternatives were.
+
+Open-ended breakdowns — work types, strategic themes — cannot do this: their vocabulary is whatever the data holds. They carry the category name in the slice label instead.
+
+**Drop zero-count entries before plotting.** A zero slice draws no arc but still renders its label, stacking "0 (0%)" over the real one at the centre of the circle.
 
 ## Grids inside sections
 
@@ -438,15 +464,26 @@ Recommended order for an area:
 3. **Responsive** — drawer and section `Select`, checked at real widths.
 4. **List page** — identity column and filter chips.
 
-`PageTitle` is the legacy component. When `(legacy)` is empty and nothing renders it, `RecordHeader` can take the name.
+`PageTitle` and `RecordHeader` are **peers, not predecessor and successor**. `PageTitle` heads a list page, where the title is the largest thing on screen; `RecordHeader` is a record's identity bar. Every list page in the app renders `PageTitle` and will continue to — retiring it would leave list pages with no heading component, and `RecordHeader` cannot stand in for one without growing the branching the two were split apart to avoid.
 
-### A record page inside another area's chrome
+### Page padding
 
-`RecordLayout` expects to own its whole area: the identity bar supplies its own padding and spans the full width, which is why `(records)/layout.tsx` deliberately adds nothing.
+**`.app-main-content` has no padding, permanently.** It is a scroll container and nothing else. Padding is *opted into* by whatever owns a page's frame:
 
-Settings is the exception — it keeps its navigation rail on record pages, so a settings record renders inside the settings layout's padded content column. Wrap it in **`SettingsRecordShell`**, which negates that padding so the identity bar spans properly and the section rail sits flush. The `loading.tsx` needs the same wrapper, since it renders instead of the layout rather than inside it.
+| The page is | Frame | Gutters |
+| --- | --- | --- |
+| A record | `RecordLayout` / `RecordShell` | Supplied by the component — runs edge-to-edge |
+| A list, dashboard, or tool | its own root element | `className="page-gutters"` |
+| An area with its own chrome (docs) | that area's layout | Whatever the area draws |
+| Full-viewport (login, logout, setup) | the page itself | None — it paints its own background |
 
-Any future area that keeps its own chrome needs the same treatment. A record page cannot un-pad its parent, so the negation belongs to the area, once — not repeated in each of its pages.
+`.page-gutters` (in `styles/globals.css`) holds the measurement once: `16px 24px 24px`, tightening below `768px`.
+
+:::danger Never pad a parent and negate it in the child
+A child cannot reliably un-pad its parent — negative margins work until something clips, which is what `.app-main-content`'s `overflow-x: hidden` was there to hide. This rule is why `SettingsRecordShell` no longer exists: settings used to pad its content column, so its record pages each had to cancel it again. The padding moved onto the settings *list* pages instead, and the negation went away.
+
+An area holding both list and record pages — settings does, and so does the top level — cannot pick one frame for all of them. Keep the gutters on the pages that want them.
+:::
 
 ## Reference
 

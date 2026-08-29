@@ -21,7 +21,7 @@ import {
   EditTeamFormValues,
   TeamListItem,
   TeamTypeName,
-} from '@/src/app/(legacy)/organizations/types'
+} from '@/src/app/organizations/types'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import { getTeamsClient, getTeamsOfTeamsClient } from '@/src/services/clients'

@@ -1,3 +1,5 @@
+'use client'
+
 import { PlanningIntervalListDto } from '@/src/services/wayd-api'
 import { daysRemaining } from '@/src/utils'
 import { Card, Space, Typography } from 'antd'

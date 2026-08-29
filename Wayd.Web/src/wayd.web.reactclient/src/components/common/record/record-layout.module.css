@@ -2,9 +2,9 @@
  * Record pages run edge-to-edge: the section rail sits flush against the app
  * sider and the identity bar spans the full width.
  *
- * No negative margins — pages rendering this live under `app/(records)/`,
- * whose layout adds no padding of its own. A child cannot reliably un-pad its
- * parent, so the route group owns that decision instead.
+ * No negative margins, because there is nothing to negate: a record page never
+ * applies `.page-gutters`, and no ancestor applies it on a page's behalf. The
+ * frame below is the whole of a record page's spacing.
  */
 .shell {
   display: flex;

@@ -45,24 +45,38 @@ body {
 /* Content layout adjustments */
 .app-main-content {
   flex: 1; /* Allows the content to grow and occupy remaining space */
-  overflow-x: hidden; /* Prevent horizontal scroll from negative-margin children (e.g. docs layout) */
+  /* A backstop, not load-bearing: no child negates padding any more (see
+     `.page-gutters`), so nothing should be overflowing here. Kept so a wide
+     grid that forgets its own `overflow-x` cannot scroll the whole shell. */
+  overflow-x: hidden;
   overflow-y: auto; /* Enable vertical scrolling */
   /* No `scrollbar-gutter: stable` here. It removes the 15px shift between a
      page that scrolls and one that does not, but reserves that strip on every
      page — so a short record page showed a blank gutter with the details knob
      stranded beside it, and its identity bar stopped short of the edge. The
      shift is the lesser of the two, and is what the app did before. */
-  /* No padding here: the route group decides. app/(legacy)/layout.tsx supplies
-     it for pages still on the old chrome; record pages render edge-to-edge. */
+  /* No padding here, permanently. This element is a scroll container and
+     nothing else, so no descendant ever has to un-pad it — see `.page-gutters`
+     below for how pages that want gutters get them. */
 }
 
-/* Padding and breadcrumb spacing for pages that have not adopted RecordLayout. */
-.legacy-page-chrome {
-  padding: 0 24px 24px;
-}
-
-.legacy-page-chrome > .app-breadcrumb {
-  margin: 16px 0;
+/*
+ * The app's page gutters, in one place.
+ *
+ * Applied by whatever owns a page's frame, never inherited: a top-level page
+ * puts it on itself, an area that supplies its own chrome (settings, docs)
+ * puts it on the pages inside rather than on the column that holds them, and
+ * anything running edge-to-edge — `RecordLayout`, the full-viewport auth
+ * pages — leaves it off.
+ *
+ * The rule is that padding is opted into, never negated. A child cannot
+ * reliably un-pad its parent: negative margins appear to work until something
+ * clips, and every wrapper that existed to cancel inherited padding was a
+ * symptom of that. Keeping the gutters here means the measurement is defined
+ * once and no counterpart negative ever has to track it.
+ */
+.page-gutters {
+  padding: 16px 24px 24px;
 }
 
 /* Flex container with column layout */
@@ -258,12 +272,12 @@ body {
     display: none;
   }
 
-  /* Tighter gutters on small screens. This lives on the legacy chrome, not on
-     `.ant-layout-content`: padding there inset every page including record
-     pages, whose identity bar is meant to run edge to edge like the app
-     header above it. */
-  .legacy-page-chrome {
-    padding: 0 16px 16px;
+  /* Tighter gutters on small screens. This lives on the opt-in class, not on
+     `.ant-layout-content`: padding there would inset every page including
+     record pages, whose identity bar is meant to run edge to edge like the
+     app header above it. */
+  .page-gutters {
+    padding: 12px 16px 16px;
   }
 }
 

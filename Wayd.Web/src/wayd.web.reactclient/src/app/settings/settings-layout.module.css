@@ -1,0 +1,40 @@
+/*
+ * Settings supplies its own chrome: its navigation rail, and the column beside
+ * it. Nothing above adds padding, so the rail sits flush against the app sider
+ * and a record page's identity bar spans its column as it does everywhere else.
+ */
+.layout {
+  background: transparent;
+  min-height: calc(100vh - 50px);
+}
+
+.sider {
+  background: var(--ant-color-bg-container);
+  border-right: 1px solid var(--ant-color-border-secondary);
+  /* Sticks to the viewport and scrolls independently, so a long rail never
+     drags the content's scroll position with it. */
+  position: sticky !important;
+  top: 0;
+  height: calc(100vh - 50px);
+  overflow-y: auto;
+}
+
+/*
+ * No padding here. Settings holds both list pages and record pages, and they
+ * want opposite frames — so the column stays neutral and each page decides:
+ * a list page applies `.page-gutters`, a record page runs edge-to-edge like
+ * every other `RecordLayout` in the app.
+ *
+ * Padding here is what forced the old `SettingsRecordShell` to exist, negating
+ * it again for the record pages inside. Do not put it back.
+ */
+.content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  /* A flex child defaults to min-height:auto, which lets a tall grid grow the
+     column instead of scrolling inside it — and takes the details panel with
+     it, past the bottom of the grid. */
+  min-height: 0;
+}

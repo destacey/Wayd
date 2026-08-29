@@ -1,3 +1,5 @@
+'use client'
+
 import { Card } from 'antd'
 import WaydList from '../wayd-list'
 import { RiskListDto } from '@/src/services/wayd-api'

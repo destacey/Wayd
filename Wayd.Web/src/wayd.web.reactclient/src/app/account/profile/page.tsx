@@ -1,0 +1,103 @@
+'use client'
+
+import React, { useEffect, useState } from 'react'
+import { Button, Card } from 'antd'
+import PageTitle from '@/src/components/common/page-title'
+import ProfileForm from './profile-form'
+import ChangePasswordForm from '@/src/components/common/forms/change-password-form'
+import ClaimsGrid from './claims-grid'
+import PersonalAccessTokens from './personal-access-tokens'
+import Sessions from './sessions'
+import Preferences from './preferences'
+import useAuth from '@/src/components/contexts/auth'
+import { useDocumentTitle } from '@/src/hooks/use-document-title'
+import { useGetProfileQuery } from '@/src/store/features/user-management/profile-api'
+import { useMessage } from '@/src/components/contexts/messaging'
+enum AccountTabs {
+  Profile = 'profile',
+  Preferences = 'preferences',
+  Claims = 'claims',
+  PersonalAccessTokens = 'personalAccessTokens',
+  Sessions = 'sessions',
+}
+
+const tabs = [
+  { key: AccountTabs.Profile, tab: 'Profile' },
+  { key: AccountTabs.Preferences, tab: 'Preferences' },
+  { key: AccountTabs.Sessions, tab: 'Sessions' },
+  { key: AccountTabs.PersonalAccessTokens, tab: 'PATs' },
+  { key: AccountTabs.Claims, tab: 'Claims' },
+]
+
+const AccountProfilePage = () => {
+  useDocumentTitle('Account Profile')
+  const [activeTab, setActiveTab] = useState(AccountTabs.Profile)
+  const [openChangePasswordForm, setOpenChangePasswordForm] = useState(false)
+
+  const messageApi = useMessage()
+  const { user, isLoading, authMethod } = useAuth()
+
+  const {
+    data: profileData,
+    isLoading: profileLoading,
+    error: profileError,
+  } = useGetProfileQuery(undefined, { skip: !user })
+
+  const isLocalUser = authMethod === 'local'
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case AccountTabs.Profile:
+        return React.createElement(ProfileForm, profileData)
+      case AccountTabs.Preferences:
+        return <Preferences />
+      case AccountTabs.Sessions:
+        return <Sessions />
+      case AccountTabs.PersonalAccessTokens:
+        return <PersonalAccessTokens />
+      case AccountTabs.Claims:
+        return <ClaimsGrid />
+      default:
+        return null
+    }
+  }
+
+  const onTabChange = (tabKey: string) => {
+    setActiveTab(tabKey as AccountTabs)
+  }
+
+  useEffect(() => {
+    if (profileError) {
+      console.error(profileError)
+      messageApi.error('Failed to load user profile.')
+    }
+  }, [profileError, messageApi])
+
+  const actions = isLocalUser ? (
+    <Button onClick={() => setOpenChangePasswordForm(true)}>
+      Change Password
+    </Button>
+  ) : undefined
+
+  return (
+    <div className="page-gutters">
+      <PageTitle title="Account" subtitle="Manage your account" actions={actions} />
+      <Card
+        style={{ width: '100%' }}
+        tabList={tabs}
+        activeTabKey={activeTab}
+        onTabChange={onTabChange}
+      >
+        {renderTabContent()}
+      </Card>
+      {openChangePasswordForm && (
+        <ChangePasswordForm
+          onFormComplete={() => setOpenChangePasswordForm(false)}
+          onFormCancel={() => setOpenChangePasswordForm(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+export default AccountProfilePage

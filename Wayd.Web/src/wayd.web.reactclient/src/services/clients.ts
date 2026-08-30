@@ -23,7 +23,15 @@ import {
   WorkTypeTiersClient,
   RoadmapsClient,
   StrategicThemesClient,
+  DeliveryMetricsClient,
+  DeploymentEnvironmentsClient,
+  DeploymentsClient,
   PortfoliosClient,
+  ProductsClient,
+  ProductTagCategoriesClient,
+  ProductTypesClient,
+  ReleasePackagesClient,
+  ReleasesClient,
   ProgramsClient,
   ExpenditureCategoriesClient,
   ProjectsClient,
@@ -420,6 +428,23 @@ export const getEstimationScalesClient = () =>
 export const getPokerSessionsClient = () =>
   new PokerSessionsClient('', axiosClient)
 export const getStoryMapsClient = () => new StoryMapsClient('', axiosClient)
+
+// PRODUCT MANAGEMENT
+export const getProductsClient = () => new ProductsClient('', axiosClient)
+export const getProductTypesClient = () =>
+  new ProductTypesClient('', axiosClient)
+export const getProductTagCategoriesClient = () =>
+  new ProductTagCategoriesClient('', axiosClient)
+
+// DELIVERY
+export const getReleasesClient = () => new ReleasesClient('', axiosClient)
+export const getReleasePackagesClient = () =>
+  new ReleasePackagesClient('', axiosClient)
+export const getDeploymentsClient = () => new DeploymentsClient('', axiosClient)
+export const getDeploymentEnvironmentsClient = () =>
+  new DeploymentEnvironmentsClient('', axiosClient)
+export const getDeliveryMetricsClient = () =>
+  new DeliveryMetricsClient('', axiosClient)
 
 // PPM
 export const getExpenditureCategoriesClient = () =>

@@ -12887,8 +12887,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get product details.
         /// </summary>
+        /// <remarks>
+        /// Accepts the product's id or its short key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ProductDto> GetProductAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ProductDto> GetProductAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -13184,11 +13187,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get product details.
         /// </summary>
+        /// <remarks>
+        /// Accepts the product's id or its short key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ProductDto> GetProductAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ProductDto> GetProductAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
-            if (id == null)
-                throw new System.ArgumentNullException("id");
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
 
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -13201,9 +13207,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/product-management/products/{id}"
+                    // Operation Path: "api/product-management/products/{idOrKey}"
                     urlBuilder_.Append("api/product-management/products/");
-                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
 
                     PrepareRequest(client_, request_, urlBuilder_);
 

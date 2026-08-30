@@ -4997,23 +4997,21 @@
         ]
       }
     },
-    "/api/product-management/products/{id}": {
+    "/api/product-management/products/{idOrKey}": {
       "get": {
         "tags": [
           "Products"
         ],
         "summary": "Get product details.",
+        "description": "Accepts the product's id or its short key.",
         "operationId": "Products_GetProduct",
         "parameters": [
           {
-            "name": "id",
+            "name": "idOrKey",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "guid",
-              "nullable": false,
-              "example": "00000000-0000-0000-0000-000000000000"
+              "type": "string"
             },
             "x-position": 1
           }
@@ -5045,7 +5043,9 @@
             "ApiKey": []
           }
         ]
-      },
+      }
+    },
+    "/api/product-management/products/{id}": {
       "put": {
         "tags": [
           "Products"

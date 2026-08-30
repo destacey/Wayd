@@ -6112,6 +6112,399 @@ export class DeploymentEnvironmentsClient {
     }
 }
 
+export class DeploymentsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get a list of deployments.
+     * @param releaseId (optional) 
+     * @param packageId (optional) 
+     * @param environmentId (optional) 
+     * @param environmentCategory (optional) 
+     * @param startedOnOrAfter (optional) 
+     */
+    getDeployments(releaseId?: string | null | undefined, packageId?: string | null | undefined, environmentId?: string | null | undefined, environmentCategory?: number | null | undefined, startedOnOrAfter?: Date | null | undefined, cancelToken?: CancelToken): Promise<DeploymentDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/deployments?";
+        if (releaseId !== undefined && releaseId !== null)
+            url_ += "releaseId=" + encodeURIComponent("" + releaseId) + "&";
+        if (packageId !== undefined && packageId !== null)
+            url_ += "packageId=" + encodeURIComponent("" + packageId) + "&";
+        if (environmentId !== undefined && environmentId !== null)
+            url_ += "environmentId=" + encodeURIComponent("" + environmentId) + "&";
+        if (environmentCategory !== undefined && environmentCategory !== null)
+            url_ += "environmentCategory=" + encodeURIComponent("" + environmentCategory) + "&";
+        if (startedOnOrAfter !== undefined && startedOnOrAfter !== null)
+            url_ += "startedOnOrAfter=" + encodeURIComponent(startedOnOrAfter ? "" + startedOnOrAfter.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetDeployments(_response);
+        });
+    }
+
+    protected processGetDeployments(response: AxiosResponse): Promise<DeploymentDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DeploymentDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DeploymentDto[]>(null as any);
+    }
+
+    /**
+     * Start a deployment.
+     */
+    start(request: StartDeploymentRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
+        let url_ = this.baseUrl + "/api/product-management/deployments";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processStart(_response);
+        });
+    }
+
+    protected processStart(response: AxiosResponse): Promise<ObjectIdAndKey> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<ObjectIdAndKey>(result201);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ObjectIdAndKey>(null as any);
+    }
+
+    /**
+     * Get deployment details.
+     */
+    getDeployment(id: string, cancelToken?: CancelToken): Promise<DeploymentDto> {
+        let url_ = this.baseUrl + "/api/product-management/deployments/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetDeployment(_response);
+        });
+    }
+
+    protected processGetDeployment(response: AxiosResponse): Promise<DeploymentDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DeploymentDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DeploymentDto>(null as any);
+    }
+
+    /**
+     * Record that a deployment reached its environment.
+     */
+    succeed(id: string, request: SucceedDeploymentRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/deployments/{id}/succeed";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSucceed(_response);
+        });
+    }
+
+    protected processSucceed(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Record that a deployment did not reach its environment.
+     */
+    fail(id: string, request: FailDeploymentRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/deployments/{id}/fail";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processFail(_response);
+        });
+    }
+
+    protected processFail(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Record that a deployment was reverted.
+     */
+    rollBack(id: string, request: RollBackDeploymentRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/deployments/{id}/roll-back";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRollBack(_response);
+        });
+    }
+
+    protected processRollBack(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
 export class ProductsClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -7626,6 +8019,397 @@ export class ProductTypesClient {
             let resultData422  = _responseText;
             result422 = resultData422;
             return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
+export class ReleasePackagesClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get a list of release packages.
+     * @param statusCategory (optional) 
+     * @param containingProductId (optional) 
+     */
+    getReleasePackages(statusCategory?: number[] | null | undefined, containingProductId?: string | null | undefined, cancelToken?: CancelToken): Promise<ReleasePackageDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/release-packages?";
+        if (statusCategory !== undefined && statusCategory !== null)
+            statusCategory && statusCategory.forEach(item => { url_ += "statusCategory=" + encodeURIComponent("" + item) + "&"; });
+        if (containingProductId !== undefined && containingProductId !== null)
+            url_ += "containingProductId=" + encodeURIComponent("" + containingProductId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetReleasePackages(_response);
+        });
+    }
+
+    protected processGetReleasePackages(response: AxiosResponse): Promise<ReleasePackageDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ReleasePackageDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ReleasePackageDto[]>(null as any);
+    }
+
+    /**
+     * Assemble a release package.
+     */
+    assemble(request: AssembleReleasePackageRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
+        let url_ = this.baseUrl + "/api/product-management/release-packages";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAssemble(_response);
+        });
+    }
+
+    protected processAssemble(response: AxiosResponse): Promise<ObjectIdAndKey> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<ObjectIdAndKey>(result201);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ObjectIdAndKey>(null as any);
+    }
+
+    /**
+     * Get release package details.
+     */
+    getReleasePackage(id: string, cancelToken?: CancelToken): Promise<ReleasePackageDto> {
+        let url_ = this.baseUrl + "/api/product-management/release-packages/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetReleasePackage(_response);
+        });
+    }
+
+    protected processGetReleasePackage(response: AxiosResponse): Promise<ReleasePackageDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ReleasePackageDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ReleasePackageDto>(null as any);
+    }
+
+    /**
+     * Replace a package's manifest.
+     */
+    setManifest(id: string, request: SetReleasePackageManifestRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/release-packages/{id}/manifest";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetManifest(_response);
+        });
+    }
+
+    protected processSetManifest(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Record that a package shipped.
+     */
+    markReleased(id: string, request: MarkReleasePackageReleasedRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/release-packages/{id}/release";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMarkReleased(_response);
+        });
+    }
+
+    protected processMarkReleased(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Withdraw a package.
+     */
+    withdraw(id: string, request: WithdrawReleasePackageRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/release-packages/{id}/withdraw";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processWithdraw(_response);
+        });
+    }
+
+    protected processWithdraw(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -36768,22 +37552,26 @@ export interface SetDeploymentEnvironmentActiveRequest {
     isActive: boolean;
 }
 
-export interface ProductDto {
+export interface DeploymentDto {
     id: string;
     key: number;
-    name: string;
-    description?: string | undefined;
-    externalId?: string | undefined;
-    productTypeId: string;
-    productTypeName: string;
-    isReleasable: boolean;
-    parentId?: string | undefined;
-    parentName?: string | undefined;
+    releaseId?: string | undefined;
+    releaseVersion?: string | undefined;
+    packageId?: string | undefined;
+    packageVersion?: string | undefined;
+    environmentId: string;
+    environmentName: string;
+    environmentCategory: EnvironmentCategory;
+    artifactId?: string | undefined;
+    startedAt: Date;
+    completedAt?: Date | undefined;
+    reason?: string | undefined;
     statusId: string;
     statusName: string;
     statusCategory: StatusCategory;
-    statusAlias: ProductStatusAlias;
-    tags: ProductTagDto[];
+    outcome: ProductStatusAlias;
+    isComplete: boolean;
+    isChangeFailure: boolean;
 }
 
 export enum StatusCategory {
@@ -36805,6 +37593,61 @@ export enum ProductStatusAlias {
     Succeeded = "Succeeded",
     Failed = "Failed",
     RolledBack = "RolledBack",
+}
+
+/** Records that a release or package started reaching an environment. */
+export interface StartDeploymentRequest {
+    /** The release deployed, when this deployment carries a single release. */
+    releaseId?: string | undefined;
+    /** The package deployed, when several components shipped as one unit. */
+    packageId?: string | undefined;
+    /** The environment being reached. Must be active. */
+    environmentId: string;
+    /** The build that actually shipped — 4.8.2.008 where the release version is 4.8.2. Two builds of
+one release are two deployments. Free text, never parsed. */
+    artifactId?: string | undefined;
+    /** When it began. Defaults to now, so a pipeline reporting in real time can omit it. */
+    startedAt?: Date | undefined;
+}
+
+/** Records that a deployment reached its environment. */
+export interface SucceedDeploymentRequest {
+    /** When it completed. Defaults to now. */
+    completedAt?: Date | undefined;
+}
+
+/** Records that a deployment did not reach its environment. */
+export interface FailDeploymentRequest {
+    /** Why it failed. */
+    reason?: string | undefined;
+    /** When it completed. Defaults to now. */
+    completedAt?: Date | undefined;
+}
+
+/** Records that a deployment reached its environment and was then reverted. */
+export interface RollBackDeploymentRequest {
+    /** Why it was reverted. */
+    reason?: string | undefined;
+    /** When it was reverted. Defaults to now, and cannot be before the deployment completed. */
+    rolledBackAt?: Date | undefined;
+}
+
+export interface ProductDto {
+    id: string;
+    key: number;
+    name: string;
+    description?: string | undefined;
+    externalId?: string | undefined;
+    productTypeId: string;
+    productTypeName: string;
+    isReleasable: boolean;
+    parentId?: string | undefined;
+    parentName?: string | undefined;
+    statusId: string;
+    statusName: string;
+    statusCategory: StatusCategory;
+    statusAlias: ProductStatusAlias;
+    tags: ProductTagDto[];
 }
 
 export interface ProductTagDto {
@@ -36980,6 +37823,77 @@ export interface SetProductTypeActiveRequest {
     id: string;
     /** Whether new products can be created with this type. */
     isActive: boolean;
+}
+
+export interface ReleasePackageDto {
+    id: string;
+    key: number;
+    version: string;
+    name?: string | undefined;
+    targetDate?: Date | undefined;
+    releasedDate?: Date | undefined;
+    statusId: string;
+    statusName: string;
+    statusCategory: StatusCategory;
+    statusAlias: ProductStatusAlias;
+    components: ReleasePackageComponentDto[];
+}
+
+export interface ReleasePackageComponentDto {
+    productId: string;
+    productName: string;
+    releaseId?: string | undefined;
+    version: string;
+    kind: ManifestEntryKind;
+}
+
+export enum ManifestEntryKind {
+    Changed = "Changed",
+    CarriedForward = "CarriedForward",
+}
+
+/** Assembles several component releases into one shipment. */
+export interface AssembleReleasePackageRequest {
+    /** The package's own version, distinct from any component's. Free text, never parsed. */
+    version: string;
+    /** An optional human name for the package. */
+    name?: string | undefined;
+    /** When the package is expected to ship. */
+    targetDate?: Date | undefined;
+    /** Every component version in this package. A component may appear only once. */
+    components: ManifestEntryRequest[];
+}
+
+/** One component version in a package manifest. */
+export interface ManifestEntryRequest {
+    /** The component this entry is for. */
+    productId: string;
+    /** The release this version came from, where one exists. Optional: a package can record a version
+that was never cut as a release of its own. */
+    releaseId?: string | undefined;
+    /** The component version. Free text, never parsed. */
+    version: string;
+    /** Whether the component changed in this package or was carried forward unchanged. */
+    kind: ManifestEntryKind;
+}
+
+/** Replaces a package's manifest wholesale. */
+export interface SetReleasePackageManifestRequest {
+    /** Every component version in this package. Replaces the manifest entirely. */
+    components: ManifestEntryRequest[];
+}
+
+/** Records that a package shipped. */
+export interface MarkReleasePackageReleasedRequest {
+    /** The date it shipped. Supplied rather than taken from the clock, because shipping is often
+recorded after the fact. */
+    releasedDate: Date;
+}
+
+/** Pulls a package after it was assembled. The package is kept — deployments may reference it. */
+export interface WithdrawReleasePackageRequest {
+    /** Why it was pulled. */
+    reason?: string | undefined;
 }
 
 export interface ReleaseDto {

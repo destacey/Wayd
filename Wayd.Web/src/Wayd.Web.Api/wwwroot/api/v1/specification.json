@@ -4420,6 +4420,364 @@
         ]
       }
     },
+    "/api/product-management/deployments": {
+      "get": {
+        "tags": [
+          "Deployments"
+        ],
+        "summary": "Get a list of deployments.",
+        "description": "Most recently started first.",
+        "operationId": "Deployments_GetDeployments",
+        "parameters": [
+          {
+            "name": "releaseId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "packageId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "environmentId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 3
+          },
+          {
+            "name": "environmentCategory",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 4
+          },
+          {
+            "name": "startedOnOrAfter",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "nullable": true
+            },
+            "x-position": 5
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeploymentDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Deployments"
+        ],
+        "summary": "Start a deployment.",
+        "operationId": "Deployments_Start",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartDeploymentRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/deployments/{id}": {
+      "get": {
+        "tags": [
+          "Deployments"
+        ],
+        "summary": "Get deployment details.",
+        "operationId": "Deployments_GetDeployment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeploymentDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/deployments/{id}/succeed": {
+      "post": {
+        "tags": [
+          "Deployments"
+        ],
+        "summary": "Record that a deployment reached its environment.",
+        "operationId": "Deployments_Succeed",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SucceedDeploymentRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/deployments/{id}/fail": {
+      "post": {
+        "tags": [
+          "Deployments"
+        ],
+        "summary": "Record that a deployment did not reach its environment.",
+        "description": "Counts toward change failure rate only in production.",
+        "operationId": "Deployments_Fail",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FailDeploymentRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/deployments/{id}/roll-back": {
+      "post": {
+        "tags": [
+          "Deployments"
+        ],
+        "summary": "Record that a deployment was reverted.",
+        "description": "Permitted only from a succeeded deployment.",
+        "operationId": "Deployments_RollBack",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RollBackDeploymentRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/product-management/products": {
       "get": {
         "tags": [
@@ -5762,6 +6120,346 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/release-packages": {
+      "get": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Get a list of release packages.",
+        "operationId": "ReleasePackages_GetReleasePackages",
+        "parameters": [
+          {
+            "name": "statusCategory",
+            "in": "query",
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "array",
+              "nullable": true,
+              "items": {
+                "type": "integer",
+                "format": "int32"
+              }
+            },
+            "x-position": 1
+          },
+          {
+            "name": "containingProductId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReleasePackageDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Assemble a release package.",
+        "operationId": "ReleasePackages_Assemble",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssembleReleasePackageRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/release-packages/{id}": {
+      "get": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Get release package details.",
+        "operationId": "ReleasePackages_GetReleasePackage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleasePackageDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/release-packages/{id}/manifest": {
+      "put": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Replace a package's manifest.",
+        "description": "Whole-manifest replacement, never incremental.",
+        "operationId": "ReleasePackages_SetManifest",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetReleasePackageManifestRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/release-packages/{id}/release": {
+      "post": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Record that a package shipped.",
+        "operationId": "ReleasePackages_MarkReleased",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkReleasePackageReleasedRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/release-packages/{id}/withdraw": {
+      "post": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Withdraw a package.",
+        "description": "The package is kept: deployments may reference it.",
+        "operationId": "ReleasePackages_Withdraw",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WithdrawReleasePackageRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -33277,6 +33975,250 @@
           }
         }
       },
+      "DeploymentDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "environmentId",
+          "environmentName",
+          "environmentCategory",
+          "startedAt",
+          "statusId",
+          "statusName",
+          "statusCategory",
+          "outcome",
+          "isComplete",
+          "isChangeFailure"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "releaseId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "releaseVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "packageId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "packageVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "environmentId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "environmentName": {
+            "type": "string"
+          },
+          "environmentCategory": {
+            "$ref": "#/components/schemas/EnvironmentCategory"
+          },
+          "artifactId": {
+            "type": "string",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "statusId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "statusName": {
+            "type": "string"
+          },
+          "statusCategory": {
+            "$ref": "#/components/schemas/StatusCategory"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/ProductStatusAlias"
+          },
+          "isComplete": {
+            "type": "boolean"
+          },
+          "isChangeFailure": {
+            "type": "boolean"
+          }
+        }
+      },
+      "StatusCategory": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Proposed",
+          "Active",
+          "Done",
+          "Removed"
+        ],
+        "enum": [
+          "Proposed",
+          "Active",
+          "Done",
+          "Removed"
+        ]
+      },
+      "ProductStatusAlias": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "None",
+          "Active",
+          "Sunset",
+          "Retired",
+          "Ready",
+          "Released",
+          "Withdrawn",
+          "InProgress",
+          "Succeeded",
+          "Failed",
+          "RolledBack"
+        ],
+        "enum": [
+          "None",
+          "Active",
+          "Sunset",
+          "Retired",
+          "Ready",
+          "Released",
+          "Withdrawn",
+          "InProgress",
+          "Succeeded",
+          "Failed",
+          "RolledBack"
+        ]
+      },
+      "StartDeploymentRequest": {
+        "type": "object",
+        "description": "Records that a release or package started reaching an environment.",
+        "additionalProperties": false,
+        "required": [
+          "environmentId"
+        ],
+        "properties": {
+          "releaseId": {
+            "type": "string",
+            "description": "The release deployed, when this deployment carries a single release.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "packageId": {
+            "type": "string",
+            "description": "The package deployed, when several components shipped as one unit.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "environmentId": {
+            "type": "string",
+            "description": "The environment being reached. Must be active.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "artifactId": {
+            "type": "string",
+            "description": "The build that actually shipped — 4.8.2.008 where the release version is 4.8.2. Two builds of\none release are two deployments. Free text, never parsed.",
+            "maxLength": 128,
+            "minLength": 0,
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "description": "When it began. Defaults to now, so a pipeline reporting in real time can omit it.",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "SucceedDeploymentRequest": {
+        "type": "object",
+        "description": "Records that a deployment reached its environment.",
+        "additionalProperties": false,
+        "properties": {
+          "completedAt": {
+            "type": "string",
+            "description": "When it completed. Defaults to now.",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "FailDeploymentRequest": {
+        "type": "object",
+        "description": "Records that a deployment did not reach its environment.",
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why it failed.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "description": "When it completed. Defaults to now.",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "RollBackDeploymentRequest": {
+        "type": "object",
+        "description": "Records that a deployment reached its environment and was then reverted.",
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why it was reverted.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true
+          },
+          "rolledBackAt": {
+            "type": "string",
+            "description": "When it was reverted. Defaults to now, and cannot be before the deployment completed.",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
       "ProductDto": {
         "type": "object",
         "additionalProperties": false,
@@ -33359,52 +34301,6 @@
             }
           }
         }
-      },
-      "StatusCategory": {
-        "type": "string",
-        "description": "",
-        "x-enumNames": [
-          "Proposed",
-          "Active",
-          "Done",
-          "Removed"
-        ],
-        "enum": [
-          "Proposed",
-          "Active",
-          "Done",
-          "Removed"
-        ]
-      },
-      "ProductStatusAlias": {
-        "type": "string",
-        "description": "",
-        "x-enumNames": [
-          "None",
-          "Active",
-          "Sunset",
-          "Retired",
-          "Ready",
-          "Released",
-          "Withdrawn",
-          "InProgress",
-          "Succeeded",
-          "Failed",
-          "RolledBack"
-        ],
-        "enum": [
-          "None",
-          "Active",
-          "Sunset",
-          "Retired",
-          "Ready",
-          "Released",
-          "Withdrawn",
-          "InProgress",
-          "Succeeded",
-          "Failed",
-          "RolledBack"
-        ]
       },
       "ProductTagDto": {
         "type": "object",
@@ -33998,6 +34894,245 @@
           "isActive": {
             "type": "boolean",
             "description": "Whether new products can be created with this type."
+          }
+        }
+      },
+      "ReleasePackageDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "version",
+          "statusId",
+          "statusName",
+          "statusCategory",
+          "statusAlias",
+          "components"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "version": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "releasedDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "statusId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "statusName": {
+            "type": "string"
+          },
+          "statusCategory": {
+            "$ref": "#/components/schemas/StatusCategory"
+          },
+          "statusAlias": {
+            "$ref": "#/components/schemas/ProductStatusAlias"
+          },
+          "components": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReleasePackageComponentDto"
+            }
+          }
+        }
+      },
+      "ReleasePackageComponentDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "productId",
+          "productName",
+          "version",
+          "kind"
+        ],
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "releaseId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "version": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ManifestEntryKind"
+          }
+        }
+      },
+      "ManifestEntryKind": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Changed",
+          "CarriedForward"
+        ],
+        "enum": [
+          "Changed",
+          "CarriedForward"
+        ]
+      },
+      "AssembleReleasePackageRequest": {
+        "type": "object",
+        "description": "Assembles several component releases into one shipment.",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "components"
+        ],
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "The package's own version, distinct from any component's. Free text, never parsed.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false
+          },
+          "name": {
+            "type": "string",
+            "description": "An optional human name for the package.",
+            "maxLength": 128,
+            "minLength": 0,
+            "nullable": true
+          },
+          "targetDate": {
+            "type": "string",
+            "description": "When the package is expected to ship.",
+            "format": "date",
+            "nullable": true
+          },
+          "components": {
+            "type": "array",
+            "description": "Every component version in this package. A component may appear only once.",
+            "minLength": 1,
+            "nullable": false,
+            "items": {
+              "$ref": "#/components/schemas/ManifestEntryRequest"
+            }
+          }
+        }
+      },
+      "ManifestEntryRequest": {
+        "type": "object",
+        "description": "One component version in a package manifest.",
+        "additionalProperties": false,
+        "required": [
+          "productId",
+          "version",
+          "kind"
+        ],
+        "properties": {
+          "productId": {
+            "type": "string",
+            "description": "The component this entry is for.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "releaseId": {
+            "type": "string",
+            "description": "The release this version came from, where one exists. Optional: a package can record a version\nthat was never cut as a release of its own.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "version": {
+            "type": "string",
+            "description": "The component version. Free text, never parsed.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false
+          },
+          "kind": {
+            "description": "Whether the component changed in this package or was carried forward unchanged.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ManifestEntryKind"
+              }
+            ]
+          }
+        }
+      },
+      "SetReleasePackageManifestRequest": {
+        "type": "object",
+        "description": "Replaces a package's manifest wholesale.",
+        "additionalProperties": false,
+        "required": [
+          "components"
+        ],
+        "properties": {
+          "components": {
+            "type": "array",
+            "description": "Every component version in this package. Replaces the manifest entirely.",
+            "minLength": 1,
+            "nullable": false,
+            "items": {
+              "$ref": "#/components/schemas/ManifestEntryRequest"
+            }
+          }
+        }
+      },
+      "MarkReleasePackageReleasedRequest": {
+        "type": "object",
+        "description": "Records that a package shipped.",
+        "additionalProperties": false,
+        "required": [
+          "releasedDate"
+        ],
+        "properties": {
+          "releasedDate": {
+            "type": "string",
+            "description": "The date it shipped. Supplied rather than taken from the clock, because shipping is often\nrecorded after the fact.",
+            "format": "date"
+          }
+        }
+      },
+      "WithdrawReleasePackageRequest": {
+        "type": "object",
+        "description": "Pulls a package after it was assembled. The package is kept — deployments may reference it.",
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why it was pulled.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true
           }
         }
       },

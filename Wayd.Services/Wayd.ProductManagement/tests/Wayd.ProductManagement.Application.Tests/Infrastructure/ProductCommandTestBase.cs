@@ -111,6 +111,37 @@ public abstract class ProductCommandTestBase
         return environment;
     }
 
+    /// <summary>
+    /// An in-flight deployment against a seeded environment.
+    /// </summary>
+    /// <param name="category">
+    /// Frozen onto the deployment, as the handler does — the change-failure predicate reads this rather
+    /// than the environment.
+    /// </param>
+    protected Deployment SeedDeployment(EnvironmentCategory category = EnvironmentCategory.Production)
+    {
+        var environment = SeedEnvironment($"env-{Guid.CreateVersion7()}"[..12], category, 1);
+        var product = SeedProduct($"product-{Guid.CreateVersion7()}"[..16]);
+        var release = SeedRelease(product.Id);
+
+        var deployment = Deployment.Create(
+            release.Id,
+            null,
+            environment.Id,
+            category,
+            null,
+            Now,
+            Status("In Progress", StatusCategory.Active, ProductStatusAlias.InProgress),
+            environment.Name,
+            EventActor.System,
+            Now).Value;
+
+        deployment.ClearDomainEvents();
+        DbContext.AddDeployment(deployment);
+
+        return deployment;
+    }
+
     protected (ProductTagCategory Category, ProductTag Tag) SeedTag(
         string categoryName = "Platform",
         string tagName = "ios",

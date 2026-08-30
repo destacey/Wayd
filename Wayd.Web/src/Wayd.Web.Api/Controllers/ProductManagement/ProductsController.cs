@@ -52,14 +52,14 @@ public class ProductsController(IDispatcher dispatcher) : ControllerBase
         return Ok(products);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Products)]
-    [OpenApiOperation("Get product details.", "")]
+    [OpenApiOperation("Get product details.", "Accepts the product's id or its short key.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ProductDto>> GetProduct(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult<ProductDto>> GetProduct(string idOrKey, CancellationToken cancellationToken)
     {
-        var product = await _dispatcher.Send(new GetProductQuery(id), cancellationToken);
+        var product = await _dispatcher.Send(new GetProductQuery(new IdOrKey(idOrKey)), cancellationToken);
 
         return product is not null
             ? Ok(product)
@@ -76,7 +76,7 @@ public class ProductsController(IDispatcher dispatcher) : ControllerBase
         var result = await _dispatcher.Send(request.ToCreateProductCommand(), cancellationToken);
 
         return result.IsSuccess
-            ? CreatedAtAction(nameof(GetProduct), new { id = result.Value.Id }, result.Value)
+            ? CreatedAtAction(nameof(GetProduct), new { idOrKey = result.Value.Id.ToString() }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 

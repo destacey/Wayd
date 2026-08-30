@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -43,11 +44,37 @@ public partial class AddProductManagementAndStatusWorkflows : Migration
             });
 
         migrationBuilder.CreateTable(
+            name: "ProductTagCategories",
+            schema: "ProductManagement",
+            columns: table => new
+            {
+                Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                Key = table.Column<int>(type: "int", nullable: false)
+                    .Annotation("SqlServer:Identity", "1, 1"),
+                Name = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
+                Description = table.Column<string>(type: "nvarchar(512)", maxLength: 512, nullable: true),
+                AllowsMany = table.Column<bool>(type: "bit", nullable: false),
+                Order = table.Column<int>(type: "int", nullable: false),
+                IsSystem = table.Column<bool>(type: "bit", nullable: false),
+                IsActive = table.Column<bool>(type: "bit", nullable: false),
+                SystemCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
+                SystemCreatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
+                SystemLastModified = table.Column<DateTime>(type: "datetime2", nullable: false),
+                SystemLastModifiedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true)
+            },
+            constraints: table =>
+            {
+                table.PrimaryKey("PK_ProductTagCategories", x => x.Id);
+                table.UniqueConstraint("AK_ProductTagCategories_Key", x => x.Key);
+            });
+
+        migrationBuilder.CreateTable(
             name: "ProductTypes",
             schema: "ProductManagement",
             columns: table => new
             {
                 Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                IsActive = table.Column<bool>(type: "bit", nullable: false),
                 Key = table.Column<int>(type: "int", nullable: false)
                     .Annotation("SqlServer:Identity", "1, 1"),
                 Name = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
@@ -160,6 +187,34 @@ public partial class AddProductManagementAndStatusWorkflows : Migration
             });
 
         migrationBuilder.CreateTable(
+            name: "ProductTags",
+            schema: "ProductManagement",
+            columns: table => new
+            {
+                Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                CategoryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                Name = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
+                Description = table.Column<string>(type: "nvarchar(512)", maxLength: 512, nullable: true),
+                Order = table.Column<int>(type: "int", nullable: false),
+                IsActive = table.Column<bool>(type: "bit", nullable: false),
+                SystemCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
+                SystemCreatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
+                SystemLastModified = table.Column<DateTime>(type: "datetime2", nullable: false),
+                SystemLastModifiedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true)
+            },
+            constraints: table =>
+            {
+                table.PrimaryKey("PK_ProductTags", x => x.Id);
+                table.ForeignKey(
+                    name: "FK_ProductTags_ProductTagCategories_CategoryId",
+                    column: x => x.CategoryId,
+                    principalSchema: "ProductManagement",
+                    principalTable: "ProductTagCategories",
+                    principalColumn: "Id",
+                    onDelete: ReferentialAction.Cascade);
+            });
+
+        migrationBuilder.CreateTable(
             name: "Products",
             schema: "ProductManagement",
             columns: table => new
@@ -254,6 +309,39 @@ public partial class AddProductManagementAndStatusWorkflows : Migration
                     column: x => x.WorkflowId,
                     principalSchema: "StatusWorkflows",
                     principalTable: "StatusWorkflows",
+                    principalColumn: "Id",
+                    onDelete: ReferentialAction.Cascade);
+            });
+
+        migrationBuilder.CreateTable(
+            name: "ProductTagAssignments",
+            schema: "ProductManagement",
+            columns: table => new
+            {
+                Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                ProductId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                TagId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                CategoryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                SystemCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
+                SystemCreatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
+                SystemLastModified = table.Column<DateTime>(type: "datetime2", nullable: false),
+                SystemLastModifiedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true)
+            },
+            constraints: table =>
+            {
+                table.PrimaryKey("PK_ProductTagAssignments", x => x.Id);
+                table.ForeignKey(
+                    name: "FK_ProductTagAssignments_ProductTags_TagId",
+                    column: x => x.TagId,
+                    principalSchema: "ProductManagement",
+                    principalTable: "ProductTags",
+                    principalColumn: "Id",
+                    onDelete: ReferentialAction.Restrict);
+                table.ForeignKey(
+                    name: "FK_ProductTagAssignments_Products_ProductId",
+                    column: x => x.ProductId,
+                    principalSchema: "ProductManagement",
+                    principalTable: "Products",
                     principalColumn: "Id",
                     onDelete: ReferentialAction.Cascade);
             });
@@ -444,6 +532,40 @@ public partial class AddProductManagementAndStatusWorkflows : Migration
             .Annotation("SqlServer:Include", new[] { "Id", "Key", "Name", "ParentId", "ProductTypeId" });
 
         migrationBuilder.CreateIndex(
+            name: "IX_ProductTagAssignments_CategoryId_TagId",
+            schema: "ProductManagement",
+            table: "ProductTagAssignments",
+            columns: new[] { "CategoryId", "TagId" })
+            .Annotation("SqlServer:Include", new[] { "ProductId" });
+
+        migrationBuilder.CreateIndex(
+            name: "IX_ProductTagAssignments_ProductId_TagId",
+            schema: "ProductManagement",
+            table: "ProductTagAssignments",
+            columns: new[] { "ProductId", "TagId" },
+            unique: true);
+
+        migrationBuilder.CreateIndex(
+            name: "IX_ProductTagAssignments_TagId",
+            schema: "ProductManagement",
+            table: "ProductTagAssignments",
+            column: "TagId");
+
+        migrationBuilder.CreateIndex(
+            name: "IX_ProductTagCategories_Name",
+            schema: "ProductManagement",
+            table: "ProductTagCategories",
+            column: "Name",
+            unique: true);
+
+        migrationBuilder.CreateIndex(
+            name: "IX_ProductTags_CategoryId_Name",
+            schema: "ProductManagement",
+            table: "ProductTags",
+            columns: new[] { "CategoryId", "Name" },
+            unique: true);
+
+        migrationBuilder.CreateIndex(
             name: "IX_ProductTypes_Name",
             schema: "ProductManagement",
             table: "ProductTypes",
@@ -562,6 +684,10 @@ public partial class AddProductManagementAndStatusWorkflows : Migration
             schema: "Delivery");
 
         migrationBuilder.DropTable(
+            name: "ProductTagAssignments",
+            schema: "ProductManagement");
+
+        migrationBuilder.DropTable(
             name: "ReleasePackageComponents",
             schema: "Delivery");
 
@@ -590,6 +716,10 @@ public partial class AddProductManagementAndStatusWorkflows : Migration
             schema: "Delivery");
 
         migrationBuilder.DropTable(
+            name: "ProductTags",
+            schema: "ProductManagement");
+
+        migrationBuilder.DropTable(
             name: "StatusWorkflows",
             schema: "StatusWorkflows");
 
@@ -600,6 +730,10 @@ public partial class AddProductManagementAndStatusWorkflows : Migration
         migrationBuilder.DropTable(
             name: "ReleasePackages",
             schema: "Delivery");
+
+        migrationBuilder.DropTable(
+            name: "ProductTagCategories",
+            schema: "ProductManagement");
 
         migrationBuilder.DropTable(
             name: "ProductTypes",

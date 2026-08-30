@@ -17,6 +17,8 @@ namespace Wayd.ProductManagement.Domain.Models;
 /// </summary>
 public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
 {
+    private readonly List<ProductTagAssignment> _tags = [];
+
     private Product() { }
 
     private Product(string name, string? description, Guid productTypeId, Guid? parentId, string? externalId, StatusRef status)
@@ -83,6 +85,73 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     /// The well-known meaning of the current status.
     /// </summary>
     public ProductStatusAlias StatusAlias => (ProductStatusAlias)StatusAliasValue;
+
+    /// <summary>
+    /// The tags this node carries, across every axis.
+    /// </summary>
+    /// <remarks>
+    /// Where the type system stops. A type decides what a node may <em>do</em> — whether releases can be
+    /// cut against it — and tags describe everything else, so the two never compete: web and mobile
+    /// applications behave identically and differ only by label.
+    /// </remarks>
+    public IReadOnlyCollection<ProductTagAssignment> Tags => _tags.AsReadOnly();
+
+    /// <summary>
+    /// Applies a tag.
+    /// </summary>
+    /// <param name="category">
+    /// The tag's axis, supplied by the caller because the aggregate cannot load it. Its
+    /// <see cref="ProductTagCategory.AllowsMany"/> decides whether this replaces an existing tag on the
+    /// same axis or joins it.
+    /// </param>
+    public Result Tag(ProductTag tag, ProductTagCategory category, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(tag, nameof(tag));
+        Guard.Against.Null(category, nameof(category));
+
+        if (tag.CategoryId != category.Id)
+        {
+            return Result.Failure("That tag does not belong to the supplied axis.");
+        }
+
+        if (!tag.IsActive || !category.IsActive)
+        {
+            return Result.Failure("An inactive tag cannot be applied.");
+        }
+
+        if (_tags.Any(t => t.TagId == tag.Id))
+        {
+            return Result.Success();
+        }
+
+        // A single-value axis holds one tag: applying another replaces it rather than failing, since
+        // "this is a mobile app, not a web app" is a correction, not an error.
+        if (!category.AllowsMany)
+        {
+            _tags.RemoveAll(t => t.CategoryId == category.Id);
+        }
+
+        _tags.Add(new ProductTagAssignment(Id, tag.Id, category.Id));
+
+        AddDomainEvent(new ProductTagsChangedEvent(Id, Key, Name, [.. _tags.Select(t => t.TagId)], actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Removes a tag. Succeeds whether or not the node carried it.
+    /// </summary>
+    public Result Untag(Guid tagId, EventActor actor, Instant timestamp)
+    {
+        if (_tags.RemoveAll(t => t.TagId == tagId) == 0)
+        {
+            return Result.Success();
+        }
+
+        AddDomainEvent(new ProductTagsChangedEvent(Id, Key, Name, [.. _tags.Select(t => t.TagId)], actor, timestamp));
+
+        return Result.Success();
+    }
 
     /// <summary>
     /// Updates the node's name, description or external identifier.

@@ -304,5 +304,86 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
         names.Should().NotContain("Tool");
     }
 
+    [Fact]
+    public async Task ProductTypeSeeder_ShouldSeedLibraryAsReleasable()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        // The distinction that matters is against Module, which ships inside its host and has no
+        // version of its own. A library is published with its own cadence, so it can carry a release.
+        var library = await context.ProductTypes.SingleAsync(t => t.Name == "Library", TestContext.Current.CancellationToken);
+
+        library.IsReleasable.Should().BeTrue();
+    }
+
     #endregion Product types
+
+    #region Tag axes
+
+    [Fact]
+    public async Task ProductTypeSeeder_ShouldSeedThePlatformAxis()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        // Platform is where web-versus-mobile lives, deliberately as a label rather than a node type.
+        var platform = await context.ProductTagCategories
+            .Include(c => c.Tags)
+            .SingleOrDefaultAsync(c => c.Name == "Platform", TestContext.Current.CancellationToken);
+
+        platform.Should().NotBeNull();
+        platform!.IsSystem.Should().BeTrue();
+        platform.Tags.Select(t => t.Name).Should().Contain(["web", "ios", "android"]);
+    }
+
+    [Fact]
+    public async Task ProductTypeSeeder_ShouldAllowSeveralPlatformTagsOnOneProduct()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        // A cross-platform app genuinely targets iOS and Android; forcing a choice would record
+        // something false, which is why the axis carries AllowsMany.
+        var platform = await context.ProductTagCategories
+            .SingleAsync(c => c.Name == "Platform", TestContext.Current.CancellationToken);
+
+        platform.AllowsMany.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ProductTypeSeeder_ShouldSeedOnlyThePlatformAxis()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        // Tech stack, compliance scope and team conventions are real axes, but which ones an
+        // organization needs cannot be guessed, and an unwanted seeded axis is something every
+        // organization has to remove.
+        var categories = await context.ProductTagCategories.ToListAsync(TestContext.Current.CancellationToken);
+
+        categories.Should().ContainSingle().Which.Name.Should().Be("Platform");
+    }
+
+    #endregion Tag axes
 }

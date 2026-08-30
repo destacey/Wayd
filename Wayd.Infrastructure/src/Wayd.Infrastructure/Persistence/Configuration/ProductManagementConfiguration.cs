@@ -26,6 +26,82 @@ public class ProductTypeConfiguration : IEntityTypeConfiguration<ProductType>
         builder.Property(t => t.IsReleasable).IsRequired();
         builder.Property(t => t.Order).IsRequired();
         builder.Property(t => t.IsSystem).IsRequired();
+        builder.Property(t => t.IsActive).IsRequired();
+    }
+}
+
+public class ProductTagCategoryConfiguration : IEntityTypeConfiguration<ProductTagCategory>
+{
+    public void Configure(EntityTypeBuilder<ProductTagCategory> builder)
+    {
+        builder.ToTable("ProductTagCategories", SchemaNames.ProductManagement);
+
+        builder.HasKey(c => c.Id);
+        builder.HasAlternateKey(c => c.Key);
+        builder.HasIndex(c => c.Name).IsUnique();
+
+        builder.Property(c => c.Id).ValueGeneratedNever();
+        builder.Property(c => c.Key).ValueGeneratedOnAdd();
+        builder.Property(c => c.Name).IsRequired().HasMaxLength(64);
+        builder.Property(c => c.Description).HasMaxLength(512);
+        builder.Property(c => c.AllowsMany).IsRequired();
+        builder.Property(c => c.Order).IsRequired();
+        builder.Property(c => c.IsSystem).IsRequired();
+        builder.Property(c => c.IsActive).IsRequired();
+
+        builder.HasMany(c => c.Tags)
+            .WithOne()
+            .HasForeignKey(t => t.CategoryId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(c => c.Tags).HasField("_tags").UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class ProductTagConfiguration : IEntityTypeConfiguration<ProductTag>
+{
+    public void Configure(EntityTypeBuilder<ProductTag> builder)
+    {
+        builder.ToTable("ProductTags", SchemaNames.ProductManagement);
+
+        builder.HasKey(t => t.Id);
+
+        // Unique per axis, not globally: "ios" on Platform and "ios" on Tech Stack are different tags.
+        builder.HasIndex(t => new { t.CategoryId, t.Name }).IsUnique();
+
+        builder.Property(t => t.Id).ValueGeneratedNever();
+        builder.Property(t => t.CategoryId).IsRequired();
+        builder.Property(t => t.Name).IsRequired().HasMaxLength(64);
+        builder.Property(t => t.Description).HasMaxLength(512);
+        builder.Property(t => t.Order).IsRequired();
+        builder.Property(t => t.IsActive).IsRequired();
+    }
+}
+
+public class ProductTagAssignmentConfiguration : IEntityTypeConfiguration<ProductTagAssignment>
+{
+    public void Configure(EntityTypeBuilder<ProductTagAssignment> builder)
+    {
+        builder.ToTable("ProductTagAssignments", SchemaNames.ProductManagement);
+
+        builder.HasKey(a => a.Id);
+
+        builder.HasIndex(a => new { a.ProductId, a.TagId }).IsUnique();
+
+        // "Every product tagged ios", and "every product with a Platform tag" — the reason the
+        // category is denormalized onto the assignment.
+        builder.HasIndex(a => a.TagId);
+        builder.HasIndex(a => new { a.CategoryId, a.TagId }).IncludeProperties(a => a.ProductId);
+
+        builder.Property(a => a.Id).ValueGeneratedNever();
+        builder.Property(a => a.ProductId).IsRequired();
+        builder.Property(a => a.TagId).IsRequired();
+        builder.Property(a => a.CategoryId).IsRequired();
+
+        builder.HasOne<ProductTag>()
+            .WithMany()
+            .HasForeignKey(a => a.TagId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
 
@@ -64,6 +140,13 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         // The history is written through the aggregate but queried on its own, so it is a plain
         // collection rather than a navigation every read would have to include.
         builder.Ignore(p => p.StatusTransitions);
+
+        builder.HasMany(p => p.Tags)
+            .WithOne()
+            .HasForeignKey(t => t.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(p => p.Tags).HasField("_tags").UsePropertyAccessMode(PropertyAccessMode.Field);
 
         // Ignore
         builder.Ignore(p => p.StatusAlias);

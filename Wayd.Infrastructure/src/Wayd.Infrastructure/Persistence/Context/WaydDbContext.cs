@@ -130,6 +130,9 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     // consumes it, and this module has none so far.
     public DbSet<ProductType> ProductTypes => Set<ProductType>();
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductTagCategory> ProductTagCategories => Set<ProductTagCategory>();
+    public DbSet<ProductTag> ProductTags => Set<ProductTag>();
+    public DbSet<ProductTagAssignment> ProductTagAssignments => Set<ProductTagAssignment>();
     public DbSet<Release> Releases => Set<Release>();
     public DbSet<ReleasePackage> ReleasePackages => Set<ReleasePackage>();
     public DbSet<ReleasePackageComponent> ReleasePackageComponents => Set<ReleasePackageComponent>();

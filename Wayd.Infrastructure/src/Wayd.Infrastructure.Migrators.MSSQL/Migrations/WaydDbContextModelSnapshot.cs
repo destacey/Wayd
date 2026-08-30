@@ -3601,6 +3601,149 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("Products", "ProductManagement");
                 });
 
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.ProductTag", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("ProductTags", "ProductManagement");
+                });
+
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.ProductTagAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid>("TagId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TagId");
+
+                    b.HasIndex("CategoryId", "TagId");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("CategoryId", "TagId"), new[] { "ProductId" });
+
+                    b.HasIndex("ProductId", "TagId")
+                        .IsUnique();
+
+                    b.ToTable("ProductTagAssignments", "ProductManagement");
+                });
+
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.ProductTagCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("AllowsMany")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Key");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("ProductTagCategories", "ProductManagement");
+                });
+
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.ProductType", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3609,6 +3752,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsReleasable")
                         .HasColumnType("bit");
@@ -7361,6 +7507,30 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.ProductTag", b =>
+                {
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.ProductTagCategory", null)
+                        .WithMany("Tags")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.ProductTagAssignment", b =>
+                {
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.Product", null)
+                        .WithMany("Tags")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.ProductTag", null)
+                        .WithMany()
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Release", b =>
                 {
                     b.HasOne("Wayd.ProductManagement.Domain.Models.ReleasePackage", null)
@@ -8452,6 +8622,16 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Personas");
 
                     b.Navigation("SwimLanes");
+                });
+
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Product", b =>
+                {
+                    b.Navigation("Tags");
+                });
+
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.ProductTagCategory", b =>
+                {
+                    b.Navigation("Tags");
                 });
 
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.ReleasePackage", b =>

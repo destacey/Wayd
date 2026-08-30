@@ -36,6 +36,7 @@ public static class WolverineConfiguration
         typeof(Wayd.Goals.Application.ConfigureServices),
         typeof(Wayd.Organization.Application.ConfigureServices),
         typeof(Wayd.Planning.Application.ConfigureServices),
+        typeof(Wayd.ProductManagement.Application.ConfigureServices),
         typeof(Wayd.ProjectPortfolioManagement.Application.ConfigureServices),
         typeof(Wayd.StrategicManagement.Application.ConfigureServices),
         typeof(Wayd.Work.Application.ConfigureServices),

@@ -72,6 +72,10 @@ public static class ApplicationResource
     public const string StrategicInitiatives = nameof(StrategicInitiatives);
     public const string ProjectLifecycles = nameof(ProjectLifecycles);
 
+    public const string Products = nameof(Products);
+    public const string ProductTypes = nameof(ProductTypes);
+    public const string ProductTagCategories = nameof(ProductTagCategories);
+
     public const string StrategicThemes = nameof(StrategicThemes);
     public const string Strategies = nameof(Strategies);
     public const string Visions = nameof(Visions);
@@ -352,6 +356,27 @@ public static class ApplicationPermissions
         new("Delete WorkTypes", ApplicationAction.Delete, ApplicationResource.WorkTypes, WorkManagementCategory),
     ];
 
+    private const string ProductManagementCategory = "Product Management";
+    private static readonly ApplicationPermission[] _productManagement =
+    [
+        // No Administer counterpart: unlike PPM, changing a product needs the permission claim alone.
+        // Nothing here is gated on membership of the record, so there is no membership to waive.
+        new ("View Products", ApplicationAction.View, ApplicationResource.Products, ProductManagementCategory),
+        new ("Create Products", ApplicationAction.Create, ApplicationResource.Products, ProductManagementCategory),
+        new ("Update Products", ApplicationAction.Update, ApplicationResource.Products, ProductManagementCategory),
+        new ("Delete Products", ApplicationAction.Delete, ApplicationResource.Products, ProductManagementCategory),
+
+        new ("View Product Types", ApplicationAction.View, ApplicationResource.ProductTypes, ProductManagementCategory),
+        new ("Create Product Types", ApplicationAction.Create, ApplicationResource.ProductTypes, ProductManagementCategory),
+        new ("Update Product Types", ApplicationAction.Update, ApplicationResource.ProductTypes, ProductManagementCategory),
+        new ("Delete Product Types", ApplicationAction.Delete, ApplicationResource.ProductTypes, ProductManagementCategory),
+
+        new ("View Product Tag Categories", ApplicationAction.View, ApplicationResource.ProductTagCategories, ProductManagementCategory),
+        new ("Create Product Tag Categories", ApplicationAction.Create, ApplicationResource.ProductTagCategories, ProductManagementCategory),
+        new ("Update Product Tag Categories", ApplicationAction.Update, ApplicationResource.ProductTagCategories, ProductManagementCategory),
+        new ("Delete Product Tag Categories", ApplicationAction.Delete, ApplicationResource.ProductTagCategories, ProductManagementCategory),
+    ];
+
     private static readonly ApplicationPermission[] _all = [.. _common
         .Union(_application)
         .Union(_backgroundJobs)
@@ -362,6 +387,7 @@ public static class ApplicationPermissions
         .Union(_links)
         .Union(_organization)
         .Union(_planning)
+        .Union(_productManagement)
         .Union(_projectPortfolioManagement)
         .Union(_strategicManagement)
         .Union(_work)];

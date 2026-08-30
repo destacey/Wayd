@@ -133,6 +133,36 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
         statuses.Should().OnlyContain(s => s.IsSystem);
     }
 
+    [Fact]
+    public async Task Seeder_ShouldAssignEveryOwnerTypeAtTheOrganizationLevel()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        // Publishing only makes a workflow available to assign. Without the assignment the resolver has
+        // nothing to resolve and every operation fails at runtime, so this is not merely tidiness.
+        foreach (var owner in ProductWorkflowOwners.All)
+        {
+            var assignment = await context.WorkflowAssignments
+                .SingleOrDefaultAsync(
+                    a => a.OwnerType == owner.Key && a.ScopeId == null, TestContext.Current.CancellationToken);
+
+            assignment.Should().NotBeNull($"'{owner.Key}' should be assigned a default workflow");
+
+            var workflow = await context.StatusWorkflows
+                .SingleOrDefaultAsync(w => w.Id == assignment!.WorkflowId, TestContext.Current.CancellationToken);
+
+            workflow.Should().NotBeNull();
+            workflow!.OwnerType.Should().Be(owner.Key);
+            workflow.State.Should().Be(StatusWorkflowState.Published);
+        }
+    }
+
     #endregion Workflow seeding
 
     #region Alias lookup

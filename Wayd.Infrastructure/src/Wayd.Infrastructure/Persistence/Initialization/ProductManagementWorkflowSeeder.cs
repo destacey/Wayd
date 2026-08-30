@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain;
@@ -18,6 +19,11 @@ namespace Wayd.Infrastructure.Persistence.Initialization;
 /// Seeded per owner type rather than all-or-nothing, so a workflow an admin deleted is not silently
 /// recreated while a newly added owner type still gets its default.
 /// </para>
+/// <para>
+/// Each default is also <strong>assigned</strong> at the organization level. Publishing only makes a
+/// workflow available to assign — without the assignment the resolver has nothing to resolve, and every
+/// product operation fails at runtime with "no workflow is assigned".
+/// </para>
 /// </remarks>
 public class ProductManagementWorkflowSeeder : ICustomSeeder
 {
@@ -34,7 +40,7 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
                 ("Active", "Live and in use.", StatusCategory.Active, ProductStatusAlias.Active),
                 ("Sunset", "No longer offered, still supported.", StatusCategory.Active, ProductStatusAlias.Sunset),
                 ("Retired", "Withdrawn from service.", StatusCategory.Done, ProductStatusAlias.Retired),
-            ], cancellationToken);
+            ], dateTimeProvider, cancellationToken);
 
         seeded |= await SeedIfAbsent(dbContext, ProductWorkflowOwners.Release, "Default Release Workflow",
             "The lifecycle of a release.",
@@ -43,7 +49,7 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
                 ("Ready", "Cut and ready to ship.", StatusCategory.Active, ProductStatusAlias.Ready),
                 ("Released", "Shipped.", StatusCategory.Done, ProductStatusAlias.Released),
                 ("Withdrawn", "Pulled after being cut.", StatusCategory.Removed, ProductStatusAlias.Withdrawn),
-            ], cancellationToken);
+            ], dateTimeProvider, cancellationToken);
 
         seeded |= await SeedIfAbsent(dbContext, ProductWorkflowOwners.ReleasePackage, "Default Release Package Workflow",
             "The lifecycle of a coordinated shipment of several component releases.",
@@ -52,7 +58,7 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
                 ("Ready", "Ready to ship.", StatusCategory.Active, ProductStatusAlias.Ready),
                 ("Released", "Shipped.", StatusCategory.Done, ProductStatusAlias.Released),
                 ("Withdrawn", "Pulled after being assembled.", StatusCategory.Removed, ProductStatusAlias.Withdrawn),
-            ], cancellationToken);
+            ], dateTimeProvider, cancellationToken);
 
         seeded |= await SeedIfAbsent(dbContext, ProductWorkflowOwners.Deployment, "Default Deployment Workflow",
             "The outcome of one release or package reaching one environment.",
@@ -61,7 +67,7 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
                 ("Succeeded", "Reached its environment.", StatusCategory.Done, ProductStatusAlias.Succeeded),
                 ("Failed", "Did not reach its environment.", StatusCategory.Removed, ProductStatusAlias.Failed),
                 ("Rolled Back", "Reached its environment and was reverted.", StatusCategory.Removed, ProductStatusAlias.RolledBack),
-            ], cancellationToken);
+            ], dateTimeProvider, cancellationToken);
 
         if (seeded)
         {
@@ -75,6 +81,7 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
         string name,
         string description,
         (string Name, string Description, StatusCategory Category, ProductStatusAlias Alias)[] statuses,
+        IDateTimeProvider dateTimeProvider,
         CancellationToken cancellationToken)
     {
         if (await dbContext.StatusWorkflows.AnyAsync(w => w.OwnerType == owner.Key, cancellationToken))
@@ -98,6 +105,24 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
         }
 
         dbContext.StatusWorkflows.Add(workflow);
+
+        // Scope null: Product Management assigns organization-wide. Also the mandatory fallback for any
+        // owner type with no narrower scope, so the resolver always finds a workflow.
+        var assignment = WorkflowAssignment.Create(
+            owner.Key, scopeId: null, workflow, EventActor.System, dateTimeProvider.Now);
+
+        if (assignment.IsFailure)
+        {
+            throw new InvalidOperationException($"The seeded '{name}' could not be assigned: {assignment.Error}");
+        }
+
+        // Seeding a default is not a domain occurrence: nobody moved this scope off one workflow onto
+        // another. Leaving the event on a brand-new aggregate also enlists it in the outbox during
+        // InitializeDatabases, which runs before the host starts — and Wolverine cannot route until it
+        // has.
+        assignment.Value.ClearDomainEvents();
+
+        dbContext.WorkflowAssignments.Add(assignment.Value);
 
         return true;
     }

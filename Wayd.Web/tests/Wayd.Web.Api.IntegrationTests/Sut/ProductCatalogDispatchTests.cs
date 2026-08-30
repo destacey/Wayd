@@ -84,7 +84,7 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
         // Assert
         // The correlated count is what tells an administrator whether deactivating a type would affect
         // anything; it only translates against a real provider.
-        var projected = Assert.Single(types.Where(t => t.Id == created.Value.Id));
+        var projected = Assert.Single(types, t => t.Id == created.Value.Id);
         Assert.Equal(1, projected.ProductCount);
 
         // Cleanup: the type is now in use, so it must be emptied before it can be removed.
@@ -161,7 +161,7 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
             new GetProductTagCategoriesQuery(), TestContext.Current.CancellationToken);
 
         // Assert
-        var projected = Assert.Single(categories.Where(c => c.Id == category.Value.Id));
+        var projected = Assert.Single(categories, c => c.Id == category.Value.Id);
         var projectedTag = Assert.Single(projected.Tags);
         Assert.Equal("beta", projectedTag.Name);
         Assert.Equal(0, projectedTag.ProductCount);
@@ -224,7 +224,7 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
         // Assert
         // This projection goes through Mapster with one configured member. A convention mapping that
         // silently dropped a field, or a Map expression EF could not translate, only shows up here.
-        var projected = Assert.Single(environments.Where(e => e.Id == created.Value.Id));
+        var projected = Assert.Single(environments, e => e.Id == created.Value.Id);
         Assert.Equal(name, projected.Name);
         Assert.Equal(EnvironmentCategory.Staging, projected.Category);
         Assert.Equal(2, projected.RingOrder);

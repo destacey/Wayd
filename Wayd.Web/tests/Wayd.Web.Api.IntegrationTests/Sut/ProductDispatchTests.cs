@@ -176,7 +176,7 @@ public sealed class ProductDispatchTests(WaydSqlServerApiFactory factory)
         // translation mistake would throw here rather than in any unit test. The seeded opening status
         // ("Concept") deliberately carries no alias, so the value asserted is the category, which the
         // projection reads from a real column.
-        var projected = Assert.Single(products.Where(p => p.Id == created.Value.Id));
+        var projected = Assert.Single(products, p => p.Id == created.Value.Id);
         Assert.Equal((int)ProductStatusAlias.None, projected.Status.Alias);
         Assert.Equal(StatusCategory.Proposed, projected.Status.Category);
         Assert.Equal(name, projected.Name);

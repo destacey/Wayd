@@ -3,6 +3,9 @@
 import { WaydGrid, createCsvColumn } from '@/src/components/common/wayd-grid'
 import { ProductDto } from '@/src/services/wayd-api'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
+import treeGridStyles from '@/src/components/common/wayd-grid/wayd-grid.module.css'
+import { CaretDownOutlined, CaretRightOutlined } from '@ant-design/icons'
+import { Button, Flex } from 'antd'
 import Link from 'next/link'
 import { ReactElement } from 'react'
 import { buildProductTree, ProductTreeNode } from './product-tree'
@@ -35,23 +38,51 @@ const buildColumns = <T extends ProductDto>(
     header: 'Name',
     size: 280,
     meta: { filterEnableSet: true },
+    // In tree mode the column draws its own indentation and expander: the grid renders rows flat and
+    // leaves depth to the cell, so a plain link would put every level on the same line.
     // Linked by key rather than id, so the URL carries something a reader recognises.
-    cell: ({ row }) => (
-      <Link href={`/product-management/products/${row.original.key}`}>
-        {row.original.name}
-      </Link>
-    ),
+    cell: ({ row }) => {
+      const link = (
+        <Link href={`/product-management/products/${row.original.key}`}>
+          {row.original.name}
+        </Link>
+      )
+
+      if (!asTree) return link
+
+      return (
+        <Flex align="center" gap={0} className={treeGridStyles.nameCell}>
+          {Array.from({ length: row.depth }).map((_, index) => (
+            <span key={index} className={treeGridStyles.indentSpacer} />
+          ))}
+          {row.getCanExpand() ? (
+            <Button
+              type="text"
+              size="small"
+              icon={
+                row.getIsExpanded() ? <CaretDownOutlined /> : <CaretRightOutlined />
+              }
+              onClick={row.getToggleExpandedHandler()}
+              className={treeGridStyles.expanderBtn}
+            />
+          ) : (
+            <span className={treeGridStyles.indentSpacer} />
+          )}
+          {link}
+        </Flex>
+      )
+    },
   },
   {
-    id: 'productType',
-    accessorKey: 'productType.name',
+    id: 'type',
+    accessorFn: (row) => row.type?.name ?? '',
     header: 'Type',
     size: 140,
     meta: { filterType: 'set' },
   },
   {
     id: 'status',
-    accessorKey: 'status.name',
+    accessorFn: (row) => row.status?.name ?? '',
     header: 'Status',
     size: 130,
     meta: { filterType: 'set' },
@@ -62,7 +93,7 @@ const buildColumns = <T extends ProductDto>(
     : [
         {
           id: 'parent',
-          accessorKey: 'parent.name',
+          accessorFn: (row: T) => row.parent?.name ?? '',
           header: 'Parent',
           size: 220,
           meta: { filterType: 'set' as const },

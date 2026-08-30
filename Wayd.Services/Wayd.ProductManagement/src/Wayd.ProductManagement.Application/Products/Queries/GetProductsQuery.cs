@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Domain.Enums.ProductManagement;
+﻿using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.StatusWorkflows.Dtos;
+using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Application.Products.Dtos;
 
@@ -64,17 +66,32 @@ public sealed class GetProductsQueryHandler(IProductManagementDbContext productM
             Name = p.Name,
             Description = p.Description,
             ExternalId = p.ExternalId,
-            ProductTypeId = p.ProductTypeId,
-            ProductTypeName = dbContext.ProductTypes.Where(t => t.Id == p.ProductTypeId).Select(t => t.Name).FirstOrDefault()!,
+            Type = dbContext.ProductTypes
+                .Where(t => t.Id == p.ProductTypeId)
+                .Select(t => new NavigationDto
+                {
+                    Id = t.Id,
+                    Key = t.Key,
+                    Name = t.Name,
+                })
+                .FirstOrDefault()!,
             IsReleasable = dbContext.ProductTypes.Where(t => t.Id == p.ProductTypeId).Select(t => t.IsReleasable).FirstOrDefault(),
-            ParentId = p.ParentId,
-            ParentName = dbContext.Products.Where(parent => parent.Id == p.ParentId).Select(parent => parent.Name).FirstOrDefault(),
-            StatusId = p.StatusId,
-            StatusName = p.StatusName,
-            StatusCategory = p.StatusCategory,
-            // StatusAlias is Ignore()d on the model — the value lives in the StatusAliasValue backing
-            // property, so a projection has to read it that way.
-            StatusAlias = (ProductStatusAlias)p.StatusAliasValue,
+            Parent = dbContext.Products
+                .Where(parent => parent.Id == p.ParentId)
+                .Select(parent => new NavigationDto
+                {
+                    Id = parent.Id,
+                    Key = parent.Key,
+                    Name = parent.Name,
+                })
+                .FirstOrDefault(),
+            Status = new StatusNavigationDto
+            {
+                Id = p.StatusId,
+                Name = p.StatusName,
+                Category = p.StatusCategory,
+                Alias = p.StatusAliasValue,
+            },
             Tags = p.Tags
                 .Select(t => new ProductTagDto
                 {

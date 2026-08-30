@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Domain.Enums.ProductManagement;
+﻿using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.StatusWorkflows.Dtos;
+using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Application.Releases.Dtos;
 
@@ -54,8 +56,10 @@ public sealed class GetReleasesQueryHandler(IProductManagementDbContext productM
         {
             Id = r.Id,
             Key = r.Key,
-            ProductId = r.ProductId,
-            ProductName = dbContext.Products.Where(p => p.Id == r.ProductId).Select(p => p.Name).FirstOrDefault()!,
+            Product = dbContext.Products
+                .Where(p => p.Id == r.ProductId)
+                .Select(p => new NavigationDto { Id = p.Id, Key = p.Key, Name = p.Name })
+                .FirstOrDefault()!,
             Version = r.Version,
             Name = r.Name,
             Notes = r.Notes,
@@ -63,11 +67,16 @@ public sealed class GetReleasesQueryHandler(IProductManagementDbContext productM
             TargetDate = r.TargetDate,
             CutDate = r.CutDate,
             ReleasedDate = r.ReleasedDate,
-            PackageId = r.PackageId,
-            StatusId = r.StatusId,
-            StatusName = r.StatusName,
-            StatusCategory = r.StatusCategory,
-            // StatusAlias is Ignore()d on the model; the value lives in the backing property.
-            StatusAlias = (ProductStatusAlias)r.StatusAliasValue,
+            Package = dbContext.ReleasePackages
+                .Where(p => p.Id == r.PackageId)
+                .Select(p => new NavigationDto { Id = p.Id, Key = p.Key, Name = p.Version })
+                .FirstOrDefault(),
+            Status = new StatusNavigationDto
+            {
+                Id = r.StatusId,
+                Name = r.StatusName,
+                Category = r.StatusCategory,
+                Alias = r.StatusAliasValue,
+            },
         });
 }

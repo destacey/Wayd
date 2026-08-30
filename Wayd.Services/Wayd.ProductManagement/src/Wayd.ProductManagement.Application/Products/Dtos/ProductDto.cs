@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Domain.Enums.ProductManagement;
+﻿using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.StatusWorkflows.Dtos;
+using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.ProductManagement.Application.Products.Dtos;
@@ -18,17 +20,33 @@ public sealed record ProductDto
     public string? Description { get; init; }
     public string? ExternalId { get; init; }
 
-    public Guid ProductTypeId { get; init; }
-    public string ProductTypeName { get; init; } = default!;
+    /// <summary>
+    /// The node's type, which decides whether releases can be cut against it.
+    /// </summary>
+    public NavigationDto Type { get; init; } = default!;
+
+    /// <summary>
+    /// Whether releases can be cut against this node.
+    /// </summary>
+    /// <remarks>
+    /// Flattened out of the type rather than left to a second lookup: it is the type's most
+    /// consequential consequence, and every reader of a product wants it without resolving the catalog.
+    /// </remarks>
     public bool IsReleasable { get; init; }
 
-    public Guid? ParentId { get; init; }
-    public string? ParentName { get; init; }
+    /// <summary>
+    /// The parent node, or <c>null</c> for a root.
+    /// </summary>
+    /// <remarks>
+    /// A navigation object rather than flat id/name fields, so a caller can link to it the way the rest
+    /// of the app does — by key, which is what a URL carries.
+    /// </remarks>
+    public NavigationDto? Parent { get; init; }
 
-    public Guid StatusId { get; init; }
-    public string StatusName { get; init; } = default!;
-    public StatusCategory StatusCategory { get; init; }
-    public ProductStatusAlias StatusAlias { get; init; }
+    /// <summary>
+    /// The node's current lifecycle status.
+    /// </summary>
+    public StatusNavigationDto Status { get; init; } = default!;
 
     public IReadOnlyCollection<ProductTagDto> Tags { get; init; } = [];
 }

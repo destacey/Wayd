@@ -34154,13 +34154,10 @@
         "required": [
           "id",
           "key",
-          "environmentId",
-          "environmentName",
+          "environment",
           "environmentCategory",
           "startedAt",
-          "statusId",
-          "statusName",
-          "statusCategory",
+          "status",
           "outcome",
           "isComplete",
           "isChangeFailure"
@@ -34176,34 +34173,24 @@
             "type": "integer",
             "format": "int32"
           },
-          "releaseId": {
-            "type": "string",
-            "format": "guid",
+          "release": {
             "nullable": true,
-            "example": "00000000-0000-0000-0000-000000000000"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
           },
-          "releaseVersion": {
-            "type": "string",
-            "nullable": true
-          },
-          "packageId": {
-            "type": "string",
-            "format": "guid",
+          "package": {
             "nullable": true,
-            "example": "00000000-0000-0000-0000-000000000000"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
           },
-          "packageVersion": {
-            "type": "string",
-            "nullable": true
-          },
-          "environmentId": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "environmentName": {
-            "type": "string"
+          "environment": {
+            "$ref": "#/components/schemas/NavigationDto"
           },
           "environmentCategory": {
             "$ref": "#/components/schemas/EnvironmentCategory"
@@ -34225,17 +34212,8 @@
             "type": "string",
             "nullable": true
           },
-          "statusId": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "statusName": {
-            "type": "string"
-          },
-          "statusCategory": {
-            "$ref": "#/components/schemas/StatusCategory"
+          "status": {
+            "$ref": "#/components/schemas/StatusNavigationDto"
           },
           "outcome": {
             "$ref": "#/components/schemas/ProductStatusAlias"
@@ -34245,6 +34223,36 @@
           },
           "isChangeFailure": {
             "type": "boolean"
+          }
+        }
+      },
+      "StatusNavigationDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "category",
+          "alias"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "$ref": "#/components/schemas/StatusCategory"
+          },
+          "alias": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -34399,13 +34407,9 @@
           "id",
           "key",
           "name",
-          "productTypeId",
-          "productTypeName",
+          "type",
           "isReleasable",
-          "statusId",
-          "statusName",
-          "statusCategory",
-          "statusAlias",
+          "status",
           "tags"
         ],
         "properties": {
@@ -34430,42 +34434,22 @@
             "type": "string",
             "nullable": true
           },
-          "productTypeId": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "productTypeName": {
-            "type": "string"
+          "type": {
+            "$ref": "#/components/schemas/NavigationDto"
           },
           "isReleasable": {
             "type": "boolean"
           },
-          "parentId": {
-            "type": "string",
-            "format": "guid",
+          "parent": {
             "nullable": true,
-            "example": "00000000-0000-0000-0000-000000000000"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
           },
-          "parentName": {
-            "type": "string",
-            "nullable": true
-          },
-          "statusId": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "statusName": {
-            "type": "string"
-          },
-          "statusCategory": {
-            "$ref": "#/components/schemas/StatusCategory"
-          },
-          "statusAlias": {
-            "$ref": "#/components/schemas/ProductStatusAlias"
+          "status": {
+            "$ref": "#/components/schemas/StatusNavigationDto"
           },
           "tags": {
             "type": "array",
@@ -35077,10 +35061,7 @@
           "id",
           "key",
           "version",
-          "statusId",
-          "statusName",
-          "statusCategory",
-          "statusAlias",
+          "status",
           "components"
         ],
         "properties": {
@@ -35111,20 +35092,8 @@
             "format": "date",
             "nullable": true
           },
-          "statusId": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "statusName": {
-            "type": "string"
-          },
-          "statusCategory": {
-            "$ref": "#/components/schemas/StatusCategory"
-          },
-          "statusAlias": {
-            "$ref": "#/components/schemas/ProductStatusAlias"
+          "status": {
+            "$ref": "#/components/schemas/StatusNavigationDto"
           },
           "components": {
             "type": "array",
@@ -35138,26 +35107,21 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "productId",
-          "productName",
+          "product",
           "version",
           "kind"
         ],
         "properties": {
-          "productId": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
+          "product": {
+            "$ref": "#/components/schemas/NavigationDto"
           },
-          "productName": {
-            "type": "string"
-          },
-          "releaseId": {
-            "type": "string",
-            "format": "guid",
+          "release": {
             "nullable": true,
-            "example": "00000000-0000-0000-0000-000000000000"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
           },
           "version": {
             "type": "string"
@@ -35315,13 +35279,9 @@
         "required": [
           "id",
           "key",
-          "productId",
-          "productName",
+          "product",
           "version",
-          "statusId",
-          "statusName",
-          "statusCategory",
-          "statusAlias"
+          "status"
         ],
         "properties": {
           "id": {
@@ -35334,14 +35294,8 @@
             "type": "integer",
             "format": "int32"
           },
-          "productId": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "productName": {
-            "type": "string"
+          "product": {
+            "$ref": "#/components/schemas/NavigationDto"
           },
           "version": {
             "type": "string"
@@ -35374,26 +35328,16 @@
             "format": "date",
             "nullable": true
           },
-          "packageId": {
-            "type": "string",
-            "format": "guid",
+          "package": {
             "nullable": true,
-            "example": "00000000-0000-0000-0000-000000000000"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
           },
-          "statusId": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "statusName": {
-            "type": "string"
-          },
-          "statusCategory": {
-            "$ref": "#/components/schemas/StatusCategory"
-          },
-          "statusAlias": {
-            "$ref": "#/components/schemas/ProductStatusAlias"
+          "status": {
+            "$ref": "#/components/schemas/StatusNavigationDto"
           }
         }
       },

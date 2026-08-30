@@ -68925,25 +68925,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("releaseId")]
-        public System.Guid? ReleaseId { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("release")]
+        public NavigationDto? Release { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("releaseVersion")]
-        public string? ReleaseVersion { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("package")]
+        public NavigationDto? Package { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("packageId")]
-        public System.Guid? PackageId { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("packageVersion")]
-        public string? PackageVersion { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("environmentId")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.Guid EnvironmentId { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("environmentName")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string EnvironmentName { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("environment")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public NavigationDto Environment { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("environmentCategory")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -68963,18 +68953,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("reason")]
         public string? Reason { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("statusId")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.Guid StatusId { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("statusName")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string StatusName { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("statusCategory")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
-        public StatusCategory StatusCategory { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
 
         [System.Text.Json.Serialization.JsonPropertyName("outcome")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -68986,6 +68967,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("isChangeFailure")]
         public bool IsChangeFailure { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class StatusNavigationDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("category")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
+        public StatusCategory Category { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("alias")]
+        public int Alias { get; set; } = default!;
 
     }
 
@@ -69168,40 +69171,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("externalId")]
         public string? ExternalId { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("productTypeId")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.Guid ProductTypeId { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("productTypeName")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string ProductTypeName { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public NavigationDto Type { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("isReleasable")]
         public bool IsReleasable { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("parentId")]
-        public System.Guid? ParentId { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("parent")]
+        public NavigationDto? Parent { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("parentName")]
-        public string? ParentName { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("statusId")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.Guid StatusId { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("statusName")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string StatusName { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("statusCategory")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
-        public StatusCategory StatusCategory { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("statusAlias")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ProductStatusAlias>))]
-        public ProductStatusAlias StatusAlias { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
 
         [System.Text.Json.Serialization.JsonPropertyName("tags")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -69754,23 +69736,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("statusId")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.Guid StatusId { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("statusName")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string StatusName { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("statusCategory")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
-        public StatusCategory StatusCategory { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("statusAlias")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ProductStatusAlias>))]
-        public ProductStatusAlias StatusAlias { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
 
         [System.Text.Json.Serialization.JsonPropertyName("components")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -69782,16 +69750,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     public partial class ReleasePackageComponentDto
     {
 
-        [System.Text.Json.Serialization.JsonPropertyName("productId")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.Guid ProductId { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("product")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public NavigationDto Product { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("productName")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string ProductName { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("releaseId")]
-        public System.Guid? ReleaseId { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("release")]
+        public NavigationDto? Release { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -69954,13 +69918,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public int Key { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("productId")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.Guid ProductId { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("productName")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string ProductName { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("product")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public NavigationDto Product { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -69987,26 +69947,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("packageId")]
-        public System.Guid? PackageId { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("package")]
+        public NavigationDto? Package { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("statusId")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.Guid StatusId { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("statusName")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string StatusName { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("statusCategory")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
-        public StatusCategory StatusCategory { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("statusAlias")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ProductStatusAlias>))]
-        public ProductStatusAlias StatusAlias { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
 
     }
 

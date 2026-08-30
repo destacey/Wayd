@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Domain.Enums.ProductManagement;
+﻿using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.StatusWorkflows.Dtos;
+using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.ProductManagement.Application.ReleasePackages.Dtos;
@@ -22,21 +24,22 @@ public sealed record ReleasePackageDto
     public LocalDate? TargetDate { get; init; }
     public LocalDate? ReleasedDate { get; init; }
 
-    public Guid StatusId { get; init; }
-    public string StatusName { get; init; } = default!;
-    public StatusCategory StatusCategory { get; init; }
-    public ProductStatusAlias StatusAlias { get; init; }
+    /// <summary>The package's current status.</summary>
+    public StatusNavigationDto Status { get; init; } = default!;
 
     public IReadOnlyCollection<ReleasePackageComponentDto> Components { get; init; } = [];
 }
 
 public sealed record ReleasePackageComponentDto
 {
-    public Guid ProductId { get; init; }
-    public string ProductName { get; init; } = default!;
+    /// <summary>The component this entry is for.</summary>
+    public NavigationDto Product { get; init; } = default!;
 
-    /// <summary>The release this version came from, where one was recorded.</summary>
-    public Guid? ReleaseId { get; init; }
+    /// <summary>
+    /// The release this version came from, where one was recorded. Its <c>Name</c> is that release's
+    /// version, which may differ from <see cref="Version"/> if the manifest was hand-authored.
+    /// </summary>
+    public NavigationDto? Release { get; init; }
 
     /// <summary>The component version in this package. Free text, never parsed.</summary>
     public string Version { get; init; } = default!;

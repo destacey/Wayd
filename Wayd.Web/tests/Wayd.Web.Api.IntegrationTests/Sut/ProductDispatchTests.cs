@@ -177,10 +177,10 @@ public sealed class ProductDispatchTests(WaydSqlServerApiFactory factory)
         // ("Concept") deliberately carries no alias, so the value asserted is the category, which the
         // projection reads from a real column.
         var projected = Assert.Single(products.Where(p => p.Id == created.Value.Id));
-        Assert.Equal(ProductStatusAlias.None, projected.StatusAlias);
-        Assert.Equal(StatusCategory.Proposed, projected.StatusCategory);
+        Assert.Equal((int)ProductStatusAlias.None, projected.Status.Alias);
+        Assert.Equal(StatusCategory.Proposed, projected.Status.Category);
         Assert.Equal(name, projected.Name);
-        Assert.False(string.IsNullOrWhiteSpace(projected.ProductTypeName));
-        Assert.False(string.IsNullOrWhiteSpace(projected.StatusName));
+        Assert.False(string.IsNullOrWhiteSpace(projected.Type.Name));
+        Assert.False(string.IsNullOrWhiteSpace(projected.Status.Name));
     }
 }

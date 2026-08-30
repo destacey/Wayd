@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Domain.Enums.ProductManagement;
+﻿using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.StatusWorkflows.Dtos;
+using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Application.ReleasePackages.Dtos;
 
@@ -48,21 +50,35 @@ public sealed class GetReleasePackagesQueryHandler(IProductManagementDbContext p
             Name = p.Name,
             TargetDate = p.TargetDate,
             ReleasedDate = p.ReleasedDate,
-            StatusId = p.StatusId,
-            StatusName = p.StatusName,
-            StatusCategory = p.StatusCategory,
-            // StatusAlias is Ignore()d on the model; the value lives in the backing property.
-            StatusAlias = (ProductStatusAlias)p.StatusAliasValue,
+            Status = new StatusNavigationDto
+            {
+                Id = p.StatusId,
+                Name = p.StatusName,
+                Category = p.StatusCategory,
+                Alias = p.StatusAliasValue,
+            },
             Components = dbContext.ReleasePackageComponents
                 .Where(c => c.PackageId == p.Id)
                 .Select(c => new ReleasePackageComponentDto
                 {
-                    ProductId = c.ProductId,
-                    ProductName = dbContext.Products
+                    Product = dbContext.Products
                         .Where(product => product.Id == c.ProductId)
-                        .Select(product => product.Name)
+                        .Select(product => new NavigationDto
+                        {
+                            Id = product.Id,
+                            Key = product.Key,
+                            Name = product.Name,
+                        })
                         .FirstOrDefault()!,
-                    ReleaseId = c.ReleaseId,
+                    Release = dbContext.Releases
+                        .Where(release => release.Id == c.ReleaseId)
+                        .Select(release => new NavigationDto
+                        {
+                            Id = release.Id,
+                            Key = release.Key,
+                            Name = release.Version,
+                        })
+                        .FirstOrDefault(),
                     Version = c.Version,
                     Kind = c.Kind,
                 })

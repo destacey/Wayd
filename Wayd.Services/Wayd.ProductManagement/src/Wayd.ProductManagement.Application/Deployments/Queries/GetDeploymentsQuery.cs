@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Domain.Enums.ProductManagement;
+﻿using Wayd.Common.Application.StatusWorkflows.Dtos;
+using Wayd.Common.Application.Dtos;
+using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.ProductManagement.Application.Deployments.Dtos;
 
 namespace Wayd.ProductManagement.Application.Deployments.Queries;
@@ -63,31 +65,30 @@ public sealed class GetDeploymentsQueryHandler(IProductManagementDbContext produ
         {
             Id = d.Id,
             Key = d.Key,
-            ReleaseId = d.ReleaseId,
-            ReleaseVersion = dbContext.Releases
+            Release = dbContext.Releases
                 .Where(r => r.Id == d.ReleaseId)
-                .Select(r => r.Version)
+                .Select(r => new NavigationDto { Id = r.Id, Key = r.Key, Name = r.Version })
                 .FirstOrDefault(),
-            PackageId = d.PackageId,
-            PackageVersion = dbContext.ReleasePackages
+            Package = dbContext.ReleasePackages
                 .Where(p => p.Id == d.PackageId)
-                .Select(p => p.Version)
+                .Select(p => new NavigationDto { Id = p.Id, Key = p.Key, Name = p.Version })
                 .FirstOrDefault(),
-            EnvironmentId = d.EnvironmentId,
-            EnvironmentName = dbContext.DeploymentEnvironments
+            Environment = dbContext.DeploymentEnvironments
                 .Where(e => e.Id == d.EnvironmentId)
-                .Select(e => e.Name)
+                .Select(e => new NavigationDto { Id = e.Id, Key = e.Key, Name = e.Name })
                 .FirstOrDefault()!,
             EnvironmentCategory = d.EnvironmentCategory,
             ArtifactId = d.ArtifactId,
             StartedAt = d.StartedAt,
             CompletedAt = d.CompletedAt,
             Reason = d.Reason,
-            StatusId = d.StatusId,
-            StatusName = d.StatusName,
-            StatusCategory = d.StatusCategory,
-            // Outcome, IsComplete and IsChangeFailure are computed on the aggregate and Ignore()d on the
-            // model, so the projection recomputes them from real columns rather than reading them.
+            Status = new StatusNavigationDto
+            {
+                Id = d.StatusId,
+                Name = d.StatusName,
+                Category = d.StatusCategory,
+                Alias = d.StatusAliasValue,
+            },
             Outcome = (ProductStatusAlias)d.StatusAliasValue,
             IsComplete = d.CompletedAt != null,
             IsChangeFailure =

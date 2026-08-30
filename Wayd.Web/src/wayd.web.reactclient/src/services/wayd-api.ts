@@ -37672,23 +37672,25 @@ export interface SetDeploymentEnvironmentActiveRequest {
 export interface DeploymentDto {
     id: string;
     key: number;
-    releaseId?: string | undefined;
-    releaseVersion?: string | undefined;
-    packageId?: string | undefined;
-    packageVersion?: string | undefined;
-    environmentId: string;
-    environmentName: string;
+    release?: NavigationDto | undefined;
+    package?: NavigationDto | undefined;
+    environment: NavigationDto;
     environmentCategory: EnvironmentCategory;
     artifactId?: string | undefined;
     startedAt: Date;
     completedAt?: Date | undefined;
     reason?: string | undefined;
-    statusId: string;
-    statusName: string;
-    statusCategory: StatusCategory;
+    status: StatusNavigationDto;
     outcome: ProductStatusAlias;
     isComplete: boolean;
     isChangeFailure: boolean;
+}
+
+export interface StatusNavigationDto {
+    id: string;
+    name: string;
+    category: StatusCategory;
+    alias: number;
 }
 
 export enum StatusCategory {
@@ -37755,15 +37757,10 @@ export interface ProductDto {
     name: string;
     description?: string | undefined;
     externalId?: string | undefined;
-    productTypeId: string;
-    productTypeName: string;
+    type: NavigationDto;
     isReleasable: boolean;
-    parentId?: string | undefined;
-    parentName?: string | undefined;
-    statusId: string;
-    statusName: string;
-    statusCategory: StatusCategory;
-    statusAlias: ProductStatusAlias;
+    parent?: NavigationDto | undefined;
+    status: StatusNavigationDto;
     tags: ProductTagDto[];
 }
 
@@ -37949,17 +37946,13 @@ export interface ReleasePackageDto {
     name?: string | undefined;
     targetDate?: Date | undefined;
     releasedDate?: Date | undefined;
-    statusId: string;
-    statusName: string;
-    statusCategory: StatusCategory;
-    statusAlias: ProductStatusAlias;
+    status: StatusNavigationDto;
     components: ReleasePackageComponentDto[];
 }
 
 export interface ReleasePackageComponentDto {
-    productId: string;
-    productName: string;
-    releaseId?: string | undefined;
+    product: NavigationDto;
+    release?: NavigationDto | undefined;
     version: string;
     kind: ManifestEntryKind;
 }
@@ -38016,8 +38009,7 @@ export interface WithdrawReleasePackageRequest {
 export interface ReleaseDto {
     id: string;
     key: number;
-    productId: string;
-    productName: string;
+    product: NavigationDto;
     version: string;
     name?: string | undefined;
     notes?: string | undefined;
@@ -38025,11 +38017,8 @@ export interface ReleaseDto {
     targetDate?: Date | undefined;
     cutDate?: Date | undefined;
     releasedDate?: Date | undefined;
-    packageId?: string | undefined;
-    statusId: string;
-    statusName: string;
-    statusCategory: StatusCategory;
-    statusAlias: ProductStatusAlias;
+    package?: NavigationDto | undefined;
+    status: StatusNavigationDto;
 }
 
 export interface PlanReleaseRequest {

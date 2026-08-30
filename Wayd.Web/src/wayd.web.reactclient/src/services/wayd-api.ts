@@ -5843,6 +5843,98 @@ export class VisionsClient {
     }
 }
 
+export class DeliveryMetricsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get the delivery measures over a window.
+     * @param from (optional) 
+     * @param to (optional) 
+     * @param productId (optional) 
+     */
+    getDeliveryMetrics(from?: Date | undefined, to?: Date | undefined, productId?: string | null | undefined, cancelToken?: CancelToken): Promise<DeliveryMetricsDto> {
+        let url_ = this.baseUrl + "/api/product-management/delivery-metrics?";
+        if (from === null)
+            throw new globalThis.Error("The parameter 'from' cannot be null.");
+        else if (from !== undefined)
+            url_ += "from=" + encodeURIComponent(from ? "" + from.toISOString() : "") + "&";
+        if (to === null)
+            throw new globalThis.Error("The parameter 'to' cannot be null.");
+        else if (to !== undefined)
+            url_ += "to=" + encodeURIComponent(to ? "" + to.toISOString() : "") + "&";
+        if (productId !== undefined && productId !== null)
+            url_ += "productId=" + encodeURIComponent("" + productId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetDeliveryMetrics(_response);
+        });
+    }
+
+    protected processGetDeliveryMetrics(response: AxiosResponse): Promise<DeliveryMetricsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DeliveryMetricsDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DeliveryMetricsDto>(null as any);
+    }
+}
+
 export class DeploymentEnvironmentsClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -37502,6 +37594,31 @@ export interface UpdateVisionRequest {
 }
 
 export interface VisionStateDto extends CommonEnumDto {
+}
+
+export interface DeliveryMetricsDto {
+    from: Date;
+    to: Date;
+    deploymentFrequency: DeploymentFrequencyDto;
+    changeFailureRate: ChangeFailureRateDto;
+    unavailable: UnavailableMetricDto[];
+}
+
+export interface DeploymentFrequencyDto {
+    count: number;
+    windowDays: number;
+    perDay?: number | undefined;
+}
+
+export interface ChangeFailureRateDto {
+    totalDeployments: number;
+    failedDeployments: number;
+    rate?: number | undefined;
+}
+
+export interface UnavailableMetricDto {
+    metric: string;
+    reason: string;
 }
 
 export interface DeploymentEnvironmentDto {

@@ -80,6 +80,7 @@ public static class ApplicationResource
     public const string ReleasePackages = nameof(ReleasePackages);
     public const string Deployments = nameof(Deployments);
     public const string DeploymentEnvironments = nameof(DeploymentEnvironments);
+    public const string DeliveryMetrics = nameof(DeliveryMetrics);
 
     public const string StrategicThemes = nameof(StrategicThemes);
     public const string Strategies = nameof(Strategies);
@@ -398,6 +399,8 @@ public static class ApplicationPermissions
         new ("Create Deployment Environments", ApplicationAction.Create, ApplicationResource.DeploymentEnvironments, DeliveryCategory),
         new ("Update Deployment Environments", ApplicationAction.Update, ApplicationResource.DeploymentEnvironments, DeliveryCategory),
         new ("Delete Deployment Environments", ApplicationAction.Delete, ApplicationResource.DeploymentEnvironments, DeliveryCategory),
+
+        new ("View Delivery Metrics", ApplicationAction.View, ApplicationResource.DeliveryMetrics, DeliveryCategory),
 
         new ("View Product Tag Categories", ApplicationAction.View, ApplicationResource.ProductTagCategories, ProductManagementCategory),
         new ("Create Product Tag Categories", ApplicationAction.Create, ApplicationResource.ProductTagCategories, ProductManagementCategory),

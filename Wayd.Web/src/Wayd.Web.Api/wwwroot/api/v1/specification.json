@@ -4193,6 +4193,84 @@
         ]
       }
     },
+    "/api/product-management/delivery-metrics": {
+      "get": {
+        "tags": [
+          "DeliveryMetrics"
+        ],
+        "summary": "Get the delivery measures over a window.",
+        "description": "Deployment frequency and change failure rate. Lead time and time to restore are reported as unavailable.",
+        "operationId": "DeliveryMetrics_GetDeliveryMetrics",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "productId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryMetricsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/product-management/deployment-environments": {
       "get": {
         "tags": [
@@ -33819,6 +33897,101 @@
             "additionalProperties": false
           }
         ]
+      },
+      "DeliveryMetricsDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "to",
+          "deploymentFrequency",
+          "changeFailureRate",
+          "unavailable"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deploymentFrequency": {
+            "$ref": "#/components/schemas/DeploymentFrequencyDto"
+          },
+          "changeFailureRate": {
+            "$ref": "#/components/schemas/ChangeFailureRateDto"
+          },
+          "unavailable": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnavailableMetricDto"
+            }
+          }
+        }
+      },
+      "DeploymentFrequencyDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "count",
+          "windowDays"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "windowDays": {
+            "type": "number",
+            "format": "double"
+          },
+          "perDay": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        }
+      },
+      "ChangeFailureRateDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "totalDeployments",
+          "failedDeployments"
+        ],
+        "properties": {
+          "totalDeployments": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedDeployments": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rate": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        }
+      },
+      "UnavailableMetricDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric",
+          "reason"
+        ],
+        "properties": {
+          "metric": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
       },
       "DeploymentEnvironmentDto": {
         "type": "object",

@@ -65,6 +65,23 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
         _statusTransitions.OrderBy(t => t.Sequence).ToList().AsReadOnly();
 
     /// <summary>
+    /// Takes the transitions appended since the last drain, so they can be persisted.
+    /// </summary>
+    /// <remarks>
+    /// The history is not a navigation — one table serves every owner type, so a per-aggregate foreign key
+    /// on <see cref="StatusTransition.RecordId"/> is not constructible — which means nothing persists these
+    /// unless something collects them. <c>BaseDbContext</c> calls this on save; draining prevents a second
+    /// save from inserting the same rows again.
+    /// </remarks>
+    public IReadOnlyCollection<StatusTransition> DrainStatusTransitions()
+    {
+        var drained = _statusTransitions.OrderBy(t => t.Sequence).ToList();
+        _statusTransitions.Clear();
+
+        return drained.AsReadOnly();
+    }
+
+    /// <summary>
     /// How many transitions this record has recorded. Assigned as the next
     /// <see cref="StatusTransition.Sequence"/> so appending does not require the history to be loaded.
     /// </summary>

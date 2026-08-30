@@ -137,9 +137,7 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property<int>("StatusAliasValue").IsRequired();
         builder.Property(p => p.StatusTransitionCount).IsRequired();
 
-        // The history is written through the aggregate but queried on its own, so it is a plain
-        // collection rather than a navigation every read would have to include.
-        builder.Ignore(p => p.StatusTransitions);
+        builder.ConfigureStatusHistory();
 
         builder.HasMany(p => p.Tags)
             .WithOne()
@@ -208,9 +206,7 @@ public class ReleaseConfiguration : IEntityTypeConfiguration<Release>
         builder.Property<int>("StatusAliasValue").IsRequired();
         builder.Property(r => r.StatusTransitionCount).IsRequired();
 
-        // The history is written through the aggregate but queried on its own, so it is a plain
-        // collection rather than a navigation every read would have to include.
-        builder.Ignore(r => r.StatusTransitions);
+        builder.ConfigureStatusHistory();
 
         // Relationships
         builder.HasOne<Product>()
@@ -254,9 +250,7 @@ public class ReleasePackageConfiguration : IEntityTypeConfiguration<ReleasePacka
         builder.Property<int>("StatusAliasValue").IsRequired();
         builder.Property(p => p.StatusTransitionCount).IsRequired();
 
-        // The history is written through the aggregate but queried on its own, so it is a plain
-        // collection rather than a navigation every read would have to include.
-        builder.Ignore(p => p.StatusTransitions);
+        builder.ConfigureStatusHistory();
 
         // Relationships
         builder.HasMany(p => p.Components)
@@ -376,9 +370,7 @@ public class DeploymentConfiguration : IEntityTypeConfiguration<Deployment>
         builder.Property<int>("StatusAliasValue").IsRequired();
         builder.Property(d => d.StatusTransitionCount).IsRequired();
 
-        // The history is written through the aggregate but queried on its own, so it is a plain
-        // collection rather than a navigation every read would have to include.
-        builder.Ignore(d => d.StatusTransitions);
+        builder.ConfigureStatusHistory();
 
         // Relationships
         builder.HasOne<Release>()

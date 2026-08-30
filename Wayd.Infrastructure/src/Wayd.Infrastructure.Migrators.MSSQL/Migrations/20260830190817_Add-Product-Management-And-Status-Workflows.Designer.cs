@@ -13,7 +13,7 @@ using Wayd.Infrastructure.Persistence.Context;
 namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 {
     [DbContext(typeof(WaydDbContext))]
-    [Migration("20260830180507_Add-Product-Management-And-Status-Workflows")]
+    [Migration("20260830190817_Add-Product-Management-And-Status-Workflows")]
     partial class AddProductManagementAndStatusWorkflows
     {
         /// <inheritdoc />

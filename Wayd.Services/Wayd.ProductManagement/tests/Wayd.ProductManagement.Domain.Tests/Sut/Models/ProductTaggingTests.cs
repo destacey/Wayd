@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NodaTime.Extensions;
 using NodaTime.Testing;
 using Wayd.Common.Domain.Events;
@@ -175,6 +175,87 @@ public sealed class ProductTaggingTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("A tag named 'iOS' already exists on this axis.");
+    }
+
+    [Fact]
+    public void RenameTag_ShouldRenameIt()
+    {
+        // Arrange
+        var category = ProductTagCategory.Create("Platform", null, true, 1);
+        var tag = category.AddTag("ios").Value;
+
+        // Act
+        var result = category.RenameTag(tag.Id, "iOS");
+
+        // Assert
+        // Products reference the tag by id, so the new name shows everywhere at once — which is the
+        // point of a curated list over free text.
+        result.IsSuccess.Should().BeTrue();
+        tag.Name.Should().Be("iOS");
+    }
+
+    [Fact]
+    public void RenameTag_ShouldFail_OnADuplicateName()
+    {
+        // Arrange
+        var category = ProductTagCategory.Create("Platform", null, true, 1);
+        category.AddTag("ios");
+        var android = category.AddTag("android").Value;
+
+        // Act
+        var result = category.RenameTag(android.Id, "IOS");
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A tag named 'IOS' already exists on this axis.");
+    }
+
+    [Fact]
+    public void RenameTag_ShouldAllowATagToKeepItsOwnName()
+    {
+        // Arrange
+        var category = ProductTagCategory.Create("Platform", null, true, 1);
+        var tag = category.AddTag("ios").Value;
+
+        // Act
+        var result = category.RenameTag(tag.Id, "ios", "Apple mobile.");
+
+        // Assert
+        // The uniqueness check must exclude the tag being renamed, or editing only the description
+        // would be refused.
+        result.IsSuccess.Should().BeTrue();
+        tag.Description.Should().Be("Apple mobile.");
+    }
+
+    [Fact]
+    public void RenameTag_ShouldFail_ForATagOnAnotherAxis()
+    {
+        // Arrange
+        var category = ProductTagCategory.Create("Platform", null, true, 1);
+        var other = ProductTagCategory.Create("Tech Stack", null, true, 2);
+        var foreign = other.AddTag("dotnet").Value;
+
+        // Act
+        var result = category.RenameTag(foreign.Id, "net");
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("That tag does not belong to this axis.");
+    }
+
+    [Fact]
+    public void RenameTag_ShouldFail_OnASystemAxis()
+    {
+        // Arrange
+        var seeded = ProductTagCategory.CreateSystem("Platform", null, true, 1);
+        var tag = seeded.AddSystemTag("ios");
+
+        // Act
+        var result = seeded.RenameTag(tag.Id, "iOS");
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("System tag categories cannot be modified.");
     }
 
     #endregion Refusals

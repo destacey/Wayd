@@ -107,6 +107,44 @@ public sealed class ProductTagCategory : BaseAuditableEntity, IHasIdAndKey
         return Result.Success(tag);
     }
 
+    /// <summary>
+    /// Renames a tag on this axis.
+    /// </summary>
+    /// <remarks>
+    /// On the category rather than on <see cref="ProductTag"/> because the rule a rename can break —
+    /// no two tags on one axis sharing a name — is the category's to enforce; the tag cannot see its
+    /// siblings.
+    /// </remarks>
+    public Result RenameTag(Guid tagId, string name, string? description = null)
+    {
+        if (IsSystem)
+        {
+            return Result.Failure("System tag categories cannot be modified.");
+        }
+
+        var tag = _tags.FirstOrDefault(t => t.Id == tagId);
+        if (tag is null)
+        {
+            return Result.Failure("That tag does not belong to this axis.");
+        }
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return Result.Failure("A tag must have a name.");
+        }
+
+        var trimmed = name.Trim();
+
+        if (_tags.Any(t => t.Id != tagId && string.Equals(t.Name, trimmed, StringComparison.OrdinalIgnoreCase)))
+        {
+            return Result.Failure($"A tag named '{trimmed}' already exists on this axis.");
+        }
+
+        tag.Rename(trimmed, description);
+
+        return Result.Success();
+    }
+
     /// <summary>Renames the axis.</summary>
     public Result Update(string name, string? description, int order)
     {

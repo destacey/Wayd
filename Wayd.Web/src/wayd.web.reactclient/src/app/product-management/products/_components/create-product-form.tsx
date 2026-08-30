@@ -1,5 +1,6 @@
 'use client'
 
+import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { CreateProductRequest } from '@/src/services/wayd-api'
@@ -100,7 +101,6 @@ const CreateProductForm = ({
     <Modal
       title="Create Product"
       open={isOpen}
-      width={'60vw'}
       onOk={handleOk}
       okButtonProps={{ disabled: !isValid }}
       okText="Create"
@@ -116,15 +116,13 @@ const CreateProductForm = ({
         name="create-product-form"
         initialValues={defaultParentId ? { parentId: defaultParentId } : undefined}
       >
-        <Item
-          label="Name"
-          name="name"
-          rules={[{ required: true, message: 'Name is required' }, { max: 128 }]}
-        >
-          <TextArea
-            autoSize={{ minRows: 1, maxRows: 2 }}
-            showCount
-            maxLength={128}
+        <Item name="parentId" label="Parent">
+          <Select
+            options={parentOptions}
+            placeholder="Select a parent"
+            allowClear
+            showSearch
+            optionFilterProp="label"
           />
         </Item>
         <Item
@@ -142,21 +140,19 @@ const CreateProductForm = ({
             optionFilterProp="label"
           />
         </Item>
-        <Item name="parentId" label="Parent">
-          <Select
-            options={parentOptions}
-            placeholder="Select a parent"
-            allowClear
-            showSearch
-            optionFilterProp="label"
+        <Item
+          label="Name"
+          name="name"
+          rules={[{ required: true, message: 'Name is required' }, { max: 128 }]}
+        >
+          <TextArea
+            autoSize={{ minRows: 1, maxRows: 2 }}
+            showCount
+            maxLength={128}
           />
         </Item>
         <Item name="description" label="Description" rules={[{ max: 1024 }]}>
-          <TextArea
-            autoSize={{ minRows: 2, maxRows: 6 }}
-            showCount
-            maxLength={1024}
-          />
+          <MarkdownEditor maxLength={1024} />
         </Item>
         <Item
           name="externalId"

@@ -8,7 +8,7 @@ import {
   CarryOutOutlined,
   ProjectOutlined,
   FundOutlined,
-  AppstoreOutlined,
+  ProductOutlined,
 } from '@ant-design/icons'
 import {
   buildRouteKeyMap,
@@ -28,7 +28,7 @@ const menuIcons = {
   org: <TeamOutlined />,
   planning: <ScheduleOutlined />,
   ppm: <ProjectOutlined />,
-  product: <AppstoreOutlined />,
+  product: <ProductOutlined />,
   strategy: <FundOutlined />,
   work: <CarryOutOutlined />,
   settings: <SettingOutlined />,

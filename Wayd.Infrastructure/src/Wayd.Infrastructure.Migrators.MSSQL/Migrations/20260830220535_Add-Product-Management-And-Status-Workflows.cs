@@ -495,6 +495,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Deployments_EnvironmentCategory_StatusAliasValue_CompletedAt",
+                schema: "Delivery",
+                table: "Deployments",
+                columns: new[] { "EnvironmentCategory", "StatusAliasValue", "CompletedAt" })
+                .Annotation("SqlServer:Include", new[] { "Id", "Key", "ReleaseId", "PackageId", "EnvironmentId" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Deployments_EnvironmentId_StartedAt",
                 schema: "Delivery",
                 table: "Deployments",

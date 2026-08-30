@@ -134,7 +134,7 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .HasConversion<EnumConverter<StatusCategory>>()
             .HasColumnType("varchar")
             .HasMaxLength(32);
-        builder.Property<int>("StatusAliasValue").IsRequired();
+        builder.Property(e => e.StatusAliasValue).IsRequired();
         builder.Property(p => p.StatusTransitionCount).IsRequired();
 
         builder.ConfigureStatusHistory();
@@ -203,7 +203,7 @@ public class ReleaseConfiguration : IEntityTypeConfiguration<Release>
             .HasConversion<EnumConverter<StatusCategory>>()
             .HasColumnType("varchar")
             .HasMaxLength(32);
-        builder.Property<int>("StatusAliasValue").IsRequired();
+        builder.Property(e => e.StatusAliasValue).IsRequired();
         builder.Property(r => r.StatusTransitionCount).IsRequired();
 
         builder.ConfigureStatusHistory();
@@ -247,7 +247,7 @@ public class ReleasePackageConfiguration : IEntityTypeConfiguration<ReleasePacka
             .HasConversion<EnumConverter<StatusCategory>>()
             .HasColumnType("varchar")
             .HasMaxLength(32);
-        builder.Property<int>("StatusAliasValue").IsRequired();
+        builder.Property(e => e.StatusAliasValue).IsRequired();
         builder.Property(p => p.StatusTransitionCount).IsRequired();
 
         builder.ConfigureStatusHistory();
@@ -333,10 +333,22 @@ public class DeploymentConfiguration : IEntityTypeConfiguration<Deployment>
         builder.HasKey(d => d.Id);
         builder.HasAlternateKey(d => d.Key);
 
-        // The delivery-metrics index: deployment frequency, change failure rate and time-to-restore all
-        // filter production deployments by outcome over a window. Outcome being int keeps this narrow.
-        builder.HasIndex(d => new { d.EnvironmentCategory, d.Outcome, d.CompletedAt })
-            .IncludeProperties(d => new { d.Id, d.Key, d.ReleaseId, d.PackageId, d.EnvironmentId });
+        // The delivery-metrics index: deployment frequency and change failure rate both filter
+        // production deployments by outcome over a window.
+        //
+        // Keyed on "StatusAliasValue" by name, not on the Outcome property: Outcome is computed and
+        // Ignore()d below, and EF silently drops a HasIndex over an ignored property — the index simply
+        // never reached the schema. Named this way it indexes the real column the alias lives in.
+        builder.HasIndex(
+                nameof(Deployment.EnvironmentCategory),
+                nameof(Deployment.StatusAliasValue),
+                nameof(Deployment.CompletedAt))
+            .IncludeProperties(
+                nameof(Deployment.Id),
+                nameof(Deployment.Key),
+                nameof(Deployment.ReleaseId),
+                nameof(Deployment.PackageId),
+                nameof(Deployment.EnvironmentId));
 
         builder.HasIndex(d => d.ReleaseId);
         builder.HasIndex(d => d.PackageId);
@@ -367,7 +379,7 @@ public class DeploymentConfiguration : IEntityTypeConfiguration<Deployment>
             .HasConversion<EnumConverter<StatusCategory>>()
             .HasColumnType("varchar")
             .HasMaxLength(32);
-        builder.Property<int>("StatusAliasValue").IsRequired();
+        builder.Property(e => e.StatusAliasValue).IsRequired();
         builder.Property(d => d.StatusTransitionCount).IsRequired();
 
         builder.ConfigureStatusHistory();

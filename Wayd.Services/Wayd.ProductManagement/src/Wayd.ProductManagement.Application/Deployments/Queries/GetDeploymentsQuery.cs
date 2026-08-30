@@ -88,11 +88,11 @@ public sealed class GetDeploymentsQueryHandler(IProductManagementDbContext produ
             StatusCategory = d.StatusCategory,
             // Outcome, IsComplete and IsChangeFailure are computed on the aggregate and Ignore()d on the
             // model, so the projection recomputes them from real columns rather than reading them.
-            Outcome = (ProductStatusAlias)EF.Property<int>(d, "StatusAliasValue"),
+            Outcome = (ProductStatusAlias)d.StatusAliasValue,
             IsComplete = d.CompletedAt != null,
             IsChangeFailure =
                 d.EnvironmentCategory == Common.Domain.Enums.ProductManagement.EnvironmentCategory.Production
-                && (EF.Property<int>(d, "StatusAliasValue") == (int)ProductStatusAlias.Failed
-                    || EF.Property<int>(d, "StatusAliasValue") == (int)ProductStatusAlias.RolledBack),
+                && (d.StatusAliasValue == (int)ProductStatusAlias.Failed
+                    || d.StatusAliasValue == (int)ProductStatusAlias.RolledBack),
         });
 }

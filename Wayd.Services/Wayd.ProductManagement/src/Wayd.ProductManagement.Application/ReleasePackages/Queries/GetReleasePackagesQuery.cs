@@ -52,7 +52,7 @@ public sealed class GetReleasePackagesQueryHandler(IProductManagementDbContext p
             StatusName = p.StatusName,
             StatusCategory = p.StatusCategory,
             // StatusAlias is Ignore()d on the model; the value lives in the backing property.
-            StatusAlias = (ProductStatusAlias)EF.Property<int>(p, "StatusAliasValue"),
+            StatusAlias = (ProductStatusAlias)p.StatusAliasValue,
             Components = dbContext.ReleasePackageComponents
                 .Where(c => c.PackageId == p.Id)
                 .Select(c => new ReleasePackageComponentDto

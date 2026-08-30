@@ -13,7 +13,7 @@ using Wayd.Infrastructure.Persistence.Context;
 namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 {
     [DbContext(typeof(WaydDbContext))]
-    [Migration("20260830190817_Add-Product-Management-And-Status-Workflows")]
+    [Migration("20260830220535_Add-Product-Management-And-Status-Workflows")]
     partial class AddProductManagementAndStatusWorkflows
     {
         /// <inheritdoc />
@@ -3469,6 +3469,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasIndex("ReleaseId");
 
                     b.HasIndex("EnvironmentId", "StartedAt");
+
+                    b.HasIndex("EnvironmentCategory", "StatusAliasValue", "CompletedAt");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("EnvironmentCategory", "StatusAliasValue", "CompletedAt"), new[] { "Id", "Key", "ReleaseId", "PackageId", "EnvironmentId" });
 
                     b.ToTable("Deployments", "Delivery");
                 });

@@ -3467,6 +3467,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasIndex("EnvironmentId", "StartedAt");
 
+                    b.HasIndex("EnvironmentCategory", "StatusAliasValue", "CompletedAt");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("EnvironmentCategory", "StatusAliasValue", "CompletedAt"), new[] { "Id", "Key", "ReleaseId", "PackageId", "EnvironmentId" });
+
                     b.ToTable("Deployments", "Delivery");
                 });
 

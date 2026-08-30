@@ -56,7 +56,14 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
     /// <c>int</c> because the meaning belongs to the consuming module; aggregates expose it through
     /// their own alias enum.
     /// </summary>
-    protected int StatusAliasValue { get; private set; }
+    /// <remarks>
+    /// Public rather than protected so it maps as a real column and a query can read it directly.
+    /// Reaching it as a shadow property with <c>EF.Property</c> instead makes a projection translate
+    /// only against a real provider — it throws under LINQ-to-Objects, so any handler test running on
+    /// an in-memory fake could not exercise it. Aggregates still expose it through their own alias enum;
+    /// this is for the read side.
+    /// </remarks>
+    public int StatusAliasValue { get; private set; }
 
     /// <summary>
     /// Every status change this record has been through, oldest first.

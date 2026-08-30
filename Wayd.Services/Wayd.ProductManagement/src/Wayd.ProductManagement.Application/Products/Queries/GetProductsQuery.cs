@@ -74,7 +74,7 @@ public sealed class GetProductsQueryHandler(IProductManagementDbContext productM
             StatusCategory = p.StatusCategory,
             // StatusAlias is Ignore()d on the model — the value lives in the StatusAliasValue backing
             // property, so a projection has to read it that way.
-            StatusAlias = (ProductStatusAlias)EF.Property<int>(p, "StatusAliasValue"),
+            StatusAlias = (ProductStatusAlias)p.StatusAliasValue,
             Tags = p.Tags
                 .Select(t => new ProductTagDto
                 {

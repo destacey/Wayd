@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Enums.ProductManagement;
+﻿using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows;
 
 namespace Wayd.ProductManagement.Domain;
@@ -8,15 +8,16 @@ namespace Wayd.ProductManagement.Domain;
 /// from a workflow before it can be activated.
 /// </summary>
 /// <remarks>
+/// Declared here rather than in the engine so Common carries no Product Management vocabulary.
 /// <para>
-/// Declared here rather than in the engine so Common carries no Product Management vocabulary. A module
-/// adopting the engine later writes its own equivalent of this file and changes nothing in
-/// <c>Wayd.Common.Domain</c>.
+/// The keys are persisted on every workflow row and on every status transition, and the alias values
+/// on every record that holds a status. <strong>Never change either once shipped</strong> — renaming a
+/// key orphans its workflows, and renumbering an alias silently changes what existing rows mean.
 /// </para>
 /// <para>
-/// The keys are persisted on every workflow row. <strong>They must never change</strong> — renaming one
-/// orphans every workflow that carries it — which is why they are namespaced and declared once here
-/// rather than written as literals at call sites.
+/// Delivery keys are namespaced <c>delivery.*</c> rather than <c>product.*</c>: releases, packages and
+/// deployments live in the Delivery schema and may become their own module, while the catalog stays
+/// Product Management. Only <c>product.product</c> is catalog.
 /// </para>
 /// </remarks>
 public static class ProductWorkflowOwners
@@ -25,38 +26,36 @@ public static class ProductWorkflowOwners
     public static readonly WorkflowOwnerDescriptor Product = new(
         "product.product",
         "Product",
-        [(int)ProductStatusAlias.Active, (int)ProductStatusAlias.Retired],
-        Describe);
+        Names(ProductStatusAlias.Active, ProductStatusAlias.Sunset, ProductStatusAlias.Retired),
+        [(int)ProductStatusAlias.Active, (int)ProductStatusAlias.Retired]);
 
     /// <summary>A versioned cut of a releasable product node.</summary>
     public static readonly WorkflowOwnerDescriptor Release = new(
-        "product.release",
+        "delivery.release",
         "Release",
-        [(int)ProductStatusAlias.Released, (int)ProductStatusAlias.Withdrawn],
-        Describe);
+        Names(ProductStatusAlias.Ready, ProductStatusAlias.Released, ProductStatusAlias.Withdrawn),
+        [(int)ProductStatusAlias.Released, (int)ProductStatusAlias.Withdrawn]);
 
     /// <summary>A coordinated shipment of several component releases.</summary>
     public static readonly WorkflowOwnerDescriptor ReleasePackage = new(
-        "product.release-package",
+        "delivery.release-package",
         "Release Package",
-        [(int)ProductStatusAlias.Released, (int)ProductStatusAlias.Withdrawn],
-        Describe);
+        Names(ProductStatusAlias.Ready, ProductStatusAlias.Released, ProductStatusAlias.Withdrawn),
+        [(int)ProductStatusAlias.Released, (int)ProductStatusAlias.Withdrawn]);
 
     /// <summary>
     /// One release or package reaching one environment. Governs the deployment outcome.
     /// </summary>
     /// <remarks>
-    /// The strictest of the four, and deliberately so. Change failure rate is
-    /// <c>(Failed + RolledBack) / total</c> and time-to-restore measures from a failure to the next
-    /// success, so an organization that could omit or rename those outcomes without an alias would make
-    /// both uncomputable and non-comparable between organizations. Configurable outcomes are fine;
-    /// optional <em>meanings</em> are not.
+    /// The strictest of the four: change failure rate is <c>(Failed + RolledBack) / total</c> and
+    /// time-to-restore measures from a failure to the next success, so an organization that could omit
+    /// those outcomes would make both uncomputable and non-comparable between organizations.
     /// </remarks>
     public static readonly WorkflowOwnerDescriptor Deployment = new(
-        "product.deployment",
+        "delivery.deployment",
         "Deployment",
-        [(int)ProductStatusAlias.Succeeded, (int)ProductStatusAlias.Failed, (int)ProductStatusAlias.RolledBack],
-        Describe);
+        Names(ProductStatusAlias.InProgress, ProductStatusAlias.Succeeded, ProductStatusAlias.Failed, ProductStatusAlias.RolledBack),
+        [(int)ProductStatusAlias.Succeeded, (int)ProductStatusAlias.Failed, (int)ProductStatusAlias.RolledBack]);
 
     /// <summary>
     /// Every owner type this module contributes, for registration at startup.
@@ -69,6 +68,6 @@ public static class ProductWorkflowOwners
     /// </summary>
     public static void Register() => WorkflowOwners.Register(All);
 
-    private static string Describe(int alias) =>
-        Enum.IsDefined((ProductStatusAlias)alias) ? ((ProductStatusAlias)alias).ToString() : alias.ToString();
+    private static Dictionary<int, string> Names(params ProductStatusAlias[] aliases) =>
+        aliases.ToDictionary(a => (int)a, a => a.ToString());
 }

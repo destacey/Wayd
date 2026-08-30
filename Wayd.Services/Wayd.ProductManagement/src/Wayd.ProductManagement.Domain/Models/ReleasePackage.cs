@@ -19,7 +19,7 @@ namespace Wayd.ProductManagement.Domain.Models;
 /// <c>TeamOfTeams</c>. Where a package exists it owns the deployment and its component releases do not,
 /// so one pipeline run counts once.
 /// </remarks>
-public sealed class ReleasePackage : BaseAuditableEntity, IHasIdAndKey
+public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
 {
     private readonly List<ReleasePackageComponent> _components = [];
 
@@ -30,9 +30,10 @@ public sealed class ReleasePackage : BaseAuditableEntity, IHasIdAndKey
         Version = version;
         Name = name;
         TargetDate = targetDate;
-        StatusId = status.StatusId;
-        StatusCategory = status.Category;
     }
+
+    /// <inheritdoc/>
+    public override string StatusOwnerType => ProductWorkflowOwners.ReleasePackage.Key;
 
     /// <summary>
     /// The unique auto-generated key of the package. This is an alternate key to the Id.
@@ -60,14 +61,6 @@ public sealed class ReleasePackage : BaseAuditableEntity, IHasIdAndKey
 
     /// <summary>When the package shipped.</summary>
     public LocalDate? ReleasedDate { get; private set; }
-
-    /// <summary>The status this package currently holds, from its assigned workflow.</summary>
-    public Guid StatusId { get; private set; }
-
-    /// <summary>
-    /// The status's category, denormalized so reads and invariants never need the workflow loaded.
-    /// </summary>
-    public StatusCategory StatusCategory { get; private set; }
 
     /// <summary>
     /// Every component version this package shipped — changed and carried forward alike.
@@ -166,8 +159,7 @@ public sealed class ReleasePackage : BaseAuditableEntity, IHasIdAndKey
         }
 
         ReleasedDate = releasedDate;
-        StatusId = releasedStatus.StatusId;
-        StatusCategory = releasedStatus.Category;
+        ApplyStatus(releasedStatus, actor, timestamp);
 
         AddDomainEvent(new PackageReleasedEvent(Id, Key, Version, releasedDate, _components.Count, StatusId, actor, timestamp));
 
@@ -186,8 +178,7 @@ public sealed class ReleasePackage : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("This package has already been withdrawn.");
         }
 
-        StatusId = withdrawnStatus.StatusId;
-        StatusCategory = withdrawnStatus.Category;
+        ApplyStatus(withdrawnStatus, actor, timestamp, reason);
 
         AddDomainEvent(new PackageWithdrawnEvent(Id, Key, Version, reason?.Trim(), StatusId, actor, timestamp));
 
@@ -221,6 +212,7 @@ public sealed class ReleasePackage : BaseAuditableEntity, IHasIdAndKey
         }
 
         var package = new ReleasePackage(version, name, targetDate, initialStatus);
+        package.ApplyStatus(initialStatus, actor, timestamp);
 
         foreach (var component in components)
         {

@@ -1,6 +1,9 @@
 ﻿using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
+using NodaTime;
 using Wayd.Common.Domain.Data;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Common.Domain.StatusWorkflows;
@@ -28,8 +31,8 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     public const int NoAlias = 0;
 
     private const string NotDraftError = "Only draft workflows can be restructured.";
-    private const string NotArchivableError = "Only active workflows can be archived.";
-    private const string AlreadyActiveError = "The workflow is already active.";
+    private const string NotArchivableError = "Only published workflows can be archived.";
+    private const string AlreadyPublishedError = "The workflow is already published.";
     private const string ArchivedError = "An archived workflow cannot be modified.";
 
     private readonly List<WorkflowStatus> _statuses = [];
@@ -81,7 +84,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     public string OwnerType { get; private init; } = default!;
 
     /// <summary>
-    /// The workflow's own lifecycle. Only <see cref="StatusWorkflowState.Active"/> workflows are
+    /// The workflow's own lifecycle. Only <see cref="StatusWorkflowState.Published"/> workflows are
     /// assignable, and only <see cref="StatusWorkflowState.Draft"/> ones can be restructured.
     /// </summary>
     public StatusWorkflowState State { get; private set; }
@@ -292,19 +295,19 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Makes the workflow assignable, refusing one that cannot supply its owner type's required
+    /// Publishes the workflow, refusing one that cannot supply its owner type's required
     /// aliases — caught here rather than later, inside an aggregate, on a record already created.
     /// </summary>
-    public Result Activate()
+    public Result Publish(EventActor actor, Instant timestamp)
     {
         if (IsSystem)
         {
-            return Result.Failure("System workflows are activated by the seeder that creates them.");
+            return Result.Failure("System workflows are published by the seeder that creates them.");
         }
 
-        if (State == StatusWorkflowState.Active)
+        if (State == StatusWorkflowState.Published)
         {
-            return Result.Failure(AlreadyActiveError);
+            return Result.Failure(AlreadyPublishedError);
         }
 
         if (State == StatusWorkflowState.Archived)
@@ -318,7 +321,9 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return guard;
         }
 
-        State = StatusWorkflowState.Active;
+        State = StatusWorkflowState.Published;
+
+        AddDomainEvent(new WorkflowPublishedEvent(Id, Key, Name, OwnerType, _statuses.Count, actor, timestamp));
 
         return Result.Success();
     }
@@ -326,19 +331,36 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Withdraws the workflow from use. Retained, not deleted, so existing records keep resolving.
     /// </summary>
-    public Result Archive()
+    /// <param name="isAssigned">
+    /// Whether any scope currently assigns this workflow. Supplied by the caller, which owns that
+    /// query — the aggregate cannot see assignments.
+    /// </param>
+    /// <remarks>
+    /// "In use" means <em>assigned now</em>, not <em>used historically</em>. Records that passed through
+    /// this workflow resolve their statuses through it forever, so waiting for those to clear would make
+    /// archiving impossible; what must not happen is leaving a scope pointing at a workflow nothing can
+    /// be assigned to. Reassign those scopes first, then archive.
+    /// </remarks>
+    public Result Archive(bool isAssigned, EventActor actor, Instant timestamp)
     {
         if (IsSystem)
         {
             return Result.Failure("System workflows cannot be archived.");
         }
 
-        if (State != StatusWorkflowState.Active)
+        if (State != StatusWorkflowState.Published)
         {
             return Result.Failure(NotArchivableError);
         }
 
+        if (isAssigned)
+        {
+            return Result.Failure("This workflow is still assigned. Reassign those scopes to another workflow first.");
+        }
+
         State = StatusWorkflowState.Archived;
+
+        AddDomainEvent(new WorkflowArchivedEvent(Id, Key, Name, OwnerType, actor, timestamp));
 
         return Result.Success();
     }
@@ -372,7 +394,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Creates a platform-seeded workflow. Read-only; activated via <see cref="ActivateSystem"/>.
+    /// Creates a platform-seeded workflow. Read-only; published via <see cref="PublishSystem"/>.
     /// </summary>
     public static Result<StatusWorkflow> CreateSystem(string name, string? description, string ownerType)
     {
@@ -384,9 +406,10 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Adds a status to a seeded workflow, bypassing the read-only guard. Seeder only.
+    /// Adds a status to a seeded workflow, bypassing the read-only guard. For the seeder that builds
+    /// the workflow; the resulting statuses are themselves marked system-owned.
     /// </summary>
-    internal WorkflowStatus AddSystemStatus(string name, string? description, StatusCategory category, int alias)
+    public WorkflowStatus AddSystemStatus(string name, string? description, StatusCategory category, int alias)
     {
         var order = _statuses.Count == 0 ? 1 : _statuses.Max(s => s.Order) + 1;
         var status = new WorkflowStatus(Id, name, description, category, alias, order, isSystem: true);
@@ -396,9 +419,9 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Activates a seeded workflow, bypassing the system read-only guard but not the alias check.
+    /// Publishes a seeded workflow, bypassing the system read-only guard but not the alias check.
     /// </summary>
-    internal Result ActivateSystem()
+    public Result PublishSystem()
     {
         var guard = GuardRequiredAliases();
         if (guard.IsFailure)
@@ -406,7 +429,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return guard;
         }
 
-        State = StatusWorkflowState.Active;
+        State = StatusWorkflowState.Published;
 
         return Result.Success();
     }

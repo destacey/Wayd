@@ -394,11 +394,11 @@ public sealed class ProductTests
     public void ChangeStatus_ToTheSameStatus_ShouldSucceedWithoutRaisingAnEvent()
     {
         // Arrange
-        var statusId = Guid.CreateVersion7();
-        var sut = _faker.WithStatusId(statusId).WithStatusCategory(StatusCategory.Active).Generate();
+        var current = StatusRefFactory.For(StatusCategory.Active, ProductStatusAlias.Active);
+        var sut = _faker.WithStatusId(current.StatusId).WithStatusCategory(StatusCategory.Active).Generate();
 
         // Act
-        var result = sut.ChangeStatus(new(statusId, StatusCategory.Active, (int)ProductStatusAlias.Active), EventActor.System, _dateTimeProvider.Now);
+        var result = sut.ChangeStatus(current, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();

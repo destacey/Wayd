@@ -13,8 +13,20 @@ namespace Wayd.ProductManagement.Domain.Tests.Data;
 /// </remarks>
 internal static class StatusRefFactory
 {
-    public static StatusRef For(StatusCategory category, ProductStatusAlias alias = ProductStatusAlias.None) =>
-        new(Guid.CreateVersion7(), category, (int)alias);
+    /// <summary>
+    /// A resolved status. Every call invents its own workflow id unless one is supplied, so tests that
+    /// do not care about the workflow are unaffected by it.
+    /// </summary>
+    public static StatusRef For(
+        StatusCategory category,
+        ProductStatusAlias alias = ProductStatusAlias.None,
+        Guid? workflowId = null,
+        string? name = null) =>
+        new(workflowId ?? Guid.CreateVersion7(),
+            Guid.CreateVersion7(),
+            name ?? (alias == ProductStatusAlias.None ? category.ToString() : alias.ToString()),
+            category,
+            (int)alias);
 
     public static StatusRef Ready() => For(StatusCategory.Active, ProductStatusAlias.Ready);
 

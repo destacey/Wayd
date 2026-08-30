@@ -1,3 +1,5 @@
+﻿using NodaTime;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
@@ -14,13 +16,8 @@ public sealed class StatusWorkflowTests
     private static readonly WorkflowOwnerDescriptor Widget = new(
         "test.widget",
         "Widget",
-        [NotableAlias, TerminalAlias],
-        a => a switch
-        {
-            NotableAlias => "Notable",
-            TerminalAlias => "Terminal",
-            _ => a.ToString()
-        });
+        new Dictionary<int, string> { [NotableAlias] = "Notable", [TerminalAlias] = "Terminal" },
+        [NotableAlias, TerminalAlias]);
 
     public StatusWorkflowTests() => WorkflowOwners.Register(Widget);
 
@@ -181,7 +178,7 @@ public sealed class StatusWorkflowTests
     {
         // Arrange
         var workflow = WidgetWorkflow();
-        workflow.Activate();
+        workflow.Publish(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Act
         var result = workflow.AddStatus("Deferred", null, StatusCategory.Proposed);
@@ -193,24 +190,24 @@ public sealed class StatusWorkflowTests
 
     #endregion AddStatus
 
-    #region Activate
+    #region Publish
 
     [Fact]
-    public void Activate_ShouldSucceed_WhenEveryRequiredAliasIsPresent()
+    public void Publish_ShouldSucceed_WhenEveryRequiredAliasIsPresent()
     {
         // Arrange
         var workflow = WidgetWorkflow();
 
         // Act
-        var result = workflow.Activate();
+        var result = workflow.Publish(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        workflow.State.Should().Be(StatusWorkflowState.Active);
+        workflow.State.Should().Be(StatusWorkflowState.Published);
     }
 
     [Fact]
-    public void Activate_ShouldFail_WhenARequiredAliasIsMissing()
+    public void Publish_ShouldFail_WhenARequiredAliasIsMissing()
     {
         // Arrange
         var workflow = StatusWorkflow.Create("Widget Workflow", null, Widget.Key).Value;
@@ -218,7 +215,7 @@ public sealed class StatusWorkflowTests
         workflow.AddStatus("Notable", null, StatusCategory.Active, NotableAlias);
 
         // Act
-        var result = workflow.Activate();
+        var result = workflow.Publish(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Assert
         // Refused here rather than discovered later, deep inside an aggregate, on a record an
@@ -229,14 +226,14 @@ public sealed class StatusWorkflowTests
     }
 
     [Fact]
-    public void Activate_ShouldFail_ListingEveryMissingAlias()
+    public void Publish_ShouldFail_ListingEveryMissingAlias()
     {
         // Arrange
         var workflow = StatusWorkflow.Create("Widget Workflow", null, Widget.Key).Value;
         workflow.AddStatus("Proposed", null, StatusCategory.Proposed);
 
         // Act
-        var result = workflow.Activate();
+        var result = workflow.Publish(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -244,21 +241,21 @@ public sealed class StatusWorkflowTests
     }
 
     [Fact]
-    public void Activate_ShouldFail_WhenAlreadyActive()
+    public void Publish_ShouldFail_WhenAlreadyPublished()
     {
         // Arrange
         var workflow = WidgetWorkflow();
-        workflow.Activate();
+        workflow.Publish(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Act
-        var result = workflow.Activate();
+        var result = workflow.Publish(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("The workflow is already active.");
+        result.Error.Should().Be("The workflow is already published.");
     }
 
-    #endregion Activate
+    #endregion Publish
 
     #region RequiredAliases
 
@@ -388,7 +385,7 @@ public sealed class StatusWorkflowTests
     {
         // Arrange
         var workflow = WidgetWorkflow();
-        workflow.Activate();
+        workflow.Publish(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Act
         var clone = workflow.Clone("Our Widget Workflow");
@@ -416,7 +413,7 @@ public sealed class StatusWorkflowTests
 
         // Assert
         clone.StatusFor(TerminalAlias).Should().NotBeNull();
-        clone.Activate().IsSuccess.Should().BeTrue();
+        clone.Publish(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).IsSuccess.Should().BeTrue();
     }
 
     [Fact]
@@ -468,19 +465,19 @@ public sealed class StatusWorkflowTests
     }
 
     [Fact]
-    public void Activate_ShouldFail_OnASystemWorkflow()
+    public void Publish_ShouldFail_OnASystemWorkflow()
     {
         // Arrange
         var workflow = StatusWorkflow.CreateSystem("Default Widget Workflow", null, Widget.Key).Value;
 
         // Act
-        var result = workflow.Activate();
+        var result = workflow.Publish(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Assert
-        // Seeded workflows are activated through ActivateSystem by the seeder that builds them; leaving
+        // Seeded workflows are activated through PublishSystem by the seeder that builds them; leaving
         // the public path open would make that internal method pointless.
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("System workflows are activated by the seeder that creates them.");
+        result.Error.Should().Be("System workflows are published by the seeder that creates them.");
     }
 
     [Fact]
@@ -507,22 +504,22 @@ public sealed class StatusWorkflowTests
         var workflow = WidgetWorkflow();
 
         // Act
-        var result = workflow.Archive();
+        var result = workflow.Archive(isAssigned: false, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Only active workflows can be archived.");
+        result.Error.Should().Be("Only published workflows can be archived.");
     }
 
     [Fact]
-    public void Archive_ShouldWithdrawAnActiveWorkflow()
+    public void Archive_ShouldWithdrawAPublishedWorkflow()
     {
         // Arrange
         var workflow = WidgetWorkflow();
-        workflow.Activate();
+        workflow.Publish(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Act
-        var result = workflow.Archive();
+        var result = workflow.Archive(isAssigned: false, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Assert
         result.IsSuccess.Should().BeTrue();

@@ -4,15 +4,14 @@ using Wayd.Common.Domain.StatusWorkflows.Enums;
 namespace Wayd.Common.Domain.StatusWorkflows;
 
 /// <summary>
-/// A status already resolved from its workflow, ready to be stored on a record: the id to keep, the
-/// category to denormalize alongside it, and the alias it carries.
+/// A status already resolved from its workflow, ready to be stored on a record: which workflow it came
+/// from, the id to keep, the name and category to freeze alongside it, and the alias it carries.
 /// </summary>
 /// <remarks>
 /// <para>
 /// This type exists so an aggregate can hold a configurable status without depending on the workflow
 /// engine at write time. The application layer loads the workflow, resolves the target status, and
-/// hands the aggregate this; the aggregate stores the id and the category together and never needs the
-/// workflow again to answer a question about itself.
+/// hands the aggregate this; the aggregate stores what it needs and never consults the workflow again.
 /// </para>
 /// <para>
 /// Denormalizing the category is deliberate. The alternative — resolving it through the workflow on
@@ -20,20 +19,33 @@ namespace Wayd.Common.Domain.StatusWorkflows;
 /// is the same silent failure mode that makes PPM's ancestry authorization hard to work in: a missing
 /// include produces a wrong answer rather than an error.
 /// </para>
+/// <para>
+/// <see cref="Name"/> travels with the reference because a status can be renamed while its workflow is
+/// active. Records and transitions freeze it, so a rename cannot rewrite what past rows read as.
+/// </para>
 /// </remarks>
 public sealed record StatusRef
 {
-    public StatusRef(Guid statusId, StatusCategory category, int alias = StatusWorkflow.NoAlias)
+    public StatusRef(Guid workflowId, Guid statusId, string name, StatusCategory category, int alias = StatusWorkflow.NoAlias)
     {
-        Guard.Against.Default(statusId, nameof(statusId));
-
-        StatusId = statusId;
+        WorkflowId = Guard.Against.Default(workflowId, nameof(workflowId));
+        StatusId = Guard.Against.Default(statusId, nameof(statusId));
+        Name = Guard.Against.NullOrWhiteSpace(name, nameof(name)).Trim();
         Category = category;
         Alias = alias;
     }
 
+    /// <summary>
+    /// The workflow this status came from, so a record can say which workflow governed it rather than
+    /// leaving it to be inferred from a status row that may later be deleted.
+    /// </summary>
+    public Guid WorkflowId { get; }
+
     /// <summary>The status the record holds. Stable across renames.</summary>
     public Guid StatusId { get; }
+
+    /// <summary>What the status was called when it was resolved. Frozen by whoever stores it.</summary>
+    public string Name { get; }
 
     /// <summary>The status's bucket, stored alongside the id so reads never need the workflow.</summary>
     public StatusCategory Category { get; }
@@ -52,6 +64,6 @@ public sealed record StatusRef
     {
         Guard.Against.Null(status, nameof(status));
 
-        return new StatusRef(status.Id, status.Category, status.Alias);
+        return new StatusRef(status.WorkflowId, status.Id, status.Name, status.Category, status.Alias);
     }
 }

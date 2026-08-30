@@ -17,7 +17,7 @@ namespace Wayd.ProductManagement.Domain.Models;
 /// Exactly one of <see cref="ReleaseId"/> and <see cref="PackageId"/> is set. Where a package exists it
 /// is the unit, because one pipeline run shipping fifteen services must count once, not fifteen times.
 /// </remarks>
-public sealed class Deployment : BaseAuditableEntity, IHasIdAndKey
+public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
 {
     private Deployment() { }
 
@@ -29,10 +29,10 @@ public sealed class Deployment : BaseAuditableEntity, IHasIdAndKey
         EnvironmentCategory = environmentCategory;
         ArtifactId = artifactId;
         StartedAt = startedAt;
-        StatusId = status.StatusId;
-        StatusCategory = status.Category;
-        Outcome = (ProductStatusAlias)status.Alias;
     }
+
+    /// <inheritdoc/>
+    public override string StatusOwnerType => ProductWorkflowOwners.Deployment.Key;
 
     /// <summary>
     /// The unique auto-generated key of the deployment. This is an alternate key to the Id.
@@ -90,22 +90,14 @@ public sealed class Deployment : BaseAuditableEntity, IHasIdAndKey
         private set => field = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
-    /// <summary>The status this deployment currently holds, from its assigned workflow.</summary>
-    public Guid StatusId { get; private set; }
-
     /// <summary>
-    /// The status's category, denormalized so reads and invariants never need the workflow loaded.
-    /// </summary>
-    public StatusCategory StatusCategory { get; private set; }
-
-    /// <summary>
-    /// The well-known meaning of the current status, denormalized alongside it.
+    /// The well-known meaning of the current status.
     /// </summary>
     /// <remarks>
     /// Metrics read the alias, not the status name, so a renamed outcome still counts. A deployment
     /// workflow cannot activate without supplying each required alias, so this is never silently absent.
     /// </remarks>
-    public ProductStatusAlias Outcome { get; private set; }
+    public ProductStatusAlias Outcome => (ProductStatusAlias)StatusAliasValue;
 
     /// <summary>Whether this deployment has finished, however it finished.</summary>
     public bool IsComplete => CompletedAt is not null;
@@ -137,7 +129,7 @@ public sealed class Deployment : BaseAuditableEntity, IHasIdAndKey
             return guard;
         }
 
-        Apply(completedAt, succeededStatus, reason: null);
+        Apply(completedAt, succeededStatus, reason: null, actor, timestamp);
 
         AddDomainEvent(new DeploymentSucceededEvent(
             Id, Key, ReleaseId, PackageId, EnvironmentId, environmentName, EnvironmentCategory,
@@ -162,7 +154,7 @@ public sealed class Deployment : BaseAuditableEntity, IHasIdAndKey
             return guard;
         }
 
-        Apply(completedAt, failedStatus, reason);
+        Apply(completedAt, failedStatus, reason, actor, timestamp);
 
         AddDomainEvent(new DeploymentFailedEvent(
             Id, Key, ReleaseId, PackageId, EnvironmentId, environmentName, EnvironmentCategory,
@@ -205,7 +197,7 @@ public sealed class Deployment : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("The rollback cannot be before the deployment completed.");
         }
 
-        Apply(rolledBackAt, rolledBackStatus, reason);
+        Apply(rolledBackAt, rolledBackStatus, reason, actor, timestamp);
 
         AddDomainEvent(new DeploymentRolledBackEvent(
             Id, Key, ReleaseId, PackageId, EnvironmentId, environmentName, EnvironmentCategory,
@@ -229,13 +221,11 @@ public sealed class Deployment : BaseAuditableEntity, IHasIdAndKey
         return Result.Success();
     }
 
-    private void Apply(Instant completedAt, StatusRef status, string? reason)
+    private void Apply(Instant completedAt, StatusRef status, string? reason, EventActor actor, Instant timestamp)
     {
         CompletedAt = completedAt;
-        StatusId = status.StatusId;
-        StatusCategory = status.Category;
-        Outcome = (ProductStatusAlias)status.Alias;
         Reason = reason;
+        ApplyStatus(status, actor, timestamp, reason);
     }
 
     /// <summary>
@@ -275,6 +265,7 @@ public sealed class Deployment : BaseAuditableEntity, IHasIdAndKey
         }
 
         var deployment = new Deployment(releaseId, packageId, environmentId, environmentCategory, artifactId, startedAt, inProgressStatus);
+        deployment.ApplyStatus(inProgressStatus, actor, timestamp);
 
         // Deferred because Key is database-generated: an event raised here would carry Key 0.
         deployment.AddPostPersistenceAction(() => deployment.AddDomainEvent(new DeploymentStartedEvent(

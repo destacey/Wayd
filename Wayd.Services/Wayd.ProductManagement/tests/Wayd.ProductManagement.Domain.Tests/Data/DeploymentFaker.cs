@@ -21,8 +21,9 @@ public sealed class DeploymentFaker : PrivateConstructorFaker<Deployment>
         RuleFor(x => x.CompletedAt, f => null);
         RuleFor(x => x.Reason, f => null);
         RuleFor(x => x.StatusId, f => f.Random.Guid());
+        RuleFor(x => x.StatusName, f => "Seeded Status");
         RuleFor(x => x.StatusCategory, f => StatusCategory.Active);
-        RuleFor(x => x.Outcome, f => ProductStatusAlias.InProgress);
+        RuleFor("StatusAliasValue", f => (int)ProductStatusAlias.InProgress);
     }
 }
 
@@ -105,6 +106,13 @@ public static class DeploymentFakerExtensions
         return faker;
     }
 
+    public static DeploymentFaker WithStatusName(this DeploymentFaker faker, string statusName)
+    {
+        faker.RuleFor(x => x.StatusName, statusName);
+
+        return faker;
+    }
+
     public static DeploymentFaker WithStatusCategory(this DeploymentFaker faker, StatusCategory category)
     {
         faker.RuleFor(x => x.StatusCategory, category);
@@ -114,7 +122,7 @@ public static class DeploymentFakerExtensions
 
     public static DeploymentFaker WithOutcome(this DeploymentFaker faker, ProductStatusAlias outcome)
     {
-        faker.RuleFor(x => x.Outcome, outcome);
+        faker.RuleFor("StatusAliasValue", _ => (int)outcome);
 
         return faker;
     }
@@ -126,7 +134,7 @@ public static class DeploymentFakerExtensions
     {
         faker.RuleFor(x => x.CompletedAt, completedAt);
         faker.RuleFor(x => x.StatusCategory, StatusCategory.Done);
-        faker.RuleFor(x => x.Outcome, ProductStatusAlias.Succeeded);
+        faker.RuleFor("StatusAliasValue", _ => (int)ProductStatusAlias.Succeeded);
 
         return faker;
     }
@@ -138,7 +146,7 @@ public static class DeploymentFakerExtensions
     {
         faker.RuleFor(x => x.CompletedAt, completedAt);
         faker.RuleFor(x => x.StatusCategory, StatusCategory.Removed);
-        faker.RuleFor(x => x.Outcome, ProductStatusAlias.Failed);
+        faker.RuleFor("StatusAliasValue", _ => (int)ProductStatusAlias.Failed);
 
         return faker;
     }
@@ -150,7 +158,7 @@ public static class DeploymentFakerExtensions
     {
         faker.RuleFor(x => x.CompletedAt, rolledBackAt);
         faker.RuleFor(x => x.StatusCategory, StatusCategory.Removed);
-        faker.RuleFor(x => x.Outcome, ProductStatusAlias.RolledBack);
+        faker.RuleFor("StatusAliasValue", _ => (int)ProductStatusAlias.RolledBack);
 
         return faker;
     }

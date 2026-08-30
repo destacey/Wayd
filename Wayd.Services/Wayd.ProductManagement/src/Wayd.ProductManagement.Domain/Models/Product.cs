@@ -15,7 +15,7 @@ namespace Wayd.ProductManagement.Domain.Models;
 /// module inside one. Self-referencing, so one tree serves both the commercial and the technical
 /// audience, with the node's <see cref="ProductTypeId"/> deciding what it is allowed to do.
 /// </summary>
-public sealed class Product : BaseAuditableEntity, IHasIdAndKey, ISimpleProduct
+public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
 {
     private Product() { }
 
@@ -26,10 +26,10 @@ public sealed class Product : BaseAuditableEntity, IHasIdAndKey, ISimpleProduct
         ProductTypeId = productTypeId;
         ParentId = parentId;
         ExternalId = externalId;
-        StatusId = status.StatusId;
-        StatusCategory = status.Category;
-        StatusAlias = (ProductStatusAlias)status.Alias;
     }
+
+    /// <inheritdoc/>
+    public override string StatusOwnerType => ProductWorkflowOwners.Product.Key;
 
     /// <summary>
     /// The unique auto-generated key of the product. This is an alternate key to the Id.
@@ -80,24 +80,9 @@ public sealed class Product : BaseAuditableEntity, IHasIdAndKey, ISimpleProduct
     }
 
     /// <summary>
-    /// The lifecycle status this node currently holds, from its assigned workflow.
+    /// The well-known meaning of the current status.
     /// </summary>
-    public Guid StatusId { get; private set; }
-
-    /// <summary>
-    /// The status's category, denormalized so reads and invariants never need the workflow loaded.
-    /// Kept in step with <see cref="StatusId"/> by every method that changes it.
-    /// </summary>
-    public StatusCategory StatusCategory { get; private set; }
-
-    /// <summary>
-    /// The well-known meaning of the current status, denormalized alongside it.
-    /// </summary>
-    /// <remarks>
-    /// Stored so a lifecycle change can report the alias it moved <em>from</em>; see
-    /// <see cref="ProductLifecycleChangedEvent.FromAlias"/>.
-    /// </remarks>
-    public ProductStatusAlias StatusAlias { get; private set; }
+    public ProductStatusAlias StatusAlias => (ProductStatusAlias)StatusAliasValue;
 
     /// <summary>
     /// Updates the node's name, description or external identifier.
@@ -217,9 +202,7 @@ public sealed class Product : BaseAuditableEntity, IHasIdAndKey, ISimpleProduct
         var fromCategory = StatusCategory;
         var fromAlias = StatusAlias;
 
-        StatusId = status.StatusId;
-        StatusCategory = status.Category;
-        StatusAlias = (ProductStatusAlias)status.Alias;
+        ApplyStatus(status, actor, timestamp);
 
         AddDomainEvent(new ProductLifecycleChangedEvent(
             Id, Key, Name,
@@ -273,6 +256,7 @@ public sealed class Product : BaseAuditableEntity, IHasIdAndKey, ISimpleProduct
         Guard.Against.Null(initialStatus, nameof(initialStatus));
 
         var product = new Product(name, description, productTypeId, parentId, externalId, initialStatus);
+        product.ApplyStatus(initialStatus, actor, timestamp);
 
         // Deferred because Key is database-generated: an event raised here would carry Key 0.
         product.AddPostPersistenceAction(() => product.AddDomainEvent(new ProductAddedEvent(

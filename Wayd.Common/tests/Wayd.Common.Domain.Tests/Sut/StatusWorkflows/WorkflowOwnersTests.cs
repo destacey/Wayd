@@ -1,11 +1,11 @@
-using Wayd.Common.Domain.StatusWorkflows;
+﻿using Wayd.Common.Domain.StatusWorkflows;
 
 namespace Wayd.Common.Domain.Tests.Sut.StatusWorkflows;
 
 public sealed class WorkflowOwnersTests
 {
     private static WorkflowOwnerDescriptor Descriptor(string key, params int[] required) =>
-        new(key, "Gadget", required, a => a.ToString());
+        new(key, "Gadget", required.ToDictionary(a => a, a => $"Alias{a}"), required);
 
     #region Register
 
@@ -90,24 +90,52 @@ public sealed class WorkflowOwnersTests
     #region Descriptor validation
 
     [Fact]
-    public void Descriptor_ShouldReject_NoAliasAsRequired()
+    public void Descriptor_ShouldReject_NoAliasAmongItsAliases()
     {
         // Act
         Action act = () => Descriptor("test.owners.noalias", StatusWorkflow.NoAlias);
 
         // Assert
-        // NoAlias means "carries no well-known meaning", so requiring it could never be satisfied.
-        act.Should().Throw<ArgumentException>().WithMessage("*not satisfiable*");
+        // NoAlias means "carries no well-known meaning", so naming it is a contradiction.
+        act.Should().Throw<ArgumentException>().WithMessage("*NoAlias*");
     }
 
     [Fact]
-    public void Descriptor_ShouldReject_DuplicateRequiredAliases()
+    public void Descriptor_ShouldReject_ARequiredAliasItDoesNotDeclare()
     {
         // Act
-        Action act = () => Descriptor("test.owners.duplicate", 5, 5);
+        Action act = () => new WorkflowOwnerDescriptor(
+            "test.owners.undeclared", "Gadget", new Dictionary<int, string> { [1] = "One" }, [1, 2]);
 
         // Assert
-        act.Should().Throw<ArgumentException>().WithMessage("*more than once*");
+        // The seeder builds the lookup from Aliases, so a required alias missing from it would be
+        // enforced at activation yet unnameable in a query.
+        act.Should().Throw<ArgumentException>().WithMessage("*does not declare*");
+    }
+
+    [Fact]
+    public void Descriptor_ShouldReject_TwoAliasesSharingAName()
+    {
+        // Act
+        Action act = () => new WorkflowOwnerDescriptor(
+            "test.owners.dupename", "Gadget",
+            new Dictionary<int, string> { [1] = "Done", [2] = "done" }, [1]);
+
+        // Assert
+        // A lookup keyed by name could not distinguish them.
+        act.Should().Throw<ArgumentException>().WithMessage("*more than one alias*");
+    }
+
+    [Fact]
+    public void Descriptor_ShouldNameItsAliases()
+    {
+        // Arrange
+        var descriptor = new WorkflowOwnerDescriptor(
+            "test.owners.named", "Gadget", new Dictionary<int, string> { [21] = "Succeeded" }, [21]);
+
+        // Act & Assert
+        descriptor.DescribeAlias(21).Should().Be("Succeeded");
+        descriptor.DescribeAlias(99).Should().Be("99");
     }
 
     [Fact]

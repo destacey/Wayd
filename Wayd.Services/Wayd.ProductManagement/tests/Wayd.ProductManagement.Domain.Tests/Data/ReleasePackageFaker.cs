@@ -1,4 +1,4 @@
-using NodaTime;
+﻿using NodaTime;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.TestData.Core;
@@ -16,6 +16,7 @@ public sealed class ReleasePackageFaker : PrivateConstructorFaker<ReleasePackage
         RuleFor(x => x.TargetDate, f => null);
         RuleFor(x => x.ReleasedDate, f => null);
         RuleFor(x => x.StatusId, f => f.Random.Guid());
+        RuleFor(x => x.StatusName, f => "Seeded Status");
         RuleFor(x => x.StatusCategory, f => StatusCategory.Proposed);
     }
 }
@@ -67,6 +68,13 @@ public static class ReleasePackageFakerExtensions
     public static ReleasePackageFaker WithStatusId(this ReleasePackageFaker faker, Guid statusId)
     {
         faker.RuleFor(x => x.StatusId, statusId);
+
+        return faker;
+    }
+
+    public static ReleasePackageFaker WithStatusName(this ReleasePackageFaker faker, string statusName)
+    {
+        faker.RuleFor(x => x.StatusName, statusName);
 
         return faker;
     }

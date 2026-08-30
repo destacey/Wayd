@@ -17,8 +17,9 @@ public sealed class ProductFaker : PrivateConstructorFaker<Product>
         RuleFor(x => x.ParentId, f => null);
         RuleFor(x => x.ExternalId, f => null);
         RuleFor(x => x.StatusId, f => f.Random.Guid());
+        RuleFor(x => x.StatusName, f => "Seeded Status");
         RuleFor(x => x.StatusCategory, f => StatusCategory.Active);
-        RuleFor(x => x.StatusAlias, f => ProductStatusAlias.Active);
+        RuleFor("StatusAliasValue", f => (int)ProductStatusAlias.Active);
     }
 }
 
@@ -80,6 +81,13 @@ public static class ProductFakerExtensions
         return faker;
     }
 
+    public static ProductFaker WithStatusName(this ProductFaker faker, string statusName)
+    {
+        faker.RuleFor(x => x.StatusName, statusName);
+
+        return faker;
+    }
+
     public static ProductFaker WithStatusCategory(this ProductFaker faker, StatusCategory category)
     {
         faker.RuleFor(x => x.StatusCategory, category);
@@ -89,7 +97,7 @@ public static class ProductFakerExtensions
 
     public static ProductFaker WithStatusAlias(this ProductFaker faker, ProductStatusAlias alias)
     {
-        faker.RuleFor(x => x.StatusAlias, alias);
+        faker.RuleFor("StatusAliasValue", _ => (int)alias);
 
         return faker;
     }

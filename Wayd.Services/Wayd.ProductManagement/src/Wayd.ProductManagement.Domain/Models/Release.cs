@@ -17,7 +17,7 @@ namespace Wayd.ProductManagement.Domain.Models;
 /// Describes what was cut, never where it went — rollout lives on <see cref="Deployment"/>. A release
 /// with no deployment is a complete record, which is what makes release-first hand-entry workable.
 /// </remarks>
-public sealed class Release : BaseAuditableEntity, IHasIdAndKey
+public sealed class Release : StatusTrackedEntity, IHasIdAndKey
 {
     private Release(){ }
 
@@ -28,9 +28,10 @@ public sealed class Release : BaseAuditableEntity, IHasIdAndKey
         Name = name;
         TargetDate = targetDate;
         Sequence = sequence;
-        StatusId = status.StatusId;
-        StatusCategory = status.Category;
     }
+
+    /// <inheritdoc/>
+    public override string StatusOwnerType => ProductWorkflowOwners.Release.Key;
 
     /// <summary>
     /// The unique auto-generated key of the release. This is an alternate key to the Id.
@@ -103,15 +104,6 @@ public sealed class Release : BaseAuditableEntity, IHasIdAndKey
     /// </summary>
     public Guid? PackageId { get; private set; }
 
-    /// <summary>
-    /// The status this release currently holds, from its assigned workflow.
-    /// </summary>
-    public Guid StatusId { get; private set; }
-
-    /// <summary>
-    /// The status's category, denormalized so reads and invariants never need the workflow loaded.
-    /// </summary>
-    public StatusCategory StatusCategory { get; private set; }
 
     /// <summary>
     /// Updates the version, name, notes or ordering sequence.
@@ -187,8 +179,7 @@ public sealed class Release : BaseAuditableEntity, IHasIdAndKey
         }
 
         CutDate = cutDate;
-        StatusId = readyStatus.StatusId;
-        StatusCategory = readyStatus.Category;
+        ApplyStatus(readyStatus, actor, timestamp);
 
         AddDomainEvent(new ReleaseCutEvent(Id, Key, ProductId, productName, Version, cutDate, StatusId, actor, timestamp));
 
@@ -222,8 +213,7 @@ public sealed class Release : BaseAuditableEntity, IHasIdAndKey
         }
 
         ReleasedDate = releasedDate;
-        StatusId = releasedStatus.StatusId;
-        StatusCategory = releasedStatus.Category;
+        ApplyStatus(releasedStatus, actor, timestamp);
 
         AddDomainEvent(new ReleaseReleasedEvent(Id, Key, ProductId, productName, Version, releasedDate, StatusId, actor, timestamp));
 
@@ -245,8 +235,7 @@ public sealed class Release : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("This release has already been withdrawn.");
         }
 
-        StatusId = withdrawnStatus.StatusId;
-        StatusCategory = withdrawnStatus.Category;
+        ApplyStatus(withdrawnStatus, actor, timestamp, reason);
 
         AddDomainEvent(new ReleaseWithdrawnEvent(Id, Key, ProductId, productName, Version, reason?.Trim(), StatusId, actor, timestamp));
 
@@ -285,6 +274,7 @@ public sealed class Release : BaseAuditableEntity, IHasIdAndKey
         }
 
         var release = new Release(productId, version, name, targetDate, sequence, initialStatus);
+        release.ApplyStatus(initialStatus, actor, timestamp);
 
         // Deferred because Key is database-generated: an event raised here would carry Key 0.
         release.AddPostPersistenceAction(() => release.AddDomainEvent(new ReleasePlannedEvent(

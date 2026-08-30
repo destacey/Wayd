@@ -36,6 +36,9 @@ public sealed class WorkflowAssignmentTests
         return workflow;
     }
 
+    private static StatusRemap CompleteRemap(StatusWorkflow from, StatusWorkflow to) =>
+        StatusRemap.AutoMap(from, to).Value;
+
     #region Create
 
     [Fact]
@@ -122,11 +125,12 @@ public sealed class WorkflowAssignmentTests
     public void ReassignTo_ShouldPointTheScopeAtTheNewWorkflow()
     {
         // Arrange
-        var assignment = WorkflowAssignment.Create(Widget.Key, null, PublishedWidgetWorkflow("Old"), EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        var old = PublishedWidgetWorkflow("Old");
+        var assignment = WorkflowAssignment.Create(Widget.Key, null, old, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
         var replacement = PublishedWidgetWorkflow("New");
 
         // Act
-        var result = assignment.ReassignTo(replacement, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        var result = assignment.ReassignTo(replacement, CompleteRemap(old, replacement), EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -137,11 +141,13 @@ public sealed class WorkflowAssignmentTests
     public void ReassignTo_ShouldFail_WhenTheReplacementIsNotPublished()
     {
         // Arrange
-        var assignment = WorkflowAssignment.Create(Widget.Key, null, PublishedWidgetWorkflow("Old"), EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        var old = PublishedWidgetWorkflow("Old");
+        var assignment = WorkflowAssignment.Create(Widget.Key, null, old, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
         var draft = StatusWorkflow.Create("Still Building", null, Widget.Key).Value;
+        var remap = CompleteRemap(old, PublishedWidgetWorkflow("Other"));
 
         // Act
-        var result = assignment.ReassignTo(draft, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        var result = assignment.ReassignTo(draft, remap, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Assert
         // A workflow being drafted for the new year is visible to reviewers but not assignable until
@@ -158,7 +164,8 @@ public sealed class WorkflowAssignmentTests
         var assignment = WorkflowAssignment.Create(Widget.Key, null, workflow, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
 
         // Act
-        var result = assignment.ReassignTo(workflow, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        var remap = CompleteRemap(workflow, PublishedWidgetWorkflow("Other"));
+        var result = assignment.ReassignTo(workflow, remap, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -216,7 +223,7 @@ public sealed class WorkflowAssignmentTests
         var replacement = PublishedWidgetWorkflow("New");
 
         // Act
-        assignment.ReassignTo(replacement, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        assignment.ReassignTo(replacement, CompleteRemap(old, replacement), EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Assert
         // The engine's only event, because an assignment has no owning object to announce it — the

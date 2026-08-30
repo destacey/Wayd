@@ -55,16 +55,21 @@ public sealed class WorkflowAssignment : BaseAuditableEntity
     /// <summary>
     /// Points this scope at a different workflow.
     /// </summary>
+    /// <param name="remap">
+    /// How every status in the current workflow translates to one in <paramref name="workflow"/>.
+    /// Required, and required to be complete.
+    /// </param>
     /// <remarks>
-    /// <strong>Reassignment alone is not a migration.</strong> Records in this scope still hold statuses
-    /// from the previous workflow, and statuses are never shared between workflows, so they would be
-    /// left holding a status their workflow does not contain. The caller must have validated a complete
-    /// status mapping first and must move the records onto it — the switch is refused until every status
-    /// maps, rather than permitted and repaired afterwards.
+    /// <strong>Reassignment alone is not a migration.</strong> Records in this scope hold statuses from
+    /// the previous workflow, and statuses are never shared between workflows, so without a mapping they
+    /// would be left holding a status their workflow does not contain. Demanding the remap here is what
+    /// makes the switch validated rather than repaired — the caller still has to apply it to the
+    /// records, but cannot flip the assignment without having decided where they go.
     /// </remarks>
-    public Result ReassignTo(StatusWorkflow workflow, EventActor actor, Instant timestamp)
+    public Result ReassignTo(StatusWorkflow workflow, StatusRemap remap, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(workflow, nameof(workflow));
+        Guard.Against.Null(remap, nameof(remap));
 
         if (!string.Equals(workflow.OwnerType, OwnerType, StringComparison.OrdinalIgnoreCase))
         {
@@ -80,6 +85,17 @@ public sealed class WorkflowAssignment : BaseAuditableEntity
         if (workflow.Id == WorkflowId)
         {
             return Result.Success();
+        }
+
+        if (remap.FromWorkflowId != WorkflowId || remap.ToWorkflowId != workflow.Id)
+        {
+            return Result.Failure("The mapping is between different workflows than this reassignment.");
+        }
+
+        if (!remap.IsComplete)
+        {
+            return Result.Failure(
+                $"{remap.Unresolved.Count} status(es) have nowhere to go. Map every status before reassigning.");
         }
 
         var fromWorkflowId = WorkflowId;

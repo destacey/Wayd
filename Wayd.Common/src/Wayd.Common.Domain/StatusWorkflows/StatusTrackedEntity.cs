@@ -1,4 +1,5 @@
 ﻿using Ardalis.GuardClauses;
+using CSharpFunctionalExtensions;
 using NodaTime;
 using Wayd.Common.Domain.Data;
 using Wayd.Common.Domain.Events;
@@ -114,4 +115,50 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
 
         return true;
     }
+
+    /// <summary>
+    /// Moves this record onto the workflow a remap targets, translating its current status.
+    /// </summary>
+    /// <remarks>
+    /// Applied per record rather than in bulk so a large migration can run in batches and resume: the
+    /// decisions live in the <see cref="StatusRemap"/>, so nothing is recomputed and re-running over a
+    /// record already moved is a no-op rather than a second transition.
+    /// <para>
+    /// The move is recorded like any other status change, with the transition carrying the old
+    /// workflow's status and the new one's — which is what makes a switch visible in the history rather
+    /// than a silent rewrite.
+    /// </para>
+    /// </remarks>
+    public Result SwitchWorkflow(StatusRemap remap, EventActor actor, Instant timestamp, string? reason = null)
+    {
+        Guard.Against.Null(remap, nameof(remap));
+
+        if (!remap.IsComplete)
+        {
+            return Result.Failure("Every status must be mapped before records can be moved.");
+        }
+
+        var target = remap.For(StatusId);
+        if (target is null)
+        {
+            // Either the record is already on the target workflow, or it holds a status from neither —
+            // both mean this remap cannot speak for it, and guessing would strand it silently.
+            return remap.ToWorkflowId == CurrentWorkflowId
+                ? Result.Success()
+                : Result.Failure("This record's status is not in the workflow being moved from.");
+        }
+
+        ApplyStatus(target, actor, timestamp, reason);
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// The workflow the most recent transition ran under, or <see cref="Guid.Empty"/> for a record with
+    /// no history. Used to recognise a record a remap has already moved.
+    /// </summary>
+    private Guid CurrentWorkflowId =>
+        _statusTransitions.Count == 0
+            ? Guid.Empty
+            : _statusTransitions.OrderByDescending(t => t.Sequence).First().WorkflowId;
 }

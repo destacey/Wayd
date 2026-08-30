@@ -376,3 +376,17 @@ test-*.slnf
 # .NET coverage output (see .github/workflows/docker.yml coverage-report job)
 TestResults/
 coverage-report/
+
+# Source folders named "Releases"
+#
+# The build-output rule [Rr]eleases/ above also matches source directories, which silently swallowed
+# the Product Management release slice: the files built locally and were committed nowhere. Negated
+# for source paths only, so build output stays ignored.
+!Wayd.Services/**/src/**/Releases/
+!Wayd.Services/**/src/**/Releases/**
+!Wayd.Services/**/tests/**/Releases/
+!Wayd.Services/**/tests/**/Releases/**
+!Wayd.Web/src/**/Releases/
+!Wayd.Web/src/**/Releases/**
+!Wayd.Web/tests/**/Releases/
+!Wayd.Web/tests/**/Releases/**

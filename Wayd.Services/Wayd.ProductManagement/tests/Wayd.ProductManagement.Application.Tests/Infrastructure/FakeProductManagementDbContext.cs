@@ -96,6 +96,7 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
 
     public void AddProductTagCategory(ProductTagCategory category) => _productTagCategories.Add(category);
     public void AddProductTag(ProductTag tag) => _productTags.Add(tag);
+    public void AddProductTagAssignment(ProductTagAssignment assignment) => _productTagAssignments.Add(assignment);
     public void AddProductTags(IEnumerable<ProductTag> tags) => _productTags.AddRange(tags);
 
     public void AddRelease(Release release) => _releases.Add(release);

@@ -102,6 +102,9 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     public void AddRelease(Release release) => _releases.Add(release);
     public void AddReleases(IEnumerable<Release> releases) => _releases.AddRange(releases);
 
+    public void AddDeploymentEnvironment(DeploymentEnvironment environment) => _deploymentEnvironments.Add(environment);
+    public void AddDeployment(Deployment deployment) => _deployments.Add(deployment);
+
     public void AddStatusWorkflow(StatusWorkflow workflow) => _statusWorkflows.Add(workflow);
     public void AddWorkflowAssignment(WorkflowAssignment assignment) => _workflowAssignments.Add(assignment);
 

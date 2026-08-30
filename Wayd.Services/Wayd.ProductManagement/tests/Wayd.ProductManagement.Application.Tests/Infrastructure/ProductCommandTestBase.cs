@@ -79,7 +79,7 @@ public abstract class ProductCommandTestBase
     /// <summary>
     /// A release against a product, for the handlers that refuse a change once one exists.
     /// </summary>
-    protected Release SeedRelease(Guid productId, string version = "1.0")
+    protected Release SeedRelease(Guid productId, string version = "1.0", StatusRef? status = null)
     {
         var release = Release.Create(
             productId,
@@ -88,14 +88,27 @@ public abstract class ProductCommandTestBase
             null,
             null,
             isProductReleasable: true,
-            Status("Planned", StatusCategory.Proposed, ProductStatusAlias.None),
+            status ?? Status("Planned", StatusCategory.Proposed, ProductStatusAlias.None),
             "Checkout",
             EventActor.System,
             Now).Value;
 
+        release.ClearDomainEvents();
         DbContext.AddRelease(release);
 
         return release;
+    }
+
+    protected DeploymentEnvironment SeedEnvironment(
+        string name = "Production",
+        EnvironmentCategory category = EnvironmentCategory.Production,
+        int ringOrder = 3)
+    {
+        var environment = DeploymentEnvironment.Create(name, category, ringOrder, EventActor.System, Now);
+        environment.ClearDomainEvents();
+        DbContext.AddDeploymentEnvironment(environment);
+
+        return environment;
     }
 
     protected (ProductTagCategory Category, ProductTag Tag) SeedTag(

@@ -3,6 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Application.Interfaces;
 using Wayd.ProductManagement.Application;
 using Wayd.ProductManagement.Application.Products.Commands;
+using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.ProductManagement.Application.DeploymentEnvironments.Commands;
+using Wayd.ProductManagement.Application.DeploymentEnvironments.Queries;
 using Wayd.ProductManagement.Application.ProductTagCategories.Commands;
 using Wayd.ProductManagement.Application.ProductTagCategories.Queries;
 using Wayd.ProductManagement.Application.ProductTypes.Commands;
@@ -198,5 +201,35 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
         // Cleanup
         await dispatcher.Send(
             new DeleteProductTagCategoryCommand(category.Value.Id), TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task Dispatch_GetDeploymentEnvironmentsQuery_ProjectsThroughMapster()
+    {
+        // Arrange
+        _ = _factory.CreateClient();
+        using var scope = _factory.Services.CreateScope();
+        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
+
+        var name = Unique("Env");
+        var created = await dispatcher.Send(
+            new CreateDeploymentEnvironmentCommand(name, EnvironmentCategory.Staging, 2),
+            TestContext.Current.CancellationToken);
+        Assert.True(created.IsSuccess, created.IsFailure ? created.Error : null);
+
+        // Act
+        var environments = await dispatcher.Send(
+            new GetDeploymentEnvironmentsQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        // This projection goes through Mapster with one configured member. A convention mapping that
+        // silently dropped a field, or a Map expression EF could not translate, only shows up here.
+        var projected = Assert.Single(environments.Where(e => e.Id == created.Value.Id));
+        Assert.Equal(name, projected.Name);
+        Assert.Equal(EnvironmentCategory.Staging, projected.Category);
+        Assert.Equal(2, projected.RingOrder);
+        Assert.True(projected.IsActive);
+        Assert.NotEqual(0, projected.Key);
+        Assert.Equal(0, projected.DeploymentCount);
     }
 }

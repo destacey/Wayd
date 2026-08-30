@@ -76,6 +76,11 @@ public static class ApplicationResource
     public const string ProductTypes = nameof(ProductTypes);
     public const string ProductTagCategories = nameof(ProductTagCategories);
 
+    public const string Releases = nameof(Releases);
+    public const string ReleasePackages = nameof(ReleasePackages);
+    public const string Deployments = nameof(Deployments);
+    public const string DeploymentEnvironments = nameof(DeploymentEnvironments);
+
     public const string StrategicThemes = nameof(StrategicThemes);
     public const string Strategies = nameof(Strategies);
     public const string Visions = nameof(Visions);
@@ -357,6 +362,10 @@ public static class ApplicationPermissions
     ];
 
     private const string ProductManagementCategory = "Product Management";
+
+    // Its own category, matching the Delivery schema these tables already live in: if delivery ever
+    // becomes its own module, the permissions move with it rather than being regrouped.
+    private const string DeliveryCategory = "Delivery";
     private static readonly ApplicationPermission[] _productManagement =
     [
         // No Administer counterpart: unlike PPM, changing a product needs the permission claim alone.
@@ -370,6 +379,25 @@ public static class ApplicationPermissions
         new ("Create Product Types", ApplicationAction.Create, ApplicationResource.ProductTypes, ProductManagementCategory),
         new ("Update Product Types", ApplicationAction.Update, ApplicationResource.ProductTypes, ProductManagementCategory),
         new ("Delete Product Types", ApplicationAction.Delete, ApplicationResource.ProductTypes, ProductManagementCategory),
+
+        new ("View Releases", ApplicationAction.View, ApplicationResource.Releases, DeliveryCategory),
+        new ("Create Releases", ApplicationAction.Create, ApplicationResource.Releases, DeliveryCategory),
+        new ("Update Releases", ApplicationAction.Update, ApplicationResource.Releases, DeliveryCategory),
+        new ("Delete Releases", ApplicationAction.Delete, ApplicationResource.Releases, DeliveryCategory),
+
+        new ("View Release Packages", ApplicationAction.View, ApplicationResource.ReleasePackages, DeliveryCategory),
+        new ("Create Release Packages", ApplicationAction.Create, ApplicationResource.ReleasePackages, DeliveryCategory),
+        new ("Update Release Packages", ApplicationAction.Update, ApplicationResource.ReleasePackages, DeliveryCategory),
+        new ("Delete Release Packages", ApplicationAction.Delete, ApplicationResource.ReleasePackages, DeliveryCategory),
+
+        new ("View Deployments", ApplicationAction.View, ApplicationResource.Deployments, DeliveryCategory),
+        new ("Create Deployments", ApplicationAction.Create, ApplicationResource.Deployments, DeliveryCategory),
+        new ("Update Deployments", ApplicationAction.Update, ApplicationResource.Deployments, DeliveryCategory),
+
+        new ("View Deployment Environments", ApplicationAction.View, ApplicationResource.DeploymentEnvironments, DeliveryCategory),
+        new ("Create Deployment Environments", ApplicationAction.Create, ApplicationResource.DeploymentEnvironments, DeliveryCategory),
+        new ("Update Deployment Environments", ApplicationAction.Update, ApplicationResource.DeploymentEnvironments, DeliveryCategory),
+        new ("Delete Deployment Environments", ApplicationAction.Delete, ApplicationResource.DeploymentEnvironments, DeliveryCategory),
 
         new ("View Product Tag Categories", ApplicationAction.View, ApplicationResource.ProductTagCategories, ProductManagementCategory),
         new ("Create Product Tag Categories", ApplicationAction.Create, ApplicationResource.ProductTagCategories, ProductManagementCategory),

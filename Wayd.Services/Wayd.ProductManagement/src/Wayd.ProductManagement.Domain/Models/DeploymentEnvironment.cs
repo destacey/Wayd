@@ -1,4 +1,4 @@
-using Ardalis.GuardClauses;
+﻿using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using NodaTime;
 using Wayd.Common.Domain.Enums.ProductManagement;
@@ -116,22 +116,42 @@ public sealed class DeploymentEnvironment : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Retires the environment so nothing further can be deployed into it.
+    /// Takes the environment out of use so nothing further can be deployed into it.
     /// </summary>
     /// <remarks>
-    /// Retired rather than deleted: historical deployments still point here, and "what was running in
-    /// production on this date" has to keep resolving after an environment is decommissioned.
+    /// Deactivated rather than deleted: historical deployments still point here, and "what was running
+    /// in production on this date" has to keep resolving after an environment is decommissioned.
     /// </remarks>
-    public Result Retire(EventActor actor, Instant timestamp)
+    public Result Deactivate(EventActor actor, Instant timestamp)
     {
         if (!IsActive)
         {
-            return Result.Failure("This environment has already been retired.");
+            return Result.Failure("This environment is already inactive.");
         }
 
         IsActive = false;
 
         AddDomainEvent(new EnvironmentRetiredEvent(Id, Key, Name, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Puts the environment back into use.
+    /// </summary>
+    /// <remarks>
+    /// A decommissioned environment sometimes comes back — a region re-enabled, a test bed rebuilt —
+    /// and its historical deployments should stay attached to the same environment rather than a
+    /// duplicate.
+    /// </remarks>
+    public Result Activate()
+    {
+        if (IsActive)
+        {
+            return Result.Failure("This environment is already active.");
+        }
+
+        IsActive = true;
 
         return Result.Success();
     }

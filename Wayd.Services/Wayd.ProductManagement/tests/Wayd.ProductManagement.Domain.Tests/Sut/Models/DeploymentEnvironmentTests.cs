@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NodaTime.Extensions;
 using NodaTime.Testing;
 using Wayd.Common.Domain.Enums.ProductManagement;
@@ -113,16 +113,16 @@ public sealed class DeploymentEnvironmentTests
 
     #endregion Reclassify
 
-    #region Retire
+    #region Deactivate
 
     [Fact]
-    public void Retire_ShouldDeactivateAndRaiseEvent()
+    public void Deactivate_ShouldDeactivateAndRaiseEvent()
     {
         // Arrange
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.Retire(EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Deactivate(EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -131,20 +131,20 @@ public sealed class DeploymentEnvironmentTests
     }
 
     [Fact]
-    public void Retire_ShouldFail_WhenAlreadyRetired()
+    public void Deactivate_ShouldFail_WhenAlreadyInactive()
     {
         // Arrange
         var sut = _faker.AsRetired().Generate();
 
         // Act
-        var result = sut.Retire(EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Deactivate(EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("This environment has already been retired.");
+        result.Error.Should().Be("This environment is already inactive.");
     }
 
-    #endregion Retire
+    #endregion Deactivate
 
     #region Update
 

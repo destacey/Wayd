@@ -26,6 +26,16 @@ public sealed class ProductType : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
+    /// Whether new products can be created with this type.
+    /// </summary>
+    /// <remarks>
+    /// Deactivated rather than deleted, because products already using it still resolve their type.
+    /// Reversible on purpose: an organization that stops shipping tools this year may start again, and
+    /// making it recreate the type would lose the continuity for no reason.
+    /// </remarks>
+    public bool IsActive { get; private set; } = true;
+
+    /// <summary>
     /// The unique auto-generated key of the product type. This is an alternate key to the Id.
     /// </summary>
     public int Key { get; private init; }
@@ -96,6 +106,41 @@ public sealed class ProductType : BaseAuditableEntity, IHasIdAndKey
         }
 
         IsReleasable = isReleasable;
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Takes the type out of use, so no new product can be created with it.
+    /// </summary>
+    /// <remarks>
+    /// Says nothing about products already using it — they keep resolving their type, which is why this
+    /// is deactivation rather than deletion. Seeded types can be deactivated: an organization that does
+    /// not ship libraries should be able to hide the type without the seeder recreating it.
+    /// </remarks>
+    public Result Deactivate()
+    {
+        if (!IsActive)
+        {
+            return Result.Failure("This product type is already inactive.");
+        }
+
+        IsActive = false;
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Puts the type back into use.
+    /// </summary>
+    public Result Activate()
+    {
+        if (IsActive)
+        {
+            return Result.Failure("This product type is already active.");
+        }
+
+        IsActive = true;
 
         return Result.Success();
     }

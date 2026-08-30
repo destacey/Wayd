@@ -28,6 +28,7 @@ using Wayd.Integrations.Workday.Soap;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
+using Wayd.ProductManagement.Domain;
 using Wayd.Planning.Application.StoryMaps.Interfaces;
 namespace Wayd.Infrastructure;
 
@@ -80,6 +81,11 @@ public static class ConfigureServices
         services.AddSingleton(TimeProvider.System);
 
         services.AddMemoryCache();
+
+        // STATUS WORKFLOW OWNER TYPES — registered before persistence, because resolving a workflow
+        // read from the database needs its owner type already known. Each module contributes its own;
+        // the engine holds no module's vocabulary. Idempotent, so a second call is harmless.
+        ProductWorkflowOwners.Register();
 
         // Data protection (at-rest secret encryption) must initialize before
         // persistence so the EF model can pick up the protector via SecretProtectorAccessor.

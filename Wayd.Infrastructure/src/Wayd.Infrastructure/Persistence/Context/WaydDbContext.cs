@@ -20,6 +20,8 @@ using Wayd.Planning.Domain.Models.Iterations;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Planning.Domain.Models.Roadmaps;
 using Wayd.Planning.Domain.Models.StoryMaps;
+using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.ProductManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Application;
 using Wayd.Common.Domain.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
@@ -111,6 +113,30 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
     public DbSet<StoryMap> StoryMaps => Set<StoryMap>();
 
     #endregion IPlanning
+
+    #region StatusWorkflows
+
+    public DbSet<StatusWorkflow> StatusWorkflows => Set<StatusWorkflow>();
+    public DbSet<WorkflowStatus> WorkflowStatuses => Set<WorkflowStatus>();
+    public DbSet<WorkflowAliasName> WorkflowAliasNames => Set<WorkflowAliasName>();
+    public DbSet<StatusTransition> StatusTransitions => Set<StatusTransition>();
+    public DbSet<WorkflowAssignment> WorkflowAssignments => Set<WorkflowAssignment>();
+
+    #endregion StatusWorkflows
+
+    #region ProductManagement
+
+    // No IProductManagementDbContext yet: the interface belongs with the application layer that
+    // consumes it, and this module has none so far.
+    public DbSet<ProductType> ProductTypes => Set<ProductType>();
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<Release> Releases => Set<Release>();
+    public DbSet<ReleasePackage> ReleasePackages => Set<ReleasePackage>();
+    public DbSet<ReleasePackageComponent> ReleasePackageComponents => Set<ReleasePackageComponent>();
+    public DbSet<DeploymentEnvironment> DeploymentEnvironments => Set<DeploymentEnvironment>();
+    public DbSet<Deployment> Deployments => Set<Deployment>();
+
+    #endregion ProductManagement
 
     #region IProjectPortfolioManagementDbContext
 

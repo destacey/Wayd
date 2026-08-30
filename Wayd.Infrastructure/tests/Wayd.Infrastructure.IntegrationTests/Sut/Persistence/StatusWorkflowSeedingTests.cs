@@ -39,6 +39,7 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
     {
         await new ProductManagementWorkflowSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
         await new WorkflowAliasNameSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
+        await new ProductTypeSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
     }
 
     #region Workflow seeding
@@ -237,4 +238,71 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
     }
 
     #endregion Schema
+
+    #region Product types
+
+    [Fact]
+    public async Task ProductTypeSeeder_ShouldSeedTheDefaultTypes()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        var types = await context.ProductTypes.OrderBy(t => t.Order).ToListAsync(TestContext.Current.CancellationToken);
+
+        types.Should().NotBeEmpty();
+        types.Should().OnlyContain(t => t.IsSystem);
+        types.Select(t => t.Name).Should().Contain(["Product Line", "Product", "Service", "Module"]);
+    }
+
+    [Fact]
+    public async Task ProductTypeSeeder_ShouldMarkGroupingsAndEmbeddedTypesUnreleasable()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        // The flag that stops a release being cut against an abstract grouping, or against a node that
+        // ships inside its host rather than on its own.
+        var types = await context.ProductTypes.ToDictionaryAsync(t => t.Name, TestContext.Current.CancellationToken);
+
+        types["Product Line"].IsReleasable.Should().BeFalse();
+        types["Module"].IsReleasable.Should().BeFalse();
+        types["Interface"].IsReleasable.Should().BeFalse();
+        types["Product"].IsReleasable.Should().BeTrue();
+        types["Service"].IsReleasable.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ProductTypeSeeder_ShouldNotRecreateATypeAnAdminDeleted()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+        await SeedAll(context);
+
+        var tool = await context.ProductTypes.SingleAsync(t => t.Name == "Tool", TestContext.Current.CancellationToken);
+        context.ProductTypes.Remove(tool);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await using var second = _fixture.CreateContext();
+        await SeedAll(second);
+
+        // Assert
+        // The types are a set an organization curates; deleting one it does not ship is a legitimate
+        // choice, and recreating it on the next startup would undo that.
+        var names = await second.ProductTypes.Select(t => t.Name).ToListAsync(TestContext.Current.CancellationToken);
+        names.Should().NotContain("Tool");
+    }
+
+    #endregion Product types
 }

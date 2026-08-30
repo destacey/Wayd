@@ -5,6 +5,7 @@ using Wayd.Common.Application.FeatureManagement;
 using Wayd.Goals.Application.Persistence;
 using Wayd.Links;
 using Wayd.Planning.Application.Persistence;
+using Wayd.ProductManagement.Application;
 using Wayd.ProjectPortfolioManagement.Application;
 using Wayd.StrategicManagement.Application;
 using Wayd.Work.Application.Persistence;
@@ -109,6 +110,8 @@ internal static class ConfigureServices
         services.AddScoped<ILinksDbContext, WaydDbContext>();
         services.AddScoped<IOrganizationDbContext, WaydDbContext>();
         services.AddScoped<IPlanningDbContext, WaydDbContext>();
+        services.AddScoped<IProductManagementDbContext, WaydDbContext>();
+        services.AddScoped<IStatusWorkflowDbContext, WaydDbContext>();
         services.AddScoped<IProjectPortfolioManagementDbContext, WaydDbContext>();
         services.AddScoped<IStrategicManagementDbContext, WaydDbContext>();
         services.AddScoped<IWorkDbContext, WaydDbContext>();

@@ -27,6 +27,7 @@ using Wayd.Common.Domain.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
+using Wayd.ProductManagement.Application;
 using Wayd.StrategicManagement.Application;
 using Wayd.StrategicManagement.Domain.Models;
 using Wayd.Work.Application.Persistence;
@@ -37,7 +38,7 @@ using StrategicTheme = Wayd.StrategicManagement.Domain.Models.StrategicTheme;
 
 namespace Wayd.Infrastructure.Persistence.Context;
 
-public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureManagementDbContext, IGoalsDbContext, ILinksDbContext, IOrganizationDbContext, IPlanningDbContext, IProjectPortfolioManagementDbContext, IStrategicManagementDbContext, IWorkDbContext
+public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureManagementDbContext, IGoalsDbContext, ILinksDbContext, IOrganizationDbContext, IPlanningDbContext, IProductManagementDbContext, IStatusWorkflowDbContext, IProjectPortfolioManagementDbContext, IStrategicManagementDbContext, IWorkDbContext
 {
     private static readonly ConcurrentDictionary<string, bool> _ftsAvailabilityCache = new();
 
@@ -126,8 +127,6 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IFeatureMa
 
     #region ProductManagement
 
-    // No IProductManagementDbContext yet: the interface belongs with the application layer that
-    // consumes it, and this module has none so far.
     public DbSet<ProductType> ProductTypes => Set<ProductType>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductTagCategory> ProductTagCategories => Set<ProductTagCategory>();

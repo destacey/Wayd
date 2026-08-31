@@ -23,5 +23,10 @@ export type {
 } from './types'
 export { useGanttZoom } from './use-gantt-zoom'
 export type { UseGanttZoom } from './use-gantt-zoom'
+export {
+  useGanttVisibility,
+  GANTT_VISIBILITY_KEYS,
+} from './use-gantt-visibility'
+export type { GanttVisibilityState, GanttArea } from './use-gantt-visibility'
 export { GanttToolbarActions } from './gantt-toolbar-actions'
 export type { GanttToolbarActionsProps } from './gantt-toolbar-actions'

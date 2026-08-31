@@ -40,6 +40,7 @@ import {
 import {
   GanttToolbarActions,
   useBarDrag,
+  useGanttVisibility,
   useGanttZoom,
   type GanttDragItem,
 } from '@/src/components/common/timeline'
@@ -496,7 +497,9 @@ const ProjectPlanTable = ({
   // Stages, tasks and milestones drawn on a shared time axis to the right of the
   // grid. Chart mechanics live in the shared engine (components/common/timeline/
   // gantt); project-plan-gantt.tsx supplies the accessors for our node shape.
-  const [showGantt, setShowGantt] = useState(true)
+  // Show/hide the chart. Persisted across projects (see useGanttVisibility).
+  const ganttVisibility = useGanttVisibility('project-plan')
+  const showGantt = ganttVisibility.visible
   const zoom = useGanttZoom()
 
   // Commit a dragged bar's new dates through the SAME handler inline editing
@@ -918,7 +921,7 @@ const ProjectPlanTable = ({
           actionsSlot={
             <GanttToolbarActions
               visible={showGantt}
-              onToggle={() => setShowGantt((v) => !v)}
+              onToggle={ganttVisibility.toggle}
               zoom={zoom}
             />
           }

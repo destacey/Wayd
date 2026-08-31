@@ -41,6 +41,8 @@ import {
   StrategicInitiativesClient,
   ProjectLifecyclesClient,
   ScoringModelsClient,
+  StatusWorkflowsClient,
+  WorkflowAssignmentsClient,
   SprintsClient,
   EstimationScalesClient,
   PokerSessionsClient,
@@ -464,6 +466,10 @@ export const getProjectLifecyclesClient = () =>
   new ProjectLifecyclesClient('', axiosClient)
 export const getScoringModelsClient = () =>
   new ScoringModelsClient('', axiosClient)
+export const getStatusWorkflowsClient = () =>
+  new StatusWorkflowsClient('', axiosClient)
+export const getWorkflowAssignmentsClient = () =>
+  new WorkflowAssignmentsClient('', axiosClient)
 
 // SEARCH
 export const getSearchClient = () => new SearchClient('', axiosClient)

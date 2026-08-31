@@ -10,7 +10,7 @@ namespace Wayd.ProductManagement.Application.ReleasePackages.Commands;
 /// The package is the unit that shipped, so one pipeline run counts once even where it carried several
 /// component releases.
 /// </remarks>
-public sealed record MarkReleasePackageReleasedCommand(Guid Id, LocalDate ReleasedDate) : ICommand;
+public sealed record MarkReleasePackageReleasedCommand(Guid Id, LocalDate ReleasedDate) : ICommand, IRequireLinkedEmployee;
 
 public sealed class MarkReleasePackageReleasedCommandValidator : AbstractValidator<MarkReleasePackageReleasedCommand>
 {
@@ -25,6 +25,7 @@ public sealed class MarkReleasePackageReleasedCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     IStatusResolver statusResolver,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<MarkReleasePackageReleasedCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<MarkReleasePackageReleasedCommand>
@@ -34,6 +35,7 @@ public sealed class MarkReleasePackageReleasedCommandHandler(
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<MarkReleasePackageReleasedCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -65,10 +67,15 @@ public sealed class MarkReleasePackageReleasedCommandHandler(
                 return Result.Failure(status.Error);
             }
 
+            // Read per scope rather than from the claim snapshot, which a personal access token
+            // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
+            // one would misattribute the change permanently.
+            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
             var result = package.MarkReleased(
                 request.ReleasedDate,
                 status.Value,
-                EventActor.User(_currentUser.GetUserId()),
+                EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);
 
             if (result.IsFailure)

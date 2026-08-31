@@ -29,7 +29,7 @@ public sealed class SucceedDeploymentCommandHandlerTests : ProductCommandTestBas
     }
 
     private SucceedDeploymentCommandHandler CreateSut() =>
-        new(DbContext, _statusResolver.Object, CurrentUser.Object, Logger<SucceedDeploymentCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, _statusResolver.Object, CurrentUser.Object, CurrentPrincipal.Object, Logger<SucceedDeploymentCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
     public async Task Handle_ShouldCompleteTheDeployment()

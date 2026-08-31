@@ -29,7 +29,7 @@ public sealed class MarkReleasePackageReleasedCommandHandlerTests : ProductComma
     }
 
     private MarkReleasePackageReleasedCommandHandler CreateSut() =>
-        new(DbContext, _statusResolver.Object, CurrentUser.Object, Logger<MarkReleasePackageReleasedCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, _statusResolver.Object, CurrentUser.Object, CurrentPrincipal.Object, Logger<MarkReleasePackageReleasedCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
     public async Task Handle_ShouldRecordTheShipment()

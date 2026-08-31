@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -171,6 +172,17 @@ public class StatusTransitionConfiguration : IEntityTypeConfiguration<StatusTran
             .HasColumnType("varchar")
             .HasMaxLength(32);
         builder.Property(t => t.ActorUserId).HasMaxLength(450);
+
+        builder.Property(t => t.ActorEmployeeId);
+
+        // A real foreign key, unlike RecordId — one employee table serves every owner type, so there is
+        // a single target to reference. No navigation: the engine holds no module's types, and the read
+        // side joins explicitly. NoAction matches ProjectStatusHistory, which references employees the
+        // same way.
+        builder.HasOne<Employee>()
+            .WithMany()
+            .HasForeignKey(t => t.ActorEmployeeId)
+            .OnDelete(DeleteBehavior.NoAction);
 
         builder.Property(t => t.ChangedOn).IsRequired();
         builder.Property(t => t.Sequence).IsRequired();

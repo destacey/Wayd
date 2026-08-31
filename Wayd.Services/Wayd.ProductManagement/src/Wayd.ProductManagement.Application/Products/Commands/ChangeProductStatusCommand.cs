@@ -3,7 +3,7 @@ using Wayd.ProductManagement.Domain;
 
 namespace Wayd.ProductManagement.Application.Products.Commands;
 
-public sealed record ChangeProductStatusCommand(Guid Id, Guid StatusId) : ICommand;
+public sealed record ChangeProductStatusCommand(Guid Id, Guid StatusId) : ICommand, IRequireLinkedEmployee;
 
 public sealed class ChangeProductStatusCommandValidator : AbstractValidator<ChangeProductStatusCommand>
 {
@@ -21,6 +21,7 @@ public sealed class ChangeProductStatusCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     IStatusResolver statusResolver,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<ChangeProductStatusCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<ChangeProductStatusCommand>
@@ -30,6 +31,7 @@ public sealed class ChangeProductStatusCommandHandler(
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<ChangeProductStatusCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -68,9 +70,14 @@ public sealed class ChangeProductStatusCommandHandler(
                 return Result.Failure($"That status does not belong to '{workflow.Value.Name}'.");
             }
 
+            // Read per scope rather than from the claim snapshot, which a personal access token
+            // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
+            // one would misattribute the change permanently.
+            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
             var changeResult = product.ChangeStatus(
                 StatusRef.From(status),
-                EventActor.User(_currentUser.GetUserId()),
+                EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);
 
             if (changeResult.IsFailure)

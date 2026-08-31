@@ -10,7 +10,7 @@ namespace Wayd.ProductManagement.Application.Deployments.Commands;
 /// Only counts toward change failure rate in production: a failure caught earlier is a failure that was
 /// prevented, and counting it would invert the measure.
 /// </remarks>
-public sealed record FailDeploymentCommand(Guid Id, string? Reason, Instant? CompletedAt) : ICommand;
+public sealed record FailDeploymentCommand(Guid Id, string? Reason, Instant? CompletedAt) : ICommand, IRequireLinkedEmployee;
 
 public sealed class FailDeploymentCommandValidator : AbstractValidator<FailDeploymentCommand>
 {
@@ -28,6 +28,7 @@ public sealed class FailDeploymentCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     IStatusResolver statusResolver,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<FailDeploymentCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<FailDeploymentCommand>
@@ -37,6 +38,7 @@ public sealed class FailDeploymentCommandHandler(
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<FailDeploymentCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -72,12 +74,17 @@ public sealed class FailDeploymentCommandHandler(
                 .Select(e => e.Name)
                 .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
 
+            // Read per scope rather than from the claim snapshot, which a personal access token
+            // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
+            // one would misattribute the change permanently.
+            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
             var result = deployment.Fail(
                 request.CompletedAt ?? _dateTimeProvider.Now,
                 request.Reason,
                 status.Value,
                 environmentName,
-                EventActor.User(_currentUser.GetUserId()),
+                EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);
 
             if (result.IsFailure)

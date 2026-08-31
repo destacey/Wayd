@@ -29,7 +29,7 @@ public sealed class MarkReleaseReleasedCommandHandlerTests : ProductCommandTestB
     }
 
     private MarkReleaseReleasedCommandHandler CreateSut() =>
-        new(DbContext, _statusResolver.Object, CurrentUser.Object, Logger<MarkReleaseReleasedCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, _statusResolver.Object, CurrentUser.Object, CurrentPrincipal.Object, Logger<MarkReleaseReleasedCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
     public async Task Handle_ShouldRecordTheShipment()

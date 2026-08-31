@@ -29,7 +29,7 @@ public sealed class FailDeploymentCommandHandlerTests : ProductCommandTestBase
     }
 
     private FailDeploymentCommandHandler CreateSut() =>
-        new(DbContext, _statusResolver.Object, CurrentUser.Object, Logger<FailDeploymentCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, _statusResolver.Object, CurrentUser.Object, CurrentPrincipal.Object, Logger<FailDeploymentCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
     public async Task Handle_ShouldRecordTheFailureAndReason()

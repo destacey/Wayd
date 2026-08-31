@@ -18,13 +18,22 @@ public abstract class ProductCommandTestBase
 {
     protected static readonly Instant Now = Instant.FromUtc(2026, 4, 1, 9, 0, 0);
 
+    /// <summary>
+    /// The employee the acting account is linked to, frozen onto every transition these commands write.
+    /// </summary>
+    protected static readonly Guid ActingEmployeeId = Guid.CreateVersion7();
+
     protected readonly FakeProductManagementDbContext DbContext = new();
     protected readonly Mock<ICurrentUser> CurrentUser = new();
+    protected readonly Mock<ICurrentPrincipal> CurrentPrincipal = new();
     protected readonly Mock<IDateTimeProvider> DateTimeProvider = new();
 
     protected ProductCommandTestBase()
     {
         CurrentUser.Setup(u => u.GetUserId()).Returns(Guid.CreateVersion7().ToString());
+        CurrentPrincipal
+            .Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ActingEmployeeId);
         DateTimeProvider.SetupGet(d => d.Now).Returns(Now);
     }
 

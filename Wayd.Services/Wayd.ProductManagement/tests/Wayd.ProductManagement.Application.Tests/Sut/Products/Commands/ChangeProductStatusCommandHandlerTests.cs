@@ -41,6 +41,7 @@ public sealed class ChangeProductStatusCommandHandlerTests : ProductCommandTestB
         new(DbContext,
             _statusResolver.Object,
             CurrentUser.Object,
+            CurrentPrincipal.Object,
             Logger<ChangeProductStatusCommandHandler>(),
             DateTimeProvider.Object);
 

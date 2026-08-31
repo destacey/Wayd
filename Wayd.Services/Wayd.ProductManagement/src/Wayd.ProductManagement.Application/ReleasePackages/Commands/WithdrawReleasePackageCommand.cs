@@ -9,7 +9,7 @@ namespace Wayd.ProductManagement.Application.ReleasePackages.Commands;
 /// <remarks>
 /// The package is kept: deployments may reference it, and the delivery measures read that history.
 /// </remarks>
-public sealed record WithdrawReleasePackageCommand(Guid Id, string? Reason) : ICommand;
+public sealed record WithdrawReleasePackageCommand(Guid Id, string? Reason) : ICommand, IRequireLinkedEmployee;
 
 public sealed class WithdrawReleasePackageCommandValidator : AbstractValidator<WithdrawReleasePackageCommand>
 {
@@ -27,6 +27,7 @@ public sealed class WithdrawReleasePackageCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     IStatusResolver statusResolver,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<WithdrawReleasePackageCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<WithdrawReleasePackageCommand>
@@ -36,6 +37,7 @@ public sealed class WithdrawReleasePackageCommandHandler(
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<WithdrawReleasePackageCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -64,10 +66,15 @@ public sealed class WithdrawReleasePackageCommandHandler(
                 return Result.Failure(status.Error);
             }
 
+            // Read per scope rather than from the claim snapshot, which a personal access token
+            // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
+            // one would misattribute the change permanently.
+            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
             var result = package.Withdraw(
                 request.Reason,
                 status.Value,
-                EventActor.User(_currentUser.GetUserId()),
+                EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);
 
             if (result.IsFailure)

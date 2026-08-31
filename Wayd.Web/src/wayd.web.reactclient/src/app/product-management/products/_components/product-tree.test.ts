@@ -1,5 +1,9 @@
 import { ProductDto } from '@/src/services/wayd-api'
-import { buildProductTree } from './product-tree'
+import {
+  buildMoveTargetTree,
+  buildProductTree,
+  ProductTreeNode,
+} from './product-tree'
 
 const product = (
   id: string,
@@ -66,5 +70,73 @@ describe('buildProductTree', () => {
 
   it('returns nothing for an empty list', () => {
     expect(buildProductTree([])).toEqual([])
+  })
+})
+
+describe('buildMoveTargetTree', () => {
+  // Suite > Checkout > Payments, plus an unrelated Billing root.
+  const suite = product('1', 'Suite')
+  const checkout = product('2', 'Checkout', { id: '1', key: 1, name: 'Suite' })
+  const payments = product('3', 'Payments', {
+    id: '2',
+    key: 2,
+    name: 'Checkout',
+  })
+  const billing = product('4', 'Billing')
+  const all = [suite, checkout, payments, billing]
+
+  const names = (nodes: ProductTreeNode[]): string[] =>
+    nodes.flatMap((node) => [node.name, ...names(node.children)])
+
+  it('keeps the hierarchy so the move is made in context', () => {
+    // Act
+    const tree = buildMoveTargetTree(all, '4')
+
+    // Assert
+    expect(tree.map((n) => n.name)).toEqual(['Suite'])
+    expect(tree[0].children.map((n) => n.name)).toEqual(['Checkout'])
+  })
+
+  it('excludes the product being moved', () => {
+    // Act
+    const tree = buildMoveTargetTree(all, '2')
+
+    // Assert
+    expect(names(tree)).not.toContain('Checkout')
+  })
+
+  it('excludes the descendants of the product being moved', () => {
+    // A product cannot become its own ancestor, so its whole subtree is out — not just itself.
+    // Act
+    const tree = buildMoveTargetTree(all, '2')
+
+    // Assert
+    expect(names(tree)).not.toContain('Payments')
+  })
+
+  it('prunes the branch rather than hoisting the survivors', () => {
+    // A grandchild shown at the root would read as a legal target while its parent was hidden.
+    // Act
+    const tree = buildMoveTargetTree(all, '2')
+
+    // Assert
+    expect(tree.map((n) => n.name).sort()).toEqual(['Billing', 'Suite'])
+  })
+
+  it('leaves everything outside the subtree selectable', () => {
+    // Act
+    const tree = buildMoveTargetTree(all, '2')
+
+    // Assert
+    // Moving to a sibling, to an ancestor, or to the root are all legal.
+    expect(names(tree).sort()).toEqual(['Billing', 'Suite'])
+  })
+
+  it('offers every other product when moving a leaf', () => {
+    // Act
+    const tree = buildMoveTargetTree(all, '3')
+
+    // Assert
+    expect(names(tree).sort()).toEqual(['Billing', 'Checkout', 'Suite'])
   })
 })

@@ -37,6 +37,30 @@ export const buildProductTree = (products: ProductDto[]): ProductTreeNode[] => {
 }
 
 /**
+ * The tree of products a node may be moved under, with itself and everything beneath it removed.
+ *
+ * A product cannot become its own ancestor, so its whole subtree is out — not just the product
+ * itself. The branch is pruned rather than having its survivors hoisted: a grandchild shown at the
+ * root would read as a legal target while its parent was hidden, which both misstates the hierarchy
+ * and offers a move the API would refuse anyway.
+ *
+ * The domain enforces this regardless. Doing it here as well means the refusal is never reached by
+ * anyone using the form as intended, which is what a picker is for.
+ */
+export const buildMoveTargetTree = (
+  products: ProductDto[],
+  movingProductId: string,
+): ProductTreeNode[] => prune(buildProductTree(products), movingProductId)
+
+const prune = (
+  nodes: ProductTreeNode[],
+  excludedId: string,
+): ProductTreeNode[] =>
+  nodes
+    .filter((node) => node.id !== excludedId)
+    .map((node) => ({ ...node, children: prune(node.children, excludedId) }))
+
+/**
  * Whether attaching a node under a candidate parent would close a loop.
  *
  * The domain refuses to create one, so this guards against data that is already wrong rather than

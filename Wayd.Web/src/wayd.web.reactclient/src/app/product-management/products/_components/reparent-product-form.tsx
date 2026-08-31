@@ -8,8 +8,9 @@ import {
   useReparentProductMutation,
 } from '@/src/store/features/product-management/products-api'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
+import { buildMoveTargetTree, ProductTreeNode } from './product-tree'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { Form, Modal, Select } from 'antd'
+import { Form, Modal, TreeSelect } from 'antd'
 
 const { Item } = Form
 
@@ -23,13 +24,19 @@ interface ReparentProductFormValues {
   parentId?: string
 }
 
+interface TreeSelectNode {
+  value: string
+  title: string
+  children: TreeSelectNode[]
+}
+
 /**
  * Moves a product to a different parent, or to the root.
  *
- * The product itself is excluded from the options, but its descendants are not:
- * this form holds only the flat list, so it cannot see who sits beneath it. The
- * API walks the ancestry and refuses a move into a product's own subtree, and
- * that refusal is what the caller sees.
+ * The picker is a tree so the hierarchy being moved within is visible, and it
+ * omits the product's own subtree: a product cannot become its own ancestor. The
+ * API enforces that too, so this is about not offering the move rather than
+ * about stopping it.
  */
 const ReparentProductForm = ({
   product,
@@ -76,10 +83,16 @@ const ReparentProductForm = ({
       permission: 'Permissions.Products.Update',
     })
 
-  const options = (products ?? [])
-    .filter((candidate) => candidate.id !== product.id)
-    .map((candidate) => ({ value: candidate.id, label: candidate.name }))
-    .sort((a, b) => caseInsensitiveCompare(a.label, b.label))
+  const toTreeData = (nodes: ProductTreeNode[]): TreeSelectNode[] =>
+    nodes
+      .map((node) => ({
+        value: node.id,
+        title: node.name,
+        children: toTreeData(node.children),
+      }))
+      .sort((a, b) => caseInsensitiveCompare(a.title, b.title))
+
+  const treeData = toTreeData(buildMoveTargetTree(products ?? [], product.id))
 
   return (
     <Modal
@@ -105,13 +118,21 @@ const ReparentProductForm = ({
           label="Parent"
           extra="Clear this to make it a root product."
         >
-          <Select
-            options={options}
+          <TreeSelect
+            treeData={treeData}
             loading={isLoading}
             placeholder="Select a parent"
+            notFoundContent="No products found"
+            treeLine
+            treeDefaultExpandAll
             allowClear
-            showSearch
-            optionFilterProp="label"
+            showSearch={{
+              filterTreeNode: (input, node) =>
+                node.title
+                  ?.toString()
+                  .toLowerCase()
+                  .includes(input.toLowerCase()) ?? false,
+            }}
           />
         </Item>
       </Form>

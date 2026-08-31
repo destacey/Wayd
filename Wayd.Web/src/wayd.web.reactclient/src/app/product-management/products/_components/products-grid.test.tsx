@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { ProductDto } from '@/src/services/wayd-api'
 import ProductsGrid from './products-grid'
 
@@ -116,6 +117,52 @@ describe('ProductsGrid', () => {
 
     // Assert
     expect(screen.getByText('Tier | gold')).toBeInTheDocument()
+  })
+
+  it('offers the same qualified values in the tag filter as in the cell', async () => {
+    // The set panel derives its checkboxes by splitting the cell's joined value,
+    // so a filter option cannot drift from what the column displays. Both come
+    // from getValues, which is what makes one custom filter unnecessary.
+    // Arrange
+    const products = [
+      tagged(PRODUCTS[0], [
+        {
+          tagId: 't1',
+          tagName: 'ios',
+          categoryId: 'c1',
+          categoryName: 'Platform',
+        },
+      ]),
+      tagged(PRODUCTS[1], [
+        {
+          tagId: 't2',
+          tagName: 'gold',
+          categoryId: 'c2',
+          categoryName: 'Tier',
+        },
+      ]),
+    ]
+
+    render(
+      <ProductsGrid
+        products={products}
+        isLoading={false}
+        refetch={() => {}}
+        asTree={false}
+      />,
+    )
+
+    // Act
+    const filterToggles = document.querySelectorAll(
+      '[class*="filterButton"], .anticon-filter',
+    )
+    await userEvent.click(filterToggles[filterToggles.length - 1])
+
+    // Assert
+    // Both appear twice — once in a cell, once as a checkbox — which is the
+    // point: the panel is built from the same values the cells render.
+    expect(await screen.findAllByText('Platform | ios')).toHaveLength(2)
+    expect(await screen.findAllByText('Tier | gold')).toHaveLength(2)
   })
 
   it('resolves the type through its navigation object', () => {

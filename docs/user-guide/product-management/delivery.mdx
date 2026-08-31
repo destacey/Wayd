@@ -9,10 +9,6 @@ audience: [user, agent]
 
 Where the [catalog](./products.mdx) records what exists, delivery records what shipped. Four record types carry it, and the separation between them is what makes the delivery metrics meaningful.
 
-:::note API only
-Delivery records can be created and read through the API today. The screens for them are not built yet — see [what is available today](./index.mdx#what-is-available-today).
-:::
-
 ## Releases
 
 A **release** is a versioned cut of one releasable product node.
@@ -48,9 +44,11 @@ Each environment carries a **category**: Development, Testing, Staging, or Produ
 
 Environments are also ordered into **rings**, so progressive rollout is representable.
 
-:::note Reclassifying rewrites history
-Reclassifying an environment retroactively changes every production-scoped measure — a staging environment reclassified as production rewrites your deployment frequency and change failure rate for all of history. Wayd records that change as its own event rather than an ordinary edit, so the shift in the numbers is traceable.
+:::note Reclassifying does not rewrite history
+Each deployment freezes the category of the environment it went into, so reclassifying an environment changes where *future* deployments count and leaves past ones as they were. A staging environment promoted to production does not retroactively inflate your deployment frequency. Wayd records the reclassification as its own event rather than an ordinary edit, so the change in what gets counted from then on is traceable.
 :::
+
+Environments are **retired rather than deleted**, because historical deployments still point at them. A retired environment cannot be deployed into, renamed, or reclassified until it is made active again. Retiring one shows how many deployments reference it first.
 
 ## Deployments
 
@@ -79,6 +77,10 @@ The share of production deployments that failed or were rolled back.
 
 Only production counts. A failure caught in staging is a failure that was *prevented*, and counting it would invert what the measure means.
 
+:::caution This is a proxy, not the industry measure
+DORA's change failure rate counts changes that **degraded service** — which a deployment record cannot know. What Wayd counts is deployments recorded as failed or rolled back, which is the closest signal available without an incident feed. The two diverge in both directions: a rollback made as a precaution counts here and should not, and a bad change nobody rolled back does not count here and should. Read it as a trend in remediated deployments rather than as the DORA number, and the screen labels it that way.
+:::
+
 ### Lead Time for Changes — not yet available
 
 Needs a link from a deployment back to the change it carried, such as a commit or a work item.
@@ -93,7 +95,17 @@ Every metric carries its counts and totals alongside the average, so you can com
 
 ## Permissions
 
-| Action | Permission |
-| --- | --- |
-| View and manage releases and packages | `Permissions.Releases.*` |
-| View and manage deployments and environments | `Permissions.Deployments.*` |
+Each record type is granted separately, so someone can be allowed to record deployments without also
+being able to cut releases.
+
+| Record | Permission | Actions |
+| --- | --- | --- |
+| Releases | `Permissions.Releases.*` | View, Create, Update, Delete |
+| Release packages | `Permissions.ReleasePackages.*` | View, Create, Update, Delete |
+| Deployments | `Permissions.Deployments.*` | View, Create, Update |
+| Environments | `Permissions.DeploymentEnvironments.*` | View, Create, Update, Delete |
+| Delivery metrics | `Permissions.DeliveryMetrics.View` | View |
+
+Recording a release or deployment outcome — cutting, releasing, withdrawing, or marking a deployment
+succeeded, failed or rolled back — additionally requires your account to be linked to an employee
+record, because the change is attributed to the person who made it.

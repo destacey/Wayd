@@ -80,6 +80,15 @@
     <Project Path="Wayd.Services/Wayd.Planning/tests/Wayd.Planning.Application.Tests/Wayd.Planning.Application.Tests.csproj" />
     <Project Path="Wayd.Services/Wayd.Planning/tests/Wayd.Planning.Domain.Tests/Wayd.Planning.Domain.Tests.csproj" />
   </Folder>
+  <Folder Name="/Wayd.Services/Wayd.ProductManagement/" />
+  <Folder Name="/Wayd.Services/Wayd.ProductManagement/src/">
+    <Project Path="Wayd.Services/Wayd.ProductManagement/src/Wayd.ProductManagement.Application/Wayd.ProductManagement.Application.csproj" />
+    <Project Path="Wayd.Services/Wayd.ProductManagement/src/Wayd.ProductManagement.Domain/Wayd.ProductManagement.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Wayd.Services/Wayd.ProductManagement/tests/">
+    <Project Path="Wayd.Services/Wayd.ProductManagement/tests/Wayd.ProductManagement.Application.Tests/Wayd.ProductManagement.Application.Tests.csproj" />
+    <Project Path="Wayd.Services/Wayd.ProductManagement/tests/Wayd.ProductManagement.Domain.Tests/Wayd.ProductManagement.Domain.Tests.csproj" />
+  </Folder>
   <Folder Name="/Wayd.Services/Wayd.ProjectPortfolioManagement/" />
   <Folder Name="/Wayd.Services/Wayd.ProjectPortfolioManagement/src/">
     <Project Path="Wayd.Services/Wayd.ProjectPortfolioManagement/src/Wayd.ProjectPortfolioManagement.Application/Wayd.ProjectPortfolioManagement.Application.csproj" />

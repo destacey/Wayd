@@ -6,6 +6,7 @@ internal static class SchemaNames
     public static string App = "App";
     public static string AppIntegration = "AppIntegrations";
     public static string Auditing = "Auditing";
+    public static string Delivery = "Delivery";
     public static string FeatureManagement = "FeatureManagement";
     public static string Goals = "Goals";
     public static string Health = "Health";
@@ -13,7 +14,9 @@ internal static class SchemaNames
     public static string Links = "Links";
     public static string Organization = "Organization";
     public static string Planning = "Planning";
+    public static string ProductManagement = "ProductManagement";
     public static string ProjectPortfolioManagement = "Ppm";
+    public static string StatusWorkflows = "StatusWorkflows";
     public static string StrategicManagement = "StrategicManagement";
     public static string Work = "Work";
 }

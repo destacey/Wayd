@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.Options;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Infrastructure.Common.Services;
 using Wayd.Infrastructure.Messaging;
 using Wayd.Infrastructure.Persistence.Extensions;
@@ -98,6 +99,8 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
     {
+        CollectStatusTransitions();
+
         var auditEntries = HandleAuditingBeforeSaveChanges(_currentUser.GetUserId(), _requestCorrelationIdProvider.CorrelationId);
 
         int result = await base.SaveChangesAsync(cancellationToken);
@@ -496,6 +499,33 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
         }
 
         return SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Moves the status transitions appended by <c>ApplyStatus</c> into the change tracker.
+    /// </summary>
+    /// <remarks>
+    /// The history deliberately is not a navigation: one <c>StatusTransitions</c> table serves every owner
+    /// type, so a per-aggregate foreign key would put four constraints on the same <c>RecordId</c> column
+    /// and no row could satisfy them all. Without this step nothing writes the rows at all — the aggregate
+    /// appends to its own list and EF never sees it. Domain tests read that same list, so they pass either
+    /// way; the round-trip tests in <c>StatusHistoryPersistenceTests</c> are what actually cover this.
+    /// <para>
+    /// Runs before the save so the transitions commit in the same transaction as the status column they
+    /// describe, and drains the aggregate so a second save cannot insert them twice.
+    /// </para>
+    /// </remarks>
+    private void CollectStatusTransitions()
+    {
+        var tracked = ChangeTracker.Entries<StatusTrackedEntity>()
+            .Select(e => e.Entity)
+            .Where(e => e.StatusTransitions.Count > 0)
+            .ToArray();
+
+        foreach (var entity in tracked)
+        {
+            Set<StatusTransition>().AddRange(entity.DrainStatusTransitions());
+        }
     }
 
     private void ExecutePostPersistenceActions()

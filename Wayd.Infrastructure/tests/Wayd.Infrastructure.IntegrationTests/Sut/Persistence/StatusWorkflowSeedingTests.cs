@@ -1,0 +1,463 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Moq;
+using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Enums.ProductManagement;
+using NodaTime;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Infrastructure.IntegrationTests.Infrastructure;
+using Wayd.Infrastructure.Persistence.Context;
+using Wayd.Infrastructure.Persistence.Initialization;
+using Wayd.ProductManagement.Domain;
+
+namespace Wayd.Infrastructure.IntegrationTests.Sut.Persistence;
+
+/// <summary>
+/// Verifies the workflow schema and its seeders against real SQL Server. The filtered unique index and
+/// the alias lookup are the parts an in-memory provider cannot check.
+/// </summary>
+/// <remarks>
+/// The fixture's container is shared across this class, so queries scope to <c>IsSystem</c> rather than
+/// owner type alone — other tests here add their own workflows for the same owner types.
+/// </remarks>
+[Collection(nameof(SqlServerTestCollection))]
+public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture)
+{
+    private readonly SqlServerDbContextFixture _fixture = fixture;
+
+    private static IDateTimeProvider DateTimeProvider()
+    {
+        var provider = new Mock<IDateTimeProvider>();
+        provider.SetupGet(d => d.Now).Returns(Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        provider.SetupGet(d => d.Today).Returns(new LocalDate(2026, 1, 15));
+
+        return provider.Object;
+    }
+
+    private async Task SeedAll(WaydDbContext context)
+    {
+        await new ProductManagementWorkflowSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
+        await new WorkflowAliasNameSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
+        await new ProductTypeSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
+    }
+
+    #region Workflow seeding
+
+    [Fact]
+    public async Task Seeder_ShouldCreateAPublishedWorkflowForEveryOwnerType()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        foreach (var owner in ProductWorkflowOwners.All)
+        {
+            var workflow = await context.StatusWorkflows
+                .Include(w => w.Statuses)
+                .SingleOrDefaultAsync(w => w.OwnerType == owner.Key && w.IsSystem, TestContext.Current.CancellationToken);
+
+            workflow.Should().NotBeNull($"'{owner.Key}' should have a seeded default");
+            workflow!.State.Should().Be(StatusWorkflowState.Published);
+            workflow.IsSystem.Should().BeTrue();
+        }
+    }
+
+    [Fact]
+    public async Task Seeder_ShouldSupplyEveryRequiredAlias()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        // A seeded workflow missing a required alias would be refused at activation, so this also
+        // proves the defaults are internally consistent rather than merely present.
+        foreach (var owner in ProductWorkflowOwners.All)
+        {
+            var workflow = await context.StatusWorkflows
+                .Include(w => w.Statuses)
+                .SingleAsync(w => w.OwnerType == owner.Key && w.IsSystem, TestContext.Current.CancellationToken);
+
+            foreach (var alias in owner.RequiredAliases)
+            {
+                workflow.StatusFor(alias).Should().NotBeNull(
+                    $"'{owner.Key}' requires {owner.DescribeAlias(alias)}");
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Seeder_ShouldBeIdempotent()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+        await SeedAll(context);
+
+        var before = await context.StatusWorkflows.CountAsync(w => w.IsSystem, TestContext.Current.CancellationToken);
+
+        // Act
+        await using var second = _fixture.CreateContext();
+        await SeedAll(second);
+
+        // Assert
+        // Seeders run on every startup; a second pass must not duplicate the defaults.
+        var after = await second.StatusWorkflows.CountAsync(w => w.IsSystem, TestContext.Current.CancellationToken);
+        after.Should().Be(before);
+    }
+
+    [Fact]
+    public async Task Seeder_ShouldMarkSeededStatusesAsSystemOwned()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        var statuses = await context.WorkflowStatuses
+            .Where(s => context.StatusWorkflows.Any(w => w.Id == s.WorkflowId && w.IsSystem))
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        statuses.Should().NotBeEmpty();
+        statuses.Should().OnlyContain(s => s.IsSystem);
+    }
+
+    [Fact]
+    public async Task Seeder_ShouldAssignEveryOwnerTypeAtTheOrganizationLevel()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        // Publishing only makes a workflow available to assign. Without the assignment the resolver has
+        // nothing to resolve and every operation fails at runtime, so this is not merely tidiness.
+        foreach (var owner in ProductWorkflowOwners.All)
+        {
+            var assignment = await context.WorkflowAssignments
+                .SingleOrDefaultAsync(
+                    a => a.OwnerType == owner.Key && a.ScopeId == null, TestContext.Current.CancellationToken);
+
+            assignment.Should().NotBeNull($"'{owner.Key}' should be assigned a default workflow");
+
+            var workflow = await context.StatusWorkflows
+                .SingleOrDefaultAsync(w => w.Id == assignment!.WorkflowId, TestContext.Current.CancellationToken);
+
+            workflow.Should().NotBeNull();
+            workflow!.OwnerType.Should().Be(owner.Key);
+            workflow.State.Should().Be(StatusWorkflowState.Published);
+        }
+    }
+
+    #endregion Workflow seeding
+
+    #region Alias lookup
+
+    [Fact]
+    public async Task AliasSeeder_ShouldNameEveryAliasEveryOwnerTypeDeclares()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        // This lookup is what makes an int alias column readable in a query; a missing row would leave
+        // a deployment outcome showing as a bare number.
+        foreach (var owner in ProductWorkflowOwners.All)
+        {
+            foreach (var (alias, name) in owner.Aliases)
+            {
+                var row = await context.WorkflowAliasNames
+                    .SingleOrDefaultAsync(a => a.OwnerType == owner.Key && a.Alias == alias, TestContext.Current.CancellationToken);
+
+                row.Should().NotBeNull($"'{owner.Key}' alias {alias} should be named");
+                row!.Name.Should().Be(name);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task AliasSeeder_ShouldLetADeploymentOutcomeResolveToItsName()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+        await SeedAll(context);
+
+        // Act
+        // The join a report writer would make against the int column.
+        var name = await context.WorkflowAliasNames
+            .Where(a => a.OwnerType == ProductWorkflowOwners.Deployment.Key
+                     && a.Alias == (int)ProductStatusAlias.RolledBack)
+            .Select(a => a.Name)
+            .SingleAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        name.Should().Be(nameof(ProductStatusAlias.RolledBack));
+    }
+
+    #endregion Alias lookup
+
+    #region Schema
+
+    [Fact]
+    public async Task WorkflowStatuses_ShouldAllowManyUnaliasedStatusesInOneWorkflow()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        var workflow = StatusWorkflow.Create("Unaliased Probe", null, ProductWorkflowOwners.Product.Key).Value;
+        workflow.AddStatus("Stage One", null, StatusCategory.Active);
+        workflow.AddStatus("Stage Two", null, StatusCategory.Active);
+
+        // Act
+        context.StatusWorkflows.Add(workflow);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        // The unique index on (WorkflowId, Alias) is filtered to exclude NoAlias; without the filter
+        // this second insert would violate it.
+        var saved = await context.StatusWorkflows
+            .Include(w => w.Statuses)
+            .SingleAsync(w => w.Id == workflow.Id, TestContext.Current.CancellationToken);
+
+        saved.Statuses.Should().HaveCount(2);
+        saved.Statuses.Should().OnlyContain(s => s.Alias == StatusWorkflow.NoAlias);
+    }
+
+    [Fact]
+    public async Task WorkflowStatuses_ShouldRejectTwoWorkflowsSharingAStatusName()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        var workflow = StatusWorkflow.Create("Duplicate Name Probe", null, ProductWorkflowOwners.Product.Key).Value;
+        workflow.AddStatus("Live", null, StatusCategory.Active, (int)ProductStatusAlias.Active);
+        context.StatusWorkflows.Add(workflow);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        // Two workflows may each have a "Live"; the uniqueness is per workflow, not global.
+        var other = StatusWorkflow.Create("Second Probe", null, ProductWorkflowOwners.Product.Key).Value;
+        other.AddStatus("Live", null, StatusCategory.Active, (int)ProductStatusAlias.Active);
+        context.StatusWorkflows.Add(other);
+
+        var act = async () => await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().NotThrowAsync();
+    }
+
+    #endregion Schema
+
+    #region Product types
+
+    [Fact]
+    public async Task ProductTypeSeeder_ShouldSeedTheDefaultTypes()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        var types = await context.ProductTypes.OrderBy(t => t.Order).ToListAsync(TestContext.Current.CancellationToken);
+
+        types.Should().NotBeEmpty();
+        types.Should().OnlyContain(t => t.IsSystem);
+        types.Select(t => t.Name).Should().Contain(["Product Line", "Product", "Service", "Module"]);
+    }
+
+    [Fact]
+    public async Task ProductTypeSeeder_ShouldSeedTagAxes_WhenTypesAlreadyExist()
+    {
+        // The axes used to share the types guard, so an install holding types but no axes never got
+        // the Platform axis — and there is no recovery, since the axis is IsSystem and the create
+        // command only makes non-system ones.
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        await SeedAll(context);
+
+        var axes = await context.ProductTagCategories.ToListAsync(TestContext.Current.CancellationToken);
+        context.ProductTagCategories.RemoveRange(axes);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await new ProductTypeSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var reseeded = await context.ProductTagCategories.ToListAsync(TestContext.Current.CancellationToken);
+        reseeded.Select(c => c.Name).Should().Contain("Platform");
+    }
+
+    [Fact]
+    public async Task ProductTypeSeeder_ShouldNotDuplicateTagAxes_OnASecondRun()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        await SeedAll(context);
+
+        // Act
+        await new ProductTypeSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var axes = await context.ProductTagCategories
+            .Where(c => c.Name == "Platform")
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        axes.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task ProductTypeSeeder_ShouldMarkGroupingsAndEmbeddedTypesUnreleasable()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        // The flag that stops a release being cut against an abstract grouping, or against a node that
+        // ships inside its host rather than on its own.
+        var types = await context.ProductTypes.ToDictionaryAsync(t => t.Name, TestContext.Current.CancellationToken);
+
+        types["Product Line"].IsReleasable.Should().BeFalse();
+        types["Module"].IsReleasable.Should().BeFalse();
+        types["Interface"].IsReleasable.Should().BeFalse();
+        types["Product"].IsReleasable.Should().BeTrue();
+        types["Service"].IsReleasable.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ProductTypeSeeder_ShouldNotRecreateATypeAnAdminDeleted()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+        await SeedAll(context);
+
+        var tool = await context.ProductTypes.SingleAsync(t => t.Name == "Tool", TestContext.Current.CancellationToken);
+        context.ProductTypes.Remove(tool);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await using var second = _fixture.CreateContext();
+        await SeedAll(second);
+
+        // Assert
+        // The types are a set an organization curates; deleting one it does not ship is a legitimate
+        // choice, and recreating it on the next startup would undo that.
+        var names = await second.ProductTypes.Select(t => t.Name).ToListAsync(TestContext.Current.CancellationToken);
+        names.Should().NotContain("Tool");
+    }
+
+    [Fact]
+    public async Task ProductTypeSeeder_ShouldSeedLibraryAsReleasable()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        // The distinction that matters is against Module, which ships inside its host and has no
+        // version of its own. A library is published with its own cadence, so it can carry a release.
+        var library = await context.ProductTypes.SingleAsync(t => t.Name == "Library", TestContext.Current.CancellationToken);
+
+        library.IsReleasable.Should().BeTrue();
+    }
+
+    #endregion Product types
+
+    #region Tag axes
+
+    [Fact]
+    public async Task ProductTypeSeeder_ShouldSeedThePlatformAxis()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        // Platform is where web-versus-mobile lives, deliberately as a label rather than a node type.
+        var platform = await context.ProductTagCategories
+            .Include(c => c.Tags)
+            .SingleOrDefaultAsync(c => c.Name == "Platform", TestContext.Current.CancellationToken);
+
+        platform.Should().NotBeNull();
+        platform!.IsSystem.Should().BeTrue();
+        platform.Tags.Select(t => t.Name).Should().Contain(["web", "ios", "android"]);
+    }
+
+    [Fact]
+    public async Task ProductTypeSeeder_ShouldAllowSeveralPlatformTagsOnOneProduct()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        // A cross-platform app genuinely targets iOS and Android; forcing a choice would record
+        // something false, which is why the axis carries AllowsMany.
+        var platform = await context.ProductTagCategories
+            .SingleAsync(c => c.Name == "Platform", TestContext.Current.CancellationToken);
+
+        platform.AllowsMany.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ProductTypeSeeder_ShouldSeedOnlyThePlatformAxis()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        // Tech stack, compliance scope and team conventions are real axes, but which ones an
+        // organization needs cannot be guessed, and an unwanted seeded axis is something every
+        // organization has to remove.
+        var categories = await context.ProductTagCategories.ToListAsync(TestContext.Current.CancellationToken);
+
+        categories.Should().ContainSingle().Which.Name.Should().Be("Platform");
+    }
+
+    #endregion Tag axes
+}

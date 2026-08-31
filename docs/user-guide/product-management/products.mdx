@@ -1,0 +1,125 @@
+---
+title: Products
+description: Creating products, the product hierarchy, types, statuses, tags, moving, and external links in Wayd.
+sidebar_position: 1
+audience: [user, agent]
+---
+
+# Products
+
+A **product** is anything your organization builds and maintains: a product line, an application, a service, a shared library, a published tool. The catalog is one tree covering all of them, so "what do we own?" is a single question with a single answer.
+
+Products are durable. A [project](../ppm/projects.mdx) is the funded, temporary effort to change a product; the product itself persists across many projects, and across none.
+
+## The Product Tree
+
+Products nest by containment: a Product Line contains Products, which contain the Applications and Services that implement them. A product with no parent is a root.
+
+The catalog offers two views of the same list:
+
+- **Tree** (the default) shows the hierarchy, so you can see where a product sits.
+- **Flat** shows every product as one list with a Parent column, which is better for filtering and sorting across the whole catalog.
+
+Filtering in either view searches the whole catalog rather than the current branch.
+
+## Product Types
+
+Every product carries a **type**, which is what the organization calls that kind of thing. Types are data rather than a fixed list, so the vocabulary can match how your organization already talks.
+
+Wayd seeds a starting set:
+
+| Type | Releasable | Meaning |
+| --- | --- | --- |
+| Product Line | No | A logical grouping of products |
+| Platform | No | A technical foundation other products are built on |
+| Product | Yes | A commercial offering, presented to customers as one thing |
+| Application | Yes | A deployed user-facing application |
+| Service | Yes | A deployed service or API implementation |
+| Tool | Yes | Something published to a registry and installed by consumers you do not control |
+| Library | Yes | Published with its own version and consumed as a dependency |
+| Module | No | Code with distinct ownership that ships inside another node |
+| Interface | No | A surface a node exposes — OpenAPI, GraphQL, gRPC, MCP |
+
+**Releasable** is the flag that carries real weight: it decides whether releases can be cut against a node. Grouping nodes like Product Line and Platform are not released in their own right — the releases are cut against the services beneath them.
+
+:::note Retyping is constrained by releases
+A type cannot be changed to a non-releasable one once releases exist against the product. The releases would otherwise be left describing something that cannot be released.
+:::
+
+Types are deactivated rather than deleted, because products already using a type still need to resolve it. Deactivating one stops it being chosen for new products without disturbing existing ones.
+
+## Product Status
+
+A product's status says where it is in its own lifecycle — not how a project to change it is going.
+
+| Status | Meaning |
+| --- | --- |
+| Concept | Proposed but not yet in use |
+| Active | Live and in use |
+| Sunset | No longer offered, still supported |
+| Retired | Withdrawn from service |
+
+Statuses are customizable through the [status workflow](../settings/index.mdx) rather than fixed in code, so these are a starting point. Every status change is recorded with who made it and when.
+
+## Tags
+
+Tags carry the classifications that do not change how Wayd behaves — platform, tech stack, compliance scope. They are grouped into **categories**, each category being one axis of classification.
+
+Grouping matters: `ios`, `react-native` and `pci-scope` are different kinds of statement. In one flat list, "what platform is this?" requires you to already know which values are platforms. Grouped, it is just a question.
+
+A category may allow one value or several. Tags display as `Category | tag` — the category dimmed — so a bare `gold` reads unambiguously as a tier rather than a support level.
+
+Manage a product's tags from the tag icon in the page header, or from **Manage Tags** in the actions menu.
+
+## Actions
+
+The actions menu on a product's page is grouped by what each action does:
+
+**Edit and Delete** change or remove the record.
+
+**Change Status**, **Change Type** and **Move** each change one facet, and each enforces its own rule — separating them means a refusal tells you which rule stopped it.
+
+**Manage Tags** and **Link Externally** attach context to a product rather than changing what it is.
+
+### Moving a Product
+
+Moving changes a product's parent, or promotes it to a root by clearing the parent.
+
+The parent picker is a tree, so you can see the hierarchy you are moving within. It omits the product being moved **and everything beneath it** — a product cannot become its own ancestor, and offering the move would only produce a refusal.
+
+### Linking Externally
+
+The **external link** points a product at the record that owns it in another system: a repository, a pipeline, a registry package.
+
+It is its own action rather than a field on Edit, because it answers a different question from what a product is called — and because renaming a product should never disturb the link. Clearing the value unlinks the product.
+
+Nothing consumes the link yet. It exists so that a later automated feed can be matched against hand-curated products rather than re-authored over the top of them.
+
+## Common Tasks
+
+### Creating a Product
+
+1. Navigate to **Product Management > Products**
+2. Click **Add Product**
+3. Choose a **Parent** (leave empty for a root product), a **Type**, and a **Name**
+4. Optionally add a **Description** and set the initial **Status**
+
+Creating from a product's own page pre-selects that product as the parent.
+
+### Reorganizing the Catalog
+
+Use **Move** on the product that is in the wrong place, rather than recreating it. Moving preserves the product's history, its tags, and anything referring to it; recreating loses all three.
+
+### Retiring a Product
+
+Set the status to **Retired** rather than deleting it. Deleting removes the record; retiring keeps the history of something that genuinely existed and shipped.
+
+### Permissions
+
+| Action | Permission |
+| --- | --- |
+| View the catalog and product details | `Permissions.Products.View` |
+| Add a product | `Permissions.Products.Create` |
+| Edit, retype, move, tag, change status, link externally | `Permissions.Products.Update` |
+| Delete a product | `Permissions.Products.Delete` |
+| Manage the type list | `Permissions.ProductTypes.*` |

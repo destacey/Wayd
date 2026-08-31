@@ -8,6 +8,7 @@ import {
   CarryOutOutlined,
   ProjectOutlined,
   FundOutlined,
+  ProductOutlined,
 } from '@ant-design/icons'
 import {
   buildRouteKeyMap,
@@ -27,6 +28,7 @@ const menuIcons = {
   org: <TeamOutlined />,
   planning: <ScheduleOutlined />,
   ppm: <ProjectOutlined />,
+  product: <ProductOutlined />,
   strategy: <FundOutlined />,
   work: <CarryOutOutlined />,
   settings: <SettingOutlined />,
@@ -35,6 +37,7 @@ const menuIcons = {
 interface MenuOptions {
   planningPoker: boolean
   storyMaps: boolean
+  productManagement: boolean
   /**
    * Whether the signed-in account is linked to an employee record. Personal views are keyed on the
    * employee, so they are omitted entirely for an unlinked account rather than offered and empty.
@@ -105,16 +108,24 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
       '/work/workspaces',
     ),
   ]),
-  // menuItem('Products', 'pdc', null, <DesktopOutlined />, [
-  //     menuItem('Product Lines', 'pdc.product-lines'),
-  //     menuItem('Product Types', 'pdc.product-types'),
-  //     menuItem('Products', 'pdc.products'),
-  //     { type: 'divider' },
-  //     menuItem('Releases', 'pdc.releases'),
-  //     menuItem('Roadmaps', 'pdc.roadmaps'),
-  //     { type: 'divider' },
-  //     menuItem('Requirements Management', 'pdc.requirements-management'),
-  // ]),
+  ...(options.productManagement
+    ? [
+        restrictedMenuSection(
+          'Product Management',
+          'product',
+          undefined,
+          menuIcons.product,
+          [
+            restrictedPermissionMenuItem(
+              'Permissions.Products.View',
+              'Products',
+              'product.products',
+              '/product-management/products',
+            ),
+          ],
+        ),
+      ]
+    : []),
   restrictedMenuSection('PPM', 'ppm', undefined, menuIcons.ppm, [
     // "My Projects" resolves the caller's own project roles, which are held by the employee record.
     // An unlinked account has none, so the page would always be empty — omit it, along with the
@@ -185,8 +196,14 @@ const useAppMenuItems = () => {
   const { hasLinkedEmployee } = useLinkedEmployee()
   const { isEnabled: planningPoker } = useFeatureFlag('planning-poker')
   const { isEnabled: storyMaps } = useFeatureFlag('story-maps')
+  const { isEnabled: productManagement } = useFeatureFlag('product-management')
 
-  const items = buildMenuItems({ planningPoker, storyMaps, hasLinkedEmployee })
+  const items = buildMenuItems({
+    planningPoker,
+    storyMaps,
+    productManagement,
+    hasLinkedEmployee,
+  })
 
   const filteredMenuItems = items.reduce(
     (acc, item) =>

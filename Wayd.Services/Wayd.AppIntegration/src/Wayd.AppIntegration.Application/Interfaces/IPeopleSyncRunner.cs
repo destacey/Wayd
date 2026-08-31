@@ -2,7 +2,7 @@
 
 namespace Wayd.AppIntegration.Application.Interfaces;
 
-public interface IPeopleSyncRunner : ITransientService
+public interface IPeopleSyncRunner : ISaga
 {
     /// <summary>
     /// Runs people sync across all active PeopleSync-category connections.

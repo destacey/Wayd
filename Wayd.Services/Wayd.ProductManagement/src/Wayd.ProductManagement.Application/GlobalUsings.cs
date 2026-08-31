@@ -1,0 +1,11 @@
+﻿global using CSharpFunctionalExtensions;
+global using FluentValidation;
+global using Mapster;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.Extensions.Logging;
+global using NodaTime;
+global using Wayd.Common.Application.Interfaces;
+global using Wayd.Common.Application.Persistence;
+global using Wayd.Common.Application.StatusWorkflows;
+global using Wayd.Common.Domain.Events;
+global using Wayd.Common.Models;

@@ -4193,6 +4193,2918 @@
         ]
       }
     },
+    "/api/product-management/delivery-metrics": {
+      "get": {
+        "tags": [
+          "DeliveryMetrics"
+        ],
+        "summary": "Get the delivery measures over a window.",
+        "description": "Deployment frequency and change failure rate. Lead time and time to restore are reported as unavailable.",
+        "operationId": "DeliveryMetrics_GetDeliveryMetrics",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "productId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryMetricsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/deployment-environments": {
+      "get": {
+        "tags": [
+          "DeploymentEnvironments"
+        ],
+        "summary": "Get a list of deployment environments.",
+        "operationId": "DeploymentEnvironments_GetDeploymentEnvironments",
+        "parameters": [
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeploymentEnvironmentDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "DeploymentEnvironments"
+        ],
+        "summary": "Create a deployment environment.",
+        "operationId": "DeploymentEnvironments_Create",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDeploymentEnvironmentRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/deployment-environments/{id}": {
+      "put": {
+        "tags": [
+          "DeploymentEnvironments"
+        ],
+        "summary": "Update a deployment environment.",
+        "description": "Changing the category changes what past deployments to it count toward.",
+        "operationId": "DeploymentEnvironments_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDeploymentEnvironmentRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/deployment-environments/{id}/active": {
+      "put": {
+        "tags": [
+          "DeploymentEnvironments"
+        ],
+        "summary": "Activate or deactivate a deployment environment.",
+        "operationId": "DeploymentEnvironments_SetActive",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetDeploymentEnvironmentActiveRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/deployments": {
+      "get": {
+        "tags": [
+          "Deployments"
+        ],
+        "summary": "Get a list of deployments.",
+        "description": "Most recently started first.",
+        "operationId": "Deployments_GetDeployments",
+        "parameters": [
+          {
+            "name": "releaseId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "packageId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "environmentId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 3
+          },
+          {
+            "name": "environmentCategory",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 4
+          },
+          {
+            "name": "startedOnOrAfter",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "nullable": true
+            },
+            "x-position": 5
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeploymentDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Deployments"
+        ],
+        "summary": "Start a deployment.",
+        "operationId": "Deployments_Start",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartDeploymentRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/deployments/{id}": {
+      "get": {
+        "tags": [
+          "Deployments"
+        ],
+        "summary": "Get deployment details.",
+        "operationId": "Deployments_GetDeployment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeploymentDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/deployments/{id}/succeed": {
+      "post": {
+        "tags": [
+          "Deployments"
+        ],
+        "summary": "Record that a deployment reached its environment.",
+        "operationId": "Deployments_Succeed",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SucceedDeploymentRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/deployments/{id}/fail": {
+      "post": {
+        "tags": [
+          "Deployments"
+        ],
+        "summary": "Record that a deployment did not reach its environment.",
+        "description": "Counts toward change failure rate only in production.",
+        "operationId": "Deployments_Fail",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FailDeploymentRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/deployments/{id}/roll-back": {
+      "post": {
+        "tags": [
+          "Deployments"
+        ],
+        "summary": "Record that a deployment was reverted.",
+        "description": "Permitted only from a succeeded deployment.",
+        "operationId": "Deployments_RollBack",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RollBackDeploymentRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/products": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Get a list of products.",
+        "operationId": "Products_GetProducts",
+        "parameters": [
+          {
+            "name": "parentId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "productTypeId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "statusCategory",
+            "in": "query",
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "array",
+              "nullable": true,
+              "items": {
+                "type": "integer",
+                "format": "int32"
+              }
+            },
+            "x-position": 3
+          },
+          {
+            "name": "tagId",
+            "in": "query",
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "array",
+              "nullable": true,
+              "items": {
+                "type": "string",
+                "format": "guid",
+                "nullable": false,
+                "example": "00000000-0000-0000-0000-000000000000"
+              }
+            },
+            "x-position": 4
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Create a product.",
+        "operationId": "Products_Create",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/{idOrKey}": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Get product details.",
+        "description": "Accepts the product's id or its short key.",
+        "operationId": "Products_GetProduct",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/status-options": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Get the statuses a product can be moved to.",
+        "description": "From the workflow governing products, in the order an administrator laid it out.",
+        "operationId": "Products_GetStatusOptions",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StatusNavigationDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/{id}": {
+      "put": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Update a product.",
+        "operationId": "Products_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Delete a product.",
+        "operationId": "Products_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/{id}/external-link": {
+      "put": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Link a product to the record that owns it in another system.",
+        "operationId": "Products_LinkExternally",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkProductExternallyRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/{id}/parent": {
+      "put": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Move a product to a different parent.",
+        "operationId": "Products_Reparent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReparentProductRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/{id}/type": {
+      "put": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Change a product's type.",
+        "operationId": "Products_Retype",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetypeProductRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/{id}/status": {
+      "put": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Move a product to a different status.",
+        "operationId": "Products_ChangeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeProductStatusRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/{id}/tags/{tagId}": {
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Tag a product.",
+        "operationId": "Products_Tag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "tagId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Remove a tag from a product.",
+        "operationId": "Products_Untag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "tagId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/product-tag-categories": {
+      "get": {
+        "tags": [
+          "ProductTagCategories"
+        ],
+        "summary": "Get a list of tag categories and their tags.",
+        "operationId": "ProductTagCategories_GetProductTagCategories",
+        "parameters": [
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductTagCategoryDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ProductTagCategories"
+        ],
+        "summary": "Create a tag category.",
+        "operationId": "ProductTagCategories_Create",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductTagCategoryRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/product-tag-categories/{id}": {
+      "put": {
+        "tags": [
+          "ProductTagCategories"
+        ],
+        "summary": "Update a tag category.",
+        "operationId": "ProductTagCategories_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductTagCategoryRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "ProductTagCategories"
+        ],
+        "summary": "Delete an unused tag category.",
+        "description": "An axis products are tagged along must be deactivated instead.",
+        "operationId": "ProductTagCategories_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/product-tag-categories/{id}/active": {
+      "put": {
+        "tags": [
+          "ProductTagCategories"
+        ],
+        "summary": "Activate or deactivate a tag category.",
+        "operationId": "ProductTagCategories_SetActive",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProductTagCategoryActiveRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/product-tag-categories/{id}/tags": {
+      "post": {
+        "tags": [
+          "ProductTagCategories"
+        ],
+        "summary": "Add a tag to a category.",
+        "operationId": "ProductTagCategories_AddTag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddProductTagRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/product-tag-categories/{id}/tags/{tagId}": {
+      "put": {
+        "tags": [
+          "ProductTagCategories"
+        ],
+        "summary": "Rename a tag.",
+        "description": "Safe on a tag in use: products reference it by id.",
+        "operationId": "ProductTagCategories_RenameTag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "tagId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameProductTagRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/product-tag-categories/{id}/tags/{tagId}/active": {
+      "put": {
+        "tags": [
+          "ProductTagCategories"
+        ],
+        "summary": "Activate or deactivate a tag.",
+        "operationId": "ProductTagCategories_SetTagActive",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "tagId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProductTagActiveRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/product-types": {
+      "get": {
+        "tags": [
+          "ProductTypes"
+        ],
+        "summary": "Get a list of product types.",
+        "operationId": "ProductTypes_GetProductTypes",
+        "parameters": [
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductTypeDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ProductTypes"
+        ],
+        "summary": "Create a product type.",
+        "operationId": "ProductTypes_Create",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductTypeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/product-types/{id}": {
+      "put": {
+        "tags": [
+          "ProductTypes"
+        ],
+        "summary": "Update a product type.",
+        "operationId": "ProductTypes_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductTypeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "ProductTypes"
+        ],
+        "summary": "Delete an unused product type.",
+        "description": "A type in use must be deactivated instead.",
+        "operationId": "ProductTypes_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/product-types/{id}/active": {
+      "put": {
+        "tags": [
+          "ProductTypes"
+        ],
+        "summary": "Activate or deactivate a product type.",
+        "operationId": "ProductTypes_SetActive",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProductTypeActiveRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/release-packages": {
+      "get": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Get a list of release packages.",
+        "operationId": "ReleasePackages_GetReleasePackages",
+        "parameters": [
+          {
+            "name": "statusCategory",
+            "in": "query",
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "array",
+              "nullable": true,
+              "items": {
+                "type": "integer",
+                "format": "int32"
+              }
+            },
+            "x-position": 1
+          },
+          {
+            "name": "containingProductId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReleasePackageDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Assemble a release package.",
+        "operationId": "ReleasePackages_Assemble",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssembleReleasePackageRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/release-packages/{id}": {
+      "get": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Get release package details.",
+        "operationId": "ReleasePackages_GetReleasePackage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleasePackageDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/release-packages/{id}/manifest": {
+      "put": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Replace a package's manifest.",
+        "description": "Whole-manifest replacement, never incremental.",
+        "operationId": "ReleasePackages_SetManifest",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetReleasePackageManifestRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/release-packages/{id}/release": {
+      "post": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Record that a package shipped.",
+        "operationId": "ReleasePackages_MarkReleased",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkReleasePackageReleasedRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/release-packages/{id}/withdraw": {
+      "post": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Withdraw a package.",
+        "description": "The package is kept: deployments may reference it.",
+        "operationId": "ReleasePackages_Withdraw",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WithdrawReleasePackageRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/releases": {
+      "get": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Get a list of releases.",
+        "description": "Ordered by released date then sequence — never by version, which is free text.",
+        "operationId": "Releases_GetReleases",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "packageId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "statusCategory",
+            "in": "query",
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "array",
+              "nullable": true,
+              "items": {
+                "type": "integer",
+                "format": "int32"
+              }
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReleaseDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Plan a release.",
+        "operationId": "Releases_Plan",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanReleaseRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/releases/{id}": {
+      "get": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Get release details.",
+        "operationId": "Releases_GetRelease",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Update a release.",
+        "operationId": "Releases_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateReleaseRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/releases/{id}/target-date": {
+      "put": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Move or clear a release's target date.",
+        "operationId": "Releases_MoveTargetDate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveReleaseTargetDateRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/releases/{id}/cut": {
+      "post": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Cut a release.",
+        "description": "Freezes scope and marks it ready to ship. One-way.",
+        "operationId": "Releases_Cut",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CutReleaseRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/releases/{id}/release": {
+      "post": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Record that a release shipped.",
+        "operationId": "Releases_MarkReleased",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkReleaseReleasedRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/releases/{id}/withdraw": {
+      "post": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Withdraw a release.",
+        "description": "The release is kept: deployments may reference it.",
+        "operationId": "Releases_Withdraw",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WithdrawReleaseRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/ppm/expenditure-categories": {
       "get": {
         "tags": [
@@ -31080,6 +33992,1614 @@
             "additionalProperties": false
           }
         ]
+      },
+      "DeliveryMetricsDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "to",
+          "deploymentFrequency",
+          "changeFailureRate",
+          "unavailable"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deploymentFrequency": {
+            "$ref": "#/components/schemas/DeploymentFrequencyDto"
+          },
+          "changeFailureRate": {
+            "$ref": "#/components/schemas/ChangeFailureRateDto"
+          },
+          "unavailable": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnavailableMetricDto"
+            }
+          }
+        }
+      },
+      "DeploymentFrequencyDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "count",
+          "windowDays"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "windowDays": {
+            "type": "number",
+            "format": "double"
+          },
+          "perDay": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        }
+      },
+      "ChangeFailureRateDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "totalDeployments",
+          "failedDeployments"
+        ],
+        "properties": {
+          "totalDeployments": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedDeployments": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rate": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        }
+      },
+      "UnavailableMetricDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric",
+          "reason"
+        ],
+        "properties": {
+          "metric": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "DeploymentEnvironmentDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "name",
+          "category",
+          "ringOrder",
+          "isActive",
+          "deploymentCount"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/EnvironmentCategory"
+          },
+          "ringOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "deploymentCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "EnvironmentCategory": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Development",
+          "Testing",
+          "Staging",
+          "Production"
+        ],
+        "enum": [
+          "Development",
+          "Testing",
+          "Staging",
+          "Production"
+        ]
+      },
+      "CreateDeploymentEnvironmentRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "category",
+          "ringOrder"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "What your organization calls it — \"Production\", \"prod-eu\", \"QA2\".",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false
+          },
+          "category": {
+            "description": "What kind of target this is. Delivery measures scoped to production count on this rather than on\nthe name, which is free text and endlessly varied.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EnvironmentCategory"
+              }
+            ]
+          },
+          "ringOrder": {
+            "type": "integer",
+            "description": "Position in a progressive rollout, lowest first. Environments sharing a ring are deployed to\ntogether.",
+            "format": "int32",
+            "minimum": 0.0
+          }
+        }
+      },
+      "UpdateDeploymentEnvironmentRequest": {
+        "type": "object",
+        "description": "Renames an environment, repositions it, and sets what kind of target it is.",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "category",
+          "ringOrder"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the environment.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "name": {
+            "type": "string",
+            "description": "What your organization calls it.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false
+          },
+          "category": {
+            "description": "What kind of target this is.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EnvironmentCategory"
+              }
+            ]
+          },
+          "ringOrder": {
+            "type": "integer",
+            "description": "Position in a progressive rollout, lowest first.",
+            "format": "int32",
+            "minimum": 0.0
+          }
+        }
+      },
+      "SetDeploymentEnvironmentActiveRequest": {
+        "type": "object",
+        "description": "Takes an environment out of use, or puts it back. Deployments already recorded against it stand.",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "isActive"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the environment.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this environment can still be deployed into."
+          }
+        }
+      },
+      "DeploymentDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "environment",
+          "environmentCategory",
+          "startedAt",
+          "status",
+          "outcome",
+          "isComplete",
+          "isChangeFailure"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "release": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "package": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "environment": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "environmentCategory": {
+            "$ref": "#/components/schemas/EnvironmentCategory"
+          },
+          "artifactId": {
+            "type": "string",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusNavigationDto"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/ProductStatusAlias"
+          },
+          "isComplete": {
+            "type": "boolean"
+          },
+          "isChangeFailure": {
+            "type": "boolean"
+          }
+        }
+      },
+      "StatusNavigationDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "category",
+          "alias"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "$ref": "#/components/schemas/StatusCategory"
+          },
+          "alias": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "StatusCategory": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Proposed",
+          "Active",
+          "Done",
+          "Removed"
+        ],
+        "enum": [
+          "Proposed",
+          "Active",
+          "Done",
+          "Removed"
+        ]
+      },
+      "ProductStatusAlias": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "None",
+          "Active",
+          "Sunset",
+          "Retired",
+          "Ready",
+          "Released",
+          "Withdrawn",
+          "InProgress",
+          "Succeeded",
+          "Failed",
+          "RolledBack"
+        ],
+        "enum": [
+          "None",
+          "Active",
+          "Sunset",
+          "Retired",
+          "Ready",
+          "Released",
+          "Withdrawn",
+          "InProgress",
+          "Succeeded",
+          "Failed",
+          "RolledBack"
+        ]
+      },
+      "StartDeploymentRequest": {
+        "type": "object",
+        "description": "Records that a release or package started reaching an environment.",
+        "additionalProperties": false,
+        "required": [
+          "environmentId"
+        ],
+        "properties": {
+          "releaseId": {
+            "type": "string",
+            "description": "The release deployed, when this deployment carries a single release.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "packageId": {
+            "type": "string",
+            "description": "The package deployed, when several components shipped as one unit.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "environmentId": {
+            "type": "string",
+            "description": "The environment being reached. Must be active.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "artifactId": {
+            "type": "string",
+            "description": "The build that actually shipped — 4.8.2.008 where the release version is 4.8.2. Two builds of\none release are two deployments. Free text, never parsed.",
+            "maxLength": 128,
+            "minLength": 0,
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "description": "When it began. Defaults to now, so a pipeline reporting in real time can omit it.",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "SucceedDeploymentRequest": {
+        "type": "object",
+        "description": "Records that a deployment reached its environment.",
+        "additionalProperties": false,
+        "properties": {
+          "completedAt": {
+            "type": "string",
+            "description": "When it completed. Defaults to now.",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "FailDeploymentRequest": {
+        "type": "object",
+        "description": "Records that a deployment did not reach its environment.",
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why it failed.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "description": "When it completed. Defaults to now.",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "RollBackDeploymentRequest": {
+        "type": "object",
+        "description": "Records that a deployment reached its environment and was then reverted.",
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why it was reverted.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true
+          },
+          "rolledBackAt": {
+            "type": "string",
+            "description": "When it was reverted. Defaults to now, and cannot be before the deployment completed.",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "ProductDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "name",
+          "type",
+          "isReleasable",
+          "status",
+          "tags"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "externalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "isReleasable": {
+            "type": "boolean"
+          },
+          "parent": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusNavigationDto"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductTagDto"
+            }
+          }
+        }
+      },
+      "ProductTagDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tagId",
+          "tagName",
+          "categoryId",
+          "categoryName"
+        ],
+        "properties": {
+          "tagId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "tagName": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "categoryName": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateProductRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "productTypeId"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "What the product, component, or service is called.",
+            "maxLength": 128,
+            "minLength": 1,
+            "nullable": false
+          },
+          "description": {
+            "type": "string",
+            "description": "What the node is and why it exists.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true
+          },
+          "productTypeId": {
+            "type": "string",
+            "description": "The node's type, which decides whether releases can be cut against it.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "parentId": {
+            "type": "string",
+            "description": "The parent node, or null for a root.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "The node's identifier in whatever system owns it — a repository, a pipeline, a registry package.",
+            "maxLength": 256,
+            "minLength": 0,
+            "nullable": true
+          }
+        }
+      },
+      "UpdateProductRequest": {
+        "type": "object",
+        "description": "A whole-record update of a product's descriptive fields.",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the product.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "name": {
+            "type": "string",
+            "description": "What the product, component, or service is called.",
+            "maxLength": 128,
+            "minLength": 1,
+            "nullable": false
+          },
+          "description": {
+            "type": "string",
+            "description": "What the node is and why it exists. Cleared when omitted.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true
+          }
+        }
+      },
+      "LinkProductExternallyRequest": {
+        "type": "object",
+        "description": "Points a product at the record that owns it in another system, or clears the link.",
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the product.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "The node's identifier in whatever system owns it — a repository, a pipeline, a registry\npackage. Omit it to unlink.",
+            "maxLength": 256,
+            "minLength": 0,
+            "nullable": true
+          }
+        }
+      },
+      "ReparentProductRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the product being moved.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "parentId": {
+            "type": "string",
+            "description": "The new parent, or null to make this a root node.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          }
+        }
+      },
+      "RetypeProductRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "productTypeId"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the product.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "productTypeId": {
+            "type": "string",
+            "description": "The type to move the product onto.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          }
+        }
+      },
+      "ChangeProductStatusRequest": {
+        "type": "object",
+        "description": "Moves a product to another status in the workflow governing it.",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "statusId"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the product.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "statusId": {
+            "type": "string",
+            "description": "The target status. Must belong to the workflow assigned to products.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          }
+        }
+      },
+      "ProductTagCategoryDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "name",
+          "allowsMany",
+          "order",
+          "isActive",
+          "isSystem",
+          "tags"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "allowsMany": {
+            "type": "boolean"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isSystem": {
+            "type": "boolean"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductTagOptionDto"
+            }
+          }
+        }
+      },
+      "ProductTagOptionDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "order",
+          "isActive",
+          "productCount"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "productCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CreateProductTagCategoryRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "allowsMany",
+          "order"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "What the organization calls this axis — Platform, Tech Stack, Compliance.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false
+          },
+          "description": {
+            "type": "string",
+            "description": "What the axis is for, shown when choosing tags.",
+            "maxLength": 512,
+            "minLength": 0,
+            "nullable": true
+          },
+          "allowsMany": {
+            "type": "boolean",
+            "description": "Whether a product can carry several tags from this axis. True suits Platform, where a\ncross-platform app genuinely targets both iOS and Android. Fixed once set:\nnarrowing it later would leave products holding more tags than the axis permits."
+          },
+          "order": {
+            "type": "integer",
+            "description": "Display position when presenting the axes. Presentation only.",
+            "format": "int32",
+            "minimum": 0.0
+          }
+        }
+      },
+      "UpdateProductTagCategoryRequest": {
+        "type": "object",
+        "description": "Edits a tag axis.",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "order"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the tag category.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "name": {
+            "type": "string",
+            "description": "What the organization calls this axis.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false
+          },
+          "description": {
+            "type": "string",
+            "description": "What the axis is for. Cleared when omitted.",
+            "maxLength": 512,
+            "minLength": 0,
+            "nullable": true
+          },
+          "order": {
+            "type": "integer",
+            "description": "Display position when presenting the axes. Presentation only.",
+            "format": "int32",
+            "minimum": 0.0
+          }
+        }
+      },
+      "SetProductTagCategoryActiveRequest": {
+        "type": "object",
+        "description": "Takes a tag axis out of use, or puts it back. Products already tagged keep their tags.",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "isActive"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the tag category.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether products can still be tagged along this axis."
+          }
+        }
+      },
+      "AddProductTagRequest": {
+        "type": "object",
+        "description": "Adds a tag to an axis.",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "What the tag is called — ios, android, pci-scope.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false
+          },
+          "description": {
+            "type": "string",
+            "description": "What the tag means, shown when choosing it.",
+            "maxLength": 512,
+            "minLength": 0,
+            "nullable": true
+          }
+        }
+      },
+      "RenameProductTagRequest": {
+        "type": "object",
+        "description": "Renames a tag.",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "What the tag is called.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false
+          },
+          "description": {
+            "type": "string",
+            "description": "What the tag means. Cleared when omitted.",
+            "maxLength": 512,
+            "minLength": 0,
+            "nullable": true
+          }
+        }
+      },
+      "SetProductTagActiveRequest": {
+        "type": "object",
+        "description": "Retires a tag from new use, or puts it back. Products already carrying it keep it.",
+        "additionalProperties": false,
+        "required": [
+          "isActive"
+        ],
+        "properties": {
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether products can still be tagged with this."
+          }
+        }
+      },
+      "ProductTypeDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "name",
+          "isReleasable",
+          "order",
+          "isActive",
+          "isSystem",
+          "productCount"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isReleasable": {
+            "type": "boolean"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isSystem": {
+            "type": "boolean"
+          },
+          "productCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CreateProductTypeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "isReleasable",
+          "order"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "What this kind of node is called — Application, Service, Library.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false
+          },
+          "description": {
+            "type": "string",
+            "description": "What the type is for, shown when choosing one.",
+            "maxLength": 512,
+            "minLength": 0,
+            "nullable": true
+          },
+          "isReleasable": {
+            "type": "boolean",
+            "description": "Whether releases can be cut against nodes of this type."
+          },
+          "order": {
+            "type": "integer",
+            "description": "Display position when presenting the catalog. Presentation only.",
+            "format": "int32",
+            "minimum": 0.0
+          }
+        }
+      },
+      "UpdateProductTypeRequest": {
+        "type": "object",
+        "description": "A whole-record update of a product type.",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "isReleasable",
+          "order"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the product type.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "name": {
+            "type": "string",
+            "description": "What this kind of node is called.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false
+          },
+          "description": {
+            "type": "string",
+            "description": "What the type is for. Cleared when omitted.",
+            "maxLength": 512,
+            "minLength": 0,
+            "nullable": true
+          },
+          "isReleasable": {
+            "type": "boolean",
+            "description": "Whether releases can be cut against nodes of this type."
+          },
+          "order": {
+            "type": "integer",
+            "description": "Display position when presenting the catalog. Presentation only.",
+            "format": "int32",
+            "minimum": 0.0
+          }
+        }
+      },
+      "SetProductTypeActiveRequest": {
+        "type": "object",
+        "description": "Takes a product type out of use, or puts it back.",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "isActive"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the product type.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether new products can be created with this type."
+          }
+        }
+      },
+      "ReleasePackageDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "version",
+          "status",
+          "components"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "version": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "releasedDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusNavigationDto"
+          },
+          "components": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReleasePackageComponentDto"
+            }
+          }
+        }
+      },
+      "ReleasePackageComponentDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "product",
+          "version",
+          "kind"
+        ],
+        "properties": {
+          "product": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "release": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "version": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ManifestEntryKind"
+          }
+        }
+      },
+      "ManifestEntryKind": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Changed",
+          "CarriedForward"
+        ],
+        "enum": [
+          "Changed",
+          "CarriedForward"
+        ]
+      },
+      "AssembleReleasePackageRequest": {
+        "type": "object",
+        "description": "Assembles several component releases into one shipment.",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "components"
+        ],
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "The package's own version, distinct from any component's. Free text, never parsed.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false
+          },
+          "name": {
+            "type": "string",
+            "description": "An optional human name for the package.",
+            "maxLength": 128,
+            "minLength": 0,
+            "nullable": true
+          },
+          "targetDate": {
+            "type": "string",
+            "description": "When the package is expected to ship.",
+            "format": "date",
+            "nullable": true
+          },
+          "components": {
+            "type": "array",
+            "description": "Every component version in this package. A component may appear only once.",
+            "minLength": 1,
+            "nullable": false,
+            "items": {
+              "$ref": "#/components/schemas/ManifestEntryRequest"
+            }
+          }
+        }
+      },
+      "ManifestEntryRequest": {
+        "type": "object",
+        "description": "One component version in a package manifest.",
+        "additionalProperties": false,
+        "required": [
+          "productId",
+          "version",
+          "kind"
+        ],
+        "properties": {
+          "productId": {
+            "type": "string",
+            "description": "The component this entry is for.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "releaseId": {
+            "type": "string",
+            "description": "The release this version came from, where one exists. Optional: a package can record a version\nthat was never cut as a release of its own.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "version": {
+            "type": "string",
+            "description": "The component version. Free text, never parsed.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false
+          },
+          "kind": {
+            "description": "Whether the component changed in this package or was carried forward unchanged.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ManifestEntryKind"
+              }
+            ]
+          }
+        }
+      },
+      "SetReleasePackageManifestRequest": {
+        "type": "object",
+        "description": "Replaces a package's manifest wholesale.",
+        "additionalProperties": false,
+        "required": [
+          "components"
+        ],
+        "properties": {
+          "components": {
+            "type": "array",
+            "description": "Every component version in this package. Replaces the manifest entirely.",
+            "minLength": 1,
+            "nullable": false,
+            "items": {
+              "$ref": "#/components/schemas/ManifestEntryRequest"
+            }
+          }
+        }
+      },
+      "MarkReleasePackageReleasedRequest": {
+        "type": "object",
+        "description": "Records that a package shipped.",
+        "additionalProperties": false,
+        "required": [
+          "releasedDate"
+        ],
+        "properties": {
+          "releasedDate": {
+            "type": "string",
+            "description": "The date it shipped. Supplied rather than taken from the clock, because shipping is often\nrecorded after the fact.",
+            "format": "date"
+          }
+        }
+      },
+      "WithdrawReleasePackageRequest": {
+        "type": "object",
+        "description": "Pulls a package after it was assembled. The package is kept — deployments may reference it.",
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why it was pulled.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true
+          }
+        }
+      },
+      "ReleaseDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "product",
+          "version",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "product": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "version": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "sequence": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "targetDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "cutDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "releasedDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "package": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusNavigationDto"
+          }
+        }
+      },
+      "PlanReleaseRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "productId",
+          "version"
+        ],
+        "properties": {
+          "productId": {
+            "type": "string",
+            "description": "The product this release is for. Its type must permit releases.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "version": {
+            "type": "string",
+            "description": "The version as your organization writes it — 4.8.2, 2026.08, v3-beta, a build number, a git tag.\nFree text, never parsed: nothing sorts or compares it, so any convention works.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false
+          },
+          "name": {
+            "type": "string",
+            "description": "An optional human name, where a team gives one.",
+            "maxLength": 128,
+            "minLength": 0,
+            "nullable": true
+          },
+          "targetDate": {
+            "type": "string",
+            "description": "When the release is expected to ship.",
+            "format": "date",
+            "nullable": true
+          },
+          "sequence": {
+            "type": "integer",
+            "description": "A manual ordering override, for the rare case where chronology misleads.",
+            "format": "int64",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateReleaseRequest": {
+        "type": "object",
+        "description": "A whole-record update of a release's descriptive fields.",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "version"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the release.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "version": {
+            "type": "string",
+            "description": "The version as your organization writes it. Free text, never parsed.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false
+          },
+          "name": {
+            "type": "string",
+            "description": "An optional human name. Cleared when omitted.",
+            "maxLength": 128,
+            "minLength": 0,
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "description": "Release notes, authored by hand or generated. Cleared when omitted.",
+            "maxLength": 4000,
+            "minLength": 0,
+            "nullable": true
+          },
+          "sequence": {
+            "type": "integer",
+            "description": "A manual ordering override. Cleared when omitted.",
+            "format": "int64",
+            "nullable": true
+          }
+        }
+      },
+      "MoveReleaseTargetDateRequest": {
+        "type": "object",
+        "description": "Moves or clears a release's target date.",
+        "additionalProperties": false,
+        "properties": {
+          "targetDate": {
+            "type": "string",
+            "description": "The new target date, or null to clear it.",
+            "format": "date",
+            "nullable": true
+          }
+        }
+      },
+      "CutReleaseRequest": {
+        "type": "object",
+        "description": "Freezes scope and marks a release ready to ship.",
+        "additionalProperties": false,
+        "required": [
+          "cutDate"
+        ],
+        "properties": {
+          "cutDate": {
+            "type": "string",
+            "description": "The date scope was frozen. Supplied rather than taken from the clock, because cutting is often\nrecorded after the fact.",
+            "format": "date"
+          }
+        }
+      },
+      "MarkReleaseReleasedRequest": {
+        "type": "object",
+        "description": "Records that a release shipped.",
+        "additionalProperties": false,
+        "required": [
+          "releasedDate"
+        ],
+        "properties": {
+          "releasedDate": {
+            "type": "string",
+            "description": "The date it shipped. This is what orders a release history, so it is supplied rather than taken\nfrom the clock.",
+            "format": "date"
+          }
+        }
+      },
+      "WithdrawReleaseRequest": {
+        "type": "object",
+        "description": "Pulls a release after it was cut. The release is kept — deployments may reference it.",
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why it was pulled.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true
+          }
+        }
       },
       "ExpenditureCategoryListDto": {
         "type": "object",

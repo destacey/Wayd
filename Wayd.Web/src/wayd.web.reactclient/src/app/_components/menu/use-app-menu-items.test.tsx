@@ -3,13 +3,19 @@ import type { ItemType, MenuItemType } from 'antd/es/menu/interface'
 
 const mockAuth = { employeeId: 'emp-1' as string | null }
 
+/** Feature flags the menu reads, keyed by flag name. Default off, as the suite assumed before. */
+const mockFlags: Record<string, boolean> = {}
+
 jest.mock('../../../components/contexts/auth', () => ({
   __esModule: true,
   default: () => ({ hasClaim: () => true }),
 }))
 
 jest.mock('../../../hooks', () => ({
-  useFeatureFlag: () => ({ isEnabled: false, isLoading: false }),
+  useFeatureFlag: (flag: string) => ({
+    isEnabled: mockFlags[flag] ?? false,
+    isLoading: false,
+  }),
   useLinkedEmployee: () => ({
     employeeId: mockAuth.employeeId,
     hasLinkedEmployee: mockAuth.employeeId !== null,
@@ -37,6 +43,7 @@ function keysOf(items: ItemType<MenuItemType>[]): string[] {
 describe('useAppMenuItems', () => {
   beforeEach(() => {
     mockAuth.employeeId = 'emp-1'
+    for (const flag of Object.keys(mockFlags)) delete mockFlags[flag]
   })
 
   it('includes My Projects when the account is linked to an employee', () => {
@@ -63,5 +70,23 @@ describe('useAppMenuItems', () => {
 
     expect(keys).toContain('ppm.portfolios')
     expect(keys).toContain('ppm.projects')
+  })
+
+  it('omits Product Management while its feature flag is off', () => {
+    const { result } = renderHook(() => useAppMenuItems())
+
+    expect(keysOf(result.current.menuItems)).not.toContain('product.products')
+  })
+
+  it('includes Product Management when its feature flag is on', () => {
+    // The whole section is gated, not just its pages: the API 404s until the module is enabled, so
+    // offering the menu entry would lead somewhere that does not answer.
+    mockFlags['product-management'] = true
+
+    const { result } = renderHook(() => useAppMenuItems())
+
+    const keys = keysOf(result.current.menuItems)
+    expect(keys).toContain('product')
+    expect(keys).toContain('product.products')
   })
 })

@@ -1,0 +1,88 @@
+---
+title: Product Management
+description: Managing the product catalog, product types, tags, releases, packages, deployments, and delivery metrics in Wayd.
+sidebar_position: 6
+audience: [user, agent]
+---
+
+# Product Management
+
+Product Management is the record of **what your organization builds** and **what has shipped**. Where [PPM](../ppm/index.mdx) tracks the funded effort to change something and [Work Management](../work-management/index.mdx) tracks the items being worked, Product Management holds the durable catalog those efforts act on — the product lines, applications and services that exist whether or not a project is currently touching them — and the releases and deployments that carry changes into an environment.
+
+:::note Feature flag
+Product Management is gated by the **Product Management** feature flag, which is disabled when first deployed. An administrator enables it under [Settings → Feature Flags](../settings/index.mdx). While it is off the area is not reachable at all.
+:::
+
+## Two Different Hierarchies
+
+The most common point of confusion is that a product sits in two structures at once, and they answer different questions.
+
+**The product tree** is composition: a Product Line contains Products, which contain Services and Applications. This is what the catalog shows, and it is the hierarchy you move a product within.
+
+**The release relationship** is delivery: a release is cut against one releasable node, and several component releases may ship together inside a package.
+
+A node's **type** decides whether releases can be cut against it — a Product Line is usually an organizing container, while a Service is a thing that ships.
+
+```mermaid
+graph TD
+    subgraph "Catalog"
+        PL["Product Line"]
+        P["Product"]
+        S["Service"]
+        A["Application"]
+    end
+    subgraph "Delivery"
+        R["Release"]
+        Pkg["Release Package"]
+        D["Deployment"]
+        Env["Environment"]
+    end
+
+    PL -->|contains| P
+    P -->|contains| S
+    P -->|contains| A
+    S -->|releasable node| R
+    R -->|component of| Pkg
+    Pkg -->|deployed to| Env
+    R -->|deployed to| Env
+    D -->|records| Env
+```
+
+## How Product Management Connects Across Wayd
+
+- **[Strategic Themes](../strategic-management/index.mdx#strategic-themes)** and products both answer "why are we building this?" from different ends — themes give the intent, the catalog gives the thing.
+- **[Projects](../ppm/projects.mdx)** are the funded effort to change a product. A project is temporary; the product outlives it.
+- **Tags** carry the classifications that do not change behaviour — platform, tech stack, compliance scope — so the type system can stay small.
+- **External links** point a product at the repository, pipeline or registry package that owns it, so a later automated feed can be matched against hand-curated products rather than re-authored.
+
+## What Is Available Today
+
+Product Management is being built in phases, and the user interface currently covers the catalog only.
+
+| Area | Interface | API |
+| --- | --- | --- |
+| Products, types, tags | Yes | Yes |
+| Releases and packages | Not yet | Yes |
+| Deployments and environments | Not yet | Yes |
+| Delivery metrics | Not yet | Yes |
+
+The delivery records can be created and read through the API today, and the screens for them follow. Where a page below describes an API-only capability it says so.
+
+## Sections
+
+- **[Products](./products.mdx)** — The catalog: creating products, the tree, types, statuses, tags, moving, and external links
+- **[Delivery](./delivery.mdx)** — Releases, packages, deployments, environments, and the delivery metrics computed from them
+
+## Permissions
+
+Every action in this area is granted by permission claim alone; unlike PPM, there is no membership or leadership requirement on a record. Permissions are assigned to roles under [Settings → Roles](../settings/index.mdx).
+
+| Permission | Grants |
+| --- | --- |
+| `Permissions.Products.View` | See the catalog and product details |
+| `Permissions.Products.Create` | Add products |
+| `Permissions.Products.Update` | Edit, retype, move, tag, change status, link externally |
+| `Permissions.Products.Delete` | Remove products |
+| `Permissions.ProductTypes.*` | Manage the type list |
+| `Permissions.Releases.*` | Manage releases and packages |
+| `Permissions.Deployments.*` | Manage deployments and environments |

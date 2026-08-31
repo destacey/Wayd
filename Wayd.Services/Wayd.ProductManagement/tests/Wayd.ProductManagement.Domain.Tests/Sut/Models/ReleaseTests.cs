@@ -1,0 +1,379 @@
+using FluentAssertions;
+using NodaTime;
+using NodaTime.Extensions;
+using NodaTime.Testing;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.ProductManagement;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.ProductManagement.Domain.Models;
+using Wayd.ProductManagement.Domain.Tests.Data;
+using Wayd.Tests.Shared;
+
+namespace Wayd.ProductManagement.Domain.Tests.Sut.Models;
+
+public sealed class ReleaseTests
+{
+    private const string ProductName = "Checkout";
+
+    private readonly TestingDateTimeProvider _dateTimeProvider;
+    private readonly ReleaseFaker _faker;
+
+    public ReleaseTests()
+    {
+        _dateTimeProvider = new(new FakeClock(DateTime.UtcNow.ToInstant()));
+        _faker = new ReleaseFaker();
+    }
+
+    #region Create
+
+    [Fact]
+    public void Create_WhenValid_Success()
+    {
+        // Arrange
+        var productId = Guid.CreateVersion7();
+        var initialStatus = StatusRefFactory.For(StatusCategory.Proposed);
+
+        // Act
+        var result = Release.Create(productId, "4.8.2", "Autumn release", new LocalDate(2026, 9, 30), null, true, initialStatus, ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.ProductId.Should().Be(productId);
+        result.Value.Version.Should().Be("4.8.2");
+        result.Value.Name.Should().Be("Autumn release");
+        result.Value.TargetDate.Should().Be(new LocalDate(2026, 9, 30));
+        result.Value.Sequence.Should().BeNull();
+    }
+
+    [Fact]
+    public void Create_ShouldFail_WhenTheProductTypeIsNotReleasable()
+    {
+        // Act
+        var result = Release.Create(Guid.CreateVersion7(), "4.8.2", null, null, null, isProductReleasable: false, StatusRefFactory.For(StatusCategory.Proposed), ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Releases cannot be cut against this product's type.");
+    }
+
+    [Theory]
+    [InlineData("4.8.2")]
+    [InlineData("2026.08")]
+    [InlineData("v3-beta")]
+    [InlineData("20260829.3")]
+    [InlineData("release-candidate-1")]
+    public void Create_ShouldAcceptAnyVersionString(string version)
+    {
+        // Act
+        var result = Release.Create(Guid.CreateVersion7(), version, null, null, null, true, StatusRefFactory.For(StatusCategory.Proposed), ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        // Version is free text and never parsed: Wayd observes releases rather than owning them, so any
+        // scheme an organization uses has to survive unaltered.
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Version.Should().Be(version);
+    }
+
+    [Fact]
+    public void Create_ShouldRaiseReleasePlannedEvent_AfterPersistence()
+    {
+        // Arrange & Act
+        var sut = Release.Create(Guid.CreateVersion7(), "4.8.2", null, null, null, true, StatusRefFactory.For(StatusCategory.Proposed), ProductName, EventActor.System, _dateTimeProvider.Now).Value;
+
+        // Assert
+        sut.DomainEvents.Should().BeEmpty();
+        sut.PostPersistenceActions.First()();
+
+        var planned = sut.DomainEvents.OfType<ReleasePlannedEvent>().Single();
+        planned.Version.Should().Be("4.8.2");
+        planned.ProductName.Should().Be(ProductName);
+    }
+
+    #endregion Create
+
+    #region Sequence
+
+    [Fact]
+    public void Create_ShouldAcceptASequence_ForABackportThatShipsAfterItsSuccessor()
+    {
+        // Arrange
+        // 4.7.5 ships after 5.0.0, so chronology alone would present it as the newest release.
+        var sequence = 470L;
+
+        // Act
+        var result = Release.Create(Guid.CreateVersion7(), "4.7.5", null, null, sequence, true, StatusRefFactory.For(StatusCategory.Proposed), ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Sequence.Should().Be(sequence);
+    }
+
+    [Fact]
+    public void Create_ShouldLeaveSequenceNull_WhenChronologyIsSufficient()
+    {
+        // Act
+        var result = Release.Create(Guid.CreateVersion7(), "5.0.0", null, null, null, true, StatusRefFactory.For(StatusCategory.Proposed), ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        // Nullable and normally null: ordering comes from dates, which every source provides.
+        result.Value.Sequence.Should().BeNull();
+    }
+
+    #endregion Sequence
+
+    #region Cut
+
+    [Fact]
+    public void Cut_ShouldFreezeScopeAndMoveToReady()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var ready = StatusRefFactory.Ready();
+        var cutDate = new LocalDate(2026, 9, 1);
+
+        // Act
+        var result = sut.Cut(cutDate, ready, ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.CutDate.Should().Be(cutDate);
+        sut.StatusId.Should().Be(ready.StatusId);
+        sut.StatusCategory.Should().Be(StatusCategory.Active);
+        sut.DomainEvents.Should().ContainSingle(e => e is ReleaseCutEvent);
+    }
+
+    [Fact]
+    public void Cut_ShouldFail_WhenAlreadyCut()
+    {
+        // Arrange
+        var sut = _faker.AsCut(new LocalDate(2026, 9, 1)).Generate();
+
+        // Act
+        var result = sut.Cut(new LocalDate(2026, 9, 2), StatusRefFactory.Ready(), ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("This release has already been cut.");
+    }
+
+    [Fact]
+    public void Cut_ShouldFail_WhenWithdrawn()
+    {
+        // Arrange
+        var sut = _faker.AsWithdrawn().Generate();
+
+        // Act
+        var result = sut.Cut(new LocalDate(2026, 9, 1), StatusRefFactory.Ready(), ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A released or withdrawn release cannot be cut.");
+    }
+
+    #endregion Cut
+
+    #region MarkReleased
+
+    [Fact]
+    public void MarkReleased_ShouldRecordTheShipDateAndRaiseEvent()
+    {
+        // Arrange
+        var sut = _faker.AsCut(new LocalDate(2026, 9, 1)).Generate();
+        var released = StatusRefFactory.Released();
+        var releasedDate = new LocalDate(2026, 9, 5);
+
+        // Act
+        var result = sut.MarkReleased(releasedDate, released, ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.ReleasedDate.Should().Be(releasedDate);
+        sut.StatusCategory.Should().Be(StatusCategory.Done);
+        sut.DomainEvents.Should().ContainSingle(e => e is ReleaseReleasedEvent);
+    }
+
+    [Fact]
+    public void MarkReleased_ShouldFail_WhenReleasedBeforeItWasCut()
+    {
+        // Arrange
+        var sut = _faker.AsCut(new LocalDate(2026, 9, 5)).Generate();
+
+        // Act
+        var result = sut.MarkReleased(new LocalDate(2026, 9, 1), StatusRefFactory.Released(), ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("The released date cannot be before the cut date.");
+    }
+
+    [Fact]
+    public void MarkReleased_ShouldFail_WhenAlreadyReleased()
+    {
+        // Arrange
+        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
+
+        // Act
+        var result = sut.MarkReleased(new LocalDate(2026, 9, 6), StatusRefFactory.Released(), ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("This release has already been released.");
+    }
+
+    [Fact]
+    public void MarkReleased_ShouldSucceed_WithoutHavingBeenCut()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+
+        // Act
+        var result = sut.MarkReleased(new LocalDate(2026, 9, 5), StatusRefFactory.Released(), ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        // Hand-entry and historical import land at release level with no cut recorded; refusing this
+        // would make importing a year of past releases impossible.
+        result.IsSuccess.Should().BeTrue();
+        sut.CutDate.Should().BeNull();
+    }
+
+    #endregion MarkReleased
+
+    #region Withdraw
+
+    [Fact]
+    public void Withdraw_ShouldMoveToRemovedAndRaiseEventWithReason()
+    {
+        // Arrange
+        var sut = _faker.AsCut(new LocalDate(2026, 9, 1)).Generate();
+
+        // Act
+        var result = sut.Withdraw("Critical defect found in staging.", StatusRefFactory.Withdrawn(), ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.StatusCategory.Should().Be(StatusCategory.Removed);
+
+        var withdrawn = sut.DomainEvents.OfType<ReleaseWithdrawnEvent>().Single();
+        withdrawn.Reason.Should().Be("Critical defect found in staging.");
+        withdrawn.Version.Should().Be(sut.Version);
+    }
+
+    [Fact]
+    public void Withdraw_ShouldFail_WhenAlreadyWithdrawn()
+    {
+        // Arrange
+        var sut = _faker.AsWithdrawn().Generate();
+
+        // Act
+        var result = sut.Withdraw(null, StatusRefFactory.Withdrawn(), ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("This release has already been withdrawn.");
+    }
+
+    #endregion Withdraw
+
+    #region MoveTargetDate
+
+    [Fact]
+    public void MoveTargetDate_ShouldRaiseEventCarryingBothEnds()
+    {
+        // Arrange
+        var from = new LocalDate(2026, 9, 30);
+        var to = new LocalDate(2026, 10, 14);
+        var sut = _faker.WithTargetDate(from).Generate();
+
+        // Act
+        var result = sut.MoveTargetDate(to, ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+
+        // "Slipped two weeks" cannot be recovered from the new value alone.
+        var moved = sut.DomainEvents.OfType<ReleaseTargetDateMovedEvent>().Single();
+        moved.FromTargetDate.Should().Be(from);
+        moved.ToTargetDate.Should().Be(to);
+    }
+
+    [Fact]
+    public void MoveTargetDate_ShouldFail_WhenTheReleaseHasShipped()
+    {
+        // Arrange
+        var sut = _faker.AsReleased(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 5)).Generate();
+
+        // Act
+        var result = sut.MoveTargetDate(new LocalDate(2026, 10, 14), ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A released or withdrawn release cannot have its target date moved.");
+    }
+
+    [Fact]
+    public void MoveTargetDate_ToTheSameDate_ShouldSucceedWithoutRaisingAnEvent()
+    {
+        // Arrange
+        var date = new LocalDate(2026, 9, 30);
+        var sut = _faker.WithTargetDate(date).Generate();
+
+        // Act
+        var result = sut.MoveTargetDate(date, ProductName, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    #endregion MoveTargetDate
+
+    #region UpdateDetails
+
+    [Fact]
+    public void UpdateDetails_ShouldUpdateVersionAndSequence()
+    {
+        // Arrange
+        var sut = _faker.WithVersion("4.8.1").Generate();
+
+        // Act
+        var result = sut.UpdateDetails("4.8.2", "Autumn release", "Fixed the checkout defect.", 482L, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Version.Should().Be("4.8.2");
+        sut.Sequence.Should().Be(482L);
+        sut.DomainEvents.Should().ContainSingle(e => e is ReleaseDetailsUpdatedEvent);
+    }
+
+    [Fact]
+    public void UpdateDetails_WithUnchangedValues_ShouldSucceedWithoutRaisingAnEvent()
+    {
+        // Arrange
+        var sut = _faker.WithVersion("4.8.2").WithName("Autumn release").WithNotes("Notes.").WithSequence(482L).Generate();
+
+        // Act
+        var result = sut.UpdateDetails("4.8.2", "Autumn release", "Notes.", 482L, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldRaiseAnEvent_WhenOnlyTheSequenceChanges()
+    {
+        // Arrange
+        var sut = _faker.WithVersion("4.7.5").WithSequence(null).Generate();
+
+        // Act
+        var result = sut.UpdateDetails("4.7.5", sut.Name, sut.Notes, 470L, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        // Setting a backport's sequence is a real change even though nothing else moved.
+        result.IsSuccess.Should().BeTrue();
+        sut.Sequence.Should().Be(470L);
+        sut.DomainEvents.Should().ContainSingle(e => e is ReleaseDetailsUpdatedEvent);
+    }
+
+    #endregion UpdateDetails
+}

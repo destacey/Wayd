@@ -90,6 +90,18 @@ export enum QueryTags {
   SprintMetrics = 'Planning.Sprint.Metrics',
   SprintPlanningIntervals = 'Planning.Sprint.PlanningIntervals',
 
+  // PRODUCT MANAGEMENT
+  Product = 'ProductManagement.Product',
+  ProductType = 'ProductManagement.ProductType',
+  ProductTagCategory = 'ProductManagement.ProductTagCategory',
+
+  // DELIVERY
+  Release = 'Delivery.Release',
+  ReleasePackage = 'Delivery.ReleasePackage',
+  Deployment = 'Delivery.Deployment',
+  DeploymentEnvironment = 'Delivery.DeploymentEnvironment',
+  DeliveryMetrics = 'Delivery.Metrics',
+
   // PPM
   ExpenditureCategory = 'Ppm.ExpenditureCategory',
   Portfolio = 'Ppm.Portfolio',

@@ -12,6 +12,7 @@ using Wayd.Infrastructure.Common;
 using Wayd.Links;
 using Wayd.Organization.Application;
 using Wayd.Planning.Application;
+using Wayd.ProductManagement.Application;
 using Wayd.ProjectPortfolioManagement.Application;
 using Wayd.StrategicManagement.Application;
 using Wayd.Web.Api.Configurations;
@@ -78,6 +79,7 @@ try
     builder.Services.AddLinksApplication();
     builder.Services.AddOrganizationApplication();
     builder.Services.AddPlanningApplication();
+    builder.Services.AddProductManagementApplication();
     builder.Services.AddProjectPortfolioManagementApplication();
     builder.Services.AddStrategicManagementApplication();
     builder.Services.AddWorkApplication();

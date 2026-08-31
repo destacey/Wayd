@@ -1,0 +1,99 @@
+---
+title: Delivery
+description: Releases, release packages, deployments, environments, and delivery metrics in Wayd.
+sidebar_position: 2
+audience: [user, agent]
+---
+
+# Delivery
+
+Where the [catalog](./products.mdx) records what exists, delivery records what shipped. Four record types carry it, and the separation between them is what makes the delivery metrics meaningful.
+
+:::note API only
+Delivery records can be created and read through the API today. The screens for them are not built yet — see [what is available today](./index.mdx#what-is-available-today).
+:::
+
+## Releases
+
+A **release** is a versioned cut of one releasable product node.
+
+A release describes **what was cut, never where it went**. That separation is deliberate: a release with no deployment is a complete record, which is what makes it possible to start recording releases by hand before any pipeline is wired up.
+
+Versions are free text, because version schemes vary and imposing one would make hand-entry wrong for somebody. Releases are ordered by an optional sequence number where you need a definite order.
+
+| Status | Meaning |
+| --- | --- |
+| Planned | Scheduled but not yet cut |
+| Ready | Cut and ready to ship |
+| Released | Shipped |
+| Withdrawn | Pulled after being cut |
+
+A release can only be cut against a node whose [type is releasable](./products.mdx#product-types).
+
+## Release Packages
+
+A **release package** is several component releases shipped as one coordinated unit — the weekly pipeline run that deploys fifteen services together. The package is versioned in its own right and carries a manifest of every component version it shipped.
+
+**Where a package exists, it is the unit of deployment** and its component releases are not. One pipeline run shipping fifteen services must count as one deployment, not fifteen — otherwise deployment frequency measures how finely you have subdivided your services rather than how often you ship.
+
+:::warning A package is not a Release Train
+A release package is not a Release Train. A Release Train is SAFe's organizational construct — a long-lived group of teams — and Wayd models that as a [Team of Teams](../organizations/index.mdx#teams). A package is one shipment.
+:::
+
+## Environments
+
+An **environment** is a named target a release is deployed into. Environments are defined once for the organization, and any product can deploy into any of them.
+
+Each environment carries a **category**: Development, Testing, Staging, or Production. The category, not the name, is what every production-scoped measure counts on — pipeline environment names are free text and endlessly varied (`prod`, `Production`, `prd`, `live`, somebody's `prod-canary`), so the category is what makes "deployments to production" answerable.
+
+Environments are also ordered into **rings**, so progressive rollout is representable.
+
+:::note Reclassifying rewrites history
+Reclassifying an environment retroactively changes every production-scoped measure — a staging environment reclassified as production rewrites your deployment frequency and change failure rate for all of history. Wayd records that change as its own event rather than an ordinary edit, so the shift in the numbers is traceable.
+:::
+
+## Deployments
+
+A **deployment** is one release or package reaching one environment, with a start, an end, an outcome, and its own artifact identifier. It is the substrate every delivery metric is computed from.
+
+| Status | Meaning |
+| --- | --- |
+| In Progress | Under way, with no outcome yet |
+| Succeeded | Reached its environment |
+| Failed | Did not reach its environment |
+| Rolled Back | Reached its environment and was reverted |
+
+## Delivery Metrics
+
+Two of the four [DORA](https://dora.dev/) measures are computable from what this module records. The other two are reported as explicitly unavailable rather than omitted or approximated, so you can tell "we do not measure this yet" from "there were no deployments."
+
+### Deployment Frequency
+
+How often production deployments completed over the window.
+
+This counts **completed** deployments, not attempts: an in-flight deployment has not been delivered, and a failed one did not reach production. Rolled-back deployments **do** count — they reached production, which is what this measures. Whether that was a good idea is change failure rate's job.
+
+### Change Failure Rate
+
+The share of production deployments that failed or were rolled back.
+
+Only production counts. A failure caught in staging is a failure that was *prevented*, and counting it would invert what the measure means.
+
+### Lead Time for Changes — not yet available
+
+Needs a link from a deployment back to the change it carried, such as a commit or a work item.
+
+### Time to Restore Service — not yet available
+
+Needs an incident record: when service degraded and when it recovered. A rollback is not a substitute, because it says a change was reverted rather than that service was restored.
+
+:::tip Combining windows
+Every metric carries its counts and totals alongside the average, so you can combine windows or scopes without average-of-averages bias.
+:::
+
+## Permissions
+
+| Action | Permission |
+| --- | --- |
+| View and manage releases and packages | `Permissions.Releases.*` |
+| View and manage deployments and environments | `Permissions.Deployments.*` |

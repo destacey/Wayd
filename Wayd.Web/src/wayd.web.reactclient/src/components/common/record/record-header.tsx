@@ -136,8 +136,8 @@ const RecordHeader = ({
 
     {(actions || factsToggle) && (
       <>
-        <div style={{ flexGrow: 1 }} />
-        <Flex align="center" gap={8} wrap>
+        <div style={{ flexGrow: 1 }} className={styles.headerSpacer} />
+        <Flex align="center" gap={8} wrap className={styles.headerActions}>
           {actions}
           {factsToggle && (
             <WaydTooltip title={factsToggle.open ? 'Hide Details' : 'Show Details'}>

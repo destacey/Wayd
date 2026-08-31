@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <PackageReference Include="Ardalis.GuardClauses" />
+        <PackageReference Include="CSharpFunctionalExtensions" />
+        <PackageReference Include="NodaTime" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\..\Wayd.Common\src\Wayd.Common.Domain\Wayd.Common.Domain.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Wayd.ProductManagement.Domain.Tests" />
+    </ItemGroup>
+
+</Project>

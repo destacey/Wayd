@@ -53,6 +53,8 @@
         <ProjectReference
             Include="..\..\..\Wayd.Services\Wayd.Planning\src\Wayd.Planning.Application\Wayd.Planning.Application.csproj" />
         <ProjectReference
+            Include="..\..\..\Wayd.Services\Wayd.ProductManagement\src\Wayd.ProductManagement.Application\Wayd.ProductManagement.Application.csproj" />
+        <ProjectReference
             Include="..\..\..\Wayd.Services\Wayd.ProjectPortfolioManagement\src\Wayd.ProjectPortfolioManagement.Application\Wayd.ProjectPortfolioManagement.Application.csproj" />
         <ProjectReference
             Include="..\..\..\Wayd.Services\Wayd.ProjectPortfolioManagement\src\Wayd.ProjectPortfolioManagement.Domain\Wayd.ProjectPortfolioManagement.Domain.csproj" />

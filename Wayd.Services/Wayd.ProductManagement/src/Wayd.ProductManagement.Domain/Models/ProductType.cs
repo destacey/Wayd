@@ -69,8 +69,8 @@ public sealed class ProductType : BaseAuditableEntity, IHasIdAndKey
     public int Order { get; private set; }
 
     /// <summary>
-    /// Whether this is a platform-seeded default. System types are read-only so an upgrade can reseed
-    /// them safely.
+    /// Whether this is a platform-seeded default. System types cannot be deleted or edited, only
+    /// deactivated, so the set a release ships stays recognisable across installs.
     /// </summary>
     public bool IsSystem { get; private init; }
 

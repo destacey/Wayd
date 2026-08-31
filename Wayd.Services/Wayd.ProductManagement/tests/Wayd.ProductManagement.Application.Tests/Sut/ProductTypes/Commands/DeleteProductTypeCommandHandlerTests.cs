@@ -68,7 +68,8 @@ public sealed class DeleteProductTypeCommandHandlerTests : ProductCommandTestBas
             new DeleteProductTypeCommand(productType.Id), TestContext.Current.CancellationToken);
 
         // Assert
-        // An upgrade reseeds system types, so deleting one is undone on the next boot.
+        // Deactivation is the supported route: a type products already reference must stay
+        // resolvable, and the seeded set should mean the same thing on every install.
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("System product types cannot be deleted. Deactivate it instead.");
     }

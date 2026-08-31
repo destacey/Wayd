@@ -92,12 +92,4 @@ public static class WorkflowOwners
         }
     }
 
-    /// <summary>Clears the registry. Test seam only.</summary>
-    internal static void Reset()
-    {
-        lock (Gate)
-        {
-            Descriptors.Clear();
-        }
-    }
 }

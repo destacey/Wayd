@@ -23,6 +23,14 @@ namespace Wayd.Common.Domain.StatusWorkflows;
 /// Not tied to any one module: <see cref="OwnerType"/> plus <see cref="RecordId"/> identifies what
 /// changed, so a module adopting the engine gets its history without a table of its own.
 /// </para>
+/// <para>
+/// <strong><see cref="RecordId"/> is deliberately not a foreign key</strong> — it cannot be, since it
+/// points at a different table per owner type. The consequence is that hard-deleting a tracked record
+/// leaves its transitions behind referencing nothing. Harmless as it stands: every read is scoped by
+/// <see cref="OwnerType"/> and <see cref="RecordId"/> together, so an orphan matches no live record.
+/// But nothing prunes them and no constraint can, so a module that hard-deletes tracked records in
+/// volume needs a cleanup path of its own.
+/// </para>
 /// </remarks>
 public sealed class StatusTransition : BaseEntity
 {

@@ -21,7 +21,7 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
 {
     private Release(){ }
 
-    private Release(Guid productId, string version, string? name, LocalDate? targetDate, long? sequence, StatusRef status)
+    private Release(Guid productId, string version, string? name, LocalDate? targetDate, long? sequence)
     {
         ProductId = productId;
         Version = version;
@@ -273,7 +273,7 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure<Release>("Releases cannot be cut against this product's type.");
         }
 
-        var release = new Release(productId, version, name, targetDate, sequence, initialStatus);
+        var release = new Release(productId, version, name, targetDate, sequence);
         release.ApplyStatus(initialStatus, actor, timestamp);
 
         // Deferred because Key is database-generated: an event raised here would carry Key 0.

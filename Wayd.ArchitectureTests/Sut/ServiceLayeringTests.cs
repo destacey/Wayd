@@ -2,7 +2,10 @@
 using FluentAssertions;
 using Wayd.ArchitectureTests.Helpers;
 using Wayd.Common.Application.Dispatching;
+using Wayd.Common.Application.Identity.Users;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Infrastructure.Common.Services;
+using Wayd.Integrations.Abstractions;
 
 namespace Wayd.ArchitectureTests.Sut;
 
@@ -30,17 +33,22 @@ public class ServiceLayeringTests
     /// The markers do double duty in this codebase: they drive DI registration, so a clock and a
     /// factory wear one just to be registered. Depending on these is explicitly allowed — they hold no
     /// business rules, so they cannot take part in the cycles the peer rule exists to prevent.
+    /// <para>
+    /// Held as types rather than names. Matching on <c>Type.Name</c> exempted any interface sharing a
+    /// name in any namespace, so a genuine peer could be waved through by coincidence — and an entry
+    /// for a type that no longer exists sat here unnoticed, because a name that matches nothing fails
+    /// silently. A <c>typeof</c> makes that a compile error.
+    /// </para>
     /// </remarks>
-    private static readonly string[] AllowedPrimitives =
+    private static readonly Type[] AllowedPrimitives =
     [
-        "IDateTimeProvider",
-        "IUserService",
-        "ICurrentUser",
-        "ICurrentPrincipal",
-        "IEmployeeSourceFactory",
-        "IWorkItemSourceFactory",
-        "ICacheService",
-        "IRequestCorrelationIdProvider",
+        typeof(IDateTimeProvider),
+        typeof(IUserService),
+        typeof(ICurrentUser),
+        typeof(ICurrentPrincipal),
+        typeof(IEmployeeSourceFactory),
+        typeof(IWorkItemSourceFactory),
+        typeof(IRequestCorrelationIdProvider),
     ];
 
     /// <summary>
@@ -85,7 +93,7 @@ public class ServiceLayeringTests
             var peers = DependenciesOf(service)
                 .Distinct()
                 .Where(d => d != service && !ServiceMarkers.Contains(d))
-                .Where(d => !AllowedPrimitives.Contains(d.Name))
+                .Where(d => !AllowedPrimitives.Contains(d))
                 .Where(d => ServiceMarkers.Any(m => m.IsAssignableFrom(d)));
 
             violations.AddRange(peers.Select(peer => $"{service.FullName} depends on {peer.FullName}"));

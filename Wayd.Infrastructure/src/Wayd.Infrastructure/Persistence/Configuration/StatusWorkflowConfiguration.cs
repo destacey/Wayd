@@ -126,7 +126,12 @@ public class StatusTransitionConfiguration : IEntityTypeConfiguration<StatusTran
         builder.HasKey(t => t.Id);
 
         // Makes a duplicate sequence impossible: two concurrent transitions that read the same count
-        // collide here, so one commits and the other retries.
+        // collide here, so one commits and the other's save is rejected whole.
+        //
+        // There is no retry — nothing catches the unique violation — so the loser gets a generic error
+        // and its status change genuinely did not apply. That is the deliberate trade: two people
+        // restatusing one record in the same instant is rare, and a corrupted history is worse than a
+        // failed save. A retry would mean catching 2601/2627 here and re-reading the count.
         builder.HasIndex(t => new { t.OwnerType, t.RecordId, t.Sequence }).IsUnique();
 
         builder.HasIndex(t => new { t.OwnerType, t.RecordId, t.ChangedOn })

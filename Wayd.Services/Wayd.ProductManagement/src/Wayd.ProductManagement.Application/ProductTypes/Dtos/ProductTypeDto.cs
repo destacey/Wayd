@@ -19,7 +19,7 @@ public sealed record ProductTypeDto
     /// <summary>Whether new products can still be created with this type.</summary>
     public bool IsActive { get; init; }
 
-    /// <summary>Platform-seeded types are read-only, so an upgrade can reseed them.</summary>
+    /// <summary>Platform-seeded types are read-only: deactivate rather than delete or edit.</summary>
     public bool IsSystem { get; init; }
 
     /// <summary>

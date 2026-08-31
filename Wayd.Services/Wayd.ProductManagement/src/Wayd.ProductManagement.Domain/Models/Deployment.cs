@@ -21,7 +21,7 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
 {
     private Deployment() { }
 
-    private Deployment(Guid? releaseId, Guid? packageId, Guid environmentId, EnvironmentCategory environmentCategory, string? artifactId, Instant startedAt, StatusRef status)
+    private Deployment(Guid? releaseId, Guid? packageId, Guid environmentId, EnvironmentCategory environmentCategory, string? artifactId, Instant startedAt)
     {
         ReleaseId = releaseId;
         PackageId = packageId;
@@ -269,7 +269,7 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
                 "A deployment is for either a release or a package, not both. Where a package exists it is the unit, so that one pipeline run counts once.");
         }
 
-        var deployment = new Deployment(releaseId, packageId, environmentId, environmentCategory, artifactId, startedAt, inProgressStatus);
+        var deployment = new Deployment(releaseId, packageId, environmentId, environmentCategory, artifactId, startedAt);
         deployment.ApplyStatus(inProgressStatus, actor, timestamp);
 
         // Deferred because Key is database-generated: an event raised here would carry Key 0.

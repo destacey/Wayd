@@ -19,7 +19,7 @@ public sealed record ProductTagCategoryDto
     /// <summary>Whether products can still be tagged along this axis.</summary>
     public bool IsActive { get; init; }
 
-    /// <summary>Platform-seeded axes are read-only, so an upgrade can reseed them.</summary>
+    /// <summary>Platform-seeded axes are read-only: they cannot be edited or deleted.</summary>
     public bool IsSystem { get; init; }
 
     public IReadOnlyCollection<ProductTagOptionDto> Tags { get; init; } = [];

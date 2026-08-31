@@ -29,8 +29,11 @@ describe('TagList', () => {
     render(<TagList tags={[tag('1', 'gold', 'Tier')]} />)
 
     // Assert
-    expect(screen.getByText(/Tier/)).toBeInTheDocument()
-    expect(screen.getByText(/gold/)).toBeInTheDocument()
+    // Asserted on the chip's whole text, not on each part separately: presence
+    // of both says nothing about which came first, and "gold | Tier" would pass
+    // that weaker check while reading backwards.
+    const chip = document.querySelector('.ant-tag')
+    expect(chip?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Tier | gold')
   })
 
   it('renders a tag with no qualifier, for areas whose tags have no axes', () => {

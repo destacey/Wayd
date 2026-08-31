@@ -65,8 +65,8 @@ public sealed class ProductTagCategory : BaseAuditableEntity, IHasIdAndKey
     public int Order { get; private set; }
 
     /// <summary>
-    /// Whether this is a platform-seeded axis. System categories are read-only, so an upgrade can
-    /// reseed them; an organization wanting different axes adds its own.
+    /// Whether this is a platform-seeded axis. System categories cannot be edited or deleted; an
+    /// organization wanting different axes adds its own.
     /// </summary>
     public bool IsSystem { get; private init; }
 

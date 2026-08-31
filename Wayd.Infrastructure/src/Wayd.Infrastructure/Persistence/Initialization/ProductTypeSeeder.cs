@@ -8,22 +8,41 @@ namespace Wayd.Infrastructure.Persistence.Initialization;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Initial seed only: once any type exists, seeded or admin-created, this stays out of the way. The
-/// types are a set an organization curates — deleting "Tool" because it does not ship one is a
-/// legitimate choice, and recreating it on the next startup would undo that. This differs from the
-/// workflow seeder, which seeds per owner type so a newly added owner type still gets its default.
+/// Initial seed only: once any type exists, seeded or admin-created, this stays out of the way. This
+/// differs from the workflow seeder, which seeds per owner type so a newly added owner type still
+/// gets its default.
 /// </para>
 /// <para>
-/// Seeded as system types so an upgrade can reseed them safely; an organization that wants different
-/// releasability or naming creates its own rather than editing these.
+/// <strong>Adding a system type later takes two steps.</strong> Add it here so new installs get it,
+/// <em>and</em> write a data migration to insert it into existing ones — this seeder will not, because
+/// it returns early the moment any type exists. Skipping the migration strands every existing
+/// organization without the new type permanently: <c>Name</c> is uniquely indexed, so once a tenant
+/// hand-creates one by that name the platform can never introduce its own. Follow the shape of
+/// <c>Seed-External-Identity-Mappings</c>.
+/// </para>
+/// <para>
+/// Seeded as system types because they are read-only to admins — <c>DeleteProductTypeCommand</c>
+/// refuses them and only deactivation is offered, so an organization that stops shipping tools keeps
+/// "Tool" switched off rather than removing it. An organization wanting different releasability or
+/// naming creates its own alongside these.
 /// </para>
 /// </remarks>
 public class ProductTypeSeeder : ICustomSeeder
 {
     public async Task Initialize(WaydDbContext dbContext, IDateTimeProvider dateTimeProvider, CancellationToken cancellationToken)
     {
+        // Guarded on its own count rather than sharing the types guard below: an install holding types
+        // but no axes would otherwise never get the Platform axis, and there is no recovery — the axis
+        // is IsSystem, and the create command only makes non-system ones.
+        var seededAxes = await SeedTagCategories(dbContext, cancellationToken);
+
         if (await dbContext.ProductTypes.AnyAsync(cancellationToken))
         {
+            if (seededAxes)
+            {
+                await dbContext.SaveChangesAsync(cancellationToken);
+            }
+
             return;
         }
 
@@ -53,8 +72,6 @@ public class ProductTypeSeeder : ICustomSeeder
             dbContext.ProductTypes.Add(ProductType.CreateSystem(name, description, isReleasable, order++));
         }
 
-        SeedTagCategories(dbContext);
-
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -71,8 +88,14 @@ public class ProductTypeSeeder : ICustomSeeder
     /// something every organization has to remove.
     /// </para>
     /// </remarks>
-    private static void SeedTagCategories(WaydDbContext dbContext)
+    /// <returns>Whether anything was added.</returns>
+    private static async Task<bool> SeedTagCategories(WaydDbContext dbContext, CancellationToken cancellationToken)
     {
+        if (await dbContext.ProductTagCategories.AnyAsync(cancellationToken))
+        {
+            return false;
+        }
+
         // AllowsMany: a cross-platform app genuinely targets iOS and Android, and forcing one would
         // record something false.
         var platform = ProductTagCategory.CreateSystem(
@@ -95,5 +118,7 @@ public class ProductTypeSeeder : ICustomSeeder
         }
 
         dbContext.ProductTagCategories.Add(platform);
+
+        return true;
     }
 }

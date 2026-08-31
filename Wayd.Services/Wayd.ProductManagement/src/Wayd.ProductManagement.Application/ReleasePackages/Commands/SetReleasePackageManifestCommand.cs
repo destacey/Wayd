@@ -72,6 +72,26 @@ public sealed class SetReleasePackageManifestCommandHandler(
                 return Result.Failure("The manifest names a product that does not exist.");
             }
 
+            // Release ids are optional — a carried-forward component often has no release row — but one
+            // that is supplied must resolve. Left unchecked, the projection renders an unknown id as
+            // null, making a typo indistinguishable from a legitimately carried-forward component.
+            var releaseIds = request.Components
+                .Where(c => c.ReleaseId is not null)
+                .Select(c => c.ReleaseId!.Value)
+                .Distinct()
+                .ToList();
+
+            if (releaseIds.Count > 0)
+            {
+                var knownReleases = await _productManagementDbContext.Releases
+                    .CountAsync(r => releaseIds.Contains(r.Id), cancellationToken);
+
+                if (knownReleases != releaseIds.Count)
+                {
+                    return Result.Failure("The manifest names a release that does not exist.");
+                }
+            }
+
             var result = package.SetManifest(
                 [.. request.Components.Select(c => (c.ProductId, c.ReleaseId, c.Version, c.Kind))],
                 EventActor.User(_currentUser.GetUserId()),

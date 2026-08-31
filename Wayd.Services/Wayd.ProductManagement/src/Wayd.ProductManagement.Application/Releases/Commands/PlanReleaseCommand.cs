@@ -69,10 +69,23 @@ public sealed class PlanReleaseCommandHandler(
 
             // Whether the product's type permits releases is the type's to answer, and the aggregate
             // cannot load it.
-            var isReleasable = await _productManagementDbContext.ProductTypes
-                .Where(t => t.Id == product.ProductTypeId)
-                .Select(t => t.IsReleasable)
-                .FirstOrDefaultAsync(cancellationToken);
+            //
+            // The type is loaded rather than projecting IsReleasable straight out: FirstOrDefaultAsync
+            // over a bool cannot tell "not releasable" from "no such type", so a dangling type id would
+            // surface as a releasability refusal and send the caller looking in the wrong place.
+            var productType = await _productManagementDbContext.ProductTypes
+                .FirstOrDefaultAsync(t => t.Id == product.ProductTypeId, cancellationToken);
+
+            if (productType is null)
+            {
+                _logger.LogError(
+                    "Product {ProductId} references Product Type {ProductTypeId}, which does not exist.",
+                    request.ProductId,
+                    product.ProductTypeId);
+                return Result.Failure<ObjectIdAndKey>("Product Type not found.");
+            }
+
+            var isReleasable = productType.IsReleasable;
 
             var initialStatus = await _statusResolver.Initial(
                 ProductWorkflowOwners.Release.Key, scopeId: null, cancellationToken);

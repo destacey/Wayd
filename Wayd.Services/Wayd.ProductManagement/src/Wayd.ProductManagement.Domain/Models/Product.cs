@@ -21,7 +21,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
 
     private Product() { }
 
-    private Product(string name, string? description, Guid productTypeId, Guid? parentId, string? externalId, StatusRef status)
+    private Product(string name, string? description, Guid productTypeId, Guid? parentId, string? externalId)
     {
         Name = name;
         Description = description;
@@ -352,7 +352,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
         Guard.Against.Default(productTypeId, nameof(productTypeId));
         Guard.Against.Null(initialStatus, nameof(initialStatus));
 
-        var product = new Product(name, description, productTypeId, parentId, externalId, initialStatus);
+        var product = new Product(name, description, productTypeId, parentId, externalId);
         product.ApplyStatus(initialStatus, actor, timestamp);
 
         // Deferred because Key is database-generated: an event raised here would carry Key 0.

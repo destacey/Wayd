@@ -290,6 +290,50 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
     }
 
     [Fact]
+    public async Task ProductTypeSeeder_ShouldSeedTagAxes_WhenTypesAlreadyExist()
+    {
+        // The axes used to share the types guard, so an install holding types but no axes never got
+        // the Platform axis — and there is no recovery, since the axis is IsSystem and the create
+        // command only makes non-system ones.
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        await SeedAll(context);
+
+        var axes = await context.ProductTagCategories.ToListAsync(TestContext.Current.CancellationToken);
+        context.ProductTagCategories.RemoveRange(axes);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await new ProductTypeSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var reseeded = await context.ProductTagCategories.ToListAsync(TestContext.Current.CancellationToken);
+        reseeded.Select(c => c.Name).Should().Contain("Platform");
+    }
+
+    [Fact]
+    public async Task ProductTypeSeeder_ShouldNotDuplicateTagAxes_OnASecondRun()
+    {
+        // Arrange
+        ProductWorkflowOwners.Register();
+        await using var context = _fixture.CreateContext();
+
+        await SeedAll(context);
+
+        // Act
+        await new ProductTypeSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var axes = await context.ProductTagCategories
+            .Where(c => c.Name == "Platform")
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        axes.Should().ContainSingle();
+    }
+
+    [Fact]
     public async Task ProductTypeSeeder_ShouldMarkGroupingsAndEmbeddedTypesUnreleasable()
     {
         // Arrange

@@ -25,7 +25,7 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
 
     private ReleasePackage() { }
 
-    private ReleasePackage(string version, string? name, LocalDate? targetDate, StatusRef status)
+    private ReleasePackage(string version, string? name, LocalDate? targetDate)
     {
         Version = version;
         Name = name;
@@ -219,7 +219,7 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure<ReleasePackage>("A component can appear only once in a package manifest.");
         }
 
-        var package = new ReleasePackage(version, name, targetDate, initialStatus);
+        var package = new ReleasePackage(version, name, targetDate);
         package.ApplyStatus(initialStatus, actor, timestamp);
 
         foreach (var component in components)

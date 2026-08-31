@@ -412,6 +412,42 @@ Cross-domain usage: Tags on Projects, Programs, Strategic Initiatives for alignm
 
 ---
 
+## Status Workflow Engine
+
+Cross-cutting. Any module whose records carry a status registers an owner type and resolves through `IStatusResolver`; the engine holds no module's vocabulary.
+
+### Status Workflows
+
+Properties: Name, Description, OwnerType, State (Draft/Published/Archived), IsSystem, Key, Statuses (ordered).
+
+Rules: Statuses are editable only in Draft — records carry a denormalized category and alias, so moving one on a live workflow leaves every record disagreeing with the status it points at. System workflows cannot be modified, published by a user, or archived. Publish requires every alias the owner type declares required. Archive requires the workflow to be unassigned. Clone copies the statuses into a new Draft and is the only route by which a published or seeded workflow is changed.
+
+### Workflow Statuses
+
+Properties: Name, Description, Category (Proposed/Active/Done/Removed), Alias (int, 0 = none), Order.
+
+Rules: Names and aliases are unique within a workflow. The category is the rollup; the alias is the well-known meaning platform logic reads instead of the name. ReclassifyStatus changes both, Draft only.
+
+### Workflow Assignments
+
+Which workflow a scope's records use. Properties: OwnerType, ScopeId (null = organization-wide, the only scope in use), WorkflowId.
+
+Rules: ReassignTo requires a published workflow of the same owner type and a complete remap whose endpoints match.
+
+### Status Remap
+
+A transient mapping between two workflows. AutoMap resolves by alias, then exact name, then category when the target has exactly one candidate; anything left is Unresolved. Never persisted — the confirming command rebuilds it and layers operator decisions on top, which is safe because AutoMap is pure over two loaded workflows.
+
+### Reassignment
+
+Migrates every record of an owner type onto the target workflow. Records move first, the assignment flips last, so an interrupted run leaves the assignment pointing at the workflow the records are still on and re-running is correct. Crosses the module boundary through IStatusRecordMigrator, implemented in Infrastructure because Common cannot see a Product.
+
+### Status Transitions
+
+Every status change, with from/to, actor, timestamp and sequence. Written by BaseDbContext draining the aggregate during SaveChanges. OwnerType + RecordId identifies the record; RecordId is deliberately not a foreign key, so a hard-deleted record leaves its transitions behind.
+
+---
+
 ## Product Management Domain
 
 Gated by the `product-management` feature flag (disabled on first deploy). Authorization is permission-claim only — unlike PPM, no membership or leadership requirement on a record.

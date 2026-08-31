@@ -39,6 +39,7 @@ Wayd supports:
 - [Product Management Overview](docs/user-guide/product-management/index.mdx): Product catalog vs delivery records, module scope, permissions
 - [Products](docs/user-guide/product-management/products.mdx): Product tree, types and releasability, statuses, tags, moving, external links
 - [Delivery](docs/user-guide/product-management/delivery.mdx): Releases, packages, environments, deployments, DORA metrics
+- [Status Workflows](docs/user-guide/settings/status-workflows.mdx): Statuses, categories, aliases, publish/clone lifecycle, reassignment
 - [Administration](docs/user-guide/settings/index.mdx): Users, roles, feature flags, integrations, background jobs
 - [Architecture](docs/contributing/architecture.mdx): Clean Architecture, DDD, CQRS, vertical slices
 - [Coding Standards](docs/contributing/coding-standards.mdx): Naming, NodaTime, Result pattern, theming

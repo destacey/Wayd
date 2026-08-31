@@ -44,6 +44,7 @@ import {
 import {
   GanttToolbarActions,
   useBarDrag,
+  useGanttVisibility,
   useGanttZoom,
 } from '@/src/components/common/timeline'
 
@@ -196,7 +197,9 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
     useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-  const [showGantt, setShowGantt] = useState(true)
+  // Show/hide the chart. Persisted across roadmaps (see useGanttVisibility).
+  const ganttVisibility = useGanttVisibility('roadmap')
+  const showGantt = ganttVisibility.visible
   // Gantt zoom level (pixels per day). Clamped; adjusted via toolbar +/- and
   // Ctrl/Cmd+wheel over the chart.
   const zoom = useGanttZoom()
@@ -798,7 +801,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
           actionsSlot={
             <GanttToolbarActions
               visible={showGantt}
-              onToggle={() => setShowGantt((v) => !v)}
+              onToggle={ganttVisibility.toggle}
               zoom={zoom}
             />
           }

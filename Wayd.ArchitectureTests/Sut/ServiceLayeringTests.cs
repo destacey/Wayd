@@ -2,9 +2,11 @@
 using FluentAssertions;
 using Wayd.ArchitectureTests.Helpers;
 using Wayd.Common.Application.Dispatching;
+using Wayd.Common.Application.Events;
 using Wayd.Common.Application.Identity.Users;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Infrastructure.Common.Services;
+using Wayd.Infrastructure.Identity;
 using Wayd.Integrations.Abstractions;
 
 namespace Wayd.ArchitectureTests.Sut;
@@ -45,10 +47,48 @@ public class ServiceLayeringTests
         typeof(IDateTimeProvider),
         typeof(IUserService),
         typeof(ICurrentUser),
-        typeof(ICurrentPrincipal),
-        typeof(IEmployeeSourceFactory),
-        typeof(IWorkItemSourceFactory),
-        typeof(IRequestCorrelationIdProvider),
+        typeof(IEventPublisher),
+    ];
+
+    /// <summary>
+    /// Narrow seams over persistence, which the tier rule already permits a service to reach.
+    /// </summary>
+    /// <remarks>
+    /// Kept apart from <see cref="AllowedPrimitives"/> rather than folded into it. A clock and a store
+    /// are exempt for different reasons: the first holds no state a cycle could run through, while the
+    /// second is the database by another name — "a service may reach the database" is the rule, and
+    /// these exist so a write path can be tested without a full <c>WaydDbContext</c>. Naming them
+    /// together would make the primitives list mean "things we decided to allow", which is precisely
+    /// the vagueness that let a stale entry sit unnoticed.
+    /// </remarks>
+    private static readonly Type[] AllowedPersistenceSeams =
+    [
+        typeof(IUserIdentityStore),
+    ];
+
+    /// <summary>
+    /// Violations that predate this rule being enforced, kept as a shrinking list.
+    /// </summary>
+    /// <remarks>
+    /// These are real, not exemptions. The rule scanned no infrastructure assembly for as long as its
+    /// assembly loader used a pattern matching nothing, so both edges were introduced while the test
+    /// that forbids them was passing over an empty set. Fixing them is a behaviour change to identity
+    /// and authentication, which does not belong in the change that turned the rule back on.
+    /// <para>
+    /// <c>UserService</c> dispatches <c>GetEmployeeByEmailQuery</c> to resolve an employee id, which the
+    /// tiering says belongs to a saga or to the handler above it. <c>RoleService</c> asks
+    /// <c>IOidcProviderDefaultRoleChecker</c> whether a role is still referenced before deleting it — a
+    /// business rule, and so a genuine peer edge rather than a primitive.
+    /// </para>
+    /// <para>
+    /// The list is asserted to be exact: fixing one without removing it here fails, and so does adding
+    /// a new violation. Neither can pass quietly.
+    /// </para>
+    /// </remarks>
+    private static readonly string[] KnownViolations =
+    [
+        "Wayd.Infrastructure.Identity.RoleService depends on Wayd.Common.Application.Identity.Roles.IOidcProviderDefaultRoleChecker",
+        "Wayd.Infrastructure.Identity.UserService",
     ];
 
     /// <summary>
@@ -94,15 +134,60 @@ public class ServiceLayeringTests
                 .Distinct()
                 .Where(d => d != service && !ServiceMarkers.Contains(d))
                 .Where(d => !AllowedPrimitives.Contains(d))
+                .Where(d => !AllowedPersistenceSeams.Contains(d))
+                // An internal abstraction is reachable only from the assembly that declares it, so it
+                // cannot be the shared edge between two modules that the peer rule exists to prevent.
+                // The seams in Auth.Local are internal for exactly that reason, and cannot be named in
+                // a typeof list from here at all.
+                .Where(d => d.IsPublic)
                 .Where(d => ServiceMarkers.Any(m => m.IsAssignableFrom(d)));
 
             violations.AddRange(peers.Select(peer => $"{service.FullName} depends on {peer.FullName}"));
         }
 
         // Assert
-        violations.Should().BeEmpty(
-            "a service must not depend on another service — that is how cycles form. Move the shared work down into the domain, or up into the handler that needs both. Violations: {0}",
-            string.Join("; ", violations));
+        violations.Should().BeEquivalentTo(
+            KnownViolations.Where(v => v.Contains(" depends on ")),
+            "a service must not depend on another service — that is how cycles form. Move the shared " +
+            "work down into the domain, or up into the handler that needs both. Anything new here is a " +
+            "regression; anything missing is fixed and should be removed from KnownViolations.");
+    }
+
+    /// <summary>
+    /// Every exemption still exempts something.
+    /// </summary>
+    /// <remarks>
+    /// Converting these lists to <c>typeof</c> made a deleted type a compile error, which is half the
+    /// problem. The other half is an entry for a type that still exists but is no longer injected into
+    /// any service: it compiles, it matches nothing, and it quietly widens the rule for a dependency
+    /// nobody has. That is how <c>ICacheService</c> survived a rename of the thing it described.
+    /// <para>
+    /// It caught four on the run that introduced it. <c>IEmployeeSourceFactory</c> and
+    /// <c>IWorkItemSourceFactory</c> are injected nowhere at all; <c>ICurrentPrincipal</c> and
+    /// <c>IRequestCorrelationIdProvider</c> are injected into a middleware and a DbContext, neither of
+    /// which is a service by the definition above — so exempting them for this rule granted nothing.
+    /// A dependency that later needs one back will fail the peer rule and say so.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void EveryExemption_IsStillInjectedSomewhere()
+    {
+        // Arrange
+        var services = GetServiceImplementations();
+        var injected = services.SelectMany(DependenciesOf).Distinct().ToHashSet();
+
+        // Act
+        var unused = AllowedPrimitives
+            .Concat(AllowedPersistenceSeams)
+            .Where(t => !injected.Contains(t))
+            .Select(t => t.Name)
+            .ToList();
+
+        // Assert
+        unused.Should().BeEmpty(
+            "an exemption for a dependency nothing has widens the rule for nothing. Remove the entry, " +
+            "or if the type is genuinely coming back, say so here. Unused: {0}",
+            string.Join(", ", unused));
     }
 
     [Fact]
@@ -122,9 +207,11 @@ public class ServiceLayeringTests
         }
 
         // Assert
-        violations.Should().BeEmpty(
-            "a service must not dispatch — that inverts the tiering and lets a service re-enter the handlers above it. Orchestration across handlers belongs in a saga. Violations: {0}",
-            string.Join("; ", violations));
+        violations.Should().BeEquivalentTo(
+            KnownViolations.Where(v => !v.Contains(" depends on ")),
+            "a service must not dispatch — that inverts the tiering and lets a service re-enter the " +
+            "handlers above it. Orchestration across handlers belongs in a saga. Anything new here is a " +
+            "regression; anything missing is fixed and should be removed from KnownViolations.");
     }
 
 }

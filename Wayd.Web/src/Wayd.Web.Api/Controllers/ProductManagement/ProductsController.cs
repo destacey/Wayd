@@ -114,6 +114,25 @@ public class ProductsController(IDispatcher dispatcher) : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPut("{id}/external-link")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
+    [OpenApiOperation("Link a product to the record that owns it in another system.", "")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> LinkExternally(
+        Guid id, [FromBody] LinkProductExternallyRequest request, CancellationToken cancellationToken)
+    {
+        if (id != request.Id)
+            return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
+
+        var result = await _dispatcher.Send(request.ToLinkProductExternallyCommand(), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpPut("{id}/parent")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
     [OpenApiOperation("Move a product to a different parent.", "")]

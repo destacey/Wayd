@@ -14,7 +14,7 @@ public sealed class UpdateProductDetailsCommandValidatorTests
     public void Validate_ShouldRejectAnEmptyName()
     {
         // Arrange
-        var command = new UpdateProductDetailsCommand(Guid.CreateVersion7(), "", null, null);
+        var command = new UpdateProductDetailsCommand(Guid.CreateVersion7(), "", null);
 
         // Act
         var result = _sut.Validate(command);
@@ -27,7 +27,7 @@ public sealed class UpdateProductDetailsCommandValidatorTests
     public void Validate_ShouldRejectANameOverTheColumnLength()
     {
         // Arrange
-        var command = new UpdateProductDetailsCommand(Guid.CreateVersion7(), new string('a', 129), null, null);
+        var command = new UpdateProductDetailsCommand(Guid.CreateVersion7(), new string('a', 129), null);
 
         // Act
         var result = _sut.Validate(command);
@@ -42,7 +42,7 @@ public sealed class UpdateProductDetailsCommandValidatorTests
     public void Validate_ShouldAcceptAValidCommand()
     {
         // Arrange
-        var command = new UpdateProductDetailsCommand(Guid.CreateVersion7(), "Payments", null, null);
+        var command = new UpdateProductDetailsCommand(Guid.CreateVersion7(), "Payments", null);
 
         // Act
         var result = _sut.Validate(command);

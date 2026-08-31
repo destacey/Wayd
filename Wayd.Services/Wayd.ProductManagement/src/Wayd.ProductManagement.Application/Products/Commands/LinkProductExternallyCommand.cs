@@ -1,41 +1,35 @@
-﻿namespace Wayd.ProductManagement.Application.Products.Commands;
+namespace Wayd.ProductManagement.Application.Products.Commands;
 
-public sealed record UpdateProductDetailsCommand(
-    Guid Id,
-    string Name,
-    string? Description) : ICommand;
+/// <param name="ExternalId">The identifier in the owning system, or <c>null</c> to unlink.</param>
+public sealed record LinkProductExternallyCommand(Guid Id, string? ExternalId) : ICommand;
 
-public sealed class UpdateProductDetailsCommandValidator : AbstractValidator<UpdateProductDetailsCommand>
+public sealed class LinkProductExternallyCommandValidator : AbstractValidator<LinkProductExternallyCommand>
 {
-    public UpdateProductDetailsCommandValidator()
+    public LinkProductExternallyCommandValidator()
     {
         RuleFor(x => x.Id)
             .NotEmpty();
 
-        RuleFor(x => x.Name)
-            .NotEmpty()
-            .MaximumLength(128);
-
-        RuleFor(x => x.Description)
-            .MaximumLength(1024);
+        RuleFor(x => x.ExternalId)
+            .MaximumLength(256);
     }
 }
 
-public sealed class UpdateProductDetailsCommandHandler(
+public sealed class LinkProductExternallyCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     ICurrentUser currentUser,
-    ILogger<UpdateProductDetailsCommandHandler> logger,
+    ILogger<LinkProductExternallyCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
-    : ICommandHandler<UpdateProductDetailsCommand>
+    : ICommandHandler<LinkProductExternallyCommand>
 {
-    private const string AppRequestName = nameof(UpdateProductDetailsCommand);
+    private const string AppRequestName = nameof(LinkProductExternallyCommand);
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
-    private readonly ILogger<UpdateProductDetailsCommandHandler> _logger = logger;
+    private readonly ILogger<LinkProductExternallyCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
-    public async Task<Result> Handle(UpdateProductDetailsCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(LinkProductExternallyCommand request, CancellationToken cancellationToken)
     {
         try
         {
@@ -48,25 +42,24 @@ public sealed class UpdateProductDetailsCommandHandler(
                 return Result.Failure("Product not found.");
             }
 
-            var updateResult = product.UpdateDetails(
-                request.Name,
-                request.Description,
+            var linkResult = product.LinkExternally(
+                request.ExternalId,
                 EventActor.User(_currentUser.GetUserId()),
                 _dateTimeProvider.Now);
 
-            if (updateResult.IsFailure)
+            if (linkResult.IsFailure)
             {
                 // No reload: every refusal on this aggregate is checked before any state is
                 // touched, so there is nothing to roll back.
                 product.ClearDomainEvents();
 
-                _logger.LogError("Unable to update Product {ProductId}. Error message: {Error}", request.Id, updateResult.Error);
-                return Result.Failure(updateResult.Error);
+                _logger.LogError("Unable to link Product {ProductId}. Error message: {Error}", request.Id, linkResult.Error);
+                return Result.Failure(linkResult.Error);
             }
 
             await _productManagementDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Product {ProductId} updated.", request.Id);
+            _logger.LogInformation("Product {ProductId} external link set.", request.Id);
 
             return Result.Success();
         }

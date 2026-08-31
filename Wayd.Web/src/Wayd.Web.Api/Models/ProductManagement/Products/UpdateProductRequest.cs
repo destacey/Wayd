@@ -6,8 +6,9 @@ namespace Wayd.Web.Api.Models.ProductManagement.Products;
 /// A whole-record update of a product's descriptive fields.
 /// </summary>
 /// <remarks>
-/// PUT semantics: an omitted optional field is cleared, not left as it was. Type, parent and status are
-/// changed through their own endpoints, because each carries rules a blanket update could not enforce.
+/// PUT semantics: an omitted optional field is cleared, not left as it was. Type, parent, status and
+/// the external link are changed through their own endpoints — each carries rules a blanket update
+/// could not enforce, and the link would otherwise have to be restated by every rename.
 /// </remarks>
 public sealed record UpdateProductRequest
 {
@@ -26,13 +27,8 @@ public sealed record UpdateProductRequest
     /// </summary>
     public string? Description { get; set; }
 
-    /// <summary>
-    /// The node's identifier in the system that owns it. Cleared when omitted.
-    /// </summary>
-    public string? ExternalId { get; set; }
-
     public UpdateProductDetailsCommand ToUpdateProductDetailsCommand() =>
-        new(Id, Name, Description, ExternalId);
+        new(Id, Name, Description);
 }
 
 public sealed class UpdateProductRequestValidator : CustomValidator<UpdateProductRequest>
@@ -48,8 +44,5 @@ public sealed class UpdateProductRequestValidator : CustomValidator<UpdateProduc
 
         RuleFor(p => p.Description)
             .MaximumLength(1024);
-
-        RuleFor(p => p.ExternalId)
-            .MaximumLength(256);
     }
 }

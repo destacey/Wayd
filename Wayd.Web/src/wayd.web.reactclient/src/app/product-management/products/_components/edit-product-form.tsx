@@ -6,7 +6,7 @@ import { useModalForm } from '@/src/hooks'
 import { ProductDto, UpdateProductRequest } from '@/src/services/wayd-api'
 import { useUpdateProductMutation } from '@/src/store/features/product-management/products-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { Form, Input, Modal } from 'antd'
+import { Form, Modal } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
 import { useEffect } from 'react'
 
@@ -21,14 +21,14 @@ export interface EditProductFormProps {
 interface EditProductFormValues {
   name: string
   description?: string
-  externalId?: string
 }
 
 /**
  * Edits a product's descriptive fields.
  *
- * Type, parent and status are changed through their own actions: each carries a
- * rule the API enforces, and folding them in here would hide which one refused.
+ * Type, parent, status and the external link are changed through their own
+ * actions: each carries a rule the API enforces or a different intent, and
+ * folding them in here would hide which one refused.
  */
 const EditProductForm = ({
   product,
@@ -49,7 +49,6 @@ const EditProductForm = ({
             id: product.id,
             name: values.name,
             description: values.description,
-            externalId: values.externalId,
           } as UpdateProductRequest
 
           const response = await updateProduct({ id: product.id, request })
@@ -83,7 +82,6 @@ const EditProductForm = ({
     form.setFieldsValue({
       name: product.name,
       description: product.description,
-      externalId: product.externalId,
     })
   }, [product, form])
 
@@ -113,14 +111,6 @@ const EditProductForm = ({
         </Item>
         <Item name="description" label="Description" rules={[{ max: 1024 }]}>
           <MarkdownEditor maxLength={1024} />
-        </Item>
-        <Item
-          name="externalId"
-          label="External Id"
-          rules={[{ max: 256 }]}
-          extra="Its identifier in the system that owns it — a repository, a pipeline, a registry package."
-        >
-          <Input showCount maxLength={256} />
         </Item>
       </Form>
     </Modal>

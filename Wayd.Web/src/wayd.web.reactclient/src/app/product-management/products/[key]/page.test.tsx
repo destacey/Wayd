@@ -199,6 +199,7 @@ describe('ProductDetailsPage', () => {
       'Change Type',
       'Move',
       'Manage Tags',
+      'Link Externally',
     ]) {
       expect(await screen.findByText(action)).toBeInTheDocument()
     }

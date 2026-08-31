@@ -11,7 +11,7 @@ import {
 import { useGetProductTypesQuery } from '@/src/store/features/product-management/product-types-api'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { Form, Input, Modal, Select } from 'antd'
+import { Form, Modal, Select } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
 
 const { Item } = Form
@@ -28,7 +28,6 @@ interface CreateProductFormValues {
   description?: string
   productTypeId: string
   parentId?: string
-  externalId?: string
 }
 
 const mapToRequestValues = (
@@ -39,7 +38,6 @@ const mapToRequestValues = (
     description: values.description,
     productTypeId: values.productTypeId,
     parentId: values.parentId,
-    externalId: values.externalId,
   }) as CreateProductRequest
 
 const CreateProductForm = ({
@@ -153,14 +151,6 @@ const CreateProductForm = ({
         </Item>
         <Item name="description" label="Description" rules={[{ max: 1024 }]}>
           <MarkdownEditor maxLength={1024} />
-        </Item>
-        <Item
-          name="externalId"
-          label="External Id"
-          rules={[{ max: 256 }]}
-          extra="Its identifier in the system that owns it — a repository, a pipeline, a registry package."
-        >
-          <Input showCount maxLength={256} />
         </Item>
       </Form>
     </Modal>

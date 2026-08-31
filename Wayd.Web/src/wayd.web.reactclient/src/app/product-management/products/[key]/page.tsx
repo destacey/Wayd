@@ -22,6 +22,7 @@ import ChangeProductStatusForm from '../_components/change-product-status-form'
 import CreateProductForm from '../_components/create-product-form'
 import DeleteProductForm from '../_components/delete-product-form'
 import EditProductForm from '../_components/edit-product-form'
+import LinkProductExternallyForm from '../_components/link-product-externally-form'
 import ManageProductTagsForm from '../_components/manage-product-tags-form'
 import ReparentProductForm from '../_components/reparent-product-form'
 import RetypeProductForm from '../_components/retype-product-form'
@@ -48,6 +49,7 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [isRetypeOpen, setIsRetypeOpen] = useState<boolean>(false)
   const [isReparentOpen, setIsReparentOpen] = useState<boolean>(false)
   const [isManageTagsOpen, setIsManageTagsOpen] = useState<boolean>(false)
+  const [isLinkExternallyOpen, setIsLinkExternallyOpen] = useState<boolean>(false)
   const router = useRouter()
 
   // The active section lives in the URL (?section=), owned by RecordLayout. Read
@@ -130,11 +132,18 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         },
       ])
 
+      // Grouped together: both attach context to a product rather than changing
+      // what it is.
       groups.push([
         {
           key: 'manage-tags',
           label: 'Manage Tags',
           onClick: () => setIsManageTagsOpen(true),
+        },
+        {
+          key: 'link-externally',
+          label: 'Link Externally',
+          onClick: () => setIsLinkExternallyOpen(true),
         },
       ])
     }
@@ -310,6 +319,17 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             refetch()
           }}
           onFormCancel={() => setIsManageTagsOpen(false)}
+        />
+      )}
+
+      {isLinkExternallyOpen && (
+        <LinkProductExternallyForm
+          product={product}
+          onFormComplete={() => {
+            setIsLinkExternallyOpen(false)
+            refetch()
+          }}
+          onFormCancel={() => setIsLinkExternallyOpen(false)}
         />
       )}
 

@@ -129,13 +129,12 @@ public sealed class ProductTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.UpdateDetails("Checkout Web", "Rebranded.", "checkout-web", EventActor.System, _dateTimeProvider.Now);
+        var result = sut.UpdateDetails("Checkout Web", "Rebranded.", EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         sut.Name.Should().Be("Checkout Web");
         sut.Description.Should().Be("Rebranded.");
-        sut.ExternalId.Should().Be("checkout-web");
         sut.DomainEvents.Should().ContainSingle(e => e is ProductDetailsUpdatedEvent);
     }
 
@@ -146,7 +145,7 @@ public sealed class ProductTests
         var sut = _faker.WithName("Checkout").WithDescription("The checkout product.").WithExternalId("checkout-web").Generate();
 
         // Act
-        var result = sut.UpdateDetails("Checkout", "The checkout product.", "checkout-web", EventActor.System, _dateTimeProvider.Now);
+        var result = sut.UpdateDetails("Checkout", "The checkout product.", EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         // An event asserts something happened. Saving a form without editing it must not put a change
@@ -162,7 +161,7 @@ public sealed class ProductTests
         var sut = _faker.WithName("Checkout").WithDescription("The checkout product.").WithExternalId("checkout-web").Generate();
 
         // Act
-        var result = sut.UpdateDetails("  Checkout  ", " The checkout product. ", " checkout-web ", EventActor.System, _dateTimeProvider.Now);
+        var result = sut.UpdateDetails("  Checkout  ", " The checkout product. ", EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         // The setters trim, so the stored state would be identical — reporting a change the record does
@@ -178,7 +177,7 @@ public sealed class ProductTests
         var sut = _faker.WithName("Checkout").WithDescription("The checkout product.").WithExternalId("checkout-web").Generate();
 
         // Act
-        var result = sut.UpdateDetails("Checkout", "Reworded.", "checkout-web", EventActor.System, _dateTimeProvider.Now);
+        var result = sut.UpdateDetails("Checkout", "Reworded.", EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -192,7 +191,7 @@ public sealed class ProductTests
         var sut = _faker.WithName("Checkout").WithDescription("The checkout product.").WithExternalId("checkout-web").Generate();
 
         // Act
-        var result = sut.UpdateDetails("Checkout", null, "checkout-web", EventActor.System, _dateTimeProvider.Now);
+        var result = sut.UpdateDetails("Checkout", null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -200,7 +199,88 @@ public sealed class ProductTests
         sut.DomainEvents.Should().ContainSingle(e => e is ProductDetailsUpdatedEvent);
     }
 
+    [Fact]
+    public void UpdateDetails_ShouldLeaveTheExternalLinkAlone()
+    {
+        // The facets were split so a rename cannot silently clear the link.
+        // Arrange
+        var sut = _faker.WithName("Checkout").WithExternalId("checkout-web").Generate();
+
+        // Act
+        var result = sut.UpdateDetails("Checkout Web", "Rebranded.", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.ExternalId.Should().Be("checkout-web");
+    }
+
     #endregion UpdateDetails
+
+    #region LinkExternally
+
+    [Fact]
+    public void LinkExternally_ShouldSetTheLinkAndRaiseEvent()
+    {
+        // Arrange
+        var sut = _faker.WithExternalId(null).Generate();
+
+        // Act
+        var result = sut.LinkExternally("acme/checkout-web", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.ExternalId.Should().Be("acme/checkout-web");
+        sut.DomainEvents.Should().ContainSingle(e => e is ProductLinkedExternallyEvent);
+    }
+
+    [Fact]
+    public void LinkExternally_WithNull_ShouldClearTheLinkAndRaiseEvent()
+    {
+        // Unlinking is as much a change as linking: an integration that correlated on the old value
+        // stops being able to.
+        // Arrange
+        var sut = _faker.WithExternalId("acme/checkout-web").Generate();
+
+        // Act
+        var result = sut.LinkExternally(null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.ExternalId.Should().BeNull();
+        sut.DomainEvents.Should().ContainSingle(e => e is ProductLinkedExternallyEvent);
+    }
+
+    [Fact]
+    public void LinkExternally_WithTheSameValue_ShouldSucceedWithoutRaisingAnEvent()
+    {
+        // Arrange
+        var sut = _faker.WithExternalId("acme/checkout-web").Generate();
+
+        // Act
+        var result = sut.LinkExternally("  acme/checkout-web  ", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        // The setter trims, so the stored state is identical and nothing happened.
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void LinkExternally_ShouldLeaveTheNameAndDescriptionAlone()
+    {
+        // Arrange
+        var sut = _faker.WithName("Checkout").WithDescription("The checkout product.").Generate();
+
+        // Act
+        var result = sut.LinkExternally("acme/checkout-web", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Name.Should().Be("Checkout");
+        sut.Description.Should().Be("The checkout product.");
+    }
+
+    #endregion LinkExternally
 
     #region Reparent
 

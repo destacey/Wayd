@@ -6,7 +6,8 @@ using Wayd.ProductManagement.Application.Tests.Infrastructure;
 namespace Wayd.ProductManagement.Application.Tests.Sut.Products.Commands;
 
 /// <summary>
-/// Editing a product's descriptive fields. Whole-record semantics: an omitted value clears.
+/// Editing a product's descriptive fields. Whole-record semantics: an omitted value clears — the
+/// external link excepted, which has its own command.
 /// </summary>
 public sealed class UpdateProductDetailsCommandHandlerTests : ProductCommandTestBase
 {
@@ -22,14 +23,13 @@ public sealed class UpdateProductDetailsCommandHandlerTests : ProductCommandTest
 
         // Act
         var result = await sut.Handle(
-            new UpdateProductDetailsCommand(product.Id, "Payments", "New", "repo/new"),
+            new UpdateProductDetailsCommand(product.Id, "Payments", "New"),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         product.Name.Should().Be("Payments");
         product.Description.Should().Be("New");
-        product.ExternalId.Should().Be("repo/new");
         DbContext.SaveChangesCallCount.Should().Be(1);
     }
 
@@ -42,14 +42,15 @@ public sealed class UpdateProductDetailsCommandHandlerTests : ProductCommandTest
 
         // Act
         var result = await sut.Handle(
-            new UpdateProductDetailsCommand(product.Id, "Checkout", null, null),
+            new UpdateProductDetailsCommand(product.Id, "Checkout", null),
             TestContext.Current.CancellationToken);
 
         // Assert
         // Whole-record update, matching the API's PUT semantics — an omitted field is cleared, not kept.
+        // The external link is not among them: it has its own endpoint, so a rename cannot drop it.
         result.IsSuccess.Should().BeTrue();
         product.Description.Should().BeNull();
-        product.ExternalId.Should().BeNull();
+        product.ExternalId.Should().Be("repo/old");
     }
 
     [Fact]
@@ -61,7 +62,7 @@ public sealed class UpdateProductDetailsCommandHandlerTests : ProductCommandTest
 
         // Act
         var result = await sut.Handle(
-            new UpdateProductDetailsCommand(product.Id, "Checkout", "Same", "repo/same"),
+            new UpdateProductDetailsCommand(product.Id, "Checkout", "Same"),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -79,7 +80,7 @@ public sealed class UpdateProductDetailsCommandHandlerTests : ProductCommandTest
 
         // Act
         await sut.Handle(
-            new UpdateProductDetailsCommand(product.Id, "Payments", null, null),
+            new UpdateProductDetailsCommand(product.Id, "Payments", null),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -94,7 +95,7 @@ public sealed class UpdateProductDetailsCommandHandlerTests : ProductCommandTest
 
         // Act
         var result = await sut.Handle(
-            new UpdateProductDetailsCommand(Guid.CreateVersion7(), "Payments", null, null),
+            new UpdateProductDetailsCommand(Guid.CreateVersion7(), "Payments", null),
             TestContext.Current.CancellationToken);
 
         // Assert

@@ -154,30 +154,50 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     }
 
     /// <summary>
-    /// Updates the node's name, description or external identifier.
+    /// Updates the node's name or description.
     /// </summary>
     /// <remarks>
     /// Raises nothing when every value already matches, so an unedited save records no change. Compares
     /// trimmed input because the setters trim.
     /// </remarks>
-    public Result UpdateDetails(string name, string? description, string? externalId, EventActor actor, Instant timestamp)
+    public Result UpdateDetails(string name, string? description, EventActor actor, Instant timestamp)
     {
         var newName = Guard.Against.NullOrWhiteSpace(name, nameof(name)).Trim();
         var newDescription = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
-        var newExternalId = string.IsNullOrWhiteSpace(externalId) ? null : externalId.Trim();
 
         if (string.Equals(Name, newName, StringComparison.Ordinal)
-            && string.Equals(Description, newDescription, StringComparison.Ordinal)
-            && string.Equals(ExternalId, newExternalId, StringComparison.Ordinal))
+            && string.Equals(Description, newDescription, StringComparison.Ordinal))
         {
             return Result.Success();
         }
 
         Name = newName;
         Description = newDescription;
-        ExternalId = newExternalId;
 
         AddDomainEvent(new ProductDetailsUpdatedEvent(Id, Key, Name, Description, ExternalId, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Points the node at the record that owns it in another system, or clears the link.
+    /// </summary>
+    /// <remarks>
+    /// Separate from a details edit because it answers a different question — not what this product is
+    /// called, but which repository, pipeline or registry package it corresponds to. Keeping it here also
+    /// keeps a rename from having to restate the link, which a caller that forgot would silently clear.
+    /// </remarks>
+    /// <param name="externalId">The identifier in the owning system, or <c>null</c> to unlink.</param>
+    public Result LinkExternally(string? externalId, EventActor actor, Instant timestamp)
+    {
+        var newExternalId = string.IsNullOrWhiteSpace(externalId) ? null : externalId.Trim();
+
+        if (string.Equals(ExternalId, newExternalId, StringComparison.Ordinal))
+            return Result.Success();
+
+        ExternalId = newExternalId;
+
+        AddDomainEvent(new ProductLinkedExternallyEvent(Id, Key, Name, Description, ExternalId, actor, timestamp));
 
         return Result.Success();
     }

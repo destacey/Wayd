@@ -5181,6 +5181,71 @@
         ]
       }
     },
+    "/api/product-management/products/{id}/external-link": {
+      "put": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Link a product to the record that owns it in another system.",
+        "operationId": "Products_LinkExternally",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkProductExternallyRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/product-management/products/{id}/parent": {
       "put": {
         "tags": [
@@ -34595,10 +34660,28 @@
             "maxLength": 1024,
             "minLength": 0,
             "nullable": true
+          }
+        }
+      },
+      "LinkProductExternallyRequest": {
+        "type": "object",
+        "description": "Points a product at the record that owns it in another system, or clears the link.",
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the product.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
           },
           "externalId": {
             "type": "string",
-            "description": "The node's identifier in the system that owns it. Cleared when omitted.",
+            "description": "The node's identifier in whatever system owns it — a repository, a pipeline, a registry\npackage. Omit it to unlink.",
             "maxLength": 256,
             "minLength": 0,
             "nullable": true

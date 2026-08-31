@@ -7,6 +7,7 @@ import {
   ProductDto,
   ReparentProductRequest,
   StatusNavigationDto,
+  LinkProductExternallyRequest,
   RetypeProductRequest,
   UpdateProductRequest,
 } from '@/src/services/wayd-api'
@@ -120,6 +121,24 @@ export const productsApi = apiSlice.injectEndpoints({
         { type: QueryTags.Product, id: arg.id },
       ],
     }),
+    linkProductExternally: builder.mutation<
+      void,
+      { id: string; request: LinkProductExternallyRequest }
+    >({
+      queryFn: async ({ id, request }) => {
+        try {
+          const data = await getProductsClient().linkExternally(id, request)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.Product, id: 'LIST' },
+        { type: QueryTags.Product, id: arg.id },
+      ],
+    }),
     retypeProduct: builder.mutation<
       void,
       { id: string; request: RetypeProductRequest }
@@ -208,6 +227,7 @@ export const {
   useCreateProductMutation,
   useUpdateProductMutation,
   useReparentProductMutation,
+  useLinkProductExternallyMutation,
   useRetypeProductMutation,
   useChangeProductStatusMutation,
   useTagProductMutation,

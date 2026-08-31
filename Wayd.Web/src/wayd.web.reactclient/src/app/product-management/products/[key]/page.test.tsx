@@ -1,0 +1,224 @@
+import React, { Suspense } from 'react'
+import { act, render, screen } from '@testing-library/react'
+import ProductDetailsPage from './page'
+
+const product = {
+  id: 'product-1',
+  key: 7,
+  name: 'Trio VMS',
+  description: 'The video management surface.',
+  externalId: 'acme/trio-vms',
+  type: { id: 'type-1', key: 1, name: 'Application' },
+  status: { id: 'status-1', name: 'Concept', category: 1, alias: 0 },
+  isReleasable: true,
+  parent: { id: 'product-0', key: 1, name: 'Trio WFS' },
+  tags: [
+    {
+      tagId: 'tag-1',
+      tagName: 'ios',
+      categoryId: 'cat-1',
+      categoryName: 'Platform',
+    },
+  ],
+}
+
+const components = [
+  {
+    ...product,
+    id: 'product-2',
+    key: 9,
+    name: 'Trio VMS Web',
+    parent: { id: 'product-1', key: 7, name: 'Trio VMS' },
+    tags: [],
+  },
+]
+
+let mockSearchParams = new URLSearchParams()
+const mockReplace = jest.fn((url: string) => {
+  mockSearchParams = new URLSearchParams(url.split('?')[1] ?? '')
+})
+
+// jsdom has no matchMedia, so useBreakpoint reports nothing and RecordLayout
+// renders its compact form. Pin a wide viewport so the rail and facts are shown.
+jest.mock('antd', () => {
+  const actual = jest.requireActual('antd')
+  return {
+    ...actual,
+    Grid: {
+      ...actual.Grid,
+      useBreakpoint: () => ({ md: true, lg: true, xl: true }),
+    },
+  }
+})
+
+// The markdown editor pulls in ESM-only packages Jest cannot parse; the page only
+// renders the read-only renderer, so the barrel is mocked as the other suites do.
+jest.mock('@/src/components/common/markdown', () => ({
+  MarkdownRenderer: ({ markdown }: { markdown: string }) => (
+    <div data-testid="markdown">{markdown}</div>
+  ),
+  MarkdownEditor: () => <textarea data-testid="markdown-editor" />,
+}))
+
+jest.mock('@/src/components/common/markdown/markdown-editor', () => ({
+  __esModule: true,
+  default: () => <textarea data-testid="markdown-editor" />,
+}))
+
+// The edit form imports antd's ESM TextArea path, as 26 other components do.
+// Jest cannot parse it, and changing the app to suit the test would break a
+// convention rather than fix anything.
+jest.mock('antd/es/input/TextArea', () => ({
+  __esModule: true,
+  default: (props: Record<string, unknown>) => <textarea {...props} />,
+}))
+
+jest.mock('next/navigation', () => ({
+  notFound: jest.fn(),
+  usePathname: () => '/product-management/products/7',
+  useRouter: () => ({ replace: mockReplace, push: jest.fn() }),
+  useSearchParams: () => mockSearchParams,
+}))
+
+jest.mock('@/src/components/common', () => ({
+  PageActions: ({ actionItems }: { actionItems: any[] }) => (
+    <div>
+      {actionItems.map((item) => (
+        <button key={item.key} type="button" onClick={item.onClick}>
+          {item.label}
+        </button>
+      ))}
+    </div>
+  ),
+}))
+
+jest.mock('@/src/components/contexts/auth', () => ({
+  __esModule: true,
+  default: () => ({
+    hasClaim: jest.fn(() => true),
+    hasPermissionClaim: jest.fn(() => true),
+  }),
+}))
+
+jest.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+}))
+
+// Spread the real module: RecordLayout reaches for useLocalStorageState through
+// the same barrel, and replacing it wholesale takes that with it.
+jest.mock('@/src/hooks', () => ({
+  ...jest.requireActual('@/src/hooks'),
+  useDocumentTitle: jest.fn(),
+  useModalForm: () => ({
+    form: { setFieldsValue: jest.fn(), getFieldValue: jest.fn() },
+    isOpen: false,
+    isValid: true,
+    isSaving: false,
+    handleOk: jest.fn(),
+    handleCancel: jest.fn(),
+  }),
+}))
+
+jest.mock('@/src/components/hoc', () => ({
+  authorizePage: (Component: React.ComponentType<any>) => Component,
+  requireFeatureFlag: (Component: React.ComponentType<any>) => Component,
+}))
+
+jest.mock('@/src/store/features/product-management/products-api', () => ({
+  useGetProductQuery: () => ({
+    data: product,
+    error: undefined,
+    isLoading: false,
+    refetch: jest.fn(),
+  }),
+  useGetProductsQuery: () => ({ data: components, isLoading: false }),
+  useUpdateProductMutation: () => [jest.fn()],
+  useDeleteProductMutation: () => [jest.fn()],
+}))
+
+// The page reads its params with use(), which suspends on first render — so the
+// render has to be awaited inside act, or the tree never resolves.
+const renderPage = async () =>
+  await act(async () =>
+    render(
+      <Suspense fallback={<div>Loading product</div>}>
+        <ProductDetailsPage params={Promise.resolve({ key: '7' })} />
+      </Suspense>,
+    ),
+  )
+
+describe('ProductDetailsPage', () => {
+  beforeEach(() => {
+    mockSearchParams = new URLSearchParams()
+  })
+
+  it('shows the product name and key', async () => {
+    // Arrange / Act
+    await renderPage()
+
+    // Assert
+    expect(await screen.findByText('Trio VMS')).toBeInTheDocument()
+    expect(screen.getByText('7')).toBeInTheDocument()
+  })
+
+  it('links up to the parent rather than the list', async () => {
+    // A component's parent is the more useful way back than the flat list, and
+    // it is what makes the hierarchy navigable from either end.
+    // Arrange / Act
+    await renderPage()
+
+    // Assert
+    const parentLink = await screen.findByRole('link', { name: 'Trio WFS' })
+    expect(parentLink).toHaveAttribute(
+      'href',
+      '/product-management/products/1',
+    )
+  })
+
+  it('links back to the products list as the first crumb', async () => {
+    // Outermost first: the list, then the parent. Replacing the list with the
+    // parent would leave a nested product with no way back to the top.
+    await renderPage()
+
+    // Assert
+    const listLink = await screen.findByRole('link', { name: 'Products' })
+    expect(listLink).toHaveAttribute('href', '/product-management/products')
+  })
+
+  it('counts the child products on their section', async () => {
+    // Whether a product has parts is the first thing a reader wants; opening an
+    // empty section to find out is worse than carrying the count.
+    // Arrange / Act
+    await renderPage()
+
+    // Assert
+    // "Products" also appears as the first breadcrumb, so the count is what
+    // identifies the section entry.
+    expect(await screen.findByText('1')).toBeInTheDocument()
+  })
+
+  it('offers adding a child product from the products section', async () => {
+    // Arrange
+    mockSearchParams = new URLSearchParams('section=products')
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(
+      await screen.findByRole('button', { name: 'Add Product' }),
+    ).toBeInTheDocument()
+  })
+
+  it('does not offer it on the overview', async () => {
+    // sectionActions renders for whichever section is open, so an unconditional
+    // action shows up on all of them.
+    // Arrange / Act — no ?section=, so Overview is active
+    await renderPage()
+
+    // Assert
+    expect(
+      screen.queryByRole('button', { name: 'Add Product' }),
+    ).not.toBeInTheDocument()
+  })
+})

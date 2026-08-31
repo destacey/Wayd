@@ -81,13 +81,19 @@ jest.mock('next/navigation', () => ({
 }))
 
 jest.mock('@/src/components/common', () => ({
+  // Dividers are rendered as marker elements rather than skipped, so a test can
+  // assert how the menu is grouped and not just what it contains.
   PageActions: ({ actionItems }: { actionItems: any[] }) => (
-    <div>
-      {actionItems.map((item) => (
-        <button key={item.key} type="button" onClick={item.onClick}>
-          {item.label}
-        </button>
-      ))}
+    <div data-testid="page-actions">
+      {actionItems.map((item, index) =>
+        item.type === 'divider' ? (
+          <hr key={item.key ?? index} data-testid="action-divider" />
+        ) : (
+          <button key={item.key} type="button" onClick={item.onClick}>
+            {item.label}
+          </button>
+        ),
+      )}
     </div>
   ),
 }))
@@ -196,6 +202,19 @@ describe('ProductDetailsPage', () => {
     ]) {
       expect(await screen.findByText(action)).toBeInTheDocument()
     }
+  })
+
+  it('groups the actions by what a change means', async () => {
+    // Record actions, then the three guarded changes, then labels — two dividers
+    // between three groups, and none stranded at either edge.
+    // Arrange / Act
+    await renderPage()
+
+    // Assert
+    const menu = await screen.findByTestId('page-actions')
+    expect(screen.getAllByTestId('action-divider')).toHaveLength(2)
+    expect(menu.firstChild).not.toHaveAttribute('data-testid', 'action-divider')
+    expect(menu.lastChild).not.toHaveAttribute('data-testid', 'action-divider')
   })
 
   it('summarises the child products on the overview', async () => {

@@ -85,45 +85,66 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     return <ProductDetailsLoading />
   }
 
+  // Grouped by what a change means: the record itself, then the three guarded
+  // changes, then its labels. Dividers are pushed between non-empty groups only,
+  // so a permission that hides a whole group cannot leave one stranded at an edge.
   const actionsMenuItems: MenuProps['items'] = (() => {
-    const items: ItemType[] = []
+    const groups: ItemType[][] = []
 
     if (canUpdateProduct) {
-      items.push({ key: 'edit', label: 'Edit', onClick: () => setIsEditOpen(true) })
-      // Each is its own action rather than a field on Edit: every one carries a
-      // rule the API enforces, and a blanket save would hide which one refused.
-      items.push({
-        key: 'change-status',
-        label: 'Change Status',
-        onClick: () => setIsChangeStatusOpen(true),
-      })
-      items.push({
-        key: 'retype',
-        label: 'Change Type',
-        onClick: () => setIsRetypeOpen(true),
-      })
-      items.push({
-        key: 'reparent',
-        label: 'Move',
-        onClick: () => setIsReparentOpen(true),
-      })
-      items.push({
-        key: 'manage-tags',
-        label: 'Manage Tags',
-        onClick: () => setIsManageTagsOpen(true),
-      })
+      groups.push([
+        { key: 'edit', label: 'Edit', onClick: () => setIsEditOpen(true) },
+      ])
     }
 
     if (canDeleteProduct) {
-      items.push({
+      const record = groups[0] ?? []
+      record.push({
         key: 'delete',
         label: 'Delete',
         danger: true,
         onClick: () => setIsDeleteOpen(true),
       })
+      if (groups.length === 0) groups.push(record)
     }
 
-    return items
+    if (canUpdateProduct) {
+      // Each is its own action rather than a field on Edit: every one carries a
+      // rule the API enforces, and a blanket save would hide which one refused.
+      groups.push([
+        {
+          key: 'change-status',
+          label: 'Change Status',
+          onClick: () => setIsChangeStatusOpen(true),
+        },
+        {
+          key: 'retype',
+          label: 'Change Type',
+          onClick: () => setIsRetypeOpen(true),
+        },
+        {
+          key: 'reparent',
+          label: 'Move',
+          onClick: () => setIsReparentOpen(true),
+        },
+      ])
+
+      groups.push([
+        {
+          key: 'manage-tags',
+          label: 'Manage Tags',
+          onClick: () => setIsManageTagsOpen(true),
+        },
+      ])
+    }
+
+    return groups
+      .filter((group) => group.length > 0)
+      .flatMap((group, index) =>
+        index === 0
+          ? group
+          : [{ type: 'divider' as const, key: `divider-${index}` }, ...group],
+      )
   })()
 
   const sections: RecordSection[] = [

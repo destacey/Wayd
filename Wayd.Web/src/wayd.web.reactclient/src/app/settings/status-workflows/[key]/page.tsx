@@ -44,6 +44,8 @@ const StatusWorkflowDetailsPage = (props: {
 
   const { hasPermissionClaim } = useAuth()
   const canUpdate = hasPermissionClaim('Permissions.StatusWorkflows.Update')
+  // Archiving retires a workflow, so the API gates it on Delete rather than Update.
+  const canDelete = hasPermissionClaim('Permissions.StatusWorkflows.Delete')
   const canCreate = hasPermissionClaim('Permissions.StatusWorkflows.Create')
 
   useDocumentTitle(
@@ -89,7 +91,7 @@ const StatusWorkflowDetailsPage = (props: {
         onClick: () => setDialog('publish'),
       })
     }
-    if (canUpdate && statusWorkflow.canArchive) {
+    if (canDelete && statusWorkflow.canArchive) {
       stateItems.push({
         key: 'archive',
         label: 'Archive',

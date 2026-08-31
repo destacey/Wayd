@@ -53,7 +53,7 @@ const ArchiveStatusWorkflowForm = ({
     onCancel: onFormCancel,
     errorMessage:
       'An unexpected error occurred while archiving the status workflow.',
-    permission: 'Permissions.StatusWorkflows.Update',
+    permission: 'Permissions.StatusWorkflows.Delete',
   })
 
   return (

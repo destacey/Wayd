@@ -264,6 +264,59 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
+    /// Changes a status's category and its well-known meaning.
+    /// </summary>
+    /// <remarks>
+    /// Draft only, unlike <see cref="RenameStatus"/>. A name is cosmetic — records hold the id — but
+    /// records also carry a denormalized category and alias, so changing either on a live workflow
+    /// would leave every existing record disagreeing with the status it points at. Moving a published
+    /// workflow's statuses is a remap, not an edit.
+    /// <para>
+    /// The alias is included because it is the harder half to recover from: a workflow that cannot
+    /// publish for want of a required alias would otherwise need the offending status deleted and
+    /// re-added, losing its description and its position.
+    /// </para>
+    /// </remarks>
+    public Result ReclassifyStatus(Guid statusId, StatusCategory category, int alias, EventActor actor, Instant timestamp)
+    {
+        if (IsSystem)
+        {
+            return Result.Failure("System workflows cannot be modified. Clone this workflow to change it.");
+        }
+
+        if (State != StatusWorkflowState.Draft)
+        {
+            return Result.Failure(NotDraftError);
+        }
+
+        var status = _statuses.SingleOrDefault(s => s.Id == statusId);
+        if (status is null)
+        {
+            return Result.Failure("Status not found.");
+        }
+
+        if (alias != NoAlias && _statuses.Any(s => s.Id != statusId && s.Alias == alias))
+        {
+            return Result.Failure($"Another status in this workflow is already the '{DescribeAlias(alias)}' status.");
+        }
+
+        var fromCategory = status.Category;
+
+        status.Reclassify(category);
+        status.SetAlias(alias);
+
+        // Raised only for the category: it is the half that changes what existing records roll up
+        // under, and a consumer counting Done or Removed needs to know it moved beneath them.
+        if (fromCategory != category)
+        {
+            AddDomainEvent(new WorkflowStatusReclassifiedEvent(
+                Id, status.Id, status.Name, OwnerType, fromCategory, category, actor, timestamp));
+        }
+
+        return Result.Success();
+    }
+
+    /// <summary>
     /// Reorders the statuses for display. The supplied ids must be exactly the workflow's statuses.
     /// </summary>
     public Result ReorderStatuses(IReadOnlyList<Guid> orderedStatusIds)

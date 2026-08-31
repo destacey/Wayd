@@ -16,9 +16,9 @@ namespace Wayd.Common.Domain.Events.StatusWorkflows;
 /// counts needs to know this happened.
 /// </para>
 /// <para>
-/// <strong>Not yet raised.</strong> <c>WorkflowStatus.Reclassify</c> is unreachable until the remap
-/// engine exists, because changing an occupied status's category is precisely what needs remapping.
-/// Defined now so the event is not invented later under pressure.
+/// Raised by <c>StatusWorkflow.ReclassifyStatus</c>, which is Draft-only for exactly the reason above:
+/// on a published workflow the records carrying a denormalized category would all be left disagreeing
+/// with the status they point at, and moving those is a remap rather than an edit.
 /// </para>
 /// </remarks>
 public sealed record WorkflowStatusReclassifiedEvent : DomainEvent

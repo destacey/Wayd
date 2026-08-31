@@ -6,6 +6,7 @@ using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Scoring;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Tests.Shared.Infrastructure;
 
 namespace Wayd.Common.Application.Tests.Infrastructure;
@@ -14,7 +15,7 @@ namespace Wayd.Common.Application.Tests.Infrastructure;
 /// A test double for IWaydDbContext that provides in-memory collections for all DbSets.
 /// This eliminates the need for complex Moq setups in tests and is reusable across all Common domain tests.
 /// </summary>
-public class FakeWaydDbContext : IWaydDbContext, IDisposable
+public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, IDisposable
 {
     // Common domain entities
     private readonly List<Employee> _employees = [];
@@ -25,6 +26,11 @@ public class FakeWaydDbContext : IWaydDbContext, IDisposable
     private readonly List<User> _waydUsers = [];
     private readonly List<ScoringModel> _scoringModels = [];
 
+    // The workflow engine's tables, for handlers that reach IStatusWorkflowDbContext.
+    private readonly List<StatusWorkflow> _statusWorkflows = [];
+    private readonly List<WorkflowAssignment> _workflowAssignments = [];
+    private readonly List<WorkflowAliasName> _workflowAliasNames = [];
+
     // DbSet properties
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();
@@ -33,6 +39,10 @@ public class FakeWaydDbContext : IWaydDbContext, IDisposable
     public DbSet<PersonalAccessToken> PersonalAccessTokens => _personalAccessTokens.AsDbSet();
     public DbSet<User> WaydUsers => _waydUsers.AsDbSet();
     public DbSet<ScoringModel> ScoringModels => _scoringModels.AsDbSet();
+
+    public DbSet<StatusWorkflow> StatusWorkflows => _statusWorkflows.AsDbSet();
+    public DbSet<WorkflowAssignment> WorkflowAssignments => _workflowAssignments.AsDbSet();
+    public DbSet<WorkflowAliasName> WorkflowAliasNames => _workflowAliasNames.AsDbSet();
 
     // ChangeTracker - we can't create a real one, so we return null and the handler uses defensive coding (_dbContext.ChangeTracker?.Clear())
     public ChangeTracker ChangeTracker => null!;
@@ -65,6 +75,17 @@ public class FakeWaydDbContext : IWaydDbContext, IDisposable
     {
         throw new NotImplementedException("Entry tracking is not needed for unit tests. If you need this, consider using integration tests with a real DbContext.");
     }
+
+    #region Helper Methods for Test Setup
+
+    // Note for anyone writing workflow tests: a workflow added here carries its statuses in memory, so
+    // `.Include(w => w.Statuses)` is a no-op and a handler that omits it still passes. Only an
+    // integration test against a real context can catch that.
+    public void AddStatusWorkflow(StatusWorkflow workflow) => _statusWorkflows.Add(workflow);
+    public void AddStatusWorkflows(IEnumerable<StatusWorkflow> workflows) => _statusWorkflows.AddRange(workflows);
+    public void AddWorkflowAssignment(WorkflowAssignment assignment) => _workflowAssignments.Add(assignment);
+
+    #endregion Helper Methods for Test Setup
 
     public void Dispose()
     {

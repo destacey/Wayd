@@ -241,6 +241,10 @@ Managing roles:
 
 **Scoring Models** define formula-driven ways to score and rank work consistently — for example, prioritizing a backlog or portfolio projects by WSJF. Each model combines rated **criteria** with named **output formulas**, designating one as the primary score, and includes a **Test** report for previewing results without saving. Active models can be assigned to [PPM portfolios](../ppm/portfolios-programs.mdx#portfolio-project-scoring). See [Scoring Models](./scoring-models.mdx) for the full guide. Configured in **Settings → Scoring → Scoring Models**.
 
+## Status Workflows
+
+**Status Workflows** define the statuses each kind of record moves through — products, releases, release packages and deployments. A status carries a **category** for rollups and an optional **alias** giving it a well-known meaning, so Wayd's own logic keeps working whatever your organization calls each stage. Published workflows are immutable: change one by cloning it, editing the draft, publishing, and reassigning the record type — which brings every existing record across through a reviewed mapping. See [Status Workflows](./status-workflows.mdx) for the full guide. Configured in **Settings → Status Workflows**.
+
 ## Integrations
 
 Wayd integrates with external systems to synchronize data. Integrations are configured through **Connections**.

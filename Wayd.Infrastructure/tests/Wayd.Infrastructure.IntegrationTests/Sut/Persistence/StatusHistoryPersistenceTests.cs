@@ -179,6 +179,98 @@ public sealed class StatusHistoryPersistenceTests(SqlServerDbContextFixture fixt
         history.Should().ContainSingle();
     }
 
+    [Fact]
+    public async Task StatusWorkflowId_ShouldSurviveAReload()
+    {
+        // The workflow a record is on used to be derived from its newest status transition. The history
+        // is not a navigation and DrainStatusTransitions empties the in-memory list on every save, so a
+        // reloaded record reported no workflow at all — which is what made a batched migration
+        // unresumable. Only a round-trip can tell the difference.
+        // Arrange
+        await using var context = _fixture.CreateContext();
+        var workflow = await ProductWorkflow(context);
+        var productType = await SeedProductType(context);
+
+        var product = Product.Create(
+            $"Round trip {Guid.CreateVersion7()}",
+            null,
+            productType,
+            null,
+            null,
+            StatusOf(workflow, 0),
+            EventActor.System,
+            Timestamp);
+
+        context.Products.Add(product);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await using var reader = _fixture.CreateContext();
+        var reloaded = await reader.Products
+            .FirstAsync(p => p.Id == product.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        reloaded.StatusTransitions.Should().BeEmpty("the history is not a navigation");
+        reloaded.StatusWorkflowId.Should().Be(workflow.Id);
+    }
+
+    [Fact]
+    public async Task SwitchWorkflow_ShouldBeANoOp_ForAReloadedRecordAlreadyMoved()
+    {
+        // The resumability guarantee, against a real round-trip: a batched migration that is
+        // interrupted and re-run must skip records it already moved rather than fail on them. The
+        // in-memory domain test cannot show this — it never saves, so it never drains the transitions
+        // the old code derived the current workflow from.
+        // Arrange
+        await using var context = _fixture.CreateContext();
+        var workflow = await ProductWorkflow(context);
+        var productType = await SeedProductType(context);
+
+        var replacement = StatusWorkflow.Create(
+            $"Replacement {Guid.CreateVersion7()}", null, ProductWorkflowOwners.Product.Key).Value;
+
+        foreach (var status in workflow.Statuses.OrderBy(x => x.Order))
+        {
+            replacement.AddStatus(status.Name, null, status.Category, status.Alias);
+        }
+
+        replacement.Publish(EventActor.System, Timestamp);
+        context.StatusWorkflows.Add(replacement);
+
+        var product = Product.Create(
+            $"Resumable {Guid.CreateVersion7()}",
+            null,
+            productType,
+            null,
+            null,
+            StatusOf(workflow, 0),
+            EventActor.System,
+            Timestamp);
+
+        context.Products.Add(product);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var remap = StatusRemap.AutoMap(workflow, replacement).Value;
+
+        // The first pass of the migration, then the save that drains the in-memory history.
+        product.SwitchWorkflow(remap, EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        // The re-run, against the record as a fresh batch would load it.
+        await using var reader = _fixture.CreateContext();
+        var reloaded = await reader.Products
+            .FirstAsync(p => p.Id == product.Id, TestContext.Current.CancellationToken);
+
+        var before = reloaded.StatusTransitionCount;
+        var result = reloaded.SwitchWorkflow(remap, EventActor.System, Timestamp);
+
+        // Assert
+        reloaded.StatusWorkflowId.Should().Be(replacement.Id, "the first pass moved it");
+        result.IsSuccess.Should().BeTrue("re-running over an already-moved record is a no-op");
+        reloaded.StatusTransitionCount.Should().Be(before, "a no-op records no transition");
+    }
+
     private async Task<Guid> SeedProductType(WaydDbContext context)
     {
         var existing = await context.ProductTypes

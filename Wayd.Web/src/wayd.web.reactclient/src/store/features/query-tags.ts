@@ -31,6 +31,8 @@ export enum QueryTags {
   HealthChecksHealthReport = 'Common.HealthChecks.HealthReport',
   HealthChecksStatusOptions = 'Common.HealthChecks.StatusOptions',
   ScoringModel = 'Common.ScoringModel',
+  StatusWorkflow = 'Common.StatusWorkflow',
+  WorkflowAssignment = 'Common.WorkflowAssignment',
 
   // ORGANIZATIONS
   ActiveSprint = 'Organizations.ActiveSprint',

@@ -30,6 +30,7 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
 
     private readonly List<StatusWorkflow> _statusWorkflows = [];
     private readonly List<WorkflowAssignment> _workflowAssignments = [];
+    private readonly List<WorkflowAliasName> _workflowAliasNames = [];
 
     private readonly List<Employee> _employees = [];
     private readonly List<ExternalEmployeeBlacklistItem> _externalEmployeeBlacklistItems = [];
@@ -52,6 +53,7 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
 
     public DbSet<StatusWorkflow> StatusWorkflows => _statusWorkflows.AsDbSet();
     public DbSet<WorkflowAssignment> WorkflowAssignments => _workflowAssignments.AsDbSet();
+    public DbSet<WorkflowAliasName> WorkflowAliasNames => _workflowAliasNames.AsDbSet();
 
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();

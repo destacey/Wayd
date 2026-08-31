@@ -1,5 +1,6 @@
 ﻿using NodaTime;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
@@ -343,6 +344,130 @@ public sealed class StatusWorkflowTests
     }
 
     #endregion InitialStatus
+
+    #region ReclassifyStatus
+
+    private static readonly Instant At = Instant.FromUtc(2026, 1, 15, 9, 30, 0);
+
+    [Fact]
+    public void ReclassifyStatus_ShouldChangeTheCategoryAndRaiseTheEvent()
+    {
+        // Arrange
+        var workflow = WidgetWorkflow();
+        var status = workflow.Statuses.Single(s => s.Name == "Proposed");
+
+        // Act
+        var result = workflow.ReclassifyStatus(status.Id, StatusCategory.Active, StatusWorkflow.NoAlias, EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        workflow.Statuses.Single(s => s.Name == "Proposed").Category.Should().Be(StatusCategory.Active);
+        workflow.DomainEvents.OfType<WorkflowStatusReclassifiedEvent>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public void ReclassifyStatus_ShouldSetAnAlias_SoAFailedPublishIsRecoverable()
+    {
+        // Without this the only way to add a missing required alias is to delete the status and add it
+        // again, losing its description and its position.
+        // Arrange
+        var workflow = StatusWorkflow.Create("Widget Workflow", null, Widget.Key).Value;
+        workflow.AddStatus("Proposed", null, StatusCategory.Proposed);
+        workflow.AddStatus("Notable", null, StatusCategory.Active, NotableAlias);
+        var terminal = workflow.AddStatus("Terminal", "The end of the line.", StatusCategory.Done).Value;
+
+        workflow.Publish(EventActor.System, At).IsFailure.Should().BeTrue("the Terminal alias is missing");
+
+        // Act
+        var result = workflow.ReclassifyStatus(terminal.Id, StatusCategory.Done, TerminalAlias, EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        workflow.Publish(EventActor.System, At).IsSuccess.Should().BeTrue();
+        workflow.Statuses.Single(s => s.Id == terminal.Id).Description.Should().Be("The end of the line.");
+    }
+
+    [Fact]
+    public void ReclassifyStatus_ShouldRaiseNoEvent_WhenOnlyTheAliasChanges()
+    {
+        // The event exists to tell a consumer that records rolled up under a different category. An
+        // alias change moves nothing.
+        // Arrange
+        var workflow = WidgetWorkflow();
+        var status = workflow.Statuses.Single(s => s.Name == "Proposed");
+
+        // Act
+        var result = workflow.ReclassifyStatus(status.Id, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        workflow.DomainEvents.OfType<WorkflowStatusReclassifiedEvent>().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ReclassifyStatus_ShouldFail_WhenTheAliasIsAlreadyClaimed()
+    {
+        // Arrange
+        var workflow = WidgetWorkflow();
+        var proposed = workflow.Statuses.Single(s => s.Name == "Proposed");
+
+        // Act
+        var result = workflow.ReclassifyStatus(proposed.Id, StatusCategory.Done, TerminalAlias, EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Another status in this workflow is already the 'Terminal' status.");
+    }
+
+    [Fact]
+    public void ReclassifyStatus_ShouldAllowAStatusToKeepItsOwnAlias()
+    {
+        // The uniqueness check must exclude the status being changed, or recategorising it without
+        // touching its alias would collide with itself.
+        // Arrange
+        var workflow = WidgetWorkflow();
+        var terminal = workflow.Statuses.Single(s => s.Name == "Terminal");
+
+        // Act
+        var result = workflow.ReclassifyStatus(terminal.Id, StatusCategory.Removed, TerminalAlias, EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        workflow.Statuses.Single(s => s.Id == terminal.Id).Category.Should().Be(StatusCategory.Removed);
+    }
+
+    [Fact]
+    public void ReclassifyStatus_ShouldFail_WhenTheWorkflowIsPublished()
+    {
+        // Records carry a denormalized category, so moving one on a live workflow leaves every record
+        // holding it disagreeing with the status it points at. That is a remap, not an edit.
+        // Arrange
+        var workflow = WidgetWorkflow();
+        workflow.Publish(EventActor.System, At);
+        var status = workflow.Statuses.Single(s => s.Name == "Proposed");
+
+        // Act
+        var result = workflow.ReclassifyStatus(status.Id, StatusCategory.Active, StatusWorkflow.NoAlias, EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ReclassifyStatus_ShouldFail_ForAnUnknownStatus()
+    {
+        // Arrange
+        var workflow = WidgetWorkflow();
+
+        // Act
+        var result = workflow.ReclassifyStatus(Guid.CreateVersion7(), StatusCategory.Active, StatusWorkflow.NoAlias, EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Status not found.");
+    }
+
+    #endregion ReclassifyStatus
 
     #region ReorderStatuses
 

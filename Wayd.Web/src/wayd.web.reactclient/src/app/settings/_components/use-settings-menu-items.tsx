@@ -144,6 +144,12 @@ const buildSettingsMenuItems = (
       '/settings/feature-management/feature-flags',
     ),
     restrictedPermissionMenuItem(
+      'Permissions.StatusWorkflows.View',
+      'Status Workflows',
+      'system.status-workflows',
+      '/settings/status-workflows',
+    ),
+    restrictedPermissionMenuItem(
       'Permissions.Connections.View',
       'Connections',
       'system.connections',

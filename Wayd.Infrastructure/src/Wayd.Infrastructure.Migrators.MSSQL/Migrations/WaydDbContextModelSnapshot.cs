@@ -3443,6 +3443,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<int>("StatusTransitionCount")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("StatusWorkflowId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("SystemCreated")
                         .HasColumnType("datetime2");
 
@@ -3464,6 +3467,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasIndex("PackageId");
 
                     b.HasIndex("ReleaseId");
+
+                    b.HasIndex("StatusWorkflowId");
 
                     b.HasIndex("EnvironmentId", "StartedAt");
 
@@ -3576,6 +3581,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<int>("StatusTransitionCount")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("StatusWorkflowId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("SystemCreated")
                         .HasColumnType("datetime2");
 
@@ -3601,6 +3609,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasIndex("StatusCategory");
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("StatusCategory"), new[] { "Id", "Key", "Name", "ParentId", "ProductTypeId" });
+
+                    b.HasIndex("StatusWorkflowId");
 
                     b.ToTable("Products", "ProductManagement");
                 });
@@ -3857,6 +3867,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<int>("StatusTransitionCount")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("StatusWorkflowId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("SystemCreated")
                         .HasColumnType("datetime2");
 
@@ -3884,6 +3897,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasAlternateKey("Key");
 
                     b.HasIndex("PackageId");
+
+                    b.HasIndex("StatusWorkflowId");
 
                     b.HasIndex("ProductId", "ReleasedDate");
 
@@ -3931,6 +3946,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<int>("StatusTransitionCount")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("StatusWorkflowId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("SystemCreated")
                         .HasColumnType("datetime2");
 
@@ -3960,6 +3978,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasIndex("ReleasedDate");
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ReleasedDate"), new[] { "Id", "Key", "Version", "Name", "StatusCategory" });
+
+                    b.HasIndex("StatusWorkflowId");
 
                     b.ToTable("ReleasePackages", "Delivery");
                 });

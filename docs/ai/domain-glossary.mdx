@@ -130,6 +130,21 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Strategy** | The approach for achieving the vision. States: Draft → Active → Completed → Archived. Independent of visions. |
 | **Strategic Theme** | A high-level organizational priority guiding investment decisions. States: Proposed → Active → Archived. Only Proposed deletable. Cross-domain: tags Projects, Programs, Strategic Initiatives in PPM. |
 
+## Status Workflows
+
+| Term | Definition |
+|------|-----------|
+| **Status Workflow** | The ordered set of statuses one owner type's records move through. Draft (editable) → Published (immutable, assignable) → Archived. `IsSystem` workflows are platform-seeded and cannot be edited, published or archived. Changing a published one means Clone → edit → Publish → Reassign. |
+| **Workflow Status** | One stage: Name, Description, Category, Alias, Order. Editable only while the workflow is a Draft, because records carry a denormalized copy of the category and alias. |
+| **Status Category** | Proposed / Active / Done / Removed. The rollup a status belongs to, so counts work across differently-named statuses. Denormalized onto every record. |
+| **Alias** | An `int` marking the one status carrying a well-known meaning for that owner type. Platform logic reads the alias, never the name — a renamed status still counts. Unique within a workflow; `0` means none. |
+| **Required Aliases** | The aliases an owner type cannot function without, declared on its descriptor. `GuardRequiredAliases` refuses to publish a workflow missing any. Product: Active, Retired. Release/Package: Released, Withdrawn. Deployment: In Progress, Succeeded, Failed, Rolled Back. |
+| **Workflow Owner Type** | The kind of record a workflow governs (`product.product`, `delivery.release`...), registered at startup with its alias vocabulary. Keyed by string, not a database id. Fixed on a workflow at creation. |
+| **Workflow Assignment** | Which workflow a scope's records use. `ScopeId` null is the organization-wide default and the only scope in use today. |
+| **StatusRemap** | A transient mapping from every status of one workflow to one of another. `AutoMap` decides by alias, then exact name, then category-with-one-candidate; the rest are Unresolved and need a person. Never persisted — rebuilt server-side on confirmation. |
+| **Reassignment** | Moving an owner type onto another workflow and migrating every existing record. Records move first and the assignment flips last, so an interrupted run is safely re-runnable — `SwitchWorkflow` is a no-op on an already-moved record. |
+| **StatusTransition** | One recorded status change: from, to, actor, timestamp, sequence. Written by `BaseDbContext` draining the aggregate on save. `RecordId` is deliberately not a foreign key. |
+
 ## Product Management
 
 | Term | Definition |

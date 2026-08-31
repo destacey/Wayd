@@ -31933,6 +31933,961 @@
           }
         ]
       }
+    },
+    "/api/status-workflows": {
+      "get": {
+        "tags": [
+          "StatusWorkflows"
+        ],
+        "summary": "Get a list of status workflows.",
+        "operationId": "StatusWorkflows_GetStatusWorkflows",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "nullable": true,
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/StatusWorkflowState"
+                }
+              ]
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StatusWorkflowListDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "StatusWorkflows"
+        ],
+        "summary": "Create a status workflow.",
+        "operationId": "StatusWorkflows_Create",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStatusWorkflowRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/status-workflows/owner-types": {
+      "get": {
+        "tags": [
+          "StatusWorkflows"
+        ],
+        "summary": "Get the owner types a status workflow can be built for, with their alias vocabularies.",
+        "operationId": "StatusWorkflows_GetOwnerTypes",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkflowOwnerTypeDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/status-workflows/{idOrKey}": {
+      "get": {
+        "tags": [
+          "StatusWorkflows"
+        ],
+        "summary": "Get status workflow details.",
+        "operationId": "StatusWorkflows_GetStatusWorkflow",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusWorkflowDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/status-workflows/{id}": {
+      "put": {
+        "tags": [
+          "StatusWorkflows"
+        ],
+        "summary": "Update a status workflow.",
+        "operationId": "StatusWorkflows_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStatusWorkflowRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/status-workflows/{id}/clone": {
+      "post": {
+        "tags": [
+          "StatusWorkflows"
+        ],
+        "summary": "Copy a status workflow into a new editable draft.",
+        "operationId": "StatusWorkflows_Clone",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloneStatusWorkflowRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/status-workflows/{id}/publish": {
+      "post": {
+        "tags": [
+          "StatusWorkflows"
+        ],
+        "summary": "Publish a status workflow.",
+        "operationId": "StatusWorkflows_Publish",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/status-workflows/{id}/archive": {
+      "post": {
+        "tags": [
+          "StatusWorkflows"
+        ],
+        "summary": "Archive a status workflow.",
+        "operationId": "StatusWorkflows_Archive",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/status-workflows/{id}/statuses": {
+      "post": {
+        "tags": [
+          "StatusWorkflows"
+        ],
+        "summary": "Add a status to a status workflow.",
+        "operationId": "StatusWorkflows_AddStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddWorkflowStatusRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "guid",
+                  "nullable": false,
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/status-workflows/{id}/statuses/{statusId}": {
+      "put": {
+        "tags": [
+          "StatusWorkflows"
+        ],
+        "summary": "Rename a status in a status workflow.",
+        "operationId": "StatusWorkflows_RenameStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "statusId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameWorkflowStatusRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "StatusWorkflows"
+        ],
+        "summary": "Remove a status from a status workflow.",
+        "operationId": "StatusWorkflows_RemoveStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "statusId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/status-workflows/{id}/statuses/{statusId}/classification": {
+      "put": {
+        "tags": [
+          "StatusWorkflows"
+        ],
+        "summary": "Change the category and well-known meaning of a status.",
+        "operationId": "StatusWorkflows_ReclassifyStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "statusId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReclassifyWorkflowStatusRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/status-workflows/{id}/statuses/reorder": {
+      "post": {
+        "tags": [
+          "StatusWorkflows"
+        ],
+        "summary": "Reorder the statuses in a status workflow.",
+        "operationId": "StatusWorkflows_ReorderStatuses",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderWorkflowStatusesRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/workflow-assignments": {
+      "get": {
+        "tags": [
+          "WorkflowAssignments"
+        ],
+        "summary": "Get which status workflow governs each scope.",
+        "operationId": "WorkflowAssignments_GetWorkflowAssignments",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkflowAssignmentDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/workflow-assignments/{id}/remap-preview": {
+      "get": {
+        "tags": [
+          "WorkflowAssignments"
+        ],
+        "summary": "Preview how each status would land in the target workflow, before anything is committed.",
+        "operationId": "WorkflowAssignments_PreviewRemap",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "targetWorkflowId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusRemapPreviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/workflow-assignments/{id}/reassign": {
+      "post": {
+        "tags": [
+          "WorkflowAssignments"
+        ],
+        "summary": "Move a scope onto another status workflow and migrate its records.",
+        "operationId": "WorkflowAssignments_Reassign",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReassignWorkflowRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -50819,6 +51774,572 @@
               "nullable": false,
               "example": "00000000-0000-0000-0000-000000000000"
             }
+          }
+        }
+      },
+      "StatusWorkflowListDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "name",
+          "owner",
+          "state",
+          "isSystem",
+          "statusCount",
+          "isAssigned"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "owner": {
+            "$ref": "#/components/schemas/WorkflowOwnerNavigationDto"
+          },
+          "state": {
+            "type": "string"
+          },
+          "isSystem": {
+            "type": "boolean"
+          },
+          "statusCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isAssigned": {
+            "type": "boolean"
+          }
+        }
+      },
+      "WorkflowOwnerNavigationDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "name"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "StatusWorkflowState": {
+        "type": "string",
+        "description": "",
+        "x-enumNames": [
+          "Draft",
+          "Published",
+          "Archived"
+        ],
+        "enum": [
+          "Draft",
+          "Published",
+          "Archived"
+        ]
+      },
+      "WorkflowOwnerTypeDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "displayName",
+          "aliases",
+          "requiredAliases"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowAliasDto"
+            }
+          },
+          "requiredAliases": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "WorkflowAliasDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "value",
+          "name",
+          "isRequired"
+        ],
+        "properties": {
+          "value": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "isRequired": {
+            "type": "boolean"
+          }
+        }
+      },
+      "StatusWorkflowDetailsDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "name",
+          "owner",
+          "state",
+          "isSystem",
+          "isAssigned",
+          "statuses",
+          "missingRequiredAliases",
+          "canEdit",
+          "canPublish",
+          "canArchive"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "owner": {
+            "$ref": "#/components/schemas/WorkflowOwnerNavigationDto"
+          },
+          "state": {
+            "type": "string"
+          },
+          "isSystem": {
+            "type": "boolean"
+          },
+          "isAssigned": {
+            "type": "boolean"
+          },
+          "statuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowStatusDto"
+            }
+          },
+          "missingRequiredAliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "canEdit": {
+            "type": "boolean"
+          },
+          "canPublish": {
+            "type": "boolean"
+          },
+          "canArchive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "WorkflowStatusDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "category",
+          "alias",
+          "order"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "$ref": "#/components/schemas/SimpleNavigationDto"
+          },
+          "alias": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "aliasName": {
+            "type": "string",
+            "nullable": true
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CreateStatusWorkflowRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "ownerType"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the status workflow.",
+            "maxLength": 128,
+            "minLength": 1,
+            "nullable": false
+          },
+          "description": {
+            "type": "string",
+            "description": "An optional description of the status workflow.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true
+          },
+          "ownerType": {
+            "type": "string",
+            "description": "The key of the owner type the workflow is built for (e.g., \"Release\").",
+            "minLength": 1,
+            "nullable": false
+          }
+        }
+      },
+      "UpdateStatusWorkflowRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the status workflow.",
+            "maxLength": 128,
+            "minLength": 1,
+            "nullable": false
+          },
+          "description": {
+            "type": "string",
+            "description": "An optional description of the status workflow.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true
+          }
+        }
+      },
+      "CloneStatusWorkflowRequest": {
+        "type": "object",
+        "description": "A request to copy an existing workflow into a new editable draft.",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the new draft workflow.",
+            "maxLength": 128,
+            "minLength": 1,
+            "nullable": false
+          },
+          "description": {
+            "type": "string",
+            "description": "An optional description of the new draft workflow.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true
+          }
+        }
+      },
+      "AddWorkflowStatusRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "category",
+          "alias"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the status.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false
+          },
+          "description": {
+            "type": "string",
+            "description": "An optional description of the status.",
+            "maxLength": 512,
+            "minLength": 0,
+            "nullable": true
+          },
+          "category": {
+            "description": "The high-level bucket the status belongs to.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusCategory"
+              }
+            ]
+          },
+          "alias": {
+            "type": "integer",
+            "description": "The well-known meaning the status carries within its owner type, or zero for none.",
+            "format": "int32"
+          }
+        }
+      },
+      "RenameWorkflowStatusRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the status.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false
+          },
+          "description": {
+            "type": "string",
+            "description": "An optional description of the status.",
+            "maxLength": 512,
+            "minLength": 0,
+            "nullable": true
+          }
+        }
+      },
+      "ReclassifyWorkflowStatusRequest": {
+        "type": "object",
+        "description": "A request to change a status's category and well-known meaning, which records carry denormalized.",
+        "additionalProperties": false,
+        "required": [
+          "category",
+          "alias"
+        ],
+        "properties": {
+          "category": {
+            "description": "The high-level bucket the status belongs to.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusCategory"
+              }
+            ]
+          },
+          "alias": {
+            "type": "integer",
+            "description": "The well-known meaning the status carries within its owner type, or zero for none.",
+            "format": "int32"
+          }
+        }
+      },
+      "ReorderWorkflowStatusesRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "orderedStatusIds"
+        ],
+        "properties": {
+          "orderedStatusIds": {
+            "type": "array",
+            "description": "Every status of the workflow, in the order wanted. A partial list is refused.",
+            "minLength": 1,
+            "nullable": false,
+            "items": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            }
+          }
+        }
+      },
+      "WorkflowAssignmentDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "owner",
+          "workflow"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/WorkflowOwnerNavigationDto"
+          },
+          "scopeId": {
+            "type": "string",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "workflow": {
+            "$ref": "#/components/schemas/NavigationDto"
+          }
+        }
+      },
+      "StatusRemapPreviewDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "to",
+          "entries",
+          "isComplete",
+          "affectedRecordCount"
+        ],
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "to": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusRemapEntryDto"
+            }
+          },
+          "isComplete": {
+            "type": "boolean"
+          },
+          "affectedRecordCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "StatusRemapEntryDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "matchedBy",
+          "recordCount"
+        ],
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/WorkflowStatusDto"
+          },
+          "to": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowStatusDto"
+              }
+            ]
+          },
+          "matchedBy": {
+            "type": "string"
+          },
+          "recordCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ReassignWorkflowRequest": {
+        "type": "object",
+        "description": "A request to move a scope onto another workflow and bring its records with it.",
+        "additionalProperties": false,
+        "required": [
+          "targetWorkflowId",
+          "decisions"
+        ],
+        "properties": {
+          "targetWorkflowId": {
+            "type": "string",
+            "description": "The workflow the scope should move onto.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "decisions": {
+            "type": "array",
+            "description": "Operator choices layered over the automatic mapping — the statuses it could not decide, plus\nany automatic choice the operator overrode.",
+            "items": {
+              "$ref": "#/components/schemas/StatusRemapDecisionRequest"
+            }
+          }
+        }
+      },
+      "StatusRemapDecisionRequest": {
+        "type": "object",
+        "description": "One operator decision: send this source status's records to that target status.",
+        "additionalProperties": false,
+        "required": [
+          "fromStatusId",
+          "toStatusId"
+        ],
+        "properties": {
+          "fromStatusId": {
+            "type": "string",
+            "description": "The status of the current workflow whose records are being moved.",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "toStatusId": {
+            "type": "string",
+            "description": "The status of the target workflow those records should land on.",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
           }
         }
       }

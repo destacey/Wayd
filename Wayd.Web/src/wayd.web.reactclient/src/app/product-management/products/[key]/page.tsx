@@ -30,6 +30,7 @@ import RetypeProductForm from '../_components/retype-product-form'
 import ProductsGrid from '../_components/products-grid'
 import ProductFacts from './_components/product-facts'
 import ProductOverview from './_components/product-overview'
+import ProductStatusHistory from './_components/product-status-history'
 import ProductDetailsLoading from './loading'
 
 enum ProductSections {
@@ -38,6 +39,7 @@ enum ProductSections {
   // type decides what kind — an Application can sit under an Application. Naming
   // the section after one type would mislabel the rest.
   Products = 'products',
+  StatusHistory = 'status-history',
 }
 
 const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
@@ -197,9 +199,14 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       // thing a reader wants, and opening an empty section to find out is worse.
       count: components?.length || undefined,
     },
+    { id: ProductSections.StatusHistory, label: 'Status History' },
   ]
 
   const renderSection = (section: string) => {
+    if (section === ProductSections.StatusHistory) {
+      return <ProductStatusHistory productId={product.id} />
+    }
+
     if (section === ProductSections.Products) {
       return (
         <ProductsGrid

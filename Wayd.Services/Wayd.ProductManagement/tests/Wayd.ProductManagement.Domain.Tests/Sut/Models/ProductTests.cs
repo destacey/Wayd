@@ -497,7 +497,7 @@ public sealed class ProductTests
         var sut = _faker.WithParentId(parentId).Generate();
 
         // Act
-        var result = sut.Remove(hasChildren: false, hasReleases: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Remove(hasChildren: false, hasReleases: false, isInAManifest: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -512,11 +512,28 @@ public sealed class ProductTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.Remove(hasChildren: true, hasReleases: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Remove(hasChildren: true, hasReleases: false, isInAManifest: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("This product has child products and cannot be removed. Move or remove them first.");
+    }
+
+    [Fact]
+    public void Remove_ShouldFail_WhenTheNodeAppearsInAPackageManifest()
+    {
+        // Checked separately from releases: a carried-forward component often has no release row at
+        // all, so the release guard misses it and the restricting foreign key rejects the delete with
+        // an unreadable error.
+        // Arrange
+        var sut = _faker.Generate();
+
+        // Act
+        var result = sut.Remove(hasChildren: false, hasReleases: false, isInAManifest: true, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("This product appears in a release package manifest and cannot be removed.");
     }
 
     [Fact]
@@ -526,7 +543,7 @@ public sealed class ProductTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.Remove(hasChildren: false, hasReleases: true, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Remove(hasChildren: false, hasReleases: true, isInAManifest: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();

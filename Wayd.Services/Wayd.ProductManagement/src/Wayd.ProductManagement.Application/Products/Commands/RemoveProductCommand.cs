@@ -45,11 +45,18 @@ public sealed class RemoveProductCommandHandler(
             var hasReleases = await _productManagementDbContext.Releases
                 .AnyAsync(r => r.ProductId == request.Id, cancellationToken);
 
+            // Checked separately from releases: ReleasePackageComponents.ProductId restricts, and a
+            // carried-forward component often has no release row, so the check above would miss it and
+            // the delete would fail at the database with a generic message.
+            var isInAManifest = await _productManagementDbContext.ReleasePackageComponents
+                .AnyAsync(c => c.ProductId == request.Id, cancellationToken);
+
             // Raises the event; the delete itself is the handler's, since the aggregate cannot remove
             // itself from a set it does not know about.
             var removeResult = product.Remove(
                 hasChildren,
                 hasReleases,
+                isInAManifest,
                 EventActor.User(_currentUser.GetUserId()),
                 _dateTimeProvider.Now);
 

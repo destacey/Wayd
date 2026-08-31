@@ -102,6 +102,13 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     public void AddRelease(Release release) => _releases.Add(release);
     public void AddReleases(IEnumerable<Release> releases) => _releases.AddRange(releases);
 
+    // Note for anyone writing package tests: a faked package carries its components in memory, so
+    // `.Include(p => p.Components)` is a no-op here and a handler that omits it still passes. The
+    // missing Include is caught by ReleasePackageIncludeTests, which reads the handler source.
+    public void AddReleasePackage(ReleasePackage package) => _releasePackages.Add(package);
+    public void AddReleasePackages(IEnumerable<ReleasePackage> packages) => _releasePackages.AddRange(packages);
+    public void AddReleasePackageComponent(ReleasePackageComponent component) => _releasePackageComponents.Add(component);
+
     public void AddDeploymentEnvironment(DeploymentEnvironment environment) => _deploymentEnvironments.Add(environment);
     public void AddDeployment(Deployment deployment) => _deployments.Add(deployment);
 

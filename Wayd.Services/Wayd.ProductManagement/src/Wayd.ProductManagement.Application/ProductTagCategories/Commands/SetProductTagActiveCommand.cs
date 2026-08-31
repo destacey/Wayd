@@ -35,19 +35,20 @@ public sealed class SetProductTagActiveCommandHandler(
     {
         try
         {
-            // Scoped to the category so a tag id from another axis cannot be reached through this route.
-            var tag = await _productManagementDbContext.ProductTags
-                .FirstOrDefaultAsync(
-                    t => t.Id == request.TagId && t.CategoryId == request.CategoryId, cancellationToken);
+            // Routed through the category, like every other tag mutation: the system flag lives there,
+            // and loading the tag directly would bypass it. Tags must be included — the aggregate
+            // resolves the tag from its own collection.
+            var category = await _productManagementDbContext.ProductTagCategories
+                .Include(c => c.Tags)
+                .FirstOrDefaultAsync(c => c.Id == request.CategoryId, cancellationToken);
 
-            if (tag is null)
+            if (category is null)
             {
-                _logger.LogInformation(
-                    "Tag {TagId} not found on category {CategoryId}.", request.TagId, request.CategoryId);
-                return Result.Failure("That tag does not belong to this axis.");
+                _logger.LogInformation("Tag category {CategoryId} not found.", request.CategoryId);
+                return Result.Failure("Tag category not found.");
             }
 
-            var result = request.IsActive ? tag.Activate() : tag.Deactivate();
+            var result = category.SetTagActive(request.TagId, request.IsActive);
 
             if (result.IsFailure)
             {

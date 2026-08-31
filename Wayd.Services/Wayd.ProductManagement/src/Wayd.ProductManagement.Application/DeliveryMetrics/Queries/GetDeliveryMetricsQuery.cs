@@ -89,8 +89,11 @@ public sealed class GetDeliveryMetricsQueryHandler(IProductManagementDbContext p
 
         // Reached production: succeeded and rolled back alike. A rollback did deploy — whether that was
         // a good idea is change failure rate's question, not this one.
+        //
+        // Enumerated positively rather than as "not Failed": aliases are user-extensible, so an
+        // org-invented deployment status carries alias 0 and would otherwise count as a delivery.
         var delivered = byOutcome
-            .Where(o => o.Alias != (int)ProductStatusAlias.Failed)
+            .Where(o => o.Alias == (int)ProductStatusAlias.Succeeded || o.Alias == (int)ProductStatusAlias.RolledBack)
             .Sum(o => o.Count);
 
         var failed = byOutcome

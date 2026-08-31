@@ -89,6 +89,14 @@ public sealed class ReleasePackage : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("A withdrawn package's manifest cannot be amended.");
         }
 
+        // Once shipped, the manifest is the record of what went out rather than a plan. Rewriting it
+        // would claim a set of versions that never shipped together — the exact failure the
+        // whole-manifest rule above exists to prevent.
+        if (ReleasedDate is not null)
+        {
+            return Result.Failure("A released package's manifest cannot be amended.");
+        }
+
         if (components.Count == 0)
         {
             return Result.Failure("A package manifest cannot be empty.");

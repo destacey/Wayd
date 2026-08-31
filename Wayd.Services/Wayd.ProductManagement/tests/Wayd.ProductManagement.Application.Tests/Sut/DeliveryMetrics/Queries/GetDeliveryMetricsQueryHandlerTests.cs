@@ -74,6 +74,15 @@ public sealed class GetDeliveryMetricsQueryHandlerTests : ProductCommandTestBase
                     at, null, Status("Rolled Back", StatusCategory.Removed, ProductStatusAlias.RolledBack),
                     environment.Name, EventActor.System, at);
                 break;
+
+            // An outcome the organization added itself: a completed deployment whose status carries no
+            // alias. Completed matters — the query only considers completed deployments, so a fixture
+            // that left this one in progress would report zero for the wrong reason.
+            case ProductStatusAlias.None:
+                deployment.Succeed(
+                    at, Status("Partially Rolled Out", StatusCategory.Done, ProductStatusAlias.None),
+                    environment.Name, EventActor.System, at);
+                break;
         }
 
         deployment.ClearDomainEvents();
@@ -116,6 +125,22 @@ public sealed class GetDeliveryMetricsQueryHandlerTests : ProductCommandTestBase
         // It reached production, which is what frequency measures. Whether that was a good idea is
         // change failure rate's question.
         metrics.DeploymentFrequency.Count.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotCountAnUnaliasedOutcomeAsDelivered()
+    {
+        // Statuses are user-extensible, so an organization can add a deployment outcome of its own —
+        // it carries no alias. Counting "everything that is not Failed" would silently inflate
+        // deployment frequency with statuses this module knows nothing about.
+        // Arrange
+        SeedCompleted(ProductStatusAlias.None);
+
+        // Act
+        var metrics = await Run();
+
+        // Assert
+        metrics.DeploymentFrequency.Count.Should().Be(0);
     }
 
     [Fact]

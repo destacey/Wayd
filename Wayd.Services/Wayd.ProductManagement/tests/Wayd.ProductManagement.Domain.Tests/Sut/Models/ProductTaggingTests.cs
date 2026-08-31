@@ -163,6 +163,52 @@ public sealed class ProductTaggingTests
     }
 
     [Fact]
+    public void SetTagActive_ShouldFail_OnASystemAxis()
+    {
+        // Deactivating a seeded tag leaves products untaggable along that axis with no way back: the
+        // seeder does not re-add it, and the create command only makes non-system axes.
+        // Arrange
+        var seeded = ProductTagCategory.CreateSystem("Platform", null, true, 1);
+
+        // Act
+        var result = seeded.SetTagActive(Guid.CreateVersion7(), isActive: false);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("System tag categories cannot be modified.");
+    }
+
+    [Fact]
+    public void SetTagActive_ShouldDeactivateATagOnAnOrdinaryAxis()
+    {
+        // Arrange
+        var category = ProductTagCategory.Create("Platform", null, true, 1);
+        var tag = category.AddTag("ios").Value;
+
+        // Act
+        var result = category.SetTagActive(tag.Id, isActive: false);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        tag.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public void SetTagActive_ShouldFail_ForATagOnAnotherAxis()
+    {
+        // Arrange
+        var category = ProductTagCategory.Create("Platform", null, true, 1);
+        category.AddTag("ios");
+
+        // Act
+        var result = category.SetTagActive(Guid.CreateVersion7(), isActive: false);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("That tag does not belong to this axis.");
+    }
+
+    [Fact]
     public void AddTag_ShouldFail_OnADuplicateName()
     {
         // Arrange

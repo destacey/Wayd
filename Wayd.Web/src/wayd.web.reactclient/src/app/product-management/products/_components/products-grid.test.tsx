@@ -53,14 +53,34 @@ describe('ProductsGrid', () => {
 
     it('indents the child below its parent', () => {
       // Arrange / Act
-      const { container } = renderGrid(true)
+      renderGrid(true)
 
       // Assert
-      // The parent draws no indent spacer before its expander; the child draws one, plus the
-      // spacer standing in for the expander it does not have. Equal indentation is the bug.
-      const spacers = container.querySelectorAll('span[class*="indentSpacer"]')
+      // Counts only the spacers drawn *before* the expander slot, which are the depth-driven ones. A
+      // plain total cannot tell them from the single spacer that stands in for a missing expander, so
+      // it stays green even when every row is rendered at the same depth — the exact bug this guards.
+      const depthSpacersIn = (name: string) => {
+        const row = screen.getByText(name).closest('tr')
+        expect(row).not.toBeNull()
 
-      expect(spacers.length).toBeGreaterThan(0)
+        const marks = row!.querySelectorAll(
+          'span[class*="indentSpacer"], button[class*="expanderBtn"]',
+        )
+
+        let depth = 0
+        for (const mark of marks) {
+          if (mark.tagName === 'BUTTON') break
+          depth++
+        }
+
+        // A leaf has no expander button, so its trailing stand-in spacer is counted above and has to
+        // come back off.
+        const hasExpander = row!.querySelector('button[class*="expanderBtn"]') !== null
+        return hasExpander ? depth : depth - 1
+      }
+
+      expect(depthSpacersIn('Trio WFS')).toBe(0)
+      expect(depthSpacersIn('Trio VMS')).toBe(1)
     })
 
     it('omits the parent column, which position already shows', () => {

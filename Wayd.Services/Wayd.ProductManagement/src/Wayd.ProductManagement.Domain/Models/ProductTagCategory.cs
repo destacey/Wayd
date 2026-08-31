@@ -145,6 +145,31 @@ public sealed class ProductTagCategory : BaseAuditableEntity, IHasIdAndKey
         return Result.Success();
     }
 
+    /// <summary>
+    /// Takes one of the axis's tags out of use, or puts it back.
+    /// </summary>
+    /// <remarks>
+    /// On the category for the same reason as <see cref="RenameTag"/>, though for a different rule:
+    /// the system flag lives here and a tag cannot see it. Reaching the tag directly would let a
+    /// seeded tag be deactivated, leaving products untaggable along that axis with no way to restore
+    /// it — the seeder does not re-add it.
+    /// </remarks>
+    public Result SetTagActive(Guid tagId, bool isActive)
+    {
+        if (IsSystem)
+        {
+            return Result.Failure("System tag categories cannot be modified.");
+        }
+
+        var tag = _tags.FirstOrDefault(t => t.Id == tagId);
+        if (tag is null)
+        {
+            return Result.Failure("That tag does not belong to this axis.");
+        }
+
+        return isActive ? tag.Activate() : tag.Deactivate();
+    }
+
     /// <summary>Renames the axis.</summary>
     public Result Update(string name, string? description, int order)
     {

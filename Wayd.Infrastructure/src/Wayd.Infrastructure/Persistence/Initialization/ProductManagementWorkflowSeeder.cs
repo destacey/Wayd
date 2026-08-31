@@ -84,27 +84,39 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
         IDateTimeProvider dateTimeProvider,
         CancellationToken cancellationToken)
     {
-        if (await dbContext.StatusWorkflows.AnyAsync(w => w.OwnerType == owner.Key, cancellationToken))
+        // Guarded on the assignment rather than the workflow: the assignment is what the resolver
+        // needs, so a scope holding a workflow but no assignment fails every operation for this owner
+        // type. Guarding on the workflow reads that state as already-seeded and never repairs it.
+        if (await dbContext.WorkflowAssignments.AnyAsync(
+                a => a.OwnerType == owner.Key && a.ScopeId == null, cancellationToken))
         {
             return false;
         }
 
-        var workflow = StatusWorkflow.CreateSystem(name, description, owner.Key).Value;
+        // An existing system workflow is reused rather than duplicated — reachable when a previous run
+        // was interrupted between the two inserts, or when the assignment row was removed.
+        var workflow = await dbContext.StatusWorkflows
+            .FirstOrDefaultAsync(w => w.OwnerType == owner.Key && w.IsSystem, cancellationToken);
 
-        foreach (var (statusName, statusDescription, category, alias) in statuses)
+        if (workflow is null)
         {
-            workflow.AddSystemStatus(statusName, statusDescription, category, (int)alias);
-        }
+            workflow = StatusWorkflow.CreateSystem(name, description, owner.Key).Value;
 
-        // A seeded workflow that cannot satisfy its own owner type is a bug in this file, not a runtime
-        // condition — fail the boot rather than leave an unusable default in the database.
-        var publication = workflow.PublishSystem();
-        if (publication.IsFailure)
-        {
-            throw new InvalidOperationException($"The seeded '{name}' is invalid: {publication.Error}");
-        }
+            foreach (var (statusName, statusDescription, category, alias) in statuses)
+            {
+                workflow.AddSystemStatus(statusName, statusDescription, category, (int)alias);
+            }
 
-        dbContext.StatusWorkflows.Add(workflow);
+            // A seeded workflow that cannot satisfy its own owner type is a bug in this file, not a
+            // runtime condition — fail the boot rather than leave an unusable default in the database.
+            var publication = workflow.PublishSystem();
+            if (publication.IsFailure)
+            {
+                throw new InvalidOperationException($"The seeded '{name}' is invalid: {publication.Error}");
+            }
+
+            dbContext.StatusWorkflows.Add(workflow);
+        }
 
         // Scope null: Product Management assigns organization-wide. Also the mandatory fallback for any
         // owner type with no narrower scope, so the resolver always finds a workflow.

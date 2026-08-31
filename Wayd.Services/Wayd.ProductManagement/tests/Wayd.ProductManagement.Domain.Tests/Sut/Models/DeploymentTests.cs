@@ -161,6 +161,37 @@ public sealed class DeploymentTests
     #region RollBack
 
     [Fact]
+    public void RollBack_WithNoReason_ShouldNotEraseAnExistingReason()
+    {
+        // Apply is shared by Succeed, Fail and RollBack, and previously assigned Reason
+        // unconditionally. Nothing reaches it today with a reason already set — Succeed passes none
+        // and Fail refuses a later rollback — so this pins the intent rather than a live defect: a
+        // caller declining to add a reason is not asking to clear one.
+        // Arrange
+        var sut = _faker.Generate();
+        sut.Succeed(
+            _dateTimeProvider.Now,
+            StatusRefFactory.For(StatusCategory.Done, ProductStatusAlias.Succeeded),
+            "Production",
+            EventActor.System,
+            _dateTimeProvider.Now);
+
+        // Act
+        var result = sut.RollBack(
+            _dateTimeProvider.Now,
+            "Reverted after a regression.",
+            StatusRefFactory.For(StatusCategory.Removed, ProductStatusAlias.RolledBack),
+            "Production",
+            EventActor.System,
+            _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Reason.Should().Be("Reverted after a regression.");
+    }
+
+
+    [Fact]
     public void RollBack_ShouldBeAllowedFromASucceededDeployment()
     {
         // Arrange

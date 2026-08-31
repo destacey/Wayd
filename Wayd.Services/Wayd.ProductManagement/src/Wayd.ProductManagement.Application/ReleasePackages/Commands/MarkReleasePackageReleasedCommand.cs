@@ -41,7 +41,10 @@ public sealed class MarkReleasePackageReleasedCommandHandler(
     {
         try
         {
+            // The manifest must be loaded: MarkReleased refuses an empty one, and an unloaded
+            // collection reads as empty — so without this every release of a real package is refused.
             var package = await _productManagementDbContext.ReleasePackages
+                .Include(p => p.Components)
                 .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
 
             if (package is null)

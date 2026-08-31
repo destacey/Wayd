@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.Testing;
@@ -200,6 +200,25 @@ public sealed class ReleasePackageTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("A withdrawn package's manifest cannot be amended.");
+    }
+
+    [Fact]
+    public void SetManifest_ShouldFail_WhenThePackageHasShipped()
+    {
+        // Once shipped the manifest is the record of what went out. Rewriting it would claim a set of
+        // versions that never shipped together.
+        // Arrange
+        var components = Manifest(changed: 2, carriedForward: 1)
+            .Select(c => new ReleasePackageComponent(Guid.CreateVersion7(), c.ProductId, c.ReleaseId, c.Version, c.Kind));
+        var sut = _faker.WithComponents(components).Generate();
+        sut.MarkReleased(new LocalDate(2026, 8, 28), StatusRefFactory.Released(), EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        var result = sut.SetManifest(Manifest(changed: 1, carriedForward: 0), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A released package's manifest cannot be amended.");
     }
 
     #endregion SetManifest

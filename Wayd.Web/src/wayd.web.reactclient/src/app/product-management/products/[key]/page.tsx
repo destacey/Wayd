@@ -11,10 +11,11 @@ import {
   useGetProductQuery,
   useGetProductsQuery,
 } from '@/src/store/features/product-management/products-api'
-import { Button, MenuProps } from 'antd'
+import { useMessage } from '@/src/components/contexts/messaging'
+import { Button, MenuProps, Result } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
-import { use, useState } from 'react'
+import { use, useEffect, useState } from 'react'
 // Imported directly rather than through the barrel: the barrel also pulls in the
 // create form, and with it the markdown editor's ESM-only dependencies, which this
 // page never renders.
@@ -63,6 +64,8 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const canDeleteProduct = hasPermissionClaim('Permissions.Products.Delete')
   const canCreateProduct = hasPermissionClaim('Permissions.Products.Create')
 
+  const messageApi = useMessage()
+
   const {
     data: product,
     error,
@@ -73,15 +76,43 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   useDocumentTitle(product ? `${product.name} - Product` : 'Product')
 
   // The children of this node, for the Components section. Filtered server-side
-  // so the page does not pull the whole catalogue to find them.
-  const { data: components, isLoading: componentsLoading } =
-    useGetProductsQuery(
-      { parentId: product?.id },
-      { skip: !product?.id },
-    )
+  // so the page does not pull the whole catalogue to find them. Its own refetch
+  // is kept: the section's Refresh must reload the children, not this record.
+  const {
+    data: components,
+    isLoading: componentsLoading,
+    refetch: refetchComponents,
+  } = useGetProductsQuery({ parentId: product?.id }, { skip: !product?.id })
 
-  if ((error as { status?: number })?.status === 404) {
+  const isNotFound = (error as { status?: number })?.status === 404
+
+  useEffect(() => {
+    if (error && !isNotFound) {
+      console.error(error)
+      messageApi.error('Failed to load the product.')
+    }
+  }, [error, isNotFound, messageApi])
+
+  if (isNotFound) {
     notFound()
+  }
+
+  // Any other failure — a 500, an expired session, a dropped connection — leaves
+  // product undefined with loading finished. Without this the skeleton below
+  // renders forever, explaining nothing and offering no way forward.
+  if (error) {
+    return (
+      <Result
+        status="error"
+        title="Failed to load the product"
+        subTitle="Something went wrong fetching this product."
+        extra={
+          <Button type="primary" onClick={() => refetch()}>
+            Retry
+          </Button>
+        }
+      />
+    )
   }
 
   if (isLoading || !product) {
@@ -174,7 +205,7 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         <ProductsGrid
           products={components ?? []}
           isLoading={componentsLoading}
-          refetch={refetch}
+          refetch={refetchComponents}
           // Flat: every row here already shares this product as its parent, so
           // the tree would add a level that says nothing.
           asTree={false}

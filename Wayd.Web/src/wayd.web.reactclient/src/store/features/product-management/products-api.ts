@@ -49,7 +49,11 @@ export const productsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
+      // Tag by both the resolved GUID id and the original arg (key). The detail page fetches by key,
+      // while every mutation invalidates by id — without the id tag those would never refetch, and
+      // the page would sit on stale data until something forced a manual refetch.
       providesTags: (result, error, arg) => [
+        ...(result ? [{ type: QueryTags.Product, id: result.id }] : []),
         { type: QueryTags.Product, id: arg },
       ],
     }),

@@ -99,6 +99,34 @@ public abstract class ProductCommandTestBase
         return release;
     }
 
+    /// <summary>
+    /// A package carrying a real manifest, built through the aggregate's own factory.
+    /// </summary>
+    /// <remarks>
+    /// The manifest is populated because every interesting refusal depends on it. Note that a package
+    /// seeded here always has its components in memory, so a handler that omits
+    /// <c>.Include(p =&gt; p.Components)</c> still passes — <c>ReleasePackageIncludeTests</c> covers that.
+    /// </remarks>
+    protected ReleasePackage SeedReleasePackage(
+        Guid productId,
+        string version = "2026.14",
+        StatusRef? status = null)
+    {
+        var package = ReleasePackage.Create(
+            version,
+            null,
+            null,
+            [(productId, null, "1.0", ManifestEntryKind.Changed)],
+            status ?? Status("Planned", StatusCategory.Proposed, ProductStatusAlias.None),
+            EventActor.System,
+            Now).Value;
+
+        package.ClearDomainEvents();
+        DbContext.AddReleasePackage(package);
+
+        return package;
+    }
+
     protected DeploymentEnvironment SeedEnvironment(
         string name = "Production",
         EnvironmentCategory category = EnvironmentCategory.Production,

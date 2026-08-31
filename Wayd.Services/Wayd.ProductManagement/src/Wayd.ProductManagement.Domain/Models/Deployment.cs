@@ -221,11 +221,16 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
         return Result.Success();
     }
 
+    /// <param name="reason">
+    /// The new reason, or <c>null</c> to leave any existing one alone. A rollback with no reason given
+    /// must not erase the reason recorded when the deployment failed — the caller is declining to add
+    /// one, not asking to clear it.
+    /// </param>
     private void Apply(Instant completedAt, StatusRef status, string? reason, EventActor actor, Instant timestamp)
     {
         CompletedAt = completedAt;
-        Reason = reason;
-        ApplyStatus(status, actor, timestamp, reason);
+        Reason = reason ?? Reason;
+        ApplyStatus(status, actor, timestamp, Reason);
     }
 
     /// <summary>

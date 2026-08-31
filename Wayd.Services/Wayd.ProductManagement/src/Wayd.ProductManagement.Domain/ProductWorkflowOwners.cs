@@ -50,12 +50,22 @@ public static class ProductWorkflowOwners
     /// The strictest of the four: change failure rate is <c>(Failed + RolledBack) / total</c> and
     /// time-to-restore measures from a failure to the next success, so an organization that could omit
     /// those outcomes would make both uncomputable and non-comparable between organizations.
+    /// <para>
+    /// <c>InProgress</c> is required for a different reason: starting a deployment resolves it, so a
+    /// published workflow without it fails every deployment start in its scope. Requiring it here is
+    /// what moves that failure from runtime to publish time.
+    /// </para>
     /// </remarks>
     public static readonly WorkflowOwnerDescriptor Deployment = new(
         "delivery.deployment",
         "Deployment",
         Names(ProductStatusAlias.InProgress, ProductStatusAlias.Succeeded, ProductStatusAlias.Failed, ProductStatusAlias.RolledBack),
-        [(int)ProductStatusAlias.Succeeded, (int)ProductStatusAlias.Failed, (int)ProductStatusAlias.RolledBack]);
+        [
+            (int)ProductStatusAlias.InProgress,
+            (int)ProductStatusAlias.Succeeded,
+            (int)ProductStatusAlias.Failed,
+            (int)ProductStatusAlias.RolledBack,
+        ]);
 
     /// <summary>
     /// Every owner type this module contributes, for registration at startup.

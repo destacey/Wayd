@@ -307,7 +307,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     /// </summary>
     /// <param name="hasChildren">Whether any node still hangs from this one.</param>
     /// <param name="hasReleases">Whether any release was ever cut against this node.</param>
-    public Result Remove(bool hasChildren, bool hasReleases, EventActor actor, Instant timestamp)
+    public Result Remove(bool hasChildren, bool hasReleases, bool isInAManifest, EventActor actor, Instant timestamp)
     {
         if (hasChildren)
         {
@@ -317,6 +317,14 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
         if (hasReleases)
         {
             return Result.Failure("This product has releases and cannot be removed.");
+        }
+
+        // Separate from hasReleases: a carried-forward component often has no release row at all, so a
+        // product named only in a manifest passes that check and then hits the restricting foreign key,
+        // where the failure surfaces as an unreadable generic error.
+        if (isInAManifest)
+        {
+            return Result.Failure("This product appears in a release package manifest and cannot be removed.");
         }
 
         AddDomainEvent(new ProductRemovedEvent(Id, Key, Name, ParentId, actor, timestamp));

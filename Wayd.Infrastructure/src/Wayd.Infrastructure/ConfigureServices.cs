@@ -12,24 +12,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Infrastructure.ConnectorModules;
 using Wayd.Infrastructure.DataProtection;
 using Wayd.Infrastructure.FeatureManagement;
 using Wayd.Infrastructure.Logging;
 using Wayd.Infrastructure.OpenTelemetry;
 using Wayd.Infrastructure.SignalR;
-using Wayd.AppIntegration.Application.Connections.Managers;
-using Wayd.Common.Domain.Enums.AppIntegrations;
-using Wayd.Integrations.Abstractions;
-using Wayd.Integrations.AzureDevOps;
-using Wayd.Integrations.MicrosoftGraph;
-using Wayd.Integrations.Workday;
-using Wayd.Integrations.Workday.Soap;
-using Wayd.Common.Application.Interfaces.ExternalPeople;
-using Wayd.Common.Domain.Authorization;
+using Wayd.Infrastructure.StatusWorkflows;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
-using Wayd.ProductManagement.Domain;
 using Wayd.Planning.Application.StoryMaps.Interfaces;
+using Wayd.ProductManagement.Domain;
 namespace Wayd.Infrastructure;
 
 public static class ConfigureServices
@@ -86,6 +79,20 @@ public static class ConfigureServices
         // read from the database needs its owner type already known. Each module contributes its own;
         // the engine holds no module's vocabulary. Idempotent, so a second call is harmless.
         ProductWorkflowOwners.Register();
+
+        // Registered by hand rather than by the marker scan: that scan binds one implementation per
+        // interface, so four migrators sharing IStatusRecordMigrator would collapse to whichever was
+        // scanned last, and a reassignment would silently skip three owner types. Resolved as a
+        // collection and selected by OwnerType. StatusRecordMigratorRegistrationTests pins this.
+        services.AddScoped<IStatusRecordMigrator, ProductStatusRecordMigrator>();
+        services.AddScoped<IStatusRecordMigrator, ReleaseStatusRecordMigrator>();
+        services.AddScoped<IStatusRecordMigrator, ReleasePackageStatusRecordMigrator>();
+        services.AddScoped<IStatusRecordMigrator, DeploymentStatusRecordMigrator>();
+
+        services.AddScoped<IStatusRecordCounter, ProductStatusRecordMigrator>();
+        services.AddScoped<IStatusRecordCounter, ReleaseStatusRecordMigrator>();
+        services.AddScoped<IStatusRecordCounter, ReleasePackageStatusRecordMigrator>();
+        services.AddScoped<IStatusRecordCounter, DeploymentStatusRecordMigrator>();
 
         // Data protection (at-rest secret encryption) must initialize before
         // persistence so the EF model can pick up the protector via SecretProtectorAccessor.

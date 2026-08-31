@@ -130,6 +130,9 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.Property(p => p.StatusId).IsRequired();
         builder.Property(p => p.StatusWorkflowId).IsRequired();
+        // Indexed for the reassignment migrator, whose only query is "every record on
+        // this workflow". Unindexed it scans the whole table on every batch.
+        builder.HasIndex(p => p.StatusWorkflowId);
         builder.Property(p => p.StatusName).IsRequired().HasMaxLength(64);
         builder.Property(p => p.StatusCategory).IsRequired()
             .HasConversion<EnumConverter<StatusCategory>>()
@@ -200,6 +203,9 @@ public class ReleaseConfiguration : IEntityTypeConfiguration<Release>
 
         builder.Property(r => r.StatusId).IsRequired();
         builder.Property(r => r.StatusWorkflowId).IsRequired();
+        // Indexed for the reassignment migrator, whose only query is "every record on
+        // this workflow". Unindexed it scans the whole table on every batch.
+        builder.HasIndex(r => r.StatusWorkflowId);
         builder.Property(r => r.StatusName).IsRequired().HasMaxLength(64);
         builder.Property(r => r.StatusCategory).IsRequired()
             .HasConversion<EnumConverter<StatusCategory>>()
@@ -245,6 +251,9 @@ public class ReleasePackageConfiguration : IEntityTypeConfiguration<ReleasePacka
 
         builder.Property(p => p.StatusId).IsRequired();
         builder.Property(p => p.StatusWorkflowId).IsRequired();
+        // Indexed for the reassignment migrator, whose only query is "every record on
+        // this workflow". Unindexed it scans the whole table on every batch.
+        builder.HasIndex(p => p.StatusWorkflowId);
         builder.Property(p => p.StatusName).IsRequired().HasMaxLength(64);
         builder.Property(p => p.StatusCategory).IsRequired()
             .HasConversion<EnumConverter<StatusCategory>>()
@@ -378,6 +387,9 @@ public class DeploymentConfiguration : IEntityTypeConfiguration<Deployment>
 
         builder.Property(d => d.StatusId).IsRequired();
         builder.Property(d => d.StatusWorkflowId).IsRequired();
+        // Indexed for the reassignment migrator, whose only query is "every record on
+        // this workflow". Unindexed it scans the whole table on every batch.
+        builder.HasIndex(d => d.StatusWorkflowId);
         builder.Property(d => d.StatusName).IsRequired().HasMaxLength(64);
         builder.Property(d => d.StatusCategory).IsRequired()
             .HasConversion<EnumConverter<StatusCategory>>()

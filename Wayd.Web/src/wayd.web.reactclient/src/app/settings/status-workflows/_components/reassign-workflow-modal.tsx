@@ -159,7 +159,7 @@ const ReassignWorkflowModal = ({
             <Alert
               type="info"
               showIcon
-              message={`Every ${assignment.owner.name.toLowerCase()} will move to a status in the new workflow.`}
+              title={`Every ${assignment.owner.name.toLowerCase()} will move to a status in the new workflow.`}
               description="Each move is recorded in the record's status history."
             />
           </Flex>
@@ -184,7 +184,7 @@ const ReassignWorkflowModal = ({
             <Alert
               type="warning"
               showIcon
-              message={`${preview.affectedRecordCount.toLocaleString()} record(s) will move.`}
+              title={`${preview.affectedRecordCount.toLocaleString()} record(s) will move.`}
               description={
                 <Text>
                   From <Text strong>{preview.from.name}</Text> to{' '}

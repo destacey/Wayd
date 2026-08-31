@@ -100,7 +100,7 @@ const StatusRemapTable = ({
         <Alert
           type="warning"
           showIcon
-          message={`${unresolvedCount} status${unresolvedCount === 1 ? '' : 'es'} still need a target.`}
+          title={`${unresolvedCount} status${unresolvedCount === 1 ? '' : 'es'} still need a target.`}
           description="Every status must be mapped before records can move."
         />
       )}

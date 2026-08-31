@@ -89,7 +89,7 @@ The workflows Wayd seeds are marked **System**. They cannot be edited, published
 
 You cannot. You clone it, change the copy, publish that, and reassign.
 
-1. Open the workflow and choose **Clone**. The copy carries every status and arrives as a Draft.
+1. Choose **Clone** from the workflow's row, or from its detail page. The copy carries every status and arrives as a Draft.
 2. Edit the draft — add, rename, reclassify, remove, reorder.
 3. **Publish** it. Wayd refuses if a required alias is missing, and names the ones it needs.
 4. **Reassign** the record type to it, which is where existing records move across.
@@ -98,7 +98,7 @@ This is the same shape Jira and Azure DevOps use, and for the same reason: the w
 
 ## Changing which workflow is used
 
-The panel at the top of **Settings → Status Workflows** shows which workflow each record type currently uses. **Change workflow** moves it — and brings every existing record with it.
+A record type can have several workflows — the one in use, a draft being prepared, and any it has retired — so the list's **Assigned** column marks the one actually governing records. **Change workflow**, on that row's actions menu, moves the record type to another workflow and brings every existing record with it.
 
 This is the only operation in Wayd that rewrites every record of a type at once, so it runs in three reviewed steps.
 

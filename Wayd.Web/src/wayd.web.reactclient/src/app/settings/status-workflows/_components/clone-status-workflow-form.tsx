@@ -15,7 +15,7 @@ const { Item } = Form
 const { TextArea } = Input
 
 export interface CloneStatusWorkflowFormProps {
-  statusWorkflow: StatusWorkflowDetailsDto
+  statusWorkflow: Pick<StatusWorkflowDetailsDto, 'id' | 'name' | 'description'>
   onFormComplete: () => void
   onFormCancel: () => void
 }

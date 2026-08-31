@@ -412,6 +412,81 @@ Cross-domain usage: Tags on Projects, Programs, Strategic Initiatives for alignm
 
 ---
 
+## Product Management Domain
+
+Gated by the `product-management` feature flag (disabled on first deploy). Authorization is permission-claim only — unlike PPM, no membership or leadership requirement on a record.
+
+### Products
+
+The catalog of what the organization builds. Properties:
+- Name, Description, Type, Parent, Status, Tags, External Id, Key
+
+Rules: Nests by containment; a node with no parent is a root. A product cannot become its own ancestor — the domain refuses a move into its own subtree, and the UI picker omits that subtree. Durable across the Projects that change it.
+
+Facets are changed through separate commands, each enforcing its own rule: UpdateProductDetails (name/description), RetypeProduct, ReparentProduct, ChangeProductStatus, TagProduct/UntagProduct, LinkProductExternally.
+
+### Product Types
+
+What the organization calls a kind of node. A table, not an enum, so phase-two additions (capability flags, distribution model, sourcing, allowed-parent rules) stay additive with no backfill. Properties:
+- Name, Description, IsReleasable, IsActive, Order, Key
+
+Seeded: Product Line, Platform, Module, Interface (not releasable); Product, Application, Service, Tool, Library (releasable).
+
+Rules: IsReleasable decides whether releases can be cut against a node. A product cannot be retyped onto a non-releasable type once releases exist. Types are deactivated, never deleted, because existing products still resolve their type.
+
+### Product Tags
+
+Classification along an axis, grouped into categories (Platform, Tech Stack, Compliance). Properties:
+- Category (Name, Description, AllowsMany), Tag (Name, Description, IsActive)
+
+Rules: Grouped rather than flat so "what platform is this?" is a query rather than prior knowledge. Carries what does *not* change behaviour; the type system carries what does. An inactive tag a product already carries stays offered, so a save cannot silently remove it.
+
+### External Id
+
+A product's identifier in the system that owns it — repository, pipeline, registry package. Set through LinkProductExternallyCommand, never as part of a details edit, so a rename cannot clear it. Null clears the link. Nothing consumes it yet; it exists so a later automated feed can be matched against hand-curated products.
+
+### Releases
+
+A versioned cut of one releasable product node. Properties:
+- Version (free text), Name, Target Date, Sequence, Status, Product
+
+Rules: Describes what was cut, never where it went — rollout lives on Deployment. A release with no deployment is a complete record, which makes release-first hand-entry workable. States: Planned → Ready → Released, or Withdrawn.
+
+### Release Packages
+
+Several component releases shipped as one coordinated unit. Properties:
+- Version, Name, Status, Components (manifest of component versions)
+
+Rules: Where a package exists it owns the deployment and its component releases do not — one pipeline run shipping fifteen services counts once, not fifteen. NOT a SAFe Release Train (that is TeamOfTeams in Organization).
+
+### Deployments
+
+One release or package reaching one environment. Properties:
+- Release OR Package (exactly one), Environment, Environment Category, Artifact Id, StartedAt, EndedAt, Status
+
+Rules: The substrate every delivery metric is computed from. States: In Progress → Succeeded, Failed, or Rolled Back.
+
+### Deployment Environments
+
+Named deploy targets, globally scoped and ordered into rings for progressive rollout. Properties:
+- Name, Category (Development/Testing/Staging/Production), Ring Order
+
+Rules: Named DeploymentEnvironment because Environment would shadow System.Environment. Category is a fixed enum, not a workflow — a classification rather than a state. Every production-scoped measure counts on the category, not the free-text name. Reclassifying raises its own event because it retroactively rewrites every production-scoped measure.
+
+### Delivery Metrics
+
+Computed over a window from production deployments:
+- Deployment Frequency — completed production deployments. Rolled-back deployments count (they reached production); in-flight and failed do not.
+- Change Failure Rate — share of completed production deployments that failed or were rolled back. Production only: a failure caught in staging was prevented.
+
+Reported as explicitly unavailable, with reasons, rather than approximated:
+- Lead Time for Changes — needs a link from a deployment back to the change it carried (commit or work item).
+- Time to Restore Service — needs an incident record. A rollback is not a substitute.
+
+Counts and totals accompany every average so windows and scopes combine without average-of-averages bias.
+
+---
+
 ## Integration Domain
 
 ### Azure DevOps Boards Connector

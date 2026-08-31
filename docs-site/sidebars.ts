@@ -68,6 +68,15 @@ const sidebars: SidebarsConfig = {
           label: 'Strategic Management',
         },
         {
+          type: 'category',
+          label: 'Product Management',
+          link: {type: 'doc', id: 'user-guide/product-management/index'},
+          items: [
+            'user-guide/product-management/products',
+            'user-guide/product-management/delivery',
+          ],
+        },
+        {
           type: 'doc',
           id: 'user-guide/settings/index',
           label: 'Administration',

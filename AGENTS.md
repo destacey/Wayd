@@ -110,7 +110,7 @@ Visions (one Active at a time), Strategies, Strategic Themes (cross-domain tags 
 
 ## Documentation
 
-- **User docs**: `docs/user-guide/` — Organizations, Planning, Work Management, PPM, Strategic Management, Administration
+- **User docs**: `docs/user-guide/` — Organizations, Planning, Work Management, PPM, Strategic Management, Product Management, Administration
 - **Developer docs**: `docs/contributing/` — Architecture, coding standards, testing, adding features
 - **Reference**: `docs/reference/` — Domain model, API, feature flags, integrations, tech stack
 - **AI context**: `docs/ai/domain-glossary.mdx`, `docs/llms.txt`, `docs/llms-full.txt`

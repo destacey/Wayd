@@ -130,6 +130,22 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Strategy** | The approach for achieving the vision. States: Draft → Active → Completed → Archived. Independent of visions. |
 | **Strategic Theme** | A high-level organizational priority guiding investment decisions. States: Proposed → Active → Archived. Only Proposed deletable. Cross-domain: tags Projects, Programs, Strategic Initiatives in PPM. |
 
+## Product Management
+
+| Term | Definition |
+|------|-----------|
+| **Product** | A node in the product catalog — product line, product, application, service, library, tool, module, or interface. Nests by containment; a node with no parent is a root. Durable, unlike the Projects that change it. Cannot become its own ancestor. |
+| **Product Type** | What the organization calls a kind of node, stored as a table rather than an enum so the vocabulary stays editable. Carries `IsReleasable`. Deactivated, never deleted, because existing products still resolve their type. |
+| **Releasable** | The type flag deciding whether releases can be cut against a node. Grouping types (Product Line, Platform, Module, Interface) are not releasable. A product cannot be retyped onto a non-releasable type once releases exist. |
+| **Product Tag / Tag Category** | Classification along an axis (Platform, Tech Stack, Compliance). Categories group tags so "what platform is this?" is a query rather than prior knowledge; a category allows one value or several. Carries what does *not* change behaviour — the type system carries what does. |
+| **External Id** | A product's identifier in the system that owns it — repository, pipeline, registry package. Set through its own command (`LinkProductExternallyCommand`), never as part of a details edit, so a rename cannot clear it. Nothing consumes it yet; it exists so a later automated feed can match hand-curated products. |
+| **Release** | A versioned cut of one releasable product node. Describes what was cut, never where it went — rollout lives on Deployment. A release with no deployment is a complete record. Versions are free text. States: Planned → Ready → Released, or Withdrawn. |
+| **Release Package** | Several component releases shipped as one coordinated unit, versioned in its own right and carrying a manifest of component versions. Where a package exists it owns the deployment and its components do not, so one pipeline run counts once. **Not** a SAFe Release Train — that is `TeamOfTeams`. |
+| **Deployment** | One release or package reaching one environment, with start, end, outcome, and artifact id. Exactly one of `ReleaseId`/`PackageId` is set. The substrate every delivery metric is computed from. States: In Progress → Succeeded, Failed, or Rolled Back. |
+| **Deployment Environment** | A named deploy target, globally scoped and ordered into rings for progressive rollout. Named `DeploymentEnvironment` because `Environment` would shadow `System.Environment`. |
+| **Environment Category** | Fixed enum (Development, Testing, Staging, Production) — a classification, not a state. Every production-scoped measure counts on the category, not the free-text name (`prod`, `prd`, `live`). Reclassifying raises its own event because it retroactively rewrites every production-scoped measure. |
+| **Delivery Metrics** | Deployment Frequency and Change Failure Rate, computed from production deployments. Lead Time for Changes and Time to Restore Service are reported as explicitly unavailable — with reasons — rather than approximated, so "not measured" is distinguishable from "zero". |
+
 ## Identity & Access
 
 | Term | Definition |

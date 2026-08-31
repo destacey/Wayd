@@ -204,6 +204,19 @@ describe('ProductDetailsPage', () => {
     }
   })
 
+  it('shows the tags in the header, where they are read', async () => {
+    // Behind a menu they are invisible until someone goes looking; the header is
+    // where a reader already is.
+    // Arrange / Act
+    await renderPage()
+
+    // Assert
+    expect(await screen.findByText('ios')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Manage tags' }),
+    ).toBeInTheDocument()
+  })
+
   it('groups the actions by what a change means', async () => {
     // Record actions, then the three guarded changes, then labels — two dividers
     // between three groups, and none stranded at either edge.

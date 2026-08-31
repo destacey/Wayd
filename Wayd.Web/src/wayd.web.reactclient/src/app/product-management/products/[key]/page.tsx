@@ -2,6 +2,7 @@
 
 import { PageActions } from '@/src/components/common'
 import { RecordLayout } from '@/src/components/common/record'
+import { TagList } from '@/src/components/common/tags'
 import type { RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
@@ -208,6 +209,25 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               : []),
           ],
           recordKey: String(product.key),
+          // Shown where they are read, not only behind a menu. The manage button
+          // is omitted without permission, so the chips stay visible to everyone.
+          tags: (
+            <TagList
+              // The axis rides on the chip as its qualifier: a bare "gold" does
+              // not say whether it is a tier, a platform or a compliance scope.
+              tags={(product.tags ?? []).map((tag) => ({
+                id: tag.tagId,
+                label: tag.tagName,
+                qualifier: tag.categoryName,
+              }))}
+              // The header shares its row with the name, key and actions, so a
+              // heavily tagged product collapses rather than crowding them out.
+              maxVisible={3}
+              onManage={
+                canUpdateProduct ? () => setIsManageTagsOpen(true) : undefined
+              }
+            />
+          ),
           actions:
             actionsMenuItems.length > 0 ? (
               <PageActions actionItems={actionsMenuItems} />

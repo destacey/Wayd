@@ -225,4 +225,21 @@
   .header {
     padding: 12px 16px;
   }
+
+  /* Three deliberate rows rather than whatever wrap produces: identity, then
+     tags, then actions. Wrapping alone breaks wherever the content happens to
+     run out of width, which puts the actions beside a tag as often as not. */
+  .headerBar > * {
+    flex-basis: 100%;
+  }
+
+  /* The spacer that pushes actions right on a wide header would otherwise
+     become an empty row of its own once everything is full-width. */
+  .headerBar > .headerSpacer {
+    display: none;
+  }
+
+  .headerActions {
+    justify-content: flex-end;
+  }
 }

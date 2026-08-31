@@ -1,0 +1,23 @@
+/* The list shares the header row with the record name and actions, so it is
+   allowed to shrink rather than force the row wider. */
+.list {
+  min-width: 0;
+}
+
+.chip {
+  margin-inline-end: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dimmed so the chip's own border stays the strongest line: at equal weight the
+   pipe competes with the boundary and one chip reads as two. */
+.qualifier {
+  color: var(--ant-color-text-tertiary);
+}
+
+.empty {
+  color: var(--ant-color-text-tertiary);
+}

@@ -19,6 +19,9 @@ const product = (
     tags: [],
   }) as unknown as ProductDto
 
+const tagged = (base: ProductDto, tags: unknown[]): ProductDto =>
+  ({ ...base, tags }) as unknown as ProductDto
+
 const PRODUCTS = [
   product('a1', 1, 'Trio WFS'),
   product('b2', 2, 'Trio VMS', { id: 'a1', key: 1, name: 'Trio WFS' }),
@@ -84,6 +87,35 @@ describe('ProductsGrid', () => {
       // Assert
       expect(document.querySelectorAll('.anticon-caret-down')).toHaveLength(0)
     })
+  })
+
+  it('qualifies a tag with its axis', () => {
+    // A bare "gold" does not say whether it is a tier, a platform or a
+    // compliance scope — the same reason the header chips carry the axis.
+    // Arrange
+    const products = [
+      tagged(PRODUCTS[0], [
+        {
+          tagId: 't1',
+          tagName: 'gold',
+          categoryId: 'c1',
+          categoryName: 'Tier',
+        },
+      ]),
+    ]
+
+    // Act
+    render(
+      <ProductsGrid
+        products={products}
+        isLoading={false}
+        refetch={() => {}}
+        asTree={false}
+      />,
+    )
+
+    // Assert
+    expect(screen.getByText('Tier | gold')).toBeInTheDocument()
   })
 
   it('resolves the type through its navigation object', () => {

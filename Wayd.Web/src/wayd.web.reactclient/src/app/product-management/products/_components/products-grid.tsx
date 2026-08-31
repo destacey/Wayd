@@ -1,6 +1,10 @@
 'use client'
 
-import { WaydGrid, createCsvColumn } from '@/src/components/common/wayd-grid'
+import {
+  WaydGrid,
+  caseInsensitiveCompare,
+  createCsvColumn,
+} from '@/src/components/common/wayd-grid'
 import { ProductDto } from '@/src/services/wayd-api'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import treeGridStyles from '@/src/components/common/wayd-grid/wayd-grid.module.css'
@@ -120,7 +124,15 @@ const buildColumns = <T extends ProductDto>(
   createCsvColumn<T>({
     id: 'tags',
     header: 'Tags',
-    getValues: (row) => (row.tags ?? []).map((t) => t.tagName).sort(),
+    // Qualified by axis, as the header chips are: a bare "gold" does not say
+    // whether it is a tier, a platform or a compliance scope. Sorting the
+    // qualified string groups an axis's tags together, and the set filter is
+    // built from these same values, so filtering picks one axis's tag rather
+    // than every tag that happens to share a name.
+    getValues: (row) =>
+      (row.tags ?? [])
+        .map((t) => `${t.categoryName} | ${t.tagName}`)
+        .sort((a, b) => caseInsensitiveCompare(a, b)),
   }),
 ]
 

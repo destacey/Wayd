@@ -175,6 +175,24 @@ describe('ProductDetailsPage', () => {
     )
   })
 
+  it('summarises the child products on the overview', async () => {
+    // The tile reads the same query the section does, so it cannot disagree with
+    // the list it summarises.
+    // Arrange / Act
+    await renderPage()
+
+    // Assert
+    expect(await screen.findByText('Releasable Products')).toBeInTheDocument()
+  })
+
+  it('closes the breadcrumb with the page name, not an ancestor', async () => {
+    // Arrange / Act
+    await renderPage()
+
+    // Assert
+    expect(await screen.findByText('Product Details')).toBeInTheDocument()
+  })
+
   it('links back to the products list as the first crumb', async () => {
     // Outermost first: the list, then the parent. Replacing the list with the
     // parent would leave a nested product with no way back to the top.
@@ -192,9 +210,10 @@ describe('ProductDetailsPage', () => {
     await renderPage()
 
     // Assert
-    // "Products" also appears as the first breadcrumb, so the count is what
-    // identifies the section entry.
-    expect(await screen.findByText('1')).toBeInTheDocument()
+    // "Products" appears as a breadcrumb and an overview tile too, so the count
+    // is read off the section entry rather than by text alone.
+    const sectionEntry = await screen.findByRole('tab', { name: /Products/ })
+    expect(sectionEntry).toHaveTextContent('1')
   })
 
   it('offers adding a child product from the products section', async () => {

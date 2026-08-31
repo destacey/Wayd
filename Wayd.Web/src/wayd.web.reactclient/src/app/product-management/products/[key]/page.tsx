@@ -22,6 +22,7 @@ import DeleteProductForm from '../_components/delete-product-form'
 import EditProductForm from '../_components/edit-product-form'
 import ProductsGrid from '../_components/products-grid'
 import ProductFacts from './_components/product-facts'
+import ProductOverview from './_components/product-overview'
 import ProductDetailsLoading from './loading'
 
 enum ProductSections {
@@ -121,7 +122,17 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       )
     }
 
-    return null
+    return (
+      <ProductOverview
+        product={product}
+        childProducts={components ?? []}
+        childProductsLoading={componentsLoading}
+        onNavigateToSection={(sectionId) =>
+          router.replace(`?section=${sectionId}`, { scroll: false })
+        }
+        productsSectionId={ProductSections.Products}
+      />
+    )
   }
 
   return (
@@ -131,7 +142,7 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         defaultSection={ProductSections.Overview}
         record={{
           name: product.name,
-          subtitle: 'Product',
+          subtitle: 'Product Details',
           // Outermost first: the list always, then the parent when there is one,
           // so a nested product shows where it sits without losing the way back.
           parent: [

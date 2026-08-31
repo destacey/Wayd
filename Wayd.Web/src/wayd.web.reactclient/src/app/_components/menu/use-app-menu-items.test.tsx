@@ -6,9 +6,18 @@ const mockAuth = { employeeId: 'emp-1' as string | null }
 /** Feature flags the menu reads, keyed by flag name. Default off, as the suite assumed before. */
 const mockFlags: Record<string, boolean> = {}
 
+/**
+ * Claims the signed-in user holds. `null` means "every claim", which is what most cases want; a set
+ * narrows it so a test can prove which permission actually guards an entry.
+ */
+const mockClaims: { held: Set<string> | null } = { held: null }
+
 jest.mock('../../../components/contexts/auth', () => ({
   __esModule: true,
-  default: () => ({ hasClaim: () => true }),
+  default: () => ({
+    hasClaim: (_type: string, value: string) =>
+      mockClaims.held === null || mockClaims.held.has(value),
+  }),
 }))
 
 jest.mock('../../../hooks', () => ({
@@ -44,6 +53,7 @@ describe('useAppMenuItems', () => {
   beforeEach(() => {
     mockAuth.employeeId = 'emp-1'
     for (const flag of Object.keys(mockFlags)) delete mockFlags[flag]
+    mockClaims.held = null
   })
 
   it('includes My Projects when the account is linked to an employee', () => {
@@ -88,5 +98,39 @@ describe('useAppMenuItems', () => {
     const keys = keysOf(result.current.menuItems)
     expect(keys).toContain('product')
     expect(keys).toContain('product.products')
+  })
+
+  it('omits Delivery while the Product Management flag is off', () => {
+    // Delivery rides the same module flag: one module answers for both, so the section cannot
+    // appear while its endpoints 404.
+    const { result } = renderHook(() => useAppMenuItems())
+
+    expect(keysOf(result.current.menuItems)).not.toContain('delivery.releases')
+  })
+
+  it('includes Delivery when the Product Management flag is on', () => {
+    mockFlags['product-management'] = true
+
+    const { result } = renderHook(() => useAppMenuItems())
+
+    const keys = keysOf(result.current.menuItems)
+    expect(keys).toContain('delivery')
+    expect(keys).toContain('delivery.releases')
+  })
+
+  it('guards Releases on its own permission, not the catalog one', () => {
+    // Delivery sits behind the same flag as the catalog but not the same permissions: someone who
+    // can see products need not be able to see releases, and offering the entry anyway leads to a
+    // page that refuses them.
+    mockFlags['product-management'] = true
+    mockClaims.held = new Set(['Permissions.Products.View'])
+
+    const { result } = renderHook(() => useAppMenuItems())
+
+    const keys = keysOf(result.current.menuItems)
+    expect(keys).toContain('product.products')
+    expect(keys).not.toContain('delivery.releases')
+    // The section is restricted, so it disappears along with its only child.
+    expect(keys).not.toContain('delivery')
   })
 })

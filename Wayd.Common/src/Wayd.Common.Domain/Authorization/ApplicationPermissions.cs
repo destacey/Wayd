@@ -47,6 +47,8 @@ public static class ApplicationResource
 
     public const string ScoringModels = nameof(ScoringModels);
 
+    public const string StatusWorkflows = nameof(StatusWorkflows);
+
     public const string Connections = nameof(Connections);
     public const string Connectors = nameof(Connectors);
 
@@ -113,6 +115,11 @@ public static class ApplicationPermissions
         new ("Create Scoring Models", ApplicationAction.Create, ApplicationResource.ScoringModels, ApplicationCategory),
         new ("Update Scoring Models", ApplicationAction.Update, ApplicationResource.ScoringModels, ApplicationCategory),
         new ("Delete Scoring Models", ApplicationAction.Delete, ApplicationResource.ScoringModels, ApplicationCategory),
+
+        new ("View Status Workflows", ApplicationAction.View, ApplicationResource.StatusWorkflows, ApplicationCategory),
+        new ("Create Status Workflows", ApplicationAction.Create, ApplicationResource.StatusWorkflows, ApplicationCategory),
+        new ("Update Status Workflows", ApplicationAction.Update, ApplicationResource.StatusWorkflows, ApplicationCategory),
+        new ("Delete Status Workflows", ApplicationAction.Delete, ApplicationResource.StatusWorkflows, ApplicationCategory),
 
         new("View Feature Flags", ApplicationAction.View, ApplicationResource.FeatureFlags, ApplicationCategory),
         new("Create Feature Flags", ApplicationAction.Create, ApplicationResource.FeatureFlags, ApplicationCategory),

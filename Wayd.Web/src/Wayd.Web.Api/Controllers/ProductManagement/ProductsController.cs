@@ -1,5 +1,6 @@
 ﻿using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Application.Products.Commands;
@@ -64,6 +65,20 @@ public class ProductsController(IDispatcher dispatcher) : ControllerBase
         return product is not null
             ? Ok(product)
             : NotFound();
+    }
+
+    [HttpGet("status-options")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Products)]
+    [OpenApiOperation(
+        "Get the statuses a product can be moved to.",
+        "From the workflow governing products, in the order an administrator laid it out.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<StatusNavigationDto>>> GetStatusOptions(
+        CancellationToken cancellationToken)
+    {
+        var statuses = await _dispatcher.Send(new GetProductStatusOptionsQuery(), cancellationToken);
+
+        return Ok(statuses);
     }
 
     [HttpPost]

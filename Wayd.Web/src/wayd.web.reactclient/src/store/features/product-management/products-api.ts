@@ -6,6 +6,7 @@ import {
   ObjectIdAndKey,
   ProductDto,
   ReparentProductRequest,
+  StatusNavigationDto,
   RetypeProductRequest,
   UpdateProductRequest,
 } from '@/src/services/wayd-api'
@@ -50,6 +51,24 @@ export const productsApi = apiSlice.injectEndpoints({
       providesTags: (result, error, arg) => [
         { type: QueryTags.Product, id: arg },
       ],
+    }),
+    /**
+     * The statuses a product can be moved to.
+     *
+     * Statuses are configurable, so a picker cannot hold a fixed list — and the
+     * API refuses a status belonging to another workflow.
+     */
+    getProductStatusOptions: builder.query<StatusNavigationDto[], void>({
+      queryFn: async () => {
+        try {
+          const data = await getProductsClient().getStatusOptions()
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: () => [{ type: QueryTags.Product, id: 'STATUS_OPTIONS' }],
     }),
     createProduct: builder.mutation<ObjectIdAndKey, CreateProductRequest>({
       queryFn: async (request) => {
@@ -185,6 +204,7 @@ export const productsApi = apiSlice.injectEndpoints({
 export const {
   useGetProductsQuery,
   useGetProductQuery,
+  useGetProductStatusOptionsQuery,
   useCreateProductMutation,
   useUpdateProductMutation,
   useReparentProductMutation,

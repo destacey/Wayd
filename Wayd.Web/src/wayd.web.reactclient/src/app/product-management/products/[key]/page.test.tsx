@@ -132,6 +132,11 @@ jest.mock('@/src/store/features/product-management/products-api', () => ({
     refetch: jest.fn(),
   }),
   useGetProductsQuery: () => ({ data: components, isLoading: false }),
+  useGetProductStatusOptionsQuery: () => ({ data: [], isLoading: false }),
+  useChangeProductStatusMutation: () => [jest.fn()],
+  useRetypeProductMutation: () => [jest.fn()],
+  useReparentProductMutation: () => [jest.fn()],
+  useCreateProductMutation: () => [jest.fn()],
   useUpdateProductMutation: () => [jest.fn()],
   useDeleteProductMutation: () => [jest.fn()],
 }))
@@ -173,6 +178,18 @@ describe('ProductDetailsPage', () => {
       'href',
       '/product-management/products/1',
     )
+  })
+
+  it('offers each guarded change as its own action', async () => {
+    // Status, type and parent each carry a rule the API enforces. Folding them
+    // into Edit would hide which one refused a change.
+    // Arrange / Act
+    await renderPage()
+
+    // Assert
+    for (const action of ['Edit', 'Change Status', 'Change Type', 'Move']) {
+      expect(await screen.findByText(action)).toBeInTheDocument()
+    }
   })
 
   it('summarises the child products on the overview', async () => {

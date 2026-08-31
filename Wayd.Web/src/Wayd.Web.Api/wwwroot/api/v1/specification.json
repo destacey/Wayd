@@ -5045,6 +5045,36 @@
         ]
       }
     },
+    "/api/product-management/products/status-options": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Get the statuses a product can be moved to.",
+        "description": "From the workflow governing products, in the order an administrator laid it out.",
+        "operationId": "Products_GetStatusOptions",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StatusNavigationDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/product-management/products/{id}": {
       "put": {
         "tags": [

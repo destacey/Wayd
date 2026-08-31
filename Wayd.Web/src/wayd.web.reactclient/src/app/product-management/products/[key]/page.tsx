@@ -17,9 +17,12 @@ import { use, useState } from 'react'
 // Imported directly rather than through the barrel: the barrel also pulls in the
 // create form, and with it the markdown editor's ESM-only dependencies, which this
 // page never renders.
+import ChangeProductStatusForm from '../_components/change-product-status-form'
 import CreateProductForm from '../_components/create-product-form'
 import DeleteProductForm from '../_components/delete-product-form'
 import EditProductForm from '../_components/edit-product-form'
+import ReparentProductForm from '../_components/reparent-product-form'
+import RetypeProductForm from '../_components/retype-product-form'
 import ProductsGrid from '../_components/products-grid'
 import ProductFacts from './_components/product-facts'
 import ProductOverview from './_components/product-overview'
@@ -39,6 +42,9 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [isEditOpen, setIsEditOpen] = useState<boolean>(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState<boolean>(false)
   const [isCreateChildOpen, setIsCreateChildOpen] = useState<boolean>(false)
+  const [isChangeStatusOpen, setIsChangeStatusOpen] = useState<boolean>(false)
+  const [isRetypeOpen, setIsRetypeOpen] = useState<boolean>(false)
+  const [isReparentOpen, setIsReparentOpen] = useState<boolean>(false)
   const router = useRouter()
 
   // The active section lives in the URL (?section=), owned by RecordLayout. Read
@@ -82,6 +88,23 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
     if (canUpdateProduct) {
       items.push({ key: 'edit', label: 'Edit', onClick: () => setIsEditOpen(true) })
+      // Each is its own action rather than a field on Edit: every one carries a
+      // rule the API enforces, and a blanket save would hide which one refused.
+      items.push({
+        key: 'change-status',
+        label: 'Change Status',
+        onClick: () => setIsChangeStatusOpen(true),
+      })
+      items.push({
+        key: 'retype',
+        label: 'Change Type',
+        onClick: () => setIsRetypeOpen(true),
+      })
+      items.push({
+        key: 'reparent',
+        label: 'Move',
+        onClick: () => setIsReparentOpen(true),
+      })
     }
 
     if (canDeleteProduct) {
@@ -195,6 +218,39 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             refetch()
           }}
           onFormCancel={() => setIsCreateChildOpen(false)}
+        />
+      )}
+
+      {isChangeStatusOpen && (
+        <ChangeProductStatusForm
+          product={product}
+          onFormComplete={() => {
+            setIsChangeStatusOpen(false)
+            refetch()
+          }}
+          onFormCancel={() => setIsChangeStatusOpen(false)}
+        />
+      )}
+
+      {isRetypeOpen && (
+        <RetypeProductForm
+          product={product}
+          onFormComplete={() => {
+            setIsRetypeOpen(false)
+            refetch()
+          }}
+          onFormCancel={() => setIsRetypeOpen(false)}
+        />
+      )}
+
+      {isReparentOpen && (
+        <ReparentProductForm
+          product={product}
+          onFormComplete={() => {
+            setIsReparentOpen(false)
+            refetch()
+          }}
+          onFormCancel={() => setIsReparentOpen(false)}
         />
       )}
 

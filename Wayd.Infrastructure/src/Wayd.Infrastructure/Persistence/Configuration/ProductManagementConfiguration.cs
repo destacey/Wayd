@@ -217,12 +217,12 @@ public class ReleaseConfiguration : IEntityTypeConfiguration<Release>
         builder.ConfigureStatusHistory();
 
         // Relationships
-        builder.HasOne<Product>()
+        builder.HasOne(r => r.Product)
             .WithMany()
             .HasForeignKey(r => r.ProductId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<ReleasePackage>()
+        builder.HasOne(r => r.Package)
             .WithMany()
             .HasForeignKey(r => r.PackageId)
             .OnDelete(DeleteBehavior.SetNull);

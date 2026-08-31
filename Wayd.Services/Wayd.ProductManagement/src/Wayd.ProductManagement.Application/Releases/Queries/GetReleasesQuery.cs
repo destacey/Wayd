@@ -26,7 +26,7 @@ public sealed class GetReleasesQueryHandler(IProductManagementDbContext productM
     public async Task<IReadOnlyCollection<ReleaseDto>> Handle(
         GetReleasesQuery query, CancellationToken cancellationToken)
     {
-        var releases = _productManagementDbContext.Releases.AsNoTracking();
+        var releases = _productManagementDbContext.Releases.AsQueryable();
 
         if (query.ProductId is not null)
         {
@@ -43,40 +43,12 @@ public sealed class GetReleasesQueryHandler(IProductManagementDbContext productM
             releases = releases.Where(r => query.StatusCategories.Contains(r.StatusCategory));
         }
 
-        return await Project(releases, _productManagementDbContext)
+        return await releases
+            .ProjectToType<ReleaseDto>()
             .OrderByDescending(r => r.ReleasedDate == null)
             .ThenByDescending(r => r.ReleasedDate)
             .ThenByDescending(r => r.Sequence)
             .ToListAsync(cancellationToken);
     }
 
-    internal static IQueryable<ReleaseDto> Project(
-        IQueryable<Domain.Models.Release> releases, IProductManagementDbContext dbContext) =>
-        releases.Select(r => new ReleaseDto
-        {
-            Id = r.Id,
-            Key = r.Key,
-            Product = dbContext.Products
-                .Where(p => p.Id == r.ProductId)
-                .Select(p => new NavigationDto { Id = p.Id, Key = p.Key, Name = p.Name })
-                .FirstOrDefault()!,
-            Version = r.Version,
-            Name = r.Name,
-            Notes = r.Notes,
-            Sequence = r.Sequence,
-            TargetDate = r.TargetDate,
-            CutDate = r.CutDate,
-            ReleasedDate = r.ReleasedDate,
-            Package = dbContext.ReleasePackages
-                .Where(p => p.Id == r.PackageId)
-                .Select(p => new NavigationDto { Id = p.Id, Key = p.Key, Name = p.Version })
-                .FirstOrDefault(),
-            Status = new StatusNavigationDto
-            {
-                Id = r.StatusId,
-                Name = r.StatusName,
-                Category = r.StatusCategory,
-                Alias = r.StatusAliasValue,
-            },
-        });
 }

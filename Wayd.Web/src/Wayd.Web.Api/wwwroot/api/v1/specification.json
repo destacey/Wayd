@@ -6929,23 +6929,21 @@
         ]
       }
     },
-    "/api/product-management/releases/{id}": {
+    "/api/product-management/releases/{idOrKey}": {
       "get": {
         "tags": [
           "Releases"
         ],
         "summary": "Get release details.",
+        "description": "Accepts the release's id or its short key.",
         "operationId": "Releases_GetRelease",
         "parameters": [
           {
-            "name": "id",
+            "name": "idOrKey",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "guid",
-              "nullable": false,
-              "example": "00000000-0000-0000-0000-000000000000"
+              "type": "string"
             },
             "x-position": 1
           }
@@ -6977,7 +6975,60 @@
             "ApiKey": []
           }
         ]
-      },
+      }
+    },
+    "/api/product-management/releases/{idOrKey}/status-history": {
+      "get": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Get a release's status change history.",
+        "description": "Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.",
+        "operationId": "Releases_GetStatusHistory",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StatusTransitionDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/releases/{id}": {
       "put": {
         "tags": [
           "Releases"
@@ -7030,60 +7081,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKey": []
-          }
-        ]
-      }
-    },
-    "/api/product-management/releases/{id}/status-history": {
-      "get": {
-        "tags": [
-          "Releases"
-        ],
-        "summary": "Get a release's status change history.",
-        "description": "Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.",
-        "operationId": "Releases_GetStatusHistory",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "guid",
-              "nullable": false,
-              "example": "00000000-0000-0000-0000-000000000000"
-            },
-            "x-position": 1
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/StatusTransitionDto"
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }

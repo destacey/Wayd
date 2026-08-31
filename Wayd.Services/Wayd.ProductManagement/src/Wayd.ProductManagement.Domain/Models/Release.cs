@@ -44,6 +44,15 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
     public Guid ProductId { get; private init; }
 
     /// <summary>
+    /// The product this release was cut against, when one is loaded.
+    /// </summary>
+    /// <remarks>
+    /// For the read side only. Domain methods take the product name they need as an argument, so no
+    /// invariant depends on this being loaded.
+    /// </remarks>
+    public Product? Product { get; private init; }
+
+    /// <summary>
     /// The version as the organization writes it — <c>4.8.2</c>, <c>2026.08</c>, <c>v3-beta</c>,
     /// a build number, a git tag.
     /// </summary>
@@ -102,7 +111,16 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
     /// <summary>
     /// The package this release shipped inside, or <c>null</c> when it shipped on its own.
     /// </summary>
+    /// <remarks>
+    /// Nothing writes this yet: <see cref="SetPackage"/> is the only path to it and has no caller, so
+    /// in practice it is always null and a package's membership is read from its manifest instead.
+    /// </remarks>
     public Guid? PackageId { get; private set; }
+
+    /// <summary>
+    /// The package this release shipped inside, when one is loaded.
+    /// </summary>
+    public ReleasePackage? Package { get; private init; }
 
 
     /// <summary>

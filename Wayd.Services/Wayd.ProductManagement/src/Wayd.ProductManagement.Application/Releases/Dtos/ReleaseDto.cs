@@ -1,7 +1,6 @@
 ﻿using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
-using Wayd.Common.Domain.Enums.ProductManagement;
-using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.ProductManagement.Domain.Models;
 
 namespace Wayd.ProductManagement.Application.Releases.Dtos;
 
@@ -12,7 +11,7 @@ namespace Wayd.ProductManagement.Application.Releases.Dtos;
 /// <see cref="Version"/> is free text and is never parsed. Callers presenting a list order by
 /// <see cref="ReleasedDate"/> then <see cref="Sequence"/>, never by the version string.
 /// </remarks>
-public sealed record ReleaseDto
+public sealed record ReleaseDto : IMapFrom<Release>
 {
     public Guid Id { get; init; }
     public int Key { get; init; }
@@ -41,4 +40,24 @@ public sealed record ReleaseDto
 
     /// <summary>The release's current status.</summary>
     public StatusNavigationDto Status { get; init; } = default!;
+
+    /// <remarks>
+    /// <see cref="Product"/> needs no entry: its members are same-named, so convention flattens the
+    /// navigation onto the nav DTO. The two below cannot be inferred — a package is identified by its
+    /// version rather than its optional name, and the status is flattened across four columns.
+    /// </remarks>
+    public void ConfigureMapping(TypeAdapterConfig config)
+    {
+        config.NewConfig<Release, ReleaseDto>()
+            .Map(dest => dest.Package, src => src.Package != null
+                ? NavigationDto.Create(src.Package.Id, src.Package.Key, src.Package.Version)
+                : null)
+            .Map(dest => dest.Status, src => new StatusNavigationDto
+            {
+                Id = src.StatusId,
+                Name = src.StatusName,
+                Category = src.StatusCategory,
+                Alias = src.StatusAliasValue,
+            });
+    }
 }

@@ -49,21 +49,21 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
         return Ok(releases);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Releases)]
-    [OpenApiOperation("Get release details.", "")]
+    [OpenApiOperation("Get release details.", "Accepts the release's id or its short key.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ReleaseDto>> GetRelease(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult<ReleaseDto>> GetRelease(string idOrKey, CancellationToken cancellationToken)
     {
-        var release = await _dispatcher.Send(new GetReleaseQuery(id), cancellationToken);
+        var release = await _dispatcher.Send(new GetReleaseQuery(new IdOrKey(idOrKey)), cancellationToken);
 
         return release is not null
             ? Ok(release)
             : NotFound();
     }
 
-    [HttpGet("{id}/status-history")]
+    [HttpGet("{idOrKey}/status-history")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Releases)]
     [OpenApiOperation(
         "Get a release's status change history.",
@@ -71,9 +71,10 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<StatusTransitionDto>>> GetStatusHistory(
-        Guid id, CancellationToken cancellationToken)
+        string idOrKey, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(new GetReleaseStatusHistoryQuery(id), cancellationToken);
+        var result = await _dispatcher.Send(
+            new GetReleaseStatusHistoryQuery(new IdOrKey(idOrKey)), cancellationToken);
 
         return result.IsFailure
             ? BadRequest(result.ToBadRequestObject(HttpContext))
@@ -92,7 +93,7 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
         var result = await _dispatcher.Send(request.ToPlanReleaseCommand(), cancellationToken);
 
         return result.IsSuccess
-            ? CreatedAtAction(nameof(GetRelease), new { id = result.Value.Id }, result.Value)
+            ? CreatedAtAction(nameof(GetRelease), new { idOrKey = result.Value.Id.ToString() }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 

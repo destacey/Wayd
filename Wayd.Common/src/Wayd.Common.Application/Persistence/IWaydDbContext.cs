@@ -47,6 +47,18 @@ public interface IStatusWorkflowDbContext
     DbSet<WorkflowAssignment> WorkflowAssignments { get; }
 
     /// <summary>
+    /// The status history of every tracked record, across every owner type.
+    /// </summary>
+    /// <remarks>
+    /// Reached as a set rather than through the aggregate: the history is deliberately not a navigation,
+    /// so <c>StatusTrackedEntity.StatusTransitions</c> holds only what the current instance has appended
+    /// and is empty on a record loaded from the database. Reads are keyed by
+    /// (<c>OwnerType</c>, <c>RecordId</c>) together — <c>RecordId</c> alone is only unique within an
+    /// owner type.
+    /// </remarks>
+    DbSet<StatusTransition> StatusTransitions { get; }
+
+    /// <summary>
     /// The per-owner-type display names for well-known aliases.
     /// </summary>
     /// <remarks>

@@ -31,6 +31,7 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     private readonly List<StatusWorkflow> _statusWorkflows = [];
     private readonly List<WorkflowAssignment> _workflowAssignments = [];
     private readonly List<WorkflowAliasName> _workflowAliasNames = [];
+    private readonly List<StatusTransition> _statusTransitions = [];
 
     private readonly List<Employee> _employees = [];
     private readonly List<ExternalEmployeeBlacklistItem> _externalEmployeeBlacklistItems = [];
@@ -54,6 +55,7 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     public DbSet<StatusWorkflow> StatusWorkflows => _statusWorkflows.AsDbSet();
     public DbSet<WorkflowAssignment> WorkflowAssignments => _workflowAssignments.AsDbSet();
     public DbSet<WorkflowAliasName> WorkflowAliasNames => _workflowAliasNames.AsDbSet();
+    public DbSet<StatusTransition> StatusTransitions => _statusTransitions.AsDbSet();
 
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();
@@ -117,6 +119,11 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     public void AddStatusWorkflow(StatusWorkflow workflow) => _statusWorkflows.Add(workflow);
     public void AddWorkflowAssignment(WorkflowAssignment assignment) => _workflowAssignments.Add(assignment);
 
+    // Added directly, because a transition appended by ApplyStatus only reaches the set through
+    // BaseDbContext's drain on save, which this fake does not run.
+    public void AddStatusTransition(StatusTransition transition) => _statusTransitions.Add(transition);
+    public void AddStatusTransitions(IEnumerable<StatusTransition> transitions) => _statusTransitions.AddRange(transitions);
+
     public void Clear()
     {
         _products.Clear();
@@ -131,6 +138,7 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
         _deployments.Clear();
         _statusWorkflows.Clear();
         _workflowAssignments.Clear();
+        _statusTransitions.Clear();
         _employees.Clear();
         SaveChangesCallCount = 0;
     }

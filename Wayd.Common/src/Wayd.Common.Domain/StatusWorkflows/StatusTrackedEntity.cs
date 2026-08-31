@@ -37,6 +37,22 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
     public Guid StatusId { get; private set; }
 
     /// <summary>
+    /// The workflow that status belongs to.
+    /// </summary>
+    /// <remarks>
+    /// Denormalized onto the record for the same reason as <see cref="StatusCategory"/>: a reader must
+    /// not have to load the workflow to know which one governs this row.
+    /// <para>
+    /// It is also what makes a batched workflow migration resumable. Without it the current workflow
+    /// had to be inferred from the newest status transition — but the history is not a navigation and
+    /// <c>DrainStatusTransitions</c> empties the in-memory list on every save, so a record loaded from
+    /// the database reported no workflow at all. A re-run over an already-moved record then read as
+    /// "holds a status from neither workflow" and failed instead of doing nothing.
+    /// </para>
+    /// </remarks>
+    public Guid StatusWorkflowId { get; private set; }
+
+    /// <summary>
     /// What that status was called when it was applied. Frozen, so renaming the status does not rewrite
     /// what this record reads as.
     /// </summary>
@@ -113,14 +129,16 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
             return false;
         }
 
-        // The workflow is the container's, via its assignment — a record never names its own, so the
-        // previous status is reconstructed against the same workflow the incoming one came from. A
-        // genuine workflow switch is a remap, which supplies both sides explicitly.
+        // The outgoing side is built from this record's own workflow, not the incoming status's. They
+        // differ during a remap — the new status belongs to the workflow being moved to — and borrowing
+        // the incoming id there would record the old status against a workflow it never belonged to,
+        // making the one transition that explains a migration the one that misreports it.
         var from = isInitial
             ? null
-            : new StatusRef(status.WorkflowId, StatusId, StatusName, StatusCategory, StatusAliasValue);
+            : new StatusRef(StatusWorkflowId, StatusId, StatusName, StatusCategory, StatusAliasValue);
 
         StatusId = status.StatusId;
+        StatusWorkflowId = status.WorkflowId;
         StatusName = status.Name;
         StatusCategory = status.Category;
         StatusAliasValue = status.Alias;
@@ -167,7 +185,7 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
         {
             // Either the record is already on the target workflow, or it holds a status from neither —
             // both mean this remap cannot speak for it, and guessing would strand it silently.
-            return remap.ToWorkflowId == CurrentWorkflowId
+            return remap.ToWorkflowId == StatusWorkflowId
                 ? Result.Success()
                 : Result.Failure("This record's status is not in the workflow being moved from.");
         }
@@ -176,13 +194,4 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
 
         return Result.Success();
     }
-
-    /// <summary>
-    /// The workflow the most recent transition ran under, or <see cref="Guid.Empty"/> for a record with
-    /// no history. Used to recognise a record a remap has already moved.
-    /// </summary>
-    private Guid CurrentWorkflowId =>
-        _statusTransitions.Count == 0
-            ? Guid.Empty
-            : _statusTransitions.OrderByDescending(t => t.Sequence).First().WorkflowId;
 }

@@ -129,6 +129,7 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.ExternalId).HasMaxLength(256);
 
         builder.Property(p => p.StatusId).IsRequired();
+        builder.Property(p => p.StatusWorkflowId).IsRequired();
         builder.Property(p => p.StatusName).IsRequired().HasMaxLength(64);
         builder.Property(p => p.StatusCategory).IsRequired()
             .HasConversion<EnumConverter<StatusCategory>>()
@@ -198,6 +199,7 @@ public class ReleaseConfiguration : IEntityTypeConfiguration<Release>
         builder.Property(r => r.PackageId);
 
         builder.Property(r => r.StatusId).IsRequired();
+        builder.Property(r => r.StatusWorkflowId).IsRequired();
         builder.Property(r => r.StatusName).IsRequired().HasMaxLength(64);
         builder.Property(r => r.StatusCategory).IsRequired()
             .HasConversion<EnumConverter<StatusCategory>>()
@@ -242,6 +244,7 @@ public class ReleasePackageConfiguration : IEntityTypeConfiguration<ReleasePacka
         builder.Property(p => p.ReleasedDate);
 
         builder.Property(p => p.StatusId).IsRequired();
+        builder.Property(p => p.StatusWorkflowId).IsRequired();
         builder.Property(p => p.StatusName).IsRequired().HasMaxLength(64);
         builder.Property(p => p.StatusCategory).IsRequired()
             .HasConversion<EnumConverter<StatusCategory>>()
@@ -374,6 +377,7 @@ public class DeploymentConfiguration : IEntityTypeConfiguration<Deployment>
         builder.Property(d => d.Reason).HasMaxLength(1024);
 
         builder.Property(d => d.StatusId).IsRequired();
+        builder.Property(d => d.StatusWorkflowId).IsRequired();
         builder.Property(d => d.StatusName).IsRequired().HasMaxLength(64);
         builder.Property(d => d.StatusCategory).IsRequired()
             .HasConversion<EnumConverter<StatusCategory>>()

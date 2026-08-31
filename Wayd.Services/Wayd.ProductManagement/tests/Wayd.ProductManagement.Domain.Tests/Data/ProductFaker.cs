@@ -17,6 +17,9 @@ public sealed class ProductFaker : PrivateConstructorFaker<Product>
         RuleFor(x => x.ParentId, f => null);
         RuleFor(x => x.ExternalId, f => null);
         RuleFor(x => x.StatusId, f => f.Random.Guid());
+        // A real record always has one: ApplyStatus sets it from the StatusRef it is given,
+        // and building the outgoing side of a transition needs it.
+        RuleFor(x => x.StatusWorkflowId, f => f.Random.Guid());
         RuleFor(x => x.StatusName, f => "Seeded Status");
         RuleFor(x => x.StatusCategory, f => StatusCategory.Active);
         RuleFor("StatusAliasValue", f => (int)ProductStatusAlias.Active);

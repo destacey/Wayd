@@ -21,6 +21,7 @@ import ChangeProductStatusForm from '../_components/change-product-status-form'
 import CreateProductForm from '../_components/create-product-form'
 import DeleteProductForm from '../_components/delete-product-form'
 import EditProductForm from '../_components/edit-product-form'
+import ManageProductTagsForm from '../_components/manage-product-tags-form'
 import ReparentProductForm from '../_components/reparent-product-form'
 import RetypeProductForm from '../_components/retype-product-form'
 import ProductsGrid from '../_components/products-grid'
@@ -45,6 +46,7 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [isChangeStatusOpen, setIsChangeStatusOpen] = useState<boolean>(false)
   const [isRetypeOpen, setIsRetypeOpen] = useState<boolean>(false)
   const [isReparentOpen, setIsReparentOpen] = useState<boolean>(false)
+  const [isManageTagsOpen, setIsManageTagsOpen] = useState<boolean>(false)
   const router = useRouter()
 
   // The active section lives in the URL (?section=), owned by RecordLayout. Read
@@ -104,6 +106,11 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         key: 'reparent',
         label: 'Move',
         onClick: () => setIsReparentOpen(true),
+      })
+      items.push({
+        key: 'manage-tags',
+        label: 'Manage Tags',
+        onClick: () => setIsManageTagsOpen(true),
       })
     }
 
@@ -251,6 +258,17 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             refetch()
           }}
           onFormCancel={() => setIsReparentOpen(false)}
+        />
+      )}
+
+      {isManageTagsOpen && (
+        <ManageProductTagsForm
+          product={product}
+          onFormComplete={() => {
+            setIsManageTagsOpen(false)
+            refetch()
+          }}
+          onFormCancel={() => setIsManageTagsOpen(false)}
         />
       )}
 

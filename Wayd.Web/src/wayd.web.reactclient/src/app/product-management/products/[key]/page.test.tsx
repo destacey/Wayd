@@ -187,7 +187,13 @@ describe('ProductDetailsPage', () => {
     await renderPage()
 
     // Assert
-    for (const action of ['Edit', 'Change Status', 'Change Type', 'Move']) {
+    for (const action of [
+      'Edit',
+      'Change Status',
+      'Change Type',
+      'Move',
+      'Manage Tags',
+    ]) {
       expect(await screen.findByText(action)).toBeInTheDocument()
     }
   })

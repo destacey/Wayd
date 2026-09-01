@@ -29,7 +29,7 @@ npm install
 
 ## Set Up the Database
 
-Wayd uses SQL Server. You can use SQL Server LocalDB, a full SQL Server instance, or a Docker container.
+Wayd uses SQL Server. The default configuration points at the `mssql` service in `docker-compose.yml`, which works on Windows, Linux and macOS. A full SQL Server instance also works, as does LocalDB on Windows - see [Prerequisites](./prerequisites.mdx#database).
 
 ### Apply Migrations
 

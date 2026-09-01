@@ -116,13 +116,22 @@ dotnet user-secrets set "HangfireSettings:Storage:ConnectionString" \
   "Server=localhost,1433;Database=wayd;User Id=sa;Password=<your-pw>;MultipleActiveResultSets=True;TrustServerCertificate=true;"
 ```
 
-### LocalDB
+### Renaming in place
 
-A helper script is included for the common LocalDB case:
+Helper scripts are included so you can keep your existing data. Both run the same
+`scripts/rename-localdb.sql`, which works against any SQL Server despite the file name:
+
+```bash
+./scripts/rename-db.sh            # Linux / macOS - compose `mssql` service by default
+```
 
 ```powershell
-pwsh ./scripts/rename-localdb.ps1
+pwsh ./scripts/rename-localdb.ps1 # Windows - LocalDB
 ```
+
+`rename-db.sh` reads the same `MSSQL_SERVER` / `MSSQL_PORT` / `MSSQL_USER` / `MSSQL_SA_PASSWORD`
+variables as `docker-compose.yml`, and falls back to running `sqlcmd` inside the container when it is
+not installed on the host.
 
 The script is idempotent — if `[Moda]` doesn't exist, it prints a no-op and EF Core will create `[Wayd]` fresh on the next API run.
 

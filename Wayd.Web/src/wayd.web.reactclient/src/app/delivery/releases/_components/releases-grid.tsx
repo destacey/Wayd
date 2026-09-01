@@ -3,7 +3,12 @@
 import { WaydGrid } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { renderProductLink } from '@/src/components/common/wayd-grid-core'
+import {
+  statusCategoryDescription,
+  WorkflowStatusTag,
+} from '@/src/components/common/status-workflows'
 import { ReleaseDto } from '@/src/services/wayd-api'
+import { Tooltip } from 'antd'
 import Link from 'next/link'
 import { ReactElement } from 'react'
 
@@ -22,8 +27,22 @@ export interface ReleasesGridProps {
  * The package a release shipped in is deliberately absent. `Release.PackageId` is never written, so
  * the column would be empty on every row; a package's membership lives in its manifest.
  */
-const buildColumns = (showProduct: boolean): ColumnDef<ReleaseDto, any>[] => [
+export const buildReleaseColumns = (showProduct: boolean): ColumnDef<ReleaseDto, any>[] => [
   { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
+  // Ahead of the version: 4.8.2 and 2026.04 say nothing side by side without their products.
+  ...(showProduct
+    ? [
+        {
+          id: 'product',
+          accessorFn: (row: ReleaseDto) => row.product?.name ?? '',
+          header: 'Product',
+          size: 200,
+          meta: { filterType: 'set' as const },
+          cell: ({ row }: { row: { original: ReleaseDto } }) =>
+            renderProductLink(row.original.product),
+        } as ColumnDef<ReleaseDto, any>,
+      ]
+    : []),
   {
     id: 'version',
     accessorKey: 'version',
@@ -44,25 +63,24 @@ const buildColumns = (showProduct: boolean): ColumnDef<ReleaseDto, any>[] => [
     size: 220,
     meta: { filterEnableSet: true },
   },
-  ...(showProduct
-    ? [
-        {
-          id: 'product',
-          accessorFn: (row: ReleaseDto) => row.product?.name ?? '',
-          header: 'Product',
-          size: 200,
-          meta: { filterType: 'set' as const },
-          cell: ({ row }: { row: { original: ReleaseDto } }) =>
-            renderProductLink(row.original.product),
-        } as ColumnDef<ReleaseDto, any>,
-      ]
-    : []),
   {
     id: 'status',
     accessorFn: (row) => row.status?.name ?? '',
     header: 'Status',
     size: 130,
     meta: { filterType: 'set' },
+    // A status name is the workflow's own word and can be renamed to anything. The tooltip carries
+    // the category, which is the fixed meaning rollups and filters group on.
+    cell: ({ row }) => (
+      <Tooltip title={statusCategoryDescription(row.original.status.category)}>
+        <span>
+          <WorkflowStatusTag
+            name={row.original.status.name}
+            category={row.original.status.category}
+          />
+        </span>
+      </Tooltip>
+    ),
   },
   {
     id: 'targetDate',
@@ -96,7 +114,7 @@ const ReleasesGrid: React.FC<ReleasesGridProps> = ({
   showProduct = true,
 }) => (
   <WaydGrid
-    columns={buildColumns(showProduct)}
+    columns={buildReleaseColumns(showProduct)}
     data={releases}
     isLoading={isLoading}
     onRefresh={refetch}

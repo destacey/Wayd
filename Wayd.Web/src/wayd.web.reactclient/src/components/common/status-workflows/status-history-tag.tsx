@@ -1,8 +1,9 @@
 'use client'
 
 import { StatusNavigationDto } from '@/src/services/wayd-api'
-import { Tooltip } from 'antd'
+import { Flex, Tooltip } from 'antd'
 import { FC } from 'react'
+import { statusCategoryDescription } from './status-category'
 import WorkflowStatusTag from './workflow-status-tag'
 
 export interface StatusHistoryTagProps {
@@ -22,11 +23,33 @@ const StatusHistoryTag: FC<StatusHistoryTagProps> = ({
   onOpenHistory,
 }) => {
   const tag = <WorkflowStatusTag name={status.name} category={status.category} />
+  const description = statusCategoryDescription(status.category)
 
-  if (!onOpenHistory) return tag
+  // What the status means, then what clicking does — kept apart rather than run together, since
+  // they answer different questions.
+  const title = onOpenHistory ? (
+    <Flex vertical gap={8}>
+      {description && <span>{description}</span>}
+      <span>Click to view status history.</span>
+    </Flex>
+  ) : (
+    description
+  )
+
+  if (!title) return tag
+
+  // A span for the same reason the interactive branch has one: the tooltip needs an element it
+  // can attach a ref to, and antd's Tag does not forward one.
+  if (!onOpenHistory) {
+    return (
+      <Tooltip title={title}>
+        <span>{tag}</span>
+      </Tooltip>
+    )
+  }
 
   return (
-    <Tooltip title="View status history">
+    <Tooltip title={title}>
       <span
         role="button"
         tabIndex={0}

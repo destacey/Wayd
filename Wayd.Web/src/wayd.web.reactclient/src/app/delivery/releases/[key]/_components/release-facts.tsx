@@ -2,7 +2,6 @@
 
 import { LabeledContent } from '@/src/components/common/content'
 import { RecordFactsGroup } from '@/src/components/common/record'
-import { WorkflowStatusTag } from '@/src/components/common/status-workflows'
 import { formatDateOnly } from '@/src/components/common/wayd-grid'
 import { ReleaseDto } from '@/src/services/wayd-api'
 import { Flex } from 'antd'
@@ -22,13 +21,15 @@ export interface ReleaseFactsProps {
 const ReleaseFacts = ({ release }: ReleaseFactsProps) => (
   <>
     <Flex vertical gap={10}>
-      <LabeledContent label="Status">
-        <WorkflowStatusTag
-          name={release.status.name}
-          category={release.status.category}
-        />
+      <LabeledContent label="Product">
+        <Link href={`/product-management/products/${release.product.key}`}>
+          {release.product.name}
+        </Link>
       </LabeledContent>
       <LabeledContent label="Version">{release.version}</LabeledContent>
+      {release.sequence != null && (
+        <LabeledContent label="Sequence">{release.sequence}</LabeledContent>
+      )}
     </Flex>
 
     <RecordFactsGroup label="Dates">
@@ -42,19 +43,6 @@ const ReleaseFacts = ({ release }: ReleaseFactsProps) => (
         <LabeledContent label="Released">
           {formatDateOnly(release.releasedDate) || 'Not yet released'}
         </LabeledContent>
-      </Flex>
-    </RecordFactsGroup>
-
-    <RecordFactsGroup label="Relationships">
-      <Flex vertical gap={10}>
-        <LabeledContent label="Product">
-          <Link href={`/product-management/products/${release.product.key}`}>
-            {release.product.name}
-          </Link>
-        </LabeledContent>
-        {release.sequence != null && (
-          <LabeledContent label="Sequence">{release.sequence}</LabeledContent>
-        )}
       </Flex>
     </RecordFactsGroup>
   </>

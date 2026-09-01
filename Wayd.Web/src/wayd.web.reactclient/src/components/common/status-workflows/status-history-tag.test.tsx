@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { StatusCategory, StatusNavigationDto } from '@/src/services/wayd-api'
 import StatusHistoryTag from './status-history-tag'
 
@@ -51,5 +52,35 @@ describe('StatusHistoryTag', () => {
     // Assert
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
     expect(screen.getByText('Released')).toBeInTheDocument()
+  })
+
+  it('explains the status and then offers the history', async () => {
+    // The name is the workflow's own word and can be renamed to anything, so the tooltip carries the
+    // category's fixed meaning — and only then what clicking does.
+    // Arrange
+    const user = userEvent.setup()
+    render(<StatusHistoryTag status={status} onOpenHistory={jest.fn()} />)
+
+    // Act
+    await user.hover(screen.getByRole('button'))
+
+    // Assert
+    const tooltip = await screen.findByRole('tooltip')
+    expect(tooltip).toHaveTextContent('completed successfully')
+    expect(tooltip).toHaveTextContent('Click to view status history.')
+  })
+
+  it('explains the status without offering history when it cannot be opened', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    render(<StatusHistoryTag status={status} />)
+
+    // Act
+    await user.hover(screen.getByText('Released'))
+
+    // Assert
+    const tooltip = await screen.findByRole('tooltip')
+    expect(tooltip).toHaveTextContent('completed successfully')
+    expect(tooltip).not.toHaveTextContent('Click to view')
   })
 })

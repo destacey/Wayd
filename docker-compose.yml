@@ -19,10 +19,17 @@ services:
             - Serilog__Using__1=Serilog.Sinks.Seq
             - Serilog__WriteTo__1__Name=Seq
             - Serilog__WriteTo__1__Args__serverUrl=http://seq:5341
+            # Both are needed: Hangfire reads its own connection string.
+            - DatabaseSettings__ConnectionString=Server=mssql,1433;Database=wayd;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Wayd_Dev_P@ssw0rd!};TrustServerCertificate=True;MultipleActiveResultSets=True
+            - HangfireSettings__Storage__ConnectionString=Server=mssql,1433;Database=wayd;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Wayd_Dev_P@ssw0rd!};TrustServerCertificate=True;MultipleActiveResultSets=True
         volumes:
             - ~/.vsdbg:/remote_debugger:rw
-            - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
-            - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
+            # Paths differ per OS (and are case-sensitive on Linux) - see .env.example
+            - ${USER_SECRETS_DIR:-~/.microsoft/usersecrets}:/root/.microsoft/usersecrets:ro
+            - ${HTTPS_CERT_DIR:-~/.aspnet/https}:/root/.aspnet/https:ro
+        depends_on:
+            mssql:
+                condition: service_healthy
     waydwebclient:
         container_name: wayd.web.client
         image: waydwebclient
@@ -34,6 +41,28 @@ services:
         environment:
             - NEXT_PUBLIC_API_BASE_URL=${API_BASE_URL}
 
+    mssql:
+        container_name: wayd.mssql
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        ports:
+            # Override MSSQL_PORT if 1433 is already taken on your machine.
+            - ${MSSQL_PORT:-1433}:1433
+        environment:
+            - ACCEPT_EULA=Y
+            - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD:-Wayd_Dev_P@ssw0rd!}
+        volumes:
+            - wayd-sqldata:/var/opt/mssql
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 12
+            start_period: 30s
+
     seq:
         image: datalust/seq
         ports:
@@ -43,3 +72,6 @@ services:
             - ACCEPT_EULA=Y
         volumes:
             - ./.seq:/data
+
+volumes:
+    wayd-sqldata:

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System.Globalization;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Work;
 
@@ -14,7 +15,11 @@ public partial class MakeWorkTypeLevelIdpropertyrequired : Migration
     {
         var defaultTier = WorkTypeTier.Other.ToString();
         var ownershipId = (int)Ownership.System;
-        var timestamp = DateTime.UtcNow;
+        // Format invariantly: these values are interpolated straight into SQL, and the
+        // current culture's default DateTime format is not round-trippable by SQL Server.
+        // ICU 72+ emits U+202F (narrow no-break space) before AM/PM for en-US, which fails
+        // conversion with error 241 on every non-Windows host.
+        var timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fff", CultureInfo.InvariantCulture);
 
         var hierarchyId = migrationBuilder.Sql($@"
             INSERT INTO [Work].[WorkTypeHierarchies] ([SystemCreated], [SystemLastModified], [SystemCreatedBy], [SystemLastModifiedBy])

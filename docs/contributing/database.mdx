@@ -101,6 +101,12 @@ This keeps the constraint consistent with what the global query filter enforces 
 
 Migrations are managed in `Wayd.Infrastructure.Migrators.MSSQL`.
 
+The `dotnet ef` commands below come from a local tool manifest, so restore it once per clone:
+
+```bash
+dotnet tool restore
+```
+
 ### Creating a Migration
 
 ```bash
@@ -118,6 +124,21 @@ dotnet ef database update \
 ```
 
 Migrations also run automatically on application startup via `app.Services.InitializeDatabases()`.
+
+### Timestamps in Raw SQL
+
+Migrations cannot inject `IDateTimeProvider`, so they are the one place `DateTime.UtcNow` is
+allowed. When interpolating a timestamp into `migrationBuilder.Sql(...)`, always format it
+explicitly with `CultureInfo.InvariantCulture` and an ISO 8601 pattern:
+
+```csharp
+var timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fff", CultureInfo.InvariantCulture);
+```
+
+The current culture's default `DateTime` format is not reliably parseable by SQL Server. ICU 72+
+emits `U+202F` (narrow no-break space) before AM/PM for `en-US`, which fails conversion with
+error 241 on every non-Windows host, and month/day-ordered formats depend on the server's
+`DATEFORMAT`. The ISO pattern is unambiguous under any server language.
 
 ## Database Initialization
 

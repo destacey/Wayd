@@ -15,8 +15,80 @@ Before setting up Wayd for local development, ensure you have the following inst
 |----------|---------|---------|
 | .NET SDK | 10.0+ | Backend API and services |
 | Node.js | 24+ (LTS) | Frontend build and development |
-| SQL Server | 2019+ or LocalDB | Database |
+| SQL Server | 2019+ (container, or LocalDB on Windows) | Database |
 | Git | Latest | Source control |
+
+## Restore Local Tools
+
+Some build and migration commands (`dotnet ef`) are pinned in a local tool manifest at
+`.config/dotnet-tools.json`. Restore them once per clone:
+
+```bash
+dotnet tool restore
+```
+
+Without this, `dotnet ef` fails with *"Could not execute because the specified command or file was
+not found."*
+
+## Database
+
+The checked-in Development defaults in `Wayd.Web.Api/Configurations/database.Development.json` and
+`hangfire.Development.json` point at the `mssql` service in `docker-compose.yml`, which runs on
+Windows, Linux and macOS:
+
+```bash
+cp .env.example .env      # optional - override the SA password or host port
+docker compose up mssql
+```
+
+To use a different server - SQL Server LocalDB on Windows, or a shared instance - override both keys
+via user secrets, which stay out of source control:
+
+```bash
+cd Wayd.Web/src/Wayd.Web.Api
+dotnet user-secrets set "DatabaseSettings:ConnectionString" "<your connection string>"
+dotnet user-secrets set "HangfireSettings:Storage:ConnectionString" "<your connection string>"
+```
+
+Both keys are needed - Hangfire reads its own connection string, separate from
+`DatabaseSettings:ConnectionString`.
+
+The base `database.json` / `hangfire.json` deliberately hold an **empty** connection string, so the
+credential exists only in the Development-scoped files. Any non-Development host that is not
+configured fails fast with `DB ConnectionString is not configured.` rather than silently connecting
+with a credential that is public in git history.
+
+:::note LocalDB is Windows-only
+
+`(localdb)\mssqllocaldb` was the previous default. It throws `PlatformNotSupportedException` when the
+connection string is parsed on Linux or macOS, so it cannot be used there. Windows developers who
+prefer LocalDB should set it through user secrets as above.
+
+:::
+
+
+## HTTPS Development Certificate
+
+The API serves HTTPS locally, so it needs a trusted development certificate:
+
+```bash
+dotnet dev-certs https --trust
+```
+
+On **Windows and macOS** this installs into the OS trust store and you are done.
+
+On **Linux** `--trust` writes the certificate to `~/.aspnet/dev-certs/trust` but cannot register it
+with every client, because there is no single system trust store. OpenSSL-based clients only look
+there when `SSL_CERT_DIR` says to, so add this to your shell profile (keeping `/etc/ssl/certs` so
+system CAs still resolve):
+
+```bash
+export SSL_CERT_DIR="$HOME/.aspnet/dev-certs/trust:/etc/ssl/certs"
+```
+
+Without it, the API starts but calls to it fail certificate validation — including Aspire's health
+checks and the frontend's server-side requests. Browsers keep their own trust stores and may need the
+certificate imported separately.
 
 ## Optional but Recommended
 

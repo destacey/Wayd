@@ -17,6 +17,9 @@ Documentation site: <https://wayd.dev>
 ### .NET Backend
 
 ```bash
+# Restore pinned local tools (dotnet-ef) - once per clone
+dotnet tool restore
+
 # Build the entire solution
 dotnet build Wayd.slnx
 
@@ -135,7 +138,7 @@ Architecture tests in `Wayd.ArchitectureTests` enforce these dependency rules.
 
 ### .NET Backend
 
-- **Time handling**: NodaTime (`Instant`, `LocalDate`). Never use `DateTime.UtcNow` — always inject `IDateTimeProvider`.
+- **Time handling**: NodaTime (`Instant`, `LocalDate`). Never use `DateTime.UtcNow` — always inject `IDateTimeProvider`. Migrations are the sole exception (no DI); there, format timestamps interpolated into `migrationBuilder.Sql(...)` with `CultureInfo.InvariantCulture` and `"yyyy-MM-ddTHH:mm:ss.fff"` — the current culture's default format is not parseable by SQL Server on non-Windows hosts (ICU 72+ emits `U+202F` before AM/PM, failing with error 241).
 - **Async naming**: Do NOT use `Async` suffix for new async methods.
 - **Validation**: FluentValidation, run by the Wolverine handler pipeline (`WolverineFx.FluentValidation`).
 - **Mapping**: Mapster for DTOs.
@@ -197,6 +200,8 @@ Microsoft.FeatureManagement — defined in code, stored in database, managed via
 ### OpenAPI Client Generation
 
 NSwag generates TypeScript client from API's OpenAPI spec on Debug build. Config in `nswag.json`. Generated client in `wayd.web.reactclient/src/services/wayd-api.ts`.
+
+**The NSwag target boots the real API**, so a Debug build starts the application. `WAYD_SKIP_DB_INIT=true` (set by the MSBuild target) drives `HostIntrospection.SkipsDatabaseInitialization`, which skips every piece of startup work that touches the database — EF migrations and seeding, the Hangfire server, and the Hangfire dashboard — so a Debug build does **not** require a running database. Gate any new database-touching startup work the same way: an ungated one fails the *build* (`MSB3077` + `Build FAILED`, real cause buried in NSwag's output; under Aspire just `The project could not be built.` and exit code 6) instead of erroring at runtime.
 
 ### MCP Server (`Wayd.Web/src/Wayd.Mcp`)
 

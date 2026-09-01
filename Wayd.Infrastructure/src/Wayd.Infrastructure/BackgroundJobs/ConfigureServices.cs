@@ -16,7 +16,16 @@ internal static class ConfigureServices
 
     internal static IServiceCollection AddBackgroundJobs(this IServiceCollection services, IConfiguration config)
     {
-        services.AddHangfireServer(options => config.GetSection("HangfireSettings:Server").Bind(options));
+        // A host built only to be introspected must not touch the database. The Hangfire *server* is a
+        // hosted service that resolves JobStorage on start, and SqlServerStorage installs its schema in
+        // its constructor - so against a missing or unmigrated database this turns a Debug *build*
+        // (NSwag boots the real app to read the OpenAPI document) into a build failure. The client-side
+        // registrations below stay: they resolve storage lazily, and nothing enqueues a job while the
+        // OpenAPI document is being read.
+        if (!HostIntrospection.SkipsDatabaseInitialization(config))
+        {
+            services.AddHangfireServer(options => config.GetSection("HangfireSettings:Server").Bind(options));
+        }
 
         services.AddHangfireConsoleExtensions();
 
@@ -51,6 +60,10 @@ internal static class ConfigureServices
 
     internal static IApplicationBuilder UseHangfireDashboard(this IApplicationBuilder app, IConfiguration config)
     {
+        // The dashboard middleware resolves JobStorage when the pipeline is built; skip it for the
+        // same reason AddHangfireServer is skipped above.
+        if (HostIntrospection.SkipsDatabaseInitialization(config)) return app;
+
         var dashboardOptions = config.GetSection("HangfireSettings:Dashboard").Get<DashboardOptions>()!;
         var appPath = config["HangfireSettings:Dashboard:AppPath"];
         dashboardOptions.AppPath = string.IsNullOrWhiteSpace(appPath) ? null : appPath;

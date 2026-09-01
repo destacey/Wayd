@@ -54,6 +54,21 @@ NSwag generates the OpenAPI specification and TypeScript client automatically du
 
 Access Swagger UI at `/swagger` when the API is running.
 
+:::note The NSwag target boots the real API
+
+To read the OpenAPI document, the NSwag target starts the actual application. It sets
+`WAYD_SKIP_DB_INIT=true`, which `HostIntrospection.SkipsDatabaseInitialization` uses to skip every
+piece of startup work that touches the database — EF migrations and seeding, the Hangfire server, and
+the Hangfire dashboard. **A Debug build therefore does not require a running database.**
+
+Anything added to startup that connects to the database must be gated the same way. Without the gate
+the failure is badly misleading: the connection error is swallowed and reported as a build error
+against `Wayd.Web.Api.csproj` (`MSB3077` … `Build FAILED`), with the real cause buried in NSwag's
+output. Under Aspire it surfaces only as `The project could not be built.` and exit code 6, before
+any resource starts.
+
+:::
+
 ## API Conventions
 
 - Use RESTful route patterns

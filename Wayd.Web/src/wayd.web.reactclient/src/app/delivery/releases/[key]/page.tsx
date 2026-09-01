@@ -3,7 +3,10 @@
 import { PageActions } from '@/src/components/common'
 import { RecordLayout } from '@/src/components/common/record'
 import type { RecordSection } from '@/src/components/common/record'
-import { StatusHistoryTimeline } from '@/src/components/common/status-workflows'
+import {
+  StatusHistoryTag,
+  StatusHistoryTimeline,
+} from '@/src/components/common/status-workflows'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
@@ -14,7 +17,7 @@ import {
 } from '@/src/store/features/delivery/releases-api'
 import { Button, MenuProps, Result } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import { notFound } from 'next/navigation'
+import { notFound, useRouter } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import CutReleaseForm from '../_components/cut-release-form'
 import { releaseActionAvailability } from '../_components/release-actions'
@@ -39,6 +42,8 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [isReleaseOpen, setIsReleaseOpen] = useState<boolean>(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState<boolean>(false)
   const [isMoveTargetDateOpen, setIsMoveTargetDateOpen] = useState<boolean>(false)
+
+  const router = useRouter()
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateRelease = hasPermissionClaim('Permissions.Releases.Update')
@@ -176,6 +181,16 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             },
           ],
           recordKey: String(release.key),
+          tags: (
+            <StatusHistoryTag
+              status={release.status}
+              onOpenHistory={() =>
+                router.replace(`?section=${ReleaseSections.StatusHistory}`, {
+                  scroll: false,
+                })
+              }
+            />
+          ),
           actions:
             actionsMenuItems.length > 0 ? (
               <PageActions actionItems={actionsMenuItems} />

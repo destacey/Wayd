@@ -3,6 +3,7 @@
 import { PageActions } from '@/src/components/common'
 import { RecordLayout } from '@/src/components/common/record'
 import { TagList } from '@/src/components/common/tags'
+import { StatusHistoryTag } from '@/src/components/common/status-workflows'
 import type { RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
@@ -13,7 +14,7 @@ import {
 } from '@/src/store/features/product-management/products-api'
 import { useGetReleasesQuery } from '@/src/store/features/delivery/releases-api'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { Button, MenuProps, Result } from 'antd'
+import { Button, Flex, MenuProps, Result } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
@@ -295,21 +296,33 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           // Shown where they are read, not only behind a menu. The manage button
           // is omitted without permission, so the chips stay visible to everyone.
           tags: (
-            <TagList
-              // The axis rides on the chip as its qualifier: a bare "gold" does
-              // not say whether it is a tier, a platform or a compliance scope.
-              tags={(product.tags ?? []).map((tag) => ({
-                id: tag.tagId,
-                label: tag.tagName,
-                qualifier: tag.categoryName,
-              }))}
-              // The header shares its row with the name, key and actions, so a
-              // heavily tagged product collapses rather than crowding them out.
-              maxVisible={3}
-              onManage={
-                canUpdateProduct ? () => setIsManageTagsOpen(true) : undefined
-              }
-            />
+            // Status leads: it is the qualifier a reader wants first, and the tags beside it
+            // already collapse past three rather than competing for the row.
+            <Flex gap="small" align="center" wrap>
+              <StatusHistoryTag
+                status={product.status}
+                onOpenHistory={() =>
+                  router.replace(`?section=${ProductSections.StatusHistory}`, {
+                    scroll: false,
+                  })
+                }
+              />
+              <TagList
+                // The axis rides on the chip as its qualifier: a bare "gold" does
+                // not say whether it is a tier, a platform or a compliance scope.
+                tags={(product.tags ?? []).map((tag) => ({
+                  id: tag.tagId,
+                  label: tag.tagName,
+                  qualifier: tag.categoryName,
+                }))}
+                // The header shares its row with the name, key and actions, so a
+                // heavily tagged product collapses rather than crowding them out.
+                maxVisible={3}
+                onManage={
+                  canUpdateProduct ? () => setIsManageTagsOpen(true) : undefined
+                }
+              />
+            </Flex>
           ),
           actions:
             actionsMenuItems.length > 0 ? (

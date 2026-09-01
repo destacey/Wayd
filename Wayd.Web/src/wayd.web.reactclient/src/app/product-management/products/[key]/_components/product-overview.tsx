@@ -84,9 +84,6 @@ const ProductOverview = ({
           />
         </Col>
       )}
-      <Col xs={24} sm={12} md={8}>
-        <MetricCard title="Tags" value={product.tags?.length ?? 0} />
-      </Col>
 
       <Col span={24}>
         <Card size="small" title="Description">

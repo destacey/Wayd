@@ -6,7 +6,7 @@ import { useModalForm } from '@/src/hooks'
 import { ReleaseDto, UpdateReleaseRequest } from '@/src/services/wayd-api'
 import { useUpdateReleaseMutation } from '@/src/store/features/delivery/releases-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { Form, Input, InputNumber, Modal } from 'antd'
+import { Form, Input, Modal } from 'antd'
 
 const { Item } = Form
 
@@ -20,7 +20,6 @@ interface EditReleaseFormValues {
   version: string
   name?: string
   notes?: string
-  sequence?: number
 }
 
 /**
@@ -47,7 +46,9 @@ const EditReleaseForm = ({
             version: values.version,
             name: values.name,
             notes: values.notes,
-            sequence: values.sequence,
+            // Passed through rather than edited. The update is a whole-record overwrite, so omitting
+            // this would clear an ordering an import had set — and there is no way to set one here.
+            sequence: release.sequence,
           } as UpdateReleaseRequest
 
           const response = await updateRelease({ id: release.id, request })
@@ -97,7 +98,6 @@ const EditReleaseForm = ({
           version: release.version,
           name: release.name,
           notes: release.notes,
-          sequence: release.sequence,
         }}
       >
         <Item
@@ -107,7 +107,7 @@ const EditReleaseForm = ({
             { required: true, message: 'Version is required' },
             { max: 64, message: 'Version cannot be longer than 64 characters' },
           ]}
-          extra="Free text — Wayd never parses or orders by it."
+          extra="For example 4.8.2, 2026.04, or v3-beta."
         >
           <Input />
         </Item>
@@ -120,13 +120,6 @@ const EditReleaseForm = ({
         </Item>
         <Item label="Notes" name="notes">
           <MarkdownEditor maxLength={4000} />
-        </Item>
-        <Item
-          label="Sequence"
-          name="sequence"
-          extra="Only needed where release order differs from date order, as a backport does."
-        >
-          <InputNumber style={{ width: '100%' }} />
         </Item>
       </Form>
     </Modal>

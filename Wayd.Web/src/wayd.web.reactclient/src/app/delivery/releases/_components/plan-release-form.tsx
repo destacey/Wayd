@@ -7,7 +7,7 @@ import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { usePlanReleaseMutation } from '@/src/store/features/delivery/releases-api'
 import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { DatePicker, Form, Input, InputNumber, Modal, Select } from 'antd'
+import { DatePicker, Form, Input, Modal, Select } from 'antd'
 import { Dayjs } from 'dayjs'
 
 const { Item } = Form
@@ -24,7 +24,6 @@ interface PlanReleaseFormValues {
   version: string
   name?: string
   targetDate?: Dayjs
-  sequence?: number
 }
 
 /**
@@ -53,7 +52,6 @@ const PlanReleaseForm = ({
             version: values.version,
             name: values.name,
             targetDate: values.targetDate?.format('YYYY-MM-DD'),
-            sequence: values.sequence,
           } as unknown as PlanReleaseRequest
 
           const response = await planRelease(request)
@@ -112,7 +110,7 @@ const PlanReleaseForm = ({
           label="Product"
           name="productId"
           rules={[{ required: true, message: 'Product is required' }]}
-          extra="Only products whose type can be released are listed."
+          extra="Only products that can be released are listed. A product's type decides this."
         >
           <Select
             options={productOptions}
@@ -129,7 +127,7 @@ const PlanReleaseForm = ({
             { required: true, message: 'Version is required' },
             { max: 64, message: 'Version cannot be longer than 64 characters' },
           ]}
-          extra="Free text — Wayd never parses or orders by it."
+          extra="For example 4.8.2, 2026.04, or v3-beta."
         >
           <Input />
         </Item>
@@ -142,13 +140,6 @@ const PlanReleaseForm = ({
         </Item>
         <Item label="Target Date" name="targetDate">
           <DatePicker style={{ width: '100%' }} />
-        </Item>
-        <Item
-          label="Sequence"
-          name="sequence"
-          extra="Only needed where release order differs from date order, as a backport does."
-        >
-          <InputNumber style={{ width: '100%' }} />
         </Item>
       </Form>
     </Modal>

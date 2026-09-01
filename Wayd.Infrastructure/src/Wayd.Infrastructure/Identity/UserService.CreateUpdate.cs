@@ -24,7 +24,9 @@ internal partial class UserService
     /// path for users backfilled before tenant was persisted.
     /// If still no match and a user has a staged tenant migration whose target matches
     /// the token's tenant, that user's active identity is rebound to (tid, oid) inside
-    /// a transaction (see <see cref="TryApplyPendingTenantMigration"/>).
+    /// a transaction (see <see cref="TryApplyPendingTenantMigration"/>). Failing that,
+    /// a user (local or on another provider) may have a staged <b>provider</b> migration
+    /// targeting Entra, rebound the same way (see <see cref="TryApplyPendingProviderMigration"/>).
     /// If still no match, the user is created and a new UserIdentity row is inserted —
     /// unless an existing account matches on display name or UPN/email, which is denied
     /// rather than linked. Those are mutable directory attributes and are not proof of
@@ -212,9 +214,14 @@ internal partial class UserService
 
         // No active identity for (tid, oid) and no NULL-tenant backfill row to upgrade.
         // Last resort before falling through to create: an admin may have staged a
-        // tenant migration for this user, in which case we rebind their existing
-        // identity to (tid, oid) instead of creating a duplicate user.
-        return await TryApplyPendingTenantMigration(tenantId, objectId, upn);
+        // tenant migration for this user (Entra → Entra, moving tenants), in which
+        // case we rebind their existing identity to (tid, oid). Failing that, an
+        // admin may instead have staged a *provider* migration onto Entra (e.g.
+        // Wayd-local → Entra), which TryApplyPendingProviderMigration handles —
+        // without this call a migration staged onto Entra was write-only state that
+        // no sign-in path ever consulted.
+        return await TryApplyPendingTenantMigration(tenantId, objectId, upn)
+            ?? await TryApplyPendingProviderMigration(LoginProviders.MicrosoftEntraId, tenantId, objectId, upn);
     }
 
     /// <summary>
@@ -406,12 +413,16 @@ internal partial class UserService
 
         // Match on email (case-insensitive) to scope the lookup. The admin staged
         // the migration on a specific user; email is the cross-provider identifier
-        // we can reliably compare at login time.
+        // we can reliably compare at login time. No LoginProvider filter: a local
+        // (Wayd) account is exactly the primary staged-migration scenario —
+        // StageProviderMigration accepts local users and the docs advertise
+        // Wayd→OIDC, so excluding them here left every such migration permanently
+        // stuck (see EnsureEntraIdentityRowAsync, which — deliberately — refuses to
+        // link a local account, so this rebind is the only path that can do it).
         var normalized = email.ToUpperInvariant();
         var candidate = await _userManager.Users
             .FirstOrDefaultAsync(u =>
                 u.PendingMigrationProviderId == providerName &&
-                u.LoginProvider != LoginProviders.Wayd &&
                 (u.NormalizedUserName == normalized || u.NormalizedEmail == normalized));
 
         if (candidate is null)

@@ -34,6 +34,14 @@ public sealed class ReleasePackageComponent : BaseAuditableEntity
     public Guid ProductId { get; private init; }
 
     /// <summary>
+    /// The product this line describes, when one is loaded.
+    /// </summary>
+    /// <remarks>
+    /// For the read side only. No invariant depends on this being loaded.
+    /// </remarks>
+    public Product? Product { get; private init; }
+
+    /// <summary>
     /// The release that supplied this version, where one is recorded in Wayd. Null for a
     /// carried-forward component whose version predates anything Wayd holds.
     /// </summary>

@@ -61,12 +61,20 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     /// </summary>
     public Guid ProductTypeId { get; private set; }
 
+    /// <summary>The node's type, when one is loaded.</summary>
+    /// <remarks>For the read side only. No invariant depends on this being loaded.</remarks>
+    public ProductType? ProductType { get; private init; }
+
     /// <summary>
     /// The parent node, or <c>null</c> for a root. Composition only — the provides/consumes graph is a
     /// separate relationship arriving in phase two, because an access surface spanning several products
     /// has no honest place in a single-parent tree.
     /// </summary>
     public Guid? ParentId { get; private set; }
+
+    /// <summary>The node this one sits under, when one is loaded.</summary>
+    /// <remarks>For the read side only. No invariant depends on this being loaded.</remarks>
+    public Product? Parent { get; private init; }
 
     /// <summary>
     /// The node's identifier in whatever system owns it — a repository, a pipeline, a registry package.

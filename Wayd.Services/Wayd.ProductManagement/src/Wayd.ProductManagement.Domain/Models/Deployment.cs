@@ -48,6 +48,18 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
     /// <summary>The environment reached.</summary>
     public Guid EnvironmentId { get; private init; }
 
+    /// <summary>The release deployed, when one is loaded.</summary>
+    /// <remarks>For the read side only. No invariant depends on this being loaded.</remarks>
+    public Release? Release { get; private init; }
+
+    /// <summary>The package deployed, when one is loaded.</summary>
+    /// <remarks>For the read side only. No invariant depends on this being loaded.</remarks>
+    public ReleasePackage? Package { get; private init; }
+
+    /// <summary>The environment reached, when one is loaded.</summary>
+    /// <remarks>For the read side only. No invariant depends on this being loaded.</remarks>
+    public DeploymentEnvironment? Environment { get; private init; }
+
     /// <summary>
     /// The environment's category as it stood when this deployment ran.
     /// </summary>

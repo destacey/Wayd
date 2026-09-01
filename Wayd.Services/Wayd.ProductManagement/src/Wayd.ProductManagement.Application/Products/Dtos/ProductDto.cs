@@ -1,6 +1,7 @@
 ﻿using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.ProductManagement.Domain.Models;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.ProductManagement.Application.Products.Dtos;
@@ -49,6 +50,49 @@ public sealed record ProductDto
     public StatusNavigationDto Status { get; init; } = default!;
 
     public IReadOnlyCollection<ProductTagDto> Tags { get; init; } = [];
+
+    /// <summary>
+    /// Maps a product and its tag assignments, for <c>ProjectToType</c>.
+    /// </summary>
+    /// <remarks>
+    /// Built per call rather than registered globally, because the category name reads a second set and
+    /// the global config has no request-scoped DbContext to close over.
+    /// <para>
+    /// <see cref="ProductDto.Parent"/> needs no entry — it is same-named, so convention pairs it with
+    /// the navigation. <see cref="ProductDto.Type"/> does, because the entity calls it
+    /// <c>ProductType</c>. <see cref="ProductDto.IsReleasable"/> is flattened off that type rather than
+    /// the product, which carries no such member.
+    /// </para>
+    /// <para>
+    /// A tag's category is reached through the tag: <c>CategoryId</c> is denormalized onto the
+    /// assignment so filtering by axis needs no join, but it carries no foreign key, so there is no
+    /// navigation to traverse.
+    /// </para>
+    /// </remarks>
+    public static TypeAdapterConfig CreateTypeAdapterConfig(IProductManagementDbContext dbContext)
+    {
+        var config = new TypeAdapterConfig();
+
+        config.NewConfig<ProductTagAssignment, ProductTagDto>()
+            .Map(dto => dto.TagName, a => a.Tag!.Name)
+            .Map(dto => dto.CategoryName, a => dbContext.ProductTagCategories
+                .Where(c => c.Id == a.CategoryId)
+                .Select(c => c.Name)
+                .FirstOrDefault()!);
+
+        config.NewConfig<Product, ProductDto>()
+            .Map(dto => dto.Type, p => NavigationDto.Create(p.ProductType!.Id, p.ProductType.Key, p.ProductType.Name))
+            .Map(dto => dto.IsReleasable, p => p.ProductType!.IsReleasable)
+            .Map(dto => dto.Status, p => new StatusNavigationDto
+            {
+                Id = p.StatusId,
+                Name = p.StatusName,
+                Category = p.StatusCategory,
+                Alias = p.StatusAliasValue,
+            });
+
+        return config;
+    }
 }
 
 public sealed record ProductTagDto

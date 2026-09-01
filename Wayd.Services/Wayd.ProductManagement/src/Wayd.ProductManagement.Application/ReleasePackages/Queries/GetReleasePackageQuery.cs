@@ -14,12 +14,10 @@ public sealed class GetReleasePackageQueryHandler(IProductManagementDbContext pr
 
     public async Task<ReleasePackageDto?> Handle(GetReleasePackageQuery query, CancellationToken cancellationToken)
     {
-        var packages = _productManagementDbContext.ReleasePackages
-            .AsNoTracking()
-            .Where(p => p.Id == query.Id);
-
-        return await GetReleasePackagesQueryHandler
-            .Project(packages, _productManagementDbContext)
+        return await _productManagementDbContext.ReleasePackages
+            .Where(p => p.Id == query.Id)
+            .ProjectToType<ReleasePackageDto>(
+                ReleasePackageDto.CreateTypeAdapterConfig(_productManagementDbContext))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

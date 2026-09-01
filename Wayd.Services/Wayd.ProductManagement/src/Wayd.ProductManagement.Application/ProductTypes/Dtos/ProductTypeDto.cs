@@ -1,4 +1,6 @@
-﻿namespace Wayd.ProductManagement.Application.ProductTypes.Dtos;
+﻿using Wayd.ProductManagement.Domain.Models;
+
+namespace Wayd.ProductManagement.Application.ProductTypes.Dtos;
 
 /// <summary>
 /// A product type as a catalog row.
@@ -26,4 +28,21 @@ public sealed record ProductTypeDto
     /// How many products currently carry this type. Lets a caller see what deactivating would affect.
     /// </summary>
     public int ProductCount { get; init; }
+
+    /// <summary>
+    /// Maps the type, for <c>ProjectToType</c>. Everything but the count is same-named.
+    /// </summary>
+    /// <remarks>
+    /// Built per call rather than registered globally, because the count reads a second set and the
+    /// global config has no request-scoped DbContext to close over.
+    /// </remarks>
+    public static TypeAdapterConfig CreateTypeAdapterConfig(IProductManagementDbContext dbContext)
+    {
+        var config = new TypeAdapterConfig();
+
+        config.NewConfig<ProductType, ProductTypeDto>()
+            .Map(dto => dto.ProductCount, t => dbContext.Products.Count(p => p.ProductTypeId == t.Id));
+
+        return config;
+    }
 }

@@ -19,7 +19,7 @@ public sealed class GetProductTypesQueryHandler(IProductManagementDbContext prod
     public async Task<IReadOnlyCollection<ProductTypeDto>> Handle(
         GetProductTypesQuery query, CancellationToken cancellationToken)
     {
-        var types = _productManagementDbContext.ProductTypes.AsNoTracking();
+        var types = _productManagementDbContext.ProductTypes.AsQueryable();
 
         if (query.IsActive is not null)
         {
@@ -27,18 +27,8 @@ public sealed class GetProductTypesQueryHandler(IProductManagementDbContext prod
         }
 
         return await types
-            .Select(t => new ProductTypeDto
-            {
-                Id = t.Id,
-                Key = t.Key,
-                Name = t.Name,
-                Description = t.Description,
-                IsReleasable = t.IsReleasable,
-                Order = t.Order,
-                IsActive = t.IsActive,
-                IsSystem = t.IsSystem,
-                ProductCount = _productManagementDbContext.Products.Count(p => p.ProductTypeId == t.Id),
-            })
+            .ProjectToType<ProductTypeDto>(
+                ProductTypeDto.CreateTypeAdapterConfig(_productManagementDbContext))
             .OrderBy(t => t.Order)
             .ThenBy(t => t.Name)
             .ToListAsync(cancellationToken);

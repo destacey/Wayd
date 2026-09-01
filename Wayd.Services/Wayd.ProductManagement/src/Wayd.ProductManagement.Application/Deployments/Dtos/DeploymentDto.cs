@@ -2,6 +2,7 @@
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.ProductManagement.Domain.Models;
 
 namespace Wayd.ProductManagement.Application.Deployments.Dtos;
 
@@ -64,4 +65,45 @@ public sealed record DeploymentDto
     /// prevented, so only production counts.
     /// </summary>
     public bool IsChangeFailure { get; init; }
+
+    /// <summary>
+    /// Maps the deployment, for <c>ProjectToType</c>.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Outcome"/>, <see cref="IsComplete"/> and <see cref="IsChangeFailure"/> are same-named
+    /// domain members that EF is told to ignore, so convention would bind them to expressions no
+    /// provider can translate. Each is recomputed from the columns that do exist, and the
+    /// change-failure predicate must keep agreeing with the domain's.
+    /// <para>
+    /// A release and a package are identified by their version rather than their optional name. The
+    /// environment is not, so it maps by convention.
+    /// </para>
+    /// </remarks>
+    public static TypeAdapterConfig CreateTypeAdapterConfig()
+    {
+        var config = new TypeAdapterConfig();
+
+        config.NewConfig<Deployment, DeploymentDto>()
+            .Map(dto => dto.Release, d => d.Release != null
+                ? NavigationDto.Create(d.Release.Id, d.Release.Key, d.Release.Version)
+                : null)
+            .Map(dto => dto.Package, d => d.Package != null
+                ? NavigationDto.Create(d.Package.Id, d.Package.Key, d.Package.Version)
+                : null)
+            .Map(dto => dto.Status, d => new StatusNavigationDto
+            {
+                Id = d.StatusId,
+                Name = d.StatusName,
+                Category = d.StatusCategory,
+                Alias = d.StatusAliasValue,
+            })
+            .Map(dto => dto.Outcome, d => (ProductStatusAlias)d.StatusAliasValue)
+            .Map(dto => dto.IsComplete, d => d.CompletedAt != null)
+            .Map(dto => dto.IsChangeFailure, d =>
+                d.EnvironmentCategory == EnvironmentCategory.Production
+                && (d.StatusAliasValue == (int)ProductStatusAlias.Failed
+                    || d.StatusAliasValue == (int)ProductStatusAlias.RolledBack));
+
+        return config;
+    }
 }

@@ -9,7 +9,6 @@ import {
   ProjectOutlined,
   FundOutlined,
   ProductOutlined,
-  RocketOutlined,
 } from '@ant-design/icons'
 import {
   buildRouteKeyMap,
@@ -30,7 +29,6 @@ const menuIcons = {
   planning: <ScheduleOutlined />,
   ppm: <ProjectOutlined />,
   product: <ProductOutlined />,
-  delivery: <RocketOutlined />,
   strategy: <FundOutlined />,
   work: <CarryOutOutlined />,
   settings: <SettingOutlined />,
@@ -124,17 +122,8 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
               'product.products',
               '/product-management/products',
             ),
-          ],
-        ),
-        // Its own section rather than more entries under Product Management: the catalog records
-        // what exists and delivery records what shipped, which is the split the schema already
-        // makes. Same flag, because there is one module behind both.
-        restrictedMenuSection(
-          'Delivery',
-          'delivery',
-          undefined,
-          menuIcons.delivery,
-          [
+            // Delivery is schema-separated from the catalog so a later module split stays a code
+            // move, but it is one module today and belongs in one section.
             restrictedPermissionMenuItem(
               'Permissions.Releases.View',
               'Releases',

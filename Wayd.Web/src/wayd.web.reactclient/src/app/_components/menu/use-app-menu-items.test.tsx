@@ -100,28 +100,28 @@ describe('useAppMenuItems', () => {
     expect(keys).toContain('product.products')
   })
 
-  it('omits Delivery while the Product Management flag is off', () => {
-    // Delivery rides the same module flag: one module answers for both, so the section cannot
-    // appear while its endpoints 404.
+  it('omits Releases while the Product Management flag is off', () => {
+    // Releases rides the same module flag as the catalog: delivery is schema-separated to keep a
+    // later module split cheap, but one module answers for both and its endpoints 404 together.
     const { result } = renderHook(() => useAppMenuItems())
 
     expect(keysOf(result.current.menuItems)).not.toContain('delivery.releases')
   })
 
-  it('includes Delivery when the Product Management flag is on', () => {
+  it('includes Releases alongside Products when the flag is on', () => {
     mockFlags['product-management'] = true
 
     const { result } = renderHook(() => useAppMenuItems())
 
     const keys = keysOf(result.current.menuItems)
-    expect(keys).toContain('delivery')
+    expect(keys).toContain('product')
+    expect(keys).toContain('product.products')
     expect(keys).toContain('delivery.releases')
   })
 
   it('guards Releases on its own permission, not the catalog one', () => {
-    // Delivery sits behind the same flag as the catalog but not the same permissions: someone who
-    // can see products need not be able to see releases, and offering the entry anyway leads to a
-    // page that refuses them.
+    // One section, but not one permission: someone who can see products need not be able to see
+    // releases, and offering the entry anyway leads to a page that refuses them.
     mockFlags['product-management'] = true
     mockClaims.held = new Set(['Permissions.Products.View'])
 
@@ -130,7 +130,7 @@ describe('useAppMenuItems', () => {
     const keys = keysOf(result.current.menuItems)
     expect(keys).toContain('product.products')
     expect(keys).not.toContain('delivery.releases')
-    // The section is restricted, so it disappears along with its only child.
-    expect(keys).not.toContain('delivery')
+    // The section survives, because Products still passes.
+    expect(keys).toContain('product')
   })
 })

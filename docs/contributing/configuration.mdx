@@ -338,10 +338,12 @@ If staging is skipped and the user signs in from the new tenant first, the excha
 
 An admin can move a user from one OIDC provider to another, or from a local (Wayd) account to an OIDC provider. As with tenant migration, the rebind is deferred — the user's current login continues to work until they sign in via the target provider.
 
-`PendingMigrationProviderId` is set on `ApplicationUser` to the target provider's `Name`. During token exchange for a GenericOidc provider, `UserService.ResolveFromGenericOidcPrincipalAsync` checks for a pending provider migration after the normal identity lookup fails. The rebind matches a user by `PendingMigrationProviderId == providerName` AND `NormalizedEmail == token.email` (rejected if `email_verified=false`). On match, inside one transaction:
+`PendingMigrationProviderId` is set on `ApplicationUser` to the target provider's `Name`. `UserService.TryApplyPendingProviderMigration` checks for a pending provider migration after the normal identity lookup fails, and is wired into both token-exchange paths: `ResolveFromGenericOidcPrincipalAsync` for a GenericOidc target, and `ResolveUserByEntraIdentityAsync` (after the tenant-migration check) for a Microsoft Entra ID target. The rebind matches a user by `PendingMigrationProviderId == providerName` AND a case-insensitive match of the token's identifier against **either** `NormalizedUserName` **or** `NormalizedEmail` — either side is enough, which matters for a local account whose username is not their email address. The identifier is the `email` claim on the GenericOidc path, and the resolved UPN (`upn`, else `preferred_username`, else `email`) on the Entra path. A token carrying `email_verified=false` is rejected on both paths: its identifier is discarded before lookup, so no staged migration can match it.
+
+On match, inside one transaction:
 
 1. Deactivate all active identity rows (`UnlinkReason = ProviderRelinked`).
-2. Insert a new active row with `(providerName, null, token.sub)`.
+2. Insert a new active row with `(providerName, providerTenantId, token.sub)` — `providerTenantId` is the token's tenant for Entra, `null` for GenericOidc.
 3. Update `LoginProvider` to the new provider and clear `PendingMigrationProviderId`.
 
 If the migrating user was previously a local account (Wayd→OIDC), the `PasswordHash` is cleared after the transaction commits — the hash is already unreachable at login (the Wayd identity is deactivated), but removing it makes the intent explicit.

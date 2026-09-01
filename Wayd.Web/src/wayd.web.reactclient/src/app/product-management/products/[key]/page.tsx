@@ -11,6 +11,7 @@ import {
   useGetProductQuery,
   useGetProductsQuery,
 } from '@/src/store/features/product-management/products-api'
+import { useGetReleasesQuery } from '@/src/store/features/delivery/releases-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { Button, MenuProps, Result } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
@@ -90,6 +91,18 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     isLoading: componentsLoading,
     refetch: refetchComponents,
   } = useGetProductsQuery({ parentId: product?.id }, { skip: !product?.id })
+
+  // Loaded here rather than inside the section, so the overview tile and the section it links to
+  // cannot disagree about the count. Skipped for a node whose type cannot carry releases: the
+  // section is hidden for those, and the request would only ever return nothing.
+  const {
+    data: releases,
+    isLoading: releasesLoading,
+    refetch: refetchReleases,
+  } = useGetReleasesQuery(
+    { productId: product?.id },
+    { skip: !product?.id || !product?.isReleasable },
+  )
 
   const isNotFound = (error as { status?: number })?.status === 404
 
@@ -218,7 +231,13 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     }
 
     if (section === ProductSections.Releases) {
-      return <ProductReleases productId={product.id} />
+      return (
+        <ProductReleases
+          releases={releases ?? []}
+          isLoading={releasesLoading}
+          refetch={refetchReleases}
+        />
+      )
     }
 
     if (section === ProductSections.Products) {
@@ -244,6 +263,9 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           router.replace(`?section=${sectionId}`, { scroll: false })
         }
         productsSectionId={ProductSections.Products}
+        releases={releases}
+        releasesLoading={releasesLoading}
+        releasesSectionId={ProductSections.Releases}
       />
     )
   }

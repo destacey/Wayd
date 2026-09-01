@@ -1,10 +1,12 @@
 'use client'
 
 import { ReleasesGrid } from '@/src/app/delivery/releases/_components'
-import { useGetReleasesQuery } from '@/src/store/features/delivery/releases-api'
+import { ReleaseDto } from '@/src/services/wayd-api'
 
 export interface ProductReleasesProps {
-  productId: string
+  releases: ReleaseDto[]
+  isLoading: boolean
+  refetch: () => void
 }
 
 /**
@@ -13,22 +15,18 @@ export interface ProductReleasesProps {
  * The product column is hidden: every row here shares it, so repeating it costs width and says
  * nothing.
  */
-const ProductReleases = ({ productId }: ProductReleasesProps) => {
-  const {
-    data: releases,
-    isLoading,
-    refetch,
-  } = useGetReleasesQuery({ productId })
-
-  return (
-    <ReleasesGrid
-      releases={releases ?? []}
-      isLoading={isLoading}
-      refetch={refetch}
-      showProduct={false}
-      persistStateKey="product-management-product-releases"
-    />
-  )
-}
+const ProductReleases = ({
+  releases,
+  isLoading,
+  refetch,
+}: ProductReleasesProps) => (
+  <ReleasesGrid
+    releases={releases}
+    isLoading={isLoading}
+    refetch={refetch}
+    showProduct={false}
+    persistStateKey="product-management-product-releases"
+  />
+)
 
 export default ProductReleases

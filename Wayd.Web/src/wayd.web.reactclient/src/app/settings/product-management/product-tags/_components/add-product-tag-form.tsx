@@ -88,7 +88,7 @@ const AddProductTagForm = ({
           rules={[{ required: true, message: 'Name is required' }, { max: 64 }]}
           extra="The label itself — ios, android, pci-scope. Must be unique on this axis."
         >
-          <TextArea autoSize={{ minRows: 1, maxRows: 2 }} showCount maxLength={64} />
+          <Input showCount maxLength={64} />
         </Item>
         <Item
           name="description"
@@ -96,7 +96,7 @@ const AddProductTagForm = ({
           rules={[{ max: 512 }]}
           extra="What the label means, where it is not obvious."
         >
-          <TextArea autoSize={{ minRows: 3, maxRows: 6 }} showCount maxLength={512} />
+          <TextArea autoSize={{ minRows: 3, maxRows: 6 }} maxLength={512} />
         </Item>
       </Form>
     </Modal>

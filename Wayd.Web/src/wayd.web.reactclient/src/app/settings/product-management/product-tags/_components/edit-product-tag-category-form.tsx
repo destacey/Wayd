@@ -112,7 +112,7 @@ const EditProductTagCategoryForm = ({
           // the new name shows everywhere at once.
           extra="Renaming is safe — products carry the axis by reference."
         >
-          <TextArea autoSize={{ minRows: 1, maxRows: 2 }} showCount maxLength={64} />
+          <Input showCount maxLength={64} />
         </Item>
         <Item
           name="description"
@@ -120,7 +120,7 @@ const EditProductTagCategoryForm = ({
           rules={[{ max: 512 }]}
           extra="Cleared when left empty."
         >
-          <TextArea autoSize={{ minRows: 3, maxRows: 6 }} showCount maxLength={512} />
+          <TextArea autoSize={{ minRows: 3, maxRows: 6 }} maxLength={512} />
         </Item>
       </Form>
     </Modal>

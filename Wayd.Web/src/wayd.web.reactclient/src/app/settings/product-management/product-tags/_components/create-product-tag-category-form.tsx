@@ -95,7 +95,7 @@ const CreateProductTagCategoryForm = ({
           rules={[{ required: true, message: 'Name is required' }, { max: 64 }]}
           extra="The axis products are labelled along — Platform, Tech Stack, Compliance."
         >
-          <TextArea autoSize={{ minRows: 1, maxRows: 2 }} showCount maxLength={64} />
+          <Input showCount maxLength={64} />
         </Item>
         <Item name="description" label="Description" rules={[{ max: 512 }]}>
           <TextArea autoSize={{ minRows: 3, maxRows: 6 }} showCount maxLength={512} />

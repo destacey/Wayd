@@ -22,7 +22,7 @@ public sealed class GetReleasePackagesQueryHandler(IProductManagementDbContext p
     public async Task<IReadOnlyCollection<ReleasePackageDto>> Handle(
         GetReleasePackagesQuery query, CancellationToken cancellationToken)
     {
-        var packages = _productManagementDbContext.ReleasePackages.AsNoTracking();
+        var packages = _productManagementDbContext.ReleasePackages.AsQueryable();
 
         if (query.StatusCategories is { Count: > 0 })
         {

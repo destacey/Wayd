@@ -21,7 +21,7 @@ public sealed class GetProductTagCategoriesQueryHandler(IProductManagementDbCont
     public async Task<IReadOnlyCollection<ProductTagCategoryDto>> Handle(
         GetProductTagCategoriesQuery query, CancellationToken cancellationToken)
     {
-        var categories = _productManagementDbContext.ProductTagCategories.AsNoTracking();
+        var categories = _productManagementDbContext.ProductTagCategories.AsQueryable();
 
         if (query.IsActive is not null)
         {

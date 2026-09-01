@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Infrastructure.Persistence.Context;
 using Wayd.ProductManagement.Application;
 using Wayd.ProductManagement.Application.Products.Commands;
 using Wayd.ProductManagement.Application.Releases.Commands;
@@ -136,5 +137,33 @@ public sealed class ReleaseOrderingTests(WaydSqlServerApiFactory factory)
 
         // Assert
         Assert.Equal([plannedRelease, shippedRelease], releases.Select(r => r.Id));
+    }
+
+    [Fact]
+    public async Task GetReleases_TracksNothing_BecauseItProjects()
+    {
+        // Arrange — the query drops AsNoTracking, which reads like an oversight. It is not: a query
+        // that projects to a DTO before materializing never produces an entity for the change tracker
+        // to hold, so AsNoTracking would be a no-op. Asserted against SQL Server because only a real
+        // provider builds a real change tracker.
+        _ = _factory.CreateClient();
+        using var scope = _factory.Services.CreateScope();
+        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>();
+        var trackingContext = scope.ServiceProvider.GetRequiredService<WaydDbContext>();
+
+        var productId = await SeedProduct(dispatcher, dbContext);
+        await SeedRelease(dispatcher, productId, "3.0", null, new LocalDate(2026, 4, 22));
+
+        // The seeding above tracked entities of its own; only what the query adds is in question.
+        trackingContext.ChangeTracker.Clear();
+
+        // Act
+        var releases = await dispatcher.Send(
+            new GetReleasesQuery(productId), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotEmpty(releases);
+        Assert.Empty(trackingContext.ChangeTracker.Entries());
     }
 }

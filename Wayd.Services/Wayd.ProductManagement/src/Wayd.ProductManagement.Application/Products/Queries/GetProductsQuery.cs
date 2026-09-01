@@ -27,7 +27,7 @@ public sealed class GetProductsQueryHandler(IProductManagementDbContext productM
 
     public async Task<IReadOnlyCollection<ProductDto>> Handle(GetProductsQuery query, CancellationToken cancellationToken)
     {
-        var products = _productManagementDbContext.Products.AsNoTracking();
+        var products = _productManagementDbContext.Products.AsQueryable();
 
         if (query.ParentId is not null)
         {

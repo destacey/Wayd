@@ -69,6 +69,7 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
         "Get a release's status change history.",
         "Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<StatusTransitionDto>>> GetStatusHistory(
         string idOrKey, CancellationToken cancellationToken)

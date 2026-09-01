@@ -27,7 +27,7 @@ public sealed class GetDeploymentsQueryHandler(IProductManagementDbContext produ
     public async Task<IReadOnlyCollection<DeploymentDto>> Handle(
         GetDeploymentsQuery query, CancellationToken cancellationToken)
     {
-        var deployments = _productManagementDbContext.Deployments.AsNoTracking();
+        var deployments = _productManagementDbContext.Deployments.AsQueryable();
 
         if (query.ReleaseId is not null)
         {

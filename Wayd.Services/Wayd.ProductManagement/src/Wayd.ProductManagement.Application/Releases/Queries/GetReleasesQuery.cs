@@ -43,11 +43,18 @@ public sealed class GetReleasesQueryHandler(IProductManagementDbContext productM
             releases = releases.Where(r => query.StatusCategories.Contains(r.StatusCategory));
         }
 
-        return await releases
+        var ordered = releases
             .ProjectToType<ReleaseDto>()
             .OrderByDescending(r => r.ReleasedDate == null)
-            .ThenByDescending(r => r.ReleasedDate)
-            .ThenByDescending(r => r.Sequence)
+            .ThenByDescending(r => r.ReleasedDate);
+
+        // Sequence orders one product's releases against each other and means nothing across
+        // products — 4.8.2 of one has no position relative to 2026.04 of another beyond the date they
+        // shipped. Applying it to a mixed list would let an ordering set for one product move a
+        // second product's release that happens to share a released date.
+        return await (query.ProductId is not null
+                ? ordered.ThenByDescending(r => r.Sequence)
+                : ordered)
             .ToListAsync(cancellationToken);
     }
 

@@ -6,6 +6,7 @@ import {
   ObjectIdAndKey,
   ProductTagCategoryDto,
   RenameProductTagRequest,
+  ReorderProductTagCategoriesRequest,
   SetProductTagCategoryActiveRequest,
   UpdateProductTagCategoryRequest,
 } from '@/src/services/wayd-api'
@@ -112,6 +113,25 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
       ],
     }),
+    // Takes every category, not the moved one: position is relative, so the API
+    // refuses a partial list rather than silently renumbering half the set.
+    reorderProductTagCategories: builder.mutation<
+      void,
+      ReorderProductTagCategoriesRequest
+    >({
+      queryFn: async (request) => {
+        try {
+          const data = await getProductTagCategoriesClient().reorder(request)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: () => [
+        { type: QueryTags.ProductTagCategory, id: 'LIST' },
+      ],
+    }),
     deleteProductTagCategory: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
@@ -191,6 +211,7 @@ export const {
   useUpdateProductTagCategoryMutation,
   useSetProductTagCategoryActiveMutation,
   useDeleteProductTagCategoryMutation,
+  useReorderProductTagCategoriesMutation,
   useAddProductTagMutation,
   useRenameProductTagMutation,
   useSetProductTagActiveMutation,

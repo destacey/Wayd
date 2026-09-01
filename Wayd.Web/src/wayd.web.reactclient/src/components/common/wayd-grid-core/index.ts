@@ -251,6 +251,7 @@ export {
   DRAG_ACTIVATION_DISTANCE,
   GridSortableRow,
   useGridDndSensors,
+  DragHandleCell,
   useGridDragHandle,
 } from './dnd/grid-dnd'
 

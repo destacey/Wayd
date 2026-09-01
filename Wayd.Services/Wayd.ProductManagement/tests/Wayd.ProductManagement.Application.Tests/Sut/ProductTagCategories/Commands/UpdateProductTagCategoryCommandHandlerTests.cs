@@ -31,13 +31,12 @@ public sealed class UpdateProductTagCategoryCommandHandlerTests : ProductCommand
 
         // Act
         var result = await sut.Handle(
-            new UpdateProductTagCategoryCommand(category.Id, "Target Platform", "Where it runs.", 4),
+            new UpdateProductTagCategoryCommand(category.Id, "Target Platform", "Where it runs."),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         category.Name.Should().Be("Target Platform");
-        category.Order.Should().Be(4);
     }
 
     [Fact]
@@ -49,7 +48,7 @@ public sealed class UpdateProductTagCategoryCommandHandlerTests : ProductCommand
 
         // Act
         var result = await sut.Handle(
-            new UpdateProductTagCategoryCommand(category.Id, "Renamed", null, 9),
+            new UpdateProductTagCategoryCommand(category.Id, "Renamed", null),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -67,7 +66,7 @@ public sealed class UpdateProductTagCategoryCommandHandlerTests : ProductCommand
 
         // Act
         var result = await sut.Handle(
-            new UpdateProductTagCategoryCommand(category.Id, "Platform", "Now described.", 1),
+            new UpdateProductTagCategoryCommand(category.Id, "Platform", "Now described."),
             TestContext.Current.CancellationToken);
 
         // Assert

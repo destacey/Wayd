@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { UpdateProductTagCategoryRequest } from '@/src/services/wayd-api'
 import { useUpdateProductTagCategoryMutation } from '@/src/store/features/product-management/product-tag-categories-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { Form, Input, InputNumber, Modal } from 'antd'
+import { Form, Input, Modal } from 'antd'
 import { useModalForm } from '@/src/hooks'
 import { useEffect } from 'react'
 import { ProductTagCategoryActionTarget } from './types'
@@ -26,7 +26,6 @@ export interface EditProductTagCategoryFormProps {
 interface UpdateProductTagCategoryFormValues {
   name: string
   description?: string
-  order: number
 }
 
 const mapToRequestValues = (
@@ -36,7 +35,6 @@ const mapToRequestValues = (
   id,
   name: values.name,
   description: values.description,
-  order: values.order,
 })
 
 const EditProductTagCategoryForm = ({
@@ -85,7 +83,6 @@ const EditProductTagCategoryForm = ({
     form.setFieldsValue({
       name: category.name,
       description: category.description,
-      order: category.order,
     })
   }, [category, form])
 
@@ -124,14 +121,6 @@ const EditProductTagCategoryForm = ({
           extra="Cleared when left empty."
         >
           <TextArea autoSize={{ minRows: 3, maxRows: 6 }} showCount maxLength={512} />
-        </Item>
-        <Item
-          name="order"
-          label="Order"
-          rules={[{ required: true, message: 'Order is required' }]}
-          extra="Where the axis sits when the axes are presented. Presentation only."
-        >
-          <InputNumber min={0} />
         </Item>
       </Form>
     </Modal>

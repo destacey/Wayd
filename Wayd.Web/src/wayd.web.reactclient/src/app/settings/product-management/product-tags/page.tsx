@@ -1,12 +1,20 @@
 'use client'
 
 import { PageTitle } from '@/src/components/common'
-import { WaydGrid } from '@/src/components/common/wayd-grid'
+import {
+  DragHandleCell,
+  WaydGrid,
+  type GridColumnContext,
+  type RowReorderEvent,
+} from '@/src/components/common/wayd-grid'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import { ProductTagCategoryDto } from '@/src/services/wayd-api'
-import { useGetProductTagCategoriesQuery } from '@/src/store/features/product-management/product-tag-categories-api'
+import {
+  useGetProductTagCategoriesQuery,
+  useReorderProductTagCategoriesMutation,
+} from '@/src/store/features/product-management/product-tag-categories-api'
 import {
   createActionsColumn,
   type ColumnDef,
@@ -44,6 +52,9 @@ const ProductTagCategoriesPage = () => {
 
   const { hasPermissionClaim } = useAuth()
   const canCreate = hasPermissionClaim('Permissions.ProductTagCategories.Create')
+  const canReorder = hasPermissionClaim('Permissions.ProductTagCategories.Update')
+
+  const [reorderProductTagCategories] = useReorderProductTagCategoriesMutation()
 
   const { getActionItems, dialogs } = useProductTagCategoryActions()
 
@@ -57,14 +68,36 @@ const ProductTagCategoriesPage = () => {
     }
   }, [error, messageApi])
 
-  const columns = useMemo<ColumnDef<ProductTagCategoryDto, any>[]>(
-    () => [
+  const columns = useMemo(
+    () =>
+      (
+        context: GridColumnContext,
+      ): ColumnDef<ProductTagCategoryDto, any>[] => [
       // First, so it stays put as columns are shown, hidden or reordered
       // around it — the ⋯ is always in the same place regardless of layout.
+      // The grab handle rides in the same cell rather than taking a column of
+      // its own, which would spend width on one icon.
       createActionsColumn<ProductTagCategoryDto>({
         getItems: getActionItems,
         ariaLabel: 'Tag category actions',
+        size: 70,
+        leading: canReorder ? (
+          <DragHandleCell
+            isDragEnabled={context.isDragEnabled}
+            disabledTooltip="Clear sorting, filters, and search to reorder tag categories."
+          />
+        ) : undefined,
       }),
+      // The position drag-and-drop writes. Read-only — it is not on the forms,
+      // because a number each edit has to guess right is how two axes end up
+      // claiming the same place.
+      {
+        id: 'order',
+        accessorKey: 'order',
+        header: 'Order',
+        size: 90,
+        enableColumnFilter: false,
+      },
       { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
       {
         id: 'name',
@@ -112,11 +145,28 @@ const ProductTagCategoriesPage = () => {
         meta: { columnType: 'yesNo' },
       },
     ],
-    [getActionItems],
+    [getActionItems, canReorder],
   )
 
   const refresh = async () => {
     refetch()
+  }
+
+  // The whole displayed set travels, which is what the API requires — and the
+  // grid only enables dragging when nothing is sorted, filtered or searched, so
+  // "displayed" is the full list in data order.
+  const onRowReorder = async (event: RowReorderEvent<ProductTagCategoryDto>) => {
+    try {
+      await reorderProductTagCategories({
+        orderedCategoryIds: event.orderedData.map((category) => category.id),
+      }).unwrap()
+    } catch (error) {
+      messageApi.error(
+        (isApiError(error) ? error.detail : undefined) ??
+          'An error occurred while reordering the tag categories',
+      )
+      refetch()
+    }
   }
 
   const actions = canCreate ? (
@@ -141,6 +191,8 @@ const ProductTagCategoriesPage = () => {
         isLoading={isLoading}
         persistStateKey="settings-product-tag-categories"
         csvFileName="product-tag-categories"
+        getRowId={(category: ProductTagCategoryDto) => category.id}
+        onRowReorder={canReorder ? onRowReorder : undefined}
       />
 
       {dialogs}

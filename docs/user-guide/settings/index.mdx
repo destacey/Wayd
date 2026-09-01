@@ -234,9 +234,9 @@ A **tag category** is one axis of classification:
 
 - **Name** and **Description**
 - **Allows Many** — whether a product can carry several tags from this axis. Chosen at creation and fixed afterward: narrowing it later would leave products holding more tags than the axis permits.
-- **Order** — where the axis sits when the axes are presented. Presentation only.
+- **Order** — where the axis sits when the axes are presented, shown as a column. Presentation only, and not a field on the forms: **drag a row by its grab handle** to move it. A new axis lands at the end.
 - **Active** — whether products can still be tagged along this axis.
-- **System** — platform-seeded axes are read-only. They can be deactivated, but never edited, deleted, or have their tags changed; an organization wanting different axes adds its own.
+- **System** — platform-seeded axes are read-only. They can be deactivated and repositioned, but never edited, deleted, or have their tags changed; an organization wanting different axes adds its own.
 
 Open a category to manage its tags. Tags are managed through their axis rather than as a list of their own, because the rule they can break — no two tags on one axis sharing a name — belongs to the axis.
 
@@ -247,6 +247,7 @@ Tags themselves carry no order — they display alphabetically wherever they app
 - **Renaming a tag is safe.** Products reference tags by id, so the new name shows on every tagged product at once — which is the point of a curated list over free text.
 - **Deactivating retires rather than removes.** A deactivated tag or category can no longer be applied to anything new, but products already carrying it keep their tags, so what was recorded stays true. The tag list shows how many products carry each tag, so you can see what a change would affect before making it.
 - **Deleting is only for an unused axis.** A category that products are tagged along cannot be deleted — deactivate it instead.
+- **Reordering needs a clean grid.** The grab handle is disabled while the list is sorted, filtered or searched, because the order on screen is not the stored order then and a drop would write a sequence you never saw. Clear all three and the handle comes back. A move saves the whole list at once, so the positions can never overlap.
 
 | To do this | You need |
 |---|---|

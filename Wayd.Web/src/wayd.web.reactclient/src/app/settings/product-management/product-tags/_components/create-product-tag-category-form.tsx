@@ -2,14 +2,10 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { CreateProductTagCategoryRequest } from '@/src/services/wayd-api'
-import {
-  useCreateProductTagCategoryMutation,
-  useGetProductTagCategoriesQuery,
-} from '@/src/store/features/product-management/product-tag-categories-api'
+import { useCreateProductTagCategoryMutation } from '@/src/store/features/product-management/product-tag-categories-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { Form, Input, InputNumber, Modal, Switch } from 'antd'
+import { Form, Input, Modal, Switch } from 'antd'
 import { useModalForm } from '@/src/hooks'
-import { useEffect } from 'react'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -23,7 +19,6 @@ interface CreateProductTagCategoryFormValues {
   name: string
   description?: string
   allowsMany: boolean
-  order: number
 }
 
 const mapToRequestValues = (
@@ -32,7 +27,6 @@ const mapToRequestValues = (
   name: values.name,
   description: values.description,
   allowsMany: values.allowsMany,
-  order: values.order,
 })
 
 const CreateProductTagCategoryForm = ({
@@ -40,11 +34,6 @@ const CreateProductTagCategoryForm = ({
   onFormCancel,
 }: CreateProductTagCategoryFormProps) => {
   const messageApi = useMessage()
-
-  // Served from the list the page already loaded, so this costs no request —
-  // it is only here to put the new axis at the end rather than making the
-  // author work out the next free position themselves.
-  const { data: categories } = useGetProductTagCategoriesQuery(undefined)
 
   const [createProductTagCategory] = useCreateProductTagCategoryMutation()
 
@@ -81,12 +70,6 @@ const CreateProductTagCategoryForm = ({
       permission: 'Permissions.ProductTagCategories.Create',
     })
 
-  useEffect(() => {
-    const nextOrder = !categories?.length
-      ? 1
-      : Math.max(...categories.map((c) => c.order)) + 1
-    form.setFieldValue('order', nextOrder)
-  }, [categories, form])
 
   return (
     <Modal
@@ -128,14 +111,6 @@ const CreateProductTagCategoryForm = ({
           extra="Whether a product can carry several tags from this axis. Cannot be changed later."
         >
           <Switch checkedChildren="Yes" unCheckedChildren="No" />
-        </Item>
-        <Item
-          name="order"
-          label="Order"
-          rules={[{ required: true, message: 'Order is required' }]}
-          extra="Where the axis sits when the axes are presented. Presentation only."
-        >
-          <InputNumber min={0} />
         </Item>
       </Form>
     </Modal>

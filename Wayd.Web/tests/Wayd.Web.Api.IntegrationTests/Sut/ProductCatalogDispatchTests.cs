@@ -143,7 +143,7 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
         var categoryName = Unique("Axis");
 
         var category = await dispatcher.Send(
-            new CreateProductTagCategoryCommand(categoryName, "Dispatch test.", true, 9),
+            new CreateProductTagCategoryCommand(categoryName, "Dispatch test.", true),
             TestContext.Current.CancellationToken);
         Assert.True(category.IsSuccess, category.IsFailure ? category.Error : null);
 
@@ -183,7 +183,7 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 
         var category = await dispatcher.Send(
-            new CreateProductTagCategoryCommand(Unique("Axis"), null, true, 9),
+            new CreateProductTagCategoryCommand(Unique("Axis"), null, true),
             TestContext.Current.CancellationToken);
         Assert.True(category.IsSuccess, category.IsFailure ? category.Error : null);
 
@@ -217,7 +217,7 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 
         var category = await dispatcher.Send(
-            new CreateProductTagCategoryCommand(Unique("Axis"), null, true, 9),
+            new CreateProductTagCategoryCommand(Unique("Axis"), null, true),
             TestContext.Current.CancellationToken);
         Assert.True(category.IsSuccess, category.IsFailure ? category.Error : null);
 

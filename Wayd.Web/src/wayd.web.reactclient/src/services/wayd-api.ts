@@ -9207,6 +9207,67 @@ export class ReleasesClient {
     }
 
     /**
+     * Correct a release's recorded cut and released dates.
+     */
+    correctDates(id: string, request: CorrectReleaseDatesRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/releases/{id}/dates";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCorrectDates(_response);
+        });
+    }
+
+    protected processCorrectDates(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Cut a release.
      */
     cut(id: string, request: CutReleaseRequest, cancelToken?: CancelToken): Promise<void> {
@@ -39517,6 +39578,16 @@ export interface UpdateReleaseRequest {
 export interface MoveReleaseTargetDateRequest {
     /** The new target date, or null to clear it. */
     targetDate?: Date | undefined;
+}
+
+/** Corrects a release's recorded cut and released dates. */
+export interface CorrectReleaseDatesRequest {
+    /** The corrected cut date, or null if the release has not been cut. A release that has been cut
+cannot have this cleared, and one that has not cannot have it added — cutting is its own action. */
+    cutDate?: Date | undefined;
+    /** The corrected released date, or null if the release has not shipped. Subject to the same rule
+as CutDate: a correction cannot introduce or remove the date, only fix it. */
+    releasedDate?: Date | undefined;
 }
 
 /** Freezes scope and marks a release ready to ship. */

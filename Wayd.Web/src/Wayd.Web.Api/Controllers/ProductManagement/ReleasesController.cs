@@ -132,6 +132,24 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPut("{id}/dates")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
+    [OpenApiOperation(
+        "Correct a release's recorded cut and released dates.",
+        "Fixes dates entered wrongly. Does not change the release's status, and cannot add or remove a date the release does not already have.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> CorrectDates(
+        Guid id, [FromBody] CorrectReleaseDatesRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(
+            new CorrectReleaseDatesCommand(id, request.CutDate, request.ReleasedDate), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpPost("{id}/cut")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
     [OpenApiOperation("Cut a release.", "Freezes scope and marks it ready to ship. One-way.")]

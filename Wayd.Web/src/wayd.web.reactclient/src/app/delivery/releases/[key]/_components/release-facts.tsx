@@ -38,7 +38,10 @@ const ReleaseFacts = ({ release }: ReleaseFactsProps) => (
           {formatDateOnly(release.targetDate) || 'Not set'}
         </LabeledContent>
         <LabeledContent label="Cut">
-          {formatDateOnly(release.cutDate) || 'Not yet cut'}
+          {formatDateOnly(release.cutDate) ||
+            // "Not yet" reads as still to come, which a shipped release will never do — cutting is
+            // refused once it is released. Recording one is common with hand-entry and import.
+            (release.releasedDate ? 'Not set' : 'Not yet cut')}
         </LabeledContent>
         <LabeledContent label="Released">
           {formatDateOnly(release.releasedDate) || 'Not yet released'}

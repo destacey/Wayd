@@ -1,6 +1,7 @@
 import { getReleasesClient } from '@/src/services/clients'
 import { apiSlice } from '../apiSlice'
 import {
+  CorrectReleaseDatesRequest,
   CutReleaseRequest,
   MarkReleaseReleasedRequest,
   MoveReleaseTargetDateRequest,
@@ -122,6 +123,29 @@ export const releasesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (result, error, arg) => releaseTags(arg.id),
     }),
+    /**
+     * Corrects recorded dates without moving the release's status.
+     *
+     * Invalidates the release but not its status history, which a correction leaves untouched.
+     */
+    correctReleaseDates: builder.mutation<
+      void,
+      { id: string; request: CorrectReleaseDatesRequest }
+    >({
+      queryFn: async ({ id, request }) => {
+        try {
+          const data = await getReleasesClient().correctDates(id, request)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.Release, id: 'LIST' },
+        { type: QueryTags.Release, id: arg.id },
+      ],
+    }),
     cutRelease: builder.mutation<void, { id: string; request: CutReleaseRequest }>({
       queryFn: async ({ id, request }) => {
         try {
@@ -174,6 +198,7 @@ export const {
   usePlanReleaseMutation,
   useUpdateReleaseMutation,
   useMoveReleaseTargetDateMutation,
+  useCorrectReleaseDatesMutation,
   useCutReleaseMutation,
   useMarkReleaseReleasedMutation,
   useWithdrawReleaseMutation,

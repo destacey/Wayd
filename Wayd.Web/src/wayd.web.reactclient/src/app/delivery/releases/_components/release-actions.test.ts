@@ -52,6 +52,8 @@ describe('releaseActionAvailability', () => {
       canRelease: true,
       canWithdraw: true,
       canMoveTargetDate: true,
+      // Nothing recorded yet, so there is no date to correct.
+      canCorrectDates: false,
     })
   })
 
@@ -85,6 +87,7 @@ describe('releaseActionAvailability', () => {
       canRelease: false,
       canWithdraw: false,
       canMoveTargetDate: false,
+      canCorrectDates: false,
     })
   })
 
@@ -102,5 +105,42 @@ describe('releaseActionAvailability', () => {
     // Assert
     expect(available.canMoveTargetDate).toBe(false)
     expect(available.canCut).toBe(false)
+  })
+
+  it('offers correcting dates on a released release, which every other action refuses', () => {
+    // Arrange / Act -- a typo outlives the lifecycle, and the alternative was to withdraw the
+    // release and release it again, writing two status changes that never happened.
+    const available = releaseActionAvailability(released())
+
+    // Assert
+    expect(available.canCorrectDates).toBe(true)
+  })
+
+  it('offers correcting dates on a cut release', () => {
+    // Arrange / Act
+    const available = releaseActionAvailability(cut())
+
+    // Assert
+    expect(available.canCorrectDates).toBe(true)
+  })
+
+  it('refuses correcting dates on a withdrawn release', () => {
+    // Arrange -- withdrawn is the one terminal state the aggregate refuses a correction in.
+    const withdrawnAfterRelease = release({
+      cutDate: '2026-04-01' as unknown as Date,
+      releasedDate: '2026-04-02' as unknown as Date,
+      status: {
+        id: 's',
+        name: 'Withdrawn',
+        category: StatusCategory.Removed,
+        alias: 12,
+      },
+    })
+
+    // Act
+    const available = releaseActionAvailability(withdrawnAfterRelease)
+
+    // Assert
+    expect(available.canCorrectDates).toBe(false)
   })
 })

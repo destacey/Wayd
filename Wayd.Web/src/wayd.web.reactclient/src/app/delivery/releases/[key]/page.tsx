@@ -19,6 +19,7 @@ import { Button, MenuProps, Result } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
+import CorrectReleaseDatesForm from '../_components/correct-release-dates-form'
 import CutReleaseForm from '../_components/cut-release-form'
 import { releaseActionAvailability } from '../_components/release-actions'
 import EditReleaseForm from '../_components/edit-release-form'
@@ -39,6 +40,7 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const [isEditOpen, setIsEditOpen] = useState<boolean>(false)
   const [isCutOpen, setIsCutOpen] = useState<boolean>(false)
+  const [isCorrectDatesOpen, setIsCorrectDatesOpen] = useState<boolean>(false)
   const [isReleaseOpen, setIsReleaseOpen] = useState<boolean>(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState<boolean>(false)
   const [isMoveTargetDateOpen, setIsMoveTargetDateOpen] = useState<boolean>(false)
@@ -95,18 +97,35 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const canRelease = canUpdateRelease && available.canRelease
   const canWithdraw = canUpdateRelease && available.canWithdraw
   const canMoveTargetDate = canUpdateRelease && available.canMoveTargetDate
+  const canCorrectDates = canUpdateRelease && available.canCorrectDates
 
   const actionsMenuItems: MenuProps['items'] = (() => {
     const groups: ItemType[][] = []
 
+    // Editing the record and correcting what was written down: neither moves the release.
+    const corrections: ItemType[] = []
     if (canUpdateRelease) {
-      groups.push([
-        { key: 'edit', label: 'Edit', onClick: () => setIsEditOpen(true) },
-      ])
+      corrections.push({
+        key: 'edit',
+        label: 'Edit',
+        onClick: () => setIsEditOpen(true),
+      })
+    }
+    if (canCorrectDates) {
+      corrections.push({
+        key: 'correct-dates',
+        label: 'Correct Dates',
+        onClick: () => setIsCorrectDatesOpen(true),
+      })
+    }
+    if (corrections.length > 0) {
+      groups.push(corrections)
     }
 
-    // The lifecycle moves, grouped apart from editing the record: each records something that
-    // happened rather than correcting what was written.
+    // The lifecycle moves: each records something that happened.
+    //
+    // Kept apart from the corrections above because they are not the same kind of act -- a
+    // correction says the record was wrong, a move says the release changed.
     const lifecycle: ItemType[] = []
     if (canCut) {
       lifecycle.push({ key: 'cut', label: 'Cut', onClick: () => setIsCutOpen(true) })
@@ -209,6 +228,16 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             refetch()
           }}
           onFormCancel={() => setIsEditOpen(false)}
+        />
+      )}
+      {isCorrectDatesOpen && (
+        <CorrectReleaseDatesForm
+          release={release}
+          onFormComplete={() => {
+            setIsCorrectDatesOpen(false)
+            refetch()
+          }}
+          onFormCancel={() => setIsCorrectDatesOpen(false)}
         />
       )}
       {isCutOpen && (

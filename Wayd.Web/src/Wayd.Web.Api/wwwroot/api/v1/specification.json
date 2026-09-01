@@ -7148,6 +7148,62 @@
         ]
       }
     },
+    "/api/product-management/releases/{id}/dates": {
+      "put": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Correct a release's recorded cut and released dates.",
+        "description": "Fixes dates entered wrongly. Does not change the release's status, and cannot add or remove a date the release does not already have.",
+        "operationId": "Releases_CorrectDates",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectReleaseDatesRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/product-management/releases/{id}/cut": {
       "post": {
         "tags": [
@@ -36839,6 +36895,25 @@
           "targetDate": {
             "type": "string",
             "description": "The new target date, or null to clear it.",
+            "format": "date",
+            "nullable": true
+          }
+        }
+      },
+      "CorrectReleaseDatesRequest": {
+        "type": "object",
+        "description": "Corrects a release's recorded cut and released dates.",
+        "additionalProperties": false,
+        "properties": {
+          "cutDate": {
+            "type": "string",
+            "description": "The corrected cut date, or null if the release has not been cut. A release that has been cut\ncannot have this cleared, and one that has not cannot have it added — cutting is its own action.",
+            "format": "date",
+            "nullable": true
+          },
+          "releasedDate": {
+            "type": "string",
+            "description": "The corrected released date, or null if the release has not shipped. Subject to the same rule\nas CutDate: a correction cannot introduce or remove the date, only fix it.",
             "format": "date",
             "nullable": true
           }

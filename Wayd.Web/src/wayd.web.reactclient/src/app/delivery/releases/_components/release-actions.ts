@@ -7,12 +7,16 @@ import { ReleaseDto, StatusCategory } from '@/src/services/wayd-api'
  * terminal buckets — a released or withdrawn release refuses a cut and a target-date move, and a
  * withdrawn one refuses being released. A released one can still be withdrawn: pulling something
  * after it shipped is the case that exists for.
+ *
+ * Correcting dates is the one action a terminal release still accepts, since a typo outlives the
+ * lifecycle. It needs a date to correct, and cannot add one.
  */
 export interface ReleaseActionAvailability {
   canCut: boolean
   canRelease: boolean
   canWithdraw: boolean
   canMoveTargetDate: boolean
+  canCorrectDates: boolean
 }
 
 export const releaseActionAvailability = (
@@ -26,5 +30,7 @@ export const releaseActionAvailability = (
     canRelease: !release.releasedDate && !isWithdrawn,
     canWithdraw: !isWithdrawn,
     canMoveTargetDate: !isTerminal,
+    canCorrectDates:
+      !isWithdrawn && (!!release.cutDate || !!release.releasedDate),
   }
 }

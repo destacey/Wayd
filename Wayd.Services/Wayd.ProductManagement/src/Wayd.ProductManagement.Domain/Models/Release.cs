@@ -239,6 +239,72 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
+    /// Corrects the recorded cut and released dates without moving the release's status.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="Cut"/> and <see cref="MarkReleased"/> assert that something happened, so each sets a
+    /// date and applies a status together and refuses to run twice. Neither can fix a date entered
+    /// wrongly. Without this, the only route to a corrected released date is to withdraw the release
+    /// and release it again, which writes two status transitions that never happened into an
+    /// append-only history.
+    /// </para>
+    /// <para>
+    /// A correction says the recorded date was wrong, not that the release moved, so status is left
+    /// alone. A date can only be corrected, never introduced: supplying one the release does not have
+    /// would be a lifecycle step in disguise, and those belong to <see cref="Cut"/> and
+    /// <see cref="MarkReleased"/>. Clearing one is refused for the same reason — a release cannot
+    /// become un-cut.
+    /// </para>
+    /// </remarks>
+    public Result CorrectDates(LocalDate? cutDate, LocalDate? releasedDate, string productName, EventActor actor, Instant timestamp)
+    {
+        if (StatusCategory == StatusCategory.Removed)
+        {
+            return Result.Failure("A withdrawn release cannot have its dates corrected.");
+        }
+
+        if (CutDate is null && ReleasedDate is null)
+        {
+            return Result.Failure("This release has no recorded dates to correct.");
+        }
+
+        if (cutDate is null != CutDate is null)
+        {
+            return Result.Failure(CutDate is null
+                ? "This release has not been cut, so a cut date cannot be corrected onto it."
+                : "A release that has been cut cannot have its cut date removed.");
+        }
+
+        if (releasedDate is null != ReleasedDate is null)
+        {
+            return Result.Failure(ReleasedDate is null
+                ? "This release has not been released, so a released date cannot be corrected onto it."
+                : "A released release cannot have its released date removed.");
+        }
+
+        if (cutDate is not null && releasedDate is not null && releasedDate < cutDate)
+        {
+            return Result.Failure("The released date cannot be before the cut date.");
+        }
+
+        if (cutDate == CutDate && releasedDate == ReleasedDate)
+        {
+            return Result.Success();
+        }
+
+        var fromCutDate = CutDate;
+        var fromReleasedDate = ReleasedDate;
+        CutDate = cutDate;
+        ReleasedDate = releasedDate;
+
+        AddDomainEvent(new ReleaseDatesCorrectedEvent(
+            Id, Key, ProductId, productName, Version, fromCutDate, cutDate, fromReleasedDate, releasedDate, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
     /// Pulls the release after it was cut. Phase one's failure proxy.
     /// </summary>
     /// <param name="withdrawnStatus">

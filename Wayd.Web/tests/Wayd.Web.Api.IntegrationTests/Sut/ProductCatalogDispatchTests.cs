@@ -172,12 +172,12 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
-    public async Task Dispatch_GetProductTagCategoriesQuery_ReturnsTagsInTheirConfiguredOrder()
+    public async Task Dispatch_GetProductTagCategoriesQuery_ProjectsEveryTagOnTheAxis()
     {
-        // Arrange — added in an order that alphabetical sorting would reverse, so a projection that
-        // dropped the sort or fell back to the category's Tags navigation reads differently. The
-        // navigation cannot serve this: its getter applies the sort in the property body, which EF
-        // projects around rather than translates.
+        // Arrange — two tags, asserted as a set. The query promises which tags are on an axis, not
+        // what sequence they arrive in: a tag holds no position, so the caller sorts (the UI does,
+        // alphabetically). What is still worth pinning is that the projection returns all of them —
+        // a join that dropped or duplicated one would read as a tag silently missing from a picker.
         _ = _factory.CreateClient();
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
@@ -199,9 +199,9 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
         var categories = await dispatcher.Send(
             new GetProductTagCategoriesQuery(), TestContext.Current.CancellationToken);
 
-        // Assert
+        // Assert — sorted here, not by the query, so this passes whatever order EF returns
         var projected = Assert.Single(categories, c => c.Id == category.Value.Id);
-        Assert.Equal(["zulu", "alpha"], projected.Tags.Select(t => t.Name));
+        Assert.Equal(["alpha", "zulu"], projected.Tags.Select(t => t.Name).OrderBy(n => n));
 
         // Cleanup
         await dispatcher.Send(

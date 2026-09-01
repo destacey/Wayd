@@ -36206,7 +36206,6 @@
         "required": [
           "id",
           "name",
-          "order",
           "isActive",
           "productCount"
         ],
@@ -36223,10 +36222,6 @@
           "description": {
             "type": "string",
             "nullable": true
-          },
-          "order": {
-            "type": "integer",
-            "format": "int32"
           },
           "isActive": {
             "type": "boolean"

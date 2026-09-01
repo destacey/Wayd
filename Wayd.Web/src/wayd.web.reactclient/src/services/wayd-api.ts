@@ -39387,7 +39387,6 @@ export interface ProductTagOptionDto {
     id: string;
     name: string;
     description?: string | undefined;
-    order: number;
     isActive: boolean;
     productCount: number;
 }

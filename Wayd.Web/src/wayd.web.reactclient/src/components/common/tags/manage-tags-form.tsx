@@ -3,6 +3,7 @@
 import { useModalForm } from '@/src/hooks'
 import { Form, Modal, Select, Spin } from 'antd'
 import { useEffect } from 'react'
+import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { TagAssignment, TagCategory } from './types'
 
 /** One field per category, keyed by category id. */
@@ -52,10 +53,16 @@ const tagIdsByCategory = (tags: TagAssignment[]) => {
  * already carries. Dropping the latter would hide it while it was still attached,
  * and since the diff runs against what was carried, the next save would remove it
  * unasked.
+ *
+ * Alphabetical, because a tag's position on its axis carries no meaning and a
+ * picker is scanned for a label the reader already has in mind. The API returns
+ * them unordered, so the sort belongs here.
  */
 const optionsFor = (category: TagCategory, carried: string[]) =>
   category.tags
     .filter((tag) => tag.isActive || carried.includes(tag.id))
+    .slice()
+    .sort((a, b) => caseInsensitiveCompare(a.name, b.name))
     .map((tag) => ({
       value: tag.id,
       label: tag.isActive ? tag.name : `${tag.name} (inactive)`,

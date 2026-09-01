@@ -4,6 +4,7 @@ import { PageActions } from '@/src/components/common'
 import { RecordLayout } from '@/src/components/common/record'
 import { TagList } from '@/src/components/common/tags'
 import { StatusHistoryTag } from '@/src/components/common/status-workflows'
+import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import type { RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
@@ -310,11 +311,20 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               <TagList
                 // The axis rides on the chip as its qualifier: a bare "gold" does
                 // not say whether it is a tier, a platform or a compliance scope.
-                tags={(product.tags ?? []).map((tag) => ({
-                  id: tag.tagId,
-                  label: tag.tagName,
-                  qualifier: tag.categoryName,
-                }))}
+                tags={[...(product.tags ?? [])]
+                  // By axis, then by tag — the same order the grid's Tags column
+                  // uses, so a product reads the same way in both places. Tag
+                  // assignments come back unordered.
+                  .sort(
+                    (a, b) =>
+                      caseInsensitiveCompare(a.categoryName, b.categoryName) ||
+                      caseInsensitiveCompare(a.tagName, b.tagName),
+                  )
+                  .map((tag) => ({
+                    id: tag.tagId,
+                    label: tag.tagName,
+                    qualifier: tag.categoryName,
+                  }))}
                 // The header shares its row with the name, key and actions, so a
                 // heavily tagged product collapses rather than crowding them out.
                 maxVisible={3}

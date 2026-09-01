@@ -75,8 +75,15 @@ public sealed class ProductTagCategory : BaseAuditableEntity, IHasIdAndKey
     /// </summary>
     public bool IsActive { get; private set; } = true;
 
-    /// <summary>The tags on this axis, in display order.</summary>
-    public IReadOnlyCollection<ProductTag> Tags => _tags.OrderBy(t => t.Order).ToList().AsReadOnly();
+    /// <summary>
+    /// The tags on this axis, in no particular order.
+    /// </summary>
+    /// <remarks>
+    /// A set, not a sequence: a tag's position carries no meaning, so presenting them is the caller's
+    /// business — and every caller so far wants them alphabetically, which the order they were added
+    /// in would not give.
+    /// </remarks>
+    public IReadOnlyCollection<ProductTag> Tags => _tags.AsReadOnly();
 
     /// <summary>
     /// Adds a tag to this axis.
@@ -100,8 +107,7 @@ public sealed class ProductTagCategory : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure<ProductTag>($"A tag named '{trimmed}' already exists on this axis.");
         }
 
-        var order = _tags.Count == 0 ? 1 : _tags.Max(t => t.Order) + 1;
-        var tag = new ProductTag(Id, trimmed, description, order);
+        var tag = new ProductTag(Id, trimmed, description);
         _tags.Add(tag);
 
         return Result.Success(tag);
@@ -230,8 +236,7 @@ public sealed class ProductTagCategory : BaseAuditableEntity, IHasIdAndKey
     /// </summary>
     public ProductTag AddSystemTag(string name, string? description = null)
     {
-        var order = _tags.Count == 0 ? 1 : _tags.Max(t => t.Order) + 1;
-        var tag = new ProductTag(Id, name, description, order);
+        var tag = new ProductTag(Id, name, description);
         _tags.Add(tag);
 
         return tag;

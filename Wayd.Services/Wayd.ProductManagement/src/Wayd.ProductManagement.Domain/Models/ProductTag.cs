@@ -18,12 +18,11 @@ public sealed class ProductTag : BaseAuditableEntity
 {
     private ProductTag() { }
 
-    internal ProductTag(Guid categoryId, string name, string? description, int order)
+    internal ProductTag(Guid categoryId, string name, string? description)
     {
         CategoryId = categoryId;
         Name = name;
         Description = description;
-        Order = order;
     }
 
     /// <summary>The axis this tag belongs to.</summary>
@@ -42,9 +41,6 @@ public sealed class ProductTag : BaseAuditableEntity
         get;
         private set => field = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
-
-    /// <summary>Display position within its axis. Presentation only.</summary>
-    public int Order { get; private set; }
 
     /// <summary>
     /// Whether products can still be tagged with this. Products already carrying it keep it.

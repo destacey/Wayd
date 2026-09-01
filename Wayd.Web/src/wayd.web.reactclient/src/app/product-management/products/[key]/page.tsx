@@ -336,7 +336,7 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             </Button>
           ) : canCreateRelease && activeSection === ProductSections.Releases ? (
             <Button onClick={() => setIsPlanReleaseOpen(true)}>
-              Plan Release
+              Add Release
             </Button>
           ) : undefined
         }

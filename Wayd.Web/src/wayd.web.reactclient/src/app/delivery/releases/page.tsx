@@ -33,7 +33,7 @@ const ReleasesPage: FC = () => {
   }, [error, messageApi])
 
   const actions = !canCreateRelease ? null : (
-    <Button onClick={() => setOpenPlanReleaseForm(true)}>Plan Release</Button>
+    <Button onClick={() => setOpenPlanReleaseForm(true)}>Add Release</Button>
   )
 
   const onPlanReleaseFormClosed = (wasPlanned: boolean) => {

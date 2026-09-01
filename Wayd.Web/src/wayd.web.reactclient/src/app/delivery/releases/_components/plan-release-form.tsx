@@ -2,9 +2,17 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { PlanReleaseRequest } from '@/src/services/wayd-api'
+import {
+  CutReleaseRequest,
+  MarkReleaseReleasedRequest,
+  PlanReleaseRequest,
+} from '@/src/services/wayd-api'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { usePlanReleaseMutation } from '@/src/store/features/delivery/releases-api'
+import {
+  useCutReleaseMutation,
+  useMarkReleaseReleasedMutation,
+  usePlanReleaseMutation,
+} from '@/src/store/features/delivery/releases-api'
 import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { DatePicker, Form, Input, Modal, Select } from 'antd'
@@ -24,10 +32,16 @@ interface PlanReleaseFormValues {
   version: string
   name?: string
   targetDate?: Dayjs
+  cutDate?: Dayjs
+  releasedDate?: Dayjs
 }
 
 /**
- * Plans a release against a releasable product.
+ * Records a release against a releasable product.
+ *
+ * Not every release is planned before it ships: one entered after the fact carries the dates it
+ * already has. Supplying them walks the same endpoints a person would use later, so the status and
+ * the history land as though the steps were taken in order.
  *
  * Only releasable products are offered. The API refuses the rest — a release has to be a cut of
  * something that ships — and a picker listing every product would make that a failed submit rather
@@ -41,6 +55,8 @@ const PlanReleaseForm = ({
   const messageApi = useMessage()
 
   const [planRelease] = usePlanReleaseMutation()
+  const [cutRelease] = useCutReleaseMutation()
+  const [markReleased] = useMarkReleaseReleasedMutation()
   const { data: products, isLoading } = useGetProductsQuery(undefined)
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
@@ -57,9 +73,45 @@ const PlanReleaseForm = ({
           const response = await planRelease(request)
           if (response.error) throw response.error
 
-          messageApi.success(
-            `Release planned successfully. Release key: ${response.data!.key}`,
-          )
+          const { id, key } = response.data!
+
+          // Recorded as separate steps because that is what they are: each is the same endpoint a
+          // person would reach for later, and the aggregate applies its own guards to each. A
+          // release created after the fact is not a different kind of release, only one whose steps
+          // are being entered at once.
+          //
+          // The release exists from here on, so a failure below is reported against it by key rather
+          // than as a failure to create — retrying the whole form would make a second release.
+          if (values.cutDate) {
+            const cut = await cutRelease({
+              id,
+              request: { id, cutDate: values.cutDate.format('YYYY-MM-DD') } as unknown as CutReleaseRequest,
+            })
+            if (cut.error) {
+              messageApi.error(
+                `Release ${key} was created, but recording the cut date failed. Set it from the release.`,
+              )
+              return true
+            }
+          }
+
+          if (values.releasedDate) {
+            const released = await markReleased({
+              id,
+              request: {
+                id,
+                releasedDate: values.releasedDate.format('YYYY-MM-DD'),
+              } as unknown as MarkReleaseReleasedRequest,
+            })
+            if (released.error) {
+              messageApi.error(
+                `Release ${key} was created, but recording the released date failed. Set it from the release.`,
+              )
+              return true
+            }
+          }
+
+          messageApi.success(`Release created successfully. Release key: ${key}`)
           return true
         } catch (error) {
           const apiError: ApiError = isApiError(error) ? error : {}
@@ -82,6 +134,8 @@ const PlanReleaseForm = ({
       permission: 'Permissions.Releases.Create',
     })
 
+  const cutDate = Form.useWatch('cutDate', form)
+
   const productOptions = (products ?? [])
     .filter((product) => product.isReleasable)
     .map((product) => ({ value: product.id, label: product.name }))
@@ -89,11 +143,11 @@ const PlanReleaseForm = ({
 
   return (
     <Modal
-      title="Plan Release"
+      title="Add Release"
       open={isOpen}
       onOk={handleOk}
       okButtonProps={{ disabled: !isValid }}
-      okText="Plan"
+      okText="Add"
       confirmLoading={isSaving}
       onCancel={handleCancel}
       keyboard={false} // disable esc key to close modal
@@ -140,6 +194,26 @@ const PlanReleaseForm = ({
         </Item>
         <Item label="Target Date" name="targetDate">
           <DatePicker style={{ width: '100%' }} />
+        </Item>
+        <Item
+          label="Cut Date"
+          name="cutDate"
+          extra="Leave empty if this release has not been cut yet."
+        >
+          <DatePicker style={{ width: '100%' }} />
+        </Item>
+        <Item
+          label="Released Date"
+          name="releasedDate"
+          extra="Leave empty if this release has not shipped yet."
+        >
+          <DatePicker
+            style={{ width: '100%' }}
+            // The aggregate refuses a released date before the cut date.
+            disabledDate={
+              cutDate ? (current) => current.isBefore(cutDate, 'day') : undefined
+            }
+          />
         </Item>
       </Form>
     </Modal>

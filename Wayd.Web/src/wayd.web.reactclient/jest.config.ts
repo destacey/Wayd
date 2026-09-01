@@ -15,6 +15,9 @@ const config: Config = {
   // letting instrumentation overhead masquerade as a test failure.
   testTimeout: 30_000,
   testEnvironment: 'jsdom',
+  // Runs before the test framework and before any module loads, which is the only point where
+  // Next's one-shot AsyncLocalStorage capture can still be satisfied. See src/jest.globals.ts.
+  setupFiles: ['./src/jest.globals.ts'],
   // Add more setup options before each test is run
   setupFilesAfterEnv: ['./src/jest.setup.ts'],
   // The unified/remark/rehype/micromark ecosystem is pure ESM (~100 packages once transitive deps

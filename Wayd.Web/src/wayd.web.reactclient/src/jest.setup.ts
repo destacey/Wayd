@@ -2,11 +2,6 @@ import React from 'react'
 import '@testing-library/jest-dom'
 
 import crypto from 'crypto'
-import { AsyncLocalStorage } from 'node:async_hooks'
-
-if (typeof (globalThis as any).AsyncLocalStorage === 'undefined') {
-  ;(globalThis as any).AsyncLocalStorage = AsyncLocalStorage
-}
 
 // Mock MessageChannel for Ant Design v6 components
 global.MessageChannel = class MessageChannel {

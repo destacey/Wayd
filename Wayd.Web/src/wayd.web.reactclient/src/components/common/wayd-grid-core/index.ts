@@ -123,6 +123,8 @@ export {
   renderPortfolioLink,
   renderProgramLink,
   renderWorkspaceLink,
+  renderProductLink,
+  renderReleaseLink,
   renderSprintLink,
   renderUserLink,
   renderDependencyHealthTag,

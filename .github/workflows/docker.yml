@@ -381,8 +381,8 @@ jobs:
             - name: Restore dependencies
               run: dotnet restore
 
-            - name: Install dotnet ef
-              run: dotnet tool install --global dotnet-ef
+            - name: Restore local tools (dotnet-ef)
+              run: dotnet tool restore
 
             - name: Build for migrations
               run: dotnet build Wayd.Web/src/Wayd.Web.Api/Wayd.Web.Api.csproj

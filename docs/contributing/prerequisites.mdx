@@ -32,8 +32,9 @@ not found."*
 
 ## Database
 
-The checked-in defaults in `Wayd.Web.Api/Configurations/database.json` and `hangfire.json` point at
-the `mssql` service in `docker-compose.yml`, which runs on Windows, Linux and macOS:
+The checked-in Development defaults in `Wayd.Web.Api/Configurations/database.Development.json` and
+`hangfire.Development.json` point at the `mssql` service in `docker-compose.yml`, which runs on
+Windows, Linux and macOS:
 
 ```bash
 cp .env.example .env      # optional - override the SA password or host port
@@ -51,6 +52,11 @@ dotnet user-secrets set "HangfireSettings:Storage:ConnectionString" "<your conne
 
 Both keys are needed - Hangfire reads its own connection string, separate from
 `DatabaseSettings:ConnectionString`.
+
+The base `database.json` / `hangfire.json` deliberately hold an **empty** connection string, so the
+credential exists only in the Development-scoped files. Any non-Development host that is not
+configured fails fast with `DB ConnectionString is not configured.` rather than silently connecting
+with a credential that is public in git history.
 
 :::note LocalDB is Windows-only
 

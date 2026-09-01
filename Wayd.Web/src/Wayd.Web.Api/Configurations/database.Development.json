@@ -1,5 +1,6 @@
 {
   "DatabaseSettings": {
-    "EnableSensitiveDataLogging": true
+    "EnableSensitiveDataLogging": true,
+    "ConnectionString": "Server=localhost,1433;Database=wayd;User Id=sa;Password=Wayd_Dev_P@ssw0rd!;TrustServerCertificate=True;MultipleActiveResultSets=True"
   }
 }

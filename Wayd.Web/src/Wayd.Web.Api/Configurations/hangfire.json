@@ -1,4 +1,4 @@
-{
+﻿{
     "HangfireSettings": {
         "Route": "/jobs",
         "Dashboard": {
@@ -21,7 +21,7 @@
         },
         "Storage": {
             "StorageProvider": "mssql",
-            "ConnectionString": "Server=localhost,1433;Database=wayd;User Id=sa;Password=Wayd_Dev_P@ssw0rd!;TrustServerCertificate=True;MultipleActiveResultSets=True",
+            "ConnectionString": "",
             "Options": {
                 "CommandBatchMaxTimeout": "00:05:00",
                 "QueuePollInterval": "00:00:15",

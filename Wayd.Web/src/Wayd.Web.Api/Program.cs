@@ -97,19 +97,11 @@ try
 
     var app = builder.Build();
 
-    // Skip startup-only database work when something is merely building the host to introspect it,
-    // rather than actually serving requests:
-    //   - EF.IsDesignTime: the EF Core tooling (migrations add/remove/update). Otherwise it would
-    //     re-apply pending migrations on boot, fighting the very command being run.
-    //   - WAYD_SKIP_DB_INIT: NSwag boots the real app to read the OpenAPI document on every Debug
-    //     build. EF.IsDesignTime is false there, so without this flag a build would silently apply
-    //     pending migrations and seed the database. The NSwag MSBuild target sets this env var; it is
-    //     also honoured as a host setting so integration tests can opt out per-host (via UseSetting)
-    //     without mutating a process-wide env var that would leak into sibling test hosts.
-    var skipDbInit =
-        Microsoft.EntityFrameworkCore.EF.IsDesignTime ||
-        string.Equals(Environment.GetEnvironmentVariable("WAYD_SKIP_DB_INIT"), "true", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(builder.Configuration["WAYD_SKIP_DB_INIT"], "true", StringComparison.OrdinalIgnoreCase);
+    // Skip startup-only database work when something is merely building the host to introspect it
+    // (EF tooling, or NSwag reading the OpenAPI document during a Debug build) rather than actually
+    // serving requests. Shared with the Hangfire registration so the two cannot drift apart - see
+    // HostIntrospection for what each condition covers.
+    var skipDbInit = Wayd.Infrastructure.HostIntrospection.SkipsDatabaseInitialization(builder.Configuration);
 
     if (!skipDbInit)
     {

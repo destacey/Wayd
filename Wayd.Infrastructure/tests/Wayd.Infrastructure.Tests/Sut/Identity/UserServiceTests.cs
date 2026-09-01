@@ -1911,6 +1911,42 @@ public class UserServiceTests
     }
 
     [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldNotRebindStagedProviderMigration_WhenEmailIsExplicitlyUnverified()
+    {
+        // Arrange — the staged-migration rebind runs *before* the email_verified deny in
+        // the create/link path, so an unverified token must be stopped at the identifier
+        // itself. Otherwise someone who registered an unconfirmed address in the target
+        // directory could complete a migration staged for the real owner of that address.
+        const string upn = "morgan.ellis@acme.example";
+        var user = CreateUser(id: "user-staged-unverified-token", userName: upn, loginProvider: LoginProviders.Wayd);
+        user.NormalizedUserName = upn.ToUpperInvariant();
+        user.NormalizedEmail = upn.ToUpperInvariant();
+        user.PendingMigrationProviderId = LoginProviders.MicrosoftEntraId;
+        user.PasswordHash = "AQAAAAIAAYagAAAAEPLACEHOLDERHASHVALUE==";
+        var originalHash = user.PasswordHash;
+
+        ArrangeUnstagedSignIn(user);
+
+        var principal = CreateNewUserPrincipal(
+            "cccccccc-cccc-cccc-cccc-cccccccccccc",
+            "dddddddd-dddd-dddd-dddd-dddddddddddd",
+            upn,
+            displayName: upn);
+        ((ClaimsIdentity)principal.Identity!).AddClaim(new Claim("email_verified", "false"));
+
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.GetOrCreateFromPrincipalAsync(principal);
+
+        // Assert — denied, and the staged migration is still pending for a verified sign-in.
+        await act.Should().ThrowAsync<ForbiddenException>()
+            .WithMessage("*has not verified your email address*");
+        user.PendingMigrationProviderId.Should().Be(LoginProviders.MicrosoftEntraId);
+        VerifyDenyWasInert(user, originalHash);
+    }
+
+    [Fact]
     public async Task TryApplyPendingProviderMigration_ShouldSetProviderAndClearPassword_WhenStagedUserMigrates()
     {
         // Arrange — the supported staged-migration route. It must leave no split state:

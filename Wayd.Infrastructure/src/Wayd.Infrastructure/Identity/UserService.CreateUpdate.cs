@@ -51,7 +51,14 @@ internal partial class UserService
         // The signed-in-token identifier we trust for matching a staged migration.
         // Null means no migration rebind will be attempted. See ResolveEntraUpn for
         // why this isn't a single claim lookup.
-        string? upn = ResolveEntraUpn(principal);
+        //
+        // An explicitly unverified address is suppressed here rather than at the point
+        // of use: both staged-migration rebinds match on this value, and both run
+        // *before* the email_verified deny in CreateOrUpdateFromPrincipalAsync, so
+        // leaving it set would let an unverified token adopt a staged migration without
+        // ever reaching that deny. Absent email_verified is accepted, mirroring
+        // ResolveFromGenericOidcPrincipalAsync.
+        string? upn = IsEmailExplicitlyUnverified(principal) ? null : ResolveEntraUpn(principal);
 
         // Diagnostic for the tenant-migration failure: trace the resolved key inputs
         // and which identifier claims are present before identity resolution runs.
@@ -121,6 +128,17 @@ internal partial class UserService
         ?? principal.FindFirstValue("preferred_username")
         ?? principal.FindFirstValue("email")
         ?? principal.FindFirstValue(ClaimTypes.Email);
+
+    /// <summary>
+    /// True only when the token carries <c>email_verified=false</c>. Some providers issue
+    /// tokens with an address the user has not confirmed; treating one as a trusted account
+    /// binding would let an attacker register with someone else's email and take over an
+    /// account or a staged migration. An absent claim is <b>not</b> unverified — well-behaved
+    /// providers that always verify simply omit it.
+    /// </summary>
+    private static bool IsEmailExplicitlyUnverified(ClaimsPrincipal principal) =>
+        principal.FindFirstValue("email_verified") is { } claim
+        && claim.Equals("false", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Resolves the provider's <see cref="RegistrationPolicy"/> from the registry.
@@ -347,15 +365,8 @@ internal partial class UserService
         var email = principal.FindFirstValue(ClaimTypes.Email)
             ?? principal.FindFirstValue("email");
 
-        // Reject an explicitly unverified email — some providers issue tokens
-        // with email_verified=false for addresses the user hasn't confirmed.
-        // Treating such a claim as a trusted account binding would let an attacker
-        // register with someone else's email and take over any pending migration
-        // staged for that address. Absent email_verified is accepted (well-behaved
-        // providers that always verify simply omit the claim).
-        var emailVerifiedClaim = principal.FindFirstValue("email_verified");
-        if (emailVerifiedClaim is not null &&
-            emailVerifiedClaim.Equals("false", StringComparison.OrdinalIgnoreCase))
+        // Reject an explicitly unverified email before it can match a staged migration.
+        if (IsEmailExplicitlyUnverified(principal))
         {
             _logger.LogWarning(
                 "Provider migration skipped for provider {Provider}: email_verified=false on token.",
@@ -574,10 +585,9 @@ internal partial class UserService
         // Reject an explicitly unverified email before it is used to match any
         // existing account, mirroring the GenericOidc provider-migration path. A
         // token-supplied address the directory has not confirmed is not evidence of
-        // who the presenter is.
-        var emailVerifiedClaim = principal.FindFirstValue("email_verified");
-        var emailIsUnverified = emailVerifiedClaim is not null
-            && emailVerifiedClaim.Equals("false", StringComparison.OrdinalIgnoreCase);
+        // who the presenter is. GetOrCreateFromPrincipalAsync has already suppressed
+        // the same token's UPN, so neither staged-migration rebind saw it either.
+        var emailIsUnverified = IsEmailExplicitlyUnverified(principal);
 
         // A match here is on display name or UPN/email — both mutable Entra directory
         // attributes, neither of which proves ownership of the Wayd account. It scopes

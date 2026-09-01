@@ -3,6 +3,8 @@ using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
+using Wayd.ProductManagement.Domain.Models;
+
 namespace Wayd.ProductManagement.Application.ReleasePackages.Dtos;
 
 /// <summary>
@@ -28,6 +30,40 @@ public sealed record ReleasePackageDto
     public StatusNavigationDto Status { get; init; } = default!;
 
     public IReadOnlyCollection<ReleasePackageComponentDto> Components { get; init; } = [];
+
+    /// <summary>
+    /// Maps a package and its manifest lines, for <c>ProjectToType</c>.
+    /// </summary>
+    /// <remarks>
+    /// Built per call rather than registered globally, because a component's release reads a second set
+    /// and the global config has no request-scoped DbContext to close over.
+    /// <para>
+    /// That release is a subquery permanently, not for want of a navigation: there is deliberately no
+    /// foreign key, because a carried-forward line often names a version with no release row in Wayd at
+    /// all. A release and a package are both identified by their version rather than their optional name.
+    /// </para>
+    /// </remarks>
+    public static TypeAdapterConfig CreateTypeAdapterConfig(IProductManagementDbContext dbContext)
+    {
+        var config = new TypeAdapterConfig();
+
+        config.NewConfig<ReleasePackageComponent, ReleasePackageComponentDto>()
+            .Map(dto => dto.Release, c => dbContext.Releases
+                .Where(release => release.Id == c.ReleaseId)
+                .Select(release => NavigationDto.Create(release.Id, release.Key, release.Version))
+                .FirstOrDefault());
+
+        config.NewConfig<ReleasePackage, ReleasePackageDto>()
+            .Map(dto => dto.Status, p => new StatusNavigationDto
+            {
+                Id = p.StatusId,
+                Name = p.StatusName,
+                Category = p.StatusCategory,
+                Alias = p.StatusAliasValue,
+            });
+
+        return config;
+    }
 }
 
 public sealed record ReleasePackageComponentDto

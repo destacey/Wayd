@@ -98,10 +98,13 @@ public class ProductTagAssignmentConfiguration : IEntityTypeConfiguration<Produc
         builder.Property(a => a.TagId).IsRequired();
         builder.Property(a => a.CategoryId).IsRequired();
 
-        builder.HasOne<ProductTag>()
+        builder.HasOne(a => a.Tag)
             .WithMany()
             .HasForeignKey(a => a.TagId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // No relationship for CategoryId: it is denormalized off the tag so filtering by axis needs no
+        // join, and carries no foreign key. A projection reaches the category through the tag.
     }
 }
 
@@ -154,14 +157,14 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Ignore(p => p.StatusAlias);
 
         // Relationships
-        builder.HasOne<ProductType>()
+        builder.HasOne(p => p.ProductType)
             .WithMany()
             .HasForeignKey(p => p.ProductTypeId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Self-referencing: restrict rather than cascade so removing a node cannot silently take its
         // subtree with it. Product.Remove refuses while children exist.
-        builder.HasOne<Product>()
+        builder.HasOne(p => p.Parent)
             .WithMany()
             .HasForeignKey(p => p.ParentId)
             .OnDelete(DeleteBehavior.Restrict);
@@ -217,12 +220,12 @@ public class ReleaseConfiguration : IEntityTypeConfiguration<Release>
         builder.ConfigureStatusHistory();
 
         // Relationships
-        builder.HasOne<Product>()
+        builder.HasOne(r => r.Product)
             .WithMany()
             .HasForeignKey(r => r.ProductId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<ReleasePackage>()
+        builder.HasOne(r => r.Package)
             .WithMany()
             .HasForeignKey(r => r.PackageId)
             .OnDelete(DeleteBehavior.SetNull);
@@ -301,7 +304,7 @@ public class ReleasePackageComponentConfiguration : IEntityTypeConfiguration<Rel
             .HasMaxLength(32);
 
         // Relationships
-        builder.HasOne<Product>()
+        builder.HasOne(c => c.Product)
             .WithMany()
             .HasForeignKey(c => c.ProductId)
             .OnDelete(DeleteBehavior.Restrict);
@@ -401,17 +404,17 @@ public class DeploymentConfiguration : IEntityTypeConfiguration<Deployment>
         builder.ConfigureStatusHistory();
 
         // Relationships
-        builder.HasOne<Release>()
+        builder.HasOne(d => d.Release)
             .WithMany()
             .HasForeignKey(d => d.ReleaseId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<ReleasePackage>()
+        builder.HasOne(d => d.Package)
             .WithMany()
             .HasForeignKey(d => d.PackageId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<DeploymentEnvironment>()
+        builder.HasOne(d => d.Environment)
             .WithMany()
             .HasForeignKey(d => d.EnvironmentId)
             .OnDelete(DeleteBehavior.Restrict);

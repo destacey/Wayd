@@ -3,6 +3,7 @@
 import { PageActions } from '@/src/components/common'
 import { RecordLayout } from '@/src/components/common/record'
 import { TagList } from '@/src/components/common/tags'
+import { StatusHistoryTag } from '@/src/components/common/status-workflows'
 import type { RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
@@ -11,8 +12,9 @@ import {
   useGetProductQuery,
   useGetProductsQuery,
 } from '@/src/store/features/product-management/products-api'
+import { useGetReleasesQuery } from '@/src/store/features/delivery/releases-api'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { Button, MenuProps, Result } from 'antd'
+import { Button, Flex, MenuProps, Result } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
@@ -27,9 +29,12 @@ import LinkProductExternallyForm from '../_components/link-product-externally-fo
 import ManageProductTagsForm from '../_components/manage-product-tags-form'
 import ReparentProductForm from '../_components/reparent-product-form'
 import RetypeProductForm from '../_components/retype-product-form'
+import PlanReleaseForm from '@/src/app/delivery/releases/_components/plan-release-form'
 import ProductsGrid from '../_components/products-grid'
 import ProductFacts from './_components/product-facts'
 import ProductOverview from './_components/product-overview'
+import ProductReleases from './_components/product-releases'
+import ProductStatusHistory from './_components/product-status-history'
 import ProductDetailsLoading from './loading'
 
 enum ProductSections {
@@ -38,6 +43,8 @@ enum ProductSections {
   // type decides what kind — an Application can sit under an Application. Naming
   // the section after one type would mislabel the rest.
   Products = 'products',
+  Releases = 'releases',
+  StatusHistory = 'status-history',
 }
 
 const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
@@ -51,6 +58,7 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [isReparentOpen, setIsReparentOpen] = useState<boolean>(false)
   const [isManageTagsOpen, setIsManageTagsOpen] = useState<boolean>(false)
   const [isLinkExternallyOpen, setIsLinkExternallyOpen] = useState<boolean>(false)
+  const [isPlanReleaseOpen, setIsPlanReleaseOpen] = useState<boolean>(false)
   const router = useRouter()
 
   // The active section lives in the URL (?section=), owned by RecordLayout. Read
@@ -63,6 +71,7 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const canUpdateProduct = hasPermissionClaim('Permissions.Products.Update')
   const canDeleteProduct = hasPermissionClaim('Permissions.Products.Delete')
   const canCreateProduct = hasPermissionClaim('Permissions.Products.Create')
+  const canCreateRelease = hasPermissionClaim('Permissions.Releases.Create')
 
   const messageApi = useMessage()
 
@@ -83,6 +92,18 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     isLoading: componentsLoading,
     refetch: refetchComponents,
   } = useGetProductsQuery({ parentId: product?.id }, { skip: !product?.id })
+
+  // Loaded here rather than inside the section, so the overview tile and the section it links to
+  // cannot disagree about the count. Skipped for a node whose type cannot carry releases: the
+  // section is hidden for those, and the request would only ever return nothing.
+  const {
+    data: releases,
+    isLoading: releasesLoading,
+    refetch: refetchReleases,
+  } = useGetReleasesQuery(
+    { productId: product?.id },
+    { skip: !product?.id || !product?.isReleasable },
+  )
 
   const isNotFound = (error as { status?: number })?.status === 404
 
@@ -197,9 +218,29 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       // thing a reader wants, and opening an empty section to find out is worse.
       count: components?.length || undefined,
     },
+    // Only where the type allows a release. On a node that cannot carry one the section could only
+    // ever be empty, which reads as "none yet" rather than "not possible here".
+    ...(product.isReleasable
+      ? [{ id: ProductSections.Releases, label: 'Releases' }]
+      : []),
+    { id: ProductSections.StatusHistory, label: 'Status History' },
   ]
 
   const renderSection = (section: string) => {
+    if (section === ProductSections.StatusHistory) {
+      return <ProductStatusHistory productId={product.id} />
+    }
+
+    if (section === ProductSections.Releases) {
+      return (
+        <ProductReleases
+          releases={releases ?? []}
+          isLoading={releasesLoading}
+          refetch={refetchReleases}
+        />
+      )
+    }
+
     if (section === ProductSections.Products) {
       return (
         <ProductsGrid
@@ -223,6 +264,9 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           router.replace(`?section=${sectionId}`, { scroll: false })
         }
         productsSectionId={ProductSections.Products}
+        releases={releases}
+        releasesLoading={releasesLoading}
+        releasesSectionId={ProductSections.Releases}
       />
     )
   }
@@ -252,21 +296,33 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           // Shown where they are read, not only behind a menu. The manage button
           // is omitted without permission, so the chips stay visible to everyone.
           tags: (
-            <TagList
-              // The axis rides on the chip as its qualifier: a bare "gold" does
-              // not say whether it is a tier, a platform or a compliance scope.
-              tags={(product.tags ?? []).map((tag) => ({
-                id: tag.tagId,
-                label: tag.tagName,
-                qualifier: tag.categoryName,
-              }))}
-              // The header shares its row with the name, key and actions, so a
-              // heavily tagged product collapses rather than crowding them out.
-              maxVisible={3}
-              onManage={
-                canUpdateProduct ? () => setIsManageTagsOpen(true) : undefined
-              }
-            />
+            // Status leads: it is the qualifier a reader wants first, and the tags beside it
+            // already collapse past three rather than competing for the row.
+            <Flex gap="small" align="center" wrap>
+              <StatusHistoryTag
+                status={product.status}
+                onOpenHistory={() =>
+                  router.replace(`?section=${ProductSections.StatusHistory}`, {
+                    scroll: false,
+                  })
+                }
+              />
+              <TagList
+                // The axis rides on the chip as its qualifier: a bare "gold" does
+                // not say whether it is a tier, a platform or a compliance scope.
+                tags={(product.tags ?? []).map((tag) => ({
+                  id: tag.tagId,
+                  label: tag.tagName,
+                  qualifier: tag.categoryName,
+                }))}
+                // The header shares its row with the name, key and actions, so a
+                // heavily tagged product collapses rather than crowding them out.
+                maxVisible={3}
+                onManage={
+                  canUpdateProduct ? () => setIsManageTagsOpen(true) : undefined
+                }
+              />
+            </Flex>
           ),
           actions:
             actionsMenuItems.length > 0 ? (
@@ -277,6 +333,10 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           canCreateProduct && activeSection === ProductSections.Products ? (
             <Button onClick={() => setIsCreateChildOpen(true)}>
               Add Product
+            </Button>
+          ) : canCreateRelease && activeSection === ProductSections.Releases ? (
+            <Button onClick={() => setIsPlanReleaseOpen(true)}>
+              Add Release
             </Button>
           ) : undefined
         }
@@ -361,6 +421,14 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             refetch()
           }}
           onFormCancel={() => setIsLinkExternallyOpen(false)}
+        />
+      )}
+
+      {isPlanReleaseOpen && (
+        <PlanReleaseForm
+          defaultProductId={product.id}
+          onFormComplete={() => setIsPlanReleaseOpen(false)}
+          onFormCancel={() => setIsPlanReleaseOpen(false)}
         />
       )}
 

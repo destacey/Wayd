@@ -122,6 +122,14 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
               'product.products',
               '/product-management/products',
             ),
+            // Delivery is schema-separated from the catalog so a later module split stays a code
+            // move, but it is one module today and belongs in one section.
+            restrictedPermissionMenuItem(
+              'Permissions.Releases.View',
+              'Releases',
+              'delivery.releases',
+              '/delivery/releases',
+            ),
           ],
         ),
       ]

@@ -10,7 +10,7 @@ namespace Wayd.ProductManagement.Application.Deployments.Commands;
 /// Permitted only from a succeeded deployment. A failed or in-flight one never finished reaching its
 /// environment, so counting it as a rollback would inflate change failure rate.
 /// </remarks>
-public sealed record RollBackDeploymentCommand(Guid Id, string? Reason, Instant? RolledBackAt) : ICommand;
+public sealed record RollBackDeploymentCommand(Guid Id, string? Reason, Instant? RolledBackAt) : ICommand, IRequireLinkedEmployee;
 
 public sealed class RollBackDeploymentCommandValidator : AbstractValidator<RollBackDeploymentCommand>
 {
@@ -28,6 +28,7 @@ public sealed class RollBackDeploymentCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     IStatusResolver statusResolver,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<RollBackDeploymentCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<RollBackDeploymentCommand>
@@ -37,6 +38,7 @@ public sealed class RollBackDeploymentCommandHandler(
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<RollBackDeploymentCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -72,12 +74,17 @@ public sealed class RollBackDeploymentCommandHandler(
                 .Select(e => e.Name)
                 .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
 
+            // Read per scope rather than from the claim snapshot, which a personal access token
+            // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
+            // one would misattribute the change permanently.
+            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
             var result = deployment.RollBack(
                 request.RolledBackAt ?? _dateTimeProvider.Now,
                 request.Reason,
                 status.Value,
                 environmentName,
-                EventActor.User(_currentUser.GetUserId()),
+                EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);
 
             if (result.IsFailure)

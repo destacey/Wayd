@@ -27,7 +27,7 @@ namespace Wayd.Common.Domain.Events;
 /// triggered. Present even for non-<see cref="EventActorKind.User"/> kinds whenever a person set the
 /// mechanism running: an import carries the account that started it.
 /// </param>
-public sealed record EventActor(EventActorKind Kind, string? UserId)
+public sealed record EventActor(EventActorKind Kind, string? UserId, Guid? EmployeeId = null)
 {
     /// <summary>
     /// The platform acting on its own behalf — scheduled jobs, replication, startup work. Attributed to
@@ -37,13 +37,25 @@ public sealed record EventActor(EventActorKind Kind, string? UserId)
     public static EventActor System { get; } = new(EventActorKind.System, SystemUser.Id);
 
     /// <summary>A signed-in user acting directly.</summary>
-    public static EventActor User(string userId) => new(EventActorKind.User, userId);
+    /// <param name="employeeId">
+    /// The employee the account is linked to, where there is one. Optional because an account need not
+    /// be linked — the caller decides whether that is acceptable, and an actor request that records who
+    /// did something marks itself <c>IRequireLinkedEmployee</c> so the link is guaranteed before it runs.
+    /// </param>
+    public static EventActor User(string userId, Guid? employeeId = null) =>
+        new(EventActorKind.User, userId, employeeId);
 
     /// <summary>
     /// A bulk import, attributed to the account that started it. Distinguishes "the import changed 400
     /// projects" from "this person edited 400 projects one at a time".
     /// </summary>
-    public static EventActor Import(string? originatingUserId) => new(EventActorKind.Import, originatingUserId);
+    /// <param name="employeeId">
+    /// The employee the imported row is <em>about</em>, which is not the person who ran the import — an
+    /// import carries who did the work in its own data, and that person frequently has no account here at
+    /// all. Supplying it is what lets an imported history name the right person rather than the operator.
+    /// </param>
+    public static EventActor Import(string? originatingUserId, Guid? employeeId = null) =>
+        new(EventActorKind.Import, originatingUserId, employeeId);
 
     /// <summary>
     /// An integration syncing from an external system, optionally attributed to whoever triggered it

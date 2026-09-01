@@ -6,6 +6,28 @@
 /// </summary>
 public static class AssemblyHelper
 {
+    /// <summary>
+    /// Fails loudly when a loader resolves to nothing.
+    /// </summary>
+    /// <remarks>
+    /// An architecture rule over zero assemblies asserts over an empty collection, which passes. That
+    /// is indistinguishable from the rule holding, so a mistyped glob silently disables every test
+    /// using it — the only outward sign being a suite that runs in under a millisecond. Throwing here
+    /// turns that into a failure naming the loader.
+    /// </remarks>
+    private static System.Reflection.Assembly[] Require(System.Reflection.Assembly[] assemblies, string layer)
+    {
+        if (assemblies.Length == 0)
+        {
+            throw new InvalidOperationException(
+                $"No {layer} assemblies were found in '{GetAssemblyDirectory()}'. The search pattern no " +
+                "longer matches anything it is meant to, which would leave every rule using it asserting " +
+                "over an empty set and passing.");
+        }
+
+        return assemblies;
+    }
+
     #region Domain Assembly Methods
 
     /// <summary>
@@ -22,7 +44,7 @@ public static class AssemblyHelper
             })
             .ToArray();
 
-        return domainDlls.Select(System.Reflection.Assembly.LoadFrom).ToArray();
+        return Require(domainDlls.Select(System.Reflection.Assembly.LoadFrom).ToArray(), "Domain");
     }
 
     /// <summary>
@@ -40,7 +62,7 @@ public static class AssemblyHelper
             })
             .ToArray();
 
-        return domainDlls.Select(System.Reflection.Assembly.LoadFrom).ToArray();
+        return Require(domainDlls.Select(System.Reflection.Assembly.LoadFrom).ToArray(), "service Domain");
     }
 
     #endregion
@@ -61,7 +83,7 @@ public static class AssemblyHelper
             })
             .ToArray();
 
-        return applicationDlls.Select(System.Reflection.Assembly.LoadFrom).ToArray();
+        return Require(applicationDlls.Select(System.Reflection.Assembly.LoadFrom).ToArray(), "Application");
     }
 
     /// <summary>
@@ -79,7 +101,7 @@ public static class AssemblyHelper
             })
             .ToArray();
 
-        return applicationDlls.Select(System.Reflection.Assembly.LoadFrom).ToArray();
+        return Require(applicationDlls.Select(System.Reflection.Assembly.LoadFrom).ToArray(), "service Application");
     }
 
     #endregion
@@ -89,10 +111,17 @@ public static class AssemblyHelper
     /// <summary>
     /// Gets all Infrastructure assemblies.
     /// </summary>
+    /// <remarks>
+    /// The pattern is <c>Wayd.Infrastructure*</c>, not <c>Wayd.*.Infrastructure*</c>. The latter
+    /// requires a segment between <c>Wayd.</c> and <c>Infrastructure</c>, which neither
+    /// <c>Wayd.Infrastructure</c> nor <c>Wayd.Infrastructure.Migrators.MSSQL</c> has — so it matched
+    /// nothing, and every rule scanning these assemblies passed over an empty set for as long as it
+    /// stood. <see cref="Require"/> is what stops that recurring silently.
+    /// </remarks>
     public static System.Reflection.Assembly[] GetInfrastructureAssemblies()
     {
         var assemblyDir = GetAssemblyDirectory();
-        var infrastructureDlls = Directory.GetFiles(assemblyDir, "Wayd.*.Infrastructure*.dll")
+        var infrastructureDlls = Directory.GetFiles(assemblyDir, "Wayd.Infrastructure*.dll")
             .Where(f =>
             {
                 var fileName = Path.GetFileName(f);
@@ -100,7 +129,7 @@ public static class AssemblyHelper
             })
             .ToArray();
 
-        return infrastructureDlls.Select(System.Reflection.Assembly.LoadFrom).ToArray();
+        return Require(infrastructureDlls.Select(System.Reflection.Assembly.LoadFrom).ToArray(), "Infrastructure");
     }
 
     #endregion
@@ -122,7 +151,7 @@ public static class AssemblyHelper
             })
             .ToArray();
 
-        return integrationDlls.Select(System.Reflection.Assembly.LoadFrom).ToArray();
+        return Require(integrationDlls.Select(System.Reflection.Assembly.LoadFrom).ToArray(), "Integration");
     }
 
     #endregion

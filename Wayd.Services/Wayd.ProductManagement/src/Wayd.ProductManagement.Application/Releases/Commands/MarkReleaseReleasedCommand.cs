@@ -10,7 +10,7 @@ namespace Wayd.ProductManagement.Application.Releases.Commands;
 /// The released date is what orders a release history, so it is supplied rather than taken from the
 /// clock: shipping is often recorded after the fact.
 /// </remarks>
-public sealed record MarkReleaseReleasedCommand(Guid Id, LocalDate ReleasedDate) : ICommand;
+public sealed record MarkReleaseReleasedCommand(Guid Id, LocalDate ReleasedDate) : ICommand, IRequireLinkedEmployee;
 
 public sealed class MarkReleaseReleasedCommandValidator : AbstractValidator<MarkReleaseReleasedCommand>
 {
@@ -25,6 +25,7 @@ public sealed class MarkReleaseReleasedCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     IStatusResolver statusResolver,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<MarkReleaseReleasedCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<MarkReleaseReleasedCommand>
@@ -34,6 +35,7 @@ public sealed class MarkReleaseReleasedCommandHandler(
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<MarkReleaseReleasedCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -70,11 +72,16 @@ public sealed class MarkReleaseReleasedCommandHandler(
                 .Select(p => p.Name)
                 .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
 
+            // Read per scope rather than from the claim snapshot, which a personal access token
+            // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
+            // one would misattribute the change permanently.
+            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
             var result = release.MarkReleased(
                 request.ReleasedDate,
                 status.Value,
                 productName,
-                EventActor.User(_currentUser.GetUserId()),
+                EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);
 
             if (result.IsFailure)

@@ -3,6 +3,7 @@ using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Application.Products.Dtos;
+using Wayd.ProductManagement.Domain.Models;
 
 namespace Wayd.ProductManagement.Application.Products.Queries;
 
@@ -26,7 +27,7 @@ public sealed class GetProductsQueryHandler(IProductManagementDbContext productM
 
     public async Task<IReadOnlyCollection<ProductDto>> Handle(GetProductsQuery query, CancellationToken cancellationToken)
     {
-        var products = _productManagementDbContext.Products.AsNoTracking();
+        var products = _productManagementDbContext.Products.AsQueryable();
 
         if (query.ParentId is not null)
         {
@@ -53,53 +54,10 @@ public sealed class GetProductsQueryHandler(IProductManagementDbContext productM
             }
         }
 
-        return await Project(products, _productManagementDbContext)
+        return await products
+            .ProjectToType<ProductDto>(
+                ProductDto.CreateTypeAdapterConfig(_productManagementDbContext))
             .OrderBy(p => p.Name)
             .ToListAsync(cancellationToken);
     }
-
-    internal static IQueryable<ProductDto> Project(IQueryable<Domain.Models.Product> products, IProductManagementDbContext dbContext) =>
-        products.Select(p => new ProductDto
-        {
-            Id = p.Id,
-            Key = p.Key,
-            Name = p.Name,
-            Description = p.Description,
-            ExternalId = p.ExternalId,
-            Type = dbContext.ProductTypes
-                .Where(t => t.Id == p.ProductTypeId)
-                .Select(t => new NavigationDto
-                {
-                    Id = t.Id,
-                    Key = t.Key,
-                    Name = t.Name,
-                })
-                .FirstOrDefault()!,
-            IsReleasable = dbContext.ProductTypes.Where(t => t.Id == p.ProductTypeId).Select(t => t.IsReleasable).FirstOrDefault(),
-            Parent = dbContext.Products
-                .Where(parent => parent.Id == p.ParentId)
-                .Select(parent => new NavigationDto
-                {
-                    Id = parent.Id,
-                    Key = parent.Key,
-                    Name = parent.Name,
-                })
-                .FirstOrDefault(),
-            Status = new StatusNavigationDto
-            {
-                Id = p.StatusId,
-                Name = p.StatusName,
-                Category = p.StatusCategory,
-                Alias = p.StatusAliasValue,
-            },
-            Tags = p.Tags
-                .Select(t => new ProductTagDto
-                {
-                    TagId = t.TagId,
-                    TagName = dbContext.ProductTags.Where(tag => tag.Id == t.TagId).Select(tag => tag.Name).FirstOrDefault()!,
-                    CategoryId = t.CategoryId,
-                    CategoryName = dbContext.ProductTagCategories.Where(c => c.Id == t.CategoryId).Select(c => c.Name).FirstOrDefault()!,
-                })
-                .ToList(),
-        });
 }

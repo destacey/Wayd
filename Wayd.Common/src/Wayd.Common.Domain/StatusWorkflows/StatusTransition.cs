@@ -67,6 +67,7 @@ public sealed class StatusTransition : BaseEntity
 
         ActorKind = actor.Kind;
         ActorUserId = actor.UserId;
+        ActorEmployeeId = actor.EmployeeId;
         ChangedOn = changedOn;
         Sequence = sequence;
         Reason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
@@ -119,6 +120,22 @@ public sealed class StatusTransition : BaseEntity
 
     /// <summary>The account behind it, where there is one.</summary>
     public string? ActorUserId { get; private init; }
+
+    /// <summary>
+    /// The employee behind it, where there is one.
+    /// </summary>
+    /// <remarks>
+    /// Frozen here rather than resolved from <see cref="ActorUserId"/> on read, for the same reason the
+    /// status names are: the account-to-employee link is mutable, so resolving it later would let a
+    /// re-link silently rewrite who past changes are attributed to.
+    /// <para>
+    /// Nullable because three actor kinds can never supply one — the platform acting on its own behalf,
+    /// a scheduled sync nobody triggered, and an anonymous request — and because an account need not be
+    /// linked to an employee at all. It is also the only attribution an import can offer for the person
+    /// a row is about, who often has no account here.
+    /// </para>
+    /// </remarks>
+    public Guid? ActorEmployeeId { get; private init; }
 
     /// <summary>When it happened.</summary>
     public Instant ChangedOn { get; private init; }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Application.ReleasePackages.Commands;
@@ -59,6 +60,26 @@ public class ReleasePackagesController(IDispatcher dispatcher) : ControllerBase
         return package is not null
             ? Ok(package)
             : NotFound();
+    }
+
+    [HttpGet("{id}/status-history")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.ReleasePackages)]
+    [OpenApiOperation(
+        "Get a release package's status change history.",
+        "Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IEnumerable<StatusTransitionDto>>> GetStatusHistory(
+        Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new GetReleasePackageStatusHistoryQuery(id), cancellationToken);
+
+        return result.IsFailure
+            ? BadRequest(result.ToBadRequestObject(HttpContext))
+            : result.Value is not null
+                ? Ok(result.Value)
+                : NotFound();
     }
 
     [HttpPost]

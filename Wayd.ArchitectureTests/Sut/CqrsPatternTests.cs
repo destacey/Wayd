@@ -496,6 +496,10 @@ public class CqrsPatternTests
             "WolverineDispatcher",     // IDispatcher implementation
             "EventPublisher",          // IEventPublisher implementation
             "WolverineConfiguration",  // host bootstrap
+            // Reaches it only through IDbContextOutbox, to enroll the save in the outbox and publish
+            // domain events post-commit. That seam is the point of the durable outbox, and this rule
+            // only began seeing infrastructure once its assembly loader was fixed.
+            "BaseDbContext",
         };
 
         // Act

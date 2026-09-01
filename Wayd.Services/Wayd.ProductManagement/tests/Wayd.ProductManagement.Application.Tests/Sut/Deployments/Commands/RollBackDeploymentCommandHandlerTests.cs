@@ -41,13 +41,13 @@ public sealed class RollBackDeploymentCommandHandlerTests : ProductCommandTestBa
     }
 
     private RollBackDeploymentCommandHandler CreateSut() =>
-        new(DbContext, _statusResolver.Object, CurrentUser.Object, Logger<RollBackDeploymentCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, _statusResolver.Object, CurrentUser.Object, CurrentPrincipal.Object, Logger<RollBackDeploymentCommandHandler>(), DateTimeProvider.Object);
 
     private SucceedDeploymentCommandHandler SucceedSut() =>
-        new(DbContext, _statusResolver.Object, CurrentUser.Object, Logger<SucceedDeploymentCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, _statusResolver.Object, CurrentUser.Object, CurrentPrincipal.Object, Logger<SucceedDeploymentCommandHandler>(), DateTimeProvider.Object);
 
     private FailDeploymentCommandHandler FailSut() =>
-        new(DbContext, _statusResolver.Object, CurrentUser.Object, Logger<FailDeploymentCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, _statusResolver.Object, CurrentUser.Object, CurrentPrincipal.Object, Logger<FailDeploymentCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
     public async Task Handle_ShouldRollBackASucceededDeployment()

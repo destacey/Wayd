@@ -2,6 +2,10 @@ import React, { Suspense } from 'react'
 import { act, render, screen } from '@testing-library/react'
 import ProductDetailsPage from './page'
 
+// The overview's release tile counts back from today, and the global setup mocks dayjs down to
+// formatting — without the real one the section throws while rendering and takes every tile with it.
+jest.unmock('dayjs')
+
 const product = {
   id: 'product-1',
   key: 7,
@@ -130,6 +134,15 @@ jest.mock('@/src/components/hoc', () => ({
   requireFeatureFlag: (Component: React.ComponentType<any>) => Component,
 }))
 
+jest.mock('@/src/store/features/delivery/releases-api', () => ({
+  useGetReleasesQuery: () => ({
+    data: [],
+    isLoading: false,
+    refetch: jest.fn(),
+  }),
+  usePlanReleaseMutation: () => [jest.fn()],
+}))
+
 jest.mock('@/src/store/features/product-management/products-api', () => ({
   useGetProductQuery: () => ({
     data: product,
@@ -239,6 +252,16 @@ describe('ProductDetailsPage', () => {
 
     // Assert
     expect(await screen.findByText('Releasable Products')).toBeInTheDocument()
+  })
+
+  it('summarises recent releases on the overview', async () => {
+    // The tile counts back from today, so it renders only with the real dayjs — the global mock
+    // leaves it throwing mid-render and takes the whole section down with it.
+    // Arrange / Act
+    await renderPage()
+
+    // Assert
+    expect(await screen.findByText('Releases (90d)')).toBeInTheDocument()
   })
 
   it('closes the breadcrumb with the page name, not an ancestor', async () => {

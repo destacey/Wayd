@@ -484,9 +484,15 @@ A product's identifier in the system that owns it — repository, pipeline, regi
 ### Releases
 
 A versioned cut of one releasable product node. Properties:
-- Version (free text), Name, Target Date, Sequence, Status, Product
+- Version (free text), Name, Target Date, Cut Date, Released Date, Sequence, Status, Product
 
 Rules: Describes what was cut, never where it went — rollout lives on Deployment. A release with no deployment is a complete record, which makes release-first hand-entry workable. States: Planned → Ready → Released, or Withdrawn.
+
+Versions are never parsed or compared — releases are not sorted by version. Lists put unreleased first, then released newest-first.
+
+Each lifecycle move is one-way and sets a date and a status together: Cut refuses a release already cut, MarkReleased refuses one already released, and a withdrawn release refuses being released (though a released one can be withdrawn). Cutting is NOT a prerequisite for releasing — a release may be marked released with no cut date, which is what makes historical import possible. Where both dates exist, the released date cannot precede the cut date.
+
+Because those moves refuse to run twice, a separate correction action exists: CorrectDates fixes a cut or released date recorded wrongly and leaves the status alone, writing no StatusTransition and raising ReleaseDatesCorrectedEvent (carrying both ends of each change) to the audit trail instead. Without it, fixing a released date would mean withdrawing and re-releasing, appending two status transitions that never happened to an append-only history. A correction can only fix a date the release already has — introducing or clearing one is a lifecycle step — and is refused on a withdrawn release.
 
 ### Release Packages
 

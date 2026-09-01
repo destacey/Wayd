@@ -57,16 +57,19 @@ graph TD
 
 ## What Is Available Today
 
-Product Management is being built in phases, and the user interface currently covers the catalog only.
+Product Management is being built in phases. The catalog and releases have screens; the rest of delivery is API-only for now.
 
 | Area | Interface | API |
 | --- | --- | --- |
 | Products, types, tags | Yes | Yes |
-| Releases and packages | Not yet | Yes |
+| Releases | Yes | Yes |
+| Release packages | Not yet | Yes |
 | Deployments and environments | Not yet | Yes |
 | Delivery metrics | Not yet | Yes |
 
-The delivery records can be created and read through the API today, and the screens for them follow. Where a page below describes an API-only capability it says so.
+Everything without a screen is fully available through the API, so it can be recorded and queried today.
+
+When delivery metrics does get a screen it will report the two measures this module can compute from what it records. The other two are unavailable, with the reason, rather than approximated — see [Delivery Metrics](./delivery.mdx#delivery-metrics).
 
 ## Sections
 

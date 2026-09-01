@@ -80,6 +80,21 @@ export const renderWorkspaceLink = (
   workspace: NavLinkTarget | null | undefined,
 ): ReactNode => renderNavLink(workspace, '/work/workspaces')
 
+/** Renders a product as a link to its page. */
+export const renderProductLink = (
+  product: NavLinkTarget | null | undefined,
+): ReactNode => renderNavLink(product, '/product-management/products')
+
+/**
+ * Renders a release as a link to its page.
+ *
+ * The label is whatever the reference carries in `name`, which for a release is its version — the
+ * DTO puts the version there because that is what identifies a release to a reader.
+ */
+export const renderReleaseLink = (
+  release: NavLinkTarget | null | undefined,
+): ReactNode => renderNavLink(release, '/delivery/releases')
+
 /** A sprint reference, optionally carrying its team's code for the label. */
 export interface SprintLinkTarget extends NavLinkTarget {
   team?: { code?: string | null } | null

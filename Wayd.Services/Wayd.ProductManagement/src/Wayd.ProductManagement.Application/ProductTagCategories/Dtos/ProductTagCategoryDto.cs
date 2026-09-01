@@ -1,4 +1,6 @@
-﻿namespace Wayd.ProductManagement.Application.ProductTagCategories.Dtos;
+﻿using Wayd.ProductManagement.Domain.Models;
+
+namespace Wayd.ProductManagement.Application.ProductTagCategories.Dtos;
 
 /// <summary>
 /// A tag axis and the tags on it.
@@ -23,6 +25,33 @@ public sealed record ProductTagCategoryDto
     public bool IsSystem { get; init; }
 
     public IReadOnlyCollection<ProductTagOptionDto> Tags { get; init; } = [];
+
+    /// <summary>
+    /// Maps a category and its tags, for <c>ProjectToType</c>.
+    /// </summary>
+    /// <remarks>
+    /// Built per call rather than registered globally, because both members below read a second set
+    /// and the global config has no request-scoped DbContext to close over.
+    /// <para>
+    /// <see cref="ProductTagCategory.Tags"/> is a real navigation but cannot serve this: its getter
+    /// applies the <c>Order</c> sort in the property body, which EF projects around rather than
+    /// translates, so taking it would return the tags unordered.
+    /// </para>
+    /// </remarks>
+    public static TypeAdapterConfig CreateTypeAdapterConfig(IProductManagementDbContext dbContext)
+    {
+        var config = new TypeAdapterConfig();
+
+        config.NewConfig<ProductTag, ProductTagOptionDto>()
+            .Map(dto => dto.ProductCount, t => dbContext.ProductTagAssignments.Count(a => a.TagId == t.Id));
+
+        config.NewConfig<ProductTagCategory, ProductTagCategoryDto>()
+            .Map(dto => dto.Tags, c => dbContext.ProductTags
+                .Where(t => t.CategoryId == c.Id)
+                .OrderBy(t => t.Order));
+
+        return config;
+    }
 }
 
 public sealed record ProductTagOptionDto

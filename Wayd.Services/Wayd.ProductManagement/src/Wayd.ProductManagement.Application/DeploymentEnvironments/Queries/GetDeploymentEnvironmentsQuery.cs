@@ -17,7 +17,7 @@ public sealed class GetDeploymentEnvironmentsQueryHandler(IProductManagementDbCo
     public async Task<IReadOnlyCollection<DeploymentEnvironmentDto>> Handle(
         GetDeploymentEnvironmentsQuery query, CancellationToken cancellationToken)
     {
-        var environments = _productManagementDbContext.DeploymentEnvironments.AsNoTracking();
+        var environments = _productManagementDbContext.DeploymentEnvironments.AsQueryable();
 
         if (query.IsActive is not null)
         {

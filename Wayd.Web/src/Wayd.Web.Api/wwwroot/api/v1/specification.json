@@ -4689,6 +4689,70 @@
         ]
       }
     },
+    "/api/product-management/deployments/{id}/status-history": {
+      "get": {
+        "tags": [
+          "Deployments"
+        ],
+        "summary": "Get a deployment's status change history.",
+        "description": "Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.",
+        "operationId": "Deployments_GetStatusHistory",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StatusTransitionDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/product-management/deployments/{id}/succeed": {
       "post": {
         "tags": [
@@ -5023,6 +5087,67 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProductDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/{idOrKey}/status-history": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Get a product's status change history.",
+        "description": "Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.",
+        "operationId": "Products_GetStatusHistory",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StatusTransitionDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -6468,6 +6593,70 @@
         ]
       }
     },
+    "/api/product-management/release-packages/{id}/status-history": {
+      "get": {
+        "tags": [
+          "ReleasePackages"
+        ],
+        "summary": "Get a release package's status change history.",
+        "description": "Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.",
+        "operationId": "ReleasePackages_GetStatusHistory",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StatusTransitionDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/product-management/release-packages/{id}/manifest": {
       "put": {
         "tags": [
@@ -6770,23 +6959,21 @@
         ]
       }
     },
-    "/api/product-management/releases/{id}": {
+    "/api/product-management/releases/{idOrKey}": {
       "get": {
         "tags": [
           "Releases"
         ],
         "summary": "Get release details.",
+        "description": "Accepts the release's id or its short key.",
         "operationId": "Releases_GetRelease",
         "parameters": [
           {
-            "name": "id",
+            "name": "idOrKey",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "guid",
-              "nullable": false,
-              "example": "00000000-0000-0000-0000-000000000000"
+              "type": "string"
             },
             "x-position": 1
           }
@@ -6818,7 +7005,70 @@
             "ApiKey": []
           }
         ]
-      },
+      }
+    },
+    "/api/product-management/releases/{idOrKey}/status-history": {
+      "get": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Get a release's status change history.",
+        "description": "Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.",
+        "operationId": "Releases_GetStatusHistory",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StatusTransitionDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/releases/{id}": {
       "put": {
         "tags": [
           "Releases"
@@ -6910,6 +7160,62 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/MoveReleaseTargetDateRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/releases/{id}/dates": {
+      "put": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Correct a release's recorded cut and released dates.",
+        "description": "Fixes dates entered wrongly. Does not change the release's status, and cannot add or remove a date the release does not already have.",
+        "operationId": "Releases_CorrectDates",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectReleaseDatesRequest"
               }
             }
           },
@@ -35352,6 +35658,128 @@
           "RolledBack"
         ]
       },
+      "StatusTransitionDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "sequence",
+          "toStatus",
+          "workflowId",
+          "actorKind",
+          "changedBySystem",
+          "changedOn"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "sequence": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fromStatus": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FrozenStatusDto"
+              }
+            ]
+          },
+          "toStatus": {
+            "$ref": "#/components/schemas/StatusNavigationDto"
+          },
+          "workflowId": {
+            "type": "string",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "actorKind": {
+            "$ref": "#/components/schemas/SimpleNavigationDto"
+          },
+          "changedBy": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "changedByUser": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/UserNavigationDto"
+              }
+            ]
+          },
+          "changedBySystem": {
+            "type": "boolean"
+          },
+          "changedOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "FrozenStatusDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "category"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "$ref": "#/components/schemas/StatusCategory"
+          }
+        }
+      },
+      "UserNavigationDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "userName"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "StartDeploymentRequest": {
         "type": "object",
         "description": "Records that a release or package started reaching an environment.",
@@ -36507,6 +36935,25 @@
           "targetDate": {
             "type": "string",
             "description": "The new target date, or null to clear it.",
+            "format": "date",
+            "nullable": true
+          }
+        }
+      },
+      "CorrectReleaseDatesRequest": {
+        "type": "object",
+        "description": "Corrects a release's recorded cut and released dates.",
+        "additionalProperties": false,
+        "properties": {
+          "cutDate": {
+            "type": "string",
+            "description": "The corrected cut date, or null if the release has not been cut. A release that has been cut\ncannot have this cleared, and one that has not cannot have it added — cutting is its own action.",
+            "format": "date",
+            "nullable": true
+          },
+          "releasedDate": {
+            "type": "string",
+            "description": "The corrected released date, or null if the release has not shipped. Subject to the same rule\nas CutDate: a correction cannot introduce or remove the date, only fix it.",
             "format": "date",
             "nullable": true
           }
@@ -43536,29 +43983,6 @@
           "roundCount": {
             "type": "integer",
             "format": "int32"
-          }
-        }
-      },
-      "UserNavigationDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "id",
-          "userName"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "guid",
-            "nullable": false,
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          "userName": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string",
-            "nullable": true
           }
         }
       },

@@ -1,4 +1,5 @@
 ﻿using Wayd.ProductManagement.Application.ProductTagCategories.Dtos;
+using Wayd.ProductManagement.Domain.Models;
 
 namespace Wayd.ProductManagement.Application.ProductTagCategories.Queries;
 
@@ -20,7 +21,7 @@ public sealed class GetProductTagCategoriesQueryHandler(IProductManagementDbCont
     public async Task<IReadOnlyCollection<ProductTagCategoryDto>> Handle(
         GetProductTagCategoriesQuery query, CancellationToken cancellationToken)
     {
-        var categories = _productManagementDbContext.ProductTagCategories.AsNoTracking();
+        var categories = _productManagementDbContext.ProductTagCategories.AsQueryable();
 
         if (query.IsActive is not null)
         {
@@ -28,30 +29,8 @@ public sealed class GetProductTagCategoriesQueryHandler(IProductManagementDbCont
         }
 
         return await categories
-            .Select(c => new ProductTagCategoryDto
-            {
-                Id = c.Id,
-                Key = c.Key,
-                Name = c.Name,
-                Description = c.Description,
-                AllowsMany = c.AllowsMany,
-                Order = c.Order,
-                IsActive = c.IsActive,
-                IsSystem = c.IsSystem,
-                Tags = _productManagementDbContext.ProductTags
-                    .Where(t => t.CategoryId == c.Id)
-                    .OrderBy(t => t.Order)
-                    .Select(t => new ProductTagOptionDto
-                    {
-                        Id = t.Id,
-                        Name = t.Name,
-                        Description = t.Description,
-                        Order = t.Order,
-                        IsActive = t.IsActive,
-                        ProductCount = _productManagementDbContext.ProductTagAssignments.Count(a => a.TagId == t.Id),
-                    })
-                    .ToList(),
-            })
+            .ProjectToType<ProductTagCategoryDto>(
+                ProductTagCategoryDto.CreateTypeAdapterConfig(_productManagementDbContext))
             .OrderBy(c => c.Order)
             .ThenBy(c => c.Name)
             .ToListAsync(cancellationToken);

@@ -1,5 +1,6 @@
 ﻿using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Application.Releases.Commands;
@@ -48,18 +49,39 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
         return Ok(releases);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{idOrKey}")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Releases)]
-    [OpenApiOperation("Get release details.", "")]
+    [OpenApiOperation("Get release details.", "Accepts the release's id or its short key.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ReleaseDto>> GetRelease(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult<ReleaseDto>> GetRelease(string idOrKey, CancellationToken cancellationToken)
     {
-        var release = await _dispatcher.Send(new GetReleaseQuery(id), cancellationToken);
+        var release = await _dispatcher.Send(new GetReleaseQuery(new IdOrKey(idOrKey)), cancellationToken);
 
         return release is not null
             ? Ok(release)
             : NotFound();
+    }
+
+    [HttpGet("{idOrKey}/status-history")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Releases)]
+    [OpenApiOperation(
+        "Get a release's status change history.",
+        "Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IEnumerable<StatusTransitionDto>>> GetStatusHistory(
+        string idOrKey, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(
+            new GetReleaseStatusHistoryQuery(new IdOrKey(idOrKey)), cancellationToken);
+
+        return result.IsFailure
+            ? BadRequest(result.ToBadRequestObject(HttpContext))
+            : result.Value is not null
+                ? Ok(result.Value)
+                : NotFound();
     }
 
     [HttpPost]
@@ -72,7 +94,7 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
         var result = await _dispatcher.Send(request.ToPlanReleaseCommand(), cancellationToken);
 
         return result.IsSuccess
-            ? CreatedAtAction(nameof(GetRelease), new { id = result.Value.Id }, result.Value)
+            ? CreatedAtAction(nameof(GetRelease), new { idOrKey = result.Value.Id.ToString() }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
@@ -105,6 +127,24 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
     {
         var result = await _dispatcher.Send(
             new MoveReleaseTargetDateCommand(id, request.TargetDate), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/dates")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
+    [OpenApiOperation(
+        "Correct a release's recorded cut and released dates.",
+        "Fixes dates entered wrongly. Does not change the release's status, and cannot add or remove a date the release does not already have.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> CorrectDates(
+        Guid id, [FromBody] CorrectReleaseDatesRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(
+            new CorrectReleaseDatesCommand(id, request.CutDate, request.ReleasedDate), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

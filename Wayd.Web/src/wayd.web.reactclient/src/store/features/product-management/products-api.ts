@@ -7,6 +7,7 @@ import {
   ProductDto,
   ReparentProductRequest,
   StatusNavigationDto,
+  StatusTransitionDto,
   LinkProductExternallyRequest,
   RetypeProductRequest,
   UpdateProductRequest,
@@ -74,6 +75,28 @@ export const productsApi = apiSlice.injectEndpoints({
         }
       },
       providesTags: () => [{ type: QueryTags.Product, id: 'STATUS_OPTIONS' }],
+    }),
+    /**
+     * A product's status history, newest first.
+     *
+     * Takes the product's id rather than its key, even though the endpoint accepts either. The
+     * response is a list with no id of its own, so the tag can only be the argument — and a status
+     * mutation knows the id alone, so a page that fetched by key would hold a tag no mutation could
+     * name and keep showing the history from before the change.
+     */
+    getProductStatusHistory: builder.query<StatusTransitionDto[], string>({
+      queryFn: async (productId) => {
+        try {
+          const data = await getProductsClient().getStatusHistory(productId)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, arg) => [
+        { type: QueryTags.StatusHistory, id: arg },
+      ],
     }),
     createProduct: builder.mutation<ObjectIdAndKey, CreateProductRequest>({
       queryFn: async (request) => {
@@ -177,6 +200,8 @@ export const productsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.Product, id: 'LIST' },
         { type: QueryTags.Product, id: arg.id },
+        // The change this mutation just made is the newest entry in the history.
+        { type: QueryTags.StatusHistory, id: arg.id },
       ],
     }),
     tagProduct: builder.mutation<void, { id: string; tagId: string }>({
@@ -228,6 +253,7 @@ export const {
   useGetProductsQuery,
   useGetProductQuery,
   useGetProductStatusOptionsQuery,
+  useGetProductStatusHistoryQuery,
   useCreateProductMutation,
   useUpdateProductMutation,
   useReparentProductMutation,

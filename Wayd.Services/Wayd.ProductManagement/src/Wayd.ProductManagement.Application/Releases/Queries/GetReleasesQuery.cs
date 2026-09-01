@@ -26,7 +26,7 @@ public sealed class GetReleasesQueryHandler(IProductManagementDbContext productM
     public async Task<IReadOnlyCollection<ReleaseDto>> Handle(
         GetReleasesQuery query, CancellationToken cancellationToken)
     {
-        var releases = _productManagementDbContext.Releases.AsNoTracking();
+        var releases = _productManagementDbContext.Releases.AsQueryable();
 
         if (query.ProductId is not null)
         {
@@ -43,40 +43,19 @@ public sealed class GetReleasesQueryHandler(IProductManagementDbContext productM
             releases = releases.Where(r => query.StatusCategories.Contains(r.StatusCategory));
         }
 
-        return await Project(releases, _productManagementDbContext)
+        var ordered = releases
+            .ProjectToType<ReleaseDto>()
             .OrderByDescending(r => r.ReleasedDate == null)
-            .ThenByDescending(r => r.ReleasedDate)
-            .ThenByDescending(r => r.Sequence)
+            .ThenByDescending(r => r.ReleasedDate);
+
+        // Sequence orders one product's releases against each other and means nothing across
+        // products — 4.8.2 of one has no position relative to 2026.04 of another beyond the date they
+        // shipped. Applying it to a mixed list would let an ordering set for one product move a
+        // second product's release that happens to share a released date.
+        return await (query.ProductId is not null
+                ? ordered.ThenByDescending(r => r.Sequence)
+                : ordered)
             .ToListAsync(cancellationToken);
     }
 
-    internal static IQueryable<ReleaseDto> Project(
-        IQueryable<Domain.Models.Release> releases, IProductManagementDbContext dbContext) =>
-        releases.Select(r => new ReleaseDto
-        {
-            Id = r.Id,
-            Key = r.Key,
-            Product = dbContext.Products
-                .Where(p => p.Id == r.ProductId)
-                .Select(p => new NavigationDto { Id = p.Id, Key = p.Key, Name = p.Name })
-                .FirstOrDefault()!,
-            Version = r.Version,
-            Name = r.Name,
-            Notes = r.Notes,
-            Sequence = r.Sequence,
-            TargetDate = r.TargetDate,
-            CutDate = r.CutDate,
-            ReleasedDate = r.ReleasedDate,
-            Package = dbContext.ReleasePackages
-                .Where(p => p.Id == r.PackageId)
-                .Select(p => new NavigationDto { Id = p.Id, Key = p.Key, Name = p.Version })
-                .FirstOrDefault(),
-            Status = new StatusNavigationDto
-            {
-                Id = r.StatusId,
-                Name = r.StatusName,
-                Category = r.StatusCategory,
-                Alias = r.StatusAliasValue,
-            },
-        });
 }

@@ -47,7 +47,6 @@ const ProductFacts = ({ product }: ProductFactsProps) => {
             <MarkdownRenderer markdown={product.description} />
           </LabeledContent>
         )}
-        <LabeledContent label="Status">{product.status?.name}</LabeledContent>
         <LabeledContent label="Type">{product.type?.name}</LabeledContent>
         <LabeledContent label="Releasable">
           {product.isReleasable ? 'Yes' : 'No'}

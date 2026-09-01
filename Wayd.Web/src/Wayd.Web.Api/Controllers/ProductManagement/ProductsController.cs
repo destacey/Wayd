@@ -67,6 +67,27 @@ public class ProductsController(IDispatcher dispatcher) : ControllerBase
             : NotFound();
     }
 
+    [HttpGet("{idOrKey}/status-history")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Products)]
+    [OpenApiOperation(
+        "Get a product's status change history.",
+        "Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IEnumerable<StatusTransitionDto>>> GetStatusHistory(
+        string idOrKey, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(
+            new GetProductStatusHistoryQuery(new IdOrKey(idOrKey)), cancellationToken);
+
+        return result.IsFailure
+            ? BadRequest(result.ToBadRequestObject(HttpContext))
+            : result.Value is not null
+                ? Ok(result.Value)
+                : NotFound();
+    }
+
     [HttpGet("status-options")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Products)]
     [OpenApiOperation(

@@ -1097,6 +1097,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("ActorEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("ActorKind")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -1155,6 +1158,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ActorEmployeeId");
 
                     b.HasIndex("WorkflowId");
 
@@ -6996,6 +7001,14 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasForeignKey("ScoringModelId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.StatusTransition", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("ActorEmployeeId")
+                        .OnDelete(DeleteBehavior.NoAction);
                 });
 
             modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.WorkflowAssignment", b =>

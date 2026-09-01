@@ -26,6 +26,10 @@ public sealed class ProductTagAssignment : BaseAuditableEntity
     /// <summary>The tag it carries.</summary>
     public Guid TagId { get; private init; }
 
+    /// <summary>The tag applied, when one is loaded.</summary>
+    /// <remarks>For the read side only. No invariant depends on this being loaded.</remarks>
+    public ProductTag? Tag { get; private init; }
+
     /// <summary>
     /// The tag's axis, denormalized so filtering by axis needs no join through the tag.
     /// </summary>

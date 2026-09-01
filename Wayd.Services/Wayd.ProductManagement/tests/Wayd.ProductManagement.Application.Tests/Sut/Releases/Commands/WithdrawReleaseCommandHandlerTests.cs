@@ -29,7 +29,7 @@ public sealed class WithdrawReleaseCommandHandlerTests : ProductCommandTestBase
     }
 
     private WithdrawReleaseCommandHandler CreateSut() =>
-        new(DbContext, _statusResolver.Object, CurrentUser.Object, Logger<WithdrawReleaseCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, _statusResolver.Object, CurrentUser.Object, CurrentPrincipal.Object, Logger<WithdrawReleaseCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
     public async Task Handle_ShouldWithdrawTheRelease()

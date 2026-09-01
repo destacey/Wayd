@@ -6414,6 +6414,74 @@ export class DeploymentsClient {
     }
 
     /**
+     * Get a deployment's status change history.
+     */
+    getStatusHistory(id: string, cancelToken?: CancelToken): Promise<StatusTransitionDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/deployments/{id}/status-history";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetStatusHistory(_response);
+        });
+    }
+
+    protected processGetStatusHistory(response: AxiosResponse): Promise<StatusTransitionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<StatusTransitionDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<StatusTransitionDto[]>(null as any);
+    }
+
+    /**
      * Record that a deployment reached its environment.
      */
     succeed(id: string, request: SucceedDeploymentRequest, cancelToken?: CancelToken): Promise<void> {
@@ -6801,6 +6869,74 @@ export class ProductsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<ProductDto>(null as any);
+    }
+
+    /**
+     * Get a product's status change history.
+     */
+    getStatusHistory(idOrKey: string, cancelToken?: CancelToken): Promise<StatusTransitionDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/products/{idOrKey}/status-history";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetStatusHistory(_response);
+        });
+    }
+
+    protected processGetStatusHistory(response: AxiosResponse): Promise<StatusTransitionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<StatusTransitionDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<StatusTransitionDto[]>(null as any);
     }
 
     /**
@@ -8440,6 +8576,74 @@ export class ReleasePackagesClient {
     }
 
     /**
+     * Get a release package's status change history.
+     */
+    getStatusHistory(id: string, cancelToken?: CancelToken): Promise<StatusTransitionDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/release-packages/{id}/status-history";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetStatusHistory(_response);
+        });
+    }
+
+    protected processGetStatusHistory(response: AxiosResponse): Promise<StatusTransitionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<StatusTransitionDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<StatusTransitionDto[]>(null as any);
+    }
+
+    /**
      * Replace a package's manifest.
      */
     setManifest(id: string, request: SetReleasePackageManifestRequest, cancelToken?: CancelToken): Promise<void> {
@@ -8775,11 +8979,11 @@ export class ReleasesClient {
     /**
      * Get release details.
      */
-    getRelease(id: string, cancelToken?: CancelToken): Promise<ReleaseDto> {
-        let url_ = this.baseUrl + "/api/product-management/releases/{id}";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    getRelease(idOrKey: string, cancelToken?: CancelToken): Promise<ReleaseDto> {
+        let url_ = this.baseUrl + "/api/product-management/releases/{idOrKey}";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -8831,6 +9035,74 @@ export class ReleasesClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<ReleaseDto>(null as any);
+    }
+
+    /**
+     * Get a release's status change history.
+     */
+    getStatusHistory(idOrKey: string, cancelToken?: CancelToken): Promise<StatusTransitionDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/releases/{idOrKey}/status-history";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetStatusHistory(_response);
+        });
+    }
+
+    protected processGetStatusHistory(response: AxiosResponse): Promise<StatusTransitionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<StatusTransitionDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<StatusTransitionDto[]>(null as any);
     }
 
     /**
@@ -8935,6 +9207,67 @@ export class ReleasesClient {
     }
 
     protected processMoveTargetDate(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Correct a release's recorded cut and released dates.
+     */
+    correctDates(id: string, request: CorrectReleaseDatesRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/releases/{id}/dates";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCorrectDates(_response);
+        });
+    }
+
+    protected processCorrectDates(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -38901,6 +39234,32 @@ export enum ProductStatusAlias {
     RolledBack = "RolledBack",
 }
 
+export interface StatusTransitionDto {
+    id: string;
+    sequence: number;
+    fromStatus?: FrozenStatusDto | undefined;
+    toStatus: StatusNavigationDto;
+    workflowId: string;
+    actorKind: SimpleNavigationDto;
+    changedBy?: NavigationDto | undefined;
+    changedByUser?: UserNavigationDto | undefined;
+    changedBySystem: boolean;
+    changedOn: Date;
+    reason?: string | undefined;
+}
+
+export interface FrozenStatusDto {
+    id: string;
+    name: string;
+    category: StatusCategory;
+}
+
+export interface UserNavigationDto {
+    id: string;
+    userName: string;
+    name?: string | undefined;
+}
+
 /** Records that a release or package started reaching an environment. */
 export interface StartDeploymentRequest {
     /** The release deployed, when this deployment carries a single release. */
@@ -39247,6 +39606,16 @@ export interface UpdateReleaseRequest {
 export interface MoveReleaseTargetDateRequest {
     /** The new target date, or null to clear it. */
     targetDate?: Date | undefined;
+}
+
+/** Corrects a release's recorded cut and released dates. */
+export interface CorrectReleaseDatesRequest {
+    /** The corrected cut date, or null if the release has not been cut. A release that has been cut
+cannot have this cleared, and one that has not cannot have it added — cutting is its own action. */
+    cutDate?: Date | undefined;
+    /** The corrected released date, or null if the release has not shipped. Subject to the same rule
+as CutDate: a correction cannot introduce or remove the date, only fix it. */
+    releasedDate?: Date | undefined;
 }
 
 /** Freezes scope and marks a release ready to ship. */
@@ -40944,12 +41313,6 @@ export interface PokerSessionListDto {
     status: string;
     facilitator?: UserNavigationDto | undefined;
     roundCount: number;
-}
-
-export interface UserNavigationDto {
-    id: string;
-    userName: string;
-    name?: string | undefined;
 }
 
 export enum PokerSessionStatus {

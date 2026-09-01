@@ -30,6 +30,7 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, IDisp
     private readonly List<StatusWorkflow> _statusWorkflows = [];
     private readonly List<WorkflowAssignment> _workflowAssignments = [];
     private readonly List<WorkflowAliasName> _workflowAliasNames = [];
+    private readonly List<StatusTransition> _statusTransitions = [];
 
     // DbSet properties
     public DbSet<Employee> Employees => _employees.AsDbSet();
@@ -43,6 +44,7 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, IDisp
     public DbSet<StatusWorkflow> StatusWorkflows => _statusWorkflows.AsDbSet();
     public DbSet<WorkflowAssignment> WorkflowAssignments => _workflowAssignments.AsDbSet();
     public DbSet<WorkflowAliasName> WorkflowAliasNames => _workflowAliasNames.AsDbSet();
+    public DbSet<StatusTransition> StatusTransitions => _statusTransitions.AsDbSet();
 
     // ChangeTracker - we can't create a real one, so we return null and the handler uses defensive coding (_dbContext.ChangeTracker?.Clear())
     public ChangeTracker ChangeTracker => null!;
@@ -84,6 +86,15 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, IDisp
     public void AddStatusWorkflow(StatusWorkflow workflow) => _statusWorkflows.Add(workflow);
     public void AddStatusWorkflows(IEnumerable<StatusWorkflow> workflows) => _statusWorkflows.AddRange(workflows);
     public void AddWorkflowAssignment(WorkflowAssignment assignment) => _workflowAssignments.Add(assignment);
+
+    // Added directly, because a transition appended by ApplyStatus only reaches the set through
+    // BaseDbContext's drain on save, which this fake does not run.
+    public void AddStatusTransition(StatusTransition transition) => _statusTransitions.Add(transition);
+    public void AddStatusTransitions(IEnumerable<StatusTransition> transitions) => _statusTransitions.AddRange(transitions);
+
+    public void AddWaydUser(User user) => _waydUsers.Add(user);
+
+    public void AddEmployee(Employee employee) => _employees.Add(employee);
 
     #endregion Helper Methods for Test Setup
 

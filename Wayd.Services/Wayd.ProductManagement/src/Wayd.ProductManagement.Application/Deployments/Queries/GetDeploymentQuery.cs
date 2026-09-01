@@ -14,12 +14,9 @@ public sealed class GetDeploymentQueryHandler(IProductManagementDbContext produc
 
     public async Task<DeploymentDto?> Handle(GetDeploymentQuery query, CancellationToken cancellationToken)
     {
-        var deployments = _productManagementDbContext.Deployments
-            .AsNoTracking()
-            .Where(d => d.Id == query.Id);
-
-        return await GetDeploymentsQueryHandler
-            .Project(deployments, _productManagementDbContext)
+        return await _productManagementDbContext.Deployments
+            .Where(d => d.Id == query.Id)
+            .ProjectToType<DeploymentDto>(DeploymentDto.CreateTypeAdapterConfig())
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

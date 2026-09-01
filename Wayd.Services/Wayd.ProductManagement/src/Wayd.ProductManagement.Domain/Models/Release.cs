@@ -44,6 +44,15 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
     public Guid ProductId { get; private init; }
 
     /// <summary>
+    /// The product this release was cut against, when one is loaded.
+    /// </summary>
+    /// <remarks>
+    /// For the read side only. Domain methods take the product name they need as an argument, so no
+    /// invariant depends on this being loaded.
+    /// </remarks>
+    public Product? Product { get; private init; }
+
+    /// <summary>
     /// The version as the organization writes it — <c>4.8.2</c>, <c>2026.08</c>, <c>v3-beta</c>,
     /// a build number, a git tag.
     /// </summary>
@@ -102,7 +111,16 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
     /// <summary>
     /// The package this release shipped inside, or <c>null</c> when it shipped on its own.
     /// </summary>
+    /// <remarks>
+    /// Nothing writes this yet: <see cref="SetPackage"/> is the only path to it and has no caller, so
+    /// in practice it is always null and a package's membership is read from its manifest instead.
+    /// </remarks>
     public Guid? PackageId { get; private set; }
+
+    /// <summary>
+    /// The package this release shipped inside, when one is loaded.
+    /// </summary>
+    public ReleasePackage? Package { get; private init; }
 
 
     /// <summary>
@@ -216,6 +234,72 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
         ApplyStatus(releasedStatus, actor, timestamp);
 
         AddDomainEvent(new ReleaseReleasedEvent(Id, Key, ProductId, productName, Version, releasedDate, StatusId, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Corrects the recorded cut and released dates without moving the release's status.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="Cut"/> and <see cref="MarkReleased"/> assert that something happened, so each sets a
+    /// date and applies a status together and refuses to run twice. Neither can fix a date entered
+    /// wrongly. Without this, the only route to a corrected released date is to withdraw the release
+    /// and release it again, which writes two status transitions that never happened into an
+    /// append-only history.
+    /// </para>
+    /// <para>
+    /// A correction says the recorded date was wrong, not that the release moved, so status is left
+    /// alone. A date can only be corrected, never introduced: supplying one the release does not have
+    /// would be a lifecycle step in disguise, and those belong to <see cref="Cut"/> and
+    /// <see cref="MarkReleased"/>. Clearing one is refused for the same reason — a release cannot
+    /// become un-cut.
+    /// </para>
+    /// </remarks>
+    public Result CorrectDates(LocalDate? cutDate, LocalDate? releasedDate, string productName, EventActor actor, Instant timestamp)
+    {
+        if (StatusCategory == StatusCategory.Removed)
+        {
+            return Result.Failure("A withdrawn release cannot have its dates corrected.");
+        }
+
+        if (CutDate is null && ReleasedDate is null)
+        {
+            return Result.Failure("This release has no recorded dates to correct.");
+        }
+
+        if (cutDate is null != CutDate is null)
+        {
+            return Result.Failure(CutDate is null
+                ? "This release has not been cut, so a cut date cannot be corrected onto it."
+                : "A release that has been cut cannot have its cut date removed.");
+        }
+
+        if (releasedDate is null != ReleasedDate is null)
+        {
+            return Result.Failure(ReleasedDate is null
+                ? "This release has not been released, so a released date cannot be corrected onto it."
+                : "A released release cannot have its released date removed.");
+        }
+
+        if (cutDate is not null && releasedDate is not null && releasedDate < cutDate)
+        {
+            return Result.Failure("The released date cannot be before the cut date.");
+        }
+
+        if (cutDate == CutDate && releasedDate == ReleasedDate)
+        {
+            return Result.Success();
+        }
+
+        var fromCutDate = CutDate;
+        var fromReleasedDate = ReleasedDate;
+        CutDate = cutDate;
+        ReleasedDate = releasedDate;
+
+        AddDomainEvent(new ReleaseDatesCorrectedEvent(
+            Id, Key, ProductId, productName, Version, fromCutDate, cutDate, fromReleasedDate, releasedDate, actor, timestamp));
 
         return Result.Success();
     }

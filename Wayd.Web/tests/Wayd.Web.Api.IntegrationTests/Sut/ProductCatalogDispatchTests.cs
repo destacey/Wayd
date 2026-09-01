@@ -172,6 +172,43 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
+    public async Task Dispatch_GetProductTagCategoriesQuery_ReturnsTagsInTheirConfiguredOrder()
+    {
+        // Arrange — added in an order that alphabetical sorting would reverse, so a projection that
+        // dropped the sort or fell back to the category's Tags navigation reads differently. The
+        // navigation cannot serve this: its getter applies the sort in the property body, which EF
+        // projects around rather than translates.
+        _ = _factory.CreateClient();
+        using var scope = _factory.Services.CreateScope();
+        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
+
+        var category = await dispatcher.Send(
+            new CreateProductTagCategoryCommand(Unique("Axis"), null, true, 9),
+            TestContext.Current.CancellationToken);
+        Assert.True(category.IsSuccess, category.IsFailure ? category.Error : null);
+
+        foreach (var name in new[] { "zulu", "alpha" })
+        {
+            var added = await dispatcher.Send(
+                new AddProductTagCommand(category.Value.Id, name, null),
+                TestContext.Current.CancellationToken);
+            Assert.True(added.IsSuccess, added.IsFailure ? added.Error : null);
+        }
+
+        // Act
+        var categories = await dispatcher.Send(
+            new GetProductTagCategoriesQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var projected = Assert.Single(categories, c => c.Id == category.Value.Id);
+        Assert.Equal(["zulu", "alpha"], projected.Tags.Select(t => t.Name));
+
+        // Cleanup
+        await dispatcher.Send(
+            new DeleteProductTagCategoryCommand(category.Value.Id), TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
     public async Task Dispatch_AddProductTagCommand_RefusesADuplicateOnTheSameAxis()
     {
         // Arrange

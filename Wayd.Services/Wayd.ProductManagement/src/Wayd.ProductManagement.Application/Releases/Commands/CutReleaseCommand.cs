@@ -9,7 +9,7 @@ namespace Wayd.ProductManagement.Application.Releases.Commands;
 /// <remarks>
 /// Cutting is one-way: a release already cut, released or withdrawn refuses it.
 /// </remarks>
-public sealed record CutReleaseCommand(Guid Id, LocalDate CutDate) : ICommand;
+public sealed record CutReleaseCommand(Guid Id, LocalDate CutDate) : ICommand, IRequireLinkedEmployee;
 
 public sealed class CutReleaseCommandValidator : AbstractValidator<CutReleaseCommand>
 {
@@ -24,6 +24,7 @@ public sealed class CutReleaseCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     IStatusResolver statusResolver,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<CutReleaseCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<CutReleaseCommand>
@@ -33,6 +34,7 @@ public sealed class CutReleaseCommandHandler(
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<CutReleaseCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -69,11 +71,16 @@ public sealed class CutReleaseCommandHandler(
                 .Select(p => p.Name)
                 .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
 
+            // Read per scope rather than from the claim snapshot, which a personal access token
+            // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
+            // one would misattribute the change permanently.
+            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
             var result = release.Cut(
                 request.CutDate,
                 status.Value,
                 productName,
-                EventActor.User(_currentUser.GetUserId()),
+                EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);
 
             if (result.IsFailure)

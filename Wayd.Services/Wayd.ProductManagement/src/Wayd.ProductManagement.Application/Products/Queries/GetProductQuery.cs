@@ -29,12 +29,10 @@ public sealed class GetProductQueryHandler(IProductManagementDbContext productMa
 
     public async Task<ProductDto?> Handle(GetProductQuery query, CancellationToken cancellationToken)
     {
-        var products = _productManagementDbContext.Products
-            .AsNoTracking()
-            .Where(query.IdOrKeyFilter);
-
-        return await GetProductsQueryHandler
-            .Project(products, _productManagementDbContext)
+        return await _productManagementDbContext.Products
+            .Where(query.IdOrKeyFilter)
+            .ProjectToType<ProductDto>(
+                ProductDto.CreateTypeAdapterConfig(_productManagementDbContext))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

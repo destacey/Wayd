@@ -29,7 +29,7 @@ public sealed class CutReleaseCommandHandlerTests : ProductCommandTestBase
     }
 
     private CutReleaseCommandHandler CreateSut() =>
-        new(DbContext, _statusResolver.Object, CurrentUser.Object, Logger<CutReleaseCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, _statusResolver.Object, CurrentUser.Object, CurrentPrincipal.Object, Logger<CutReleaseCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
     public async Task Handle_ShouldCutTheRelease()

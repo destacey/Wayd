@@ -89,6 +89,25 @@ const buildSettingsMenuItems = (
       ]
     : []),
 
+  ...(options.productManagement
+    ? [
+        restrictedMenuSection(
+          'Product Management',
+          'product-management',
+          undefined,
+          undefined,
+          [
+            restrictedPermissionMenuItem(
+              'Permissions.ProductTagCategories.View',
+              'Product Tags',
+              'product-management.product-tags',
+              '/settings/product-management/product-tags',
+            ),
+          ],
+        ),
+      ]
+    : []),
+
   restrictedMenuSection('PPM', 'ppm', undefined, undefined, [
     restrictedPermissionMenuItem(
       'Permissions.ExpenditureCategories.View',

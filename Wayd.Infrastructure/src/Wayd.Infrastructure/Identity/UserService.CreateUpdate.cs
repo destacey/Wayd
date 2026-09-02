@@ -24,7 +24,9 @@ internal partial class UserService
     /// path for users backfilled before tenant was persisted.
     /// If still no match and a user has a staged tenant migration whose target matches
     /// the token's tenant, that user's active identity is rebound to (tid, oid) inside
-    /// a transaction (see <see cref="TryApplyPendingTenantMigration"/>).
+    /// a transaction (see <see cref="TryApplyPendingTenantMigration"/>). Failing that,
+    /// a user (local or on another provider) may have a staged <b>provider</b> migration
+    /// targeting Entra, rebound the same way (see <see cref="TryApplyPendingProviderMigration"/>).
     /// If still no match, the user is created and a new UserIdentity row is inserted —
     /// unless an existing account matches on display name or UPN/email, which is denied
     /// rather than linked. Those are mutable directory attributes and are not proof of
@@ -49,7 +51,14 @@ internal partial class UserService
         // The signed-in-token identifier we trust for matching a staged migration.
         // Null means no migration rebind will be attempted. See ResolveEntraUpn for
         // why this isn't a single claim lookup.
-        string? upn = ResolveEntraUpn(principal);
+        //
+        // An explicitly unverified address is suppressed here rather than at the point
+        // of use: both staged-migration rebinds match on this value, and both run
+        // *before* the email_verified deny in CreateOrUpdateFromPrincipalAsync, so
+        // leaving it set would let an unverified token adopt a staged migration without
+        // ever reaching that deny. Absent email_verified is accepted, mirroring
+        // ResolveFromGenericOidcPrincipalAsync.
+        string? upn = IsEmailExplicitlyUnverified(principal) ? null : ResolveEntraUpn(principal);
 
         // Diagnostic for the tenant-migration failure: trace the resolved key inputs
         // and which identifier claims are present before identity resolution runs.
@@ -119,6 +128,17 @@ internal partial class UserService
         ?? principal.FindFirstValue("preferred_username")
         ?? principal.FindFirstValue("email")
         ?? principal.FindFirstValue(ClaimTypes.Email);
+
+    /// <summary>
+    /// True only when the token carries <c>email_verified=false</c>. Some providers issue
+    /// tokens with an address the user has not confirmed; treating one as a trusted account
+    /// binding would let an attacker register with someone else's email and take over an
+    /// account or a staged migration. An absent claim is <b>not</b> unverified — well-behaved
+    /// providers that always verify simply omit it.
+    /// </summary>
+    private static bool IsEmailExplicitlyUnverified(ClaimsPrincipal principal) =>
+        principal.FindFirstValue("email_verified") is { } claim
+        && claim.Equals("false", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Resolves the provider's <see cref="RegistrationPolicy"/> from the registry.
@@ -212,9 +232,14 @@ internal partial class UserService
 
         // No active identity for (tid, oid) and no NULL-tenant backfill row to upgrade.
         // Last resort before falling through to create: an admin may have staged a
-        // tenant migration for this user, in which case we rebind their existing
-        // identity to (tid, oid) instead of creating a duplicate user.
-        return await TryApplyPendingTenantMigration(tenantId, objectId, upn);
+        // tenant migration for this user (Entra → Entra, moving tenants), in which
+        // case we rebind their existing identity to (tid, oid). Failing that, an
+        // admin may instead have staged a *provider* migration onto Entra (e.g.
+        // Wayd-local → Entra), which TryApplyPendingProviderMigration handles —
+        // without this call a migration staged onto Entra was write-only state that
+        // no sign-in path ever consulted.
+        return await TryApplyPendingTenantMigration(tenantId, objectId, upn)
+            ?? await TryApplyPendingProviderMigration(LoginProviders.MicrosoftEntraId, tenantId, objectId, upn);
     }
 
     /// <summary>
@@ -340,15 +365,8 @@ internal partial class UserService
         var email = principal.FindFirstValue(ClaimTypes.Email)
             ?? principal.FindFirstValue("email");
 
-        // Reject an explicitly unverified email — some providers issue tokens
-        // with email_verified=false for addresses the user hasn't confirmed.
-        // Treating such a claim as a trusted account binding would let an attacker
-        // register with someone else's email and take over any pending migration
-        // staged for that address. Absent email_verified is accepted (well-behaved
-        // providers that always verify simply omit the claim).
-        var emailVerifiedClaim = principal.FindFirstValue("email_verified");
-        if (emailVerifiedClaim is not null &&
-            emailVerifiedClaim.Equals("false", StringComparison.OrdinalIgnoreCase))
+        // Reject an explicitly unverified email before it can match a staged migration.
+        if (IsEmailExplicitlyUnverified(principal))
         {
             _logger.LogWarning(
                 "Provider migration skipped for provider {Provider}: email_verified=false on token.",
@@ -406,12 +424,16 @@ internal partial class UserService
 
         // Match on email (case-insensitive) to scope the lookup. The admin staged
         // the migration on a specific user; email is the cross-provider identifier
-        // we can reliably compare at login time.
+        // we can reliably compare at login time. No LoginProvider filter: a local
+        // (Wayd) account is exactly the primary staged-migration scenario —
+        // StageProviderMigration accepts local users and the docs advertise
+        // Wayd→OIDC, so excluding them here left every such migration permanently
+        // stuck (see EnsureEntraIdentityRowAsync, which — deliberately — refuses to
+        // link a local account, so this rebind is the only path that can do it).
         var normalized = email.ToUpperInvariant();
         var candidate = await _userManager.Users
             .FirstOrDefaultAsync(u =>
                 u.PendingMigrationProviderId == providerName &&
-                u.LoginProvider != LoginProviders.Wayd &&
                 (u.NormalizedUserName == normalized || u.NormalizedEmail == normalized));
 
         if (candidate is null)
@@ -563,10 +585,9 @@ internal partial class UserService
         // Reject an explicitly unverified email before it is used to match any
         // existing account, mirroring the GenericOidc provider-migration path. A
         // token-supplied address the directory has not confirmed is not evidence of
-        // who the presenter is.
-        var emailVerifiedClaim = principal.FindFirstValue("email_verified");
-        var emailIsUnverified = emailVerifiedClaim is not null
-            && emailVerifiedClaim.Equals("false", StringComparison.OrdinalIgnoreCase);
+        // who the presenter is. GetOrCreateFromPrincipalAsync has already suppressed
+        // the same token's UPN, so neither staged-migration rebind saw it either.
+        var emailIsUnverified = IsEmailExplicitlyUnverified(principal);
 
         // A match here is on display name or UPN/email — both mutable Entra directory
         // attributes, neither of which proves ownership of the Wayd account. It scopes

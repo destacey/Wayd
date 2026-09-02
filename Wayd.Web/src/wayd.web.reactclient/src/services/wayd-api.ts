@@ -7838,6 +7838,71 @@ export class ProductTagCategoriesClient {
     }
 
     /**
+     * Put the tag categories in a given order.
+     */
+    reorder(request: ReorderProductTagCategoriesRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/product-tag-categories/reorder";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processReorder(_response);
+        });
+    }
+
+    protected processReorder(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Add a tag to a category.
      */
     addTag(id: string, request: AddProductTagRequest, cancelToken?: CancelToken): Promise<string> {
@@ -39455,7 +39520,6 @@ export interface ProductTagOptionDto {
     id: string;
     name: string;
     description?: string | undefined;
-    order: number;
     isActive: boolean;
     productCount: number;
 }
@@ -39469,8 +39533,6 @@ export interface CreateProductTagCategoryRequest {
 cross-platform app genuinely targets both iOS and Android. Fixed once set:
 narrowing it later would leave products holding more tags than the axis permits. */
     allowsMany: boolean;
-    /** Display position when presenting the axes. Presentation only. */
-    order: number;
 }
 
 /** Edits a tag axis. */
@@ -39481,8 +39543,6 @@ export interface UpdateProductTagCategoryRequest {
     name: string;
     /** What the axis is for. Cleared when omitted. */
     description?: string | undefined;
-    /** Display position when presenting the axes. Presentation only. */
-    order: number;
 }
 
 /** Takes a tag axis out of use, or puts it back. Products already tagged keep their tags. */
@@ -39491,6 +39551,13 @@ export interface SetProductTagCategoryActiveRequest {
     id: string;
     /** Whether products can still be tagged along this axis. */
     isActive: boolean;
+}
+
+/** Puts the tag axes in a given order. */
+export interface ReorderProductTagCategoriesRequest {
+    /** Every tag category, in the order they should be presented. Must name the whole set: a partial
+list would leave the categories it omits at stale positions. */
+    orderedCategoryIds: string[];
 }
 
 /** Adds a tag to an axis. */

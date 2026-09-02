@@ -2,8 +2,9 @@ import { render, screen, fireEvent, within } from '@testing-library/react'
 import SettingsMenu from './settings-menu'
 
 const mockHasClaim = jest.fn()
-const mockPlanningPoker = jest.fn()
-const mockProductManagement = jest.fn()
+/** Flag name → enabled. The rail reads more than one flag, so the mock keys on
+ *  the name rather than answering the same for all of them. */
+const mockFlags: Record<string, boolean> = {}
 
 jest.mock('@/src/components/contexts/auth', () => ({
   __esModule: true,
@@ -16,12 +17,7 @@ jest.mock('@/src/hooks', () => {
   const actual = jest.requireActual('@/src/hooks')
   return {
     ...actual,
-    useFeatureFlag: (flag: string) => ({
-      isEnabled:
-        flag === 'product-management'
-          ? mockProductManagement()
-          : mockPlanningPoker(),
-    }),
+    useFeatureFlag: (name: string) => ({ isEnabled: mockFlags[name] ?? false }),
   }
 })
 
@@ -43,35 +39,39 @@ const allowOnly = (...granted: string[]) =>
     granted.includes(value),
   )
 
+/** The rail's groups when nothing is filtered or gated. */
+const allGroups = [
+  'Access',
+  'Organization',
+  'Planning',
+  'Product Management',
+  'PPM',
+  'Delivery',
+  'Work Management',
+  'System',
+]
+
 describe('SettingsMenu', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     allowAll()
-    mockPlanningPoker.mockReturnValue(true)
-    mockProductManagement.mockReturnValue(true)
+    mockFlags['planning-poker'] = true
+    mockFlags['product-management'] = true
   })
 
   describe('grouping', () => {
-    it('renders the seven groups in order', () => {
+    it('renders the groups in order', () => {
       // Arrange / Act — most-visited first, System last
       renderMenu()
 
       // Assert
-      expect(groups()).toEqual([
-        'Access',
-        'Organization',
-        'Planning',
-        'PPM',
-        'Delivery',
-        'Work Management',
-        'System',
-      ])
+      expect(groups()).toEqual(allGroups)
     })
 
     it('hides Delivery when Product Management is off', () => {
       // Arrange — the whole area is unreachable behind the flag, so a heading over an unopenable
       // page would be worse than no heading.
-      mockProductManagement.mockReturnValue(false)
+      mockFlags['product-management'] = false
 
       // Act
       renderMenu()
@@ -101,13 +101,25 @@ describe('SettingsMenu', () => {
     it('hides Planning when the planning poker flag is off', () => {
       // Arrange — the group holds only estimation scales, so the flag takes
       // the whole group with it.
-      mockPlanningPoker.mockReturnValue(false)
+      mockFlags['planning-poker'] = false
 
       // Act
       renderMenu()
 
       // Assert
       expect(groups()).not.toContain('Planning')
+    })
+
+    it('hides Product Management when its flag is off', () => {
+      // Arrange — the group holds only product tags, so the flag takes the
+      // whole group with it.
+      mockFlags['product-management'] = false
+
+      // Act
+      renderMenu()
+
+      // Assert
+      expect(groups()).not.toContain('Product Management')
     })
 
     it('drops a group the viewer can see nothing in', () => {
@@ -215,7 +227,9 @@ describe('SettingsMenu', () => {
       fireEvent.change(input, { target: { value: '' } })
 
       // Assert
-      expect(groups()).toHaveLength(7)
+      // Every group is back, so compare against the unfiltered rail rather
+      // than a literal count that goes stale each time a group is added.
+      expect(groups()).toEqual(allGroups)
     })
   })
 

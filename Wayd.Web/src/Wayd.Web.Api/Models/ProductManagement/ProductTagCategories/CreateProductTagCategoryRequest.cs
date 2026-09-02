@@ -2,6 +2,9 @@
 
 namespace Wayd.Web.Api.Models.ProductManagement.ProductTagCategories;
 
+/// <remarks>
+/// A new axis lands at the end of the list — its position is set by reordering, not on creation.
+/// </remarks>
 public sealed record CreateProductTagCategoryRequest
 {
     /// <summary>
@@ -21,13 +24,8 @@ public sealed record CreateProductTagCategoryRequest
     /// </summary>
     public bool AllowsMany { get; set; }
 
-    /// <summary>
-    /// Display position when presenting the axes. Presentation only.
-    /// </summary>
-    public int Order { get; set; }
-
     public CreateProductTagCategoryCommand ToCreateProductTagCategoryCommand() =>
-        new(Name, Description, AllowsMany, Order);
+        new(Name, Description, AllowsMany);
 }
 
 public sealed class CreateProductTagCategoryRequestValidator : CustomValidator<CreateProductTagCategoryRequest>
@@ -40,8 +38,5 @@ public sealed class CreateProductTagCategoryRequestValidator : CustomValidator<C
 
         RuleFor(c => c.Description)
             .MaximumLength(512);
-
-        RuleFor(c => c.Order)
-            .GreaterThanOrEqualTo(0);
     }
 }

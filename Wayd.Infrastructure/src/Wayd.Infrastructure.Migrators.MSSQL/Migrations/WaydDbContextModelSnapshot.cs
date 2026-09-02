@@ -3640,9 +3640,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
-                    b.Property<int>("Order")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("SystemCreated")
                         .HasColumnType("datetime2");
 

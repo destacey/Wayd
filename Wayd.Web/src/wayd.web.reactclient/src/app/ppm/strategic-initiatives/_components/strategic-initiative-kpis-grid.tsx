@@ -1,20 +1,19 @@
 'use client'
 
-import { WaydTooltip } from '@/src/components/common'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { WaydStatisticNumber } from '@/src/components/common/metrics'
 import {
   WaydGrid,
-  useGridDragHandle,
+  DragHandleCell,
   type GridColumnContext,
   type RowReorderEvent,
 } from '@/src/components/common/wayd-grid'
 import { StrategicInitiativeKpiListDto } from '@/src/services/wayd-api'
 import { useReorderStrategicInitiativeKpisMutation } from '@/src/store/features/ppm/strategic-initiatives-api'
 import { isApiError } from '@/src/utils'
-import { HolderOutlined, MoreOutlined } from '@ant-design/icons'
+import { MoreOutlined } from '@ant-design/icons'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
-import { Button, Dropdown, Flex, MenuProps, theme } from 'antd'
+import { Button, Dropdown, Flex, MenuProps } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { FC, useState, useMemo } from 'react'
 import {
@@ -82,39 +81,6 @@ const getRowMenuItems = (props: RowMenuProps): ItemType[] => {
       onClick: () => props.onAddMeasurementMenuClicked(props.kpiId),
     },
   ]
-}
-
-// Disabled (with tooltip) while sort/filter/search make the order ambiguous.
-const DragHandleCell: FC<{ isDragEnabled: boolean }> = ({ isDragEnabled }) => {
-  const { token } = theme.useToken()
-  const { listeners, attributes } = useGridDragHandle()
-
-  return (
-    <WaydTooltip
-      title={
-        isDragEnabled
-          ? undefined
-          : 'Clear sorting, filters, and search to reorder KPIs.'
-      }
-    >
-      <span
-        {...(isDragEnabled ? { ...listeners, ...attributes } : {})}
-        style={{
-          cursor: isDragEnabled ? 'grab' : 'not-allowed',
-          color: isDragEnabled
-            ? token.colorTextTertiary
-            : token.colorTextDisabled,
-          display: 'inline-flex',
-          padding: '0 4px',
-          touchAction: 'none',
-        }}
-        aria-label="Drag to reorder"
-        aria-disabled={!isDragEnabled}
-      >
-        <HolderOutlined />
-      </span>
-    </WaydTooltip>
-  )
 }
 
 const StrategicInitiativeKpisGrid: FC<StrategicInitiativeKpisGridProps> = (
@@ -231,7 +197,10 @@ const StrategicInitiativeKpisGrid: FC<StrategicInitiativeKpisGridProps> = (
             return (
               <Flex align="center" gap={2}>
                 {canReorder && (
-                  <DragHandleCell isDragEnabled={context.isDragEnabled} />
+                  <DragHandleCell
+                    isDragEnabled={context.isDragEnabled}
+                    disabledTooltip="Clear sorting, filters, and search to reorder KPIs."
+                  />
                 )}
                 {menuItems.length > 0 && (
                   <Dropdown menu={{ items: menuItems }} trigger={['click']}>

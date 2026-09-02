@@ -5937,6 +5937,58 @@
         ]
       }
     },
+    "/api/product-management/product-tag-categories/reorder": {
+      "put": {
+        "tags": [
+          "ProductTagCategories"
+        ],
+        "summary": "Put the tag categories in a given order.",
+        "description": "Takes the whole set, not a subset.",
+        "operationId": "ProductTagCategories_Reorder",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderProductTagCategoriesRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/product-management/product-tag-categories/{id}/tags": {
       "post": {
         "tags": [
@@ -36263,7 +36315,6 @@
         "required": [
           "id",
           "name",
-          "order",
           "isActive",
           "productCount"
         ],
@@ -36281,10 +36332,6 @@
             "type": "string",
             "nullable": true
           },
-          "order": {
-            "type": "integer",
-            "format": "int32"
-          },
           "isActive": {
             "type": "boolean"
           },
@@ -36299,8 +36346,7 @@
         "additionalProperties": false,
         "required": [
           "name",
-          "allowsMany",
-          "order"
+          "allowsMany"
         ],
         "properties": {
           "name": {
@@ -36320,12 +36366,6 @@
           "allowsMany": {
             "type": "boolean",
             "description": "Whether a product can carry several tags from this axis. True suits Platform, where a\ncross-platform app genuinely targets both iOS and Android. Fixed once set:\nnarrowing it later would leave products holding more tags than the axis permits."
-          },
-          "order": {
-            "type": "integer",
-            "description": "Display position when presenting the axes. Presentation only.",
-            "format": "int32",
-            "minimum": 0.0
           }
         }
       },
@@ -36335,8 +36375,7 @@
         "additionalProperties": false,
         "required": [
           "id",
-          "name",
-          "order"
+          "name"
         ],
         "properties": {
           "id": {
@@ -36360,12 +36399,6 @@
             "maxLength": 512,
             "minLength": 0,
             "nullable": true
-          },
-          "order": {
-            "type": "integer",
-            "description": "Display position when presenting the axes. Presentation only.",
-            "format": "int32",
-            "minimum": 0.0
           }
         }
       },
@@ -36389,6 +36422,28 @@
           "isActive": {
             "type": "boolean",
             "description": "Whether products can still be tagged along this axis."
+          }
+        }
+      },
+      "ReorderProductTagCategoriesRequest": {
+        "type": "object",
+        "description": "Puts the tag axes in a given order.",
+        "additionalProperties": false,
+        "required": [
+          "orderedCategoryIds"
+        ],
+        "properties": {
+          "orderedCategoryIds": {
+            "type": "array",
+            "description": "Every tag category, in the order they should be presented. Must name the whole set: a partial\nlist would leave the categories it omits at stale positions.",
+            "minLength": 1,
+            "nullable": false,
+            "items": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            }
           }
         }
       },

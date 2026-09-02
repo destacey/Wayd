@@ -7,7 +7,8 @@ namespace Wayd.Web.Api.Models.ProductManagement.ProductTagCategories;
 /// </summary>
 /// <remarks>
 /// <c>AllowsMany</c> is deliberately absent: narrowing an axis from many to one would leave products
-/// holding more tags than it permits, and nothing can choose which to drop.
+/// holding more tags than it permits, and nothing can choose which to drop. So is the axis's position,
+/// which is set by reordering the whole list.
 /// </remarks>
 public sealed record UpdateProductTagCategoryRequest
 {
@@ -26,13 +27,8 @@ public sealed record UpdateProductTagCategoryRequest
     /// </summary>
     public string? Description { get; set; }
 
-    /// <summary>
-    /// Display position when presenting the axes. Presentation only.
-    /// </summary>
-    public int Order { get; set; }
-
     public UpdateProductTagCategoryCommand ToUpdateProductTagCategoryCommand() =>
-        new(Id, Name, Description, Order);
+        new(Id, Name, Description);
 }
 
 public sealed class UpdateProductTagCategoryRequestValidator : CustomValidator<UpdateProductTagCategoryRequest>
@@ -48,8 +44,5 @@ public sealed class UpdateProductTagCategoryRequestValidator : CustomValidator<U
 
         RuleFor(c => c.Description)
             .MaximumLength(512);
-
-        RuleFor(c => c.Order)
-            .GreaterThanOrEqualTo(0);
     }
 }

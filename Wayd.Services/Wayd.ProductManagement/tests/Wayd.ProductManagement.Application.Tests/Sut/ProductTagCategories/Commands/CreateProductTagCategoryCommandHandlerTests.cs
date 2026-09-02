@@ -22,7 +22,7 @@ public sealed class CreateProductTagCategoryCommandHandlerTests : ProductCommand
 
         // Act
         var result = await sut.Handle(
-            new CreateProductTagCategoryCommand("Compliance", "Regulatory scope.", false, 2),
+            new CreateProductTagCategoryCommand("Compliance", "Regulatory scope.", false),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -41,7 +41,7 @@ public sealed class CreateProductTagCategoryCommandHandlerTests : ProductCommand
 
         // Act
         var result = await sut.Handle(
-            new CreateProductTagCategoryCommand("Platform", null, true, 1), TestContext.Current.CancellationToken);
+            new CreateProductTagCategoryCommand("Platform", null, true), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();

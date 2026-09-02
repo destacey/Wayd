@@ -12,11 +12,14 @@ namespace Wayd.ProductManagement.Application.ProductTagCategories.Commands;
 /// <strong>Fixed once set</strong> — narrowing it later would leave products holding more tags than the
 /// axis permits, and the domain has no rule for choosing which to drop.
 /// </param>
+/// <remarks>
+/// A new axis lands at the end of the list. Its position is not the caller's to choose — it is a
+/// statement about the whole list, made by reordering it.
+/// </remarks>
 public sealed record CreateProductTagCategoryCommand(
     string Name,
     string? Description,
-    bool AllowsMany,
-    int Order) : ICommand<ObjectIdAndKey>;
+    bool AllowsMany) : ICommand<ObjectIdAndKey>;
 
 public sealed class CreateProductTagCategoryCommandValidator : AbstractValidator<CreateProductTagCategoryCommand>
 {
@@ -28,9 +31,6 @@ public sealed class CreateProductTagCategoryCommandValidator : AbstractValidator
 
         RuleFor(c => c.Description)
             .MaximumLength(512);
-
-        RuleFor(c => c.Order)
-            .GreaterThanOrEqualTo(0);
     }
 }
 
@@ -56,7 +56,11 @@ public sealed class CreateProductTagCategoryCommandHandler(
                 return Result.Failure<ObjectIdAndKey>($"A tag category named '{name}' already exists.");
             }
 
-            var category = ProductTagCategory.Create(name, request.Description, request.AllowsMany, request.Order);
+            var order = await _productManagementDbContext.ProductTagCategories
+                .Select(c => (int?)c.Order)
+                .MaxAsync(cancellationToken) ?? 0;
+
+            var category = ProductTagCategory.Create(name, request.Description, request.AllowsMany, order + 1);
 
             await _productManagementDbContext.ProductTagCategories.AddAsync(category, cancellationToken);
             await _productManagementDbContext.SaveChangesAsync(cancellationToken);

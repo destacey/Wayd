@@ -7188,14 +7188,14 @@
         ]
       }
     },
-    "/api/product-management/releases/{id}/versions": {
+    "/api/product-management/releases/{id}/contents": {
       "put": {
         "tags": [
           "Releases"
         ],
-        "summary": "Set the versions a release carries directly.",
-        "description": "Whole-set replacement: a version left out is removed. A version already shipping inside one of this release's packages is refused, so that one shipment is announced once.",
-        "operationId": "Releases_SetVersions",
+        "summary": "Set what a release announces.",
+        "description": "Whole-set replacement of both routes at once: anything left out is removed, and both lists empty clears the release. A version shipping inside one of the supplied packages cannot also be carried directly, so that one shipment is announced once.",
+        "operationId": "Releases_SetContents",
         "parameters": [
           {
             "name": "id",
@@ -7215,63 +7215,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SetReleaseVersionsRequest"
-              }
-            }
-          },
-          "required": true,
-          "x-position": 2
-        },
-        "responses": {
-          "204": {
-            "description": ""
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKey": []
-          }
-        ]
-      }
-    },
-    "/api/product-management/releases/{id}/packages": {
-      "put": {
-        "tags": [
-          "Releases"
-        ],
-        "summary": "Set the packages a release shipped.",
-        "description": "Whole-set replacement: a package left out is removed. A package is refused if it ships a version this release already carries directly.",
-        "operationId": "Releases_SetPackages",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "guid",
-              "nullable": false,
-              "example": "00000000-0000-0000-0000-000000000000"
-            },
-            "x-position": 1
-          }
-        ],
-        "requestBody": {
-          "x-name": "request",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SetReleasePackagesRequest"
+                "$ref": "#/components/schemas/SetReleaseContentsRequest"
               }
             }
           },
@@ -36592,15 +36536,15 @@
       },
       "StartDeploymentRequest": {
         "type": "object",
-        "description": "Records that a release or package started reaching an environment.",
+        "description": "Records that a version or package started reaching an environment.",
         "additionalProperties": false,
         "required": [
           "environmentId"
         ],
         "properties": {
-          "releaseId": {
+          "versionId": {
             "type": "string",
-            "description": "The release deployed, when this deployment carries a single release.",
+            "description": "The version deployed, when this deployment carries a single artifact.",
             "format": "guid",
             "nullable": true,
             "example": "00000000-0000-0000-0000-000000000000"
@@ -36622,7 +36566,7 @@
           },
           "artifactId": {
             "type": "string",
-            "description": "The build that actually shipped — 4.8.2.008 where the release version is 4.8.2. Two builds of\none release are two deployments. Free text, never parsed.",
+            "description": "The build that actually shipped — 4.8.2.008 where the version number is 4.8.2. Two builds of\none version are two deployments. Free text, never parsed.",
             "maxLength": 128,
             "minLength": 0,
             "nullable": true
@@ -37510,9 +37454,9 @@
             "nullable": false,
             "example": "00000000-0000-0000-0000-000000000000"
           },
-          "releaseId": {
+          "versionId": {
             "type": "string",
-            "description": "The release this version came from, where one exists. Optional: a package can record a version\nthat was never cut as a release of its own.",
+            "description": "The version record this line came from, where one exists. Optional: a package can record a\ncomponent version that was never cut as a version of its own.",
             "format": "guid",
             "nullable": true,
             "example": "00000000-0000-0000-0000-000000000000"
@@ -37793,35 +37737,28 @@
           }
         }
       },
-      "SetReleaseVersionsRequest": {
+      "SetReleaseContentsRequest": {
         "type": "object",
-        "description": "Replaces the versions a release carries directly, outside any package.",
+        "description": "Replaces everything a release announces — the packages it shipped and the versions it carries\ndirectly.",
         "additionalProperties": false,
         "required": [
-          "versionIds"
+          "versionIds",
+          "packageIds"
         ],
         "properties": {
           "versionIds": {
             "type": "array",
+            "description": "The versions this release carries directly, outside any package.",
             "items": {
               "type": "string",
               "format": "guid",
               "nullable": false,
               "example": "00000000-0000-0000-0000-000000000000"
             }
-          }
-        }
-      },
-      "SetReleasePackagesRequest": {
-        "type": "object",
-        "description": "Replaces the packages a release shipped.",
-        "additionalProperties": false,
-        "required": [
-          "packageIds"
-        ],
-        "properties": {
+          },
           "packageIds": {
             "type": "array",
+            "description": "The packages this release shipped.",
             "items": {
               "type": "string",
               "format": "guid",

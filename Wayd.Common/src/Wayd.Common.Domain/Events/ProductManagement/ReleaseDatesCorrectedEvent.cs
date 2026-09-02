@@ -3,7 +3,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.ProductManagement;
 
 /// <summary>
-/// A release's recorded cut or released date was corrected.
+/// A release's recorded target, cut or released date was corrected.
 /// </summary>
 /// <remarks>
 /// Distinct from <see cref="ReleaseCutEvent"/> and <see cref="ReleaseReleasedEvent"/>, which say the
@@ -18,6 +18,8 @@ public sealed record ReleaseDatesCorrectedEvent : DomainEvent, IProductManagemen
         Guid productId,
         string productName,
         string version,
+        LocalDate? fromTargetDate,
+        LocalDate? toTargetDate,
         LocalDate? fromCutDate,
         LocalDate? toCutDate,
         LocalDate? fromReleasedDate,
@@ -31,6 +33,8 @@ public sealed record ReleaseDatesCorrectedEvent : DomainEvent, IProductManagemen
         ProductId = productId;
         ProductName = productName;
         Version = version;
+        FromTargetDate = fromTargetDate;
+        ToTargetDate = toTargetDate;
         FromCutDate = fromCutDate;
         ToCutDate = toCutDate;
         FromReleasedDate = fromReleasedDate;
@@ -44,6 +48,8 @@ public sealed record ReleaseDatesCorrectedEvent : DomainEvent, IProductManagemen
     public Guid ProductId { get; }
     public string ProductName { get; }
     public string Version { get; }
+    public LocalDate? FromTargetDate { get; }
+    public LocalDate? ToTargetDate { get; }
     public LocalDate? FromCutDate { get; }
     public LocalDate? ToCutDate { get; }
     public LocalDate? FromReleasedDate { get; }

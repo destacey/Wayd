@@ -12098,8 +12098,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get deployment details.
         /// </summary>
+        /// <remarks>
+        /// Accepts the deployment's id or its short key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<DeploymentDto> GetDeploymentAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<DeploymentDto> GetDeploymentAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -12109,7 +12112,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -12390,11 +12393,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get deployment details.
         /// </summary>
+        /// <remarks>
+        /// Accepts the deployment's id or its short key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<DeploymentDto> GetDeploymentAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<DeploymentDto> GetDeploymentAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
-            if (id == null)
-                throw new System.ArgumentNullException("id");
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
 
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -12407,9 +12413,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/product-management/deployments/{id}"
+                    // Operation Path: "api/product-management/deployments/{idOrKey}"
                     urlBuilder_.Append("api/product-management/deployments/");
-                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -12481,10 +12487,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
-            if (id == null)
-                throw new System.ArgumentNullException("id");
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
 
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -12497,9 +12503,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/product-management/deployments/{id}/status-history"
+                    // Operation Path: "api/product-management/deployments/{idOrKey}/status-history"
                     urlBuilder_.Append("api/product-management/deployments/");
-                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/status-history");
 
                     PrepareRequest(client_, request_, urlBuilder_);
@@ -16164,8 +16170,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a list of release packages.
         /// </summary>
+        /// <remarks>
+        /// containingProductId matches any manifest line for that product; containingReleaseId matches only the packages naming that exact release, which is what a release's own page needs.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleasePackageDto>> GetReleasePackagesAsync(System.Collections.Generic.IEnumerable<int>? statusCategory = null, System.Guid? containingProductId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleasePackageDto>> GetReleasePackagesAsync(System.Collections.Generic.IEnumerable<int>? statusCategory = null, System.Guid? containingProductId = null, System.Guid? containingReleaseId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -16178,8 +16187,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get release package details.
         /// </summary>
+        /// <remarks>
+        /// Accepts the package's id or its short key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ReleasePackageDto> GetReleasePackageAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ReleasePackageDto> GetReleasePackageAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -16189,7 +16201,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -16272,8 +16284,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a list of release packages.
         /// </summary>
+        /// <remarks>
+        /// containingProductId matches any manifest line for that product; containingReleaseId matches only the packages naming that exact release, which is what a release's own page needs.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleasePackageDto>> GetReleasePackagesAsync(System.Collections.Generic.IEnumerable<int>? statusCategory = null, System.Guid? containingProductId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleasePackageDto>> GetReleasePackagesAsync(System.Collections.Generic.IEnumerable<int>? statusCategory = null, System.Guid? containingProductId = null, System.Guid? containingReleaseId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -16296,6 +16311,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (containingProductId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("containingProductId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(containingProductId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (containingReleaseId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("containingReleaseId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(containingReleaseId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -16455,11 +16474,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get release package details.
         /// </summary>
+        /// <remarks>
+        /// Accepts the package's id or its short key.
+        /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ReleasePackageDto> GetReleasePackageAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ReleasePackageDto> GetReleasePackageAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
-            if (id == null)
-                throw new System.ArgumentNullException("id");
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
 
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -16472,9 +16494,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/product-management/release-packages/{id}"
+                    // Operation Path: "api/product-management/release-packages/{idOrKey}"
                     urlBuilder_.Append("api/product-management/release-packages/");
-                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -16546,10 +16568,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StatusTransitionDto>> GetStatusHistoryAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
-            if (id == null)
-                throw new System.ArgumentNullException("id");
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
 
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -16562,9 +16584,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/product-management/release-packages/{id}/status-history"
+                    // Operation Path: "api/product-management/release-packages/{idOrKey}/status-history"
                     urlBuilder_.Append("api/product-management/release-packages/");
-                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/status-history");
 
                     PrepareRequest(client_, request_, urlBuilder_);
@@ -17063,7 +17085,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Ordered by released date then sequence — never by version, which is free text.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleaseDto>> GetReleasesAsync(System.Guid? productId = null, System.Guid? packageId = null, System.Collections.Generic.IEnumerable<int>? statusCategory = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleaseDto>> GetReleasesAsync(System.Guid? productId = null, System.Collections.Generic.IEnumerable<int>? statusCategory = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -17108,10 +17130,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Correct a release's recorded cut and released dates.
+        /// Correct a release's recorded target, cut and released dates.
         /// </summary>
         /// <remarks>
-        /// Fixes dates entered wrongly. Does not change the release's status, and cannot add or remove a date the release does not already have.
+        /// Fixes dates entered wrongly without changing the release's status. All three are sent, so an omitted date is cleared. The released date cannot be cleared — revert the release instead.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task CorrectDatesAsync(System.Guid id, CorrectReleaseDatesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -17142,6 +17164,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task WithdrawAsync(System.Guid id, WithdrawReleaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Revert a release recorded as shipped.
+        /// </summary>
+        /// <remarks>
+        /// For a release marked released in error. Moves it back to Ready, or to the workflow's initial status where it was never cut, and clears the released date. Not a withdrawal — that pulls a release which really shipped.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task RevertAsync(System.Guid id, RevertReleaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -17201,7 +17233,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Ordered by released date then sequence — never by version, which is free text.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleaseDto>> GetReleasesAsync(System.Guid? productId = null, System.Guid? packageId = null, System.Collections.Generic.IEnumerable<int>? statusCategory = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ReleaseDto>> GetReleasesAsync(System.Guid? productId = null, System.Collections.Generic.IEnumerable<int>? statusCategory = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -17220,10 +17252,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (productId != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("productId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(productId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
-                    }
-                    if (packageId != null)
-                    {
-                        urlBuilder_.Append(System.Uri.EscapeDataString("packageId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(packageId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     if (statusCategory != null)
                     {
@@ -17763,10 +17791,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Correct a release's recorded cut and released dates.
+        /// Correct a release's recorded target, cut and released dates.
         /// </summary>
         /// <remarks>
-        /// Fixes dates entered wrongly. Does not change the release's status, and cannot add or remove a date the release does not already have.
+        /// Fixes dates entered wrongly without changing the release's status. All three are sent, so an omitted date is cleared. The released date cannot be cleared — revert the release instead.
         /// </remarks>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task CorrectDatesAsync(System.Guid id, CorrectReleaseDatesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -18105,6 +18133,108 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Revert a release recorded as shipped.
+        /// </summary>
+        /// <remarks>
+        /// For a release marked released in error. Moves it back to Ready, or to the workflow's initial status where it was never cut, and clears the released date. Not a withdrawal — that pulls a release which really shipped.
+        /// </remarks>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task RevertAsync(System.Guid id, RevertReleaseRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/releases/{id}/revert"
+                    urlBuilder_.Append("api/product-management/releases/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/revert");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -72773,9 +72903,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? ReleasedDate { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("package")]
-        public NavigationDto? Package { get; set; } = default!;
-
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
@@ -72885,23 +73012,33 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// Corrects a release's recorded cut and released dates.
+    /// Corrects a release's recorded target, cut and released dates.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CorrectReleaseDatesRequest
     {
 
         /// <summary>
-        /// The corrected cut date, or null if the release has not been cut. A release that has been cut
-        /// <br/>cannot have this cleared, and one that has not cannot have it added — cutting is its own action.
+        /// The corrected target date, or null to clear it. A target date is a statement of intent that was
+        /// <br/>written down; correcting or removing it changes no lifecycle state.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("targetDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? TargetDate { get; set; } = default!;
+
+        /// <summary>
+        /// The corrected cut date, or null to clear it. May be added to a release that was never cut: a
+        /// <br/>release can be marked released without being cut, so a cut date discovered later is a
+        /// <br/>correction rather than a lifecycle step.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("cutDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset? CutDate { get; set; } = default!;
 
         /// <summary>
-        /// The corrected released date, or null if the release has not shipped. Subject to the same rule
-        /// <br/>as CutDate: a correction cannot introduce or remove the date, only fix it.
+        /// The corrected released date. May be added or changed, but not cleared on a release that has
+        /// <br/>one — emptying it would leave the status contradicting the dates. Use the revert action to
+        /// <br/>record that a release did not ship.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -72958,6 +73095,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("reason")]
         [System.ComponentModel.DataAnnotations.StringLength(1024)]
         public string? Reason { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Records that a release marked as shipped did not in fact ship.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class RevertReleaseRequest
+    {
+
+        /// <summary>
+        /// Why the release is being reverted. Required — this contradicts what the status history already
+        /// <br/>asserts, so the record has to say why.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reason")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(1024, MinimumLength = 1)]
+        public string Reason { get; set; } = default!;
 
     }
 

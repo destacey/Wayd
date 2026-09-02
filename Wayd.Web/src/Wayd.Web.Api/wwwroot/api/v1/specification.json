@@ -4639,23 +4639,21 @@
         ]
       }
     },
-    "/api/product-management/deployments/{id}": {
+    "/api/product-management/deployments/{idOrKey}": {
       "get": {
         "tags": [
           "Deployments"
         ],
         "summary": "Get deployment details.",
+        "description": "Accepts the deployment's id or its short key.",
         "operationId": "Deployments_GetDeployment",
         "parameters": [
           {
-            "name": "id",
+            "name": "idOrKey",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "guid",
-              "nullable": false,
-              "example": "00000000-0000-0000-0000-000000000000"
+              "type": "string"
             },
             "x-position": 1
           }
@@ -4689,7 +4687,7 @@
         ]
       }
     },
-    "/api/product-management/deployments/{id}/status-history": {
+    "/api/product-management/deployments/{idOrKey}/status-history": {
       "get": {
         "tags": [
           "Deployments"
@@ -4699,14 +4697,11 @@
         "operationId": "Deployments_GetStatusHistory",
         "parameters": [
           {
-            "name": "id",
+            "name": "idOrKey",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "guid",
-              "nullable": false,
-              "example": "00000000-0000-0000-0000-000000000000"
+              "type": "string"
             },
             "x-position": 1
           }
@@ -6436,6 +6431,7 @@
           "ReleasePackages"
         ],
         "summary": "Get a list of release packages.",
+        "description": "containingProductId matches any manifest line for that product; containingReleaseId matches only the packages naming that exact release, which is what a release's own page needs.",
         "operationId": "ReleasePackages_GetReleasePackages",
         "parameters": [
           {
@@ -6463,6 +6459,17 @@
               "example": "00000000-0000-0000-0000-000000000000"
             },
             "x-position": 2
+          },
+          {
+            "name": "containingReleaseId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 3
           }
         ],
         "responses": {
@@ -6543,23 +6550,21 @@
         ]
       }
     },
-    "/api/product-management/release-packages/{id}": {
+    "/api/product-management/release-packages/{idOrKey}": {
       "get": {
         "tags": [
           "ReleasePackages"
         ],
         "summary": "Get release package details.",
+        "description": "Accepts the package's id or its short key.",
         "operationId": "ReleasePackages_GetReleasePackage",
         "parameters": [
           {
-            "name": "id",
+            "name": "idOrKey",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "guid",
-              "nullable": false,
-              "example": "00000000-0000-0000-0000-000000000000"
+              "type": "string"
             },
             "x-position": 1
           }
@@ -6593,7 +6598,7 @@
         ]
       }
     },
-    "/api/product-management/release-packages/{id}/status-history": {
+    "/api/product-management/release-packages/{idOrKey}/status-history": {
       "get": {
         "tags": [
           "ReleasePackages"
@@ -6603,14 +6608,11 @@
         "operationId": "ReleasePackages_GetStatusHistory",
         "parameters": [
           {
-            "name": "id",
+            "name": "idOrKey",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "guid",
-              "nullable": false,
-              "example": "00000000-0000-0000-0000-000000000000"
+              "type": "string"
             },
             "x-position": 1
           }
@@ -6855,17 +6857,6 @@
             "x-position": 1
           },
           {
-            "name": "packageId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "guid",
-              "nullable": true,
-              "example": "00000000-0000-0000-0000-000000000000"
-            },
-            "x-position": 2
-          },
-          {
             "name": "statusCategory",
             "in": "query",
             "style": "form",
@@ -6878,7 +6869,7 @@
                 "format": "int32"
               }
             },
-            "x-position": 3
+            "x-position": 2
           }
         ],
         "responses": {
@@ -7193,8 +7184,8 @@
         "tags": [
           "Releases"
         ],
-        "summary": "Correct a release's recorded cut and released dates.",
-        "description": "Fixes dates entered wrongly. Does not change the release's status, and cannot add or remove a date the release does not already have.",
+        "summary": "Correct a release's recorded target, cut and released dates.",
+        "description": "Fixes dates entered wrongly without changing the release's status. All three are sent, so an omitted date is cleared. The released date cannot be cleared — revert the release instead.",
         "operationId": "Releases_CorrectDates",
         "parameters": [
           {
@@ -7399,6 +7390,72 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/releases/{id}/revert": {
+      "post": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Revert a release recorded as shipped.",
+        "description": "For a release marked released in error. Moves it back to Ready, or to the workflow's initial status where it was never cut, and clears the released date. Not a withdrawal — that pulls a release which really shipped.",
+        "operationId": "Releases_Revert",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevertReleaseRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -36824,14 +36881,6 @@
             "format": "date",
             "nullable": true
           },
-          "package": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/NavigationDto"
-              }
-            ]
-          },
           "status": {
             "$ref": "#/components/schemas/StatusNavigationDto"
           }
@@ -36942,18 +36991,24 @@
       },
       "CorrectReleaseDatesRequest": {
         "type": "object",
-        "description": "Corrects a release's recorded cut and released dates.",
+        "description": "Corrects a release's recorded target, cut and released dates.",
         "additionalProperties": false,
         "properties": {
+          "targetDate": {
+            "type": "string",
+            "description": "The corrected target date, or null to clear it. A target date is a statement of intent that was\nwritten down; correcting or removing it changes no lifecycle state.",
+            "format": "date",
+            "nullable": true
+          },
           "cutDate": {
             "type": "string",
-            "description": "The corrected cut date, or null if the release has not been cut. A release that has been cut\ncannot have this cleared, and one that has not cannot have it added — cutting is its own action.",
+            "description": "The corrected cut date, or null to clear it. May be added to a release that was never cut: a\nrelease can be marked released without being cut, so a cut date discovered later is a\ncorrection rather than a lifecycle step.",
             "format": "date",
             "nullable": true
           },
           "releasedDate": {
             "type": "string",
-            "description": "The corrected released date, or null if the release has not shipped. Subject to the same rule\nas CutDate: a correction cannot introduce or remove the date, only fix it.",
+            "description": "The corrected released date. May be added or changed, but not cleared on a release that has\none — emptying it would leave the status contradicting the dates. Use the revert action to\nrecord that a release did not ship.",
             "format": "date",
             "nullable": true
           }
@@ -37000,6 +37055,23 @@
             "maxLength": 1024,
             "minLength": 0,
             "nullable": true
+          }
+        }
+      },
+      "RevertReleaseRequest": {
+        "type": "object",
+        "description": "Records that a release marked as shipped did not in fact ship.",
+        "additionalProperties": false,
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why the release is being reverted. Required — this contradicts what the status history already\nasserts, so the record has to say why.",
+            "maxLength": 1024,
+            "minLength": 1,
+            "nullable": false
           }
         }
       },

@@ -1,6 +1,9 @@
+using System.Linq.Expressions;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.ProductManagement.Domain;
+using Wayd.ProductManagement.Domain.Models;
 
 namespace Wayd.ProductManagement.Application.ReleasePackages.Queries;
 
@@ -11,8 +14,15 @@ namespace Wayd.ProductManagement.Application.ReleasePackages.Queries;
 /// The owner type is supplied here rather than by the caller, so a request can only reach the history
 /// of the record named in the route.
 /// </remarks>
-public sealed record GetReleasePackageStatusHistoryQuery(Guid ReleasePackageId)
-    : IQuery<Result<List<StatusTransitionDto>?>>;
+public sealed record GetReleasePackageStatusHistoryQuery : IQuery<Result<List<StatusTransitionDto>?>>
+{
+    public GetReleasePackageStatusHistoryQuery(IdOrKey idOrKey)
+    {
+        IdOrKeyFilter = idOrKey.CreateFilter<ReleasePackage>();
+    }
+
+    public Expression<Func<ReleasePackage, bool>> IdOrKeyFilter { get; }
+}
 
 public sealed class GetReleasePackageStatusHistoryQueryHandler(
     IProductManagementDbContext productManagementDbContext,
@@ -26,17 +36,21 @@ public sealed class GetReleasePackageStatusHistoryQueryHandler(
     public async Task<Result<List<StatusTransitionDto>?>> Handle(
         GetReleasePackageStatusHistoryQuery request, CancellationToken cancellationToken)
     {
-        var exists = await _productManagementDbContext.ReleasePackages
+        // Resolved to an id rather than only checked for existence: the history is keyed by the
+        // record's id, which a request addressing the package by key does not carry.
+        var packageId = await _productManagementDbContext.ReleasePackages
             .AsNoTracking()
-            .AnyAsync(p => p.Id == request.ReleasePackageId, cancellationToken);
+            .Where(request.IdOrKeyFilter)
+            .Select(p => (Guid?)p.Id)
+            .FirstOrDefaultAsync(cancellationToken);
 
-        if (!exists)
+        if (packageId is null)
         {
             return Result.Success<List<StatusTransitionDto>?>(null);
         }
 
         var history = await _statusHistoryReader.Read(
-            ProductWorkflowOwners.ReleasePackage.Key, request.ReleasePackageId, cancellationToken);
+            ProductWorkflowOwners.ReleasePackage.Key, packageId.Value, cancellationToken);
 
         return history.IsFailure
             ? Result.Failure<List<StatusTransitionDto>?>(history.Error)

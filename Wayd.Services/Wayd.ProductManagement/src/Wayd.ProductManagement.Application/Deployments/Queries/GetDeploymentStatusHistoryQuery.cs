@@ -1,6 +1,9 @@
+using System.Linq.Expressions;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.ProductManagement.Domain;
+using Wayd.ProductManagement.Domain.Models;
 
 namespace Wayd.ProductManagement.Application.Deployments.Queries;
 
@@ -11,8 +14,15 @@ namespace Wayd.ProductManagement.Application.Deployments.Queries;
 /// The owner type is supplied here rather than by the caller, so a request can only reach the history
 /// of the record named in the route.
 /// </remarks>
-public sealed record GetDeploymentStatusHistoryQuery(Guid DeploymentId)
-    : IQuery<Result<List<StatusTransitionDto>?>>;
+public sealed record GetDeploymentStatusHistoryQuery : IQuery<Result<List<StatusTransitionDto>?>>
+{
+    public GetDeploymentStatusHistoryQuery(IdOrKey idOrKey)
+    {
+        IdOrKeyFilter = idOrKey.CreateFilter<Deployment>();
+    }
+
+    public Expression<Func<Deployment, bool>> IdOrKeyFilter { get; }
+}
 
 public sealed class GetDeploymentStatusHistoryQueryHandler(
     IProductManagementDbContext productManagementDbContext,
@@ -26,17 +36,21 @@ public sealed class GetDeploymentStatusHistoryQueryHandler(
     public async Task<Result<List<StatusTransitionDto>?>> Handle(
         GetDeploymentStatusHistoryQuery request, CancellationToken cancellationToken)
     {
-        var exists = await _productManagementDbContext.Deployments
+        // Resolved to an id rather than only checked for existence: the history is keyed by the
+        // record's id, which a request addressing the deployment by key does not carry.
+        var deploymentId = await _productManagementDbContext.Deployments
             .AsNoTracking()
-            .AnyAsync(d => d.Id == request.DeploymentId, cancellationToken);
+            .Where(request.IdOrKeyFilter)
+            .Select(d => (Guid?)d.Id)
+            .FirstOrDefaultAsync(cancellationToken);
 
-        if (!exists)
+        if (deploymentId is null)
         {
             return Result.Success<List<StatusTransitionDto>?>(null);
         }
 
         var history = await _statusHistoryReader.Read(
-            ProductWorkflowOwners.Deployment.Key, request.DeploymentId, cancellationToken);
+            ProductWorkflowOwners.Deployment.Key, deploymentId.Value, cancellationToken);
 
         return history.IsFailure
             ? Result.Failure<List<StatusTransitionDto>?>(history.Error)

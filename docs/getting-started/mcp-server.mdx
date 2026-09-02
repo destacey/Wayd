@@ -126,10 +126,12 @@ CLI arguments take precedence over environment variables.
 
 ## Agent Skills
 
-For Claude Code users, six pre-built skills provide guided workflows:
+For Claude Code users, eight pre-built skills provide guided workflows:
 
 - **`/wayd-ppm`** — Portfolio, program, project, and strategic initiative operations, including scoring, health checks, status changes, and tasks
 - **`/wayd-pi`** — Planning intervals, iterations, objectives, and risks
+- **`/wayd-products`** — The product catalog, plus the product types and tag axes it is built from
+- **`/wayd-delivery`** — Releases, versions, release packages, deployments, environments, and delivery metrics
 - **`/wayd-roadmaps`** — Roadmap exploration with activities and milestones
 - **`/wayd-story-maps`** — Story map analysis and management with goals, steps, tasks, swim lanes, and personas
 - **`/wayd-teams`** — Team lookup and resolving team names to IDs
@@ -177,8 +179,12 @@ npx skills add destacey/wayd
 | `Portfolios_Activate` / `Portfolios_Close` / `Portfolios_Archive` | Change portfolio status |
 | `Programs_Activate` / `Programs_Complete` / `Programs_Cancel` | Change program status |
 | `Projects_Approve` / `Projects_Activate` / `Projects_Complete` / `Projects_Cancel` | Change project status |
+| `Projects_RevertStatus` | Move a project backwards to an earlier status — reopening a completed one, or returning an active one to approved |
+| `Projects_GetWorkItems` | Get the work items linked to a project |
 | `ProjectLifecycles_GetProjectLifecycles` | List lifecycles with state filter |
 | `ExpenditureCategories_GetOptions` | Resolve the expenditure category needed to create a project |
+| `Portfolios_GetPortfolioOptions` | Lightweight portfolio list (id and name) for lookups |
+| `Portfolios_GetPortfolioStatuses` / `Programs_GetProgramStatuses` / `Projects_GetStatuses` | Resolve the status values each record accepts |
 
 ### Strategic Initiatives
 
@@ -194,7 +200,7 @@ npx skills add destacey/wayd
 | `StrategicInitiatives_GetKpiCheckpointPlan` | Checkpoints with measurements, health, and trend |
 | `StrategicInitiatives_GetKpiMeasurements` | A KPI's measurement history |
 | `StrategicInitiatives_AddKpiMeasurement` / `StrategicInitiatives_RemoveKpiMeasurement` | Record or remove a KPI measurement |
-| `StrategicInitiatives_Approve` / `_Activate` / `_Complete` / `_Cancel` | Change initiative status |
+| `StrategicInitiatives_Approve` / `StrategicInitiatives_Activate` / `StrategicInitiatives_Complete` / `StrategicInitiatives_Cancel` | Change initiative status |
 
 ### Tasks
 
@@ -208,6 +214,7 @@ npx skills add destacey/wayd
 | `Tasks_DeleteProjectTask` | Delete a task |
 | `Tasks_AddTaskDependency` | Add finish-to-start dependency |
 | `Tasks_RemoveTaskDependency` | Remove a dependency |
+| `Tasks_GetTaskTypes` / `Tasks_GetTaskStatuses` / `Tasks_GetTaskPriorities` | Resolve the type, status, and priority values a task accepts |
 
 ### Planning
 
@@ -225,9 +232,18 @@ npx skills add destacey/wayd
 | `PlanningIntervals_GetObjectiveHealthChecks` | Get the health check history for a PI objective |
 | `PlanningIntervals_GetObjectiveHealthCheck` | Get a specific PI objective health check by ID |
 | `PlanningIntervals_CreateObjectiveHealthCheck` | Log a new health check (1=Healthy, 2=AtRisk, 3=Unhealthy) on a PI objective |
+| `PlanningIntervals_GetTeamPredictability` | Predictability for one team in a PI |
+| `PlanningIntervals_GetIterationCategories` | Resolve iteration category values |
+| `PlanningIntervals_GetIterationSprints` | Sprints within an iteration |
+| `PlanningIntervals_GetIterationMetrics` | Iteration metrics |
+| `PlanningIntervals_GetIterationBacklog` | An iteration's backlog |
+| `PlanningIntervals_GetObjectiveStatuses` | Resolve objective status values |
+| `PlanningIntervals_GetObjectiveWorkItems` / `PlanningIntervals_GetObjectiveWorkItemMetrics` | Work items behind an objective, and their metrics |
 | `Roadmaps_GetRoadmaps` | List all roadmaps |
 | `Roadmaps_GetRoadmap` | Get roadmap details |
 | `Roadmaps_GetItems` | Get all roadmap items |
+| `Roadmaps_GetActivities` | Get roadmap activities |
+| `Roadmaps_GetVisibilityOptions` | Resolve roadmap visibility values |
 
 ### Story Maps
 
@@ -252,6 +268,75 @@ npx skills add destacey/wayd
 | `StoryMaps_AddSwimLane` / `StoryMaps_RenameSwimLane` / `StoryMaps_SetSwimLaneDates` / `StoryMaps_ReorderSwimLane` / `StoryMaps_RemoveSwimLane` | Manage swim lanes |
 | `StoryMaps_AddPersona` / `StoryMaps_UpdatePersona` / `StoryMaps_ReorderPersona` / `StoryMaps_DeletePersona` | Manage personas |
 | `StoryMaps_SetGoalPersonas` / `StoryMaps_SetStepPersonas` / `StoryMaps_SetTaskPersonas` | Set persona tags on a node |
+
+### Product Catalog
+
+The catalog is one typed tree of what your organization owns — products, platforms, services, and tools. A product's **type** carries the flag that decides whether versions can be cut against it, which is why a product line usually holds no versions of its own.
+
+| Tool | Description |
+|------|-------------|
+| `Products_GetProducts` | List products, filtered by parent, type, status category, or tags |
+| `Products_GetProduct` | Get product details |
+| `Products_GetStatusHistory` | A product's status change history |
+| `Products_GetStatusOptions` | Resolve the status values a product accepts |
+| `Products_Create` / `Products_Update` | Create a product, or change its name and description |
+| `Products_Retype` | Change a product's type |
+| `Products_Reparent` | Move a product beneath a different parent |
+| `Products_ChangeStatus` | Change a product's status |
+| `Products_LinkExternally` | Link a product to an external system |
+| `Products_Tag` / `Products_Untag` | Apply or remove a tag |
+| `Products_Delete` | Permanently delete a product |
+| `ProductTypes_GetProductTypes` | List the types a product can be, and whether each allows versions |
+| `ProductTypes_Create` / `ProductTypes_Update` / `ProductTypes_Delete` | Manage product types |
+| `ProductTypes_SetActive` | Take a type out of use, or put it back |
+| `ProductTagCategories_GetProductTagCategories` | List the tag axes and their tags |
+| `ProductTagCategories_Create` / `ProductTagCategories_Update` / `ProductTagCategories_Delete` | Manage tag axes |
+| `ProductTagCategories_SetActive` | Take an axis out of use, or put it back |
+| `ProductTagCategories_Reorder` | Reorder the axes — the list must name every one exactly once |
+| `ProductTagCategories_AddTag` / `ProductTagCategories_RenameTag` | Manage the tags on an axis |
+| `ProductTagCategories_SetTagActive` | Take a single tag out of use, or put it back |
+
+Three behaviours worth knowing. Tagging an axis that only allows one value **silently replaces** the existing tag rather than refusing. Deleting a product is a **hard delete**, unlike delivery, where records are withdrawn and kept. And seeded system types and axes **cannot be edited or deleted, but can be deactivated** — so an organization can hide a type it doesn't use. Individual tags inside a seeded axis are the exception: they can't be deactivated either, so retire the whole axis instead.
+
+### Product Delivery
+
+Where the catalog records what exists, delivery records what shipped. The word "release" means three different things in most organizations, and Wayd keeps them apart: a **release** is what was announced to customers (`Wayd 2026.07`), a **version** is one artifact that was built (`Wayd API 4.12.0`), a **package** is what moved through environments together (`WAYD-2026.07`), and a **deployment** is one of those reaching one environment.
+
+| Tool | Description |
+|------|-------------|
+| `Releases_GetReleases` / `Releases_GetRelease` | List releases, or get one |
+| `Releases_GetStatusHistory` | A release's status change history |
+| `Releases_Plan` / `Releases_Update` | Plan a release, or update its details |
+| `Releases_SetContents` | Set what the release announces — its versions and packages together |
+| `Releases_MarkReleased` | Announce a release |
+| `Releases_Withdraw` / `Releases_Revert` | Withdraw a release, or revert it to an earlier state |
+| `Releases_CorrectDates` / `Releases_MoveTargetDate` | Correct recorded dates, or move the target |
+| `Versions_GetVersions` / `Versions_GetVersion` | List versions, or get one |
+| `Versions_GetStatusHistory` | A version's status change history |
+| `Versions_Plan` / `Versions_Update` | Plan a version, or update its details |
+| `Versions_Cut` | Cut the version — the artifact now exists |
+| `Versions_MarkReleased` | Mark a version released |
+| `Versions_Withdraw` / `Versions_Revert` | Withdraw a version, or revert it |
+| `Versions_CorrectDates` / `Versions_MoveTargetDate` | Correct recorded dates, or move the target |
+| `ReleasePackages_GetReleasePackages` / `ReleasePackages_GetReleasePackage` | List packages, or get one |
+| `ReleasePackages_GetStatusHistory` | A package's status change history |
+| `ReleasePackages_Assemble` | Assemble a package |
+| `ReleasePackages_SetManifest` | Replace what the package contains |
+| `ReleasePackages_MarkReleased` / `ReleasePackages_Withdraw` | Mark a package released, or withdraw it |
+| `Deployments_GetDeployments` / `Deployments_GetDeployment` | List deployments, or get one |
+| `Deployments_GetStatusHistory` | A deployment's status change history |
+| `Deployments_Start` | Record a deployment starting — of a version or a package, never both |
+| `Deployments_Succeed` / `Deployments_Fail` / `Deployments_RollBack` | Record how a deployment ended |
+| `DeploymentEnvironments_GetDeploymentEnvironments` | List environments, by active state or category |
+| `DeploymentEnvironments_Create` / `DeploymentEnvironments_Update` | Define or edit an environment |
+| `DeploymentEnvironments_SetActive` | Retire an environment, or reinstate it |
+| `DeliveryMetrics_GetDeliveryMetrics` | Deployment frequency and change failure rate over a window |
+
+**Contents and manifests replace as a set.** `Releases_SetContents` and `ReleasePackages_SetManifest` overwrite what was there, so send the full list including anything that should stay.
+
+Environments are **retired, never deleted**, because historical deployments still point at them. Every production-scoped measure counts on an environment's **category**, not its name — pipeline names vary too much (`prod`, `prd`, `live`) to reason about. Reclassifying an environment changes where future deployments count and leaves past ones alone.
+
+`DeliveryMetrics_GetDeliveryMetrics` returns an `unavailable` list naming what it couldn't compute and why; read it rather than treating a missing measure as zero. Change failure rate is a **proxy** — a pipeline run that failed before production is a failure that was *prevented*, while a real change failure succeeded and then broke something, which the pipeline can't know.
 
 ### Organization
 

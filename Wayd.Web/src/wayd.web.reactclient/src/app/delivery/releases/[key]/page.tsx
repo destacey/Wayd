@@ -15,6 +15,10 @@ import {
   useGetReleaseQuery,
   useGetReleaseStatusHistoryQuery,
 } from '@/src/store/features/delivery/releases-api'
+import { useGetDeploymentsQuery } from '@/src/store/features/delivery/deployments-api'
+import { useGetReleasePackagesQuery } from '@/src/store/features/delivery/release-packages-api'
+import { DeploymentsGrid } from '../../deployments/_components'
+import { ReleasePackagesGrid } from '../../release-packages/_components'
 import { Button, MenuProps, Result } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter } from 'next/navigation'
@@ -25,6 +29,7 @@ import { releaseActionAvailability } from '../_components/release-actions'
 import EditReleaseForm from '../_components/edit-release-form'
 import MarkReleaseReleasedForm from '../_components/mark-release-released-form'
 import MoveReleaseTargetDateForm from '../_components/move-release-target-date-form'
+import RevertReleaseForm from '../_components/revert-release-form'
 import WithdrawReleaseForm from '../_components/withdraw-release-form'
 import ReleaseFacts from './_components/release-facts'
 import ReleaseOverview from './_components/release-overview'
@@ -32,6 +37,8 @@ import ReleaseDetailsLoading from './loading'
 
 enum ReleaseSections {
   Overview = 'overview',
+  Packages = 'packages',
+  Deployments = 'deployments',
   StatusHistory = 'status-history',
 }
 
@@ -43,12 +50,15 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [isCorrectDatesOpen, setIsCorrectDatesOpen] = useState<boolean>(false)
   const [isReleaseOpen, setIsReleaseOpen] = useState<boolean>(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState<boolean>(false)
+  const [isRevertOpen, setIsRevertOpen] = useState<boolean>(false)
   const [isMoveTargetDateOpen, setIsMoveTargetDateOpen] = useState<boolean>(false)
 
   const router = useRouter()
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateRelease = hasPermissionClaim('Permissions.Releases.Update')
+  const canViewDeployments = hasPermissionClaim('Permissions.Deployments.View')
+  const canViewPackages = hasPermissionClaim('Permissions.ReleasePackages.View')
 
   const messageApi = useMessage()
 
@@ -56,6 +66,19 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const { data: statusHistory, isLoading: statusHistoryLoading } =
     useGetReleaseStatusHistoryQuery(key)
+
+  // Skipped without the claim: the section is not offered, so the request would only ever 403.
+  const { data: deployments, isLoading: deploymentsLoading } = useGetDeploymentsQuery(
+    { releaseId: release?.id },
+    { skip: !release?.id || !canViewDeployments },
+  )
+
+  // Filtered by release rather than by product: the product-wide filter would list packages this
+  // release was never part of, which reads as a wrong answer rather than a broad one.
+  const { data: packages, isLoading: packagesLoading } = useGetReleasePackagesQuery(
+    { containingReleaseId: release?.id },
+    { skip: !release?.id || !canViewPackages },
+  )
 
   useDocumentTitle(release ? `${release.version} - Release` : 'Release')
 
@@ -98,6 +121,7 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const canWithdraw = canUpdateRelease && available.canWithdraw
   const canMoveTargetDate = canUpdateRelease && available.canMoveTargetDate
   const canCorrectDates = canUpdateRelease && available.canCorrectDates
+  const canRevert = canUpdateRelease && available.canRevert
 
   const actionsMenuItems: MenuProps['items'] = (() => {
     const groups: ItemType[][] = []
@@ -144,6 +168,14 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         onClick: () => setIsMoveTargetDateOpen(true),
       })
     }
+    if (canRevert) {
+      lifecycle.push({
+        key: 'revert',
+        label: 'Revert Release',
+        danger: true,
+        onClick: () => setIsRevertOpen(true),
+      })
+    }
     if (canWithdraw) {
       lifecycle.push({
         key: 'withdraw',
@@ -167,10 +199,36 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const sections: RecordSection[] = [
     { id: ReleaseSections.Overview, label: 'Overview' },
+    ...(canViewPackages
+      ? [{ id: ReleaseSections.Packages, label: 'Packages' }]
+      : []),
+    ...(canViewDeployments
+      ? [{ id: ReleaseSections.Deployments, label: 'Deployments' }]
+      : []),
     { id: ReleaseSections.StatusHistory, label: 'Status History' },
   ]
 
   const renderSection = (section: string) => {
+    if (section === ReleaseSections.Packages) {
+      return (
+        <ReleasePackagesGrid
+          packages={packages ?? []}
+          isLoading={packagesLoading}
+          emptyMessage="This release has not shipped inside a package."
+        />
+      )
+    }
+
+    if (section === ReleaseSections.Deployments) {
+      return (
+        <DeploymentsGrid
+          deployments={deployments ?? []}
+          isLoading={deploymentsLoading}
+          emptyMessage="This release has not been deployed on its own. If it shipped inside a package, its deployments are on that package."
+        />
+      )
+    }
+
     if (section === ReleaseSections.StatusHistory) {
       return (
         <StatusHistoryTimeline
@@ -268,6 +326,16 @@ const ReleaseDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             refetch()
           }}
           onFormCancel={() => setIsWithdrawOpen(false)}
+        />
+      )}
+      {isRevertOpen && (
+        <RevertReleaseForm
+          release={release}
+          onFormComplete={() => {
+            setIsRevertOpen(false)
+            refetch()
+          }}
+          onFormCancel={() => setIsRevertOpen(false)}
         />
       )}
       {isMoveTargetDateOpen && (

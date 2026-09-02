@@ -3,17 +3,25 @@ import SettingsMenu from './settings-menu'
 
 const mockHasClaim = jest.fn()
 const mockPlanningPoker = jest.fn()
+const mockProductManagement = jest.fn()
 
 jest.mock('@/src/components/contexts/auth', () => ({
   __esModule: true,
   default: () => ({ hasClaim: mockHasClaim }),
 }))
 
+// Keyed by flag: the rail gates two groups on two different flags, so a single shared return value
+// would tie them together and let one group's test silently decide the other's.
 jest.mock('@/src/hooks', () => {
   const actual = jest.requireActual('@/src/hooks')
   return {
     ...actual,
-    useFeatureFlag: () => ({ isEnabled: mockPlanningPoker() }),
+    useFeatureFlag: (flag: string) => ({
+      isEnabled:
+        flag === 'product-management'
+          ? mockProductManagement()
+          : mockPlanningPoker(),
+    }),
   }
 })
 
@@ -40,10 +48,11 @@ describe('SettingsMenu', () => {
     jest.clearAllMocks()
     allowAll()
     mockPlanningPoker.mockReturnValue(true)
+    mockProductManagement.mockReturnValue(true)
   })
 
   describe('grouping', () => {
-    it('renders the six groups in order', () => {
+    it('renders the seven groups in order', () => {
       // Arrange / Act — most-visited first, System last
       renderMenu()
 
@@ -53,9 +62,22 @@ describe('SettingsMenu', () => {
         'Organization',
         'Planning',
         'PPM',
+        'Delivery',
         'Work Management',
         'System',
       ])
+    })
+
+    it('hides Delivery when Product Management is off', () => {
+      // Arrange — the whole area is unreachable behind the flag, so a heading over an unopenable
+      // page would be worse than no heading.
+      mockProductManagement.mockReturnValue(false)
+
+      // Act
+      renderMenu()
+
+      // Assert
+      expect(groups()).not.toContain('Delivery')
     })
 
     it('puts scoring models under PPM', () => {
@@ -193,7 +215,7 @@ describe('SettingsMenu', () => {
       fireEvent.change(input, { target: { value: '' } })
 
       // Assert
-      expect(groups()).toHaveLength(6)
+      expect(groups()).toHaveLength(7)
     })
   })
 

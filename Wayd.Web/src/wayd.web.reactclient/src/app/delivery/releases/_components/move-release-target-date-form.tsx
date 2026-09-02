@@ -46,7 +46,7 @@ const MoveReleaseTargetDateForm = ({
               : undefined,
           } as unknown as MoveReleaseTargetDateRequest
 
-          const response = await moveTargetDate({ id: release.id, request })
+          const response = await moveTargetDate({ id: release.id, cacheKey: release.key, request })
           if (response.error) throw response.error
 
           messageApi.success(

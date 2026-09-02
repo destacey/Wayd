@@ -44,7 +44,7 @@ const CutReleaseForm = ({
             cutDate: values.cutDate.format('YYYY-MM-DD'),
           } as unknown as CutReleaseRequest
 
-          const response = await cutRelease({ id: release.id, request })
+          const response = await cutRelease({ id: release.id, cacheKey: release.key, request })
           if (response.error) throw response.error
 
           messageApi.success('Release cut successfully.')

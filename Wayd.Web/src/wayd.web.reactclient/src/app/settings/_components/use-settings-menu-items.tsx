@@ -15,10 +15,11 @@ import {
 
 interface SettingsMenuOptions {
   planningPoker: boolean
+  productManagement: boolean
 }
 
 /**
- * Six groups, ordered most- to least-visited.
+ * Groups ordered most- to least-visited.
  *
  * The previous nine spent four headings on a single link each, so more than
  * half the rail's height was headings rather than destinations. Scoring Models
@@ -108,6 +109,19 @@ const buildSettingsMenuItems = (
       '/settings/scoring/scoring-models',
     ),
   ]),
+
+  ...(options.productManagement
+    ? [
+        restrictedMenuSection('Delivery', 'delivery', undefined, undefined, [
+          restrictedPermissionMenuItem(
+            'Permissions.DeploymentEnvironments.View',
+            'Environments',
+            'delivery.environments',
+            '/settings/delivery/environments',
+          ),
+        ]),
+      ]
+    : []),
 
   // Work types, statuses and processes carry no View permission of their own,
   // so they are plain items — the group is reachable by anyone who can open
@@ -221,8 +235,9 @@ export const firstSettingsRoute = (
 export const useSettingsMenuItems = () => {
   const { hasClaim } = useAuth()
   const { isEnabled: planningPoker } = useFeatureFlag('planning-poker')
+  const { isEnabled: productManagement } = useFeatureFlag('product-management')
 
-  const items = buildSettingsMenuItems({ planningPoker })
+  const items = buildSettingsMenuItems({ planningPoker, productManagement })
 
   const menuItems = asGroups(
     items.reduce(

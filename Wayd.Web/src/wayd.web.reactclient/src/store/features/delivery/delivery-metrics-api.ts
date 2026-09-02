@@ -3,9 +3,14 @@ import { apiSlice } from '../apiSlice'
 import { DeliveryMetricsDto } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 
+/**
+ * ISO-8601 strings rather than `Date`s: query arguments end up in the Redux store as the cache key,
+ * and a `Date` there is non-serializable — the store logs an error for every one. The client wants
+ * `Date`s, so the conversion happens in the queryFn instead.
+ */
 export interface GetDeliveryMetricsRequest {
-  from: Date
-  to: Date
+  from: string
+  to: string
   productId?: string
 }
 
@@ -24,8 +29,8 @@ export const deliveryMetricsApi = apiSlice.injectEndpoints({
       queryFn: async (request) => {
         try {
           const data = await getDeliveryMetricsClient().getDeliveryMetrics(
-            request.from,
-            request.to,
+            new Date(request.from),
+            new Date(request.to),
             request.productId,
           )
           return { data }

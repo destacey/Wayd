@@ -9,7 +9,12 @@ import { ReleaseDto, StatusCategory } from '@/src/services/wayd-api'
  * after it shipped is the case that exists for.
  *
  * Correcting dates is the one action a terminal release still accepts, since a typo outlives the
- * lifecycle. It needs a date to correct, and cannot add one.
+ * lifecycle. Any of the three dates can be fixed, added or — for target and cut — cleared, so the
+ * only release it is refused on is a withdrawn one.
+ *
+ * Reverting is separate from withdrawing and answers a different question. Withdrawing says a real
+ * release was pulled; reverting says it never shipped and the record was wrong. It is therefore
+ * offered only where there is a released date to take back.
  */
 export interface ReleaseActionAvailability {
   canCut: boolean
@@ -17,6 +22,7 @@ export interface ReleaseActionAvailability {
   canWithdraw: boolean
   canMoveTargetDate: boolean
   canCorrectDates: boolean
+  canRevert: boolean
 }
 
 export const releaseActionAvailability = (
@@ -30,7 +36,7 @@ export const releaseActionAvailability = (
     canRelease: !release.releasedDate && !isWithdrawn,
     canWithdraw: !isWithdrawn,
     canMoveTargetDate: !isTerminal,
-    canCorrectDates:
-      !isWithdrawn && (!!release.cutDate || !!release.releasedDate),
+    canCorrectDates: !isWithdrawn,
+    canRevert: !!release.releasedDate && !isWithdrawn,
   }
 }

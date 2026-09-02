@@ -16,17 +16,26 @@ export interface GetDeploymentsRequest {
   packageId?: string
   environmentId?: string
   environmentCategory?: number
-  startedOnOrAfter?: Date
+  /**
+   * ISO-8601, not a `Date`: query arguments become the Redux cache key, and a `Date` there is
+   * non-serializable. Converted for the client in the queryFn below.
+   */
+  startedOnOrAfter?: string
 }
 
 /**
  * Recording an outcome also moves the delivery measures, which count completed production
  * deployments — so they are invalidated alongside the record itself.
+ *
+ * `cacheKey` is the deployment's short key, following the convention the app's other slices use, and
+ * is required: a detail page queries its history by that key while a mutation holds only the id, so
+ * invalidating one alone leaves the history stale.
  */
-const deploymentTags = (id: string) => [
+export const deploymentTags = (id: string, cacheKey: number) => [
   { type: QueryTags.Deployment, id: 'LIST' },
   { type: QueryTags.Deployment, id },
   { type: QueryTags.StatusHistory, id },
+  { type: QueryTags.StatusHistory, id: String(cacheKey) },
   { type: QueryTags.DeliveryMetrics, id: 'LIST' },
 ]
 
@@ -43,7 +52,9 @@ export const deploymentsApi = apiSlice.injectEndpoints({
             request.packageId,
             request.environmentId,
             request.environmentCategory,
-            request.startedOnOrAfter,
+            request.startedOnOrAfter
+              ? new Date(request.startedOnOrAfter)
+              : undefined,
           )
           return { data }
         } catch (error) {
@@ -98,7 +109,7 @@ export const deploymentsApi = apiSlice.injectEndpoints({
     }),
     succeedDeployment: builder.mutation<
       void,
-      { id: string; request: SucceedDeploymentRequest }
+      { id: string; cacheKey: number; request: SucceedDeploymentRequest }
     >({
       queryFn: async ({ id, request }) => {
         try {
@@ -109,11 +120,11 @@ export const deploymentsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => deploymentTags(arg.id),
+      invalidatesTags: (result, error, arg) => deploymentTags(arg.id, arg.cacheKey),
     }),
     failDeployment: builder.mutation<
       void,
-      { id: string; request: FailDeploymentRequest }
+      { id: string; cacheKey: number; request: FailDeploymentRequest }
     >({
       queryFn: async ({ id, request }) => {
         try {
@@ -124,11 +135,11 @@ export const deploymentsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => deploymentTags(arg.id),
+      invalidatesTags: (result, error, arg) => deploymentTags(arg.id, arg.cacheKey),
     }),
     rollBackDeployment: builder.mutation<
       void,
-      { id: string; request: RollBackDeploymentRequest }
+      { id: string; cacheKey: number; request: RollBackDeploymentRequest }
     >({
       queryFn: async ({ id, request }) => {
         try {
@@ -139,7 +150,7 @@ export const deploymentsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, arg) => deploymentTags(arg.id),
+      invalidatesTags: (result, error, arg) => deploymentTags(arg.id, arg.cacheKey),
     }),
   }),
 })

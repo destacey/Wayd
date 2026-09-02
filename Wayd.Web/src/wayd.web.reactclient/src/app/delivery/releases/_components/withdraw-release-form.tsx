@@ -44,7 +44,7 @@ const WithdrawReleaseForm = ({
             reason: values.reason,
           } as WithdrawReleaseRequest
 
-          const response = await withdrawRelease({ id: release.id, request })
+          const response = await withdrawRelease({ id: release.id, cacheKey: release.key, request })
           if (response.error) throw response.error
 
           messageApi.success('Release withdrawn.')

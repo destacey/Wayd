@@ -124,11 +124,32 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
             ),
             // Delivery is schema-separated from the catalog so a later module split stays a code
             // move, but it is one module today and belongs in one section.
+            //
+            // Ordered as delivery runs: what is cut, what it is bundled into, where it went, and how
+            // that went.
             restrictedPermissionMenuItem(
               'Permissions.Releases.View',
               'Releases',
               'delivery.releases',
               '/delivery/releases',
+            ),
+            restrictedPermissionMenuItem(
+              'Permissions.ReleasePackages.View',
+              'Release Packages',
+              'delivery.release-packages',
+              '/delivery/release-packages',
+            ),
+            restrictedPermissionMenuItem(
+              'Permissions.Deployments.View',
+              'Deployments',
+              'delivery.deployments',
+              '/delivery/deployments',
+            ),
+            restrictedPermissionMenuItem(
+              'Permissions.DeliveryMetrics.View',
+              'Delivery Metrics',
+              'delivery.metrics',
+              '/delivery/metrics',
             ),
           ],
         ),

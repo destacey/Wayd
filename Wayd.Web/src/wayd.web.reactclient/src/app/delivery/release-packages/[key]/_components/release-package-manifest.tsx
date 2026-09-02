@@ -1,0 +1,97 @@
+'use client'
+
+import { WaydGrid } from '@/src/components/common/wayd-grid'
+import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
+import {
+  renderProductLink,
+  renderReleaseLink,
+} from '@/src/components/common/wayd-grid-core'
+import {
+  ManifestEntryKind,
+  ReleasePackageComponentDto,
+} from '@/src/services/wayd-api'
+import { Tag, Tooltip } from 'antd'
+
+export interface ReleasePackageManifestProps {
+  components: ReleasePackageComponentDto[]
+  isLoading?: boolean
+}
+
+const kindLabel: Record<ManifestEntryKind, string> = {
+  [ManifestEntryKind.Changed]: 'Changed',
+  [ManifestEntryKind.CarriedForward]: 'Carried Forward',
+}
+
+const kindDescription: Record<ManifestEntryKind, string> = {
+  [ManifestEntryKind.Changed]: 'This component changed in this package.',
+  [ManifestEntryKind.CarriedForward]:
+    'This component shipped unchanged, recorded so the manifest says what was in the box.',
+}
+
+/**
+ * A package's manifest.
+ *
+ * A component's release is a link only where one was recorded — a carried-forward line often names a
+ * version that was never cut as a release in Wayd, which is why the manifest holds the version as
+ * text of its own rather than reading it through the release.
+ */
+export const buildManifestColumns = (): ColumnDef<
+  ReleasePackageComponentDto,
+  any
+>[] => [
+  {
+    id: 'product',
+    accessorFn: (row) => row.product?.name ?? '',
+    header: 'Component',
+    size: 220,
+    meta: { filterType: 'set' },
+    cell: ({ row }) => renderProductLink(row.original.product),
+  },
+  {
+    id: 'version',
+    accessorKey: 'version',
+    header: 'Version',
+    size: 160,
+    meta: { filterEnableSet: true },
+  },
+  {
+    id: 'release',
+    accessorFn: (row) => row.release?.name ?? '',
+    header: 'Release',
+    size: 160,
+    cell: ({ row }) => renderReleaseLink(row.original.release),
+  },
+  {
+    id: 'kind',
+    accessorFn: (row) => kindLabel[row.kind],
+    header: 'Kind',
+    size: 150,
+    meta: { filterType: 'set' },
+    cell: ({ row }) => (
+      <Tooltip title={kindDescription[row.original.kind]}>
+        <Tag
+          color={
+            row.original.kind === ManifestEntryKind.Changed ? 'blue' : 'default'
+          }
+        >
+          {kindLabel[row.original.kind]}
+        </Tag>
+      </Tooltip>
+    ),
+  },
+]
+
+const ReleasePackageManifest = ({
+  components,
+  isLoading,
+}: ReleasePackageManifestProps) => (
+  <WaydGrid
+    columns={buildManifestColumns()}
+    data={components}
+    isLoading={isLoading}
+    csvFileName="release-package-manifest"
+    emptyMessage="This package has no components."
+  />
+)
+
+export default ReleasePackageManifest

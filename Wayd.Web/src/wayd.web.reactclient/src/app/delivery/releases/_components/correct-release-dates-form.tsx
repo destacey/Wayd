@@ -17,20 +17,25 @@ export interface CorrectReleaseDatesFormProps {
 }
 
 interface CorrectReleaseDatesFormValues {
+  targetDate?: Dayjs
   cutDate?: Dayjs
   releasedDate?: Dayjs
 }
 
 /**
- * Fixes a release's recorded cut and released dates.
+ * Fixes a release's recorded target, cut and released dates.
  *
  * Separate from Cut and Mark Released, which assert the release moved and refuse to run twice. This
  * says only that a date was written down wrongly, so the status stays where it is — the alternative
  * was to withdraw the release and release it again, which writes two status changes that never
  * happened.
  *
- * Only dates the release already has are offered. Adding one is a lifecycle step, and belongs to the
- * action that performs it.
+ * Every date is offered whether or not the release has one, because a missing date is as likely to be
+ * the error as a wrong one — a release can be marked released without ever being cut, so the cut date
+ * is often filled in afterwards. Clearing the target or cut date is allowed for the same reason.
+ *
+ * The released date is the exception: it can be corrected but not emptied here, because a released
+ * record with no released date contradicts its own status. Reverting is the action for that.
  */
 const CorrectReleaseDatesForm = ({
   release,
@@ -45,8 +50,10 @@ const CorrectReleaseDatesForm = ({
     useModalForm<CorrectReleaseDatesFormValues>({
       onSubmit: async (values: CorrectReleaseDatesFormValues, form) => {
         try {
+          // Every date is sent, so one left empty is cleared rather than left alone.
           const request = {
             id: release.id,
+            targetDate: values.targetDate?.format('YYYY-MM-DD'),
             cutDate: values.cutDate?.format('YYYY-MM-DD'),
             releasedDate: values.releasedDate?.format('YYYY-MM-DD'),
           } as unknown as CorrectReleaseDatesRequest
@@ -107,38 +114,54 @@ const CorrectReleaseDatesForm = ({
           layout="vertical"
           name="correct-release-dates-form"
           initialValues={{
+            targetDate: release.targetDate ? dayjs(release.targetDate) : undefined,
             cutDate: release.cutDate ? dayjs(release.cutDate) : undefined,
             releasedDate: release.releasedDate
               ? dayjs(release.releasedDate)
               : undefined,
           }}
         >
-          {release.cutDate && (
-            <Item
-              label="Cut Date"
-              name="cutDate"
-              rules={[{ required: true, message: 'Cut date is required' }]}
-            >
-              <DatePicker style={{ width: '100%' }} />
-            </Item>
-          )}
-          {release.releasedDate && (
-            <Item
-              label="Released Date"
-              name="releasedDate"
-              rules={[{ required: true, message: 'Released date is required' }]}
-            >
-              <DatePicker
-                style={{ width: '100%' }}
-                // The aggregate refuses a released date before the cut date.
-                disabledDate={
-                  cutDate
-                    ? (current) => current.isBefore(cutDate, 'day')
-                    : undefined
-                }
-              />
-            </Item>
-          )}
+          <Item
+            label="Target Date"
+            name="targetDate"
+            extra="When the release was aimed at. Clear it to remove the target."
+          >
+            <DatePicker style={{ width: '100%' }} />
+          </Item>
+          <Item
+            label="Cut Date"
+            name="cutDate"
+            extra="A release can ship without ever being cut, so this may be filled in afterwards."
+          >
+            <DatePicker style={{ width: '100%' }} />
+          </Item>
+          <Item
+            label="Released Date"
+            name="releasedDate"
+            // Required only once the release has one: the aggregate refuses to clear a released
+            // date, because the status would then contradict the dates.
+            rules={
+              release.releasedDate
+                ? [
+                    {
+                      required: true,
+                      message:
+                        'A released release keeps its released date. Revert the release instead.',
+                    },
+                  ]
+                : undefined
+            }
+          >
+            <DatePicker
+              style={{ width: '100%' }}
+              // The aggregate refuses a released date before the cut date.
+              disabledDate={
+                cutDate
+                  ? (current) => current.isBefore(cutDate, 'day')
+                  : undefined
+              }
+            />
+          </Item>
         </Form>
       </Flex>
     </Modal>

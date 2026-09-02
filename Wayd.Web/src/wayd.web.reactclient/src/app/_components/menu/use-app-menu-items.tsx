@@ -123,37 +123,47 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
               '/product-management/products',
             ),
             // Delivery is schema-separated from the catalog so a later module split stays a code
-            // move, but it is one module today and belongs in one section.
+            // move, but it is one module today and belongs in one section — which is why these route
+            // under `/product-management/`, matching both this section and the API, where every one
+            // of these endpoints already lives under `api/product-management/`. "Delivery" names the
+            // schema and the concept, not a URL namespace.
             //
-            // Ordered as delivery runs: what was cut, what it was bundled into, where it went, and
-            // how that went.
+            // Releases lead, then the engineering chain ordered as delivery runs: what was cut, what
+            // it was bundled into, where it went, and how that went. The announcement is what a
+            // product manager opens the section for, and it reads as the whole the rest feeds.
             //
-            // No Releases entry yet: the announcement record and its permission exist, but its
-            // screens land in the follow-up. A nav item pointing at a route with no page is worse
-            // than a missing one.
+            // Guarded on its own permission rather than Delivery's: a product manager drafting
+            // 2026.07 is a different person from whoever records that the pipeline ran.
+            restrictedPermissionMenuItem(
+              'Permissions.Releases.View',
+              'Releases',
+              'product.releases',
+              '/product-management/releases',
+            ),
+            { key: 'settings-product-divider', type: 'divider' },
             restrictedPermissionMenuItem(
               'Permissions.Delivery.View',
               'Versions',
-              'delivery.versions',
-              '/delivery/versions',
+              'product.versions',
+              '/product-management/versions',
             ),
             restrictedPermissionMenuItem(
               'Permissions.Delivery.View',
               'Release Packages',
-              'delivery.release-packages',
-              '/delivery/release-packages',
+              'product.release-packages',
+              '/product-management/release-packages',
             ),
             restrictedPermissionMenuItem(
               'Permissions.Delivery.View',
               'Deployments',
-              'delivery.deployments',
-              '/delivery/deployments',
+              'product.deployments',
+              '/product-management/deployments',
             ),
             restrictedPermissionMenuItem(
               'Permissions.DeliveryMetrics.View',
               'Delivery Metrics',
-              'delivery.metrics',
-              '/delivery/metrics',
+              'product.metrics',
+              '/product-management/metrics',
             ),
           ],
         ),
@@ -199,10 +209,13 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
       '/ppm/strategic-initiatives',
     ),
     { key: 'settings-ppm-divider', type: 'divider' },
+    // Keyed under `ppm` because that is the section it is rendered in. The key's first segment is
+    // what the menu opens on navigation, so a `strategy.` key here would ask to open a section that
+    // is not in the tree, and the item would select with its parent collapsed.
     restrictedPermissionMenuItem(
       'Permissions.StrategicThemes.View',
       'Strategic Themes',
-      'strategy.strategic-themes',
+      'ppm.strategic-themes',
       '/strategic-management/strategic-themes',
     ),
   ]),

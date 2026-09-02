@@ -133,12 +133,13 @@ Then use `wayd-mcp` as the command instead of `npx -y @wayd/mcp` in any of the c
 
 Skills are prompt files that guide Claude on how to efficiently use the Wayd MCP tools — which tools to call in sequence, how to resolve IDs, and what the entity relationships look like. Without them, agents tend to make redundant calls or miss non-obvious patterns (e.g. project lifecycle transitions use separate action endpoints, not a status field).
 
-Seven self-contained skills are available:
+Eight self-contained skills are available:
 
 | Skill | Trigger |
 | --- | --- |
 | `wayd-ppm` | Portfolios, programs, projects — lookup, plans, health checks, task management |
 | `wayd-delivery` | Releases, versions, packages, deployments — what was announced, built, shipped together, and deployed where |
+| `wayd-products` | The product catalog — the typed tree, types, tags, environments, and delivery metrics |
 | `wayd-pi` | Planning intervals, iterations, objectives, health reports, risks |
 | `wayd-roadmaps` | Roadmap exploration — activities, timeboxes, milestones |
 | `wayd-story-maps` | Story maps — analyze, create, and manage goals, steps, tasks, swim lanes, personas |
@@ -153,7 +154,7 @@ From your project root:
 npx skills add destacey/Wayd
 ```
 
-Once installed, activate a skill in Claude Code with `/wayd-ppm`, `/wayd-delivery`, `/wayd-pi`, `/wayd-roadmaps`, `/wayd-story-maps`, `/wayd-teams`, or `/wayd-users`.
+Once installed, activate a skill in Claude Code with `/wayd-ppm`, `/wayd-delivery`, `/wayd-products`, `/wayd-pi`, `/wayd-roadmaps`, `/wayd-story-maps`, `/wayd-teams`, or `/wayd-users`.
 
 ## Confirmation before status changes
 
@@ -191,6 +192,18 @@ This matters most for role assignments. `sponsorIds`, `ownerIds`, `managerIds`, 
 | **Planning Intervals** | List, get details, calendar, predictability, teams, iterations, objectives, risks, objective health check history, get/create objective health check |
 | **Roadmaps** | List, get details, get items and activities |
 | **Story Maps** | List, get full map. Create, update, archive, delete maps. Manage goals, steps, tasks, checklists, swim lanes, personas, and work item links |
+
+### Product Catalog
+
+| Category | Operations |
+| --- | --- |
+| **Products** | List (by parent, type, status category, or tags), get details, get status history, get status options. Create, update, retype, reparent, change status, link externally, tag, untag, delete |
+| **Product Types** | List — the types a product can be, and whether each allows versions to be cut against it |
+| **Product Tag Categories** | List — the tag axes and their tags, with whether each axis allows more than one tag |
+| **Deployment Environments** | List (by active state or category), create, update, retire or reinstate |
+| **Delivery Metrics** | Get the measures over a window |
+
+The catalog is one typed tree, and a product's type carries the flag that decides whether versions can be cut against it. Type, parent and status each have their own tool rather than being fields on the update, because each carries a rule the domain enforces. Two behaviours the `wayd-products` skill covers: tagging a single-value axis **silently replaces** the existing tag rather than refusing, and deleting a product is a **hard delete**, unlike delivery where records are withdrawn and kept.
 
 ### Product Delivery
 

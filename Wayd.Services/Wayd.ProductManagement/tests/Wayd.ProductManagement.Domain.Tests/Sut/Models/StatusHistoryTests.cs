@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.Testing;
@@ -11,6 +11,9 @@ using Wayd.ProductManagement.Domain.Models;
 using Wayd.ProductManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
 
+// The delivery artifact record, not System.Version.
+using Version = Wayd.ProductManagement.Domain.Models.Version;
+
 namespace Wayd.ProductManagement.Domain.Tests.Sut.Models;
 
 /// <summary>
@@ -22,19 +25,19 @@ public sealed class StatusHistoryTests
     private const string ProductName = "Checkout";
 
     private readonly TestingDateTimeProvider _dateTimeProvider;
-    private readonly ReleaseFaker _faker;
+    private readonly VersionFaker _faker;
 
     public StatusHistoryTests()
     {
         _dateTimeProvider = new(new FakeClock(DateTime.UtcNow.ToInstant()));
-        _faker = new ReleaseFaker();
+        _faker = new VersionFaker();
     }
 
-    private Release PlannedRelease(Guid workflowId)
+    private Version PlannedVersion(Guid workflowId)
     {
         var planned = StatusRefFactory.For(StatusCategory.Proposed, workflowId: workflowId, name: "Planned");
 
-        return Release.Create(
+        return Version.Create(
             Guid.CreateVersion7(), "4.8.2", null, null, null, true, planned,
             ProductName, EventActor.System, _dateTimeProvider.Now).Value;
     }
@@ -48,7 +51,7 @@ public sealed class StatusHistoryTests
         var workflowId = Guid.CreateVersion7();
 
         // Act
-        var sut = PlannedRelease(workflowId);
+        var sut = PlannedVersion(workflowId);
 
         // Assert
         // The record entering its first status is itself history — without it, the earliest known state
@@ -65,7 +68,7 @@ public sealed class StatusHistoryTests
     {
         // Arrange
         var workflowId = Guid.CreateVersion7();
-        var sut = PlannedRelease(workflowId);
+        var sut = PlannedVersion(workflowId);
 
         // Act
         sut.Cut(new LocalDate(2026, 9, 1),
@@ -85,7 +88,7 @@ public sealed class StatusHistoryTests
     {
         // Arrange
         var workflowId = Guid.CreateVersion7();
-        var sut = PlannedRelease(workflowId);
+        var sut = PlannedVersion(workflowId);
 
         // Act
         sut.Cut(new LocalDate(2026, 9, 1),
@@ -105,7 +108,7 @@ public sealed class StatusHistoryTests
     {
         // Arrange
         var workflowId = Guid.CreateVersion7();
-        var sut = PlannedRelease(workflowId);
+        var sut = PlannedVersion(workflowId);
 
         // Act
         sut.Withdraw("Critical defect found in staging.",
@@ -125,7 +128,7 @@ public sealed class StatusHistoryTests
         var planned = StatusRefFactory.For(StatusCategory.Proposed, workflowId: workflowId, name: "Planned");
 
         // Act
-        var sut = Release.Create(
+        var sut = Version.Create(
             Guid.CreateVersion7(), "4.8.2", null, null, null, true, planned,
             ProductName, actor, _dateTimeProvider.Now).Value;
 
@@ -146,7 +149,7 @@ public sealed class StatusHistoryTests
     {
         // Arrange
         var workflowId = Guid.CreateVersion7();
-        var sut = PlannedRelease(workflowId);
+        var sut = PlannedVersion(workflowId);
 
         var readyStatusId = Guid.CreateVersion7();
         var readyThen = new StatusRef(workflowId, readyStatusId, "Ready", StatusCategory.Active, (int)ProductStatusAlias.Ready);
@@ -169,7 +172,7 @@ public sealed class StatusHistoryTests
     {
         // Arrange
         var workflowId = Guid.CreateVersion7();
-        var sut = PlannedRelease(workflowId);
+        var sut = PlannedVersion(workflowId);
 
         // Act
         sut.Withdraw(null,
@@ -193,7 +196,7 @@ public sealed class StatusHistoryTests
         var workflowId = Guid.CreateVersion7();
 
         // Act
-        var sut = PlannedRelease(workflowId);
+        var sut = PlannedVersion(workflowId);
 
         // Assert
         // The record itself does not name a workflow — that is its container's, through the assignment.
@@ -206,11 +209,11 @@ public sealed class StatusHistoryTests
     public void EveryAggregate_ShouldDeclareItsOwnerType()
     {
         // Arrange
-        var release = _faker.Generate();
+        var version = _faker.Generate();
 
         // Act & Assert
         // The owner type is what lets one transitions table serve every module.
-        release.StatusOwnerType.Should().Be(ProductWorkflowOwners.Release.Key);
+        version.StatusOwnerType.Should().Be(ProductWorkflowOwners.Version.Key);
     }
 
     #endregion Which workflow
@@ -222,7 +225,7 @@ public sealed class StatusHistoryTests
     {
         // Arrange
         var workflowId = Guid.CreateVersion7();
-        var sut = PlannedRelease(workflowId);
+        var sut = PlannedVersion(workflowId);
         var current = new StatusRef(workflowId, sut.StatusId, sut.StatusName, sut.StatusCategory);
 
         // Act

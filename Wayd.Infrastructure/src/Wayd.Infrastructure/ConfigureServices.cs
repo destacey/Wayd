@@ -81,15 +81,17 @@ public static class ConfigureServices
         ProductWorkflowOwners.Register();
 
         // Registered by hand rather than by the marker scan: that scan binds one implementation per
-        // interface, so four migrators sharing IStatusRecordMigrator would collapse to whichever was
-        // scanned last, and a reassignment would silently skip three owner types. Resolved as a
+        // interface, so migrators sharing IStatusRecordMigrator would collapse to whichever was
+        // scanned last, and a reassignment would silently skip every other owner type. Resolved as a
         // collection and selected by OwnerType. StatusRecordMigratorRegistrationTests pins this.
         services.AddScoped<IStatusRecordMigrator, ProductStatusRecordMigrator>();
+        services.AddScoped<IStatusRecordMigrator, VersionStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, ReleaseStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, ReleasePackageStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, DeploymentStatusRecordMigrator>();
 
         services.AddScoped<IStatusRecordCounter, ProductStatusRecordMigrator>();
+        services.AddScoped<IStatusRecordCounter, VersionStatusRecordMigrator>();
         services.AddScoped<IStatusRecordCounter, ReleaseStatusRecordMigrator>();
         services.AddScoped<IStatusRecordCounter, ReleasePackageStatusRecordMigrator>();
         services.AddScoped<IStatusRecordCounter, DeploymentStatusRecordMigrator>();

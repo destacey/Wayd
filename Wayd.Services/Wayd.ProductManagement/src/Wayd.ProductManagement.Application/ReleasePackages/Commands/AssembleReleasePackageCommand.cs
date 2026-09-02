@@ -73,23 +73,23 @@ public sealed class AssembleReleasePackageCommandHandler(
                 return Result.Failure<ObjectIdAndKey>("The manifest names a product that does not exist.");
             }
 
-            // Release ids are optional — a carried-forward component often has no release row — but one
+            // Version ids are optional — a carried-forward component often has no version row — but one
             // that is supplied must resolve. Left unchecked, the projection renders an unknown id as
             // null, making a typo indistinguishable from a legitimately carried-forward component.
-            var releaseIds = request.Components
-                .Where(c => c.ReleaseId is not null)
-                .Select(c => c.ReleaseId!.Value)
+            var versionIds = request.Components
+                .Where(c => c.VersionId is not null)
+                .Select(c => c.VersionId!.Value)
                 .Distinct()
                 .ToList();
 
-            if (releaseIds.Count > 0)
+            if (versionIds.Count > 0)
             {
-                var knownReleases = await _productManagementDbContext.Releases
-                    .CountAsync(r => releaseIds.Contains(r.Id), cancellationToken);
+                var knownVersions = await _productManagementDbContext.Versions
+                    .CountAsync(v => versionIds.Contains(v.Id), cancellationToken);
 
-                if (knownReleases != releaseIds.Count)
+                if (knownVersions != versionIds.Count)
                 {
-                    return Result.Failure<ObjectIdAndKey>("The manifest names a release that does not exist.");
+                    return Result.Failure<ObjectIdAndKey>("The manifest names a version that does not exist.");
                 }
             }
 
@@ -106,7 +106,7 @@ public sealed class AssembleReleasePackageCommandHandler(
                 request.Version,
                 request.Name,
                 request.TargetDate,
-                [.. request.Components.Select(c => (c.ProductId, c.ReleaseId, c.Version, c.Kind))],
+                [.. request.Components.Select(c => (c.ProductId, c.VersionId, c.Version, c.Kind))],
                 initialStatus.Value,
                 EventActor.User(_currentUser.GetUserId()),
                 _dateTimeProvider.Now);

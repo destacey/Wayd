@@ -42,13 +42,25 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
                 ("Retired", "Withdrawn from service.", StatusCategory.Done, ProductStatusAlias.Retired),
             ], dateTimeProvider, cancellationToken);
 
-        seeded |= await SeedIfAbsent(dbContext, ProductWorkflowOwners.Release, "Default Release Workflow",
-            "The lifecycle of a release.",
+        seeded |= await SeedIfAbsent(dbContext, ProductWorkflowOwners.Version, "Default Version Workflow",
+            "The lifecycle of a versioned cut of one product.",
             [
                 ("Planned", "Scheduled but not yet cut.", StatusCategory.Proposed, ProductStatusAlias.None),
                 ("Ready", "Cut and ready to ship.", StatusCategory.Active, ProductStatusAlias.Ready),
                 ("Released", "Shipped.", StatusCategory.Done, ProductStatusAlias.Released),
                 ("Withdrawn", "Pulled after being cut.", StatusCategory.Removed, ProductStatusAlias.Withdrawn),
+            ], dateTimeProvider, cancellationToken);
+
+        // Shares the version vocabulary but not its meaning: an announcement is drafted and announced
+        // where a version is cut and shipped. Ready is the resting state before the announcement goes
+        // out, not evidence that anything was cut.
+        seeded |= await SeedIfAbsent(dbContext, ProductWorkflowOwners.Release, "Default Release Workflow",
+            "The lifecycle of a release as announced to customers.",
+            [
+                ("Planned", "Drafted but not yet announced.", StatusCategory.Proposed, ProductStatusAlias.None),
+                ("Ready", "Ready to announce.", StatusCategory.Active, ProductStatusAlias.Ready),
+                ("Released", "Announced to customers.", StatusCategory.Done, ProductStatusAlias.Released),
+                ("Withdrawn", "Retracted after being announced.", StatusCategory.Removed, ProductStatusAlias.Withdrawn),
             ], dateTimeProvider, cancellationToken);
 
         seeded |= await SeedIfAbsent(dbContext, ProductWorkflowOwners.ReleasePackage, "Default Release Package Workflow",
@@ -61,7 +73,7 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
             ], dateTimeProvider, cancellationToken);
 
         seeded |= await SeedIfAbsent(dbContext, ProductWorkflowOwners.Deployment, "Default Deployment Workflow",
-            "The outcome of one release or package reaching one environment.",
+            "The outcome of one version or package reaching one environment.",
             [
                 ("In Progress", "Under way, with no outcome yet.", StatusCategory.Active, ProductStatusAlias.InProgress),
                 ("Succeeded", "Reached its environment.", StatusCategory.Done, ProductStatusAlias.Succeeded),

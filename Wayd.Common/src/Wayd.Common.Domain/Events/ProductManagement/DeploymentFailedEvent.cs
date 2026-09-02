@@ -22,7 +22,7 @@ public sealed record DeploymentFailedEvent : DomainEvent, IProductManagementEven
     public DeploymentFailedEvent(
         Guid id,
         int key,
-        Guid? releaseId,
+        Guid? versionId,
         Guid? packageId,
         Guid environmentId,
         string environmentName,
@@ -37,7 +37,7 @@ public sealed record DeploymentFailedEvent : DomainEvent, IProductManagementEven
     {
         Id = id;
         Key = key;
-        ReleaseId = releaseId;
+        VersionId = versionId;
         PackageId = packageId;
         EnvironmentId = environmentId;
         EnvironmentName = environmentName;
@@ -52,7 +52,7 @@ public sealed record DeploymentFailedEvent : DomainEvent, IProductManagementEven
 
     public Guid Id { get; }
     public int Key { get; }
-    public Guid? ReleaseId { get; }
+    public Guid? VersionId { get; }
     public Guid? PackageId { get; }
     public Guid EnvironmentId { get; }
     public string EnvironmentName { get; }

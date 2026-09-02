@@ -7,6 +7,9 @@ using Wayd.ProductManagement.Application;
 using Wayd.ProductManagement.Domain;
 using Wayd.ProductManagement.Domain.Models;
 
+// The delivery artifact record, not System.Version.
+using Version = Wayd.ProductManagement.Domain.Models.Version;
+
 namespace Wayd.Infrastructure.StatusWorkflows;
 
 /// <summary>
@@ -114,6 +117,14 @@ public sealed class ProductStatusRecordMigrator(IProductManagementDbContext dbCo
     public override string OwnerType => ProductWorkflowOwners.Product.Key;
 
     protected override IQueryable<Product> Records => DbContext.Products;
+}
+
+public sealed class VersionStatusRecordMigrator(IProductManagementDbContext dbContext)
+    : StatusRecordMigratorBase<Version>(dbContext)
+{
+    public override string OwnerType => ProductWorkflowOwners.Version.Key;
+
+    protected override IQueryable<Version> Records => DbContext.Versions;
 }
 
 public sealed class ReleaseStatusRecordMigrator(IProductManagementDbContext dbContext)

@@ -1,4 +1,4 @@
-using Ardalis.GuardClauses;
+﻿using Ardalis.GuardClauses;
 using Wayd.Common.Domain.Enums.ProductManagement;
 
 namespace Wayd.ProductManagement.Domain.Models;
@@ -9,7 +9,7 @@ namespace Wayd.ProductManagement.Domain.Models;
 /// </summary>
 /// <remarks>
 /// The version is captured here as text rather than only referenced through
-/// <see cref="ReleaseId"/>, because a carried-forward component often has no release row in Wayd at
+/// <see cref="VersionId"/>, because a carried-forward component often has no version row in Wayd at
 /// all — it was already running, and nobody cut anything for it. Recording the string is what lets the
 /// manifest answer "what was running on this date" for every component rather than only the changed
 /// ones.
@@ -18,11 +18,11 @@ public sealed class ReleasePackageComponent : BaseAuditableEntity
 {
     private ReleasePackageComponent() { }
 
-    internal ReleasePackageComponent(Guid packageId, Guid productId, Guid? releaseId, string version, ManifestEntryKind kind)
+    internal ReleasePackageComponent(Guid packageId, Guid productId, Guid? versionId, string version, ManifestEntryKind kind)
     {
         PackageId = packageId;
         ProductId = productId;
-        ReleaseId = releaseId;
+        VersionId = versionId;
         Version = version;
         Kind = kind;
     }
@@ -42,10 +42,10 @@ public sealed class ReleasePackageComponent : BaseAuditableEntity
     public Product? Product { get; private init; }
 
     /// <summary>
-    /// The release that supplied this version, where one is recorded in Wayd. Null for a
+    /// The version record that supplied this line, where one is recorded in Wayd. Null for a
     /// carried-forward component whose version predates anything Wayd holds.
     /// </summary>
-    public Guid? ReleaseId { get; private init; }
+    public Guid? VersionId { get; private init; }
 
     /// <summary>The component's version in this package. Free text, never parsed.</summary>
     public string Version

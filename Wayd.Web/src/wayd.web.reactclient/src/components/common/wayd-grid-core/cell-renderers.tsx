@@ -86,10 +86,20 @@ export const renderProductLink = (
 ): ReactNode => renderNavLink(product, '/product-management/products')
 
 /**
+ * Renders a version as a link to its page.
+ *
+ * The label is whatever the reference carries in `name`, which for a version is its number — the
+ * DTO puts the number there because that is what identifies a version to a reader.
+ */
+export const renderVersionLink = (
+  version: NavLinkTarget | null | undefined,
+): ReactNode => renderNavLink(version, '/delivery/versions')
+
+/**
  * Renders a release as a link to its page.
  *
- * The label is whatever the reference carries in `name`, which for a release is its version — the
- * DTO puts the version there because that is what identifies a release to a reader.
+ * The label is whatever the reference carries in `name`, which for a release is its own version
+ * label — distinct from the version numbers of the artifacts it announced.
  */
 export const renderReleaseLink = (
   release: NavLinkTarget | null | undefined,

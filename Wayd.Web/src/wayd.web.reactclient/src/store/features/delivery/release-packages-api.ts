@@ -19,7 +19,7 @@ export interface GetReleasePackagesRequest {
    * Packages naming this exact release. Narrower than `containingProductId`, and what a release's own
    * page needs: the product-wide filter would list packages that release was never part of.
    */
-  containingReleaseId?: string
+  containingVersionId?: string
 }
 
 /**
@@ -42,7 +42,7 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
      * Packages, newest first.
      *
      * Both containing-* filters read the manifest, since a release records no package of its own:
-     * `containingReleaseId` matches the one release (what a release's page asks), while
+     * `containingVersionId` matches the one version (what a version's page asks), while
      * `containingProductId` matches any manifest line for that product, changed or carried forward.
      */
     getReleasePackages: builder.query<
@@ -54,7 +54,7 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
           const data = await getReleasePackagesClient().getReleasePackages(
             request.statusCategory,
             request.containingProductId,
-            request.containingReleaseId,
+            request.containingVersionId,
           )
           return { data }
         } catch (error) {

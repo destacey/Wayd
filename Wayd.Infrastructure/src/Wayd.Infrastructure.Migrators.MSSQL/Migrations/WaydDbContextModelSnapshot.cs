@@ -3423,9 +3423,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(1024)
                         .HasColumnType("nvarchar(1024)");
 
-                    b.Property<Guid?>("ReleaseId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("datetime2");
 
@@ -3465,21 +3462,24 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<Guid?>("VersionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasAlternateKey("Key");
 
                     b.HasIndex("PackageId");
 
-                    b.HasIndex("ReleaseId");
-
                     b.HasIndex("StatusWorkflowId");
+
+                    b.HasIndex("VersionId");
 
                     b.HasIndex("EnvironmentId", "StartedAt");
 
                     b.HasIndex("EnvironmentCategory", "StatusAliasValue", "CompletedAt");
 
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("EnvironmentCategory", "StatusAliasValue", "CompletedAt"), new[] { "Id", "Key", "ReleaseId", "PackageId", "EnvironmentId" });
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("EnvironmentCategory", "StatusAliasValue", "CompletedAt"), new[] { "Id", "Key", "VersionId", "PackageId", "EnvironmentId" });
 
                     b.ToTable("Deployments", "Delivery");
                 });
@@ -3821,9 +3821,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("CutDate")
-                        .HasColumnType("date");
-
                     b.Property<int>("Key")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
@@ -3838,7 +3835,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
 
-                    b.Property<Guid>("ProductId")
+                    b.Property<Guid?>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("ReleasedDate")
@@ -3895,13 +3892,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasAlternateKey("Key");
 
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ReleasedDate");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ReleasedDate"), new[] { "Id", "Key", "Version", "Name", "Sequence", "StatusCategory" });
+
                     b.HasIndex("StatusWorkflowId");
-
-                    b.HasIndex("ProductId", "ReleasedDate");
-
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ProductId", "ReleasedDate"), new[] { "Id", "Key", "Version", "Name", "Sequence", "StatusCategory" });
-
-                    b.HasIndex("ProductId", "Version");
 
                     b.ToTable("Releases", "Delivery");
                 });
@@ -3997,9 +3994,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("ReleaseId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime>("SystemCreated")
                         .HasColumnType("datetime2");
 
@@ -4019,6 +4013,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<Guid?>("VersionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
@@ -4027,6 +4024,166 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsUnique();
 
                     b.ToTable("ReleasePackageComponents", "Delivery");
+                });
+
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.ReleasePackageInclusion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PackageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ReleaseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PackageId");
+
+                    b.HasIndex("ReleaseId", "PackageId")
+                        .IsUnique();
+
+                    b.ToTable("ReleasePackageInclusions", "Delivery");
+                });
+
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.ReleaseVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ReleaseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid>("VersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VersionId");
+
+                    b.HasIndex("ReleaseId", "VersionId")
+                        .IsUnique();
+
+                    b.ToTable("ReleaseVersions", "Delivery");
+                });
+
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Version", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CutDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ReleasedDate")
+                        .HasColumnType("date");
+
+                    b.Property<long?>("Sequence")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("StatusAliasValue")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StatusCategory")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<Guid>("StatusId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("StatusName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("StatusTransitionCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("StatusWorkflowId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("TargetDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Key");
+
+                    b.HasIndex("StatusWorkflowId");
+
+                    b.HasIndex("ProductId", "Number");
+
+                    b.HasIndex("ProductId", "ReleasedDate");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ProductId", "ReleasedDate"), new[] { "Id", "Key", "Number", "Name", "Sequence", "StatusCategory" });
+
+                    b.ToTable("Versions", "Delivery");
                 });
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ExpenditureCategory", b =>
@@ -7516,16 +7673,16 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasForeignKey("PackageId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Wayd.ProductManagement.Domain.Models.Release", "Release")
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.Version", "Version")
                         .WithMany()
-                        .HasForeignKey("ReleaseId")
+                        .HasForeignKey("VersionId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Environment");
 
                     b.Navigation("Package");
 
-                    b.Navigation("Release");
+                    b.Navigation("Version");
                 });
 
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Product", b =>
@@ -7577,8 +7734,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasOne("Wayd.ProductManagement.Domain.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Product");
                 });
@@ -7591,6 +7747,51 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.ReleasePackageInclusion", b =>
+                {
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.ReleasePackage", "Package")
+                        .WithMany()
+                        .HasForeignKey("PackageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.Release", null)
+                        .WithMany("Packages")
+                        .HasForeignKey("ReleaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Package");
+                });
+
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.ReleaseVersion", b =>
+                {
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.Release", null)
+                        .WithMany("Versions")
+                        .HasForeignKey("ReleaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.Version", "Version")
+                        .WithMany()
+                        .HasForeignKey("VersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Version");
+                });
+
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Version", b =>
+                {
                     b.HasOne("Wayd.ProductManagement.Domain.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
@@ -8672,6 +8873,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.ProductTagCategory", b =>
                 {
                     b.Navigation("Tags");
+                });
+
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Release", b =>
+                {
+                    b.Navigation("Packages");
+
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.ReleasePackage", b =>

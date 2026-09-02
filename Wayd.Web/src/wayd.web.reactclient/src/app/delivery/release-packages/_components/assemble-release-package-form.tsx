@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { AssembleReleasePackageRequest } from '@/src/services/wayd-api'
 import { useAssembleReleasePackageMutation } from '@/src/store/features/delivery/release-packages-api'
-import { useGetReleasesQuery } from '@/src/store/features/delivery/releases-api'
+import { useGetVersionsQuery } from '@/src/store/features/delivery/versions-api'
 import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { DatePicker, Form, Input, Modal } from 'antd'
@@ -43,7 +43,7 @@ const AssembleReleasePackageForm = ({
   const [assembleReleasePackage] = useAssembleReleasePackageMutation()
   const { data: products, isLoading: productsLoading } =
     useGetProductsQuery(undefined)
-  const { data: releases } = useGetReleasesQuery(undefined)
+  const { data: versions } = useGetVersionsQuery(undefined)
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<AssembleReleasePackageFormValues>({
@@ -55,7 +55,7 @@ const AssembleReleasePackageForm = ({
             targetDate: values.targetDate?.format('YYYY-MM-DD'),
             components: values.components.map((entry) => ({
               productId: entry.productId,
-              releaseId: entry.releaseId,
+              versionId: entry.versionId,
               version: entry.version,
               kind: entry.kind,
             })),
@@ -86,7 +86,7 @@ const AssembleReleasePackageForm = ({
       onCancel: onFormCancel,
       errorMessage:
         'An error occurred while assembling the package. Please try again.',
-      permission: 'Permissions.ReleasePackages.Create',
+      permission: 'Permissions.Delivery.Create',
     })
 
   return (
@@ -159,7 +159,7 @@ const AssembleReleasePackageForm = ({
         >
           <ManifestEditor
             products={products ?? []}
-            releases={releases ?? []}
+            versions={versions ?? []}
             isLoading={productsLoading}
           />
         </Item>

@@ -72,7 +72,7 @@ public sealed class RetypeProductCommandHandlerTests : ProductCommandTestBase
         var from = SeedType("Application");
         var to = SeedType("Library", isReleasable: false);
         var product = SeedProduct(productTypeId: from.Id);
-        SeedRelease(product.Id);
+        SeedVersion(product.Id);
         var sut = CreateSut();
 
         // Act
@@ -81,7 +81,7 @@ public sealed class RetypeProductCommandHandlerTests : ProductCommandTestBase
         // Assert
         // The releases already cut would be orphaned by a type that cannot carry them.
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("This product has releases and cannot be changed to a type that is not releasable.");
+        result.Error.Should().Be("This product has versions and cannot be changed to a type that is not releasable.");
         product.ProductTypeId.Should().Be(from.Id);
         DbContext.SaveChangesCallCount.Should().Be(0);
     }
@@ -111,7 +111,7 @@ public sealed class RetypeProductCommandHandlerTests : ProductCommandTestBase
         var to = SeedType("Library", isReleasable: false);
         var product = SeedProduct(productTypeId: from.Id);
         var other = SeedProduct("Other", productTypeId: from.Id);
-        SeedRelease(other.Id);
+        SeedVersion(other.Id);
         var sut = CreateSut();
 
         // Act

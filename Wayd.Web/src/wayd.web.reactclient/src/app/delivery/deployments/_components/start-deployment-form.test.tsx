@@ -16,13 +16,13 @@ jest.mock('@/src/store/features/delivery/deployments-api', () => ({
   useStartDeploymentMutation: () => [startDeployment],
 }))
 
-jest.mock('@/src/store/features/delivery/releases-api', () => ({
-  useGetReleasesQuery: () => ({
+jest.mock('@/src/store/features/delivery/versions-api', () => ({
+  useGetVersionsQuery: () => ({
     data: [
       {
-        id: 'release-1',
+        id: 'version-1',
         key: 3,
-        version: '4.8.2',
+        number: '4.8.2',
         product: { id: 'product-1', key: 7, name: 'Wayd API' },
       },
     ],
@@ -145,9 +145,9 @@ describe('StartDeploymentForm', () => {
     // Arrange / Act
     renderForm()
 
-    // Assert — the API validates ReleaseId XOR PackageId in three places, so the form makes the
+    // Assert — the API validates VersionId XOR PackageId in three places, so the form makes the
     // invalid combinations unexpressible rather than merely discouraged.
-    expect(picker('releaseId')).toBeInTheDocument()
+    expect(picker('versionId')).toBeInTheDocument()
     expect(queryPicker('packageId')).toBeNull()
   })
 
@@ -160,13 +160,13 @@ describe('StartDeploymentForm', () => {
 
     // Assert
     expect(picker('packageId')).toBeInTheDocument()
-    expect(queryPicker('releaseId')).toBeNull()
+    expect(queryPicker('versionId')).toBeNull()
   })
 
-  it('sends only the release when deploying a release', async () => {
+  it('sends only the version when deploying a version', async () => {
     // Arrange
     renderForm()
-    await pickOption('releaseId', 'Wayd API 4.8.2')
+    await pickOption('versionId', 'Wayd API 4.8.2')
     await pickOption('environmentId', 'Production (Production)')
 
     // Act
@@ -175,7 +175,7 @@ describe('StartDeploymentForm', () => {
     // Assert
     expect(startDeployment).toHaveBeenCalledTimes(1)
     const request = startDeployment.mock.calls[0][0]
-    expect(request.releaseId).toBe('release-1')
+    expect(request.versionId).toBe('version-1')
     expect(request.packageId).toBeUndefined()
   })
 
@@ -192,14 +192,14 @@ describe('StartDeploymentForm', () => {
     // Assert
     const request = startDeployment.mock.calls[0][0]
     expect(request.packageId).toBe('package-1')
-    expect(request.releaseId).toBeUndefined()
+    expect(request.versionId).toBeUndefined()
   })
 
-  it('never sends both, even after a release was picked and the toggle moved', async () => {
+  it('never sends both, even after a version was picked and the toggle moved', async () => {
     // Arrange — the case a pair of optional pickers would get wrong: a value chosen under the old
     // toggle position must not travel alongside the new one.
     renderForm()
-    await pickOption('releaseId', 'Wayd API 4.8.2')
+    await pickOption('versionId', 'Wayd API 4.8.2')
     await toggleTo('Package')
     await pickOption('packageId', '2026.04')
     await pickOption('environmentId', 'Production (Production)')
@@ -210,7 +210,7 @@ describe('StartDeploymentForm', () => {
     // Assert
     const request = startDeployment.mock.calls[0][0]
     expect(request.packageId).toBe('package-1')
-    expect(request.releaseId).toBeUndefined()
+    expect(request.versionId).toBeUndefined()
   })
 
   it('sends only the toggled side even when the form still holds the other', async () => {
@@ -225,7 +225,7 @@ describe('StartDeploymentForm', () => {
     await pickOption('packageId', '2026.04')
     await pickOption('environmentId', 'Production (Production)')
 
-    capturedForm!.setFieldsValue({ releaseId: 'release-1' })
+    capturedForm!.setFieldsValue({ versionId: 'version-1' })
 
     // Act
     await save()
@@ -233,7 +233,7 @@ describe('StartDeploymentForm', () => {
     // Assert — whatever the form holds, the request names exactly the toggled side.
     const request = startDeployment.mock.calls[0][0]
     expect(request.packageId).toBe('package-1')
-    expect(request.releaseId).toBeUndefined()
+    expect(request.versionId).toBeUndefined()
   })
 
   it('offers only active environments', async () => {

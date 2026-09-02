@@ -3,14 +3,14 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.ProductManagement;
 
 /// <summary>
-/// A deployment of a release or package into an environment began.
+/// A deployment of a version or package into an environment began.
 /// </summary>
 public sealed record DeploymentStartedEvent : DomainEvent, IProductManagementEvent
 {
     public DeploymentStartedEvent(
         Guid id,
         int key,
-        Guid? releaseId,
+        Guid? versionId,
         Guid? packageId,
         Guid environmentId,
         string environmentName,
@@ -23,7 +23,7 @@ public sealed record DeploymentStartedEvent : DomainEvent, IProductManagementEve
     {
         Id = id;
         Key = key;
-        ReleaseId = releaseId;
+        VersionId = versionId;
         PackageId = packageId;
         EnvironmentId = environmentId;
         EnvironmentName = environmentName;
@@ -37,8 +37,8 @@ public sealed record DeploymentStartedEvent : DomainEvent, IProductManagementEve
     public Guid Id { get; }
     public int Key { get; }
 
-    /// <summary>The release deployed, when this deployment carries a single release.</summary>
-    public Guid? ReleaseId { get; }
+    /// <summary>The version deployed, when this deployment carries a single version.</summary>
+    public Guid? VersionId { get; }
 
     /// <summary>The package deployed, when several components shipped as one unit.</summary>
     public Guid? PackageId { get; }
@@ -47,8 +47,8 @@ public sealed record DeploymentStartedEvent : DomainEvent, IProductManagementEve
     public string EnvironmentName { get; }
 
     /// <summary>
-    /// The build that actually shipped — <c>4.8.2.008</c> where the release is <c>4.8.2</c>. Kept apart
-    /// from the release version so two builds of one release count as two deployments.
+    /// The build that actually shipped — <c>4.8.2.008</c> where the version is <c>4.8.2</c>. Kept apart
+    /// from the version number so two builds of one version count as two deployments.
     /// </summary>
     public string? ArtifactId { get; }
 

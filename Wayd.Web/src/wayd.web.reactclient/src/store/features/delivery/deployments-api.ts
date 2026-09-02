@@ -12,7 +12,7 @@ import {
 import { QueryTags } from '../query-tags'
 
 export interface GetDeploymentsRequest {
-  releaseId?: string
+  versionId?: string
   packageId?: string
   environmentId?: string
   environmentCategory?: number
@@ -48,7 +48,7 @@ export const deploymentsApi = apiSlice.injectEndpoints({
       queryFn: async (request = {}) => {
         try {
           const data = await getDeploymentsClient().getDeployments(
-            request.releaseId,
+            request.versionId,
             request.packageId,
             request.environmentId,
             request.environmentCategory,

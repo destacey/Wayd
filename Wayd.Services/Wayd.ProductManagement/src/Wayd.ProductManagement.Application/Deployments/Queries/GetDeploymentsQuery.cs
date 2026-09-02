@@ -13,7 +13,7 @@ namespace Wayd.ProductManagement.Application.Deployments.Queries;
 /// is what keeps a reclassified environment from changing what past deployments count as.
 /// </param>
 public sealed record GetDeploymentsQuery(
-    Guid? ReleaseId = null,
+    Guid? VersionId = null,
     Guid? PackageId = null,
     Guid? EnvironmentId = null,
     EnvironmentCategory? EnvironmentCategory = null,
@@ -29,9 +29,9 @@ public sealed class GetDeploymentsQueryHandler(IProductManagementDbContext produ
     {
         var deployments = _productManagementDbContext.Deployments.AsQueryable();
 
-        if (query.ReleaseId is not null)
+        if (query.VersionId is not null)
         {
-            deployments = deployments.Where(d => d.ReleaseId == query.ReleaseId);
+            deployments = deployments.Where(d => d.VersionId == query.VersionId);
         }
 
         if (query.PackageId is not null)

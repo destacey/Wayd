@@ -15,9 +15,9 @@ namespace Wayd.ProductManagement.Domain;
 /// key orphans its workflows, and renumbering an alias silently changes what existing rows mean.
 /// </para>
 /// <para>
-/// Delivery keys are namespaced <c>delivery.*</c> rather than <c>product.*</c>: releases, packages and
-/// deployments live in the Delivery schema and may become their own module, while the catalog stays
-/// Product Management. Only <c>product.product</c> is catalog.
+/// Delivery keys are namespaced <c>delivery.*</c> rather than <c>product.*</c>: versions, releases,
+/// packages and deployments live in the Delivery schema and may become their own module, while the
+/// catalog stays Product Management. Only <c>product.product</c> is catalog.
 /// </para>
 /// </remarks>
 public static class ProductWorkflowOwners
@@ -30,6 +30,25 @@ public static class ProductWorkflowOwners
         [(int)ProductStatusAlias.Active, (int)ProductStatusAlias.Retired]);
 
     /// <summary>A versioned cut of a releasable product node.</summary>
+    /// <remarks>
+    /// The engineering record shipped under the key <c>delivery.release</c>, because it was called
+    /// Release before the announcement record existed. Its workflows and status transitions were moved
+    /// onto this key by migration, since the history belongs to the record that made it — leaving them
+    /// behind would have attributed a version's cut-and-ship history to an announcement that never
+    /// happened.
+    /// </remarks>
+    public static readonly WorkflowOwnerDescriptor Version = new(
+        "delivery.version",
+        "Version",
+        Names(ProductStatusAlias.Ready, ProductStatusAlias.Released, ProductStatusAlias.Withdrawn),
+        [(int)ProductStatusAlias.Released, (int)ProductStatusAlias.Withdrawn]);
+
+    /// <summary>What was announced to customers, gathering the versions and packages that carried it.</summary>
+    /// <remarks>
+    /// Shares the version lifecycle vocabulary but not its meaning: a release is announced and
+    /// retracted where a version is cut and pulled. <c>Ready</c> is required for the same reason it is
+    /// on a version — the workflow's non-terminal resting state — even though nothing cuts a release.
+    /// </remarks>
     public static readonly WorkflowOwnerDescriptor Release = new(
         "delivery.release",
         "Release",
@@ -70,7 +89,7 @@ public static class ProductWorkflowOwners
     /// <summary>
     /// Every owner type this module contributes, for registration at startup.
     /// </summary>
-    public static WorkflowOwnerDescriptor[] All => [Product, Release, ReleasePackage, Deployment];
+    public static WorkflowOwnerDescriptor[] All => [Product, Version, Release, ReleasePackage, Deployment];
 
     /// <summary>
     /// Registers this module's owner types with the engine. Call once during startup, before anything

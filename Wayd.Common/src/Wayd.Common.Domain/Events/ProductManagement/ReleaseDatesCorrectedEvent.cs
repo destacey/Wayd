@@ -3,25 +3,25 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.ProductManagement;
 
 /// <summary>
-/// A release's recorded target, cut or released date was corrected.
+/// A release's recorded target or released date was corrected.
 /// </summary>
 /// <remarks>
-/// Distinct from <see cref="ReleaseCutEvent"/> and <see cref="ReleaseReleasedEvent"/>, which say the
-/// release moved. This says only that what was written down was wrong, so it carries both ends: the
-/// value that was replaced is the whole point of recording the correction.
+/// Distinct from <see cref="ReleaseReleasedEvent"/>, which says the release was announced. This says
+/// only that what was written down was wrong, so it carries both ends: the value that was replaced is
+/// the whole point of recording the correction.
+/// <para>
+/// No cut date, unlike <see cref="VersionDatesCorrectedEvent"/> — a release is never cut.
+/// </para>
 /// </remarks>
 public sealed record ReleaseDatesCorrectedEvent : DomainEvent, IProductManagementEvent
 {
     public ReleaseDatesCorrectedEvent(
         Guid id,
         int key,
-        Guid productId,
-        string productName,
+        Guid? productId,
         string version,
         LocalDate? fromTargetDate,
         LocalDate? toTargetDate,
-        LocalDate? fromCutDate,
-        LocalDate? toCutDate,
         LocalDate? fromReleasedDate,
         LocalDate? toReleasedDate,
         EventActor actor,
@@ -31,12 +31,9 @@ public sealed record ReleaseDatesCorrectedEvent : DomainEvent, IProductManagemen
         Id = id;
         Key = key;
         ProductId = productId;
-        ProductName = productName;
         Version = version;
         FromTargetDate = fromTargetDate;
         ToTargetDate = toTargetDate;
-        FromCutDate = fromCutDate;
-        ToCutDate = toCutDate;
         FromReleasedDate = fromReleasedDate;
         ToReleasedDate = toReleasedDate;
 
@@ -45,13 +42,10 @@ public sealed record ReleaseDatesCorrectedEvent : DomainEvent, IProductManagemen
 
     public Guid Id { get; }
     public int Key { get; }
-    public Guid ProductId { get; }
-    public string ProductName { get; }
+    public Guid? ProductId { get; }
     public string Version { get; }
     public LocalDate? FromTargetDate { get; }
     public LocalDate? ToTargetDate { get; }
-    public LocalDate? FromCutDate { get; }
-    public LocalDate? ToCutDate { get; }
     public LocalDate? FromReleasedDate { get; }
     public LocalDate? ToReleasedDate { get; }
 }

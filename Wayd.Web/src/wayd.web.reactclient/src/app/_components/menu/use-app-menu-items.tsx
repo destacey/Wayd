@@ -125,8 +125,9 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
             // Delivery is schema-separated from the catalog so a later module split stays a code
             // move, but it is one module today and belongs in one section.
             //
-            // Ordered as delivery runs: what is cut, what it is bundled into, where it went, and how
-            // that went.
+            // Ordered as delivery runs: what was announced, what was cut, what it was bundled into,
+            // where it went, and how that went. Releases lead because they are what a reader outside
+            // engineering is usually looking for.
             restrictedPermissionMenuItem(
               'Permissions.Releases.View',
               'Releases',
@@ -134,13 +135,19 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
               '/delivery/releases',
             ),
             restrictedPermissionMenuItem(
-              'Permissions.ReleasePackages.View',
+              'Permissions.Delivery.View',
+              'Versions',
+              'delivery.versions',
+              '/delivery/versions',
+            ),
+            restrictedPermissionMenuItem(
+              'Permissions.Delivery.View',
               'Release Packages',
               'delivery.release-packages',
               '/delivery/release-packages',
             ),
             restrictedPermissionMenuItem(
-              'Permissions.Deployments.View',
+              'Permissions.Delivery.View',
               'Deployments',
               'delivery.deployments',
               '/delivery/deployments',

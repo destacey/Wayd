@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.Testing;
@@ -10,6 +10,9 @@ using Wayd.ProductManagement.Domain;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.ProductManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
+
+// The delivery artifact record, not System.Version.
+using Version = Wayd.ProductManagement.Domain.Models.Version;
 
 namespace Wayd.ProductManagement.Domain.Tests.Sut.Models;
 
@@ -29,9 +32,9 @@ public sealed class SwitchWorkflowTests
         _dateTimeProvider = new(new FakeClock(DateTime.UtcNow.ToInstant()));
     }
 
-    private static StatusWorkflow ReleaseWorkflow(string name)
+    private static StatusWorkflow VersionWorkflow(string name)
     {
-        var workflow = StatusWorkflow.Create(name, null, ProductWorkflowOwners.Release.Key).Value;
+        var workflow = StatusWorkflow.Create(name, null, ProductWorkflowOwners.Version.Key).Value;
         workflow.AddStatus("Planned", null, StatusCategory.Proposed);
         workflow.AddStatus("Ready", null, StatusCategory.Active, (int)ProductStatusAlias.Ready);
         workflow.AddStatus("Released", null, StatusCategory.Done, (int)ProductStatusAlias.Released);
@@ -40,11 +43,11 @@ public sealed class SwitchWorkflowTests
         return workflow;
     }
 
-    private Release ReleaseOn(StatusWorkflow workflow)
+    private Version VersionOn(StatusWorkflow workflow)
     {
         var planned = StatusRef.From(workflow.Statuses.Single(s => s.Name == "Planned"));
 
-        return Release.Create(
+        return Version.Create(
             Guid.CreateVersion7(), "4.8.2", null, null, null, true, planned,
             ProductName, EventActor.System, _dateTimeProvider.Now).Value;
     }
@@ -55,9 +58,9 @@ public sealed class SwitchWorkflowTests
     public void SwitchWorkflow_ShouldMoveTheRecordOntoTheMappedStatus()
     {
         // Arrange
-        var old = ReleaseWorkflow("Old");
-        var replacement = ReleaseWorkflow("New");
-        var sut = ReleaseOn(old);
+        var old = VersionWorkflow("Old");
+        var replacement = VersionWorkflow("New");
+        var sut = VersionOn(old);
         var remap = StatusRemap.AutoMap(old, replacement).Value;
 
         // Act
@@ -74,9 +77,9 @@ public sealed class SwitchWorkflowTests
     public void SwitchWorkflow_ShouldRecordTheMoveAsATransition()
     {
         // Arrange
-        var old = ReleaseWorkflow("Old");
-        var replacement = ReleaseWorkflow("New");
-        var sut = ReleaseOn(old);
+        var old = VersionWorkflow("Old");
+        var replacement = VersionWorkflow("New");
+        var sut = VersionOn(old);
         var remap = StatusRemap.AutoMap(old, replacement).Value;
 
         // Act
@@ -96,14 +99,14 @@ public sealed class SwitchWorkflowTests
     public void SwitchWorkflow_ShouldTranslateByAlias_WhenTheNewWorkflowRenamedTheStatus()
     {
         // Arrange
-        var old = ReleaseWorkflow("Old");
-        var replacement = StatusWorkflow.Create("New", null, ProductWorkflowOwners.Release.Key).Value;
+        var old = VersionWorkflow("Old");
+        var replacement = StatusWorkflow.Create("New", null, ProductWorkflowOwners.Version.Key).Value;
         replacement.AddStatus("Queued", null, StatusCategory.Proposed);
         replacement.AddStatus("Cut", null, StatusCategory.Active, (int)ProductStatusAlias.Ready);
         replacement.AddStatus("Shipped", null, StatusCategory.Done, (int)ProductStatusAlias.Released);
         replacement.AddStatus("Pulled", null, StatusCategory.Removed, (int)ProductStatusAlias.Withdrawn);
 
-        var sut = ReleaseOn(old);
+        var sut = VersionOn(old);
         sut.Cut(new LocalDate(2026, 9, 1),
             StatusRef.From(old.Statuses.Single(s => s.Name == "Ready")),
             ProductName, EventActor.System, _dateTimeProvider.Now);
@@ -128,14 +131,14 @@ public sealed class SwitchWorkflowTests
     public void SwitchWorkflow_ShouldFail_WhenTheRemapIsIncomplete()
     {
         // Arrange
-        var old = ReleaseWorkflow("Old");
+        var old = VersionWorkflow("Old");
         old.AddStatus("On Hold", null, StatusCategory.Active);
 
-        var replacement = ReleaseWorkflow("New");
+        var replacement = VersionWorkflow("New");
         replacement.AddStatus("Paused", null, StatusCategory.Active);
         replacement.AddStatus("Deferred", null, StatusCategory.Active);
 
-        var sut = ReleaseOn(old);
+        var sut = VersionOn(old);
         var remap = StatusRemap.AutoMap(old, replacement).Value;
 
         // Act
@@ -153,11 +156,11 @@ public sealed class SwitchWorkflowTests
     public void SwitchWorkflow_ShouldFail_ForARecordFromADifferentWorkflow()
     {
         // Arrange
-        var old = ReleaseWorkflow("Old");
-        var replacement = ReleaseWorkflow("New");
-        var unrelated = ReleaseWorkflow("Unrelated");
+        var old = VersionWorkflow("Old");
+        var replacement = VersionWorkflow("New");
+        var unrelated = VersionWorkflow("Unrelated");
 
-        var sut = ReleaseOn(unrelated);
+        var sut = VersionOn(unrelated);
         var remap = StatusRemap.AutoMap(old, replacement).Value;
 
         // Act
@@ -177,9 +180,9 @@ public sealed class SwitchWorkflowTests
     public void SwitchWorkflow_ShouldBeANoOp_ForARecordAlreadyMoved()
     {
         // Arrange
-        var old = ReleaseWorkflow("Old");
-        var replacement = ReleaseWorkflow("New");
-        var sut = ReleaseOn(old);
+        var old = VersionWorkflow("Old");
+        var replacement = VersionWorkflow("New");
+        var sut = VersionOn(old);
         var remap = StatusRemap.AutoMap(old, replacement).Value;
 
         sut.SwitchWorkflow(remap, EventActor.System, _dateTimeProvider.Now);

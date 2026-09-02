@@ -38,7 +38,7 @@ public sealed class StartDeploymentCommandHandlerTests : ProductCommandTestBase
         // Arrange
         var environment = SeedEnvironment();
         var product = SeedProduct();
-        var release = SeedRelease(product.Id);
+        var release = SeedVersion(product.Id);
         var sut = CreateSut();
 
         // Act
@@ -49,7 +49,7 @@ public sealed class StartDeploymentCommandHandlerTests : ProductCommandTestBase
         // Assert
         result.IsSuccess.Should().BeTrue();
         var deployment = DbContext.Deployments.Should().ContainSingle().Subject;
-        deployment.ReleaseId.Should().Be(release.Id);
+        deployment.VersionId.Should().Be(release.Id);
         deployment.ArtifactId.Should().Be("4.8.2.008");
     }
 
@@ -59,7 +59,7 @@ public sealed class StartDeploymentCommandHandlerTests : ProductCommandTestBase
         // Arrange
         var environment = SeedEnvironment("prod", EnvironmentCategory.Production, 3);
         var product = SeedProduct();
-        var release = SeedRelease(product.Id);
+        var release = SeedVersion(product.Id);
         var sut = CreateSut();
 
         // Act
@@ -79,7 +79,7 @@ public sealed class StartDeploymentCommandHandlerTests : ProductCommandTestBase
         // Arrange
         var environment = SeedEnvironment();
         var product = SeedProduct();
-        var release = SeedRelease(product.Id);
+        var release = SeedVersion(product.Id);
         var sut = CreateSut();
 
         // Act
@@ -108,7 +108,7 @@ public sealed class StartDeploymentCommandHandlerTests : ProductCommandTestBase
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("A deployment must be for either a release or a package.");
+        result.Error.Should().Be("A deployment must be for either a version or a package.");
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public sealed class StartDeploymentCommandHandlerTests : ProductCommandTestBase
         var environment = SeedEnvironment();
         environment.Deactivate(Wayd.Common.Domain.Events.EventActor.System, Now);
         var product = SeedProduct();
-        var release = SeedRelease(product.Id);
+        var release = SeedVersion(product.Id);
         var sut = CreateSut();
 
         // Act
@@ -145,7 +145,7 @@ public sealed class StartDeploymentCommandHandlerTests : ProductCommandTestBase
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Release not found.");
+        result.Error.Should().Be("Version not found.");
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public sealed class StartDeploymentCommandHandlerTests : ProductCommandTestBase
     {
         // Arrange
         var product = SeedProduct();
-        var release = SeedRelease(product.Id);
+        var release = SeedVersion(product.Id);
         var sut = CreateSut();
 
         // Act

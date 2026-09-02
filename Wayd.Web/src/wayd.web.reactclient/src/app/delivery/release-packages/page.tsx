@@ -17,7 +17,7 @@ const ReleasePackagesPage: FC = () => {
 
   const { hasPermissionClaim } = useAuth()
   const canCreatePackage = hasPermissionClaim(
-    'Permissions.ReleasePackages.Create',
+    'Permissions.Delivery.Create',
   )
 
   const {
@@ -68,7 +68,7 @@ const ReleasePackagesPageWithAuthorization = requireFeatureFlag(
   authorizePage(
     ReleasePackagesPage,
     'Permission',
-    'Permissions.ReleasePackages.View',
+    'Permissions.Delivery.View',
   ),
   'product-management',
 )

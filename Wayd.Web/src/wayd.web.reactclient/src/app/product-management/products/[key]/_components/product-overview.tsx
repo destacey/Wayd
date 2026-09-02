@@ -2,12 +2,12 @@
 
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { MetricCard } from '@/src/components/common/metrics'
-import { ProductDto, ReleaseDto } from '@/src/services/wayd-api'
+import { ProductDto, VersionDto } from '@/src/services/wayd-api'
 import { Card, Col, Empty, Row } from 'antd'
-import { countReleasedWithin } from './release-cadence'
+import { countReleasedWithin } from './version-cadence'
 
 /**
- * How far back the release tile counts.
+ * How far back the version tile counts.
  *
  * Ninety days rather than thirty: long enough to smooth the week-to-week noise a single product's
  * cadence shows, and it lines up with a quarter. DORA prescribes no window — it defines rate bands —
@@ -24,11 +24,11 @@ export interface ProductOverviewProps {
   onNavigateToSection: (sectionId: string) => void
   /** The id of the section listing child products, for the tile to link to. */
   productsSectionId: string
-  /** This product's releases, already loaded for the Releases section. */
-  releases?: ReleaseDto[]
-  releasesLoading?: boolean
-  /** The id of the section listing releases, for the tile to link to. */
-  releasesSectionId?: string
+  /** This product's versions, already loaded for the Releases section. */
+  versions?: VersionDto[]
+  versionsLoading?: boolean
+  /** The id of the section listing versions, for the tile to link to. */
+  versionsSectionId?: string
 }
 
 /**
@@ -43,13 +43,13 @@ const ProductOverview = ({
   childProductsLoading,
   onNavigateToSection,
   productsSectionId,
-  releases,
-  releasesLoading,
-  releasesSectionId,
+  versions,
+  versionsLoading,
+  versionsSectionId,
 }: ProductOverviewProps) => {
   const releasableChildren = childProducts.filter((c) => c.isReleasable).length
 
-  const releasedInWindow = countReleasedWithin(releases, RELEASE_WINDOW_DAYS)
+  const releasedInWindow = countReleasedWithin(versions, RELEASE_WINDOW_DAYS)
 
   return (
     <Row gutter={[16, 16]}>
@@ -73,12 +73,12 @@ const ProductOverview = ({
           <MetricCard
             title={`Releases (${RELEASE_WINDOW_DAYS}d)`}
             value={releasedInWindow}
-            secondaryValue={`${releases?.length ?? 0} total`}
-            loading={releasesLoading}
-            tooltip={`Released in the last ${RELEASE_WINDOW_DAYS} days. A release counts on the day it shipped, not when it was planned or cut.`}
+            secondaryValue={`${versions?.length ?? 0} total`}
+            loading={versionsLoading}
+            tooltip={`Released in the last ${RELEASE_WINDOW_DAYS} days. A version counts on the day it shipped, not when it was planned or cut.`}
             onClick={
-              releasesSectionId
-                ? () => onNavigateToSection(releasesSectionId)
+              versionsSectionId
+                ? () => onNavigateToSection(versionsSectionId)
                 : undefined
             }
           />

@@ -42,11 +42,11 @@ public sealed class RemoveProductCommandHandler(
             var hasChildren = await _productManagementDbContext.Products
                 .AnyAsync(p => p.ParentId == request.Id, cancellationToken);
 
-            var hasReleases = await _productManagementDbContext.Releases
-                .AnyAsync(r => r.ProductId == request.Id, cancellationToken);
+            var hasVersions = await _productManagementDbContext.Versions
+                .AnyAsync(v => v.ProductId == request.Id, cancellationToken);
 
-            // Checked separately from releases: ReleasePackageComponents.ProductId restricts, and a
-            // carried-forward component often has no release row, so the check above would miss it and
+            // Checked separately from versions: ReleasePackageComponents.ProductId restricts, and a
+            // carried-forward component often has no version row, so the check above would miss it and
             // the delete would fail at the database with a generic message.
             var isInAManifest = await _productManagementDbContext.ReleasePackageComponents
                 .AnyAsync(c => c.ProductId == request.Id, cancellationToken);
@@ -55,7 +55,7 @@ public sealed class RemoveProductCommandHandler(
             // itself from a set it does not know about.
             var removeResult = product.Remove(
                 hasChildren,
-                hasReleases,
+                hasVersions,
                 isInAManifest,
                 EventActor.User(_currentUser.GetUserId()),
                 _dateTimeProvider.Now);

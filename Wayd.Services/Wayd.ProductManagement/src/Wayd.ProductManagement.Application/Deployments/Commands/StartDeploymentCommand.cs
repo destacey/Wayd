@@ -6,18 +6,18 @@ using Wayd.ProductManagement.Domain.Models;
 namespace Wayd.ProductManagement.Application.Deployments.Commands;
 
 /// <summary>
-/// Records that a release or package started reaching an environment.
+/// Records that a version or package started reaching an environment.
 /// </summary>
-/// <param name="ReleaseId">
-/// The release deployed. Exactly one of this and <paramref name="PackageId"/> is supplied: where a
+/// <param name="VersionId">
+/// The version deployed. Exactly one of this and <paramref name="PackageId"/> is supplied: where a
 /// package exists it is the unit, so one pipeline run counts once.
 /// </param>
 /// <param name="ArtifactId">
-/// The build that actually shipped — <c>4.8.2.008</c> where the release version is <c>4.8.2</c>. Two
-/// builds of one release are two deployments.
+/// The build that actually shipped — <c>4.8.2.008</c> where the version number is <c>4.8.2</c>. Two
+/// builds of one version are two deployments.
 /// </param>
 public sealed record StartDeploymentCommand(
-    Guid? ReleaseId,
+    Guid? VersionId,
     Guid? PackageId,
     Guid EnvironmentId,
     string? ArtifactId,
@@ -34,8 +34,8 @@ public sealed class StartDeploymentCommandValidator : AbstractValidator<StartDep
             .MaximumLength(128);
 
         RuleFor(d => d)
-            .Must(d => d.ReleaseId is not null ^ d.PackageId is not null)
-            .WithMessage("A deployment is for either a release or a package, not both and not neither.");
+            .Must(d => d.VersionId is not null ^ d.PackageId is not null)
+            .WithMessage("A deployment is for either a version or a package, not both and not neither.");
     }
 }
 
@@ -75,11 +75,11 @@ public sealed class StartDeploymentCommandHandler(
                 return Result.Failure<ObjectIdAndKey>($"'{environment.Name}' is inactive and cannot be deployed into.");
             }
 
-            if (request.ReleaseId is not null
-                && !await _productManagementDbContext.Releases
-                    .AnyAsync(r => r.Id == request.ReleaseId, cancellationToken))
+            if (request.VersionId is not null
+                && !await _productManagementDbContext.Versions
+                    .AnyAsync(v => v.Id == request.VersionId, cancellationToken))
             {
-                return Result.Failure<ObjectIdAndKey>("Release not found.");
+                return Result.Failure<ObjectIdAndKey>("Version not found.");
             }
 
             if (request.PackageId is not null
@@ -102,7 +102,7 @@ public sealed class StartDeploymentCommandHandler(
             }
 
             var result = Deployment.Create(
-                request.ReleaseId,
+                request.VersionId,
                 request.PackageId,
                 request.EnvironmentId,
                 // Frozen from the environment as it stands now, so reclassifying it later cannot rewrite

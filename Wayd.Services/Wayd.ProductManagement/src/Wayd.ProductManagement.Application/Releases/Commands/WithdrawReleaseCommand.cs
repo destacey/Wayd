@@ -4,11 +4,11 @@ using Wayd.ProductManagement.Domain;
 namespace Wayd.ProductManagement.Application.Releases.Commands;
 
 /// <summary>
-/// Pulls a release after it was cut.
+/// Retracts a release after it was announced.
 /// </summary>
 /// <remarks>
-/// The release is not deleted: it was real, deployments may reference it, and the delivery measures
-/// read that history.
+/// Says nothing about the versions it carried. An artifact that shipped has shipped whatever the
+/// market was later told, so each version is withdrawn separately where it too was pulled.
 /// </remarks>
 public sealed record WithdrawReleaseCommand(Guid Id, string? Reason) : ICommand, IRequireLinkedEmployee;
 
@@ -55,9 +55,6 @@ public sealed class WithdrawReleaseCommandHandler(
                 return Result.Failure("Release not found.");
             }
 
-            // The aggregate demands the status carrying this meaning and cannot fetch it. Resolving by
-            // alias rather than by id is what lets an organization rename or reorder its workflow
-            // without breaking the transition.
             var status = await _statusResolver.ForAlias(
                 ProductWorkflowOwners.Release.Key,
                 scopeId: null,
@@ -70,11 +67,6 @@ public sealed class WithdrawReleaseCommandHandler(
                 return Result.Failure(status.Error);
             }
 
-            var productName = await _productManagementDbContext.Products
-                .Where(p => p.Id == release.ProductId)
-                .Select(p => p.Name)
-                .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
-
             // Read per scope rather than from the claim snapshot, which a personal access token
             // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
             // one would misattribute the change permanently.
@@ -83,7 +75,6 @@ public sealed class WithdrawReleaseCommandHandler(
             var result = release.Withdraw(
                 request.Reason,
                 status.Value,
-                productName,
                 EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);
 

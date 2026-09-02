@@ -102,7 +102,7 @@ const CompleteDeploymentForm = ({
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage: `An error occurred while ${gerund} the deployment. Please try again.`,
-      permission: 'Permissions.Deployments.Update',
+      permission: 'Permissions.Delivery.Update',
     })
 
   const startedAt = dayjs(deployment.startedAt)

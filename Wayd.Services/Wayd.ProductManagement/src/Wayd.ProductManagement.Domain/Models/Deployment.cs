@@ -10,20 +10,20 @@ using Wayd.Common.Domain.StatusWorkflows.Enums;
 namespace Wayd.ProductManagement.Domain.Models;
 
 /// <summary>
-/// One release or package reaching one environment, with a start, an end, an outcome, and its own
+/// One version or package reaching one environment, with a start, an end, an outcome, and its own
 /// artifact identifier. The substrate every delivery metric is computed from.
 /// </summary>
 /// <remarks>
-/// Exactly one of <see cref="ReleaseId"/> and <see cref="PackageId"/> is set. Where a package exists it
+/// Exactly one of <see cref="VersionId"/> and <see cref="PackageId"/> is set. Where a package exists it
 /// is the unit, because one pipeline run shipping fifteen services must count once, not fifteen times.
 /// </remarks>
 public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
 {
     private Deployment() { }
 
-    private Deployment(Guid? releaseId, Guid? packageId, Guid environmentId, EnvironmentCategory environmentCategory, string? artifactId, Instant startedAt)
+    private Deployment(Guid? versionId, Guid? packageId, Guid environmentId, EnvironmentCategory environmentCategory, string? artifactId, Instant startedAt)
     {
-        ReleaseId = releaseId;
+        VersionId = versionId;
         PackageId = packageId;
         EnvironmentId = environmentId;
         EnvironmentCategory = environmentCategory;
@@ -39,8 +39,8 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
     /// </summary>
     public int Key { get; private init; }
 
-    /// <summary>The release deployed, when this deployment carries a single release.</summary>
-    public Guid? ReleaseId { get; private init; }
+    /// <summary>The version deployed, when this deployment carries a single version.</summary>
+    public Guid? VersionId { get; private init; }
 
     /// <summary>The package deployed, when several components shipped as one unit.</summary>
     public Guid? PackageId { get; private init; }
@@ -48,9 +48,9 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
     /// <summary>The environment reached.</summary>
     public Guid EnvironmentId { get; private init; }
 
-    /// <summary>The release deployed, when one is loaded.</summary>
+    /// <summary>The version deployed, when one is loaded.</summary>
     /// <remarks>For the read side only. No invariant depends on this being loaded.</remarks>
-    public Release? Release { get; private init; }
+    public Version? Version { get; private init; }
 
     /// <summary>The package deployed, when one is loaded.</summary>
     /// <remarks>For the read side only. No invariant depends on this being loaded.</remarks>
@@ -70,10 +70,10 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
     public EnvironmentCategory EnvironmentCategory { get; private init; }
 
     /// <summary>
-    /// The build that actually shipped — <c>4.8.2.008</c> where the release version is <c>4.8.2</c>.
+    /// The build that actually shipped — <c>4.8.2.008</c> where the version number is <c>4.8.2</c>.
     /// </summary>
     /// <remarks>
-    /// Separate from the release version: two builds of one release are two deployments. Free text,
+    /// Separate from the version number: two builds of one version are two deployments. Free text,
     /// never parsed.
     /// </remarks>
     public string? ArtifactId
@@ -144,7 +144,7 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
         Apply(completedAt, succeededStatus, reason: null, actor, timestamp);
 
         AddDomainEvent(new DeploymentSucceededEvent(
-            Id, Key, ReleaseId, PackageId, EnvironmentId, environmentName, EnvironmentCategory,
+            Id, Key, VersionId, PackageId, EnvironmentId, environmentName, EnvironmentCategory,
             ArtifactId, completedAt, StatusId, actor, timestamp));
 
         return Result.Success();
@@ -169,7 +169,7 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
         Apply(completedAt, failedStatus, reason, actor, timestamp);
 
         AddDomainEvent(new DeploymentFailedEvent(
-            Id, Key, ReleaseId, PackageId, EnvironmentId, environmentName, EnvironmentCategory,
+            Id, Key, VersionId, PackageId, EnvironmentId, environmentName, EnvironmentCategory,
             ArtifactId, Reason, completedAt, StatusId, actor, timestamp));
 
         return Result.Success();
@@ -212,7 +212,7 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
         Apply(rolledBackAt, rolledBackStatus, reason, actor, timestamp);
 
         AddDomainEvent(new DeploymentRolledBackEvent(
-            Id, Key, ReleaseId, PackageId, EnvironmentId, environmentName, EnvironmentCategory,
+            Id, Key, VersionId, PackageId, EnvironmentId, environmentName, EnvironmentCategory,
             ArtifactId, Reason, rolledBackAt, StatusId, actor, timestamp));
 
         return Result.Success();
@@ -246,7 +246,7 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Starts a deployment of a release or a package into an environment.
+    /// Starts a deployment of a version or a package into an environment.
     /// </summary>
     /// <param name="environmentCategory">
     /// The environment's category, frozen onto the record. Supplied by the caller, which owns the
@@ -256,7 +256,7 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
     /// The workflow status the deployment begins in, resolved by the caller.
     /// </param>
     public static Result<Deployment> Create(
-        Guid? releaseId,
+        Guid? versionId,
         Guid? packageId,
         Guid environmentId,
         EnvironmentCategory environmentCategory,
@@ -270,25 +270,25 @@ public sealed class Deployment : StatusTrackedEntity, IHasIdAndKey
         Guard.Against.Default(environmentId, nameof(environmentId));
         Guard.Against.Null(inProgressStatus, nameof(inProgressStatus));
 
-        if (releaseId is null && packageId is null)
+        if (versionId is null && packageId is null)
         {
-            return Result.Failure<Deployment>("A deployment must be for either a release or a package.");
+            return Result.Failure<Deployment>("A deployment must be for either a version or a package.");
         }
 
-        if (releaseId is not null && packageId is not null)
+        if (versionId is not null && packageId is not null)
         {
             return Result.Failure<Deployment>(
-                "A deployment is for either a release or a package, not both. Where a package exists it is the unit, so that one pipeline run counts once.");
+                "A deployment is for either a version or a package, not both. Where a package exists it is the unit, so that one pipeline run counts once.");
         }
 
-        var deployment = new Deployment(releaseId, packageId, environmentId, environmentCategory, artifactId, startedAt);
+        var deployment = new Deployment(versionId, packageId, environmentId, environmentCategory, artifactId, startedAt);
         deployment.ApplyStatus(inProgressStatus, actor, timestamp);
 
         // Deferred because Key is database-generated: an event raised here would carry Key 0.
         deployment.AddPostPersistenceAction(() => deployment.AddDomainEvent(new DeploymentStartedEvent(
             deployment.Id,
             deployment.Key,
-            deployment.ReleaseId,
+            deployment.VersionId,
             deployment.PackageId,
             deployment.EnvironmentId,
             environmentName,

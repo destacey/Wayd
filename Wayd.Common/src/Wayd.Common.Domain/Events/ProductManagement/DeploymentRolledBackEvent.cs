@@ -16,7 +16,7 @@ public sealed record DeploymentRolledBackEvent : DomainEvent, IProductManagement
     public DeploymentRolledBackEvent(
         Guid id,
         int key,
-        Guid? releaseId,
+        Guid? versionId,
         Guid? packageId,
         Guid environmentId,
         string environmentName,
@@ -31,7 +31,7 @@ public sealed record DeploymentRolledBackEvent : DomainEvent, IProductManagement
     {
         Id = id;
         Key = key;
-        ReleaseId = releaseId;
+        VersionId = versionId;
         PackageId = packageId;
         EnvironmentId = environmentId;
         EnvironmentName = environmentName;
@@ -46,7 +46,7 @@ public sealed record DeploymentRolledBackEvent : DomainEvent, IProductManagement
 
     public Guid Id { get; }
     public int Key { get; }
-    public Guid? ReleaseId { get; }
+    public Guid? VersionId { get; }
     public Guid? PackageId { get; }
     public Guid EnvironmentId { get; }
     public string EnvironmentName { get; }

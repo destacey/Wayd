@@ -11,12 +11,12 @@ public sealed class ReleaseFaker : PrivateConstructorFaker<Release>
     {
         RuleFor(x => x.Id, f => f.Random.Guid());
         RuleFor(x => x.Key, f => f.Random.Int(1, 10000));
-        RuleFor(x => x.ProductId, f => f.Random.Guid());
-        RuleFor(x => x.Version, f => $"{f.Random.Int(1, 9)}.{f.Random.Int(0, 9)}.{f.Random.Int(0, 9)}");
+        // Null by default: a release spanning product lines is as ordinary as one scoped to a node.
+        RuleFor(x => x.ProductId, f => null);
+        RuleFor(x => x.Version, f => $"{f.Date.Past().Year}.{f.Random.Int(1, 12):00}");
         RuleFor(x => x.Name, f => null);
         RuleFor(x => x.Sequence, f => null);
         RuleFor(x => x.TargetDate, f => null);
-        RuleFor(x => x.CutDate, f => null);
         RuleFor(x => x.ReleasedDate, f => null);
         RuleFor(x => x.Notes, f => null);
         RuleFor(x => x.StatusId, f => f.Random.Guid());
@@ -44,7 +44,7 @@ public static class ReleaseFakerExtensions
         return faker;
     }
 
-    public static ReleaseFaker WithProductId(this ReleaseFaker faker, Guid productId)
+    public static ReleaseFaker WithProductId(this ReleaseFaker faker, Guid? productId)
     {
         faker.RuleFor(x => x.ProductId, productId);
 
@@ -65,6 +65,13 @@ public static class ReleaseFakerExtensions
         return faker;
     }
 
+    public static ReleaseFaker WithNotes(this ReleaseFaker faker, string? notes)
+    {
+        faker.RuleFor(x => x.Notes, notes);
+
+        return faker;
+    }
+
     public static ReleaseFaker WithSequence(this ReleaseFaker faker, long? sequence)
     {
         faker.RuleFor(x => x.Sequence, sequence);
@@ -79,69 +86,18 @@ public static class ReleaseFakerExtensions
         return faker;
     }
 
-    public static ReleaseFaker WithCutDate(this ReleaseFaker faker, LocalDate? cutDate)
+    public static ReleaseFaker WithStatusCategory(this ReleaseFaker faker, StatusCategory statusCategory)
     {
-        faker.RuleFor(x => x.CutDate, cutDate);
-
-        return faker;
-    }
-
-    public static ReleaseFaker WithReleasedDate(this ReleaseFaker faker, LocalDate? releasedDate)
-    {
-        faker.RuleFor(x => x.ReleasedDate, releasedDate);
-
-        return faker;
-    }
-
-    public static ReleaseFaker WithNotes(this ReleaseFaker faker, string? notes)
-    {
-        faker.RuleFor(x => x.Notes, notes);
-
-        return faker;
-    }
-
-    public static ReleaseFaker WithStatusId(this ReleaseFaker faker, Guid statusId)
-    {
-        faker.RuleFor(x => x.StatusId, statusId);
-
-        return faker;
-    }
-
-    public static ReleaseFaker WithStatusName(this ReleaseFaker faker, string statusName)
-    {
-        faker.RuleFor(x => x.StatusName, statusName);
-
-        return faker;
-    }
-
-    public static ReleaseFaker WithStatusCategory(this ReleaseFaker faker, StatusCategory category)
-    {
-        faker.RuleFor(x => x.StatusCategory, category);
+        faker.RuleFor(x => x.StatusCategory, statusCategory);
 
         return faker;
     }
 
     /// <summary>
-    /// A release that has been cut but not yet released.
+    /// A release that has been announced.
     /// </summary>
-    public static ReleaseFaker AsCut(this ReleaseFaker faker, LocalDate cutDate)
+    public static ReleaseFaker AsReleased(this ReleaseFaker faker, LocalDate releasedDate)
     {
-        faker.RuleFor(x => x.CutDate, cutDate);
-        faker.RuleFor(x => x.StatusCategory, StatusCategory.Active);
-
-        return faker;
-    }
-
-    /// <summary>
-    /// A release that has shipped.
-    /// </summary>
-    /// <param name="cutDate">
-    /// Nullable because cutting is not a prerequisite for releasing — a release entered after the fact
-    /// legitimately ships with no cut date, and historical import depends on it.
-    /// </param>
-    public static ReleaseFaker AsReleased(this ReleaseFaker faker, LocalDate? cutDate, LocalDate releasedDate)
-    {
-        faker.RuleFor(x => x.CutDate, cutDate);
         faker.RuleFor(x => x.ReleasedDate, releasedDate);
         faker.RuleFor(x => x.StatusCategory, StatusCategory.Done);
 
@@ -149,7 +105,7 @@ public static class ReleaseFakerExtensions
     }
 
     /// <summary>
-    /// A release that was pulled after being cut.
+    /// A release that was retracted after being announced.
     /// </summary>
     public static ReleaseFaker AsWithdrawn(this ReleaseFaker faker)
     {

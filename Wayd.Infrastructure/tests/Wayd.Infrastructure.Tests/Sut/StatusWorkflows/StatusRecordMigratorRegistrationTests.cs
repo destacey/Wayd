@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.StatusWorkflows;
@@ -10,11 +10,11 @@ using Wayd.ProductManagement.Domain;
 namespace Wayd.Infrastructure.Tests.Sut.StatusWorkflows;
 
 /// <summary>
-/// Pins that every registered owner type has a migrator, and that all four resolve distinctly.
+/// Pins that every registered owner type has a migrator, and that they all resolve distinctly.
 /// </summary>
 /// <remarks>
 /// The convention-based scan in <c>Common.ConfigureServices.AddServices</c> registers a marked class
-/// against <em>its first interface</em>, one implementation per service type. Four migrators sharing
+/// against <em>its first interface</em>, one implementation per service type. Migrators sharing
 /// <see cref="IStatusRecordMigrator"/> would therefore collapse to whichever was scanned last, and a
 /// reassignment would silently migrate one owner type and skip three — with no error, because the
 /// handler would simply find a migrator whose <c>OwnerType</c> did not match and refuse.
@@ -32,6 +32,7 @@ public sealed class StatusRecordMigratorRegistrationTests
         services.AddScoped(_ => new Mock<IProductManagementDbContext>().Object);
 
         services.AddScoped<IStatusRecordMigrator, ProductStatusRecordMigrator>();
+        services.AddScoped<IStatusRecordMigrator, VersionStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, ReleaseStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, ReleasePackageStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, DeploymentStatusRecordMigrator>();
@@ -60,7 +61,7 @@ public sealed class StatusRecordMigratorRegistrationTests
     }
 
     [Fact]
-    public void AllFourMigrators_ResolveDistinctly()
+    public void AllMigrators_ResolveDistinctly()
     {
         // Arrange
         using var provider = BuildProvider();
@@ -70,7 +71,7 @@ public sealed class StatusRecordMigratorRegistrationTests
 
         // Assert
         // The failure this guards is silent: a collapsed registration yields one migrator, not an error.
-        migrators.Should().HaveCount(4);
+        migrators.Should().HaveCount(ProductWorkflowOwners.All.Length);
         migrators.Select(m => m.OwnerType).Should().OnlyHaveUniqueItems();
     }
 
@@ -81,6 +82,7 @@ public sealed class StatusRecordMigratorRegistrationTests
         Type[] migrators =
         [
             typeof(ProductStatusRecordMigrator),
+            typeof(VersionStatusRecordMigrator),
             typeof(ReleaseStatusRecordMigrator),
             typeof(ReleasePackageStatusRecordMigrator),
             typeof(DeploymentStatusRecordMigrator),

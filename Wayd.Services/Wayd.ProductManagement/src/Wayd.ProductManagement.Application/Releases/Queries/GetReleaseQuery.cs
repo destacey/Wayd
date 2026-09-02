@@ -1,4 +1,4 @@
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using Wayd.Common.Application.Models;
 using Wayd.ProductManagement.Application.Releases.Dtos;
 using Wayd.ProductManagement.Domain.Models;
@@ -31,7 +31,7 @@ public sealed class GetReleaseQueryHandler(IProductManagementDbContext productMa
     {
         return await _productManagementDbContext.Releases
             .Where(query.IdOrKeyFilter)
-            .ProjectToType<ReleaseDto>()
+            .ProjectToType<ReleaseDto>(ReleaseDto.CreateTypeAdapterConfig(_productManagementDbContext))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

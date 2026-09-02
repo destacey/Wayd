@@ -1,13 +1,13 @@
 ---
 title: Product Management
-description: Managing the product catalog, product types, tags, releases, packages, deployments, and delivery metrics in Wayd.
+description: Managing the product catalog, product types, tags, releases, versions, packages, deployments, and delivery metrics in Wayd.
 sidebar_position: 6
 audience: [user, agent]
 ---
 
 # Product Management
 
-Product Management is the record of **what your organization builds** and **what has shipped**. Where [PPM](../ppm/index.mdx) tracks the funded effort to change something and [Work Management](../work-management/index.mdx) tracks the items being worked, Product Management holds the durable catalog those efforts act on — the product lines, applications and services that exist whether or not a project is currently touching them — and the releases and deployments that carry changes into an environment.
+Product Management is the record of **what your organization builds** and **what has shipped**. Where [PPM](../ppm/index.mdx) tracks the funded effort to change something and [Work Management](../work-management/index.mdx) tracks the items being worked, Product Management holds the durable catalog those efforts act on — the product lines, applications and services that exist whether or not a project is currently touching them — and the versions, releases and deployments that carry changes into an environment.
 
 :::note Feature flag
 Product Management is gated by the **Product Management** feature flag, which is disabled when first deployed. An administrator enables it under [Settings → Feature Flags](../settings/index.mdx). While it is off the area is not reachable at all.
@@ -19,9 +19,9 @@ The most common point of confusion is that a product sits in two structures at o
 
 **The product tree** is composition: a Product Line contains Products, which contain Services and Applications. This is what the catalog shows, and it is the hierarchy you move a product within.
 
-**The release relationship** is delivery: a release is cut against one releasable node, and several component releases may ship together inside a package.
+**The delivery relationship**: a version is cut against one releasable node, several component versions may ship together inside a package, and a release announces whatever carried it to customers.
 
-A node's **type** decides whether releases can be cut against it — a Product Line is usually an organizing container, while a Service is a thing that ships.
+A node's **type** decides whether versions can be cut against it — a Product Line is usually an organizing container, while a Service is a thing that ships. A release, being an announcement rather than an artifact, may sit under any node.
 
 ```mermaid
 graph TD
@@ -32,7 +32,8 @@ graph TD
         A["Application"]
     end
     subgraph "Delivery"
-        R["Release"]
+        Rel["Release"]
+        V["Version"]
         Pkg["Release Package"]
         D["Deployment"]
         Env["Environment"]
@@ -41,15 +42,17 @@ graph TD
     PL -->|contains| P
     P -->|contains| S
     P -->|contains| A
-    S -->|releasable node| R
-    R -.->|component of| Pkg
-    R ==>|XOR| D
+    S -->|releasable node| V
+    Rel -->|announces| Pkg
+    Rel -.->|announces directly| V
+    V -.->|component of| Pkg
+    V ==>|XOR| D
     Pkg ==>|XOR| D
     D -->|reached| Env
 ```
 
-A deployment carries **either** a release or a package, never both — see
-[how the four fit together](./delivery.mdx#how-the-four-fit-together).
+A deployment carries **either** a version or a package, never both — see
+[how the five fit together](./delivery.mdx#how-the-five-fit-together).
 
 ## How Product Management Connects Across Wayd
 
@@ -65,7 +68,7 @@ Every area of Product Management now has both a screen and an API.
 | Area | Interface | API |
 | --- | --- | --- |
 | Products, types, tags | Yes | Yes |
-| Releases | Yes | Yes |
+| Releases and versions | Yes | Yes |
 | Release packages | Yes | Yes |
 | Deployments and environments | Yes | Yes |
 | Delivery metrics | Yes | Yes |
@@ -75,7 +78,7 @@ Delivery metrics reports the two measures this module can compute from what it r
 ## Sections
 
 - **[Products](./products.mdx)** — The catalog: creating products, the tree, types, statuses, tags, moving, and external links
-- **[Delivery](./delivery.mdx)** — Releases, packages, deployments, environments, and the delivery metrics computed from them
+- **[Delivery](./delivery.mdx)** — Releases, versions, packages, deployments, environments, and the delivery metrics computed from them
 
 ## Permissions
 
@@ -88,5 +91,6 @@ Every action in this area is granted by permission claim alone; unlike PPM, ther
 | `Permissions.Products.Update` | Edit, retype, move, tag, change status, link externally |
 | `Permissions.Products.Delete` | Remove products |
 | `Permissions.ProductTypes.*` | Manage the type list |
-| `Permissions.Releases.*` | Manage releases and packages |
-| `Permissions.Deployments.*` | Manage deployments and environments |
+| `Permissions.Delivery.*` | Manage versions, packages and deployments |
+| `Permissions.Releases.*` | Manage product releases (announcements) |
+| `Permissions.DeploymentEnvironments.*` | Manage deployment environments |

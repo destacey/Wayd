@@ -253,11 +253,11 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     /// <summary>
     /// Changes the node's type.
     /// </summary>
-    /// <param name="hasReleases">
-    /// Whether any release already exists for this node; supplied by the caller, which owns that query.
+    /// <param name="hasVersions">
+    /// Whether any version already exists for this node; supplied by the caller, which owns that query.
     /// </param>
-    /// <param name="isTargetReleasable">Whether the target type permits releases.</param>
-    public Result Retype(Guid productTypeId, bool isTargetReleasable, bool hasReleases, EventActor actor, Instant timestamp)
+    /// <param name="isTargetReleasable">Whether the target type permits versions.</param>
+    public Result Retype(Guid productTypeId, bool isTargetReleasable, bool hasVersions, EventActor actor, Instant timestamp)
     {
         Guard.Against.Default(productTypeId, nameof(productTypeId));
 
@@ -266,9 +266,9 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
             return Result.Success();
         }
 
-        if (hasReleases && !isTargetReleasable)
+        if (hasVersions && !isTargetReleasable)
         {
-            return Result.Failure("This product has releases and cannot be changed to a type that is not releasable.");
+            return Result.Failure("This product has versions and cannot be changed to a type that is not releasable.");
         }
 
         var fromProductTypeId = ProductTypeId;
@@ -314,20 +314,20 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     /// Raises the removal event. The caller performs the delete; this records why and for whom.
     /// </summary>
     /// <param name="hasChildren">Whether any node still hangs from this one.</param>
-    /// <param name="hasReleases">Whether any release was ever cut against this node.</param>
-    public Result Remove(bool hasChildren, bool hasReleases, bool isInAManifest, EventActor actor, Instant timestamp)
+    /// <param name="hasVersions">Whether any version was ever cut against this node.</param>
+    public Result Remove(bool hasChildren, bool hasVersions, bool isInAManifest, EventActor actor, Instant timestamp)
     {
         if (hasChildren)
         {
             return Result.Failure("This product has child products and cannot be removed. Move or remove them first.");
         }
 
-        if (hasReleases)
+        if (hasVersions)
         {
-            return Result.Failure("This product has releases and cannot be removed.");
+            return Result.Failure("This product has versions and cannot be removed.");
         }
 
-        // Separate from hasReleases: a carried-forward component often has no release row at all, so a
+        // Separate from hasVersions: a carried-forward component often has no version row at all, so a
         // product named only in a manifest passes that check and then hits the restricting foreign key,
         // where the failure surfaces as an unreadable generic error.
         if (isInAManifest)

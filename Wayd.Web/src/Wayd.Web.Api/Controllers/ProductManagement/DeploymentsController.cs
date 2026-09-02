@@ -31,12 +31,12 @@ public class DeploymentsController(IDispatcher dispatcher) : ControllerBase
     private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.Deployments)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
     [OpenApiOperation("Get a list of deployments.", "Most recently started first.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<DeploymentDto>>> GetDeployments(
-        [FromQuery] Guid? releaseId,
+        [FromQuery] Guid? versionId,
         [FromQuery] Guid? packageId,
         [FromQuery] Guid? environmentId,
         [FromQuery] int? environmentCategory,
@@ -45,7 +45,7 @@ public class DeploymentsController(IDispatcher dispatcher) : ControllerBase
     {
         var deployments = await _dispatcher.Send(
             new GetDeploymentsQuery(
-                releaseId,
+                versionId,
                 packageId,
                 environmentId,
                 (EnvironmentCategory?)environmentCategory,
@@ -56,7 +56,7 @@ public class DeploymentsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpGet("{idOrKey}")]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.Deployments)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
     [OpenApiOperation("Get deployment details.", "Accepts the deployment's id or its short key.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -70,7 +70,7 @@ public class DeploymentsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpGet("{idOrKey}/status-history")]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.Deployments)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
     [OpenApiOperation(
         "Get a deployment's status change history.",
         "Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.")]
@@ -91,7 +91,7 @@ public class DeploymentsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPost]
-    [MustHavePermission(ApplicationAction.Create, ApplicationResource.Deployments)]
+    [MustHavePermission(ApplicationAction.Create, ApplicationResource.Delivery)]
     [OpenApiOperation("Start a deployment.", "")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Start(
@@ -105,7 +105,7 @@ public class DeploymentsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPost("{id}/succeed")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Deployments)]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation("Record that a deployment reached its environment.", "")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -121,7 +121,7 @@ public class DeploymentsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPost("{id}/fail")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Deployments)]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(
         "Record that a deployment did not reach its environment.",
         "Counts toward change failure rate only in production.")]
@@ -139,7 +139,7 @@ public class DeploymentsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPost("{id}/roll-back")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Deployments)]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Delivery)]
     [OpenApiOperation(
         "Record that a deployment was reverted.",
         "Permitted only from a succeeded deployment.")]

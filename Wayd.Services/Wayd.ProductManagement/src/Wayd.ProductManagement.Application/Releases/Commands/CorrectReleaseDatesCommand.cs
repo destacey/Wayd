@@ -1,24 +1,21 @@
-namespace Wayd.ProductManagement.Application.Releases.Commands;
+﻿namespace Wayd.ProductManagement.Application.Releases.Commands;
 
 /// <summary>
-/// Corrects a release's recorded target, cut and released dates.
+/// Corrects a release's recorded target and released dates.
 /// </summary>
 /// <remarks>
-/// Separate from cutting and releasing, which assert that the release moved and so refuse to run
-/// twice. This asserts only that a date was written down wrongly, and leaves the status alone — the
-/// alternative was to withdraw a release and release it again, which writes two status transitions
-/// that never happened.
+/// Separate from announcing, which asserts that the release moved and so refuses to run twice. This
+/// asserts only that a date was written down wrongly, and leaves the status alone.
 /// <para>
-/// Every date is sent, so an omitted one clears it. The target and cut dates may be added, changed or
-/// cleared freely; the released date may be added or changed but not cleared, because emptying it
-/// would leave a released record contradicting its own status —
+/// No cut date, unlike a version's correction — a release is never cut. Both dates are sent, so an
+/// omitted target date clears it; the released date may be added or changed but not cleared, because
+/// emptying it would leave an announced release contradicting its own status.
 /// <c>RevertReleaseCommand</c> is the action for that.
 /// </para>
 /// </remarks>
 public sealed record CorrectReleaseDatesCommand(
     Guid Id,
     LocalDate? TargetDate,
-    LocalDate? CutDate,
     LocalDate? ReleasedDate)
     : ICommand, IRequireLinkedEmployee;
 
@@ -60,20 +57,13 @@ public sealed class CorrectReleaseDatesCommandHandler(
                 return Result.Failure("Release not found.");
             }
 
-            var productName = await _productManagementDbContext.Products
-                .Where(p => p.Id == release.ProductId)
-                .Select(p => p.Name)
-                .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
-
             // Read per scope rather than from the claim snapshot, which a personal access token
             // freezes for its whole lifetime. The correction's actor is permanent audit-trail data.
             var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
 
             var result = release.CorrectDates(
                 request.TargetDate,
-                request.CutDate,
                 request.ReleasedDate,
-                productName,
                 EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);
 

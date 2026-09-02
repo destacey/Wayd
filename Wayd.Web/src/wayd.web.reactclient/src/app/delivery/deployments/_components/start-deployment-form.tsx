@@ -7,7 +7,7 @@ import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { useStartDeploymentMutation } from '@/src/store/features/delivery/deployments-api'
 import { useGetDeploymentEnvironmentsQuery } from '@/src/store/features/delivery/deployment-environments-api'
 import { useGetReleasePackagesQuery } from '@/src/store/features/delivery/release-packages-api'
-import { useGetReleasesQuery } from '@/src/store/features/delivery/releases-api'
+import { useGetVersionsQuery } from '@/src/store/features/delivery/versions-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { DatePicker, Form, Input, Modal, Segmented, Select } from 'antd'
 import { Dayjs } from 'dayjs'
@@ -24,7 +24,7 @@ export interface StartDeploymentFormProps {
 type DeploymentSubject = 'Release' | 'Package'
 
 interface StartDeploymentFormValues {
-  releaseId?: string
+  versionId?: string
   packageId?: string
   environmentId: string
   artifactId?: string
@@ -53,8 +53,8 @@ const StartDeploymentForm = ({
   const [subject, setSubject] = useState<DeploymentSubject>('Release')
 
   const [startDeployment] = useStartDeploymentMutation()
-  const { data: releases, isLoading: releasesLoading } =
-    useGetReleasesQuery(undefined)
+  const { data: versions, isLoading: versionsLoading } =
+    useGetVersionsQuery(undefined)
   const { data: packages, isLoading: packagesLoading } =
     useGetReleasePackagesQuery(undefined)
   const { data: environments, isLoading: environmentsLoading } =
@@ -67,7 +67,7 @@ const StartDeploymentForm = ({
           const request = {
             // Only the side the toggle names is sent. Carrying the other would be the exact
             // both-set case the API refuses.
-            releaseId: subject === 'Release' ? values.releaseId : undefined,
+            versionId: subject === 'Release' ? values.versionId : undefined,
             packageId: subject === 'Package' ? values.packageId : undefined,
             environmentId: values.environmentId,
             artifactId: values.artifactId,
@@ -99,13 +99,13 @@ const StartDeploymentForm = ({
       onCancel: onFormCancel,
       errorMessage:
         'An error occurred while starting the deployment. Please try again.',
-      permission: 'Permissions.Deployments.Create',
+      permission: 'Permissions.Delivery.Create',
     })
 
-  const releaseOptions = (releases ?? [])
-    .map((release) => ({
-      value: release.id,
-      label: `${release.product.name} ${release.version}`,
+  const versionOptions = (versions ?? [])
+    .map((version) => ({
+      value: version.id,
+      label: `${version.product.name} ${version.number}`,
     }))
     .sort((a, b) => caseInsensitiveCompare(a.label, b.label))
 
@@ -155,7 +155,7 @@ const StartDeploymentForm = ({
               form.setFieldsValue(
                 value === 'Release'
                   ? { packageId: undefined }
-                  : { releaseId: undefined },
+                  : { versionId: undefined },
               )
             }}
           />
@@ -164,12 +164,12 @@ const StartDeploymentForm = ({
         {subject === 'Release' ? (
           <Item
             label="Release"
-            name="releaseId"
+            name="versionId"
             rules={[{ required: true, message: 'Release is required' }]}
           >
             <Select
-              options={releaseOptions}
-              loading={releasesLoading}
+              options={versionOptions}
+              loading={versionsLoading}
               placeholder="Select a release"
               showSearch
               optionFilterProp="label"

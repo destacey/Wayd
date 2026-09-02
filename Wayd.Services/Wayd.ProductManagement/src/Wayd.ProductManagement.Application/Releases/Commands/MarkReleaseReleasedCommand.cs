@@ -4,11 +4,11 @@ using Wayd.ProductManagement.Domain;
 namespace Wayd.ProductManagement.Application.Releases.Commands;
 
 /// <summary>
-/// Records that a release shipped.
+/// Records that a release was announced to customers.
 /// </summary>
 /// <remarks>
 /// The released date is what orders a release history, so it is supplied rather than taken from the
-/// clock: shipping is often recorded after the fact.
+/// clock: announcing is often recorded after the fact.
 /// </remarks>
 public sealed record MarkReleaseReleasedCommand(Guid Id, LocalDate ReleasedDate) : ICommand, IRequireLinkedEmployee;
 
@@ -44,6 +44,8 @@ public sealed class MarkReleaseReleasedCommandHandler(
         try
         {
             var release = await _productManagementDbContext.Releases
+                .Include(r => r.Versions)
+                .Include(r => r.Packages)
                 .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
 
             if (release is null)
@@ -67,20 +69,26 @@ public sealed class MarkReleaseReleasedCommandHandler(
                 return Result.Failure(status.Error);
             }
 
-            var productName = await _productManagementDbContext.Products
-                .Where(p => p.Id == release.ProductId)
-                .Select(p => p.Name)
-                .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
+            // Whether anything this release carries has yet to ship. The aggregate holds ids, not the
+            // records, so it cannot answer this itself — but it is the one claim an announcement makes
+            // that its own contents can contradict, so it is checked rather than assumed.
+            var versionIds = release.Versions.Select(v => v.VersionId).ToList();
+            var packageIds = release.Packages.Select(p => p.PackageId).ToList();
 
-            // Read per scope rather than from the claim snapshot, which a personal access token
-            // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
-            // one would misattribute the change permanently.
+            var hasUnreleasedVersion = versionIds.Count > 0
+                && await _productManagementDbContext.Versions
+                    .AnyAsync(v => versionIds.Contains(v.Id) && v.ReleasedDate == null, cancellationToken);
+
+            var hasUnreleasedPackage = packageIds.Count > 0
+                && await _productManagementDbContext.ReleasePackages
+                    .AnyAsync(p => packageIds.Contains(p.Id) && p.ReleasedDate == null, cancellationToken);
+
             var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
 
             var result = release.MarkReleased(
                 request.ReleasedDate,
+                hasUnreleasedVersion || hasUnreleasedPackage,
                 status.Value,
-                productName,
                 EventActor.User(_currentUser.GetUserId(), employeeId),
                 _dateTimeProvider.Now);
 
@@ -89,13 +97,13 @@ public sealed class MarkReleaseReleasedCommandHandler(
                 release.ClearDomainEvents();
 
                 _logger.LogInformation(
-                    "Unable to mark released Release {ReleaseId}. Error message: {Error}", request.Id, result.Error);
+                    "Unable to release Release {ReleaseId}. Error message: {Error}", request.Id, result.Error);
                 return Result.Failure(result.Error);
             }
 
             await _productManagementDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Release {ReleaseId} marked released.", request.Id);
+            _logger.LogInformation("Release {ReleaseId} released.", request.Id);
 
             return Result.Success();
         }

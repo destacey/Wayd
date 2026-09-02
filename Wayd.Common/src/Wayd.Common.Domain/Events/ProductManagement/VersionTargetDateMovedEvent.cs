@@ -1,0 +1,44 @@
+using NodaTime;
+
+namespace Wayd.Common.Domain.Events.ProductManagement;
+
+/// <summary>
+/// A version's target date moved.
+/// </summary>
+/// <remarks>
+/// Carries both ends, because here the change is the story: "slipped two weeks" is the fact a watcher
+/// wants, and it cannot be recovered from the new value alone.
+/// </remarks>
+public sealed record VersionTargetDateMovedEvent : DomainEvent, IProductManagementEvent
+{
+    public VersionTargetDateMovedEvent(
+        Guid id,
+        int key,
+        Guid productId,
+        string productName,
+        string number,
+        LocalDate? fromTargetDate,
+        LocalDate? toTargetDate,
+        EventActor actor,
+        Instant timestamp)
+        : base(actor)
+    {
+        Id = id;
+        Key = key;
+        ProductId = productId;
+        ProductName = productName;
+        Number = number;
+        FromTargetDate = fromTargetDate;
+        ToTargetDate = toTargetDate;
+
+        Timestamp = timestamp;
+    }
+
+    public Guid Id { get; }
+    public int Key { get; }
+    public Guid ProductId { get; }
+    public string ProductName { get; }
+    public string Number { get; }
+    public LocalDate? FromTargetDate { get; }
+    public LocalDate? ToTargetDate { get; }
+}

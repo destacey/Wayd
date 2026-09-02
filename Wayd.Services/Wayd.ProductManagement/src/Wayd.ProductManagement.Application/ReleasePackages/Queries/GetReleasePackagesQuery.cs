@@ -14,15 +14,15 @@ namespace Wayd.ProductManagement.Application.ReleasePackages.Queries;
 /// Packages whose manifest names this product, in any version. Answers "what has this component
 /// shipped in?" across its whole history.
 /// </param>
-/// <param name="ContainingReleaseId">
-/// Packages whose manifest names this exact release. Narrower than
-/// <paramref name="ContainingProductId"/> and the right filter for a release's own page, where the
-/// product-wide answer would list packages that release was never in.
+/// <param name="ContainingVersionId">
+/// Packages whose manifest names this exact version. Narrower than
+/// <paramref name="ContainingProductId"/> and the right filter for a version's own page, where the
+/// product-wide answer would list packages that version was never in.
 /// </param>
 public sealed record GetReleasePackagesQuery(
     IReadOnlyCollection<StatusCategory>? StatusCategories = null,
     Guid? ContainingProductId = null,
-    Guid? ContainingReleaseId = null) : IQuery<IReadOnlyCollection<ReleasePackageDto>>;
+    Guid? ContainingVersionId = null) : IQuery<IReadOnlyCollection<ReleasePackageDto>>;
 
 public sealed class GetReleasePackagesQueryHandler(IProductManagementDbContext productManagementDbContext)
     : IQueryHandler<GetReleasePackagesQuery, IReadOnlyCollection<ReleasePackageDto>>
@@ -45,13 +45,13 @@ public sealed class GetReleasePackagesQueryHandler(IProductManagementDbContext p
                 .Any(c => c.PackageId == p.Id && c.ProductId == query.ContainingProductId));
         }
 
-        // A manifest entry's ReleaseId is nullable — a carried-forward line often names a version that
-        // was never cut as a release here. Those entries are correctly not matches: the question is
-        // which packages named *this* release.
-        if (query.ContainingReleaseId is not null)
+        // A manifest entry's VersionId is nullable — a carried-forward line often names a version that
+        // was never cut here. Those entries are correctly not matches: the question is which packages
+        // named *this* version record.
+        if (query.ContainingVersionId is not null)
         {
             packages = packages.Where(p => _productManagementDbContext.ReleasePackageComponents
-                .Any(c => c.PackageId == p.Id && c.ReleaseId == query.ContainingReleaseId));
+                .Any(c => c.PackageId == p.Id && c.VersionId == query.ContainingVersionId));
         }
 
         return await packages

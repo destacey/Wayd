@@ -2,7 +2,7 @@ import React, { Suspense } from 'react'
 import { act, render, screen } from '@testing-library/react'
 import ProductDetailsPage from './page'
 
-// The overview's release tile counts back from today, and the global setup mocks dayjs down to
+// The overview's version tile counts back from today, and the global setup mocks dayjs down to
 // formatting — without the real one the section throws while rendering and takes every tile with it.
 jest.unmock('dayjs')
 
@@ -134,8 +134,8 @@ jest.mock('@/src/components/hoc', () => ({
   requireFeatureFlag: (Component: React.ComponentType<any>) => Component,
 }))
 
-jest.mock('@/src/store/features/delivery/releases-api', () => ({
-  useGetReleasesQuery: () => ({
+jest.mock('@/src/store/features/delivery/versions-api', () => ({
+  useGetVersionsQuery: () => ({
     data: [],
     isLoading: false,
     refetch: jest.fn(),
@@ -254,7 +254,7 @@ describe('ProductDetailsPage', () => {
     expect(await screen.findByText('Releasable Products')).toBeInTheDocument()
   })
 
-  it('summarises recent releases on the overview', async () => {
+  it('summarises recent versions on the overview', async () => {
     // The tile counts back from today, so it renders only with the real dayjs — the global mock
     // leaves it throwing mid-render and takes the whole section down with it.
     // Arrange / Act

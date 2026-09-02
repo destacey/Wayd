@@ -7,7 +7,7 @@ import {
   SetReleasePackageManifestRequest,
 } from '@/src/services/wayd-api'
 import { useSetReleasePackageManifestMutation } from '@/src/store/features/delivery/release-packages-api'
-import { useGetReleasesQuery } from '@/src/store/features/delivery/releases-api'
+import { useGetVersionsQuery } from '@/src/store/features/delivery/versions-api'
 import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Alert, Form, Modal } from 'antd'
@@ -42,7 +42,7 @@ const SetReleasePackageManifestForm = ({
   const [setManifest] = useSetReleasePackageManifestMutation()
   const { data: products, isLoading: productsLoading } =
     useGetProductsQuery(undefined)
-  const { data: releases } = useGetReleasesQuery(undefined)
+  const { data: versions } = useGetVersionsQuery(undefined)
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<SetReleasePackageManifestFormValues>({
@@ -51,7 +51,7 @@ const SetReleasePackageManifestForm = ({
           const request = {
             components: values.components.map((entry) => ({
               productId: entry.productId,
-              releaseId: entry.releaseId,
+              versionId: entry.versionId,
               version: entry.version,
               kind: entry.kind,
             })),
@@ -84,14 +84,14 @@ const SetReleasePackageManifestForm = ({
       onCancel: onFormCancel,
       errorMessage:
         'An error occurred while updating the manifest. Please try again.',
-      permission: 'Permissions.ReleasePackages.Update',
+      permission: 'Permissions.Delivery.Update',
     })
 
   const initialComponents: ManifestEntryDraft[] = (
     releasePackage.components ?? []
   ).map((component) => ({
     productId: component.product.id,
-    releaseId: component.release?.id,
+    versionId: component.versionRecord?.id,
     version: component.version,
     kind: component.kind,
   }))
@@ -152,7 +152,7 @@ const SetReleasePackageManifestForm = ({
         >
           <ManifestEditor
             products={products ?? []}
-            releases={releases ?? []}
+            versions={versions ?? []}
             isLoading={productsLoading}
           />
         </Item>

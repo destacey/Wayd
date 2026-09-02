@@ -4508,7 +4508,7 @@
         "operationId": "Deployments_GetDeployments",
         "parameters": [
           {
-            "name": "releaseId",
+            "name": "versionId",
             "in": "query",
             "schema": {
               "type": "string",
@@ -6483,7 +6483,7 @@
           "ReleasePackages"
         ],
         "summary": "Get a list of release packages.",
-        "description": "containingProductId matches any manifest line for that product; containingReleaseId matches only the packages naming that exact release, which is what a release's own page needs.",
+        "description": "containingProductId matches any manifest line for that product; containingVersionId matches only the packages naming that exact release, which is what a release's own page needs.",
         "operationId": "ReleasePackages_GetReleasePackages",
         "parameters": [
           {
@@ -6513,7 +6513,7 @@
             "x-position": 2
           },
           {
-            "name": "containingReleaseId",
+            "name": "containingVersionId",
             "in": "query",
             "schema": {
               "type": "string",
@@ -6894,7 +6894,7 @@
           "Releases"
         ],
         "summary": "Get a list of releases.",
-        "description": "Ordered by released date then sequence — never by version, which is free text.",
+        "description": "Ordered by released date then sequence — never by the version label, which is free text.",
         "operationId": "Releases_GetReleases",
         "parameters": [
           {
@@ -6922,6 +6922,17 @@
               }
             },
             "x-position": 2
+          },
+          {
+            "name": "containingVersionId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 3
           }
         ],
         "responses": {
@@ -6960,6 +6971,7 @@
           "Releases"
         ],
         "summary": "Plan a release.",
+        "description": "Contents are attached afterwards — an announcement is commonly drafted before anyone knows which versions will make it.",
         "operationId": "Releases_Plan",
         "requestBody": {
           "x-name": "request",
@@ -7176,6 +7188,118 @@
         ]
       }
     },
+    "/api/product-management/releases/{id}/versions": {
+      "put": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Set the versions a release carries directly.",
+        "description": "Whole-set replacement: a version left out is removed. A version already shipping inside one of this release's packages is refused, so that one shipment is announced once.",
+        "operationId": "Releases_SetVersions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetReleaseVersionsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/releases/{id}/packages": {
+      "put": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Set the packages a release shipped.",
+        "description": "Whole-set replacement: a package left out is removed. A package is refused if it ships a version this release already carries directly.",
+        "operationId": "Releases_SetPackages",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetReleasePackagesRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
     "/api/product-management/releases/{id}/target-date": {
       "put": {
         "tags": [
@@ -7236,8 +7360,8 @@
         "tags": [
           "Releases"
         ],
-        "summary": "Correct a release's recorded target, cut and released dates.",
-        "description": "Fixes dates entered wrongly without changing the release's status. All three are sent, so an omitted date is cleared. The released date cannot be cleared — revert the release instead.",
+        "summary": "Correct a release's recorded target and released dates.",
+        "description": "Fixes dates entered wrongly without changing the release's status. Both are sent, so an omitted target date is cleared. The released date cannot be cleared — revert the release instead. There is no cut date: a release is never cut.",
         "operationId": "Releases_CorrectDates",
         "parameters": [
           {
@@ -7287,68 +7411,13 @@
         ]
       }
     },
-    "/api/product-management/releases/{id}/cut": {
-      "post": {
-        "tags": [
-          "Releases"
-        ],
-        "summary": "Cut a release.",
-        "description": "Freezes scope and marks it ready to ship. One-way.",
-        "operationId": "Releases_Cut",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "guid",
-              "nullable": false,
-              "example": "00000000-0000-0000-0000-000000000000"
-            },
-            "x-position": 1
-          }
-        ],
-        "requestBody": {
-          "x-name": "request",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CutReleaseRequest"
-              }
-            }
-          },
-          "required": true,
-          "x-position": 2
-        },
-        "responses": {
-          "204": {
-            "description": ""
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKey": []
-          }
-        ]
-      }
-    },
     "/api/product-management/releases/{id}/release": {
       "post": {
         "tags": [
           "Releases"
         ],
-        "summary": "Record that a release shipped.",
+        "summary": "Record that a release was announced.",
+        "description": "Refused while the release carries a version or package that has not shipped — telling customers a release shipped while something inside it has not is the one claim a release can make that its own contents contradict.",
         "operationId": "Releases_MarkReleased",
         "parameters": [
           {
@@ -7403,8 +7472,8 @@
         "tags": [
           "Releases"
         ],
-        "summary": "Withdraw a release.",
-        "description": "The release is kept: deployments may reference it.",
+        "summary": "Retract a release.",
+        "description": "Says nothing about the versions it carried: an artifact that shipped has shipped whatever the market was later told, so each version is withdrawn separately where it too was pulled.",
         "operationId": "Releases_Withdraw",
         "parameters": [
           {
@@ -7459,8 +7528,8 @@
         "tags": [
           "Releases"
         ],
-        "summary": "Revert a release recorded as shipped.",
-        "description": "For a release marked released in error. Moves it back to Ready, or to the workflow's initial status where it was never cut, and clears the released date. Not a withdrawal — that pulls a release which really shipped.",
+        "summary": "Revert a release announced in error.",
+        "description": "For a release marked announced by mistake. Moves it back to Ready and clears the released date. Not a withdrawal — that retracts an announcement which really went out.",
         "operationId": "Releases_Revert",
         "parameters": [
           {
@@ -7482,6 +7551,638 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RevertReleaseRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/versions": {
+      "get": {
+        "tags": [
+          "Versions"
+        ],
+        "summary": "Get a list of versions.",
+        "description": "Ordered by released date then sequence — never by version, which is free text.",
+        "operationId": "Versions_GetVersions",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": true,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "statusCategory",
+            "in": "query",
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "array",
+              "nullable": true,
+              "items": {
+                "type": "integer",
+                "format": "int32"
+              }
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VersionDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Versions"
+        ],
+        "summary": "Plan a version.",
+        "operationId": "Versions_Plan",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanVersionRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/versions/{idOrKey}": {
+      "get": {
+        "tags": [
+          "Versions"
+        ],
+        "summary": "Get version details.",
+        "description": "Accepts the version's id or its short key.",
+        "operationId": "Versions_GetVersion",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/versions/{idOrKey}/status-history": {
+      "get": {
+        "tags": [
+          "Versions"
+        ],
+        "summary": "Get a version's status change history.",
+        "description": "Newest first. Each entry reports the status names as they were at the time, so a status renamed since does not rewrite the past.",
+        "operationId": "Versions_GetStatusHistory",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StatusTransitionDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/versions/{id}": {
+      "put": {
+        "tags": [
+          "Versions"
+        ],
+        "summary": "Update a version.",
+        "operationId": "Versions_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateVersionRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/versions/{id}/target-date": {
+      "put": {
+        "tags": [
+          "Versions"
+        ],
+        "summary": "Move or clear a version's target date.",
+        "operationId": "Versions_MoveTargetDate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveVersionTargetDateRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/versions/{id}/dates": {
+      "put": {
+        "tags": [
+          "Versions"
+        ],
+        "summary": "Correct a version's recorded target, cut and released dates.",
+        "description": "Fixes dates entered wrongly without changing the version's status. All three are sent, so an omitted date is cleared. The released date cannot be cleared — revert the version instead.",
+        "operationId": "Versions_CorrectDates",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectVersionDatesRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/versions/{id}/cut": {
+      "post": {
+        "tags": [
+          "Versions"
+        ],
+        "summary": "Cut a version.",
+        "description": "Freezes scope and marks it ready to ship. One-way.",
+        "operationId": "Versions_Cut",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CutVersionRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/versions/{id}/version": {
+      "post": {
+        "tags": [
+          "Versions"
+        ],
+        "summary": "Record that a version shipped.",
+        "operationId": "Versions_MarkReleased",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkVersionReleasedRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/versions/{id}/withdraw": {
+      "post": {
+        "tags": [
+          "Versions"
+        ],
+        "summary": "Withdraw a version.",
+        "description": "The version is kept: deployments may reference it.",
+        "operationId": "Versions_Withdraw",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WithdrawVersionRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/product-management/versions/{id}/revert": {
+      "post": {
+        "tags": [
+          "Versions"
+        ],
+        "summary": "Revert a version recorded as shipped.",
+        "description": "For a version marked released in error. Moves it back to Ready, or to the workflow's initial status where it was never cut, and clears the released date. Not a withdrawal — that pulls a version which really shipped.",
+        "operationId": "Versions_Revert",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevertVersionReleaseRequest"
               }
             }
           },
@@ -35638,7 +36339,7 @@
             "type": "integer",
             "format": "int32"
           },
-          "release": {
+          "version": {
             "nullable": true,
             "oneOf": [
               {
@@ -36723,7 +37424,7 @@
           "product": {
             "$ref": "#/components/schemas/NavigationDto"
           },
-          "release": {
+          "versionRecord": {
             "nullable": true,
             "oneOf": [
               {
@@ -36887,8 +37588,331 @@
         "required": [
           "id",
           "key",
-          "product",
           "version",
+          "status",
+          "versions",
+          "packages"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid",
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "product": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "version": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "sequence": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "targetDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "releasedDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusNavigationDto"
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReleaseVersionDto"
+            }
+          },
+          "packages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReleasePackageSummaryDto"
+            }
+          }
+        }
+      },
+      "ReleaseVersionDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version"
+        ],
+        "properties": {
+          "version": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "product": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ]
+          },
+          "releasedDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        }
+      },
+      "ReleasePackageSummaryDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "package"
+        ],
+        "properties": {
+          "package": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "releasedDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        }
+      },
+      "PlanReleaseRequest": {
+        "type": "object",
+        "description": "Plans a release — drafts an announcement, before it carries anything.",
+        "additionalProperties": false,
+        "required": [
+          "version"
+        ],
+        "properties": {
+          "productId": {
+            "type": "string",
+            "description": "The product to announce under. Optional, and typically a product line rather than a leaf: a\nrelease spanning product lines leaves this empty.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "version": {
+            "type": "string",
+            "description": "The release as your organization announces it — 2026.07, Spring Release, R4.\nFree text, never parsed: nothing sorts or compares it.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false
+          },
+          "name": {
+            "type": "string",
+            "description": "An optional human name, where a team gives one.",
+            "maxLength": 128,
+            "minLength": 0,
+            "nullable": true
+          },
+          "targetDate": {
+            "type": "string",
+            "description": "When the release is expected to be announced.",
+            "format": "date",
+            "nullable": true
+          },
+          "sequence": {
+            "type": "integer",
+            "description": "A manual ordering override, for the rare case where chronology misleads.",
+            "format": "int64",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateReleaseRequest": {
+        "type": "object",
+        "description": "A whole-record update of a release's descriptive fields.",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "version"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the release.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "version": {
+            "type": "string",
+            "description": "The release's own version label. Free text, never parsed.",
+            "maxLength": 64,
+            "minLength": 1,
+            "nullable": false
+          },
+          "name": {
+            "type": "string",
+            "description": "An optional human name. Cleared when omitted.",
+            "maxLength": 128,
+            "minLength": 0,
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "description": "Product notes, written for customers. Cleared when omitted.",
+            "maxLength": 4000,
+            "minLength": 0,
+            "nullable": true
+          },
+          "productId": {
+            "type": "string",
+            "description": "The product to announce under. Cleared when omitted, which makes the release span product lines.",
+            "format": "guid",
+            "nullable": true,
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "sequence": {
+            "type": "integer",
+            "description": "A manual ordering override. Cleared when omitted.",
+            "format": "int64",
+            "nullable": true
+          }
+        }
+      },
+      "SetReleaseVersionsRequest": {
+        "type": "object",
+        "description": "Replaces the versions a release carries directly, outside any package.",
+        "additionalProperties": false,
+        "required": [
+          "versionIds"
+        ],
+        "properties": {
+          "versionIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            }
+          }
+        }
+      },
+      "SetReleasePackagesRequest": {
+        "type": "object",
+        "description": "Replaces the packages a release shipped.",
+        "additionalProperties": false,
+        "required": [
+          "packageIds"
+        ],
+        "properties": {
+          "packageIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "guid",
+              "nullable": false,
+              "example": "00000000-0000-0000-0000-000000000000"
+            }
+          }
+        }
+      },
+      "MoveReleaseTargetDateRequest": {
+        "type": "object",
+        "description": "Moves or clears a release's target date.",
+        "additionalProperties": false,
+        "properties": {
+          "targetDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        }
+      },
+      "CorrectReleaseDatesRequest": {
+        "type": "object",
+        "description": "Corrects a release's recorded target and released dates.",
+        "additionalProperties": false,
+        "properties": {
+          "targetDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "releasedDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        }
+      },
+      "MarkReleaseReleasedRequest": {
+        "type": "object",
+        "description": "Records that a release was announced to customers.",
+        "additionalProperties": false,
+        "required": [
+          "releasedDate"
+        ],
+        "properties": {
+          "releasedDate": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "WithdrawReleaseRequest": {
+        "type": "object",
+        "description": "Retracts a release after it was announced.",
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why it was retracted. Optional — recorded on the status transition where given.",
+            "maxLength": 1024,
+            "minLength": 0,
+            "nullable": true
+          }
+        }
+      },
+      "RevertReleaseRequest": {
+        "type": "object",
+        "description": "Records that a release marked as announced was not in fact announced.",
+        "additionalProperties": false,
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why the release was reverted. Required, unlike a withdrawal's reason: this\ncontradicts what the append-only history already asserts, so the record has to say why.",
+            "maxLength": 1024,
+            "minLength": 1,
+            "nullable": false
+          }
+        }
+      },
+      "VersionDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "product",
+          "number",
           "status"
         ],
         "properties": {
@@ -36905,7 +37929,7 @@
           "product": {
             "$ref": "#/components/schemas/NavigationDto"
           },
-          "version": {
+          "number": {
             "type": "string"
           },
           "name": {
@@ -36941,7 +37965,7 @@
           }
         }
       },
-      "PlanReleaseRequest": {
+      "PlanVersionRequest": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -36951,7 +37975,7 @@
         "properties": {
           "productId": {
             "type": "string",
-            "description": "The product this release is for. Its type must permit releases.",
+            "description": "The product this version is for. Its type must permit versions.",
             "format": "guid",
             "minLength": 1,
             "nullable": false,
@@ -36973,7 +37997,7 @@
           },
           "targetDate": {
             "type": "string",
-            "description": "When the release is expected to ship.",
+            "description": "When the version is expected to ship.",
             "format": "date",
             "nullable": true
           },
@@ -36985,9 +38009,9 @@
           }
         }
       },
-      "UpdateReleaseRequest": {
+      "UpdateVersionRequest": {
         "type": "object",
-        "description": "A whole-record update of a release's descriptive fields.",
+        "description": "A whole-record update of a version's descriptive fields.",
         "additionalProperties": false,
         "required": [
           "id",
@@ -36996,7 +38020,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "The unique identifier of the release.",
+            "description": "The unique identifier of the version.",
             "format": "guid",
             "minLength": 1,
             "nullable": false,
@@ -37018,7 +38042,7 @@
           },
           "notes": {
             "type": "string",
-            "description": "Release notes, authored by hand or generated. Cleared when omitted.",
+            "description": "Engineering notes, authored by hand or generated. Cleared when omitted.",
             "maxLength": 4000,
             "minLength": 0,
             "nullable": true
@@ -37031,9 +38055,9 @@
           }
         }
       },
-      "MoveReleaseTargetDateRequest": {
+      "MoveVersionTargetDateRequest": {
         "type": "object",
-        "description": "Moves or clears a release's target date.",
+        "description": "Moves or clears a version's target date.",
         "additionalProperties": false,
         "properties": {
           "targetDate": {
@@ -37044,9 +38068,9 @@
           }
         }
       },
-      "CorrectReleaseDatesRequest": {
+      "CorrectVersionDatesRequest": {
         "type": "object",
-        "description": "Corrects a release's recorded target, cut and released dates.",
+        "description": "Corrects a version's recorded target, cut and released dates.",
         "additionalProperties": false,
         "properties": {
           "targetDate": {
@@ -37057,21 +38081,21 @@
           },
           "cutDate": {
             "type": "string",
-            "description": "The corrected cut date, or null to clear it. May be added to a release that was never cut: a\nrelease can be marked released without being cut, so a cut date discovered later is a\ncorrection rather than a lifecycle step.",
+            "description": "The corrected cut date, or null to clear it. May be added to a version that was never cut: a\nversion can be marked released without being cut, so a cut date discovered later is a\ncorrection rather than a lifecycle step.",
             "format": "date",
             "nullable": true
           },
           "releasedDate": {
             "type": "string",
-            "description": "The corrected released date. May be added or changed, but not cleared on a release that has\none — emptying it would leave the status contradicting the dates. Use the revert action to\nrecord that a release did not ship.",
+            "description": "The corrected released date. May be added or changed, but not cleared on a version that has\none — emptying it would leave the status contradicting the dates. Use the revert action to\nrecord that a version did not ship.",
             "format": "date",
             "nullable": true
           }
         }
       },
-      "CutReleaseRequest": {
+      "CutVersionRequest": {
         "type": "object",
-        "description": "Freezes scope and marks a release ready to ship.",
+        "description": "Freezes scope and marks a version ready to ship.",
         "additionalProperties": false,
         "required": [
           "cutDate"
@@ -37084,9 +38108,9 @@
           }
         }
       },
-      "MarkReleaseReleasedRequest": {
+      "MarkVersionReleasedRequest": {
         "type": "object",
-        "description": "Records that a release shipped.",
+        "description": "Records that a version shipped.",
         "additionalProperties": false,
         "required": [
           "releasedDate"
@@ -37094,14 +38118,14 @@
         "properties": {
           "releasedDate": {
             "type": "string",
-            "description": "The date it shipped. This is what orders a release history, so it is supplied rather than taken\nfrom the clock.",
+            "description": "The date it shipped. This is what orders a version history, so it is supplied rather than taken\nfrom the clock.",
             "format": "date"
           }
         }
       },
-      "WithdrawReleaseRequest": {
+      "WithdrawVersionRequest": {
         "type": "object",
-        "description": "Pulls a release after it was cut. The release is kept — deployments may reference it.",
+        "description": "Pulls a version after it was cut. The version is kept — deployments may reference it.",
         "additionalProperties": false,
         "properties": {
           "reason": {
@@ -37113,9 +38137,9 @@
           }
         }
       },
-      "RevertReleaseRequest": {
+      "RevertVersionReleaseRequest": {
         "type": "object",
-        "description": "Records that a release marked as shipped did not in fact ship.",
+        "description": "Records that a version marked as shipped did not in fact ship.",
         "additionalProperties": false,
         "required": [
           "reason"
@@ -37123,7 +38147,7 @@
         "properties": {
           "reason": {
             "type": "string",
-            "description": "Why the release is being reverted. Required — this contradicts what the status history already\nasserts, so the record has to say why.",
+            "description": "Why the version is being reverted. Required — this contradicts what the status history already\nasserts, so the record has to say why.",
             "maxLength": 1024,
             "minLength": 1,
             "nullable": false

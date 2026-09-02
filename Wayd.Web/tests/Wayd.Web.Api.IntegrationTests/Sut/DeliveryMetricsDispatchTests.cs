@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
@@ -8,7 +8,7 @@ using Wayd.ProductManagement.Application.DeliveryMetrics.Queries;
 using Wayd.ProductManagement.Application.DeploymentEnvironments.Commands;
 using Wayd.ProductManagement.Application.Deployments.Commands;
 using Wayd.ProductManagement.Application.Products.Commands;
-using Wayd.ProductManagement.Application.Releases.Commands;
+using Wayd.ProductManagement.Application.Versions.Commands;
 using Wayd.Web.Api.IntegrationTests.Infrastructure;
 
 namespace Wayd.Web.Api.IntegrationTests.Sut;
@@ -55,10 +55,10 @@ public sealed class DeliveryMetricsDispatchTests(WaydSqlServerApiFactory factory
             productId = product.Value.Id;
         }
 
-        var release = await dispatcher.Send(
-            new PlanReleaseCommand(productId.Value, Unique("v")[..8], null, null, null),
+        var version = await dispatcher.Send(
+            new PlanVersionCommand(productId.Value, Unique("v")[..8], null, null, null),
             TestContext.Current.CancellationToken);
-        Assert.True(release.IsSuccess, release.IsFailure ? release.Error : null);
+        Assert.True(version.IsSuccess, version.IsFailure ? version.Error : null);
 
         var environment = await dispatcher.Send(
             new CreateDeploymentEnvironmentCommand(Unique("Env"), category, 3),
@@ -66,7 +66,7 @@ public sealed class DeliveryMetricsDispatchTests(WaydSqlServerApiFactory factory
         Assert.True(environment.IsSuccess, environment.IsFailure ? environment.Error : null);
 
         var started = await dispatcher.Send(
-            new StartDeploymentCommand(release.Value.Id, null, environment.Value.Id, null, completedAt),
+            new StartDeploymentCommand(version.Value.Id, null, environment.Value.Id, null, completedAt),
             TestContext.Current.CancellationToken);
         Assert.True(started.IsSuccess, started.IsFailure ? started.Error : null);
 

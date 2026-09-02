@@ -1,7 +1,7 @@
 import { QueryTags } from '../query-tags'
 import { deploymentTags } from './deployments-api'
 import { packageTags } from './release-packages-api'
-import { releaseTags } from './releases-api'
+import { versionTags } from './versions-api'
 
 /**
  * Pins the identifiers a status-history cache entry is invalidated under.
@@ -24,7 +24,7 @@ const KEY = 8
 
 describe('delivery status-history cache tags', () => {
   it.each([
-    ['releases', releaseTags],
+    ['releases', versionTags],
     ['release packages', packageTags],
     ['deployments', deploymentTags],
   ])('invalidates a %s history by key as well as id', (_area, tagsFor) => {
@@ -37,7 +37,7 @@ describe('delivery status-history cache tags', () => {
   })
 
   it.each([
-    ['releases', releaseTags],
+    ['releases', versionTags],
     ['release packages', packageTags],
     ['deployments', deploymentTags],
   ])('invalidates a %s history by id as well, for a page reached by id', (_area, tagsFor) => {

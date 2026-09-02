@@ -5,17 +5,20 @@ using Wayd.ProductManagement.Domain.Models;
 namespace Wayd.ProductManagement.Application.Releases.Commands;
 
 /// <summary>
-/// Plans a release against a product.
+/// Plans a release — drafts an announcement, before it carries anything.
 /// </summary>
+/// <param name="ProductId">
+/// The product node to announce under, or <c>null</c> where the release spans product lines.
+/// </param>
 /// <param name="Version">
-/// The version as the organization writes it. <strong>Free text, never parsed</strong> — nothing sorts
-/// or compares it.
+/// The release's own version label. <strong>Free text, never parsed</strong> — nothing sorts or
+/// compares it.
 /// </param>
 /// <param name="Sequence">
 /// A manual ordering override, for the rare case where chronology misleads.
 /// </param>
 public sealed record PlanReleaseCommand(
-    Guid ProductId,
+    Guid? ProductId,
     string Version,
     string? Name,
     LocalDate? TargetDate,
@@ -25,9 +28,6 @@ public sealed class PlanReleaseCommandValidator : AbstractValidator<PlanReleaseC
 {
     public PlanReleaseCommandValidator()
     {
-        RuleFor(r => r.ProductId)
-            .NotEmpty();
-
         RuleFor(r => r.Version)
             .NotEmpty()
             .MaximumLength(64);
@@ -57,35 +57,16 @@ public sealed class PlanReleaseCommandHandler(
     {
         try
         {
-            var product = await _productManagementDbContext.Products
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Id == request.ProductId, cancellationToken);
-
-            if (product is null)
+            // Any node may own an announcement, so there is no releasability check here — that gate
+            // asks whether an artifact can be cut against a node, which is a version's question. A
+            // product line is usually not releasable and is exactly what a release sits under.
+            if (request.ProductId is not null
+                && !await _productManagementDbContext.Products
+                    .AnyAsync(p => p.Id == request.ProductId, cancellationToken))
             {
                 _logger.LogInformation("Product {ProductId} not found.", request.ProductId);
                 return Result.Failure<ObjectIdAndKey>("Product not found.");
             }
-
-            // Whether the product's type permits releases is the type's to answer, and the aggregate
-            // cannot load it.
-            //
-            // The type is loaded rather than projecting IsReleasable straight out: FirstOrDefaultAsync
-            // over a bool cannot tell "not releasable" from "no such type", so a dangling type id would
-            // surface as a releasability refusal and send the caller looking in the wrong place.
-            var productType = await _productManagementDbContext.ProductTypes
-                .FirstOrDefaultAsync(t => t.Id == product.ProductTypeId, cancellationToken);
-
-            if (productType is null)
-            {
-                _logger.LogError(
-                    "Product {ProductId} references Product Type {ProductTypeId}, which does not exist.",
-                    request.ProductId,
-                    product.ProductTypeId);
-                return Result.Failure<ObjectIdAndKey>("Product Type not found.");
-            }
-
-            var isReleasable = productType.IsReleasable;
 
             var initialStatus = await _statusResolver.Initial(
                 ProductWorkflowOwners.Release.Key, scopeId: null, cancellationToken);
@@ -102,16 +83,13 @@ public sealed class PlanReleaseCommandHandler(
                 request.Name,
                 request.TargetDate,
                 request.Sequence,
-                isReleasable,
                 initialStatus.Value,
-                product.Name,
                 EventActor.User(_currentUser.GetUserId()),
                 _dateTimeProvider.Now);
 
             if (result.IsFailure)
             {
-                _logger.LogInformation(
-                    "Unable to plan a release for {ProductId}. Error message: {Error}", request.ProductId, result.Error);
+                _logger.LogInformation("Unable to plan a release. Error message: {Error}", result.Error);
                 return Result.Failure<ObjectIdAndKey>(result.Error);
             }
 

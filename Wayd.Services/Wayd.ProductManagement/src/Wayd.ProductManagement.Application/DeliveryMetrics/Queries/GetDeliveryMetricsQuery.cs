@@ -69,11 +69,11 @@ public sealed class GetDeliveryMetricsQueryHandler(IProductManagementDbContext p
 
         if (query.ProductId is not null)
         {
-            // Release deployments only: a package spans several products, so attributing one to a
+            // Version deployments only: a package spans several products, so attributing one to a
             // single product would count the same shipment under each of them.
-            deployments = deployments.Where(d => d.ReleaseId != null
-                && _productManagementDbContext.Releases
-                    .Any(r => r.Id == d.ReleaseId && r.ProductId == query.ProductId));
+            deployments = deployments.Where(d => d.VersionId != null
+                && _productManagementDbContext.Versions
+                    .Any(v => v.Id == d.VersionId && v.ProductId == query.ProductId));
         }
 
         // One trip: the alias breakdown answers both measures. StatusAliasValue is a mapped column,

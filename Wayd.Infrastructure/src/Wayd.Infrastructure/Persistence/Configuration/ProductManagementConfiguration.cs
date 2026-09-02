@@ -5,6 +5,9 @@ using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Infrastructure.Persistence.Converters;
 using Wayd.ProductManagement.Domain.Models;
 
+// The delivery artifact record, not System.Version.
+using Version = Wayd.ProductManagement.Domain.Models.Version;
+
 namespace Wayd.Infrastructure.Persistence.Configuration;
 
 public class ProductTypeConfiguration : IEntityTypeConfiguration<ProductType>
@@ -170,6 +173,63 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
     }
 }
 
+public class VersionConfiguration : IEntityTypeConfiguration<Version>
+{
+    public void Configure(EntityTypeBuilder<Version> builder)
+    {
+        builder.ToTable("Versions", SchemaNames.Delivery);
+
+        builder.HasKey(v => v.Id);
+        builder.HasAlternateKey(v => v.Key);
+
+        builder.HasIndex(v => new { v.ProductId, v.ReleasedDate })
+            .IncludeProperties(v => new { v.Id, v.Key, v.Number, v.Name, v.Sequence, v.StatusCategory });
+
+        // Deliberately NOT unique: duplicate version numbers within a product warn rather than block,
+        // since an importer with a mis-set truncation rule is the case this diagnoses.
+        builder.HasIndex(v => new { v.ProductId, v.Number });
+
+        builder.Property(v => v.Id).ValueGeneratedNever();
+        builder.Property(v => v.Key).ValueGeneratedOnAdd();
+
+        builder.Property(v => v.ProductId).IsRequired();
+
+        // Free text, never parsed. Nothing sorts or compares on this column.
+        builder.Property(v => v.Number).IsRequired().HasMaxLength(128);
+
+        builder.Property(v => v.Name).HasMaxLength(256);
+        builder.Property(v => v.Sequence);
+        builder.Property(v => v.TargetDate);
+        builder.Property(v => v.CutDate);
+        builder.Property(v => v.ReleasedDate);
+        builder.Property(v => v.Notes).HasMaxLength(4000);
+
+        builder.Property(v => v.StatusId).IsRequired();
+        builder.Property(v => v.StatusWorkflowId).IsRequired();
+        // Indexed for the reassignment migrator, whose only query is "every record on
+        // this workflow". Unindexed it scans the whole table on every batch.
+        builder.HasIndex(v => v.StatusWorkflowId);
+        builder.Property(v => v.StatusName).IsRequired().HasMaxLength(64);
+        builder.Property(v => v.StatusCategory).IsRequired()
+            .HasConversion<EnumConverter<StatusCategory>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+        builder.Property(e => e.StatusAliasValue).IsRequired();
+        builder.Property(v => v.StatusTransitionCount).IsRequired();
+
+        builder.ConfigureStatusHistory();
+
+        // Relationships
+        // A version has no foreign key to the package or release it shipped in. Membership is recorded
+        // by the manifest and by ReleaseVersions, and a second column saying the same thing could
+        // disagree with them.
+        builder.HasOne(v => v.Product)
+            .WithMany()
+            .HasForeignKey(v => v.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
 public class ReleaseConfiguration : IEntityTypeConfiguration<Release>
 {
     public void Configure(EntityTypeBuilder<Release> builder)
@@ -179,17 +239,19 @@ public class ReleaseConfiguration : IEntityTypeConfiguration<Release>
         builder.HasKey(r => r.Id);
         builder.HasAlternateKey(r => r.Key);
 
-        builder.HasIndex(r => new { r.ProductId, r.ReleasedDate })
+        // Leads on ReleasedDate rather than ProductId, unlike the version index: ProductId is nullable
+        // here and commonly null, so a leading-column filter on it would skip the announcements that
+        // span product lines — the ones a "what shipped when" list most wants.
+        builder.HasIndex(r => r.ReleasedDate)
             .IncludeProperties(r => new { r.Id, r.Key, r.Version, r.Name, r.Sequence, r.StatusCategory });
 
-        // Deliberately NOT unique: duplicate versions within a product warn rather than block, since an
-        // importer with a mis-set truncation rule is the case this diagnoses.
-        builder.HasIndex(r => new { r.ProductId, r.Version });
+        builder.HasIndex(r => r.ProductId);
 
         builder.Property(r => r.Id).ValueGeneratedNever();
         builder.Property(r => r.Key).ValueGeneratedOnAdd();
 
-        builder.Property(r => r.ProductId).IsRequired();
+        // Nullable: a release spanning product lines has no single owner to name.
+        builder.Property(r => r.ProductId);
 
         // Free text, never parsed. Nothing sorts or compares on this column.
         builder.Property(r => r.Version).IsRequired().HasMaxLength(128);
@@ -197,14 +259,11 @@ public class ReleaseConfiguration : IEntityTypeConfiguration<Release>
         builder.Property(r => r.Name).HasMaxLength(256);
         builder.Property(r => r.Sequence);
         builder.Property(r => r.TargetDate);
-        builder.Property(r => r.CutDate);
         builder.Property(r => r.ReleasedDate);
         builder.Property(r => r.Notes).HasMaxLength(4000);
 
         builder.Property(r => r.StatusId).IsRequired();
         builder.Property(r => r.StatusWorkflowId).IsRequired();
-        // Indexed for the reassignment migrator, whose only query is "every record on
-        // this workflow". Unindexed it scans the whole table on every batch.
         builder.HasIndex(r => r.StatusWorkflowId);
         builder.Property(r => r.StatusName).IsRequired().HasMaxLength(64);
         builder.Property(r => r.StatusCategory).IsRequired()
@@ -214,14 +273,81 @@ public class ReleaseConfiguration : IEntityTypeConfiguration<Release>
         builder.Property(e => e.StatusAliasValue).IsRequired();
         builder.Property(r => r.StatusTransitionCount).IsRequired();
 
+        builder.Ignore(r => r.IsEmpty);
+
         builder.ConfigureStatusHistory();
 
         // Relationships
-        // A release has no foreign key to the package it shipped in. Membership is the manifest's to
-        // record, and a second column saying the same thing could disagree with it.
         builder.HasOne(r => r.Product)
             .WithMany()
             .HasForeignKey(r => r.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(r => r.Versions)
+            .WithOne()
+            .HasForeignKey(v => v.ReleaseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(r => r.Packages)
+            .WithOne()
+            .HasForeignKey(p => p.ReleaseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(r => r.Versions).HasField("_versions").UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation(r => r.Packages).HasField("_packages").UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class ReleaseVersionConfiguration : IEntityTypeConfiguration<ReleaseVersion>
+{
+    public void Configure(EntityTypeBuilder<ReleaseVersion> builder)
+    {
+        builder.ToTable("ReleaseVersions", SchemaNames.Delivery);
+
+        builder.HasKey(rv => rv.Id);
+
+        builder.HasIndex(rv => new { rv.ReleaseId, rv.VersionId }).IsUnique();
+
+        // A version may be announced by more than one release, so this is not unique on its own — the
+        // rule a release enforces is that it must not carry the same version twice itself.
+        builder.HasIndex(rv => rv.VersionId);
+
+        builder.Property(rv => rv.Id).ValueGeneratedNever();
+        builder.Property(rv => rv.ReleaseId).IsRequired();
+        builder.Property(rv => rv.VersionId).IsRequired();
+
+        // Relationships
+        // Restrict, unlike the cascade from the release: removing a version that a release announces
+        // would silently shrink what that release claims to have shipped.
+        builder.HasOne(rv => rv.Version)
+            .WithMany()
+            .HasForeignKey(rv => rv.VersionId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class ReleasePackageInclusionConfiguration : IEntityTypeConfiguration<ReleasePackageInclusion>
+{
+    public void Configure(EntityTypeBuilder<ReleasePackageInclusion> builder)
+    {
+        builder.ToTable("ReleasePackageInclusions", SchemaNames.Delivery);
+
+        builder.HasKey(rp => rp.Id);
+
+        builder.HasIndex(rp => new { rp.ReleaseId, rp.PackageId }).IsUnique();
+
+        // A package may serve more than one release — the same weekly shipment can carry work
+        // announced under two product lines.
+        builder.HasIndex(rp => rp.PackageId);
+
+        builder.Property(rp => rp.Id).ValueGeneratedNever();
+        builder.Property(rp => rp.ReleaseId).IsRequired();
+        builder.Property(rp => rp.PackageId).IsRequired();
+
+        // Relationships
+        builder.HasOne(rp => rp.Package)
+            .WithMany()
+            .HasForeignKey(rp => rp.PackageId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
@@ -289,7 +415,7 @@ public class ReleasePackageComponentConfiguration : IEntityTypeConfiguration<Rel
 
         builder.Property(c => c.PackageId).IsRequired();
         builder.Property(c => c.ProductId).IsRequired();
-        builder.Property(c => c.ReleaseId);
+        builder.Property(c => c.VersionId);
         builder.Property(c => c.Version).IsRequired().HasMaxLength(128);
 
         builder.Property(c => c.Kind).IsRequired()
@@ -355,18 +481,18 @@ public class DeploymentConfiguration : IEntityTypeConfiguration<Deployment>
             .IncludeProperties(
                 nameof(Deployment.Id),
                 nameof(Deployment.Key),
-                nameof(Deployment.ReleaseId),
+                nameof(Deployment.VersionId),
                 nameof(Deployment.PackageId),
                 nameof(Deployment.EnvironmentId));
 
-        builder.HasIndex(d => d.ReleaseId);
+        builder.HasIndex(d => d.VersionId);
         builder.HasIndex(d => d.PackageId);
         builder.HasIndex(d => new { d.EnvironmentId, d.StartedAt });
 
         builder.Property(d => d.Id).ValueGeneratedNever();
         builder.Property(d => d.Key).ValueGeneratedOnAdd();
 
-        builder.Property(d => d.ReleaseId);
+        builder.Property(d => d.VersionId);
         builder.Property(d => d.PackageId);
         builder.Property(d => d.EnvironmentId).IsRequired();
 
@@ -398,9 +524,9 @@ public class DeploymentConfiguration : IEntityTypeConfiguration<Deployment>
         builder.ConfigureStatusHistory();
 
         // Relationships
-        builder.HasOne(d => d.Release)
+        builder.HasOne(d => d.Version)
             .WithMany()
-            .HasForeignKey(d => d.ReleaseId)
+            .HasForeignKey(d => d.VersionId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(d => d.Package)

@@ -35,12 +35,13 @@ public sealed record ReleasePackageDto
     /// Maps a package and its manifest lines, for <c>ProjectToType</c>.
     /// </summary>
     /// <remarks>
-    /// Built per call rather than registered globally, because a component's release reads a second set
+    /// Built per call rather than registered globally, because a component's version reads a second set
     /// and the global config has no request-scoped DbContext to close over.
     /// <para>
-    /// That release is a subquery permanently, not for want of a navigation: there is deliberately no
-    /// foreign key, because a carried-forward line often names a version with no release row in Wayd at
-    /// all. A release and a package are both identified by their version rather than their optional name.
+    /// That version is a subquery permanently, not for want of a navigation: there is deliberately no
+    /// foreign key, because a carried-forward line often names a version with no version row in Wayd at
+    /// all. A version and a package are both identified by their version string rather than their
+    /// optional name.
     /// </para>
     /// </remarks>
     public static TypeAdapterConfig CreateTypeAdapterConfig(IProductManagementDbContext dbContext)
@@ -48,9 +49,9 @@ public sealed record ReleasePackageDto
         var config = new TypeAdapterConfig();
 
         config.NewConfig<ReleasePackageComponent, ReleasePackageComponentDto>()
-            .Map(dto => dto.Release, c => dbContext.Releases
-                .Where(release => release.Id == c.ReleaseId)
-                .Select(release => NavigationDto.Create(release.Id, release.Key, release.Version))
+            .Map(dto => dto.VersionRecord, c => dbContext.Versions
+                .Where(version => version.Id == c.VersionId)
+                .Select(version => NavigationDto.Create(version.Id, version.Key, version.Number))
                 .FirstOrDefault());
 
         config.NewConfig<ReleasePackage, ReleasePackageDto>()
@@ -72,10 +73,10 @@ public sealed record ReleasePackageComponentDto
     public NavigationDto Product { get; init; } = default!;
 
     /// <summary>
-    /// The release this version came from, where one was recorded. Its <c>Name</c> is that release's
-    /// version, which may differ from <see cref="Version"/> if the manifest was hand-authored.
+    /// The version record this line came from, where one was recorded. Its <c>Name</c> is that
+    /// version's number, which may differ from <see cref="Version"/> if the manifest was hand-authored.
     /// </summary>
-    public NavigationDto? Release { get; init; }
+    public NavigationDto? VersionRecord { get; init; }
 
     /// <summary>The component version in this package. Free text, never parsed.</summary>
     public string Version { get; init; } = default!;

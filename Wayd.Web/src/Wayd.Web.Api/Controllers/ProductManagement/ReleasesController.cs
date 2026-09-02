@@ -12,13 +12,17 @@ using Wayd.Web.Api.Models.ProductManagement.Releases;
 namespace Wayd.Web.Api.Controllers.ProductManagement;
 
 /// <summary>
-/// Releases of a product: what shipped, when, and what is still planned.
+/// Releases: what was announced to customers, and the versions and packages that carried it.
 /// </summary>
 /// <remarks>
-/// Cutting, shipping and withdrawing are separate endpoints rather than fields on the update. Each is a
-/// status transition the aggregate guards — a release cuts once, ships once, and is never deleted after
-/// the fact — and each resolves its target status by <em>meaning</em> rather than by id, so an
-/// organization can rename or reorder its workflow without breaking them.
+/// Distinct from a version, which is what was built. A release answers "what did we tell customers?";
+/// a version answers "what version of this one artifact?".
+/// <para>
+/// A release is never cut — cutting freezes an artifact's scope and belongs to a version. Its contents
+/// are set through their own endpoints rather than as fields on the update, because they carry a rule
+/// the aggregate enforces: a version shipping inside one of the release's packages may not also be
+/// carried directly, so that one shipment is announced once.
+/// </para>
 /// </remarks>
 [Route("api/product-management/releases")]
 [ApiVersionNeutral]
@@ -30,12 +34,13 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Releases)]
-    [OpenApiOperation("Get a list of releases.", "Ordered by released date then sequence — never by version, which is free text.")]
+    [OpenApiOperation("Get a list of releases.", "Ordered by released date then sequence — never by the version label, which is free text.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ReleaseDto>>> GetReleases(
         [FromQuery] Guid? productId,
         [FromQuery] int[]? statusCategory,
+        [FromQuery] Guid? containingVersionId,
         CancellationToken cancellationToken)
     {
         StatusCategory[]? categories = statusCategory is { Length: > 0 }
@@ -43,7 +48,7 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
             : null;
 
         var releases = await _dispatcher.Send(
-            new GetReleasesQuery(productId, categories), cancellationToken);
+            new GetReleasesQuery(productId, categories, containingVersionId), cancellationToken);
 
         return Ok(releases);
     }
@@ -85,7 +90,7 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Releases)]
-    [OpenApiOperation("Plan a release.", "")]
+    [OpenApiOperation("Plan a release.", "Contents are attached afterwards — an announcement is commonly drafted before anyone knows which versions will make it.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Plan(
         [FromBody] PlanReleaseRequest request, CancellationToken cancellationToken)
@@ -116,6 +121,42 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPut("{id}/versions")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
+    [OpenApiOperation(
+        "Set the versions a release carries directly.",
+        "Whole-set replacement: a version left out is removed. A version already shipping inside one of this release's packages is refused, so that one shipment is announced once.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> SetVersions(
+        Guid id, [FromBody] SetReleaseVersionsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(
+            new SetReleaseVersionsCommand(id, request.VersionIds), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/packages")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
+    [OpenApiOperation(
+        "Set the packages a release shipped.",
+        "Whole-set replacement: a package left out is removed. A package is refused if it ships a version this release already carries directly.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> SetPackages(
+        Guid id, [FromBody] SetReleasePackagesRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(
+            new SetReleasePackagesCommand(id, request.PackageIds), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpPut("{id}/target-date")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
     [OpenApiOperation("Move or clear a release's target date.", "")]
@@ -135,31 +176,16 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
     [HttpPut("{id}/dates")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
     [OpenApiOperation(
-        "Correct a release's recorded target, cut and released dates.",
-        "Fixes dates entered wrongly without changing the release's status. All three are sent, so an omitted date is cleared. The released date cannot be cleared — revert the release instead.")]
+        "Correct a release's recorded target and released dates.",
+        "Fixes dates entered wrongly without changing the release's status. Both are sent, so an omitted target date is cleared. The released date cannot be cleared — revert the release instead. There is no cut date: a release is never cut.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> CorrectDates(
         Guid id, [FromBody] CorrectReleaseDatesRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(
-            new CorrectReleaseDatesCommand(id, request.TargetDate, request.CutDate, request.ReleasedDate),
+            new CorrectReleaseDatesCommand(id, request.TargetDate, request.ReleasedDate),
             cancellationToken);
-
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
-    }
-
-    [HttpPost("{id}/cut")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
-    [OpenApiOperation("Cut a release.", "Freezes scope and marks it ready to ship. One-way.")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> Cut(
-        Guid id, [FromBody] CutReleaseRequest request, CancellationToken cancellationToken)
-    {
-        var result = await _dispatcher.Send(new CutReleaseCommand(id, request.CutDate), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()
@@ -168,7 +194,9 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{id}/release")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
-    [OpenApiOperation("Record that a release shipped.", "")]
+    [OpenApiOperation(
+        "Record that a release was announced.",
+        "Refused while the release carries a version or package that has not shipped — telling customers a release shipped while something inside it has not is the one claim a release can make that its own contents contradict.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> MarkReleased(
@@ -184,7 +212,9 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{id}/withdraw")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
-    [OpenApiOperation("Withdraw a release.", "The release is kept: deployments may reference it.")]
+    [OpenApiOperation(
+        "Retract a release.",
+        "Says nothing about the versions it carried: an artifact that shipped has shipped whatever the market was later told, so each version is withdrawn separately where it too was pulled.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Withdraw(
@@ -200,8 +230,8 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
     [HttpPost("{id}/revert")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
     [OpenApiOperation(
-        "Revert a release recorded as shipped.",
-        "For a release marked released in error. Moves it back to Ready, or to the workflow's initial status where it was never cut, and clears the released date. Not a withdrawal — that pulls a release which really shipped.")]
+        "Revert a release announced in error.",
+        "For a release marked announced by mistake. Moves it back to Ready and clears the released date. Not a withdrawal — that retracts an announcement which really went out.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

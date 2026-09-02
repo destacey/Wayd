@@ -108,20 +108,6 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
         private set => field = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
-    /// <summary>
-    /// The package this release shipped inside, or <c>null</c> when it shipped on its own.
-    /// </summary>
-    /// <remarks>
-    /// Nothing writes this yet: <see cref="SetPackage"/> is the only path to it and has no caller, so
-    /// in practice it is always null and a package's membership is read from its manifest instead.
-    /// </remarks>
-    public Guid? PackageId { get; private set; }
-
-    /// <summary>
-    /// The package this release shipped inside, when one is loaded.
-    /// </summary>
-    public ReleasePackage? Package { get; private init; }
-
 
     /// <summary>
     /// Updates the version, name, notes or ordering sequence.
@@ -239,7 +225,54 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Corrects the recorded cut and released dates without moving the release's status.
+    /// Records that a release marked as shipped did not in fact ship, moving it back.
+    /// </summary>
+    /// <param name="toStatus">
+    /// The status to return to: the one aliased <see cref="ProductStatusAlias.Ready"/> where the
+    /// release was cut, otherwise its workflow's initial status. Resolved by the caller.
+    /// </param>
+    /// <remarks>
+    /// This is not a withdrawal. Withdrawing says a real release was pulled; reverting says the
+    /// release never happened and the record was wrong. Recording the first as the second leaves an
+    /// append-only history asserting a withdrawal nobody performed, which is exactly what a reader
+    /// later relies on being true.
+    /// <para>
+    /// The released date goes with the status, because the two are one fact. A reason is required:
+    /// unlike a date correction, this contradicts something the history already asserts, so the record
+    /// has to say why.
+    /// </para>
+    /// </remarks>
+    public Result RevertRelease(StatusRef toStatus, string reason, string productName, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(toStatus, nameof(toStatus));
+
+        if (ReleasedDate is null)
+        {
+            return Result.Failure("This release has not been released, so there is nothing to revert.");
+        }
+
+        if (StatusCategory == StatusCategory.Removed)
+        {
+            return Result.Failure("A withdrawn release cannot be reverted. Its status is already terminal.");
+        }
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return Result.Failure("A reason is required to revert a release.");
+        }
+
+        var fromReleasedDate = ReleasedDate;
+        ReleasedDate = null;
+        ApplyStatus(toStatus, actor, timestamp, reason);
+
+        AddDomainEvent(new ReleaseRevertedEvent(
+            Id, Key, ProductId, productName, Version, fromReleasedDate.Value, reason.Trim(), StatusId, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Corrects the recorded target, cut and released dates without moving the release's status.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -250,37 +283,39 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
     /// append-only history.
     /// </para>
     /// <para>
-    /// A correction says the recorded date was wrong, not that the release moved, so status is left
-    /// alone. A date can only be corrected, never introduced: supplying one the release does not have
-    /// would be a lifecycle step in disguise, and those belong to <see cref="Cut"/> and
-    /// <see cref="MarkReleased"/>. Clearing one is refused for the same reason — a release cannot
-    /// become un-cut.
+    /// A correction says what was written down was wrong, not that the release moved, so status is
+    /// left alone. Dates may be added as well as changed: a release can be marked released without
+    /// ever being cut — historical import depends on it — so a cut date discovered later is a
+    /// correction, not a lifecycle step.
+    /// </para>
+    /// <para>
+    /// The target and cut dates may also be cleared, because each is only a record of something
+    /// written down. The released date is the exception: emptying it on a released record would leave
+    /// the status contradicting the dates. Recording that a release did not in fact ship is
+    /// <see cref="RevertRelease"/>'s job, which moves the status to match.
+    /// </para>
+    /// <para>
+    /// The one ordering rule that survives is real: a release cannot ship before it was cut.
     /// </para>
     /// </remarks>
-    public Result CorrectDates(LocalDate? cutDate, LocalDate? releasedDate, string productName, EventActor actor, Instant timestamp)
+    public Result CorrectDates(
+        LocalDate? targetDate,
+        LocalDate? cutDate,
+        LocalDate? releasedDate,
+        string productName,
+        EventActor actor,
+        Instant timestamp)
     {
         if (StatusCategory == StatusCategory.Removed)
         {
             return Result.Failure("A withdrawn release cannot have its dates corrected.");
         }
 
-        if (CutDate is null && ReleasedDate is null)
-        {
-            return Result.Failure("This release has no recorded dates to correct.");
-        }
 
-        if (cutDate is null != CutDate is null)
+        if (releasedDate is null && ReleasedDate is not null)
         {
-            return Result.Failure(CutDate is null
-                ? "This release has not been cut, so a cut date cannot be corrected onto it."
-                : "A release that has been cut cannot have its cut date removed.");
-        }
-
-        if (releasedDate is null != ReleasedDate is null)
-        {
-            return Result.Failure(ReleasedDate is null
-                ? "This release has not been released, so a released date cannot be corrected onto it."
-                : "A released release cannot have its released date removed.");
+            return Result.Failure(
+                "A released release cannot have its released date removed. Revert the release instead.");
         }
 
         if (cutDate is not null && releasedDate is not null && releasedDate < cutDate)
@@ -288,18 +323,21 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("The released date cannot be before the cut date.");
         }
 
-        if (cutDate == CutDate && releasedDate == ReleasedDate)
+        if (targetDate == TargetDate && cutDate == CutDate && releasedDate == ReleasedDate)
         {
             return Result.Success();
         }
 
+        var fromTargetDate = TargetDate;
         var fromCutDate = CutDate;
         var fromReleasedDate = ReleasedDate;
+        TargetDate = targetDate;
         CutDate = cutDate;
         ReleasedDate = releasedDate;
 
         AddDomainEvent(new ReleaseDatesCorrectedEvent(
-            Id, Key, ProductId, productName, Version, fromCutDate, cutDate, fromReleasedDate, releasedDate, actor, timestamp));
+            Id, Key, ProductId, productName, Version,
+            fromTargetDate, targetDate, fromCutDate, cutDate, fromReleasedDate, releasedDate, actor, timestamp));
 
         return Result.Success();
     }
@@ -325,11 +363,6 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
 
         return Result.Success();
     }
-
-    /// <summary>
-    /// Records that this release ships inside a package, or on its own again.
-    /// </summary>
-    internal void SetPackage(Guid? packageId) => PackageId = packageId;
 
     /// <summary>
     /// Creates a release against a product node.

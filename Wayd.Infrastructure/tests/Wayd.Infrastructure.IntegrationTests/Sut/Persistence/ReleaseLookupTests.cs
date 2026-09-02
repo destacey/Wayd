@@ -202,6 +202,5 @@ public sealed class ReleaseLookupTests(SqlServerDbContextFixture fixture)
         dto.Status.Name.Should().Be(release.StatusName, "the status is flattened across four columns");
         dto.Status.Category.Should().Be(release.StatusCategory);
         dto.Status.Alias.Should().Be(release.StatusAliasValue);
-        dto.Package.Should().BeNull("nothing writes PackageId, so no release reports a package");
     }
 }

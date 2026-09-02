@@ -10,9 +10,15 @@
  * every other test passed throughout.
  *
  * A row may cover several tools at once (`Foo_Create` / `Foo_Update`), which is
- * why this matches on tool names appearing anywhere in the file rather than
+ * why this collects tool names appearing anywhere in the file rather than
  * expecting one row per tool. Prose is deliberately left to the author — this
  * only asserts that no tool is missing and none is stale.
+ *
+ * Names are compared as a parsed set, never with `includes`. Substring matching
+ * looks equivalent and is not: 27 of the tool names are a prefix of a longer one
+ * (`Products_GetProduct` inside `Products_GetProducts`, and every other
+ * singular/plural pair), so a deleted row for the shorter name would still be
+ * "found" in the longer one and the guard would pass over its own blind spot.
  */
 import { test, describe, before } from 'node:test';
 import assert from 'node:assert/strict';
@@ -40,16 +46,19 @@ const toolNamePattern = /\b[A-Z][A-Za-z]*_[A-Za-z][A-Za-z0-9]*\b/g;
 
 let toolNames: string[];
 let docText: string;
+/** Every tool name the page mentions, parsed once and matched whole. */
+let documented: Set<string>;
 
 before(async () => {
   const { toolDefinitionMap } = await import('../build/tools/index.js');
   toolNames = [...toolDefinitionMap.keys()];
   docText = readFileSync(docsPath, 'utf8');
+  documented = new Set(docText.match(toolNamePattern) ?? []);
 });
 
 describe('documentation coverage', () => {
   test('every shipped tool is documented', () => {
-    const missing = toolNames.filter((name) => !docText.includes(name));
+    const missing = toolNames.filter((name) => !documented.has(name));
 
     assert.deepEqual(
       missing,
@@ -62,11 +71,7 @@ describe('documentation coverage', () => {
   test('the docs name no tool that no longer ships', () => {
     const shipped = new Set(toolNames);
 
-    // A row may abbreviate a repeated prefix as `_Activate`, which names no tool
-    // on its own; those are covered by the sibling they are listed beside.
-    const referenced = new Set(docText.match(toolNamePattern) ?? []);
-
-    const stale = [...referenced].filter((name) => !shipped.has(name)).sort();
+    const stale = [...documented].filter((name) => !shipped.has(name)).sort();
 
     assert.deepEqual(
       stale,

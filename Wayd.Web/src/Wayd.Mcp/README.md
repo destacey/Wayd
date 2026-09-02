@@ -198,12 +198,14 @@ This matters most for role assignments. `sponsorIds`, `ownerIds`, `managerIds`, 
 | Category | Operations |
 | --- | --- |
 | **Products** | List (by parent, type, status category, or tags), get details, get status history, get status options. Create, update, retype, reparent, change status, link externally, tag, untag, delete |
-| **Product Types** | List — the types a product can be, and whether each allows versions to be cut against it |
-| **Product Tag Categories** | List — the tag axes and their tags, with whether each axis allows more than one tag |
+| **Product Types** | List, create, update, activate or deactivate, delete — the types a product can be, and whether each allows versions to be cut against it |
+| **Product Tag Categories** | List, create, update, activate or deactivate, delete, reorder — the tag axes and their tags, with whether each axis allows more than one tag. Add, rename, activate or deactivate the tags themselves |
 | **Deployment Environments** | List (by active state or category), create, update, retire or reinstate |
 | **Delivery Metrics** | Get the measures over a window |
 
 The catalog is one typed tree, and a product's type carries the flag that decides whether versions can be cut against it. Type, parent and status each have their own tool rather than being fields on the update, because each carries a rule the domain enforces. Two behaviours the `wayd-products` skill covers: tagging a single-value axis **silently replaces** the existing tag rather than refusing, and deleting a product is a **hard delete**, unlike delivery where records are withdrawn and kept.
+
+Types and tag categories are administrator-managed configuration, and two rules run through all of it. **Seeded system records cannot be modified or deleted** — but they *can* be deactivated, so an organization can hide a type it does not use without the seeder recreating it. And **nothing in use can be deleted**; deactivation is the answer there too, stopping new use while leaving existing records resolvable. Two sharp edges: a category's `allowsMany` is **fixed at creation**, and `ProductTypes_Update` **requires `isReleasable`**, so a rename that resends the wrong value silently changes whether versions can be cut against every product of that type.
 
 ### Product Delivery
 

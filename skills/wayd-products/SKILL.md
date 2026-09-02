@@ -1,6 +1,6 @@
 ---
 name: wayd-products
-description: Guides agents working with the Wayd product catalog via the Wayd MCP server — the typed tree of products, platforms, services and tools an organization owns, plus product types, tags, deployment environments and delivery metrics. Use when looking up or creating products, moving one to a different parent, changing a product's type or status, tagging products, deleting one, defining or retiring deployment environments, or reading delivery measures.
+description: Guides agents working with the Wayd product catalog via the Wayd MCP server — the typed tree of products, platforms, services and tools an organization owns, plus product types, tags, deployment environments and delivery metrics. Use when looking up or creating products, moving one to a different parent, changing a product's type or status, tagging products, deleting one, defining or retiring deployment environments, reading delivery measures, or managing the product types and tag axes themselves.
 ---
 
 # Wayd Products (Catalog / Types / Tags / Environments / Metrics)
@@ -13,6 +13,7 @@ description: Guides agents working with the Wayd product catalog via the Wayd MC
 - Deleting a product, and understanding why one refuses to delete
 - Defining, updating or retiring deployment environments
 - Reading delivery measures over a window
+- Managing the configuration itself — product types, tag axes and their tags
 
 For releases, versions, packages and deployments, use the **wayd-delivery** skill instead.
 
@@ -98,6 +99,37 @@ and kept. If the product has merely stopped being current, change its status ins
 It refuses while anything depends on it, and each reason is distinct — children, versions, or
 appearing in a release package manifest. That last one is checked separately because a
 carried-forward manifest line often names a product that has no version row at all.
+
+---
+
+## Managing the configuration itself
+
+Types and tag categories are administrator-managed, organization-wide configuration. Two rules run
+through every tool that changes them.
+
+**Seeded system records cannot be modified or deleted — but they can be deactivated.** The guard
+protects what a seeded record *means*: its name, its tags, whether it takes many. Whether the
+organization currently uses it is a different question, so `ProductTypes_SetActive` and
+`ProductTagCategories_SetActive` work on system records. An organization that does not ship libraries
+hides that type rather than fighting the seeder.
+
+The exception is at the tag level. `AddTag`, `RenameTag` and `SetTagActive` are **all** refused on a
+system category, deactivation included — there is no per-tag fallback. Retire the whole axis instead.
+
+**Nothing in use can be deleted.** A type is in use when any product carries it; an axis is in use
+when any product is tagged along it. Both refuse with "Deactivate it instead", so in practice delete
+only removes something created by mistake and never applied.
+
+### Two sharp edges
+
+- **`allowsMany` is fixed at creation.** It is not on the update tool. Choose it deliberately, because
+  it is what decides whether a second tag joins the first or silently replaces it.
+- **`ProductTypes_Update` requires `isReleasable`.** It is a whole-record overwrite, so renaming a
+  type means resending its current releasability — and the wrong value silently changes whether
+  versions can be cut against every product of that type. Read the type first.
+
+`ProductTagCategories_Reorder` needs **every category exactly once**; a partial list is refused. Read
+them all, then send the complete sequence.
 
 ---
 

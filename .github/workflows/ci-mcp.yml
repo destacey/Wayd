@@ -6,9 +6,16 @@ on:
             - main
         paths:
             - "Wayd.Web/src/Wayd.Mcp/**"
+            # The test suite asserts the docs and skills match the tools that
+            # ship, so editing either half has to run it. Without these, a row
+            # deleted from the reference page triggers no workflow at all.
+            - "docs/getting-started/mcp-server.mdx"
+            - "skills/**"
     pull_request:
         paths:
             - "Wayd.Web/src/Wayd.Mcp/**"
+            - "docs/getting-started/mcp-server.mdx"
+            - "skills/**"
 
 jobs:
     build:

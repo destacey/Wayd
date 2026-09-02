@@ -25,8 +25,8 @@ namespace Wayd.ProductManagement.Domain.Models;
 /// <para>
 /// Contents may arrive either way. Most run through a <see cref="ReleasePackage"/>, which is the
 /// deployment unit; a single-artifact announcement carries its <see cref="Version"/> directly rather
-/// than inventing a package of one. What a release must never do is count the same version twice —
-/// see <see cref="CarryVersions"/>.
+/// than inventing a package of one. Both routes are set together, because what a release must never do
+/// is count the same version twice — see <see cref="SetContents"/>.
 /// </para>
 /// </remarks>
 public sealed class Release : StatusTrackedEntity, IHasIdAndKey
@@ -155,31 +155,45 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
     public bool IsEmpty => _versions.Count == 0 && _packages.Count == 0;
 
     /// <summary>
-    /// Replaces the set of versions this release carries directly.
+    /// Replaces everything this release announces — the packages it shipped and the versions it
+    /// carries directly — as one set.
     /// </summary>
-    /// <param name="versionIds">The versions to carry. Empty removes them all.</param>
+    /// <param name="versionIds">The versions to carry directly. Empty removes them all.</param>
+    /// <param name="packageIds">The packages to ship. Empty removes them all.</param>
     /// <param name="versionIdsInPackages">
-    /// Every version reachable through this release's packages, resolved by the caller — the aggregate
-    /// cannot load a package's manifest. A version in this set may not also be carried directly.
+    /// Every version reachable through <paramref name="packageIds"/>, resolved by the caller — the
+    /// aggregate cannot load a package's manifest. A version in this set may not also be carried
+    /// directly.
     /// </param>
     /// <remarks>
     /// Whole-set replacement rather than incremental, matching the manifest: a release's contents are a
-    /// set, and a partially-applied change would claim a combination that was never announced.
+    /// set, and a partially-applied change would claim a combination that was never announced. Both
+    /// empty clears the release, which is a legitimate state — see <see cref="IsEmpty"/>.
     /// <para>
-    /// The double-count rule is the reason this takes a second argument. A version shipped inside a
-    /// package and also listed directly would be announced twice by one release, which makes "what did
-    /// 2026.07 contain" answerable two ways. The package is the deployment unit, so the package wins
-    /// and the direct listing is the error — the same precedence <see cref="Deployment"/> already
-    /// applies when it refuses to name both.
+    /// Both routes move together because the invariant spans them. A version shipped inside a package
+    /// and also listed directly would be announced twice by one release, which makes "what did 2026.07
+    /// contain" answerable two ways. Splitting this across two calls would split that invariant across
+    /// two transactions: each would have to judge the double-count against a different baseline, and
+    /// swapping a directly-carried version for the package that contains it — one valid change of mind
+    /// — would be reachable only by performing the two halves in one particular order.
+    /// </para>
+    /// <para>
+    /// The double-count is therefore resolved against what the release will contain <em>afterwards</em>,
+    /// which is the only baseline that was ever correct. A version arriving by both routes at once is
+    /// the caller's error to fix, so it is refused rather than silently deduplicated: the package is the
+    /// deployment unit and would win, but guessing which route the caller meant would announce a
+    /// shipment they did not ask for.
     /// </para>
     /// </remarks>
-    public Result CarryVersions(
+    public Result SetContents(
         IReadOnlyCollection<Guid> versionIds,
+        IReadOnlyCollection<Guid> packageIds,
         IReadOnlyCollection<Guid> versionIdsInPackages,
         EventActor actor,
         Instant timestamp)
     {
         Guard.Against.Null(versionIds, nameof(versionIds));
+        Guard.Against.Null(packageIds, nameof(packageIds));
         Guard.Against.Null(versionIdsInPackages, nameof(versionIdsInPackages));
 
         if (StatusCategory == StatusCategory.Removed)
@@ -193,85 +207,44 @@ public sealed class Release : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure("A released release's contents cannot be amended.");
         }
 
-        var distinct = versionIds.Distinct().ToList();
-        if (distinct.Count != versionIds.Count)
+        var distinctVersions = versionIds.Distinct().ToList();
+        if (distinctVersions.Count != versionIds.Count)
         {
             return Result.Failure("A version can appear only once in a release.");
         }
 
-        var alreadyInPackage = distinct.Intersect(versionIdsInPackages).Any();
-        if (alreadyInPackage)
+        var distinctPackages = packageIds.Distinct().ToList();
+        if (distinctPackages.Count != packageIds.Count)
+        {
+            return Result.Failure("A package can appear only once in a release.");
+        }
+
+        var doubleCounted = distinctVersions.Intersect(versionIdsInPackages).Any();
+        if (doubleCounted)
         {
             return Result.Failure(
-                "A version already shipping inside one of this release's packages cannot also be carried directly. Where a package exists it is the unit, so that one shipment is announced once.");
+                "A version shipping inside one of this release's packages cannot also be carried directly. Where a package exists it is the unit, so that one shipment is announced once.");
         }
 
         // Order is not part of the comparison: the contents are a set.
-        if (distinct.Count == _versions.Count && distinct.All(id => _versions.Any(v => v.VersionId == id)))
+        var versionsUnchanged = distinctVersions.Count == _versions.Count
+            && distinctVersions.All(id => _versions.Any(v => v.VersionId == id));
+        var packagesUnchanged = distinctPackages.Count == _packages.Count
+            && distinctPackages.All(id => _packages.Any(p => p.PackageId == id));
+
+        if (versionsUnchanged && packagesUnchanged)
         {
             return Result.Success();
         }
 
         _versions.Clear();
-        foreach (var versionId in distinct)
+        foreach (var versionId in distinctVersions)
         {
             _versions.Add(new ReleaseVersion(Id, versionId));
         }
 
-        AddDomainEvent(new ReleaseContentsChangedEvent(
-            Id, Key, Version, _versions.Count, _packages.Count, actor, timestamp));
-
-        return Result.Success();
-    }
-
-    /// <summary>
-    /// Replaces the set of packages this release shipped.
-    /// </summary>
-    /// <param name="packageIds">The packages to ship. Empty removes them all.</param>
-    /// <param name="versionIdsInPackages">
-    /// Every version reachable through <paramref name="packageIds"/>, resolved by the caller. Used to
-    /// enforce the same double-count rule from the other side: adding a package that already carries a
-    /// directly-listed version is refused.
-    /// </param>
-    public Result ShipPackages(
-        IReadOnlyCollection<Guid> packageIds,
-        IReadOnlyCollection<Guid> versionIdsInPackages,
-        EventActor actor,
-        Instant timestamp)
-    {
-        Guard.Against.Null(packageIds, nameof(packageIds));
-        Guard.Against.Null(versionIdsInPackages, nameof(versionIdsInPackages));
-
-        if (StatusCategory == StatusCategory.Removed)
-        {
-            return Result.Failure("A withdrawn release's contents cannot be amended.");
-        }
-
-        if (ReleasedDate is not null)
-        {
-            return Result.Failure("A released release's contents cannot be amended.");
-        }
-
-        var distinct = packageIds.Distinct().ToList();
-        if (distinct.Count != packageIds.Count)
-        {
-            return Result.Failure("A package can appear only once in a release.");
-        }
-
-        var conflict = _versions.Select(v => v.VersionId).Intersect(versionIdsInPackages).Any();
-        if (conflict)
-        {
-            return Result.Failure(
-                "This release already carries a version directly that the supplied packages also ship. Remove it from the release's versions first, so that one shipment is announced once.");
-        }
-
-        if (distinct.Count == _packages.Count && distinct.All(id => _packages.Any(p => p.PackageId == id)))
-        {
-            return Result.Success();
-        }
-
         _packages.Clear();
-        foreach (var packageId in distinct)
+        foreach (var packageId in distinctPackages)
         {
             _packages.Add(new ReleasePackageInclusion(Id, packageId));
         }

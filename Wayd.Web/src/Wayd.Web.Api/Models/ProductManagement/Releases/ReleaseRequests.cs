@@ -114,24 +114,24 @@ public sealed class UpdateReleaseRequestValidator : CustomValidator<UpdateReleas
 }
 
 /// <summary>
-/// Replaces the versions a release carries directly, outside any package.
+/// Replaces everything a release announces — the packages it shipped and the versions it carries
+/// directly.
 /// </summary>
 /// <remarks>
-/// Whole-set replacement: a version left out is removed from the release.
+/// Whole-set replacement: anything left out is removed from the release, and both lists empty clears
+/// it. Both routes are sent together because a version may be announced only once — sending them
+/// separately would judge that rule against half of the intended result.
 /// </remarks>
-public sealed record SetReleaseVersionsRequest
+public sealed record SetReleaseContentsRequest
 {
+    /// <summary>
+    /// The versions this release carries directly, outside any package.
+    /// </summary>
     public List<Guid> VersionIds { get; set; } = [];
-}
 
-/// <summary>
-/// Replaces the packages a release shipped.
-/// </summary>
-/// <remarks>
-/// Whole-set replacement: a package left out is removed from the release.
-/// </remarks>
-public sealed record SetReleasePackagesRequest
-{
+    /// <summary>
+    /// The packages this release shipped.
+    /// </summary>
     public List<Guid> PackageIds { get; set; } = [];
 }
 

@@ -121,36 +121,18 @@ public class ReleasesController(IDispatcher dispatcher) : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
-    [HttpPut("{id}/versions")]
+    [HttpPut("{id}/contents")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
     [OpenApiOperation(
-        "Set the versions a release carries directly.",
-        "Whole-set replacement: a version left out is removed. A version already shipping inside one of this release's packages is refused, so that one shipment is announced once.")]
+        "Set what a release announces.",
+        "Whole-set replacement of both routes at once: anything left out is removed, and both lists empty clears the release. A version shipping inside one of the supplied packages cannot also be carried directly, so that one shipment is announced once.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> SetVersions(
-        Guid id, [FromBody] SetReleaseVersionsRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult> SetContents(
+        Guid id, [FromBody] SetReleaseContentsRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(
-            new SetReleaseVersionsCommand(id, request.VersionIds), cancellationToken);
-
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
-    }
-
-    [HttpPut("{id}/packages")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Releases)]
-    [OpenApiOperation(
-        "Set the packages a release shipped.",
-        "Whole-set replacement: a package left out is removed. A package is refused if it ships a version this release already carries directly.")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> SetPackages(
-        Guid id, [FromBody] SetReleasePackagesRequest request, CancellationToken cancellationToken)
-    {
-        var result = await _dispatcher.Send(
-            new SetReleasePackagesCommand(id, request.PackageIds), cancellationToken);
+            new SetReleaseContentsCommand(id, request.VersionIds, request.PackageIds), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

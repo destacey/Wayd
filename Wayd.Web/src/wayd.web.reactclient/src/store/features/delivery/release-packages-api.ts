@@ -41,9 +41,9 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
     /**
      * Packages, newest first.
      *
-     * `containingProductId` matches any manifest line for that product, changed or carried forward —
-     * which is how a release finds the packages that shipped it, since the release itself records no
-     * package.
+     * Both containing-* filters read the manifest, since a release records no package of its own:
+     * `containingReleaseId` matches the one release (what a release's page asks), while
+     * `containingProductId` matches any manifest line for that product, changed or carried forward.
      */
     getReleasePackages: builder.query<
       ReleasePackageDto[],

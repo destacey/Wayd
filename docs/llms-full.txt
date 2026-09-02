@@ -507,7 +507,7 @@ Each manifest entry carries a Kind: Changed (the component changed in this packa
 
 SetManifest is a WHOLE-MANIFEST REPLACE, not a delta: components carry no id and are not individually addressable, so the call must send every line the package should end up with, and an omitted line is removed. It is refused once ReleasedDate is set or the status category is Removed, and refuses an empty manifest.
 
-A Release has NO PackageId. Membership is recorded only by the package's manifest, and is queried the other way with GetReleasePackages(containingProductId) — there is no ?packageId= filter on releases, and no ReleaseDto.Package.
+A Release has NO PackageId. Membership is recorded only by the package's manifest, and is queried the other way with GetReleasePackages(containingReleaseId) for one release, or containingProductId for every package carrying any release of a product — there is no ?packageId= filter on releases, and no ReleaseDto.Package.
 
 ### Deployments
 

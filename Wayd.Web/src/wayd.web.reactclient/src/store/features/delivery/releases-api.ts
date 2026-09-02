@@ -44,9 +44,10 @@ export const releasesApi = apiSlice.injectEndpoints({
     /**
      * Releases, newest first.
      *
-     * There is no package filter. A release carries no foreign key to the package it shipped in —
-     * membership is the manifest's to record, so the packages query answers it the other way with
-     * `containingProductId`.
+     * There is no package filter here. A release carries no foreign key to the package it shipped
+     * in — membership is the manifest's to record, so the question is asked from the packages side
+     * with `containingReleaseId`, which matches on manifest entries. (`containingProductId` is the
+     * broader filter: every package carrying *any* release of a product.)
      */
     getReleases: builder.query<ReleaseDto[], GetReleasesRequest | undefined>({
       queryFn: async (request = {}) => {
